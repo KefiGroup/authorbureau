@@ -82,6 +82,7 @@ export default function BP02Builder({ authorId }: Props) {
   const [publishChannels, setPublishChannels] = useState<PublishChannels>({ ...DEFAULT_CHANNELS });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { user: authUser, isReady: isAuthReady } = useAuthReady();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
     if (!isAuthReady) return; // Wait for auth session to restore
