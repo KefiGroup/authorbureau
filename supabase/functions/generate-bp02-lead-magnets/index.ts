@@ -116,7 +116,7 @@ Generate the following as a JSON object with these exact keys:
   "lead_magnets": [
     {
       "number": 1,
-      "type": "Type (e.g., Quiz/Assessment, Checklist, Cheat Sheet)",
+      "type": "Type (Quiz/Assessment or Checklist)",
       "title": "Compelling title",
       "description": "One sentence describing value and transformation",
       "why_it_works": "Why this attracts this author's audience",
@@ -209,19 +209,6 @@ Generate the following as a JSON object with these exact keys:
     }
   },
 
-  "cheatsheet_structure": {
-    "cheatsheet_title": "Title of the cheat sheet lead magnet",
-    "cheatsheet_description": "1-2 sentences describing what the cheat sheet covers. MUST NOT be empty.",
-    "sections": [
-      {
-        "section_title": "Stage or pattern name",
-        "signals": ["Signal/symptom the reader can identify with 1", "Signal 2", "Signal 3"],
-        "diagnosis": "What these signals mean — a 1-2 sentence interpretation",
-        "next_resource": "Which product or chapter addresses this stage"
-      }
-    ],
-    "quick_match_guide": "A 2-3 sentence summary telling the reader: find the section that matches you most, then check the recommended resource."
-  },
 
   "optin_page": {
     "headline": "Main headline (use the best headline_variant)",
@@ -311,7 +298,7 @@ Generate the following as a JSON object with these exact keys:
 }
 
 IMPORTANT RULES:
-1. lead_magnets array: exactly 3 items, each different type. At least one MUST be Quiz/Assessment, one MUST be Checklist, one MUST be Cheat Sheet.
+1. lead_magnets array: exactly 2 items. Item 1 MUST be Quiz/Assessment, item 2 MUST be Checklist.
 2. quiz_structure: exactly 8-10 questions. Each has exactly 4 options with ascending points (1-4).
 3. scoring_tiers: exactly 5 tiers covering the full point range. Each has 3 product recommendations AND 2 specific tips from the book.
 4. headline_variants: exactly 3 (identity, outcome, curiosity). Each must be compelling and specific to this book.
@@ -325,8 +312,7 @@ IMPORTANT RULES:
 12. Make everything specific to this author's book and audience. Never generic.
 13. Quiz must be self-scoring with auto-tally points.
 14. color_palette: suggest brand-appropriate colors based on the book's genre and audience.
-15. checklist_structure: generate 6-8 sections with 3-4 items each. All items are assessment-only "Tick what's true" statements. NO action items. Include a scoring_key with 4 tiers.
-16. cheatsheet_structure: generate one section per framework stage or key area (6-8 sections). Each section has 3 signals, a diagnosis, and a next_resource recommendation.`;
+15. checklist_structure: generate 6-8 sections with 3-4 items each. All items are assessment-only "Tick what's true" statements. NO action items. Include a scoring_key with 4 tiers.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
@@ -338,12 +324,12 @@ IMPORTANT RULES:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5.2",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        max_completion_tokens: 16000,
+        max_completion_tokens: 10000,
         response_format: { type: "json_object" },
       }),
     });
@@ -382,12 +368,12 @@ IMPORTANT RULES:
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "openai/gpt-5.2",
+              model: "google/gemini-2.5-flash",
               messages: [
                 { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
                 { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
               ],
-              max_completion_tokens: 16000,
+              max_completion_tokens: 10000,
               response_format: { type: "json_object" },
             }),
           });
@@ -396,7 +382,6 @@ IMPORTANT RULES:
           parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
         }
       } else {
-        // Retry: ask AI to fix the JSON
         console.log("No JSON object found, retrying with JSON-fix prompt...");
         const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -405,12 +390,12 @@ IMPORTANT RULES:
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "openai/gpt-5.2",
+            model: "google/gemini-2.5-flash",
             messages: [
               { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
               { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
             ],
-            max_completion_tokens: 16000,
+            max_completion_tokens: 10000,
             response_format: { type: "json_object" },
           }),
         });
