@@ -112,7 +112,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     "authority-builders": "/yield-revenue",
     "analytics": "/revenue-dashboard",
     "abby-coach": "/abby-coach",
-    "connect-settings": "/account-settings?tab=connections",
+    "connect-settings": "/connect-settings",
   };
 
   // Keep dashboard state in sync when URL params change (e.g. internal links)
@@ -158,7 +158,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       return;
     }
     if (section === ("connect-settings" as DashboardSection)) {
-      dashboardNavigate("/account-settings?tab=connections");
+      dashboardNavigate("/connect-settings");
       return;
     }
     setActiveSectionState(section);
