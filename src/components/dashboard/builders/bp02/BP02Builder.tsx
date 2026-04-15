@@ -15,7 +15,7 @@ import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
 
-const STEPS = ["Introduction", "Generating", "Review", "Publish"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
 const GENERATING_MESSAGES = [
   "Reading your book to find the best lead magnet angles...",
@@ -129,17 +129,22 @@ export default function BP02Builder({ authorId }: Props) {
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") {
+          setStep(4);
           setContent((prev: any) => ({ ...prev, activated: true }));
           setLiveUrl(node.microsite_url || null);
+          // Restore publishChannels if persisted
+          const saved = (node.content_json as any)?.publishChannels;
+          if (saved) setPublishChannels(saved);
+        } else {
+          setStep(2);
         }
       }
     })();
   }, [authorId]);
 
   useEffect(() => {
-    if (step === 1 || (step === 3 && !content?.activated)) {
+    if (step === 1 || (step === 4 && !content?.activated)) {
       const msgs = step === 1 ? GENERATING_MESSAGES : ACTIVATING_MESSAGES;
       setMsgIndex(0);
       intervalRef.current = setInterval(() => {
@@ -164,25 +169,31 @@ export default function BP02Builder({ authorId }: Props) {
 
       // Auto-save as draft immediately after generation
       if (authorId && data.content) {
-        const { data: existingNode } = await supabase
-          .from("author_nodes")
-          .select("id")
-          .eq("author_id", authorId)
-          .eq("node_id", "BP-02")
-          .maybeSingle();
+        try {
+          const { data: existingNode } = await supabase
+            .from("author_nodes")
+            .select("id")
+            .eq("author_id", authorId)
+            .eq("node_id", "BP-02")
+            .maybeSingle();
 
-        const payload = { content_json: data.content, status: "content_ready" as const };
-        if (existingNode) {
-          await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
-        } else {
-          await supabase.from("author_nodes").insert({
-            author_id: authorId,
-            node_id: "BP-02",
-            node_name: "Lead Magnets",
-            ...payload,
-          });
+          const payload = { content_json: data.content, status: "content_ready" as const };
+          if (existingNode) {
+            const { error: upErr } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
+            if (upErr) console.error("[BP02] Auto-save update failed:", upErr);
+          } else {
+            const { error: insErr } = await supabase.from("author_nodes").insert({
+              author_id: authorId,
+              node_id: "BP-02",
+              node_name: "Lead Magnets",
+              ...payload,
+            });
+            if (insErr) console.error("[BP02] Auto-save insert failed:", insErr);
+          }
+          console.log("[BP02] Auto-saved draft after generation");
+        } catch (saveErr) {
+          console.error("[BP02] Auto-save exception:", saveErr);
         }
-        console.log("[BP02] Auto-saved draft after generation");
       }
     } catch (e: any) {
       setError(e.message);
@@ -225,7 +236,7 @@ export default function BP02Builder({ authorId }: Props) {
 
   const handlePublish = async () => {
     setIsPublishing(true);
-    setStep(3);
+    setStep(4);
     setError(null);
     try {
       const { data: existingNode } = await supabase
@@ -238,7 +249,7 @@ export default function BP02Builder({ authorId }: Props) {
       if (existingNode) {
         await supabase.from("author_nodes").update({
           status: "live",
-          content_json: content,
+          content_json: { ...content, publishChannels },
           activated_at: new Date().toISOString(),
         }).eq("id", existingNode.id);
       } else {
@@ -247,7 +258,7 @@ export default function BP02Builder({ authorId }: Props) {
           node_id: "BP-02",
           node_name: "Lead Magnets",
           status: "live",
-          content_json: content,
+          content_json: { ...content, publishChannels },
           activated_at: new Date().toISOString(),
         });
       }
@@ -332,7 +343,7 @@ export default function BP02Builder({ authorId }: Props) {
     } catch (e: any) {
       toast.error(e.message || "Something went wrong during publishing.");
       setError(e.message);
-      setStep(2);
+      setStep(3);
     } finally {
       setIsPublishing(false);
     }
@@ -433,17 +444,28 @@ export default function BP02Builder({ authorId }: Props) {
             setContent={setContent}
             authorName={authorName}
             authorId={authorId!}
-            onActivate={handlePublish}
+            onNext={() => setStep(3)}
             onSaveDraft={handleSaveDraft}
             error={error}
-            isPublishing={isPublishing}
             isSavingDraft={isSavingDraft}
-            publishChannels={publishChannels}
-            setPublishChannels={setPublishChannels}
           />
         )}
 
-        {step === 3 && !content?.activated && (
+        {step === 3 && content && (
+          <PublishStep
+            content={content}
+            publishChannels={publishChannels}
+            setPublishChannels={setPublishChannels}
+            onPublish={handlePublish}
+            onBack={() => setStep(2)}
+            onSaveDraft={handleSaveDraft}
+            isPublishing={isPublishing}
+            isSavingDraft={isSavingDraft}
+            error={error}
+          />
+        )}
+
+        {step === 4 && !content?.activated && (
           <AbbyCard>
             <div className="space-y-4">
               <p className="text-muted-foreground font-medium animate-pulse">{ACTIVATING_MESSAGES[msgIndex % ACTIVATING_MESSAGES.length]}</p>
@@ -452,7 +474,7 @@ export default function BP02Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
-        {step === 3 && content?.activated && (
+        {step === 4 && content?.activated && (
           <PublishSuccessStep authorName={authorName} authorId={authorId!} liveUrl={liveUrl} copied={copied} onCopy={handleCopyUrl} publishChannels={publishChannels} />
         )}
       </div>
@@ -556,25 +578,19 @@ function ReviewStep({
   setContent,
   authorName,
   authorId,
-  onActivate,
+  onNext,
   onSaveDraft,
   error,
-  isPublishing,
   isSavingDraft,
-  publishChannels,
-  setPublishChannels,
 }: {
   content: any;
   setContent: (c: any) => void;
   authorName: string;
   authorId: string;
-  onActivate: () => void;
+  onNext: () => void;
   onSaveDraft: () => void;
   error: string | null;
-  isPublishing?: boolean;
   isSavingDraft?: boolean;
-  publishChannels: PublishChannels;
-  setPublishChannels: React.Dispatch<React.SetStateAction<PublishChannels>>;
 }) {
   const recommended = content.recommended_lead_magnet || 1;
   const [selectedMagnetIdx, setSelectedMagnetIdx] = useState<number>(
@@ -1181,13 +1197,59 @@ function ReviewStep({
         </TabsContent>
       </Tabs>
 
-      {/* ---- Channel Selection Panel ---- */}
+      <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <Button variant="outline" className="flex-1" onClick={onSaveDraft} disabled={isSavingDraft}>
+          <Save className="h-4 w-4 mr-2" />
+          {isSavingDraft ? "Saving..." : "Save Draft"}
+        </Button>
+        <Button className="flex-1" size="lg" onClick={onNext}>
+          Next: Publish <ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
+      </div>
+      {error && (
+        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">{error}</div>
+      )}
+    </div>
+  );
+}
+
+function PublishStep({
+  content,
+  publishChannels,
+  setPublishChannels,
+  onPublish,
+  onBack,
+  onSaveDraft,
+  isPublishing,
+  isSavingDraft,
+  error,
+}: {
+  content: any;
+  publishChannels: PublishChannels;
+  setPublishChannels: React.Dispatch<React.SetStateAction<PublishChannels>>;
+  onPublish: () => void;
+  onBack: () => void;
+  onSaveDraft: () => void;
+  isPublishing: boolean;
+  isSavingDraft?: boolean;
+  error: string | null;
+}) {
+  const nurureCount = (content.nurture_sequence || content.nurture_emails || []).length;
+  const socialCount = (content.social_media_posts || content.social_posts || []).length;
+
+  return (
+    <div className="space-y-4">
+      <AbbyCard>
+        <p className="text-muted-foreground">
+          Everything looks great! Choose which channels you'd like to activate, then hit Publish.
+        </p>
+      </AbbyCard>
+
       <Card className="p-5 border-primary/30 bg-primary/5">
         <h4 className="text-sm font-semibold mb-3 flex items-center gap-2">
           <Globe className="h-4 w-4 text-primary" /> Where do you want to publish?
         </h4>
         <div className="space-y-3">
-          {/* Opt-in Page — always on */}
           <label className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border">
             <Checkbox checked={publishChannels.optinPage} disabled className="mt-0.5" />
             <div className="flex-1">
@@ -1197,7 +1259,6 @@ function ReviewStep({
             <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/40 px-2 py-0.5 rounded-full">CORE</span>
           </label>
 
-          {/* Email Nurture */}
           {nurureCount > 0 && (
             <label className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border cursor-pointer hover:bg-muted/60 transition-colors">
               <Checkbox
@@ -1214,7 +1275,6 @@ function ReviewStep({
             </label>
           )}
 
-          {/* Social Platforms */}
           {socialCount > 0 && (
             <>
               <div className="pt-1">
@@ -1241,11 +1301,14 @@ function ReviewStep({
       </Card>
 
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
+        <Button variant="outline" className="flex-1" onClick={onBack}>
+          <ArrowLeft className="h-4 w-4 mr-2" /> Back to Review
+        </Button>
         <Button variant="outline" className="flex-1" onClick={onSaveDraft} disabled={isSavingDraft}>
           <Save className="h-4 w-4 mr-2" />
           {isSavingDraft ? "Saving..." : "Save Draft"}
         </Button>
-        <Button className="flex-1" size="lg" onClick={() => onActivate()} disabled={isPublishing}>
+        <Button className="flex-1" size="lg" onClick={onPublish} disabled={isPublishing}>
           {isPublishing ? (
             <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing...</>
           ) : (
