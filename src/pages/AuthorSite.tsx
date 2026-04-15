@@ -200,6 +200,8 @@ export default function AuthorSite() {
         hasServices={coachingServices.length > 0}
         hasLearnSection={learnNodes.length > 0}
         hasQuizSection={leadMagnets.length > 0}
+        hasEvents={eventNodes.length > 0}
+        hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
         vars={v}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
@@ -217,12 +219,13 @@ export default function AuthorSite() {
       />
 
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} theme={theme} v={v} />
-      <AuthorAboutSection author={author} displayName={displayName} theme={theme} v={v} />
+      <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
-      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} theme={theme} v={v} />
+      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
       <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
-      <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} theme={theme} v={v} />
-      <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} theme={theme} v={v} />
+      <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} />
+      <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
+      <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} affiliateNodes={affiliateNodes} theme={theme} v={v} />
       <AuthorRelatedSection relatedAuthors={relatedAuthors} theme={theme} v={v} />
     </AuthorPageLayout>
   );
