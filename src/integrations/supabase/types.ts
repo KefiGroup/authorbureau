@@ -2140,6 +2140,82 @@ export type Database = {
           },
         ]
       }
+      generated_emails: {
+        Row: {
+          author_id: string
+          body_html: string | null
+          body_markdown: string | null
+          book_id: string | null
+          created_at: string
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          resend_message_id: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          subject: string
+          trigger_condition: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          body_html?: string | null
+          body_markdown?: string | null
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          resend_message_id?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject: string
+          trigger_condition?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          body_html?: string | null
+          body_markdown?: string | null
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          resend_message_id?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          subject?: string
+          trigger_condition?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_emails_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_emails_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_emails_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ghl_deployments: {
         Row: {
           author_id: string
@@ -2279,6 +2355,117 @@ export type Database = {
             columns: ["source_asset_id"]
             isOneToOne: false
             referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          author_id: string
+          book_id: string | null
+          captured_at: string
+          created_at: string
+          email: string
+          id: string
+          last_activity_at: string | null
+          metadata: Json | null
+          name: string | null
+          nurture_stage: string
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          book_id?: string | null
+          captured_at?: string
+          created_at?: string
+          email: string
+          id?: string
+          last_activity_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          nurture_stage?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string | null
+          captured_at?: string
+          created_at?: string
+          email?: string
+          id?: string
+          last_activity_at?: string | null
+          metadata?: Json | null
+          name?: string | null
+          nurture_stage?: string
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leads_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_assets: {
+        Row: {
+          asset_type: string
+          author_id: string
+          book_id: string | null
+          content: Json
+          created_at: string
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          asset_type: string
+          author_id: string
+          book_id?: string | null
+          content?: Json
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          asset_type?: string
+          author_id?: string
+          book_id?: string | null
+          content?: Json
+          created_at?: string
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_assets_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_assets_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2426,6 +2613,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      nurture_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          lead_id: string
+          metadata: Json | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          lead_id: string
+          metadata?: Json | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nurture_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       podcast_episodes: {
         Row: {
