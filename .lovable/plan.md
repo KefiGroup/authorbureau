@@ -1,57 +1,46 @@
 
 
-# Sprint 29 QA Fix Plan
+# Sprint 29 QA — 3 Fixes
 
-## Root Causes Found
+## Fix 1: BP-02 JSON parsing error
 
-**BP-02 (generate-bp02-lead-magnets)**: Fails with `"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."` — the `openai/gpt-5` model requires `max_completion_tokens`, not `max_tokens`.
+**Root cause**: The edge function calls `openai/gpt-5` without `response_format: { type: "json_object" }`, so the model sometimes wraps JSON in prose/markdown that fails parsing.
 
-**BP-03 (generate-bp03-social-media)**: Two issues:
-1. Same `max_tokens` parameter error (uses `max_tokens: 32000`)
-2. Hard-fails with "No book context found" because it requires `author_context` table data and has no fallback to the `books` table
+**Fix in `supabase/functions/generate-bp02-lead-magnets/index.ts`**:
+1. Add `response_format: { type: "json_object" }` to the AI gateway request body (line 272)
+2. Add a retry mechanism: if JSON parsing fails after the first attempt, call the AI again with a simplified prompt ("Fix this into valid JSON: [raw content]") and parse that response
+3. Redeploy the function
 
-## Fixes
+## Fix 2: BP-01 not linked in Marketing Hub
 
-### Fix 1 — Replace `max_tokens` with `max_completion_tokens` in both edge functions
+**Root cause**: BP-01 (Email Marketing / Website) has no row in `author_nodes` at all, so `deriveNodeStatus` returns `not_built`. The user's live site at `authorsbureau.com/pauline-teo` isn't tracked. There is no `author_websites` table — the microsite URL is stored on `author_nodes.microsite_url`.
 
-**File**: `supabase/functions/generate-bp02-lead-magnets/index.ts` (line 262)
-- Change `max_tokens: 8000` to `max_completion_tokens: 8000`
+**Fix in `src/components/dashboard/MarketingHub.tsx`**:
+1. In `fetchNodes`, also query `author_profiles` for the author's `author_slug` and `microsite_url` fields
+2. If `author_slug` exists (meaning the author has a public profile page), synthesize a virtual `NodeRow` for BP-01 with `status: "live"` and the microsite URL
+3. Add this virtual row to `nodeRows` so BP-01 shows as "Ready to Activate" (or "Active" if `marketing_activated_at` is set)
 
-**File**: `supabase/functions/generate-bp03-social-media/index.ts` (line 146)
-- Change `max_tokens: 32000` to `max_completion_tokens: 32000`
+Additionally, `deriveNodeStatus` must handle `content_ready` status — currently it falls through to `not_built`. Map `content_ready` → `"ready"`.
 
-### Fix 2 — Add books table fallback in BP-03 edge function
+## Fix 3: Content persistence for BP-02
 
-BP-03 currently throws if no `author_context` row exists. Add a fallback:
-- If no `author_context`, query `books` table using `author_profiles.user_id`
-- Build context from the book record (title, description as thesis)
-- Only throw if neither `author_context` nor `books` has data
+**Root cause**: The edge function already saves to `author_nodes` (lines 311-321), and the BP02Builder already loads from `author_nodes` on mount (lines 91-105). However, the status check on line 98 only recognizes `content_ready` or `live`. The edge function sets status to `content_ready` — this path should work.
 
-### Fix 3 — Return detailed error messages from edge functions
+Looking more carefully: the edge function's update on line 311 does an `update` with `.eq("author_id", author_id).eq("node_id", "BP-02")`, but there may be no existing row to update (it was only inserted during `handlePublish`). The upsert logic is split: edge function does `update`, client does `insert` on publish.
 
-Both functions already return `{ success: false, error: err.message }` with status 500. The issue is Supabase SDK swallows non-2xx responses. Change both functions to always return HTTP 200 with `success: false` in the body so the client can read the actual error message.
+**Fix**: The edge function should upsert (insert if no row exists, update if it does). Change the edge function to:
+1. First check if a row exists for this author_id + BP-02
+2. If yes, update it
+3. If no, insert a new row with status `content_ready`
 
-### Fix 4 — Book title in UI ("your book" vs actual title)
-
-BP-02's edge function line 39: `const bookTitle = context?.book_title || "your book"` — after the fallback fix, this will use the actual book title from the `books` table.
-
-### Fix 5 — Loading state on Generate button
-
-Both builders already have loading states (step 1 with `GENERATING_MESSAGES` spinner). The issue is that the error causes an immediate crash back to step 0. With the edge function fixes, the loading state will be visible during the actual generation time. No UI changes needed — the loading state already exists.
+This ensures the generated content is persisted even before the author clicks "Publish". On return visits, the existing load logic (line 98) will find `content_ready` and skip to step 2 (Review).
 
 ## Files Changed
 
 | File | Change |
 |---|---|
-| `supabase/functions/generate-bp02-lead-magnets/index.ts` | `max_tokens` → `max_completion_tokens`, return HTTP 200 always |
-| `supabase/functions/generate-bp03-social-media/index.ts` | `max_tokens` → `max_completion_tokens`, add books fallback, return HTTP 200 always |
+| `supabase/functions/generate-bp02-lead-magnets/index.ts` | Add `response_format`, retry on JSON failure, upsert logic |
+| `src/components/dashboard/MarketingHub.tsx` | Handle `content_ready` status, synthesize BP-01 row from author profile |
 
-## What Does NOT Change
-- No UI component changes needed
-- No database migrations
-- No new edge functions
-- Brand Products, sidebar, dashboard untouched
-
-## Deploy
-Both edge functions need redeployment after changes.
+No new tables, routes, or edge functions.
 
