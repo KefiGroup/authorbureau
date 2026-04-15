@@ -36,9 +36,26 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const bookTitle = context?.book_title || "your book";
-    const bookSubtitle = context?.book_subtitle || "";
-    const coreThesis = context?.core_thesis || "";
+    // Fallback to books table if no author_context exists
+    let bookTitle = context?.book_title || "";
+    let bookSubtitle = context?.book_subtitle || "";
+    let coreThesis = context?.core_thesis || "";
+    if (!bookTitle) {
+      const { data: book } = await supabase
+        .from("books")
+        .select("title, subtitle, description")
+        .eq("author_id", author_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (book) {
+        bookTitle = book.title || "";
+        bookSubtitle = book.subtitle || "";
+        coreThesis = book.description || "";
+      }
+    }
+    if (!bookTitle) throw new Error("No book found. Please add a book first.");
+
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "readers interested in personal growth";
     const uniqueInsights = context?.unique_insights ? JSON.stringify(context.unique_insights) : "N/A";
@@ -259,7 +276,7 @@ IMPORTANT RULES:
           { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 8000,
+        max_completion_tokens: 8000,
       }),
     });
 
@@ -311,7 +328,7 @@ IMPORTANT RULES:
     console.error("generate-bp02 error:", err.message);
     return new Response(
       JSON.stringify({ success: false, error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

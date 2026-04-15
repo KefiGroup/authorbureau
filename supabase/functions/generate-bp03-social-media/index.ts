@@ -17,23 +17,36 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
 
-    const { data: profile } = await sb.from("author_profiles").select("pen_name, genre").eq("id", author_id).single();
+    const { data: profile } = await sb.from("author_profiles").select("pen_name, genres").eq("id", author_id).single();
     const { data: ctx } = await sb.from("author_context").select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
-    if (!ctx) throw new Error("No book context found. Please complete your book profile first.");
+    // Fallback to books table if no author_context
+    let bookTitle = ctx?.book_title || "";
+    let bookSubtitle = ctx?.book_subtitle || "";
+    let coreThesis = ctx?.core_thesis || "";
+    let keyFrameworks = JSON.stringify(ctx?.key_frameworks || []);
+    let uniqueInsights = JSON.stringify(ctx?.unique_insights || []);
+    let audiencePersona = JSON.stringify(ctx?.target_audience_persona || {});
+
+    if (!bookTitle) {
+      const { data: book } = await sb.from("books").select("title, subtitle, description").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (book) {
+        bookTitle = book.title || "";
+        bookSubtitle = book.subtitle || "";
+        coreThesis = book.description || "";
+      }
+    }
+    if (!bookTitle) throw new Error("No book found. Please add a book first.");
 
     const authorName = profile?.pen_name || "Author";
-    const genre = profile?.genre || "general";
-    const keyFrameworks = JSON.stringify(ctx.key_frameworks || []);
-    const uniqueInsights = JSON.stringify(ctx.unique_insights || []);
-    const audiencePersona = JSON.stringify(ctx.target_audience_persona || {});
+    const genre = (profile?.genres && profile.genres[0]) || "general";
 
-    const userPrompt = `Create a complete 30-day marketing kit for ${authorName}'s book '${ctx.book_title}'.
+    const userPrompt = `Create a complete 30-day marketing kit for ${authorName}'s book '${bookTitle}'.
 
 Book details:
-- Title: ${ctx.book_title}
-- Subtitle: ${ctx.book_subtitle || "N/A"}
-- Core thesis: ${ctx.core_thesis}
+- Title: ${bookTitle}
+- Subtitle: ${bookSubtitle || "N/A"}
+- Core thesis: ${coreThesis}
 - Target audience persona: ${audiencePersona}
 - Key frameworks: ${keyFrameworks}
 - Unique insights: ${uniqueInsights}
@@ -54,11 +67,11 @@ IMPORTANT INSTRUCTIONS:
    - Week 4 (Days 22–30): Make the Offer — Direct promotion, book/workbook/course/webinar, urgency
 
 3. REVENUE-LINKED CTAs — Every post must end with a CTA:
-   - Tips/Insights posts: "Get the full framework in ${ctx.book_title} — link in bio"
-   - Story posts: "This is from my book. Want the rest? Link in bio."
-   - Engagement posts: "Comment YES if you want my free [lead magnet]"
-   - Week 3 social proof: "This could be your story. Start here → [book link]"
-   - Week 4 promotional: "Get ${ctx.book_title} now — link in bio"
+    - Tips/Insights posts: "Get the full framework in ${bookTitle} — link in bio"
+    - Story posts: "This is from my book. Want the rest? Link in bio."
+    - Engagement posts: "Comment YES if you want my free [lead magnet]"
+    - Week 3 social proof: "This could be your story. Start here → [book link]"
+    - Week 4 promotional: "Get ${bookTitle} now — link in bio"
    - Every 7th post: Direct lead magnet opt-in CTA
 
 4. EMAIL SEQUENCE — Generate exactly 30 emails matching the same 4-week story arc. Each email has:
@@ -143,7 +156,7 @@ Make ALL content specific to this author's book themes, frameworks, and insights
           { role: "user", content: userPrompt },
         ],
         temperature: 0.8,
-        max_tokens: 32000,
+        max_completion_tokens: 32000,
       }),
     });
 
@@ -188,7 +201,7 @@ Make ALL content specific to this author's book themes, frameworks, and insights
   } catch (err) {
     console.error("generate-bp03-social-media error:", err);
     return new Response(JSON.stringify({ success: false, error: err.message }), {
-      status: 400,
+      status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
