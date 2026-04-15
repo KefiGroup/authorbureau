@@ -7,20 +7,6 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-/**
- * Unified microsite action endpoint for all 28 nodes.
- * Handles: optin, purchase, enquiry, application
- *
- * Body: {
- *   author_id: string,   // author_profiles.id
- *   node_id: string,     // e.g. "BP-02"
- *   action_type: "optin" | "purchase" | "enquiry" | "application",
- *   email: string,
- *   first_name?: string,
- *   last_name?: string,
- *   ...extra fields per node
- * }
- */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -37,7 +23,6 @@ serve(async (req) => {
       );
     }
 
-    // Get the author's GHL sub-account
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
@@ -56,10 +41,11 @@ serve(async (req) => {
       );
     }
 
+    const authorUserId = profile.user_id;
     const ghlSubAccountId = profile.ghl_sub_account_id;
     const GHL_API_KEY = Deno.env.get("GHL_API_KEY") || Deno.env.get("GHL_SUBACCOUNT_KEY") || "";
 
-    // Determine GHL tags based on action and node
+    // Tag map
     const tagMap: Record<string, string> = {
       "BP-02:optin": "lead-magnet-optin",
       "BP-05:optin": "webinar-registrant",
@@ -84,8 +70,10 @@ serve(async (req) => {
     };
 
     const tag = tagMap[`${node_id}:${action_type}`] || `${node_id.toLowerCase()}-${action_type}`;
+    const fullName = [first_name, last_name].filter(Boolean).join(" ") || email;
+    const cleanEmail = email.toLowerCase().trim();
 
-    // Create/update GHL contact
+    // ─── GHL Contact ───
     let ghlContactId: string | null = null;
     if (ghlSubAccountId && GHL_API_KEY) {
       try {
@@ -98,7 +86,7 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             locationId: ghlSubAccountId,
-            email,
+            email: cleanEmail,
             firstName: first_name || "",
             lastName: last_name || "",
             tags: [tag],
@@ -110,17 +98,16 @@ serve(async (req) => {
         ghlContactId = ghlData?.contact?.id || null;
       } catch (ghlErr) {
         console.error("GHL contact creation failed:", ghlErr);
-        // Non-fatal — continue without GHL
       }
     }
 
-    // Also save to author_subscribers for platform tracking
+    // ─── Author Subscribers (existing) ───
     try {
       await supabaseAdmin.from("author_subscribers").upsert(
         {
-          author_id: profile.user_id || author_id,
-          email,
-          name: [first_name, last_name].filter(Boolean).join(" ") || null,
+          author_id: authorUserId || author_id,
+          email: cleanEmail,
+          name: fullName !== email ? fullName : null,
           source: "microsite",
           source_detail: `${node_id}:${action_type}`,
           status: "active",
@@ -132,20 +119,187 @@ serve(async (req) => {
       console.error("Subscriber upsert failed:", subErr);
     }
 
-    // For enquiry/application types, also save to crm_contacts
-    if (action_type === "enquiry" || action_type === "application") {
-      try {
-        await supabaseAdmin.from("crm_contacts").insert({
-          author_id: profile.user_id || author_id,
-          full_name: [first_name, last_name].filter(Boolean).join(" ") || email,
-          email,
-          company: extra.company || null,
-          source: `microsite-${node_id}`,
-          notes: extra.message || extra.budget ? JSON.stringify(extra) : null,
-        });
-      } catch (crmErr) {
-        console.error("CRM contact insert failed:", crmErr);
+    // ─── LEVEL 1: Author-level CRM ───
+    let authorContactId: string | null = null;
+    try {
+      // Dedup by email
+      const { data: existing } = await supabaseAdmin
+        .from("crm_contacts")
+        .select("id")
+        .eq("author_id", authorUserId)
+        .eq("email", cleanEmail)
+        .maybeSingle();
+
+      if (existing) {
+        authorContactId = existing.id;
+        if (fullName !== email) {
+          await supabaseAdmin.from("crm_contacts").update({ full_name: fullName }).eq("id", authorContactId);
+        }
+      } else {
+        const { data: newContact } = await supabaseAdmin
+          .from("crm_contacts")
+          .insert({
+            author_id: authorUserId,
+            full_name: fullName,
+            email: cleanEmail,
+            source: `microsite-${node_id}`,
+            notes: extra.message || extra.budget ? JSON.stringify(extra) : null,
+            company: extra.company || null,
+          })
+          .select("id")
+          .single();
+        authorContactId = newContact?.id || null;
       }
+
+      // Add tag (idempotent)
+      if (authorContactId) {
+        await supabaseAdmin.from("crm_contact_tags").insert({
+          author_id: authorUserId,
+          contact_id: authorContactId,
+          tag,
+        }).then(({ error }) => {
+          if (error && !error.message.includes("duplicate")) console.error("Author tag error:", error);
+        });
+
+        // Activity log
+        await supabaseAdmin.from("crm_activity_log").insert({
+          author_id: authorUserId,
+          contact_id: authorContactId,
+          type: "note",
+          content: `Lead captured from microsite ${node_id} (${action_type}): ${cleanEmail}`,
+        });
+      }
+    } catch (crmErr) {
+      console.error("Author CRM capture failed:", crmErr);
+    }
+
+    // ─── LEVEL 2: Platform-level CRM (first admin) ───
+    try {
+      const { data: adminRole } = await supabaseAdmin
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "admin")
+        .limit(1)
+        .single();
+
+      const platformAdminId = adminRole?.user_id;
+
+      if (platformAdminId && platformAdminId !== authorUserId) {
+        const { data: existingPlatform } = await supabaseAdmin
+          .from("crm_contacts")
+          .select("id")
+          .eq("author_id", platformAdminId)
+          .eq("email", cleanEmail)
+          .maybeSingle();
+
+        let platformContactId: string | null = null;
+
+        if (existingPlatform) {
+          platformContactId = existingPlatform.id;
+        } else {
+          const { data: newPlatform } = await supabaseAdmin
+            .from("crm_contacts")
+            .insert({
+              author_id: platformAdminId,
+              full_name: fullName,
+              email: cleanEmail,
+              source: `microsite-${node_id}`,
+              notes: `Via author: ${profile.pen_name || "Unknown"}`,
+              company: extra.company || null,
+            })
+            .select("id")
+            .single();
+          platformContactId = newPlatform?.id || null;
+        }
+
+        if (platformContactId) {
+          await supabaseAdmin.from("crm_contact_tags").insert({
+            author_id: platformAdminId,
+            contact_id: platformContactId,
+            tag,
+          }).then(({ error }) => {
+            if (error && !error.message.includes("duplicate")) console.error("Platform tag error:", error);
+          });
+
+          // Tag with author name for filtering
+          if (profile.pen_name) {
+            await supabaseAdmin.from("crm_contact_tags").insert({
+              author_id: platformAdminId,
+              contact_id: platformContactId,
+              tag: `author-${profile.pen_name.toLowerCase().replace(/\s+/g, "-")}`,
+            }).then(({ error }) => {
+              if (error && !error.message.includes("duplicate")) { /* ignore */ }
+            });
+          }
+
+          await supabaseAdmin.from("crm_activity_log").insert({
+            author_id: platformAdminId,
+            contact_id: platformContactId,
+            type: "note",
+            content: `Platform lead from ${profile.pen_name || "author"}'s microsite ${node_id} (${action_type})`,
+          });
+        }
+      }
+    } catch (platformErr) {
+      console.error("Platform CRM capture failed:", platformErr);
+    }
+
+    // ─── Resend Email Notification to Author ───
+    try {
+      const { data: { user: authorUser } } = await supabaseAdmin.auth.admin.getUserById(authorUserId);
+
+      if (authorUser?.email) {
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+        if (resendKey) {
+          const actionLabel = action_type === "optin" ? "New lead"
+            : action_type === "purchase" ? "New purchase"
+            : action_type === "enquiry" ? "New enquiry"
+            : "New application";
+
+          await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${resendKey}`,
+            },
+            body: JSON.stringify({
+              from: "Authors Bureau <notify@notify.authorsbureau.com>",
+              to: [authorUser.email],
+              subject: `${actionLabel} from ${fullName}`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #1a1a1a;">${actionLabel} via your microsite</h2>
+                  <p style="color: #555;"><strong>${fullName}</strong> (${cleanEmail}) submitted via <strong>${node_id}</strong>.</p>
+                  <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
+                    <p style="color: #333; margin: 0;"><strong>Action:</strong> ${action_type}</p>
+                    <p style="color: #333; margin: 8px 0 0;"><strong>Tag:</strong> ${tag}</p>
+                    ${extra.message ? `<p style="color: #333; margin: 8px 0 0;"><strong>Message:</strong> ${String(extra.message).slice(0, 300)}</p>` : ""}
+                  </div>
+                  <a href="https://authorbureau.lovable.app/dashboard?section=crm"
+                     style="display: inline-block; background: #c8a45a; color: #fff; padding: 10px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 12px;">
+                    View in CRM
+                  </a>
+                </div>
+              `,
+            }),
+          });
+          console.log("Resend email sent to author:", authorUser.email);
+        }
+      }
+    } catch (emailErr) {
+      console.error("Email notification error (non-fatal):", emailErr);
+    }
+
+    // ─── In-app notification ───
+    try {
+      await supabaseAdmin.from("notifications").insert({
+        user_id: authorUserId,
+        title: `New ${action_type} from ${node_id}`,
+        message: `${fullName} (${cleanEmail}) via your microsite`,
+        link: "/dashboard?section=crm",
+      });
+    } catch (notifErr) {
+      console.error("Notification insert failed:", notifErr);
     }
 
     return new Response(
