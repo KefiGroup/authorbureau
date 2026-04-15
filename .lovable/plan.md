@@ -1,45 +1,61 @@
 
 
-# Fix: Make Magnets Selectable & Adapt Tabs to Selection
+# Aesthetic Overhaul: Builder Pages Visual Design System
 
 ## Problem
-The Magnets tab shows 3 lead magnet options (Quiz, Checklist, Cheat Sheet) but they're not clickable. The user expects to **pick one** as their active lead magnet, and the subsequent tabs (Quiz, Opt-In, Thanks) should reflect that choice. Currently the Quiz tab always shows quiz content regardless — if the author picks "Checklist", the Quiz tab is irrelevant.
+All builder pages (BP-02, BP-09, YR-*, BA-*) share the same `AbbyCard` component — a plain `border-primary/20 bg-primary/5` card. The Introduction, Generating, and page wrapper are flat grey/beige. Meanwhile, the `SmartProductCard` in the Portfolio view uses rich gradients, colored left-strips, glow shadows, and state-specific color coding that feels polished and engaging.
 
-## Design
+## Design Approach
 
-### Magnets tab: Select 1 of 3
-- Each magnet card becomes a **clickable selection card** (like the headline variant picker)
-- ABBY's Top Pick is pre-selected by default
-- Clicking a card sets it as the `selected_lead_magnet` in content state
-- Selected card gets a prominent border + "✓ Selected" badge
-- Unselected cards are dimmed slightly with "Click to select" affordance
+Apply the existing **B-B-Y category color system** (Brand = Teal/Emerald, Build = Indigo/Blue, Yield = Amber/Gold) to the builder pages themselves, so each builder "feels" like its category.
 
-### Tab 2 adapts to selection
-- Rename the "Quiz" tab to **"Content Preview"**
-- If selected magnet is a **Quiz/Assessment**: show quiz questions, options, scoring tiers (current behavior)
-- If selected magnet is a **Checklist**: show a checklist preview with the 8 signal items, score key
-- If selected magnet is a **Cheat Sheet**: show the pattern-to-stage map, diagnosis sections
-- Since the edge function only generates full `quiz_structure` for the quiz type, for Checklist/Cheat Sheet the tab shows a structured preview built from the magnet's `description`, `pages_or_length`, and `why_it_works` — with a note that the detailed content will be generated on publish
+### 1. Category-Aware AbbyCard
+Replace the generic `AbbyCard` with a `ThemedAbbyCard` that accepts a `category` prop (`brand | build | yield`) and applies category-specific styling:
 
-### Opt-In, Thanks, Flow tabs
-- These already work generically — they stay the same but the headline/CTA should reference the selected magnet's title
+| Category | Border | Background Gradient | Icon Bg | Accent |
+|---|---|---|---|---|
+| Brand | `border-teal-400/30` | `from-teal-500/8 via-card to-card` | `bg-teal-500/20` | Teal |
+| Build | `border-indigo-400/30` | `from-indigo-500/8 via-card to-card` | `bg-indigo-500/20` | Indigo |
+| Yield | `border-amber-400/30` | `from-amber-500/8 via-card to-card` | `bg-amber-500/20` | Amber |
 
-## Technical Changes
+### 2. Stepper with Category Color
+The step circles currently use generic `bg-primary`. Update to use category accent color (e.g., teal for BP-02, amber for YR-* nodes).
 
-### `src/components/dashboard/builders/bp02/BP02Builder.tsx`
+### 3. Page Header with Subtle Gradient Banner
+Add a subtle gradient banner behind the page title matching the node category — similar to how `SmartProductCard` uses `bg-gradient-to-br from-{color}/[0.06]`.
 
-1. **Add `selectedMagnetIdx` state** — defaults to `(recommended - 1)` or `0`
-2. **Magnets tab**: Wrap each card in a `<button>` with `onClick={() => setSelectedMagnetIdx(lmIdx)}`. Add selected/unselected styling (border-primary + checkmark vs dimmed border)
-3. **Rename "Quiz" tab** → "Content" — change TabsTrigger value and label
-4. **Content tab logic**: 
-   - If selected magnet type contains "quiz" or "assessment" (case-insensitive): show current quiz questions/tiers UI
-   - Otherwise: show a styled content preview card with the magnet's title, description, format details, and a note "Full content will be built when you publish"
-5. **Opt-In tab**: Auto-update the headline placeholder to include the selected magnet's title if no headline is explicitly set
-6. **Publish handler**: Include `selected_lead_magnet` index in the saved `content_json` so the microsite knows which one to deploy
+### 4. Introduction Step Enhancement
+- Add a decorative illustration area (icon cluster or abstract shape) using the category color
+- The "Generate" CTA button uses category accent color instead of generic primary
+- Add a subtle left-strip accent on the AbbyCard (matching SmartProductCard pattern)
+
+### 5. Generating Step Enhancement  
+- Progress bar uses category color instead of default
+- Add a pulsing category-colored ring around the Sparkles icon
+- Background uses a very subtle radial gradient in the category color
+
+### 6. Shared Components Updated
+
+**Files to change:**
 
 | File | Change |
 |---|---|
-| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Add magnet selection state, make cards clickable, adapt Content tab, persist selection |
+| `src/components/dashboard/builders/shared/BuilderTheme.ts` | **NEW** — Export category color maps and a `getBuilderCategory(nodeId)` helper |
+| `src/components/dashboard/builders/yr-shared/YRBuilderShared.tsx` | Update `AbbyCard`, `StepHeader`, `LoadingStep` to accept `category` prop and apply themed styles |
+| `src/components/dashboard/builders/ba-shared/BABuilderShared.tsx` | Same updates as YR-shared |
+| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Use themed AbbyCard/StepHeader with `category="brand"` |
+| `src/components/dashboard/builders/bp09/BP09Builder.tsx` | Use themed components with `category="brand"` |
+| All other builder files using `AbbyCard` | Pass the correct category prop (bulk update across ~30 files) |
 
-No database or edge function changes needed — the selection is stored within the existing `content_json`.
+### 7. Node-to-Category Mapping
+Derive from existing `abbyFrameworkConfig.ts`:
+- `BP-*` nodes → brand (teal/emerald)
+- `BA-*` nodes → build (indigo/blue)  
+- `YR-*` nodes → yield (amber/gold)
+
+### What This Does NOT Change
+- Review tab colors (already well-designed with per-tab coloring)
+- SmartProductCard (already good)
+- Dark theme constraint (no light backgrounds — gradients stay subtle)
+- No layout changes — purely color/gradient enhancements
 
