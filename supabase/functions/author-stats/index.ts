@@ -123,11 +123,28 @@ Deno.serve(async (req) => {
     const analyzedCount = analyzedBookIds.size;
 
     // Count author_nodes (built products tracked outside product tables)
-    const { data: authorNodes } = await admin
-      .from("author_nodes")
-      .select("node_id, status")
-      .in("author_id", allUserIds)
-      .in("status", ["content_ready", "live", "published_pending_ghl"]);
+    // author_nodes.author_id references author_profiles.id, NOT auth.users.id
+    const allProfileIds: string[] = [];
+    if (profile?.id) allProfileIds.push(profile.id);
+    // Also check for sibling profiles
+    if (profile?.pen_name) {
+      const { data: siblingProfiles } = await admin
+        .from("author_profiles")
+        .select("id")
+        .eq("pen_name", profile.pen_name)
+        .neq("user_id", userId);
+      if (siblingProfiles) {
+        for (const sp of siblingProfiles) allProfileIds.push(sp.id);
+      }
+    }
+
+    const { data: authorNodes } = allProfileIds.length > 0
+      ? await admin
+          .from("author_nodes")
+          .select("node_id, status")
+          .in("author_id", allProfileIds)
+          .in("status", ["content_ready", "live", "published_pending_ghl"])
+      : { data: [] };
 
     // Collect unique built node_ids
     const builtNodeIds = new Set<string>();
