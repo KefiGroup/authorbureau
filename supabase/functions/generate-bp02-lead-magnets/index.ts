@@ -154,7 +154,7 @@ Generate the following as a JSON object with these exact keys:
 
   "quiz_structure": {
     "quiz_title": "Title of the quiz",
-    "quiz_description": "One sentence describing purpose",
+    "quiz_description": "A 1-2 sentence description of what the quiz measures and what the reader will discover. MUST NOT be empty.",
     "questions": [
       {
         "number": 1,

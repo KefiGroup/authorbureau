@@ -9,8 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save } from "lucide-react";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2, Save, Pencil, Users, BarChart3 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
 
@@ -29,6 +28,14 @@ const ACTIVATING_MESSAGES = [
   "Setting up your opt-in page...",
   "Preparing your lead capture...",
   "Almost ready...",
+];
+
+const TIER_COLORS = [
+  "border-l-4 border-red-400",
+  "border-l-4 border-orange-400",
+  "border-l-4 border-amber-400",
+  "border-l-4 border-teal-400",
+  "border-l-4 border-green-400",
 ];
 
 interface Props {
@@ -199,6 +206,62 @@ export default function BP02Builder({ authorId }: Props) {
         });
       }
 
+      // Push nurture emails to BP-04 (Email Marketing)
+      if (content.nurture_sequence || content.nurture_emails) {
+        const emailContent = content.nurture_sequence || content.nurture_emails;
+        const { data: bp04Node } = await supabase
+          .from("author_nodes")
+          .select("id")
+          .eq("author_id", authorId!)
+          .eq("node_id", "BP-04")
+          .maybeSingle();
+
+        const bp04Payload = {
+          content_json: { nurture_sequence: emailContent, source: "BP-02" },
+          status: "content_ready",
+          personalised_name: "Lead Magnet Nurture Sequence",
+        };
+
+        if (bp04Node) {
+          await supabase.from("author_nodes").update(bp04Payload).eq("id", bp04Node.id);
+        } else {
+          await supabase.from("author_nodes").insert({
+            author_id: authorId!,
+            node_id: "BP-04",
+            node_name: "Email Marketing",
+            ...bp04Payload,
+          });
+        }
+      }
+
+      // Push social posts to BP-03 (Social Media)
+      if (content.social_media_posts || content.social_posts) {
+        const socialContent = content.social_media_posts || content.social_posts;
+        const { data: bp03Node } = await supabase
+          .from("author_nodes")
+          .select("id")
+          .eq("author_id", authorId!)
+          .eq("node_id", "BP-03")
+          .maybeSingle();
+
+        const bp03Payload = {
+          content_json: { social_posts: socialContent, quiz_insights: content.quiz_insights_for_social, source: "BP-02" },
+          status: "content_ready",
+          personalised_name: "Lead Magnet Social Posts",
+        };
+
+        if (bp03Node) {
+          await supabase.from("author_nodes").update(bp03Payload).eq("id", bp03Node.id);
+        } else {
+          await supabase.from("author_nodes").insert({
+            author_id: authorId!,
+            node_id: "BP-03",
+            node_name: "Social Media",
+            ...bp03Payload,
+          });
+        }
+      }
+
       const slug = authorSlug || authorName.toLowerCase().replace(/\s+/g, "-");
       const url = `${window.location.origin}/${slug}/free-gift`;
       setLiveUrl(url);
@@ -359,6 +422,69 @@ function deepSet(obj: any, path: (string | number)[], value: any): any {
   return clone;
 }
 
+/* ---- Editable text component ---- */
+function EditableText({
+  value,
+  onSave,
+  className = "",
+  multiline = false,
+}: {
+  value: string;
+  onSave: (v: string) => void;
+  className?: string;
+  multiline?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => { setDraft(value); }, [value]);
+
+  if (!editing) {
+    return (
+      <div className="group relative">
+        {multiline ? (
+          <p className={`whitespace-pre-wrap ${className}`}>{value || <span className="italic text-muted-foreground">Empty — click to edit</span>}</p>
+        ) : (
+          <span className={className}>{value || <span className="italic text-muted-foreground">Empty — click to edit</span>}</span>
+        )}
+        <button
+          onClick={() => setEditing(true)}
+          className="absolute -right-1 -top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-muted hover:bg-muted/80"
+          title="Edit"
+        >
+          <Pencil className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </div>
+    );
+  }
+
+  const handleBlur = () => {
+    onSave(draft);
+    setEditing(false);
+  };
+
+  if (multiline) {
+    return (
+      <Textarea
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={handleBlur}
+        autoFocus
+        className={`${className} min-h-[80px]`}
+      />
+    );
+  }
+  return (
+    <Input
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={handleBlur}
+      autoFocus
+      className={className}
+    />
+  );
+}
+
 function ReviewStep({
   content,
   setContent,
@@ -382,20 +508,24 @@ function ReviewStep({
 }) {
   const recommended = content.recommended_lead_magnet || 1;
 
-  // Fix data paths: quiz data lives at content.quiz_structure
   const quizStructure = content.quiz_structure || {};
   const quizData = quizStructure.questions || content.quiz_questions || content.quiz;
   const scoringTiers = quizStructure.scoring_tiers || content.scoring_tiers || content.result_tiers;
-  const quizTitle = quizStructure.title || content.quiz_title || "";
-  const quizDescription = quizStructure.description || content.quiz_description || "";
+  const quizTitle = quizStructure.quiz_title || quizStructure.title || content.quiz_title || "";
+  const quizDescription = quizStructure.quiz_description || quizStructure.description || content.quiz_description || "";
 
-  // Fix headline variants path: root level or nested
   const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
 
-  // Helper to update content via deep path
   const updateField = useCallback((path: (string | number)[], value: any) => {
     setContent((prev: any) => deepSet(prev, path, value));
   }, [setContent]);
+
+  const selectHeadline = (headline: string) => {
+    updateField(["optin_page", "headline"], headline);
+  };
+
+  const nurureCount = (content.nurture_sequence || content.nurture_emails || []).length;
+  const socialCount = (content.social_media_posts || content.social_posts || []).length;
 
   return (
     <div className="space-y-4">
@@ -405,74 +535,73 @@ function ReviewStep({
 
       <Tabs defaultValue="magnets" className="w-full">
         <TabsList className="w-full grid grid-cols-5 h-auto">
-          <TabsTrigger value="magnets" className="text-xs py-2"><Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Magnets</TabsTrigger>
-          <TabsTrigger value="quiz" className="text-xs py-2"><HelpCircle className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Quiz</TabsTrigger>
-          <TabsTrigger value="optin" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Opt-In</TabsTrigger>
-          <TabsTrigger value="thankyou" className="text-xs py-2"><ThumbsUp className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Thanks</TabsTrigger>
-          <TabsTrigger value="details" className="text-xs py-2"><Settings className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Details</TabsTrigger>
+          <TabsTrigger value="magnets" className="text-xs py-2 data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-300">
+            <Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Magnets
+          </TabsTrigger>
+          <TabsTrigger value="quiz" className="text-xs py-2 data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-300">
+            <HelpCircle className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Quiz
+          </TabsTrigger>
+          <TabsTrigger value="optin" className="text-xs py-2 data-[state=active]:bg-indigo-500/10 data-[state=active]:text-indigo-700 dark:data-[state=active]:text-indigo-300">
+            <FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Opt-In
+          </TabsTrigger>
+          <TabsTrigger value="thankyou" className="text-xs py-2 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300">
+            <ThumbsUp className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Thanks
+          </TabsTrigger>
+          <TabsTrigger value="distribution" className="text-xs py-2 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-300">
+            <Share2 className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Flow
+          </TabsTrigger>
         </TabsList>
 
         {/* ---- Magnets Tab ---- */}
         <TabsContent value="magnets" className="space-y-3 mt-4">
           {content.lead_magnets?.map((lm: any, lmIdx: number) => (
-            <Card key={lm.number || lmIdx} className={lm.number === recommended ? "border-primary ring-1 ring-primary/30" : ""}>
-              <CardContent className="pt-5 space-y-2">
+            <Card
+              key={lm.number || lmIdx}
+              className={`border-l-4 ${
+                lm.number === recommended
+                  ? "border-l-amber-500 bg-amber-50/5 ring-1 ring-amber-400/30"
+                  : "border-l-teal-500"
+              }`}
+            >
+              <CardContent className="pt-5 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs bg-muted px-2 py-0.5 rounded font-medium">{lm.type}</span>
+                    <span className="text-xs bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded font-medium">{lm.type}</span>
                     {lm.number === recommended && (
-                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
                         <Star className="h-3 w-3" /> ABBY's Top Pick
                       </span>
                     )}
                   </div>
                   <span className="text-xs text-muted-foreground">{lm.pages_or_length}</span>
                 </div>
-                <Input
+                <EditableText
                   value={lm.title || ""}
-                  onChange={(e) => updateField(["lead_magnets", lmIdx, "title"], e.target.value)}
-                  className="font-semibold text-base"
+                  onSave={(v) => updateField(["lead_magnets", lmIdx, "title"], v)}
+                  className="font-semibold text-base text-foreground"
                 />
-                <Textarea
+                <EditableText
                   value={lm.description || ""}
-                  onChange={(e) => updateField(["lead_magnets", lmIdx, "description"], e.target.value)}
-                  className="text-sm min-h-[60px]"
+                  onSave={(v) => updateField(["lead_magnets", lmIdx, "description"], v)}
+                  className="text-sm text-muted-foreground"
+                  multiline
                 />
-                <Textarea
-                  value={lm.why_it_works || ""}
-                  onChange={(e) => updateField(["lead_magnets", lmIdx, "why_it_works"], e.target.value)}
-                  placeholder="Why it works..."
-                  className="text-xs italic min-h-[40px]"
-                />
+                <div className="bg-teal-50/50 dark:bg-teal-950/20 rounded-md p-3">
+                  <p className="text-xs font-medium text-teal-700 dark:text-teal-300 mb-1">Why it works</p>
+                  <EditableText
+                    value={lm.why_it_works || ""}
+                    onSave={(v) => updateField(["lead_magnets", lmIdx, "why_it_works"], v)}
+                    className="text-xs text-teal-600 dark:text-teal-400 italic"
+                    multiline
+                  />
+                </div>
               </CardContent>
             </Card>
           ))}
           {content.recommended_reason && (
-            <div className="flex gap-2 mt-2">
-              <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground">{content.recommended_reason}</p>
-            </div>
-          )}
-          {content.contact_gate && (
-            <Card className="mt-3">
-              <CardContent className="pt-5 space-y-2">
-                <h4 className="text-sm font-semibold flex items-center gap-2">
-                  <FileText className="h-3.5 w-3.5 text-primary" /> Contact Gate
-                </h4>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p><strong>When:</strong> {content.contact_gate.gate_moment || content.contact_gate.placement}</p>
-                  {content.contact_gate.headline && <p><strong>Headline:</strong> {content.contact_gate.headline}</p>}
-                  {content.contact_gate.fields_collected && (
-                    <p><strong>Fields:</strong> {Array.isArray(content.contact_gate.fields_collected) ? content.contact_gate.fields_collected.join(", ") : content.contact_gate.fields_collected}</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          {content.best_channel && (
-            <div className="flex gap-2 mt-2">
-              <Share2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-              <p className="text-xs text-muted-foreground"><strong>Best channel:</strong> {content.best_channel} — {content.channel_reason}</p>
+            <div className="flex gap-2 mt-2 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg">
+              <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <p className="text-xs text-amber-700 dark:text-amber-300">{content.recommended_reason}</p>
             </div>
           )}
         </TabsContent>
@@ -481,59 +610,65 @@ function ReviewStep({
         <TabsContent value="quiz" className="space-y-4 mt-4">
           {quizData && Array.isArray(quizData) && quizData.length > 0 ? (
             <>
-              {/* Quiz Title */}
-              <div className="mb-2 space-y-2">
-                <Input
-                  value={quizTitle}
-                  onChange={(e) => updateField(["quiz_structure", "title"], e.target.value)}
-                  className="text-lg font-bold"
-                  placeholder="Quiz title"
-                />
-                <Textarea
-                  value={quizDescription}
-                  onChange={(e) => updateField(["quiz_structure", "description"], e.target.value)}
-                  className="text-sm min-h-[40px]"
-                  placeholder="Quiz description"
-                />
-              </div>
+              {/* Quiz Title & Description */}
+              <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
+                <CardContent className="pt-5 space-y-2">
+                  <EditableText
+                    value={quizTitle}
+                    onSave={(v) => updateField(["quiz_structure", "quiz_title"], v)}
+                    className="text-lg font-bold text-foreground"
+                  />
+                  <EditableText
+                    value={quizDescription || `Discover your ${quizTitle.replace(/quiz/i, "").trim()} profile`}
+                    onSave={(v) => updateField(["quiz_structure", "quiz_description"], v)}
+                    className="text-sm text-muted-foreground"
+                    multiline
+                  />
+                </CardContent>
+              </Card>
 
               {/* Questions */}
               <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Questions ({quizData.length})</h4>
+                <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wide">
+                  Questions ({quizData.length})
+                </h4>
                 {quizData.map((q: any, qi: number) => (
-                  <Card key={qi}>
-                    <CardContent className="pt-4 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-primary shrink-0">Q{qi + 1}.</span>
-                        <Input
+                  <Card key={qi} className="border-l-4 border-l-teal-400">
+                    <CardContent className="pt-4 space-y-3">
+                      <div className="flex items-start gap-2">
+                        <span className="text-sm font-bold text-teal-600 dark:text-teal-400 shrink-0 mt-0.5">Q{qi + 1}.</span>
+                        <EditableText
                           value={q.question || q.text || ""}
-                          onChange={(e) => updateField(["quiz_structure", "questions", qi, "question"], e.target.value)}
-                          className="text-sm font-semibold"
+                          onSave={(v) => updateField(["quiz_structure", "questions", qi, q.question !== undefined ? "question" : "text"], v)}
+                          className="text-sm font-semibold text-foreground"
                         />
                       </div>
-                      <div className="grid gap-1.5 pl-2">
-                        {(q.options || q.answers || []).map((opt: any, oi: number) => (
-                          <div key={oi} className="flex items-center gap-2 text-sm">
-                            <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium shrink-0">
-                              {String.fromCharCode(65 + oi)}
-                            </span>
-                            <Input
-                              value={typeof opt === "string" ? opt : opt.text || opt.label || ""}
-                              onChange={(e) => {
-                                const optKey = q.options ? "options" : "answers";
-                                if (typeof opt === "string") {
-                                  updateField(["quiz_structure", "questions", qi, optKey, oi], e.target.value);
-                                } else {
-                                  updateField(["quiz_structure", "questions", qi, optKey, oi, "text"], e.target.value);
-                                }
-                              }}
-                              className="text-sm flex-1"
-                            />
-                            {(typeof opt === "object" && opt.points !== undefined) && (
-                              <span className="text-xs text-primary font-medium shrink-0">{opt.points} pts</span>
-                            )}
-                          </div>
-                        ))}
+                      <div className="grid gap-2 pl-6">
+                        {(q.options || q.answers || []).map((opt: any, oi: number) => {
+                          const optLabel = typeof opt === "string" ? opt : opt.text || opt.label || "";
+                          const optKey = q.options ? "options" : "answers";
+                          return (
+                            <div key={oi} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                              <span className="w-6 h-6 rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 flex items-center justify-center text-xs font-bold shrink-0">
+                                {String.fromCharCode(65 + oi)}
+                              </span>
+                              <EditableText
+                                value={optLabel}
+                                onSave={(v) => {
+                                  if (typeof opt === "string") {
+                                    updateField(["quiz_structure", "questions", qi, optKey, oi], v);
+                                  } else {
+                                    updateField(["quiz_structure", "questions", qi, optKey, oi, opt.text !== undefined ? "text" : "label"], v);
+                                  }
+                                }}
+                                className="text-sm text-foreground flex-1"
+                              />
+                              {(typeof opt === "object" && opt.points !== undefined) && (
+                                <span className="text-xs bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium shrink-0">{opt.points} pts</span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>
@@ -543,46 +678,61 @@ function ReviewStep({
               {/* Scoring Tiers */}
               {scoringTiers && Array.isArray(scoringTiers) && scoringTiers.length > 0 && (
                 <div className="space-y-3 mt-4">
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Scoring Tiers ({scoringTiers.length})</h4>
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                    Scoring Tiers ({scoringTiers.length})
+                  </h4>
                   {scoringTiers.map((tier: any, ti: number) => (
-                    <Card key={ti}>
+                    <Card key={ti} className={TIER_COLORS[ti % TIER_COLORS.length]}>
                       <CardContent className="pt-4 space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <Input
+                          <EditableText
                             value={tier.label || tier.name || tier.title || ""}
-                            onChange={(e) => {
-                              const key = tier.label ? "label" : tier.name ? "name" : "title";
-                              updateField(["quiz_structure", "scoring_tiers", ti, key], e.target.value);
+                            onSave={(v) => {
+                              const key = tier.label !== undefined ? "label" : tier.name !== undefined ? "name" : "title";
+                              updateField(["quiz_structure", "scoring_tiers", ti, key], v);
                             }}
-                            className="text-sm font-semibold"
+                            className="text-sm font-bold text-foreground"
                           />
-                          {(tier.range || tier.score_range) && (
-                            <span className="text-xs text-muted-foreground shrink-0">{tier.range || tier.score_range}</span>
+                          {(tier.min !== undefined && tier.max !== undefined) && (
+                            <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground shrink-0">{tier.min}–{tier.max} pts</span>
                           )}
                         </div>
-                        <Textarea
+                        <EditableText
                           value={tier.description || tier.feedback || ""}
-                          onChange={(e) => {
+                          onSave={(v) => {
                             const key = tier.description !== undefined ? "description" : "feedback";
-                            updateField(["quiz_structure", "scoring_tiers", ti, key], e.target.value);
+                            updateField(["quiz_structure", "scoring_tiers", ti, key], v);
                           }}
-                          className="text-sm min-h-[40px]"
+                          className="text-sm text-muted-foreground"
+                          multiline
                         />
-                        {tier.tip && (
-                          <Input
-                            value={tier.tip}
-                            onChange={(e) => updateField(["quiz_structure", "scoring_tiers", ti, "tip"], e.target.value)}
-                            className="text-xs italic"
-                            placeholder="Tip..."
-                          />
+                        {tier.tips_from_book && Array.isArray(tier.tips_from_book) && (
+                          <div className="bg-muted/30 rounded-md p-2 space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground">Tips from the book:</p>
+                            {tier.tips_from_book.map((tip: string, tipIdx: number) => (
+                              <div key={tipIdx} className="flex items-start gap-1.5">
+                                <span className="text-xs text-primary mt-0.5">•</span>
+                                <EditableText
+                                  value={tip}
+                                  onSave={(v) => updateField(["quiz_structure", "scoring_tiers", ti, "tips_from_book", tipIdx], v)}
+                                  className="text-xs text-muted-foreground"
+                                />
+                              </div>
+                            ))}
+                          </div>
                         )}
-                        {tier.recommended_product && (
-                          <Input
-                            value={tier.recommended_product}
-                            onChange={(e) => updateField(["quiz_structure", "scoring_tiers", ti, "recommended_product"], e.target.value)}
-                            className="text-xs"
-                            placeholder="Recommended product..."
-                          />
+                        {tier.product_recommendations && Array.isArray(tier.product_recommendations) && (
+                          <div className="bg-primary/5 rounded-md p-2 space-y-1">
+                            <p className="text-xs font-medium text-primary">Recommended products:</p>
+                            {tier.product_recommendations.map((pr: any, prIdx: number) => (
+                              <div key={prIdx} className="flex items-start gap-1.5">
+                                <span className="text-xs text-primary mt-0.5">→</span>
+                                <span className="text-xs text-muted-foreground">
+                                  <strong>{pr.type}:</strong> {pr.title} — {pr.reason}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </CardContent>
                     </Card>
@@ -600,237 +750,204 @@ function ReviewStep({
 
         {/* ---- Opt-In Tab ---- */}
         <TabsContent value="optin" className="mt-4 space-y-4">
-          <Card className="overflow-hidden">
-            <div className="bg-primary/5 p-6 space-y-3 border-b border-border">
-              <Input
-                value={content.optin_page?.headline || ""}
-                onChange={(e) => updateField(["optin_page", "headline"], e.target.value)}
-                className="text-xl font-bold text-center"
-              />
-              <Input
-                value={content.optin_page?.subheadline || ""}
-                onChange={(e) => updateField(["optin_page", "subheadline"], e.target.value)}
-                className="text-sm text-center"
-              />
-              <div className="max-w-xs mx-auto space-y-2">
-                {content.optin_page?.bullet_points?.map((bp: string, i: number) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <Check className="h-4 w-4 text-primary shrink-0 mt-2.5" />
-                    <Input
-                      value={bp}
-                      onChange={(e) => updateField(["optin_page", "bullet_points", i], e.target.value)}
-                      className="text-sm"
-                    />
-                  </div>
-                ))}
-              </div>
-              <div className="text-center">
-                <Input
-                  value={content.optin_page?.cta_button_text || "Get It Free"}
-                  onChange={(e) => updateField(["optin_page", "cta_button_text"], e.target.value)}
-                  className="text-sm font-semibold max-w-xs mx-auto text-center"
-                />
-              </div>
-              <p className="text-xs text-muted-foreground text-center">{content.optin_page?.privacy_note}</p>
-            </div>
-          </Card>
-
-          {/* Headline Variants */}
+          {/* Headline Variant Selector */}
           {headlineVariants.length > 0 && (
-            <Card>
+            <Card className="border-indigo-200 dark:border-indigo-800">
               <CardContent className="pt-5 space-y-3">
-                <h4 className="text-sm font-semibold">Headline Variants</h4>
+                <h4 className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Choose Your Headline</h4>
+                <p className="text-xs text-muted-foreground mb-2">Click a variant to set it as your opt-in page headline</p>
                 {headlineVariants.map((v: any, i: number) => {
-                  const variantPath = content.headline_variants ? ["headline_variants", i] : ["optin_page", "headline_variants", i];
+                  const headlineText = v.headline || v.text || "";
+                  const isSelected = content.optin_page?.headline === headlineText;
                   return (
-                    <div key={i} className="p-3 bg-muted/50 rounded-lg space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{v.type || v.style}</span>
+                    <button
+                      key={i}
+                      onClick={() => selectHeadline(headlineText)}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        isSelected
+                          ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-400/30"
+                          : "border-border hover:border-indigo-300 dark:hover:border-indigo-600 bg-muted/20"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                          isSelected
+                            ? "bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300"
+                            : "bg-muted text-muted-foreground"
+                        }`}>
+                          {v.type || v.style}
+                        </span>
+                        {isSelected && (
+                          <span className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-semibold">
+                            <Check className="h-3 w-3" /> Selected
+                          </span>
+                        )}
                       </div>
-                      <Input
-                        value={v.headline || v.text || ""}
-                        onChange={(e) => updateField([...variantPath, v.headline !== undefined ? "headline" : "text"], e.target.value)}
-                        className="text-sm font-semibold"
-                      />
-                      {v.reasoning && (
-                        <Textarea
-                          value={v.reasoning}
-                          onChange={(e) => updateField([...variantPath, "reasoning"], e.target.value)}
-                          className="text-xs italic min-h-[30px]"
-                        />
+                      <p className="text-sm font-semibold text-foreground mt-1">{headlineText}</p>
+                      {(v.why || v.reasoning) && (
+                        <p className="text-xs text-muted-foreground mt-1 italic">{v.why || v.reasoning}</p>
                       )}
-                    </div>
+                    </button>
                   );
                 })}
               </CardContent>
             </Card>
           )}
+
+          {/* Opt-in Preview */}
+          <Card className="overflow-hidden border-indigo-200 dark:border-indigo-800">
+            <div className="bg-gradient-to-br from-indigo-500/10 to-teal-500/10 p-6 space-y-4 border-b border-border">
+              <EditableText
+                value={content.optin_page?.headline || ""}
+                onSave={(v) => updateField(["optin_page", "headline"], v)}
+                className="text-xl font-bold text-center text-foreground"
+              />
+              <EditableText
+                value={content.optin_page?.subheadline || ""}
+                onSave={(v) => updateField(["optin_page", "subheadline"], v)}
+                className="text-sm text-center text-muted-foreground"
+              />
+              <div className="max-w-sm mx-auto space-y-2">
+                {content.optin_page?.bullet_points?.map((bp: string, i: number) => (
+                  <div key={i} className="flex items-start gap-2">
+                    <Check className="h-4 w-4 text-teal-500 shrink-0 mt-0.5" />
+                    <EditableText
+                      value={bp}
+                      onSave={(v) => updateField(["optin_page", "bullet_points", i], v)}
+                      className="text-sm text-foreground"
+                    />
+                  </div>
+                ))}
+              </div>
+              <div className="text-center">
+                <div className="inline-block bg-primary text-primary-foreground rounded-lg px-6 py-3">
+                  <EditableText
+                    value={content.optin_page?.cta_button_text || "Get It Free"}
+                    onSave={(v) => updateField(["optin_page", "cta_button_text"], v)}
+                    className="text-sm font-semibold"
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">{content.optin_page?.privacy_note}</p>
+            </div>
+          </Card>
         </TabsContent>
 
         {/* ---- Thanks Tab ---- */}
         <TabsContent value="thankyou" className="mt-4 space-y-4">
-          <Card className="overflow-hidden">
-            <div className="bg-primary/5 p-6 text-center space-y-3">
-              <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto">
-                <Check className="h-6 w-6 text-green-600" />
+          <Card className="overflow-hidden border-green-200 dark:border-green-800">
+            <div className="bg-gradient-to-br from-green-500/10 to-teal-500/10 p-6 text-center space-y-4">
+              <div className="w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center mx-auto">
+                <Check className="h-7 w-7 text-green-600 dark:text-green-400" />
               </div>
-              <Input
+              <EditableText
                 value={content.thankyou_page?.headline || ""}
-                onChange={(e) => updateField(["thankyou_page", "headline"], e.target.value)}
-                className="text-xl font-bold text-center"
+                onSave={(v) => updateField(["thankyou_page", "headline"], v)}
+                className="text-xl font-bold text-foreground"
               />
-              <Textarea
+              <EditableText
                 value={content.thankyou_page?.message || ""}
-                onChange={(e) => updateField(["thankyou_page", "message"], e.target.value)}
-                className="text-sm text-center min-h-[60px]"
+                onSave={(v) => updateField(["thankyou_page", "message"], v)}
+                className="text-sm text-muted-foreground"
+                multiline
               />
-              <Input
-                value={content.thankyou_page?.next_step || ""}
-                onChange={(e) => updateField(["thankyou_page", "next_step"], e.target.value)}
-                className="text-sm font-medium text-center"
-                placeholder="Next step..."
-              />
+              <div className="bg-green-50/50 dark:bg-green-950/20 rounded-lg p-4 max-w-sm mx-auto">
+                <p className="text-xs font-medium text-green-700 dark:text-green-300 mb-1">What's next</p>
+                <EditableText
+                  value={content.thankyou_page?.next_step || ""}
+                  onSave={(v) => updateField(["thankyou_page", "next_step"], v)}
+                  className="text-sm text-green-600 dark:text-green-400"
+                />
+              </div>
             </div>
           </Card>
-          {/* Result Intro & Book CTA */}
-          <Card>
-            <CardContent className="pt-5 space-y-3">
+
+          <Card className="border-green-200 dark:border-green-800">
+            <CardContent className="pt-5 space-y-4">
               <div>
-                <h4 className="text-sm font-semibold mb-1">Result Introduction</h4>
-                <Textarea
+                <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">Result Introduction</h4>
+                <EditableText
                   value={content.thankyou_page?.result_intro || ""}
-                  onChange={(e) => updateField(["thankyou_page", "result_intro"], e.target.value)}
-                  className="text-sm min-h-[50px]"
-                  placeholder="Introduction text shown before quiz results..."
+                  onSave={(v) => updateField(["thankyou_page", "result_intro"], v)}
+                  className="text-sm text-muted-foreground"
+                  multiline
                 />
               </div>
               <div>
-                <h4 className="text-sm font-semibold mb-1">Book CTA</h4>
-                <Textarea
+                <h4 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2">Book CTA</h4>
+                <EditableText
                   value={content.thankyou_page?.book_cta || ""}
-                  onChange={(e) => updateField(["thankyou_page", "book_cta"], e.target.value)}
-                  className="text-sm min-h-[50px]"
-                  placeholder="Call to action for your book..."
+                  onSave={(v) => updateField(["thankyou_page", "book_cta"], v)}
+                  className="text-sm text-muted-foreground"
+                  multiline
                 />
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* ---- Details Tab ---- */}
-        <TabsContent value="details" className="mt-4 space-y-4">
-          <Card>
-            <CardContent className="pt-6 space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Lead magnet name</span>
-                <span className="text-sm font-medium">{content.funnel_name}</span>
-              </div>
-              {content.marketing_strategy && (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-sm text-muted-foreground">Best channel</span>
-                    <span className="text-sm font-medium">{content.marketing_strategy.primary_platform}</span>
+        {/* ---- Distribution Tab (replaces old Details) ---- */}
+        <TabsContent value="distribution" className="mt-4 space-y-4">
+          <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50/30 to-transparent dark:from-amber-950/10">
+            <CardContent className="pt-5 space-y-4">
+              <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" /> Distribution Plan
+              </h4>
+              <p className="text-xs text-muted-foreground">
+                When you publish, ABBY will automatically set up the following for you:
+              </p>
+
+              <div className="space-y-3">
+                {/* Lead Capture */}
+                <div className="flex items-start gap-3 p-3 bg-teal-50/50 dark:bg-teal-950/20 rounded-lg border border-teal-200/50 dark:border-teal-800/50">
+                  <Users className="h-5 w-5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-teal-700 dark:text-teal-300">Lead Capture → CRM</p>
+                    <p className="text-xs text-muted-foreground">Subscribers who opt in are automatically added to your Contacts for follow-up.</p>
                   </div>
-                  <p className="text-xs text-muted-foreground">{content.marketing_strategy.primary_reason}</p>
-                </>
+                </div>
+
+                {/* Email Nurture */}
+                {nurureCount > 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-indigo-50/50 dark:bg-indigo-950/20 rounded-lg border border-indigo-200/50 dark:border-indigo-800/50">
+                    <Mail className="h-5 w-5 text-indigo-600 dark:text-indigo-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">
+                        {nurureCount} Nurture Emails → Email Marketing (BP-04)
+                      </p>
+                      <p className="text-xs text-muted-foreground">Your email sequence will be pushed to Email Marketing on publish, ready for activation.</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Social Posts */}
+                {socialCount > 0 && (
+                  <div className="flex items-start gap-3 p-3 bg-purple-50/50 dark:bg-purple-950/20 rounded-lg border border-purple-200/50 dark:border-purple-800/50">
+                    <Share2 className="h-5 w-5 text-purple-600 dark:text-purple-400 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-purple-700 dark:text-purple-300">
+                        {socialCount} Social Posts → Social Media (BP-03)
+                      </p>
+                      <p className="text-xs text-muted-foreground">Ready-to-post captions for Instagram, LinkedIn, Facebook and X will be pushed to Social Media on publish.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Marketing Strategy */}
+              {content.marketing_strategy && (
+                <div className="mt-2 p-3 bg-muted/30 rounded-lg">
+                  <p className="text-xs font-medium text-muted-foreground mb-1">Best Marketing Channel</p>
+                  <p className="text-sm font-semibold text-foreground">{content.marketing_strategy.primary_platform}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{content.marketing_strategy.primary_reason}</p>
+                </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Nurture Sequence */}
-          {(content.nurture_sequence || content.nurture_emails) && (
-            <Collapsible defaultOpen>
-              <Card>
-                <CardContent className="pt-5">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <Mail className="h-3.5 w-3.5 text-primary" /> Nurture Email Sequence ({(content.nurture_sequence || content.nurture_emails)?.length || 0} emails)
-                    </h4>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-3 space-y-3">
-                    {(content.nurture_sequence || content.nurture_emails || []).map((email: any, i: number) => {
-                      const emailsKey = content.nurture_sequence ? "nurture_sequence" : "nurture_emails";
-                      return (
-                        <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-2 border border-border/50">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-semibold text-primary">Email {i + 1}</span>
-                            {(email.send_delay || email.delay_days) && (
-                              <span className="text-xs text-muted-foreground">Day {email.send_delay || email.delay_days}</span>
-                            )}
-                          </div>
-                          <Input
-                            value={email.subject || email.subject_line || ""}
-                            onChange={(e) => updateField([emailsKey, i, email.subject !== undefined ? "subject" : "subject_line"], e.target.value)}
-                            className="text-sm font-semibold"
-                            placeholder="Subject line..."
-                          />
-                          {email.purpose && (
-                            <Input
-                              value={email.purpose}
-                              onChange={(e) => updateField([emailsKey, i, "purpose"], e.target.value)}
-                              className="text-xs italic"
-                              placeholder="Purpose..."
-                            />
-                          )}
-                          <Textarea
-                            value={email.body_outline || email.body || ""}
-                            onChange={(e) => updateField([emailsKey, i, email.body_outline !== undefined ? "body_outline" : "body"], e.target.value)}
-                            className="text-xs min-h-[60px]"
-                            placeholder="Email body outline..."
-                          />
-                        </div>
-                      );
-                    })}
-                  </CollapsibleContent>
-                </CardContent>
-              </Card>
-            </Collapsible>
-          )}
-
-          {/* Social Media Posts */}
-          {(content.social_media_posts || content.social_posts) && (
-            <Collapsible defaultOpen>
-              <Card>
-                <CardContent className="pt-5">
-                  <CollapsibleTrigger className="flex items-center justify-between w-full">
-                    <h4 className="text-sm font-semibold flex items-center gap-2">
-                      <Share2 className="h-3.5 w-3.5 text-primary" /> Social Media Posts ({(content.social_media_posts || content.social_posts)?.length || 0} posts)
-                    </h4>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="mt-3 space-y-3">
-                    {(content.social_media_posts || content.social_posts || []).map((post: any, i: number) => {
-                      const postsKey = content.social_media_posts ? "social_media_posts" : "social_posts";
-                      return (
-                        <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-2 border border-border/50">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-semibold text-primary">{post.platform}</span>
-                          </div>
-                          <Textarea
-                            value={post.caption || post.content || post.text || ""}
-                            onChange={(e) => {
-                              const key = post.caption !== undefined ? "caption" : post.content !== undefined ? "content" : "text";
-                              updateField([postsKey, i, key], e.target.value);
-                            }}
-                            className="text-sm min-h-[60px]"
-                          />
-                          {post.cta && (
-                            <Input
-                              value={post.cta}
-                              onChange={(e) => updateField([postsKey, i, "cta"], e.target.value)}
-                              className="text-xs"
-                              placeholder="CTA..."
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </CollapsibleContent>
-                </CardContent>
-              </Card>
-            </Collapsible>
-          )}
+          <div className="text-center text-xs text-muted-foreground">
+            <p>Lead magnet name: <strong>{content.funnel_name}</strong></p>
+          </div>
         </TabsContent>
       </Tabs>
 
@@ -851,7 +968,7 @@ function ReviewStep({
         <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">{error}</div>
       )}
       <p className="text-xs text-center text-muted-foreground">
-        Your opt-in page, contact tags, and lead capture will be created automatically.
+        Your opt-in page, contact tags, email nurture, and social posts will be set up automatically.
       </p>
     </div>
   );
@@ -867,6 +984,17 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
   const navigate = useNavigate();
   const [showQR, setShowQR] = useState(false);
   const [socialPack, setSocialPack] = useState<any>(null);
+  const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const { count } = await supabase
+        .from("author_subscribers")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", authorId);
+      setSubscriberCount(count ?? 0);
+    })();
+  }, [authorId]);
 
   return (
     <div className="space-y-6">
@@ -906,26 +1034,35 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
         </Card>
       )}
 
-      {/* Next steps guidance */}
-      <Card className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50 dark:bg-teal-950/30">
-        <div className="space-y-3">
-          <h3 className="text-sm font-semibold text-teal-800 dark:text-teal-200">📋 What happens next?</h3>
-          <ul className="text-sm text-teal-700 dark:text-teal-300 space-y-2">
-            <li className="flex items-start gap-2">
-              <Check className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>Your lead magnet opt-in page is now live at the link above</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Check className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>Readers who opt in will be captured automatically and receive your quiz + results</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <ArrowRight className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>Share this link on all your social channels to start building your email list</span>
-            </li>
-          </ul>
-        </div>
-      </Card>
+      {/* Next steps with downstream node links */}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Card
+          className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/30 cursor-pointer hover:ring-1 hover:ring-teal-400/40 transition-all"
+          onClick={() => navigate("/dashboard?section=crm")}
+        >
+          <Users className="h-6 w-6 text-teal-600 dark:text-teal-400 mb-2" />
+          <p className="text-sm font-semibold text-teal-800 dark:text-teal-200">View Your Leads</p>
+          <p className="text-xs text-teal-600 dark:text-teal-400 mt-1">
+            {subscriberCount !== null ? `${subscriberCount} subscriber${subscriberCount !== 1 ? "s" : ""}` : "Loading..."}
+          </p>
+        </Card>
+        <Card
+          className="p-4 border-indigo-300 dark:border-indigo-700 bg-indigo-50/50 dark:bg-indigo-950/30 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
+          onClick={() => navigate("/dashboard?section=brand-products&node=BP-04")}
+        >
+          <Mail className="h-6 w-6 text-indigo-600 dark:text-indigo-400 mb-2" />
+          <p className="text-sm font-semibold text-indigo-800 dark:text-indigo-200">Email Nurture</p>
+          <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-1">Activate your nurture sequence</p>
+        </Card>
+        <Card
+          className="p-4 border-purple-300 dark:border-purple-700 bg-purple-50/50 dark:bg-purple-950/30 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
+          onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}
+        >
+          <Share2 className="h-6 w-6 text-purple-600 dark:text-purple-400 mb-2" />
+          <p className="text-sm font-semibold text-purple-800 dark:text-purple-200">Social Media</p>
+          <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">Distribute across platforms</p>
+        </Card>
+      </div>
 
       <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
         <div className="flex gap-3">
@@ -935,7 +1072,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-1">Abby says</p>
             <p className="text-sm text-amber-700 dark:text-amber-300">
-              Your lead magnet is live! Now let's get it in front of your audience. Head to Social Media to create and schedule posts that drive traffic to your opt-in page across all platforms.
+              Your lead magnet is live! Your nurture emails and social posts have been pushed to their respective nodes — activate them to start driving traffic and converting readers into customers.
             </p>
           </div>
         </div>
@@ -946,9 +1083,6 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy }: {
       <div className="flex flex-col sm:flex-row gap-3">
         <Button className="flex-1" size="lg" onClick={() => navigate("/dashboard?section=marketing-hub&highlight=lead-magnets")}>
           Activate My Marketing Campaign <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-        <Button variant="outline" className="flex-1" size="lg" onClick={() => navigate("/dashboard?section=brand-products&node=BP-03")}>
-          <Share2 className="h-4 w-4 mr-2" /> Set Up Social Media
         </Button>
       </div>
 
