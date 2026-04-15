@@ -1,47 +1,41 @@
 
 
-# Fix BP-02 Draft Persistence & Publish Flow
+# Show Lead Magnet Content in Downstream Nodes + Navigation Flow
 
-## Problems Identified
+## Problem
+When BP-02 publishes and pushes content to BP-03 (Social Media) and BP-04 (Email Marketing), there is **no visible indication** in those nodes that content has arrived. The node cards on the Brand Products Hub show generic status badges but don't mention the source. And there's no guided "next step" flow leading the author from one node to the next.
 
-**Problem 1: "Comes back to new lead magnet after refresh"**
-The node load on line 130 correctly checks for `content_ready` or `live` status and restores state. However, there's a race condition: `authorId` starts as `null` in `NodeBuilder.tsx` (line 52) and gets set asynchronously. If BP02Builder mounts before `authorId` arrives, the effect at line 83 returns early (`if (!authorId) return`). When `authorId` later arrives the effect re-runs — but if the DB query fails silently or returns no data (e.g. the auto-save didn't complete properly), the user sees step 0.
+## What Changes
 
-The real culprit: the `content.activated` flag is set in-memory (line 330) but **never persisted** to `content_json`. So on reload for a "live" node, line 134 does re-set `activated: true` — this should work. The more likely cause is that the **auto-save after generation** (lines 166-186) silently fails due to RLS or missing fields, meaning `content_json` is never written to the DB.
+### 1. Brand Products Hub — "Fed by Lead Magnets" indicator on node cards
+On the `BrandProductsHub.tsx` node cards for BP-03 and BP-04, when their `content_json` contains `source: "BP-02"`, show a small badge like:
+- **BP-03 card**: `📱 Social Media` — badge: "📝 Content from Lead Magnets" + status changes to "Ready to Publish"
+- **BP-04 card**: `📧 Email Marketing` — badge: "📝 Content from Lead Magnets" + status "Ready to Publish"
 
-**Problem 2: "Thank you and publish tabs skipped — goes straight to published"**
-The channel selection panel and "Publish Selected" button are inside `ReviewStep` (step 2), visible on ALL tabs. The user can click Publish while still on the Opt-in tab without ever seeing the Thank You or Distribution tabs. The stepper shows step 4 = "Publish" but there is no distinct step 3 for the publish UI — it jumps from Review (step 2) straight to PublishSuccessStep (step 3).
+This requires fetching `content_json` (currently only `status` is used for badges). Add a lightweight check for `source` field.
 
-## Plan
+### 2. BP-03 Builder — Show "pre-loaded from Lead Magnets" banner
+When BP-03 loads and finds `content_json.source === "BP-02"`, show a banner at top of the Review step:
+> "Abby has pre-loaded social posts from your Lead Magnet. Review and activate them below."
 
-### 1. Separate Publish into its own step (step 3)
+Skip the Introduction/Generate steps and go straight to Review.
 
-Currently: `STEPS = ["Introduction", "Generating", "Review", "Publish"]` with Review containing both content review AND the channel selection/publish button.
+### 3. BP-04 Builder — Same "pre-loaded" banner
+Same pattern for BP-04 when nurture emails were pushed from BP-02.
 
-Change to a **5-step flow**: `["Introduction", "Generating", "Review", "Publish", "Live"]`
-- **Step 2 (Review)**: Content tabs only (Content, Magnets, Opt-in, Thank You, Distribution). Bottom has "Save Draft" and "Next: Publish →" buttons.
-- **Step 3 (Publish)**: Channel selection panel + "Publish Selected" button. This is the dedicated pre-publish step.
-- **Step 4 (Live)**: PublishSuccessStep (current step 3 logic).
+### 4. BP-02 Success Screen — Clear "Next Steps" flow
+The success screen already shows clickable cards for Email Nurture and Social Media. Enhance these to be more prominent with:
+- Arrow indicators showing the flow: BP-02 → BP-04 → BP-03
+- "Continue to next step" primary CTA pointing to the first activated downstream node
+- Numbered progression: "Step 1 of 3 complete"
 
-This forces authors to review all tabs before reaching the publish screen.
-
-### 2. Fix draft persistence reliability
-
-- Add error handling with `console.error` to the auto-save block (lines 166-186) so failures are visible.
-- After publish, save `publishChannels` into `content_json` so they're restored on reload.
-- On load, restore `publishChannels` from `content_json` if present.
-
-### 3. Fix step restoration on refresh
-
-Update the node-load logic (lines 130-137):
-- `status === "content_ready"` → step 2 (Review) — already correct
-- `status === "live"` → step 4 (Live) with `activated: true` — update from step 3 to step 4
-
-### Files to edit
+### Files to Edit
 
 | File | Change |
 |---|---|
-| `BP02Builder.tsx` | Update STEPS to 5 steps. Extract channel selection panel from ReviewStep into new PublishStep component. Update step indices. Save/restore publishChannels. Add error logging to auto-save. |
+| `src/pages/BrandProductsHub.tsx` | Fetch `content_json` alongside status. Show "Content from Lead Magnets" badge on BP-03/BP-04 cards when `source === "BP-02"`. |
+| `src/components/dashboard/builders/bp03/BP03Builder.tsx` | On load, if `content_json.source === "BP-02"`, show pre-loaded banner and skip to Review step. |
+| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Enhance PublishSuccessStep with sequential flow CTA: primary button → next downstream node. Add numbered progression indicator. |
 
-No database or edge function changes needed.
+No database or edge function changes needed — the `source: "BP-02"` field is already being written to `content_json` during publish.
 
