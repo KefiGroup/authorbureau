@@ -1,5 +1,5 @@
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft } from "lucide-react";
@@ -47,13 +47,16 @@ function getHubLabel(nodeId: string): string {
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
-  const { user } = useAuth();
+  const { user, isReady } = useAuthReady();
   const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) return;
+    if (!isReady || !user) {
+      if (isReady && !user) setLoading(false);
+      return;
+    }
     supabase
       .from("author_profiles")
       .select("id")
@@ -63,7 +66,7 @@ export default function NodeBuilder() {
         setAuthorId(data?.id || null);
         setLoading(false);
       });
-  }, [user]);
+  }, [user, isReady]);
 
   if (!user || loading) {
     return (

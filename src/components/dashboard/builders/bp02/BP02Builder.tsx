@@ -66,6 +66,7 @@ const DEFAULT_CHANNELS: PublishChannels = {
 export default function BP02Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(-1);
+  const [authReady, setAuthReady] = useState(false);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
