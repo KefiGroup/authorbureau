@@ -44,7 +44,7 @@ serve(async (req) => {
       const { data: book } = await supabase
         .from("books")
         .select("title, subtitle, description")
-        .eq("author_id", author_id)
+        .eq("author_id", author.user_id)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -275,8 +275,8 @@ IMPORTANT RULES:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
         max_completion_tokens: 8000,
+        response_format: { type: "json_object" },
       }),
     });
 
@@ -302,23 +302,88 @@ IMPORTANT RULES:
     } catch {
       const match = cleaned.match(/\{[\s\S]*\}/);
       if (match) {
-        parsedContent = JSON.parse(match[0].replace(/,\s*([}\]])/g, "$1"));
+        try {
+          parsedContent = JSON.parse(match[0].replace(/,\s*([}\]])/g, "$1"));
+        } catch {
+          // Retry: ask AI to fix the JSON
+          console.log("First parse failed, retrying with JSON-fix prompt...");
+          const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "openai/gpt-5",
+              messages: [
+                { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
+                { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
+              ],
+              max_completion_tokens: 8000,
+              response_format: { type: "json_object" },
+            }),
+          });
+          const retryData = await retryResp.json();
+          const retryRaw = retryData.choices?.[0]?.message?.content || "";
+          parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
+        }
       } else {
-        throw new Error("Could not parse AI response as JSON");
+        // Retry: ask AI to fix the JSON
+        console.log("No JSON object found, retrying with JSON-fix prompt...");
+        const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-5",
+            messages: [
+              { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
+              { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
+            ],
+            max_completion_tokens: 8000,
+            response_format: { type: "json_object" },
+          }),
+        });
+        const retryData = await retryResp.json();
+        const retryRaw = retryData.choices?.[0]?.message?.content || "";
+        parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
       }
     }
 
-    const { error: updateErr } = await supabase
+    // Upsert: check if row exists, then update or insert
+    const { data: existingNode } = await supabase
       .from("author_nodes")
-      .update({
-        status: "content_ready",
-        content_json: parsedContent,
-        personalised_name: (parsedContent as any).funnel_name || "Lead Magnets",
-      })
+      .select("id")
       .eq("author_id", author_id)
-      .eq("node_id", "BP-02");
+      .eq("node_id", "BP-02")
+      .maybeSingle();
 
-    if (updateErr) console.error("Failed to update author_nodes:", updateErr);
+    const nodePayload = {
+      status: "content_ready",
+      content_json: parsedContent,
+      personalised_name: (parsedContent as any).funnel_name || "Lead Magnets",
+    };
+
+    if (existingNode) {
+      const { error: updateErr } = await supabase
+        .from("author_nodes")
+        .update(nodePayload)
+        .eq("author_id", author_id)
+        .eq("node_id", "BP-02");
+      if (updateErr) console.error("Failed to update author_nodes:", updateErr);
+    } else {
+      const { error: insertErr } = await supabase
+        .from("author_nodes")
+        .insert({
+          author_id,
+          node_id: "BP-02",
+          node_name: "Lead Magnets",
+          ...nodePayload,
+        });
+      if (insertErr) console.error("Failed to insert author_nodes:", insertErr);
+    }
 
     return new Response(
       JSON.stringify({ success: true, content: parsedContent }),
