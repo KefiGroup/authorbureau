@@ -342,7 +342,7 @@ IMPORTANT RULES:
                 { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
                 { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
               ],
-              max_completion_tokens: 8000,
+              max_completion_tokens: 16000,
               response_format: { type: "json_object" },
             }),
           });
@@ -373,6 +373,12 @@ IMPORTANT RULES:
         const retryRaw = retryData.choices?.[0]?.message?.content || "";
         parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
       }
+    }
+
+    // Reject error objects from AI
+    if ((parsedContent as any).error && !parsedContent.lead_magnets) {
+      console.error("AI returned error object instead of content:", parsedContent);
+      throw new Error("AI failed to generate lead magnet content — please try again");
     }
 
     // Validate content has expected structure before saving
