@@ -8,7 +8,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Gift, FileText, ThumbsUp, Settings, Star, Copy, ExternalLink, Link2, QrCode, HelpCircle, ChevronDown, Mail, Share2 } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
 
@@ -306,6 +307,8 @@ function AbbyCard({ children }: { children: React.ReactNode }) {
 
 function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { content: any; authorName: string; onActivate: () => void; error: string | null; isPublishing?: boolean }) {
   const recommended = content.recommended_lead_magnet || 1;
+  const quiz = content.lead_magnets?.find((lm: any) => lm.type?.toLowerCase().includes("quiz"));
+  const quizData = quiz?.quiz_questions || content.quiz_questions || content.quiz;
 
   return (
     <div className="space-y-4">
@@ -314,13 +317,15 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
       </AbbyCard>
 
       <Tabs defaultValue="magnets" className="w-full">
-        <TabsList className="w-full grid grid-cols-4 h-auto">
+        <TabsList className="w-full grid grid-cols-5 h-auto">
           <TabsTrigger value="magnets" className="text-xs py-2"><Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Magnets</TabsTrigger>
+          <TabsTrigger value="quiz" className="text-xs py-2"><HelpCircle className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Quiz</TabsTrigger>
           <TabsTrigger value="optin" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Opt-In</TabsTrigger>
           <TabsTrigger value="thankyou" className="text-xs py-2"><ThumbsUp className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Thanks</TabsTrigger>
           <TabsTrigger value="details" className="text-xs py-2"><Settings className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Details</TabsTrigger>
         </TabsList>
 
+        {/* ---- Magnets Tab ---- */}
         <TabsContent value="magnets" className="space-y-3 mt-4">
           {content.lead_magnets?.map((lm: any) => (
             <Card key={lm.number} className={lm.number === recommended ? "border-primary ring-1 ring-primary/30" : ""}>
@@ -348,9 +353,104 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
               <p className="text-xs text-muted-foreground">{content.recommended_reason}</p>
             </div>
           )}
+          {/* Contact Gate Details */}
+          {content.contact_gate && (
+            <Card className="mt-3">
+              <CardContent className="pt-5 space-y-2">
+                <h4 className="text-sm font-semibold flex items-center gap-2">
+                  <FileText className="h-3.5 w-3.5 text-primary" /> Contact Gate
+                </h4>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p><strong>When:</strong> {content.contact_gate.gate_moment || content.contact_gate.placement}</p>
+                  {content.contact_gate.headline && <p><strong>Headline:</strong> {content.contact_gate.headline}</p>}
+                  {content.contact_gate.fields_collected && (
+                    <p><strong>Fields:</strong> {Array.isArray(content.contact_gate.fields_collected) ? content.contact_gate.fields_collected.join(", ") : content.contact_gate.fields_collected}</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          {/* Best Channel */}
+          {content.best_channel && (
+            <div className="flex gap-2 mt-2">
+              <Share2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+              <p className="text-xs text-muted-foreground"><strong>Best channel:</strong> {content.best_channel} — {content.channel_reason}</p>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="optin" className="mt-4">
+        {/* ---- Quiz Tab ---- */}
+        <TabsContent value="quiz" className="space-y-4 mt-4">
+          {quizData ? (
+            <>
+              {/* Quiz Title */}
+              {(quiz?.title || content.quiz_title) && (
+                <div className="mb-2">
+                  <h3 className="text-lg font-bold">{quiz?.title || content.quiz_title}</h3>
+                  {(quiz?.description || content.quiz_description) && (
+                    <p className="text-sm text-muted-foreground mt-1">{quiz?.description || content.quiz_description}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Questions */}
+              <div className="space-y-3">
+                <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Questions ({Array.isArray(quizData) ? quizData.length : 0})</h4>
+                {Array.isArray(quizData) && quizData.map((q: any, qi: number) => (
+                  <Card key={qi}>
+                    <CardContent className="pt-4 space-y-2">
+                      <p className="text-sm font-semibold">Q{qi + 1}. {q.question || q.text}</p>
+                      <div className="grid gap-1.5 pl-2">
+                        {(q.options || q.answers || []).map((opt: any, oi: number) => (
+                          <div key={oi} className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-medium shrink-0">
+                              {String.fromCharCode(65 + oi)}
+                            </span>
+                            <span className="flex-1">{typeof opt === "string" ? opt : opt.text || opt.label}</span>
+                            {(typeof opt === "object" && opt.points !== undefined) && (
+                              <span className="text-xs text-primary font-medium">{opt.points} pts</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Scoring Tiers */}
+              {(content.scoring_tiers || content.result_tiers || quiz?.scoring_tiers) && (
+                <div className="space-y-3 mt-4">
+                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Scoring Tiers</h4>
+                  {(content.scoring_tiers || content.result_tiers || quiz?.scoring_tiers || []).map((tier: any, ti: number) => (
+                    <Card key={ti}>
+                      <CardContent className="pt-4 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <h5 className="text-sm font-semibold">{tier.label || tier.name || tier.title}</h5>
+                          {tier.range && <span className="text-xs text-muted-foreground">{tier.range}</span>}
+                          {tier.score_range && <span className="text-xs text-muted-foreground">{tier.score_range}</span>}
+                        </div>
+                        <p className="text-sm text-muted-foreground">{tier.description || tier.feedback}</p>
+                        {tier.tip && <p className="text-xs text-primary italic">💡 {tier.tip}</p>}
+                        {tier.recommended_product && (
+                          <p className="text-xs text-muted-foreground">📦 Recommended: {tier.recommended_product}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              <HelpCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>No quiz content was generated for this lead magnet set.</p>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ---- Opt-In Tab ---- */}
+        <TabsContent value="optin" className="mt-4 space-y-4">
           <Card className="overflow-hidden">
             <div className="bg-primary/5 p-6 text-center border-b border-border">
               <h3 className="text-xl font-bold mb-2">{content.optin_page?.headline}</h3>
@@ -367,9 +467,28 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
               <p className="text-xs text-muted-foreground mt-2">{content.optin_page?.privacy_note}</p>
             </div>
           </Card>
+
+          {/* Headline Variants */}
+          {content.optin_page?.headline_variants && content.optin_page.headline_variants.length > 0 && (
+            <Card>
+              <CardContent className="pt-5 space-y-3">
+                <h4 className="text-sm font-semibold">Headline Variants</h4>
+                {content.optin_page.headline_variants.map((v: any, i: number) => (
+                  <div key={i} className="p-3 bg-muted/50 rounded-lg space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{v.type || v.style}</span>
+                    </div>
+                    <p className="text-sm font-semibold">{v.headline || v.text}</p>
+                    {v.reasoning && <p className="text-xs text-muted-foreground italic">{v.reasoning}</p>}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="thankyou" className="mt-4">
+        {/* ---- Thanks Tab ---- */}
+        <TabsContent value="thankyou" className="mt-4 space-y-4">
           <Card className="overflow-hidden">
             <div className="bg-primary/5 p-6 text-center">
               <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-3">
@@ -380,9 +499,29 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
               <p className="text-sm font-medium">{content.thankyou_page?.next_step}</p>
             </div>
           </Card>
+          {/* Result Intro & Book CTA */}
+          {(content.thankyou_page?.result_intro || content.thankyou_page?.book_cta) && (
+            <Card>
+              <CardContent className="pt-5 space-y-2">
+                {content.thankyou_page.result_intro && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1">Result Introduction</h4>
+                    <p className="text-sm text-muted-foreground">{content.thankyou_page.result_intro}</p>
+                  </div>
+                )}
+                {content.thankyou_page.book_cta && (
+                  <div>
+                    <h4 className="text-sm font-semibold mb-1">Book CTA</h4>
+                    <p className="text-sm text-muted-foreground">{content.thankyou_page.book_cta}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
-        <TabsContent value="details" className="mt-4">
+        {/* ---- Details Tab ---- */}
+        <TabsContent value="details" className="mt-4 space-y-4">
           <Card>
             <CardContent className="pt-6 space-y-3">
               <div className="flex justify-between">
@@ -398,11 +537,72 @@ function ReviewStep({ content, authorName, onActivate, error, isPublishing }: { 
                   <p className="text-xs text-muted-foreground">{content.marketing_strategy.primary_reason}</p>
                 </>
               )}
-              <p className="text-xs text-muted-foreground italic">
-                Your opt-in page and lead capture will be activated automatically when you publish.
-              </p>
             </CardContent>
           </Card>
+
+          {/* Nurture Sequence */}
+          {(content.nurture_sequence || content.nurture_emails) && (
+            <Collapsible>
+              <Card>
+                <CardContent className="pt-5">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <Mail className="h-3.5 w-3.5 text-primary" /> Nurture Email Sequence ({(content.nurture_sequence || content.nurture_emails)?.length || 0} emails)
+                    </h4>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-3">
+                    {(content.nurture_sequence || content.nurture_emails || []).map((email: any, i: number) => (
+                      <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-1 border border-border/50">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-primary">Email {i + 1}</span>
+                          {(email.send_delay || email.delay_days) && (
+                            <span className="text-xs text-muted-foreground">Day {email.send_delay || email.delay_days}</span>
+                          )}
+                        </div>
+                        <p className="text-sm font-semibold">{email.subject || email.subject_line}</p>
+                        {email.purpose && <p className="text-xs text-muted-foreground italic">Purpose: {email.purpose}</p>}
+                        {email.body_outline && <p className="text-xs text-muted-foreground">{email.body_outline}</p>}
+                        {email.body && <p className="text-xs text-muted-foreground line-clamp-3">{email.body}</p>}
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </CardContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          {/* Social Media Posts */}
+          {(content.social_media_posts || content.social_posts) && (
+            <Collapsible>
+              <Card>
+                <CardContent className="pt-5">
+                  <CollapsibleTrigger className="flex items-center justify-between w-full">
+                    <h4 className="text-sm font-semibold flex items-center gap-2">
+                      <Share2 className="h-3.5 w-3.5 text-primary" /> Social Media Posts ({(content.social_media_posts || content.social_posts)?.length || 0} posts)
+                    </h4>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground transition-transform duration-200" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="mt-3 space-y-3">
+                    {(content.social_media_posts || content.social_posts || []).map((post: any, i: number) => (
+                      <div key={i} className="p-3 bg-muted/30 rounded-lg space-y-1 border border-border/50">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-semibold text-primary">{post.platform}</span>
+                        </div>
+                        <p className="text-sm text-foreground whitespace-pre-line">{post.caption || post.content || post.text}</p>
+                        {post.cta && <p className="text-xs text-primary font-medium">CTA: {post.cta}</p>}
+                        {post.hashtags && <p className="text-xs text-muted-foreground">{Array.isArray(post.hashtags) ? post.hashtags.join(" ") : post.hashtags}</p>}
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </CardContent>
+              </Card>
+            </Collapsible>
+          )}
+
+          <p className="text-xs text-muted-foreground italic">
+            Your opt-in page, contact tags, and lead capture will be created automatically.
+          </p>
         </TabsContent>
       </Tabs>
 

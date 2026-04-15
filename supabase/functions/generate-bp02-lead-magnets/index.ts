@@ -77,6 +77,10 @@ serve(async (req) => {
 
     const businessPlanExcerpt = businessPlanAsset?.content ? businessPlanAsset.content.substring(0, 3000) : "";
     const sourceMaterialExcerpt = sourceMaterialAsset?.content ? sourceMaterialAsset.content.substring(0, 2000) : "";
+    console.log("Enrichment: businessPlan=", businessPlanExcerpt.length, "chars, sourceMaterial=", sourceMaterialExcerpt.length, "chars, hasContext=", !!context);
+    if (!businessPlanExcerpt && !sourceMaterialExcerpt && !context) {
+      console.warn("WARNING: No enrichment data found — output may be generic");
+    }
 
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "readers interested in personal growth";
@@ -293,7 +297,7 @@ IMPORTANT RULES:
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5.2",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -337,7 +341,7 @@ IMPORTANT RULES:
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "openai/gpt-5",
+              model: "openai/gpt-5.2",
               messages: [
                 { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
                 { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
@@ -360,7 +364,7 @@ IMPORTANT RULES:
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            model: "openai/gpt-5",
+            model: "openai/gpt-5.2",
             messages: [
               { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
               { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
