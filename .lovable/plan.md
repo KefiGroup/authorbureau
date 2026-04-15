@@ -1,18 +1,22 @@
 
 
-# Store White-Label Domain and Update SSO Edge Function
+# Update GHL Agency Key
 
-## Changes
+## Problem
+The stored `GHL_AGENCY_KEY` secret contains the old/expiring token (`pit-7543...6919`), which caused the 401 error. GHL has rotated to a new token (`pit-3512...9475`).
 
-### 1. Store secret
-- **`GHL_WHITELABEL_DOMAIN`** = `app.authorsbureau.com`
+## Fix
 
-### 2. Update `supabase/functions/ghl-sso-link/index.ts`
-- Before generating the SSO token, call `GET /locations/{locationId}` using the existing `GHL_AGENCY_KEY` to auto-retrieve `companyId`
-- Remove dependency on `GHL_COMPANY_ID` env var
-- Use the retrieved `companyId` in the `POST /oauth/locationToken` call
-- Use `GHL_WHITELABEL_DOMAIN` (`app.authorsbureau.com`) for constructing SSO URLs
+### Step 1: Update the secret
+Use the `update_secret` tool to replace `GHL_AGENCY_KEY` with the new token value from GHL Settings → Private Integrations.
 
-### 3. Deploy
-- Deploy the updated `ghl-sso-link` edge function
+### Step 2: Redeploy the edge function
+Deploy `ghl-sso-link` so it picks up the new key.
+
+### Step 3: Test the SSO flow
+Call `ghl-sso-link` with a real author ID to verify 200 response and valid SSO URL.
+
+## Notes
+- The old token will expire in ~5 days per the GHL UI, so this is time-sensitive.
+- Also worth checking if `GHL_API_KEY` and `GHL_SUBACCOUNT_KEY` need similar updates, though they may serve different purposes.
 
