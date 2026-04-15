@@ -41,6 +41,11 @@ export default function AuthorSite() {
     );
   }, [booksWithProducts]);
 
+  const leadMagnets = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BP-02")), [liveNodes]);
+  const learnNodes = useMemo(() => liveNodes.filter(n =>
+    ["BP-05", "BP-07", "BA-10", "BA-12", "YR-25"].some(p => n.node_id.startsWith(p))
+  ), [liveNodes]);
+
   // SEO
   const bioFirstSentence = (author?.bio_short || "").split(/[.!?]\s/)[0];
   const uniqueGenres = [...new Set(booksWithProducts.map(b => b.genre).filter(Boolean))] as string[];
