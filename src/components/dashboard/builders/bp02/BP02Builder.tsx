@@ -509,6 +509,13 @@ function ReviewStep({
   isSavingDraft?: boolean;
 }) {
   const recommended = content.recommended_lead_magnet || 1;
+  const [selectedMagnetIdx, setSelectedMagnetIdx] = useState<number>(
+    content.selected_lead_magnet ?? (recommended - 1 >= 0 ? recommended - 1 : 0)
+  );
+
+  const selectedMagnet = content.lead_magnets?.[selectedMagnetIdx];
+  const selectedType = (selectedMagnet?.type || "").toLowerCase();
+  const isQuizType = selectedType.includes("quiz") || selectedType.includes("assessment");
 
   const quizStructure = content.quiz_structure || {};
   const quizData = quizStructure.questions || content.quiz_questions || content.quiz;
@@ -521,6 +528,11 @@ function ReviewStep({
   const updateField = useCallback((path: (string | number)[], value: any) => {
     setContent((prev: any) => deepSet(prev, path, value));
   }, [setContent]);
+
+  const handleSelectMagnet = (idx: number) => {
+    setSelectedMagnetIdx(idx);
+    setContent((prev: any) => ({ ...prev, selected_lead_magnet: idx }));
+  };
 
   const selectHeadline = (headline: string) => {
     updateField(["optin_page", "headline"], headline);
@@ -540,8 +552,8 @@ function ReviewStep({
           <TabsTrigger value="magnets" className="text-xs py-2 data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-300">
             <Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Magnets
           </TabsTrigger>
-          <TabsTrigger value="quiz" className="text-xs py-2 data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-300">
-            <HelpCircle className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Quiz
+          <TabsTrigger value="content" className="text-xs py-2 data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-300">
+            <HelpCircle className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Content
           </TabsTrigger>
           <TabsTrigger value="optin" className="text-xs py-2 data-[state=active]:bg-indigo-500/10 data-[state=active]:text-indigo-700 dark:data-[state=active]:text-indigo-300">
             <FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Opt-In
@@ -556,50 +568,72 @@ function ReviewStep({
 
         {/* ---- Magnets Tab ---- */}
         <TabsContent value="magnets" className="space-y-3 mt-4">
-          {content.lead_magnets?.map((lm: any, lmIdx: number) => (
-            <Card
-              key={lm.number || lmIdx}
-              className={`border-l-4 ${
-                lm.number === recommended
-                  ? "border-l-amber-500 bg-amber-50/5 ring-1 ring-amber-400/30"
-                  : "border-l-teal-500"
-              }`}
-            >
-              <CardContent className="pt-5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded font-medium">{lm.type}</span>
-                    {lm.number === recommended && (
-                      <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                        <Star className="h-3 w-3" /> ABBY's Top Pick
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{lm.pages_or_length}</span>
-                </div>
-                <EditableText
-                  value={lm.title || ""}
-                  onSave={(v) => updateField(["lead_magnets", lmIdx, "title"], v)}
-                  className="font-semibold text-base text-foreground"
-                />
-                <EditableText
-                  value={lm.description || ""}
-                  onSave={(v) => updateField(["lead_magnets", lmIdx, "description"], v)}
-                  className="text-sm text-muted-foreground"
-                  multiline
-                />
-                <div className="bg-teal-50/50 dark:bg-teal-950/20 rounded-md p-3">
-                  <p className="text-xs font-medium text-teal-700 dark:text-teal-300 mb-1">Why it works</p>
-                  <EditableText
-                    value={lm.why_it_works || ""}
-                    onSave={(v) => updateField(["lead_magnets", lmIdx, "why_it_works"], v)}
-                    className="text-xs text-teal-600 dark:text-teal-400 italic"
-                    multiline
-                  />
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <p className="text-xs text-muted-foreground mb-1">Click a magnet to select it as your active lead magnet</p>
+          {content.lead_magnets?.map((lm: any, lmIdx: number) => {
+            const isSelected = lmIdx === selectedMagnetIdx;
+            return (
+              <button
+                key={lm.number || lmIdx}
+                onClick={() => handleSelectMagnet(lmIdx)}
+                className={`w-full text-left transition-all rounded-lg ${
+                  isSelected ? "ring-2 ring-teal-500 shadow-md" : "opacity-75 hover:opacity-100"
+                }`}
+              >
+                <Card
+                  className={`border-l-4 ${
+                    isSelected
+                      ? "border-l-teal-500 bg-teal-50/10 dark:bg-teal-950/20"
+                      : lm.number === recommended
+                        ? "border-l-amber-500 bg-amber-50/5"
+                        : "border-l-muted-foreground/30"
+                  }`}
+                >
+                  <CardContent className="pt-5 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-xs px-2 py-0.5 rounded font-medium ${
+                          isSelected
+                            ? "bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300"
+                            : "bg-muted text-muted-foreground"
+                        }`}>{lm.type}</span>
+                        {lm.number === recommended && (
+                          <span className="text-xs bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                            <Star className="h-3 w-3" /> ABBY's Top Pick
+                          </span>
+                        )}
+                        {isSelected && (
+                          <span className="text-xs bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                            <Check className="h-3 w-3" /> Selected
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{lm.pages_or_length}</span>
+                    </div>
+                    <EditableText
+                      value={lm.title || ""}
+                      onSave={(v) => updateField(["lead_magnets", lmIdx, "title"], v)}
+                      className="font-semibold text-base text-foreground"
+                    />
+                    <EditableText
+                      value={lm.description || ""}
+                      onSave={(v) => updateField(["lead_magnets", lmIdx, "description"], v)}
+                      className="text-sm text-muted-foreground"
+                      multiline
+                    />
+                    <div className="bg-teal-50/50 dark:bg-teal-950/20 rounded-md p-3">
+                      <p className="text-xs font-medium text-teal-700 dark:text-teal-300 mb-1">Why it works</p>
+                      <EditableText
+                        value={lm.why_it_works || ""}
+                        onSave={(v) => updateField(["lead_magnets", lmIdx, "why_it_works"], v)}
+                        className="text-xs text-teal-600 dark:text-teal-400 italic"
+                        multiline
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </button>
+            );
+          })}
           {content.recommended_reason && (
             <div className="flex gap-2 mt-2 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg">
               <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
@@ -608,145 +642,180 @@ function ReviewStep({
           )}
         </TabsContent>
 
-        {/* ---- Quiz Tab ---- */}
-        <TabsContent value="quiz" className="space-y-4 mt-4">
-          {quizData && Array.isArray(quizData) && quizData.length > 0 ? (
-            <>
-              {/* Quiz Title & Description */}
-              <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
-                <CardContent className="pt-5 space-y-2">
-                  <EditableText
-                    value={quizTitle}
-                    onSave={(v) => updateField(["quiz_structure", "quiz_title"], v)}
-                    className="text-lg font-bold text-foreground"
-                  />
-                  <EditableText
-                    value={quizDescription || `Discover your ${quizTitle.replace(/quiz/i, "").trim()} profile`}
-                    onSave={(v) => updateField(["quiz_structure", "quiz_description"], v)}
-                    className="text-sm text-muted-foreground"
-                    multiline
-                  />
-                </CardContent>
-              </Card>
+        {/* ---- Content Tab (adapts to selected magnet) ---- */}
+        <TabsContent value="content" className="space-y-4 mt-4">
+          {isQuizType ? (
+            /* Quiz / Assessment content */
+            quizData && Array.isArray(quizData) && quizData.length > 0 ? (
+              <>
+                <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
+                  <CardContent className="pt-5 space-y-2">
+                    <EditableText
+                      value={quizTitle}
+                      onSave={(v) => updateField(["quiz_structure", "quiz_title"], v)}
+                      className="text-lg font-bold text-foreground"
+                    />
+                    <EditableText
+                      value={quizDescription || `Discover your ${quizTitle.replace(/quiz/i, "").trim()} profile`}
+                      onSave={(v) => updateField(["quiz_structure", "quiz_description"], v)}
+                      className="text-sm text-muted-foreground"
+                      multiline
+                    />
+                  </CardContent>
+                </Card>
 
-              {/* Questions */}
-              <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wide">
-                  Questions ({quizData.length})
-                </h4>
-                {quizData.map((q: any, qi: number) => (
-                  <Card key={qi} className="border-l-4 border-l-teal-400">
-                    <CardContent className="pt-4 space-y-3">
-                      <div className="flex items-start gap-2">
-                        <span className="text-sm font-bold text-teal-600 dark:text-teal-400 shrink-0 mt-0.5">Q{qi + 1}.</span>
-                        <EditableText
-                          value={q.question || q.text || ""}
-                          onSave={(v) => updateField(["quiz_structure", "questions", qi, q.question !== undefined ? "question" : "text"], v)}
-                          className="text-sm font-semibold text-foreground"
-                        />
-                      </div>
-                      <div className="grid gap-2 pl-6">
-                        {(q.options || q.answers || []).map((opt: any, oi: number) => {
-                          const optLabel = typeof opt === "string" ? opt : opt.text || opt.label || "";
-                          const optKey = q.options ? "options" : "answers";
-                          return (
-                            <div key={oi} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
-                              <span className="w-6 h-6 rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 flex items-center justify-center text-xs font-bold shrink-0">
-                                {String.fromCharCode(65 + oi)}
-                              </span>
-                              <EditableText
-                                value={optLabel}
-                                onSave={(v) => {
-                                  if (typeof opt === "string") {
-                                    updateField(["quiz_structure", "questions", qi, optKey, oi], v);
-                                  } else {
-                                    updateField(["quiz_structure", "questions", qi, optKey, oi, opt.text !== undefined ? "text" : "label"], v);
-                                  }
-                                }}
-                                className="text-sm text-foreground flex-1"
-                              />
-                              {(typeof opt === "object" && opt.points !== undefined) && (
-                                <span className="text-xs bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium shrink-0">{opt.points} pts</span>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              {/* Scoring Tiers */}
-              {scoringTiers && Array.isArray(scoringTiers) && scoringTiers.length > 0 && (
-                <div className="space-y-3 mt-4">
-                  <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                    Scoring Tiers ({scoringTiers.length})
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wide">
+                    Questions ({quizData.length})
                   </h4>
-                  {scoringTiers.map((tier: any, ti: number) => (
-                    <Card key={ti} className={TIER_COLORS[ti % TIER_COLORS.length]}>
-                      <CardContent className="pt-4 space-y-2">
-                        <div className="flex items-center justify-between gap-2">
+                  {quizData.map((q: any, qi: number) => (
+                    <Card key={qi} className="border-l-4 border-l-teal-400">
+                      <CardContent className="pt-4 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <span className="text-sm font-bold text-teal-600 dark:text-teal-400 shrink-0 mt-0.5">Q{qi + 1}.</span>
                           <EditableText
-                            value={tier.label || tier.name || tier.title || ""}
-                            onSave={(v) => {
-                              const key = tier.label !== undefined ? "label" : tier.name !== undefined ? "name" : "title";
-                              updateField(["quiz_structure", "scoring_tiers", ti, key], v);
-                            }}
-                            className="text-sm font-bold text-foreground"
+                            value={q.question || q.text || ""}
+                            onSave={(v) => updateField(["quiz_structure", "questions", qi, q.question !== undefined ? "question" : "text"], v)}
+                            className="text-sm font-semibold text-foreground"
                           />
-                          {(tier.min !== undefined && tier.max !== undefined) && (
-                            <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground shrink-0">{tier.min}–{tier.max} pts</span>
-                          )}
                         </div>
-                        <EditableText
-                          value={tier.description || tier.feedback || ""}
-                          onSave={(v) => {
-                            const key = tier.description !== undefined ? "description" : "feedback";
-                            updateField(["quiz_structure", "scoring_tiers", ti, key], v);
-                          }}
-                          className="text-sm text-muted-foreground"
-                          multiline
-                        />
-                        {tier.tips_from_book && Array.isArray(tier.tips_from_book) && (
-                          <div className="bg-muted/30 rounded-md p-2 space-y-1">
-                            <p className="text-xs font-medium text-muted-foreground">Tips from the book:</p>
-                            {tier.tips_from_book.map((tip: string, tipIdx: number) => (
-                              <div key={tipIdx} className="flex items-start gap-1.5">
-                                <span className="text-xs text-primary mt-0.5">•</span>
-                                <EditableText
-                                  value={tip}
-                                  onSave={(v) => updateField(["quiz_structure", "scoring_tiers", ti, "tips_from_book", tipIdx], v)}
-                                  className="text-xs text-muted-foreground"
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        {tier.product_recommendations && Array.isArray(tier.product_recommendations) && (
-                          <div className="bg-primary/5 rounded-md p-2 space-y-1">
-                            <p className="text-xs font-medium text-primary">Recommended products:</p>
-                            {tier.product_recommendations.map((pr: any, prIdx: number) => (
-                              <div key={prIdx} className="flex items-start gap-1.5">
-                                <span className="text-xs text-primary mt-0.5">→</span>
-                                <span className="text-xs text-muted-foreground">
-                                  <strong>{pr.type}:</strong> {pr.title} — {pr.reason}
+                        <div className="grid gap-2 pl-6">
+                          {(q.options || q.answers || []).map((opt: any, oi: number) => {
+                            const optLabel = typeof opt === "string" ? opt : opt.text || opt.label || "";
+                            const optKey = q.options ? "options" : "answers";
+                            return (
+                              <div key={oi} className="flex items-center gap-2 bg-muted/30 rounded-lg px-3 py-2">
+                                <span className="w-6 h-6 rounded-full bg-teal-100 dark:bg-teal-900/50 text-teal-700 dark:text-teal-300 flex items-center justify-center text-xs font-bold shrink-0">
+                                  {String.fromCharCode(65 + oi)}
                                 </span>
+                                <EditableText
+                                  value={optLabel}
+                                  onSave={(v) => {
+                                    if (typeof opt === "string") {
+                                      updateField(["quiz_structure", "questions", qi, optKey, oi], v);
+                                    } else {
+                                      updateField(["quiz_structure", "questions", qi, optKey, oi, opt.text !== undefined ? "text" : "label"], v);
+                                    }
+                                  }}
+                                  className="text-sm text-foreground flex-1"
+                                />
+                                {(typeof opt === "object" && opt.points !== undefined) && (
+                                  <span className="text-xs bg-teal-100 dark:bg-teal-900/40 text-teal-600 dark:text-teal-400 px-2 py-0.5 rounded-full font-medium shrink-0">{opt.points} pts</span>
+                                )}
                               </div>
-                            ))}
-                          </div>
-                        )}
+                            );
+                          })}
+                        </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-              )}
-            </>
+
+                {scoringTiers && Array.isArray(scoringTiers) && scoringTiers.length > 0 && (
+                  <div className="space-y-3 mt-4">
+                    <h4 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Scoring Tiers ({scoringTiers.length})
+                    </h4>
+                    {scoringTiers.map((tier: any, ti: number) => (
+                      <Card key={ti} className={TIER_COLORS[ti % TIER_COLORS.length]}>
+                        <CardContent className="pt-4 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <EditableText
+                              value={tier.label || tier.name || tier.title || ""}
+                              onSave={(v) => {
+                                const key = tier.label !== undefined ? "label" : tier.name !== undefined ? "name" : "title";
+                                updateField(["quiz_structure", "scoring_tiers", ti, key], v);
+                              }}
+                              className="text-sm font-bold text-foreground"
+                            />
+                            {(tier.min !== undefined && tier.max !== undefined) && (
+                              <span className="text-xs bg-muted px-2 py-0.5 rounded-full text-muted-foreground shrink-0">{tier.min}–{tier.max} pts</span>
+                            )}
+                          </div>
+                          <EditableText
+                            value={tier.description || tier.feedback || ""}
+                            onSave={(v) => {
+                              const key = tier.description !== undefined ? "description" : "feedback";
+                              updateField(["quiz_structure", "scoring_tiers", ti, key], v);
+                            }}
+                            className="text-sm text-muted-foreground"
+                            multiline
+                          />
+                          {tier.tips_from_book && Array.isArray(tier.tips_from_book) && (
+                            <div className="bg-muted/30 rounded-md p-2 space-y-1">
+                              <p className="text-xs font-medium text-muted-foreground">Tips from the book:</p>
+                              {tier.tips_from_book.map((tip: string, tipIdx: number) => (
+                                <div key={tipIdx} className="flex items-start gap-1.5">
+                                  <span className="text-xs text-primary mt-0.5">•</span>
+                                  <EditableText
+                                    value={tip}
+                                    onSave={(v) => updateField(["quiz_structure", "scoring_tiers", ti, "tips_from_book", tipIdx], v)}
+                                    className="text-xs text-muted-foreground"
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          {tier.product_recommendations && Array.isArray(tier.product_recommendations) && (
+                            <div className="bg-primary/5 rounded-md p-2 space-y-1">
+                              <p className="text-xs font-medium text-primary">Recommended products:</p>
+                              {tier.product_recommendations.map((pr: any, prIdx: number) => (
+                                <div key={prIdx} className="flex items-start gap-1.5">
+                                  <span className="text-xs text-primary mt-0.5">→</span>
+                                  <span className="text-xs text-muted-foreground">
+                                    <strong>{pr.type}:</strong> {pr.title} — {pr.reason}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <HelpCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No quiz content was generated for this lead magnet set.</p>
+              </div>
+            )
           ) : (
-            <div className="text-center py-8 text-muted-foreground text-sm">
-              <HelpCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No quiz content was generated for this lead magnet set.</p>
-            </div>
+            /* Checklist / Cheat Sheet / other non-quiz content preview */
+            selectedMagnet ? (
+              <div className="space-y-4">
+                <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
+                  <CardContent className="pt-5 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-teal-100 dark:bg-teal-900/40 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded font-medium">{selectedMagnet.type}</span>
+                      <span className="text-xs text-muted-foreground">{selectedMagnet.pages_or_length}</span>
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground">{selectedMagnet.title}</h3>
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{selectedMagnet.description}</p>
+                  </CardContent>
+                </Card>
+
+                <Card className="border-teal-200/50 dark:border-teal-800/50">
+                  <CardContent className="pt-5 space-y-3">
+                    <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300">Why This Format Works</h4>
+                    <p className="text-sm text-muted-foreground italic whitespace-pre-wrap">{selectedMagnet.why_it_works}</p>
+                  </CardContent>
+                </Card>
+
+                <div className="flex gap-2 p-3 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg">
+                  <Sparkles className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700 dark:text-amber-300">
+                    The full {selectedMagnet.type?.toLowerCase()} content will be generated and formatted when you publish. The opt-in page and thank-you page are ready to preview in the other tabs.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground text-sm">
+                <HelpCircle className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>Select a magnet from the Magnets tab to preview its content.</p>
+              </div>
+            )
           )}
         </TabsContent>
 
@@ -800,7 +869,7 @@ function ReviewStep({
           <Card className="overflow-hidden border-indigo-200 dark:border-indigo-800">
             <div className="bg-gradient-to-br from-indigo-500/10 to-teal-500/10 p-6 space-y-4 border-b border-border">
               <EditableText
-                value={content.optin_page?.headline || ""}
+                value={content.optin_page?.headline || selectedMagnet?.title || ""}
                 onSave={(v) => updateField(["optin_page", "headline"], v)}
                 className="text-xl font-bold text-center text-foreground"
               />
@@ -888,7 +957,7 @@ function ReviewStep({
           </Card>
         </TabsContent>
 
-        {/* ---- Distribution Tab (replaces old Details) ---- */}
+        {/* ---- Distribution Tab ---- */}
         <TabsContent value="distribution" className="mt-4 space-y-4">
           <Card className="border-amber-200 dark:border-amber-800 bg-gradient-to-br from-amber-50/30 to-transparent dark:from-amber-950/10">
             <CardContent className="pt-5 space-y-4">
