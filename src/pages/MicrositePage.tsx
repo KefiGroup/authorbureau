@@ -33,9 +33,10 @@ export default function MicrositePage() {
   const [submitted, setSubmitted] = useState(false);
 
   const nodeId = nodeSlug ? SLUG_TO_NODE[nodeSlug] : null;
+  const isDynamicSlug = nodeSlug && !nodeId; // slug not in hardcoded map — try dynamic lookup
 
   useEffect(() => {
-    if (!authorSlug || !nodeId) {
+    if (!authorSlug || (!nodeId && !isDynamicSlug)) {
       setNotFound(true);
       setLoading(false);
       return;
@@ -44,17 +45,20 @@ export default function MicrositePage() {
     async function fetchPage() {
       try {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        // Use node param for known slugs, slug param for dynamic/personalised slugs
+        const queryParam = nodeId ? `node=${nodeId}` : `slug=${encodeURIComponent(nodeSlug!)}`;
         const res = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&node=${nodeId}`,
+          `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&${queryParam}`,
           { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
         );
 
         if (!res.ok) {
           const body = await res.json().catch(() => ({}));
           if (body.error === "Node not live") {
-            // Check if author exists but node isn't published yet
             setComingSoon(true);
           } else if (body.error === "Author not found") {
+            setNotFound(true);
+          } else if (body.error === "Node not found for slug") {
             setNotFound(true);
           } else {
             setNotFound(true);
@@ -72,7 +76,7 @@ export default function MicrositePage() {
     }
 
     fetchPage();
-  }, [authorSlug, nodeId]);
+  }, [authorSlug, nodeId, nodeSlug, isDynamicSlug]);
 
   const nodeName = nodeId ? NODE_NAMES[nodeId] || "" : "";
   const authorName = data?.author?.pen_name || authorSlug || "";
