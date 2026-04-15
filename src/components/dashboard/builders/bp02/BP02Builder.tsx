@@ -64,7 +64,7 @@ const DEFAULT_CHANNELS: PublishChannels = {
 
 export default function BP02Builder({ authorId }: Props) {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(-1);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
@@ -81,7 +81,11 @@ export default function BP02Builder({ authorId }: Props) {
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!authorId) {
+      setStep(0);
+      return;
+    }
+
     (async () => {
       try {
         const { data: profile, error: profileErr } = await supabase
@@ -104,6 +108,7 @@ export default function BP02Builder({ authorId }: Props) {
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+
         if (ctx?.book_title) {
           setBookTitle(ctx.book_title);
           setHasContext(true);
@@ -116,6 +121,7 @@ export default function BP02Builder({ authorId }: Props) {
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
+
           if (book?.title) {
             setBookTitle(book.title);
             setHasContext(true);
@@ -126,28 +132,34 @@ export default function BP02Builder({ authorId }: Props) {
 
         const { data: node, error: nodeErr } = await supabase
           .from("author_nodes")
-          .select("content_json, status, microsite_url")
+          .select("content_json, status, microsite_url, activated_at, current_step")
           .eq("author_id", authorId)
           .eq("node_id", "BP-02")
           .maybeSingle();
 
         console.log("[BP02] Node load:", { authorId, nodeStatus: node?.status, hasContent: !!node?.content_json, nodeErr });
 
-        if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-          setContent(node.content_json);
-          if (node.status === "live") {
+        if (node?.content_json) {
+          const savedContent = node.content_json as any;
+          const savedStep = Number(savedContent?._currentStep ?? node.current_step ?? 0);
+          const isPublished = node.status === "live" || !!node.activated_at || !!node.microsite_url;
+          const savedChannels = savedContent?.publishChannels;
+
+          setContent(isPublished ? { ...savedContent, activated: true } : savedContent);
+          if (savedChannels) setPublishChannels(savedChannels);
+
+          if (isPublished) {
             setStep(4);
-            setContent((prev: any) => ({ ...prev, activated: true }));
             setLiveUrl(node.microsite_url || null);
-            const saved = (node.content_json as any)?.publishChannels;
-            if (saved) setPublishChannels(saved);
           } else {
-            const savedStep = (node.content_json as any)?._currentStep;
-            setStep(savedStep === 3 ? 3 : 2);
+            setStep(savedStep >= 3 ? 3 : 2);
           }
+        } else {
+          setStep(0);
         }
       } catch (err) {
         console.error("[BP02] Init effect error:", err);
+        setStep(0);
       }
     })();
   }, [authorId]);
@@ -181,12 +193,20 @@ export default function BP02Builder({ authorId }: Props) {
         try {
           const { data: existingNode } = await supabase
             .from("author_nodes")
-            .select("id")
+            .select("id, status, activated_at, microsite_url")
             .eq("author_id", authorId)
             .eq("node_id", "BP-02")
             .maybeSingle();
 
-          const payload = { content_json: data.content, status: "content_ready" as const };
+          const nextStatus = existingNode?.status === "live" || !!existingNode?.activated_at || !!existingNode?.microsite_url
+            ? "live" as const
+            : "content_ready" as const;
+          const payload = {
+            content_json: { ...data.content, _currentStep: 2 },
+            current_step: 2,
+            status: nextStatus,
+          };
+
           if (existingNode) {
             const { error: upErr } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
             if (upErr) console.error("[BP02] Auto-save update failed:", upErr);
@@ -216,23 +236,28 @@ export default function BP02Builder({ authorId }: Props) {
     try {
       const { data: existingNode } = await supabase
         .from("author_nodes")
-        .select("id")
+        .select("id, status, activated_at, microsite_url")
         .eq("author_id", authorId)
         .eq("node_id", "BP-02")
         .maybeSingle();
 
+      const nextStatus = existingNode?.status === "live" || !!existingNode?.activated_at || !!existingNode?.microsite_url
+        ? "live" as const
+        : "content_ready" as const;
+      const payload = {
+        content_json: { ...content, _currentStep: step },
+        current_step: step,
+        status: nextStatus,
+      };
+
       if (existingNode) {
-        await supabase.from("author_nodes").update({
-          content_json: { ...content, _currentStep: step },
-          status: "content_ready",
-        }).eq("id", existingNode.id);
+        await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
       } else {
         await supabase.from("author_nodes").insert({
           author_id: authorId,
           node_id: "BP-02",
           node_name: "Lead Magnets",
-          status: "content_ready",
-          content_json: content,
+          ...payload,
         });
       }
       toast.success("Draft saved!");
@@ -257,24 +282,23 @@ export default function BP02Builder({ authorId }: Props) {
 
       const slug = authorSlug || authorName.toLowerCase().replace(/\s+/g, "-");
       const micrositeUrl = `${window.location.origin}/${slug}/free-gift`;
+      const publishedPayload = {
+        status: "live" as const,
+        content_json: { ...content, publishChannels, _currentStep: 4 },
+        current_step: 4,
+        activated_at: new Date().toISOString(),
+        microsite_url: micrositeUrl,
+      };
 
       if (existingNode) {
-        const { error: updateErr } = await supabase.from("author_nodes").update({
-          status: "live",
-          content_json: { ...content, publishChannels },
-          activated_at: new Date().toISOString(),
-          microsite_url: micrositeUrl,
-        }).eq("id", existingNode.id);
+        const { error: updateErr } = await supabase.from("author_nodes").update(publishedPayload).eq("id", existingNode.id);
         if (updateErr) throw new Error(`Failed to publish: ${updateErr.message}`);
       } else {
         const { error: insertErr } = await supabase.from("author_nodes").insert({
           author_id: authorId!,
           node_id: "BP-02",
           node_name: "Lead Magnets",
-          status: "live",
-          content_json: { ...content, publishChannels },
-          activated_at: new Date().toISOString(),
-          microsite_url: micrositeUrl,
+          ...publishedPayload,
         });
         if (insertErr) throw new Error(`Failed to publish: ${insertErr.message}`);
       }
@@ -412,6 +436,12 @@ export default function BP02Builder({ authorId }: Props) {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        {step < 0 && (
+          <AbbyCard>
+            <p className="text-muted-foreground">Restoring your lead magnet…</p>
+          </AbbyCard>
+        )}
+
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Lead Magnets</h2>
@@ -460,7 +490,6 @@ export default function BP02Builder({ authorId }: Props) {
             authorId={authorId!}
             onNext={async () => {
               setStep(3);
-              // Persist step 3 so refresh restores to Publish
               if (authorId && content) {
                 const { data: n } = await supabase
                   .from("author_nodes")
@@ -471,6 +500,7 @@ export default function BP02Builder({ authorId }: Props) {
                 if (n) {
                   await supabase.from("author_nodes").update({
                     content_json: { ...content, _currentStep: 3 },
+                    current_step: 3,
                   }).eq("id", n.id);
                 }
               }
