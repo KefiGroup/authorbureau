@@ -1,21 +1,23 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Mail, Loader2 } from "lucide-react";
+import { Mail, Loader2, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import type { AuthorData, ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import type { LiveNode } from "./AuthorLeadMagnetsSection";
 
 interface Props {
   author: AuthorData;
   authorSlug: string;
   displayName: string;
+  affiliateNodes?: LiveNode[];
   theme: AuthorTheme;
   v: ThemeVars;
 }
 
-export default function AuthorSubscribeSection({ author, authorSlug, displayName, theme, v }: Props) {
+export default function AuthorSubscribeSection({ author, authorSlug, displayName, affiliateNodes = [], theme, v }: Props) {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [subMessage, setSubMessage] = useState("");
@@ -87,6 +89,28 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
               <p className="text-xs mt-4" style={{ color: v.mutedText, fontSize: "0.8rem" }}>
                 We respect your privacy. Unsubscribe anytime.
               </p>
+
+              {/* Affiliate links (BA-16) */}
+              {affiliateNodes.length > 0 && (
+                <div className="mt-8 pt-6" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
+                  <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: v.mutedText }}>
+                    Recommended Resources
+                  </p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {affiliateNodes.map(node => {
+                      const title = node.personalised_name || node.node_name;
+                      const linkUrl = node.third_party_url || node.payment_link || "#";
+                      return (
+                        <a key={node.node_id} href={linkUrl} target="_blank" rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all hover:brightness-110"
+                          style={{ background: `${v.accent}15`, color: v.accent, border: `1px solid ${v.accent}30` }}>
+                          {title} <ExternalLink className="h-3 w-3" />
+                        </a>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </motion.div>
