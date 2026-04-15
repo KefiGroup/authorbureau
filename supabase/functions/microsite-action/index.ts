@@ -76,6 +76,7 @@ serve(async (req) => {
     const cleanEmail = email.toLowerCase().trim();
 
     // ─── GHL Contact ───
+    console.log("[microsite-action] Tag resolved:", tag, "| GHL sub:", ghlSubAccountId);
     let ghlContactId: string | null = null;
     if (ghlSubAccountId && GHL_API_KEY) {
       try {
@@ -104,6 +105,7 @@ serve(async (req) => {
     }
 
     // ─── Author Subscribers (existing) ───
+    console.log("[microsite-action] ▶ Upserting author_subscribers for", cleanEmail);
     try {
       await supabaseAdmin.from("author_subscribers").upsert(
         {
@@ -122,6 +124,7 @@ serve(async (req) => {
     }
 
     // ─── LEVEL 1: Author-level CRM ───
+    console.log("[microsite-action] ▶ LEVEL 1 CRM for author_id:", authorUserId);
     let authorContactId: string | null = null;
     try {
       // Dedup by email
@@ -176,6 +179,7 @@ serve(async (req) => {
     }
 
     // ─── LEVEL 2: Platform-level CRM (first admin) ───
+    console.log("[microsite-action] ▶ LEVEL 2 Platform CRM");
     try {
       const { data: adminRole } = await supabaseAdmin
         .from("user_roles")
@@ -247,6 +251,7 @@ serve(async (req) => {
     }
 
     // ─── Resend Email Notification to Author ───
+    console.log("[microsite-action] ▶ Sending Resend email to author");
     try {
       const { data: { user: authorUser } } = await supabaseAdmin.auth.admin.getUserById(authorUserId);
 
