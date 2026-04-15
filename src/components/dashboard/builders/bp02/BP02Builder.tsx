@@ -83,62 +83,70 @@ export default function BP02Builder({ authorId }: Props) {
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("pen_name, author_slug, user_id")
-        .eq("id", authorId)
-        .single();
-      setAuthorName(profile?.pen_name || "there");
-      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
+      try {
+        const { data: profile, error: profileErr } = await supabase
+          .from("author_profiles")
+          .select("pen_name, author_slug, user_id")
+          .eq("id", authorId)
+          .maybeSingle();
 
-      const { data: ctx } = await supabase
-        .from("author_context")
-        .select("book_title")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else {
-        const userId = profile?.user_id || authorId;
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", userId)
+        console.log("[BP02] Profile load:", { authorId, profile: !!profile, profileErr });
+
+        if (profile) {
+          setAuthorName(profile.pen_name || "there");
+          setAuthorSlug(profile.author_slug || (profile.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
+        }
+
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
+        if (ctx?.book_title) {
+          setBookTitle(ctx.book_title);
           setHasContext(true);
         } else {
-          setHasContext(false);
+          const userId = profile?.user_id || authorId;
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("author_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (book?.title) {
+            setBookTitle(book.title);
+            setHasContext(true);
+          } else {
+            setHasContext(false);
+          }
         }
-      }
 
-      const { data: node, error: nodeErr } = await supabase
-        .from("author_nodes")
-        .select("content_json, status, microsite_url")
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-02")
-        .maybeSingle();
+        const { data: node, error: nodeErr } = await supabase
+          .from("author_nodes")
+          .select("content_json, status, microsite_url")
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-02")
+          .maybeSingle();
 
-      console.log("[BP02] Node load:", { authorId, nodeStatus: node?.status, hasContent: !!node?.content_json, nodeErr });
+        console.log("[BP02] Node load:", { authorId, nodeStatus: node?.status, hasContent: !!node?.content_json, nodeErr });
 
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        if (node.status === "live") {
-          setStep(4);
-          setContent((prev: any) => ({ ...prev, activated: true }));
-          setLiveUrl(node.microsite_url || null);
-          // Restore publishChannels if persisted
-          const saved = (node.content_json as any)?.publishChannels;
-          if (saved) setPublishChannels(saved);
-        } else {
-          setStep(2);
+        if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
+          setContent(node.content_json);
+          if (node.status === "live") {
+            setStep(4);
+            setContent((prev: any) => ({ ...prev, activated: true }));
+            setLiveUrl(node.microsite_url || null);
+            const saved = (node.content_json as any)?.publishChannels;
+            if (saved) setPublishChannels(saved);
+          } else {
+            setStep(2);
+          }
         }
+      } catch (err) {
+        console.error("[BP02] Init effect error:", err);
       }
     })();
   }, [authorId]);
