@@ -139,9 +139,9 @@ export default function MicrositePage() {
   const bgColor = theme.colors.heroBackground;
   const content = data.node.content_json || {};
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
-    if (!email || submitting) return;
+    if (!email || submitting) return false;
     setSubmitting(true);
 
     try {
@@ -160,11 +160,14 @@ export default function MicrositePage() {
       if (res.error) throw res.error;
       setSubmitted(true);
       toast({ title: "Success!", description: res.data?.message || "Thank you!" });
+      setSubmitting(false);
+      return true;
     } catch (err) {
       console.error("Submit error:", err);
-      toast({ title: "Something went wrong", variant: "destructive" });
+      toast({ title: "Something went wrong", description: "Please try again or check your internet connection.", variant: "destructive" });
+      setSubmitting(false);
+      return false;
     }
-    setSubmitting(false);
   };
 
   // Render node-specific template
