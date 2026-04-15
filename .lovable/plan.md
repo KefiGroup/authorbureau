@@ -1,67 +1,57 @@
 
 
-# Sprint 29 — Marketing Hub Flow Alignment
+# Sprint 29 QA Fix Plan
 
-## Summary
-Rewrite the Marketing Hub's status logic and card rendering so it reflects the correct Build → Review → Activate flow. Touches primarily `MarketingHub.tsx`. No new tables, routes, or edge functions.
+## Root Causes Found
 
-## Current State
-- `author_nodes.status` is a text field (default `'locked'`). Only value currently in DB: `'live'`.
-- Marketing Hub uses `marketing_activated_at` timestamp to determine "active" state, and `status === "live"` for "ready".
-- Cards show "Build [Node]" CTAs and step-by-step "how to get started" instructions — duplicating Brand Products.
+**BP-02 (generate-bp02-lead-magnets)**: Fails with `"Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead."` — the `openai/gpt-5` model requires `max_completion_tokens`, not `max_tokens`.
 
-## Status Mapping
+**BP-03 (generate-bp03-social-media)**: Two issues:
+1. Same `max_tokens` parameter error (uses `max_tokens: 32000`)
+2. Hard-fails with "No book context found" because it requires `author_context` table data and has no fallback to the `books` table
 
-| `author_nodes` state | Hub status badge | CTA button |
-|---|---|---|
-| No row / `locked` | **Not Built** (gray) | "Build this first in Brand Products →" links to `/brand-products` |
-| `draft` | **Draft** (amber) | "Review & Approve Content →" links to `/node-builder/{nodeId}` |
-| `live` (published) | **Ready to Activate** (gold) | "Activate Campaign" (green/gold) |
-| `live` + `marketing_activated_at` set | **Active** (green) | "Pause Campaign" button |
+## Fixes
 
-## Changes
+### Fix 1 — Replace `max_tokens` with `max_completion_tokens` in both edge functions
 
-### 1. Rewrite `getCampaignStatus` (MarketingHub.tsx)
-Replace current logic with 4-state derivation per node:
-- `not_built`: no row or status is `locked`
-- `draft`: status is `draft`
-- `ready`: status is `live` and no `marketing_activated_at`
-- `active`: status is `live` and `marketing_activated_at` is set
+**File**: `supabase/functions/generate-bp02-lead-magnets/index.ts` (line 262)
+- Change `max_tokens: 8000` to `max_completion_tokens: 8000`
 
-For grouped campaigns (BP-06+, BA-*, YR-*), derive from worst-state of child nodes (keep existing behavior).
+**File**: `supabase/functions/generate-bp03-social-media/index.ts` (line 146)
+- Change `max_tokens: 32000` to `max_completion_tokens: 32000`
 
-### 2. Rewrite `CampaignRow` rendering
-**For BP-01 through BP-05** (the 5 individual nodes):
-- **Not Built**: Show node name, "Not Built" badge, description, and single line: "Build this first in Brand Products" with link to `/brand-products`. No step-by-step instructions.
-- **Draft**: Show "Draft" amber badge, content preview (first 100 chars of `content_json`), "Review & Approve Content" button linking to `/node-builder/{nodeId}`.
-- **Ready**: Show "Ready to Activate" gold badge, content preview, "Activate Campaign" green button.
-- **Active**: Show green "Active" badge, "Pause Campaign" button, stats row: "Activated {date} · {X} leads captured".
+### Fix 2 — Add books table fallback in BP-03 edge function
 
-### 3. Add pause functionality
-"Pause Campaign" sets `marketing_activated_at = null` on `author_nodes` for that node, reverting to "ready" state.
+BP-03 currently throws if no `author_context` row exists. Add a fallback:
+- If no `author_context`, query `books` table using `author_profiles.user_id`
+- Build context from the book record (title, description as thesis)
+- Only throw if neither `author_context` nor `books` has data
 
-### 4. Add leads count query
-Query `leads` table (if exists) or default to 0 for the activation stats row.
+### Fix 3 — Return detailed error messages from edge functions
 
-### 5. Remove all "Build" language
-- Remove `howToStart` step-by-step sections for BP-01–BP-05
-- Remove all "Build [Node Name] →" button text
-- Change Abby guidance section: replace "Build Email Marketing First" with "Go to Brand Products to get started" when no nodes are built
-- Remove `deployFunctions` references to GHL (`deploy-bp04-to-ghl`, `deploy-bp05-to-ghl`, etc.)
+Both functions already return `{ success: false, error: err.message }` with status 500. The issue is Supabase SDK swallows non-2xx responses. Change both functions to always return HTTP 200 with `success: false` in the body so the client can read the actual error message.
 
-### 6. Content preview snippet
-For draft/ready/active nodes, extract first 100 chars from `content_json` (parse the JSON, find a suitable text field like `description` or first content block) and display as a muted preview line.
+### Fix 4 — Book title in UI ("your book" vs actual title)
+
+BP-02's edge function line 39: `const bookTitle = context?.book_title || "your book"` — after the fallback fix, this will use the actual book title from the `books` table.
+
+### Fix 5 — Loading state on Generate button
+
+Both builders already have loading states (step 1 with `GENERATING_MESSAGES` spinner). The issue is that the error causes an immediate crash back to step 0. With the edge function fixes, the loading state will be visible during the actual generation time. No UI changes needed — the loading state already exists.
 
 ## Files Changed
+
 | File | Change |
 |---|---|
-| `src/components/dashboard/MarketingHub.tsx` | Rewrite status logic, card rendering, remove Build language, add pause, add content preview |
+| `supabase/functions/generate-bp02-lead-magnets/index.ts` | `max_tokens` → `max_completion_tokens`, return HTTP 200 always |
+| `supabase/functions/generate-bp03-social-media/index.ts` | `max_tokens` → `max_completion_tokens`, add books fallback, return HTTP 200 always |
 
 ## What Does NOT Change
-- Brand Products page
-- Node builders (BP-01 through BP-09)
-- Sidebar navigation
-- Dashboard
-- Database schema (no migrations)
-- No new routes or edge functions
+- No UI component changes needed
+- No database migrations
+- No new edge functions
+- Brand Products, sidebar, dashboard untouched
+
+## Deploy
+Both edge functions need redeployment after changes.
 
