@@ -155,7 +155,7 @@ Make ALL content specific to this author's book themes, frameworks, and insights
           },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.8,
+        // temperature omitted — openai/gpt-5 only supports default (1)
         max_completion_tokens: 32000,
       }),
     });
