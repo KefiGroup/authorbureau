@@ -119,5 +119,6 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.generate-bp05-webinar]
     verify_jwt = false
-  [functions.provision-ghl-subaccount]
+  [functions.generate-bp02-lead-magnets]
+    verify_jwt = false
     verify_jwt = false

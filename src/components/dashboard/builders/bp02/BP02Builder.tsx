@@ -18,7 +18,7 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 const GENERATING_MESSAGES = [
   "Reading your book to find the best lead magnet angles...",
-  "Designing 3 irresistible free resources for your readers...",
+  "Designing 2 irresistible free resources for your readers...",
   "Writing your opt-in page headline and copy...",
   "Creating your thank-you page message...",
   "Matching everything to your audience's biggest pain points...",
@@ -342,7 +342,7 @@ export default function BP02Builder({ authorId }: Props) {
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! A lead magnet is a free resource you give readers in exchange for their email address — it's how you build your list.
-                  I'm going to create 3 lead magnet concepts perfectly matched to '{detectedBookTitle || "your book"}', plus a complete opt-in page that captures subscribers automatically. Ready?
+                  I'm going to create 2 lead magnet concepts — a Quiz and a Checklist — perfectly matched to '{detectedBookTitle || "your book"}', plus a complete opt-in page that captures subscribers automatically. Ready?
                 </p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Generate My Lead Magnets
@@ -520,7 +520,6 @@ function ReviewStep({
   const selectedType = (selectedMagnet?.type || "").toLowerCase();
   const isQuizType = selectedType.includes("quiz") || selectedType.includes("assessment");
   const isChecklistType = selectedType.includes("checklist");
-  const isCheatsheetType = selectedType.includes("cheat") || selectedType.includes("sheet");
 
   const quizStructure = content.quiz_structure || {};
   const quizData = quizStructure.questions || content.quiz_questions || content.quiz;
@@ -529,7 +528,6 @@ function ReviewStep({
   const quizDescription = quizStructure.quiz_description || quizStructure.description || content.quiz_description || "";
 
   const checklistStructure = content.checklist_structure || {};
-  const cheatsheetStructure = content.cheatsheet_structure || {};
 
   const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
 
@@ -879,84 +877,6 @@ function ReviewStep({
                       </Card>
                     ))}
                   </div>
-                )}
-              </div>
-            ) : isCheatsheetType && cheatsheetStructure.sections ? (
-              <div className="space-y-4">
-                <Card className="border-teal-200 dark:border-teal-800 bg-gradient-to-br from-teal-50/50 to-transparent dark:from-teal-950/20">
-                  <CardContent className="pt-5 space-y-2">
-                    <EditableText
-                      value={cheatsheetStructure.cheatsheet_title || selectedMagnet?.title || ""}
-                      onSave={(v) => updateField(["cheatsheet_structure", "cheatsheet_title"], v)}
-                      className="text-lg font-bold text-foreground"
-                    />
-                    <EditableText
-                      value={cheatsheetStructure.cheatsheet_description || ""}
-                      onSave={(v) => updateField(["cheatsheet_structure", "cheatsheet_description"], v)}
-                      className="text-sm text-muted-foreground"
-                      multiline
-                    />
-                  </CardContent>
-                </Card>
-
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300 uppercase tracking-wide">
-                    Sections ({cheatsheetStructure.sections.length})
-                  </h4>
-                  {cheatsheetStructure.sections.map((section: any, si: number) => (
-                    <Card key={si} className="border-l-4 border-l-teal-400">
-                      <CardContent className="pt-4 space-y-3">
-                        <EditableText
-                          value={section.section_title || ""}
-                          onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "section_title"], v)}
-                          className="text-sm font-bold text-foreground"
-                        />
-                        <div className="space-y-1.5 pl-2">
-                          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Signals:</p>
-                          {(section.signals || []).map((signal: string, sgi: number) => (
-                            <div key={sgi} className="flex items-start gap-2">
-                              <span className="text-xs text-teal-500 mt-0.5">•</span>
-                              <EditableText
-                                value={signal}
-                                onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "signals", sgi], v)}
-                                className="text-sm text-muted-foreground"
-                              />
-                            </div>
-                          ))}
-                        </div>
-                        <div className="bg-muted/30 rounded-md px-3 py-2 space-y-1">
-                          <p className="text-xs font-medium text-muted-foreground">Diagnosis:</p>
-                          <EditableText
-                            value={section.diagnosis || ""}
-                            onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "diagnosis"], v)}
-                            className="text-xs text-muted-foreground italic"
-                          />
-                        </div>
-                        <div className="bg-primary/5 rounded-md px-3 py-2">
-                          <p className="text-xs font-medium text-primary">Recommended resource:</p>
-                          <EditableText
-                            value={section.next_resource || ""}
-                            onSave={(v) => updateField(["cheatsheet_structure", "sections", si, "next_resource"], v)}
-                            className="text-xs text-muted-foreground"
-                          />
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-
-                {cheatsheetStructure.quick_match_guide && (
-                  <Card className="border-teal-200/50 dark:border-teal-800/50">
-                    <CardContent className="pt-5 space-y-2">
-                      <h4 className="text-sm font-semibold text-teal-700 dark:text-teal-300">Quick Match Guide</h4>
-                      <EditableText
-                        value={cheatsheetStructure.quick_match_guide}
-                        onSave={(v) => updateField(["cheatsheet_structure", "quick_match_guide"], v)}
-                        className="text-sm text-muted-foreground italic"
-                        multiline
-                      />
-                    </CardContent>
-                  </Card>
                 )}
               </div>
             ) : selectedMagnet ? (
