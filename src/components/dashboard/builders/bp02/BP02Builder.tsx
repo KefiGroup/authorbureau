@@ -97,12 +97,14 @@ export default function BP02Builder({ authorId }: Props) {
         }
       }
 
-      const { data: node } = await supabase
+      const { data: node, error: nodeErr } = await supabase
         .from("author_nodes")
         .select("content_json, status, microsite_url")
         .eq("author_id", authorId)
         .eq("node_id", "BP-02")
         .maybeSingle();
+
+      console.log("[BP02] Node load:", { authorId, nodeStatus: node?.status, hasContent: !!node?.content_json, nodeErr });
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
