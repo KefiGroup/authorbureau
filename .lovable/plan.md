@@ -1,31 +1,26 @@
+<final-text>The root cause is a combination of 2 bugs, not just one:
 
+1. Refresh loads protected backend data before the auth session is fully restored.
+- `src/pages/NodeBuilder.tsx` gets the user from the shared auth context, then immediately queries the project’s `author_profiles` row.
+- `src/components/dashboard/builders/bp02/BP02Builder.tsx` then immediately queries `author_profiles`, `author_context`, and `author_nodes`.
+- Those tables are protected by row-level permissions (`supabase/migrations/20260326200117_ea49e51a-5765-43af-9dec-68fd37c57fa7.sql`) that depend on the logged-in user ID.
+- On refresh, that auth state can still be “not ready”, so the backend behaves as if you are not authenticated yet. The read returns no row or an RLS error, and BP-02 falls back to `setStep(0)`.
 
-# Fix BP-02 Step Persistence on Refresh
+2. Several save paths do not actually confirm that the save succeeded.
+- In `BP02Builder.tsx`, auto-save only logs write errors.
+- Manual “Save Draft” does not check the returned `error` before showing “Draft saved!”.
+- The Review → Publish step write also ignores write errors.
+- So the UI can tell you it saved, even when the backend rejected the write.
 
-## Problem
-When the user reaches the Publish step (step 3) and refreshes, the builder resets to Review (step 2). This is because:
-- The node status `content_ready` always maps to step 2
-- The node status `live` maps to step 4
-- **There is no intermediate status or saved step** for "user has reviewed content and is on the Publish screen"
+Why it feels like “everything is gone”:
+- Sometimes the content truly was never saved because the write failed silently.
+- Other times it was saved, but refresh still starts over because the restore query ran before auth was ready and the builder treated that as “no saved content”.
 
-## Solution
-Save the current step into `content_json` whenever the user advances beyond Review. On reload, restore the saved step instead of always defaulting to step 2 for `content_ready`.
+Strongest evidence:
+- `src/pages/NodeBuilder.tsx` does not wait for the auth-ready pattern before querying protected tables.
+- `src/components/dashboard/builders/bp02/BP02Builder.tsx` sets step `0` whenever the node load misses.
+- The row-level policies on `author_nodes` require the authenticated user to match the author profile.
+- Your backend publish logs show the publish function did update the BP-02 node to `live`, which means the bigger post-refresh failure is the restore path, not the publish function itself.
 
-### Changes in `BP02Builder.tsx`
-
-1. **Save step on navigation**: When the user clicks "Next: Publish" (advancing from step 2 to step 3), persist the step to the database by updating `content_json` with `{ ...content, _currentStep: 3 }`.
-
-2. **Restore step on load**: In the initialization effect (line 136), after loading the node:
-   - If status is `content_ready` and `content_json._currentStep === 3`, set step to 3 (Publish) instead of 2.
-   - Otherwise keep current behavior (step 2 for `content_ready`, step 4 for `live`).
-
-3. **Also save on draft save**: The `handleSaveDraft` function should include the current step in the saved content.
-
-### Files to Edit
-
-| File | Change |
-|---|---|
-| `src/components/dashboard/builders/bp02/BP02Builder.tsx` | Save `_currentStep` into `content_json` on step transitions and draft saves. Restore it on load. |
-
-No database or edge function changes needed.
-
+So the real root cause is:
+auth-session restoration race on refresh + silent save failures during draft/step persistence.</final-text>
