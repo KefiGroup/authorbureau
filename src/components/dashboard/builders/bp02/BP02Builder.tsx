@@ -444,17 +444,28 @@ export default function BP02Builder({ authorId }: Props) {
             setContent={setContent}
             authorName={authorName}
             authorId={authorId!}
-            onActivate={handlePublish}
+            onNext={() => setStep(3)}
             onSaveDraft={handleSaveDraft}
             error={error}
-            isPublishing={isPublishing}
             isSavingDraft={isSavingDraft}
-            publishChannels={publishChannels}
-            setPublishChannels={setPublishChannels}
           />
         )}
 
-        {step === 3 && !content?.activated && (
+        {step === 3 && content && (
+          <PublishStep
+            content={content}
+            publishChannels={publishChannels}
+            setPublishChannels={setPublishChannels}
+            onPublish={handlePublish}
+            onBack={() => setStep(2)}
+            onSaveDraft={handleSaveDraft}
+            isPublishing={isPublishing}
+            isSavingDraft={isSavingDraft}
+            error={error}
+          />
+        )}
+
+        {step === 4 && !content?.activated && (
           <AbbyCard>
             <div className="space-y-4">
               <p className="text-muted-foreground font-medium animate-pulse">{ACTIVATING_MESSAGES[msgIndex % ACTIVATING_MESSAGES.length]}</p>
@@ -463,7 +474,7 @@ export default function BP02Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
-        {step === 3 && content?.activated && (
+        {step === 4 && content?.activated && (
           <PublishSuccessStep authorName={authorName} authorId={authorId!} liveUrl={liveUrl} copied={copied} onCopy={handleCopyUrl} publishChannels={publishChannels} />
         )}
       </div>
