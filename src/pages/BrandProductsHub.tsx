@@ -79,7 +79,7 @@ export default function BrandProductsHub() {
     async function fetchData() {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("id, pen_name, user_id")
+        .select("id, pen_name, user_id, author_slug")
         .eq("user_id", user!.id)
         .maybeSingle();
 
