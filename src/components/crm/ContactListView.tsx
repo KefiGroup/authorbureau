@@ -26,6 +26,7 @@ interface Props {
   onContactClick: (contact: CRMContact) => void;
   onBulkDelete: (ids: string[]) => void;
   onBulkMoveStage: (ids: string[], stage: string) => void;
+  initialStageFilter?: string;
 }
 
 const STAGE_LABELS: Record<string, string> = {
@@ -45,9 +46,9 @@ const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
 
 type SortKey = "full_name" | "stage" | "abby_score" | "last_activity_at";
 
-export default function ContactListView({ contacts, onContactClick, onBulkDelete, onBulkMoveStage }: Props) {
+export default function ContactListView({ contacts, onContactClick, onBulkDelete, onBulkMoveStage, initialStageFilter }: Props) {
   const [search, setSearch] = useState("");
-  const [stageFilter, setStageFilter] = useState("all");
+  const [stageFilter, setStageFilter] = useState(initialStageFilter || "all");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sortKey, setSortKey] = useState<SortKey>("abby_score");
   const [sortAsc, setSortAsc] = useState(false);

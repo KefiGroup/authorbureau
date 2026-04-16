@@ -67,6 +67,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const [selectedContact, setSelectedContact] = useState<CRMContact | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("pipeline");
+  const [contactsStageFilter, setContactsStageFilter] = useState<string | undefined>(undefined);
 
   const fetchContacts = useCallback(async () => {
     if (!user) return;
@@ -363,6 +364,10 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           contacts={contacts}
           onContactClick={handleContactClick}
           onStageChange={handleStageChange}
+          onViewStage={(stage) => {
+            setContactsStageFilter(stage);
+            setActiveTab("contacts");
+          }}
         />
       )}
       {activeTab === "contacts" && (
@@ -371,6 +376,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           onContactClick={handleContactClick}
           onBulkDelete={handleBulkDelete}
           onBulkMoveStage={handleBulkMoveStage}
+          initialStageFilter={contactsStageFilter}
         />
       )}
       {activeTab === "intelligence" && (
