@@ -78,7 +78,7 @@ serve(async (req) => {
     const cleanEmail = email.toLowerCase().trim();
 
     // ─── GHL Contact (skip for quiz completions to avoid wrong automation email) ───
-    console.log("[microsite-action] Tag resolved:", tag, "| GHL sub:", ghlSubAccountId, "| isQuiz:", !!isQuizCapture);
+    console.log("[microsite-action] Tag resolved:", tag, "| GHL sub:", ghlSubAccountId, "| isQuiz:", !!(node_id === "BP-02" && quiz_stage));
     let ghlContactId: string | null = null;
     const skipGhl = node_id === "BP-02" && quiz_stage;
     if (ghlSubAccountId && GHL_API_KEY && !skipGhl) {
