@@ -55,6 +55,7 @@ const QuizResultEmail = ({
           </Section>
           <Text style={text}>To your SUCKCESS,</Text>
           <Text style={{ ...text, fontWeight: 'bold' as const, margin: '0' }}>{penName}</Text>
+          <Text style={{ ...text, fontStyle: 'italic' as const, margin: '4px 0 0', fontSize: '14px' }}>Author of {bookTitle}</Text>
           <Hr style={divider} />
           <Text style={footer}>
             This email was sent from {penName}'s Author Page, powered by {SITE_NAME}.
