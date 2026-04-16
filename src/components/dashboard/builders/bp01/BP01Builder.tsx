@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Gift, Radio, Settings, ChevronDown, ChevronUp } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Eye, Zap } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 
 
@@ -42,6 +44,7 @@ export default function BP01Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [leadMagnetUrl, setLeadMagnetUrl] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -84,6 +87,17 @@ export default function BP01Builder({ authorId }: Props) {
         } else {
           setHasContext(false);
         }
+      }
+
+      // Fetch BP-02 lead magnet URL
+      const { data: bp02Node } = await supabase
+        .from("author_nodes")
+        .select("microsite_url")
+        .eq("author_id", authorId)
+        .eq("node_id", "BP-02")
+        .maybeSingle();
+      if (bp02Node?.microsite_url) {
+        setLeadMagnetUrl(bp02Node.microsite_url);
       }
 
       // Check if content already generated
@@ -230,7 +244,7 @@ export default function BP01Builder({ authorId }: Props) {
                 </>
               )}
               {error && (
-                <div className="mt-4 p-3 rounded-md bg-[#D4AF37]/10 text-[#D4AF37] text-sm">
+                <div className="mt-4 p-3 rounded-md bg-[hsl(var(--primary))]/10 text-primary text-sm">
                   ABBY is taking a moment — please try again in a few seconds.
                   <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>
                     Try Again
@@ -254,8 +268,15 @@ export default function BP01Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
-        {/* STEP 2: Review */}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} />}
+        {/* STEP 2: Review — Visual Funnel */}
+        {step === 2 && content && (
+          <ReviewStep
+            content={content}
+            authorName={authorName}
+            leadMagnetUrl={leadMagnetUrl}
+            onActivate={handlePublish}
+          />
+        )}
 
         {/* STEP 3: Activation / Success */}
         {step === 3 && !content?.activated && (
@@ -298,139 +319,296 @@ function AbbyCard({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ReviewStep({ content, authorName, onActivate }: { content: any; authorName: string; onActivate: () => void }) {
+/* ---- Funnel Node Definitions ---- */
+
+interface FunnelNode {
+  id: string;
+  label: string;
+  timing: string;
+  crmStage: string;
+  type: "optin" | "email" | "broadcast";
+  emailIndex?: number; // index into welcome_sequence
+}
+
+function buildFunnelNodes(content: any): FunnelNode[] {
+  const nodes: FunnelNode[] = [];
+
+  // Opt-in node
+  nodes.push({
+    id: "optin",
+    label: "Opt-in Page",
+    timing: "Entry",
+    crmStage: "New Lead",
+    type: "optin",
+  });
+
+  // Welcome sequence emails
+  const sequence = content.welcome_sequence || [];
+  sequence.forEach((email: any, idx: number) => {
+    const day = email.send_delay_days ?? idx;
+    nodes.push({
+      id: `email-${idx}`,
+      label: day === 0 ? "Welcome" : `Day ${day}`,
+      timing: day === 0 ? "Instant" : `Day ${day}`,
+      crmStage: getCrmStage(day, idx, sequence.length),
+      type: "email",
+      emailIndex: idx,
+    });
+  });
+
+  // Broadcast
+  nodes.push({
+    id: "broadcast",
+    label: "Broadcast",
+    timing: "Ongoing",
+    crmStage: "Customer",
+    type: "broadcast",
+  });
+
+  return nodes;
+}
+
+function getCrmStage(day: number, idx: number, total: number): string {
+  if (day === 0 || idx === 0) return "Engaged";
+  if (idx >= total - 1) return "Hot";
+  if (day >= 7 || idx >= Math.floor(total * 0.6)) return "Warm";
+  return "Engaged";
+}
+
+function getNodeEmail(content: any, node: FunnelNode) {
+  if (node.type === "email" && node.emailIndex !== undefined) {
+    return content.welcome_sequence?.[node.emailIndex];
+  }
+  if (node.type === "broadcast") {
+    return content.first_broadcast;
+  }
+  if (node.type === "optin") {
+    return {
+      subject: content.lead_magnet_offer?.title || "Your Free Resource",
+      preview_text: content.lead_magnet_offer?.description || "",
+      body: content.lead_magnet_offer?.description || "",
+      cta_text: content.lead_magnet_offer?.cta_text,
+    };
+  }
+  return null;
+}
+
+function replacePlaceholders(text: string | undefined, leadMagnetUrl: string | null): string {
+  if (!text) return "";
+  const replacement = leadMagnetUrl
+    ? leadMagnetUrl
+    : "Your lead magnet link will be inserted automatically when BP-02 is built.";
+  return text.replace(/\[Lead Magnet URL\]/gi, replacement);
+}
+
+/* ---- ReviewStep: Visual Funnel ---- */
+
+function ReviewStep({
+  content,
+  authorName,
+  leadMagnetUrl,
+  onActivate,
+}: {
+  content: any;
+  authorName: string;
+  leadMagnetUrl: string | null;
+  onActivate: () => void;
+}) {
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [readerPreviewOpen, setReaderPreviewOpen] = useState(false);
+
+  const funnelNodes = buildFunnelNodes(content);
+  const selectedNode = funnelNodes.find((n) => n.id === selectedNodeId) || null;
+  const selectedEmail = selectedNode ? getNodeEmail(content, selectedNode) : null;
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Abby summary */}
       <AbbyCard>
         <p className="text-muted-foreground">{content.abby_summary}</p>
       </AbbyCard>
 
-      <Tabs defaultValue="welcome" className="w-full">
-        <TabsList className="w-full grid grid-cols-4 h-auto">
-          <TabsTrigger value="welcome" className="text-xs py-2">
-            <Mail className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Welcome
-          </TabsTrigger>
-          <TabsTrigger value="leadmagnet" className="text-xs py-2">
-            <Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Lead Magnet
-          </TabsTrigger>
-          <TabsTrigger value="broadcast" className="text-xs py-2">
-            <Radio className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Broadcast
-          </TabsTrigger>
-          <TabsTrigger value="details" className="text-xs py-2">
-            <Settings className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Details
-          </TabsTrigger>
-        </TabsList>
+      {/* Section 1: Funnel Flow Map */}
+      <Card>
+        <CardContent className="pt-6 pb-4">
+          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+            Your Email Funnel
+          </h3>
+          <div className="overflow-x-auto pb-2">
+            <div className="flex items-start gap-0 min-w-max">
+              {funnelNodes.map((node, idx) => (
+                <div key={node.id} className="flex items-start">
+                  {/* Node */}
+                  <button
+                    onClick={() => setSelectedNodeId(node.id)}
+                    className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg transition-all min-w-[90px] hover:bg-accent/50 ${
+                      selectedNodeId === node.id ? "bg-accent ring-1 ring-primary/30" : ""
+                    }`}
+                  >
+                    {/* Pill */}
+                    <div className="flex items-center gap-1.5">
+                      <div className={`w-2 h-2 rounded-full shrink-0 ${
+                        node.type === "optin" ? "bg-primary" : "bg-emerald-500"
+                      }`} />
+                      <span className="text-xs font-semibold whitespace-nowrap">{node.label}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{node.timing}</span>
+                    {/* CRM Stage */}
+                    <span className="text-[10px] font-medium text-primary/80 bg-primary/10 px-2 py-0.5 rounded-full whitespace-nowrap">
+                      {node.crmStage}
+                    </span>
+                  </button>
+                  {/* Arrow connector */}
+                  {idx < funnelNodes.length - 1 && (
+                    <div className="flex items-center self-center mt-1">
+                      <div className="w-4 h-px bg-border" />
+                      <ArrowRight className="h-3 w-3 text-muted-foreground -ml-1" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Click any step to preview the email content →
+          </p>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="welcome" className="space-y-3 mt-4">
-          {content.welcome_sequence?.map((email: any) => (
-            <EmailCard key={email.email_number} email={email} />
-          ))}
-        </TabsContent>
+      {/* Section 3: Campaign Activation Bar */}
+      <Card className="border-primary/20">
+        <CardContent className="pt-5 pb-5 space-y-3">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+            <div>
+              <span className="text-muted-foreground">Campaign: </span>
+              <span className="font-medium">{content.campaign_name}</span>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Email list: </span>
+              <span className="font-medium">{content.list_name}</span>
+            </div>
+          </div>
+          <Button
+            className="w-full bg-[hsl(43,74%,49%)] hover:bg-[hsl(43,74%,42%)] text-white font-semibold"
+            size="lg"
+            onClick={onActivate}
+          >
+            <Zap className="h-4 w-4 mr-2" />
+            Activate My Email Campaign →
+          </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Sent via Authors Bureau — no external email platform needed.
+          </p>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="leadmagnet" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-3">
-              <h3 className="font-semibold">{content.lead_magnet_offer?.title}</h3>
-              <p className="text-sm text-muted-foreground">{content.lead_magnet_offer?.description}</p>
-              <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">Button text:</span>
-                <span className="text-sm font-medium bg-primary/10 px-3 py-1 rounded-full">{content.lead_magnet_offer?.cta_text}</span>
+      {/* Section 2: Email Preview Sheet */}
+      <Sheet open={!!selectedNodeId} onOpenChange={(open) => { if (!open) setSelectedNodeId(null); }}>
+        <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              {selectedNode?.label}
+            </SheetTitle>
+          </SheetHeader>
+
+          {selectedEmail && (
+            <div className="mt-6 space-y-5">
+              {/* Status & CRM trigger */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="secondary" className="text-xs">Draft</Badge>
+                {selectedNode && (
+                  <span className="text-xs text-muted-foreground">
+                    When clicked → moves reader to <span className="font-semibold text-primary">{selectedNode.crmStage}</span>
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-muted-foreground italic mt-2">
-                Your opt-in form will be created automatically when you activate.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="broadcast" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-3">
+              {/* Subject */}
               <div>
-                <span className="text-xs text-muted-foreground">Subject</span>
-                <p className="font-semibold">{content.first_broadcast?.subject}</p>
+                <span className="text-xs text-muted-foreground uppercase tracking-wide">Subject</span>
+                <p className="text-lg font-bold mt-0.5">
+                  {replacePlaceholders(selectedEmail.subject, leadMagnetUrl)}
+                </p>
               </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Preview</span>
-                <p className="text-sm">{content.first_broadcast?.preview_text}</p>
-              </div>
-              <div>
-                <span className="text-xs text-muted-foreground">Body</span>
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{content.first_broadcast?.body}</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
-        <TabsContent value="details" className="mt-4">
-          <Card>
-            <CardContent className="pt-6 space-y-3">
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Campaign name</span>
-                <span className="text-sm font-medium">{content.campaign_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm text-muted-foreground">Email list</span>
-                <span className="text-sm font-medium">{content.list_name}</span>
-              </div>
-              <p className="text-xs text-muted-foreground italic">
-                Your email list will be named '{content.list_name}' and your campaign will be called '{content.campaign_name}'.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              {/* Preview text */}
+              {selectedEmail.preview_text && (
+                <div>
+                  <span className="text-xs text-muted-foreground uppercase tracking-wide">Preview text</span>
+                  <p className="text-sm italic text-muted-foreground mt-0.5">
+                    {replacePlaceholders(selectedEmail.preview_text, leadMagnetUrl)}
+                  </p>
+                </div>
+              )}
 
-      {/* Action buttons */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. You can activate now and request changes later.")}>
-          Edit
-        </Button>
-        <Button className="flex-1" size="lg" onClick={onActivate}>
-          Publish to My Site<ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
-      </div>
-      <p className="text-xs text-center text-muted-foreground">
-        Everything activates automatically. You don't need to set anything up.
-      </p>
+              {/* CTA for opt-in */}
+              {selectedNode?.type === "optin" && selectedEmail.cta_text && (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Button:</span>
+                  <span className="text-sm font-medium bg-primary/10 px-3 py-1 rounded-full">
+                    {selectedEmail.cta_text}
+                  </span>
+                </div>
+              )}
+
+              {/* Email body card */}
+              {selectedEmail.body && (
+                <Card className="bg-card">
+                  <CardContent className="pt-4">
+                    <p className="text-sm whitespace-pre-line leading-relaxed">
+                      {replacePlaceholders(selectedEmail.body, leadMagnetUrl)}
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Preview as Reader */}
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setReaderPreviewOpen(true)}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Preview as Reader
+              </Button>
+            </div>
+          )}
+
+          {/* Reader Preview Dialog */}
+          <Dialog open={readerPreviewOpen} onOpenChange={setReaderPreviewOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Inbox Preview</DialogTitle>
+              </DialogHeader>
+              {selectedEmail && (
+                <div className="space-y-3">
+                  {/* Mock inbox header */}
+                  <div className="border border-border rounded-lg p-4 bg-card">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                        <Mail className="h-4 w-4 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold">{authorName}</p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {replacePlaceholders(selectedEmail.subject, leadMagnetUrl)}
+                        </p>
+                      </div>
+                      <span className="text-xs text-muted-foreground shrink-0">now</span>
+                    </div>
+                    <div className="border-t border-border pt-3">
+                      <p className="text-sm whitespace-pre-line leading-relaxed">
+                        {replacePlaceholders(selectedEmail.body, leadMagnetUrl)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
-
-function EmailCard({ email }: { email: any }) {
-  const [open, setOpen] = useState(false);
-  const dayLabel = email.send_delay_days === 0 ? "Sent immediately" : `Sent on Day ${email.send_delay_days}`;
-
-  return (
-    <Card className="cursor-pointer" onClick={() => setOpen(!open)}>
-      <CardContent className="pt-4 pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs bg-muted px-2 py-0.5 rounded font-medium">#{email.email_number}</span>
-              <span className="text-xs text-muted-foreground">{dayLabel}</span>
-            </div>
-            <p className="font-medium text-sm truncate">{email.subject}</p>
-            {!open && <p className="text-xs text-muted-foreground truncate">{email.preview_text}</p>}
-          </div>
-          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-        </div>
-        {open && (
-          <div className="mt-3 pt-3 border-t border-border space-y-2">
-            <div>
-              <span className="text-xs text-muted-foreground">Preview text</span>
-              <p className="text-sm">{email.preview_text}</p>
-            </div>
-            <div>
-              <span className="text-xs text-muted-foreground">Body</span>
-              <p className="text-sm text-muted-foreground whitespace-pre-line">{email.body}</p>
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-// SuccessStep replaced by NodeSuccessScreen
