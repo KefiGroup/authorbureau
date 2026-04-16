@@ -618,11 +618,14 @@ export type Database = {
           linkedin_url: string | null
           location_city: string | null
           location_country: string | null
+          methodology_name: string | null
           onboarding_completed: boolean
           pen_name: string | null
           photo_crop_y: string | null
           photo_url: string | null
           photo_zoom: number | null
+          quiz_name: string | null
+          sign_off_phrase: string | null
           site_theme: string
           speaker_fee_range: string | null
           stripe_account_id: string | null
@@ -668,11 +671,14 @@ export type Database = {
           linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
+          methodology_name?: string | null
           onboarding_completed?: boolean
           pen_name?: string | null
           photo_crop_y?: string | null
           photo_url?: string | null
           photo_zoom?: number | null
+          quiz_name?: string | null
+          sign_off_phrase?: string | null
           site_theme?: string
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
@@ -718,11 +724,14 @@ export type Database = {
           linkedin_url?: string | null
           location_city?: string | null
           location_country?: string | null
+          methodology_name?: string | null
           onboarding_completed?: boolean
           pen_name?: string | null
           photo_crop_y?: string | null
           photo_url?: string | null
           photo_zoom?: number | null
+          quiz_name?: string | null
+          sign_off_phrase?: string | null
           site_theme?: string
           speaker_fee_range?: string | null
           stripe_account_id?: string | null
