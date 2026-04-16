@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
       }
       const { error: approveError } = await adminClient
         .from("books")
-        .update({ published_at: new Date().toISOString() })
+        .update({ published_at: new Date().toISOString(), approval_status: "approved", rejection_note: null })
         .eq("id", bookId);
       if (approveError) throw approveError;
 
@@ -188,10 +188,10 @@ Deno.serve(async (req) => {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Unpublish (set published_at to null)
+      const rejectionNote = body.rejectionNote || null;
       const { error: rejectError } = await adminClient
         .from("books")
-        .update({ published_at: null })
+        .update({ published_at: null, approval_status: "rejected", rejection_note: rejectionNote })
         .eq("id", bookId);
       if (rejectError) throw rejectError;
       return new Response(JSON.stringify({ success: true }), {
