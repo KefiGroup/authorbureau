@@ -12,6 +12,7 @@ import {
   Mail, Phone, Building2, Star, Loader2, Trash2, Plus, MessageSquare,
   ArrowUpDown, Tag,
 } from "lucide-react";
+import { getSourceLabel } from "@/lib/crm-utils";
 
 interface CRMContact {
   id: string;
@@ -169,6 +170,9 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
                 <Building2 className="h-3.5 w-3.5" /> {contact.company}
               </p>
             )}
+            <p className="text-sm text-gray-500 flex items-center gap-1.5">
+              <Mail className="h-3.5 w-3.5" /> Source: {getSourceLabel(contact.source)}
+            </p>
           </div>
 
           {/* ABBY Recommendation — prominent gold box */}

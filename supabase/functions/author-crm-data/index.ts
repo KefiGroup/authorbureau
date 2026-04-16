@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA0tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -15,6 +15,8 @@ const SCORE_MAP: Record<string, number> = {
   opt_in: 2, email_open: 1, link_click: 2, quiz_completed: 2,
   page_visit: 1, purchase: 3, note: 0, stage_change: 0,
 };
+
+const STAGES = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
 
 async function getUserId(authHeader: string): Promise<string | null> {
   const shared = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY, {
@@ -53,7 +55,6 @@ async function recalcScore(sb: any, contactId: string) {
     score += SCORE_MAP[l.type] || 0;
   });
 
-  // Decay: -1 per 7 days since last activity
   if (logs && logs.length > 0) {
     const lastDate = new Date(logs[0].created_at);
     const daysSince = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -63,6 +64,10 @@ async function recalcScore(sb: any, contactId: string) {
 
   await sb.from("crm_contacts").update({ abby_score: score, last_activity_at: new Date().toISOString() }).eq("id", contactId);
   return score;
+}
+
+function sanitizeSearch(input: string): string {
+  return input.replace(/[%_\\]/g, "").trim().slice(0, 100);
 }
 
 Deno.serve(async (req) => {
@@ -85,14 +90,29 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const { action } = body;
 
-    // ── LIST ──
+    // ── LIST (with server-side pagination, search, filters) ──
     if (action === "list") {
-      const { data: contacts, error } = await sb
+      const page = Math.max(1, parseInt(body.page) || 1);
+      const pageSize = Math.min(100, Math.max(1, parseInt(body.pageSize) || 25));
+      const search = body.search ? sanitizeSearch(body.search) : "";
+      const stageFilter = body.stage && STAGES.includes(body.stage) ? body.stage : null;
+      const sourceFilter = body.source || null;
+
+      let query = sb
         .from("crm_contacts")
-        .select("*")
+        .select("*", { count: "exact" })
         .eq("author_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(500);
+        .order("created_at", { ascending: false });
+
+      if (stageFilter) query = query.eq("stage", stageFilter);
+      if (sourceFilter) query = query.eq("source", sourceFilter);
+      if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
+
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
+      query = query.range(from, to);
+
+      const { data: contacts, error, count } = await query;
       if (error) throw error;
 
       const ids = (contacts || []).map((c: any) => c.id);
@@ -113,7 +133,25 @@ Deno.serve(async (req) => {
         tags: tagsMap[c.id] || [],
       }));
 
-      return ok({ contacts: result });
+      return ok({ contacts: result, totalCount: count || 0, page, pageSize });
+    }
+
+    // ── PIPELINE SUMMARY ──
+    if (action === "pipeline-summary") {
+      const summaries = await Promise.all(
+        STAGES.map(async (stage) => {
+          const [countRes, top3Res] = await Promise.all([
+            sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", userId).eq("stage", stage),
+            sb.from("crm_contacts").select("id, full_name, abby_score").eq("author_id", userId).eq("stage", stage).order("abby_score", { ascending: false }).limit(3),
+          ]);
+          return {
+            stage,
+            count: countRes.count || 0,
+            top3: top3Res.data || [],
+          };
+        })
+      );
+      return ok({ summary: summaries });
     }
 
     // ── ADD ──
@@ -154,16 +192,19 @@ Deno.serve(async (req) => {
       return ok({ ok: true });
     }
 
-    // ── BULK DELETE ──
+    // ── BULK DELETE (batched) ──
     if (action === "bulk-delete") {
       const { contact_ids } = body;
       if (!contact_ids?.length) return err("contact_ids required");
-      for (const cid of contact_ids) {
-        await sb.from("crm_contact_tags").delete().eq("contact_id", cid);
-        await sb.from("crm_activity_log").delete().eq("contact_id", cid);
-        await sb.from("crm_contacts").delete().eq("id", cid).eq("author_id", userId);
+      // Verify ownership
+      const { data: owned } = await sb.from("crm_contacts").select("id").eq("author_id", userId).in("id", contact_ids);
+      const ownedIds = (owned || []).map((c: any) => c.id);
+      if (ownedIds.length > 0) {
+        await sb.from("crm_contact_tags").delete().in("contact_id", ownedIds);
+        await sb.from("crm_activity_log").delete().in("contact_id", ownedIds);
+        await sb.from("crm_contacts").delete().in("id", ownedIds);
       }
-      return ok({ ok: true });
+      return ok({ ok: true, deleted: ownedIds.length });
     }
 
     // ── ADD TAG ──
@@ -199,9 +240,8 @@ Deno.serve(async (req) => {
     // ── UPDATE STAGE ──
     if (action === "update-stage") {
       const { contact_id, stage } = body;
-      const validStages = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
       if (!contact_id || !stage) return err("contact_id and stage required");
-      if (!validStages.includes(stage)) return err("Invalid stage");
+      if (!STAGES.includes(stage)) return err("Invalid stage");
 
       const { data: owned } = await sb.from("crm_contacts").select("id, stage").eq("id", contact_id).eq("author_id", userId).maybeSingle();
       if (!owned) return err("Not found", 404);
@@ -216,20 +256,23 @@ Deno.serve(async (req) => {
       return ok({ ok: true });
     }
 
-    // ── BULK MOVE STAGE ──
+    // ── BULK MOVE STAGE (batched) ──
     if (action === "bulk-move-stage") {
       const { contact_ids, stage } = body;
-      const validStages = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
       if (!contact_ids?.length || !stage) return err("contact_ids and stage required");
-      if (!validStages.includes(stage)) return err("Invalid stage");
+      if (!STAGES.includes(stage)) return err("Invalid stage");
 
-      for (const cid of contact_ids) {
-        await sb.from("crm_contacts").update({ stage, last_activity_at: new Date().toISOString() }).eq("id", cid).eq("author_id", userId);
-        await sb.from("crm_activity_log").insert({
-          author_id: userId, contact_id: cid, type: "stage_change",
-          content: `Bulk moved to ${stage}`,
-        });
-      }
+      await sb.from("crm_contacts")
+        .update({ stage, last_activity_at: new Date().toISOString() })
+        .eq("author_id", userId)
+        .in("id", contact_ids);
+
+      const activityRows = contact_ids.map((cid: string) => ({
+        author_id: userId, contact_id: cid, type: "stage_change",
+        content: `Bulk moved to ${stage}`,
+      }));
+      await sb.from("crm_activity_log").insert(activityRows);
+
       return ok({ ok: true });
     }
 

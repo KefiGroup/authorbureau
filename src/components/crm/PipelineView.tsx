@@ -1,20 +1,15 @@
-import { Star, UserPlus, ArrowRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Star, UserPlus, ArrowRight, Loader2 } from "lucide-react";
 
-interface CRMContact {
-  id: string;
-  full_name: string;
-  email: string | null;
+interface StageSummary {
   stage: string;
-  abby_score: number;
-  source: string;
-  last_activity_at: string | null;
-  tags: string[];
+  count: number;
+  top3: { id: string; full_name: string; abby_score: number }[];
 }
 
 interface Props {
-  contacts: CRMContact[];
-  onContactClick: (contact: CRMContact) => void;
-  onStageChange: (contactId: string, newStage: string) => void;
+  crmFetch: (action: string, extra?: Record<string, any>) => Promise<any>;
+  onContactClick: (contact: any) => void;
   onViewStage: (stage: string) => void;
 }
 
@@ -34,20 +29,35 @@ function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-export default function PipelineView({ contacts, onContactClick, onViewStage }: Props) {
-  const contactsByStage = STAGES.reduce((acc, s) => {
-    acc[s.key] = contacts.filter((c) => c.stage === s.key);
+export default function PipelineView({ crmFetch, onContactClick, onViewStage }: Props) {
+  const [summaries, setSummaries] = useState<StageSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    crmFetch("pipeline-summary")
+      .then((d) => setSummaries(d.summary || []))
+      .catch(() => setSummaries([]))
+      .finally(() => setLoading(false));
+  }, [crmFetch]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
+      </div>
+    );
+  }
+
+  const summaryMap = summaries.reduce((acc, s) => {
+    acc[s.stage] = s;
     return acc;
-  }, {} as Record<string, CRMContact[]>);
+  }, {} as Record<string, StageSummary>);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
       {STAGES.map((stage) => {
-        const stageContacts = contactsByStage[stage.key];
-        const count = stageContacts.length;
-        const top3 = [...stageContacts]
-          .sort((a, b) => b.abby_score - a.abby_score)
-          .slice(0, 3);
+        const data = summaryMap[stage.key] || { stage: stage.key, count: 0, top3: [] };
 
         return (
           <div
@@ -55,22 +65,17 @@ export default function PipelineView({ contacts, onContactClick, onViewStage }: 
             className="rounded-xl bg-white border shadow-sm flex flex-col overflow-hidden"
             style={{ borderTop: `3px solid ${stage.color}` }}
           >
-            {/* Header: stage name + count */}
             <div className="px-3 pt-4 pb-2 text-center">
-              <p
-                className="text-3xl font-bold leading-none"
-                style={{ color: stage.color }}
-              >
-                {count}
+              <p className="text-3xl font-bold leading-none" style={{ color: stage.color }}>
+                {data.count}
               </p>
               <p className="text-[12px] font-semibold text-[#1E3A5F] mt-1 uppercase tracking-wide">
                 {stage.label}
               </p>
             </div>
 
-            {/* Top 3 contacts */}
             <div className="flex-1 px-2 pb-2 space-y-1">
-              {count === 0 ? (
+              {data.count === 0 ? (
                 <div className="text-center py-4 px-2">
                   <UserPlus className="h-4 w-4 mx-auto mb-1 opacity-30" style={{ color: stage.color }} />
                   <p className="text-[11px] text-gray-400 leading-tight">
@@ -78,7 +83,7 @@ export default function PipelineView({ contacts, onContactClick, onViewStage }: 
                   </p>
                 </div>
               ) : (
-                top3.map((c) => (
+                data.top3.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => onContactClick(c)}
@@ -102,14 +107,13 @@ export default function PipelineView({ contacts, onContactClick, onViewStage }: 
               )}
             </div>
 
-            {/* View all button */}
-            {count > 0 && (
+            {data.count > 0 && (
               <button
                 onClick={() => onViewStage(stage.key)}
                 className="flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold border-t border-gray-100 transition-colors hover:bg-gray-50"
                 style={{ color: stage.color }}
               >
-                View all {count} <ArrowRight className="h-3 w-3" />
+                View all {data.count} <ArrowRight className="h-3 w-3" />
               </button>
             )}
           </div>
