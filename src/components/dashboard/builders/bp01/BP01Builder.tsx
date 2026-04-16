@@ -166,6 +166,8 @@ export default function BP01Builder({ authorId }: Props) {
         activated: true,
         publishStatus: status,
       }));
+      // Fire-and-forget: ensure email sequence exists for BP-01
+      ensureEmailSequence({ authorId: authorId!, nodeId: "BP-01" });
       if (status === "published_pending_ghl") {
         toast.success("Email Marketing saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
       } else {
