@@ -299,16 +299,16 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 
   // After collecting email on gate, submit then show results
   const handleGateSubmit = async (e: React.FormEvent) => {
-    // Set quiz data for the parent handleSubmit to include
+    e.preventDefault();
+    // Build quiz data inline — don't rely on async state propagation
     const quizStageSlug = (tierName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    setQuizData({
+    const quizPayload = {
       quiz_stage: quizStageSlug,
       quiz_score: scorePercent,
       quiz_answers: answerDetails,
-    });
-    // Small delay to let state propagate
-    await new Promise(r => setTimeout(r, 50));
-    const success = await onSubmit(e);
+    };
+    setQuizData(quizPayload);
+    const success = await onSubmit(e, quizPayload);
     if (success) {
       setStage("results");
     }
