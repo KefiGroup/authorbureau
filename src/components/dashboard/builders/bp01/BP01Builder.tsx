@@ -280,6 +280,7 @@ export default function BP01Builder({ authorId }: Props) {
             content={content}
             authorName={authorName}
             leadMagnetUrl={leadMagnetUrl}
+            leadMagnetTitle={leadMagnetTitle}
             onActivate={handlePublish}
           />
         )}
@@ -420,11 +421,13 @@ function ReviewStep({
   content,
   authorName,
   leadMagnetUrl,
+  leadMagnetTitle,
   onActivate,
 }: {
   content: any;
   authorName: string;
   leadMagnetUrl: string | null;
+  leadMagnetTitle: string | null;
   onActivate: () => void;
 }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
