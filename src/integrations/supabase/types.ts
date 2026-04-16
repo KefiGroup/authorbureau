@@ -1812,36 +1812,48 @@ export type Database = {
           ai_generated: boolean
           author_id: string
           book_id: string | null
+          click_rate: number
           created_at: string
           description: string | null
           flow_type: string
           id: string
+          node_id: string | null
+          open_rate: number
           status: string
           title: string
+          total_subscribers: number
           updated_at: string
         }
         Insert: {
           ai_generated?: boolean
           author_id: string
           book_id?: string | null
+          click_rate?: number
           created_at?: string
           description?: string | null
           flow_type: string
           id?: string
+          node_id?: string | null
+          open_rate?: number
           status?: string
           title: string
+          total_subscribers?: number
           updated_at?: string
         }
         Update: {
           ai_generated?: boolean
           author_id?: string
           book_id?: string | null
+          click_rate?: number
           created_at?: string
           description?: string | null
           flow_type?: string
           id?: string
+          node_id?: string | null
+          open_rate?: number
           status?: string
           title?: string
+          total_subscribers?: number
           updated_at?: string
         }
         Relationships: [
@@ -1861,36 +1873,109 @@ export type Database = {
           },
         ]
       }
+      email_lists: {
+        Row: {
+          author_id: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          source: string | null
+          subscriber_count: number
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          source?: string | null
+          subscriber_count?: number
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          source?: string | null
+          subscriber_count?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_lists_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_lists_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_lists_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_send_log: {
         Row: {
+          author_id: string | null
+          clicked_at: string | null
           created_at: string
           error_message: string | null
           id: string
+          lead_id: string | null
           message_id: string | null
           metadata: Json | null
+          opened_at: string | null
           recipient_email: string
+          sequence_step_id: string | null
           status: string
           template_name: string
+          to_name: string | null
         }
         Insert: {
+          author_id?: string | null
+          clicked_at?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
+          lead_id?: string | null
           message_id?: string | null
           metadata?: Json | null
+          opened_at?: string | null
           recipient_email: string
+          sequence_step_id?: string | null
           status: string
           template_name: string
+          to_name?: string | null
         }
         Update: {
+          author_id?: string | null
+          clicked_at?: string | null
           created_at?: string
           error_message?: string | null
           id?: string
+          lead_id?: string | null
           message_id?: string | null
           metadata?: Json | null
+          opened_at?: string | null
           recipient_email?: string
+          sequence_step_id?: string | null
           status?: string
           template_name?: string
+          to_name?: string | null
         }
         Relationships: []
       }
@@ -2392,8 +2477,58 @@ export type Database = {
           },
         ]
       }
+      lead_activities: {
+        Row: {
+          activity_type: string
+          author_id: string
+          created_at: string
+          id: string
+          lead_id: string
+          metadata: Json | null
+        }
+        Insert: {
+          activity_type: string
+          author_id: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          metadata?: Json | null
+        }
+        Update: {
+          activity_type?: string
+          author_id?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          metadata?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_activities_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activities_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activities_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
+          abby_score: number
           author_id: string
           book_id: string | null
           captured_at: string
@@ -2408,10 +2543,13 @@ export type Database = {
           quiz_score: number | null
           quiz_stage: string | null
           source: string
+          stage: string
           status: string
+          total_revenue: number
           updated_at: string
         }
         Insert: {
+          abby_score?: number
           author_id: string
           book_id?: string | null
           captured_at?: string
@@ -2426,10 +2564,13 @@ export type Database = {
           quiz_score?: number | null
           quiz_stage?: string | null
           source?: string
+          stage?: string
           status?: string
+          total_revenue?: number
           updated_at?: string
         }
         Update: {
+          abby_score?: number
           author_id?: string
           book_id?: string | null
           captured_at?: string
@@ -2444,7 +2585,9 @@ export type Database = {
           quiz_score?: number | null
           quiz_stage?: string | null
           source?: string
+          stage?: string
           status?: string
+          total_revenue?: number
           updated_at?: string
         }
         Relationships: [
