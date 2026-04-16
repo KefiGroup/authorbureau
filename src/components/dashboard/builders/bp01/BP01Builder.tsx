@@ -544,7 +544,7 @@ function ReviewStep({
               <div>
                 <span className="text-xs text-muted-foreground uppercase tracking-wide">Subject</span>
                 <p className="text-lg font-bold mt-0.5">
-                  {replacePlaceholders(selectedEmail.subject, leadMagnetUrl)}
+                  {replacePlaceholders(selectedEmail.subject, leadMagnetUrl, leadMagnetTitle)}
                 </p>
               </div>
 
@@ -553,7 +553,7 @@ function ReviewStep({
                 <div>
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">Preview text</span>
                   <p className="text-sm italic text-muted-foreground mt-0.5">
-                    {replacePlaceholders(selectedEmail.preview_text, leadMagnetUrl)}
+                    {replacePlaceholders(selectedEmail.preview_text, leadMagnetUrl, leadMagnetTitle)}
                   </p>
                 </div>
               )}
@@ -573,7 +573,7 @@ function ReviewStep({
                 <Card className="bg-card">
                   <CardContent className="pt-4">
                     <p className="text-sm whitespace-pre-line leading-relaxed">
-                      {replacePlaceholders(selectedEmail.body, leadMagnetUrl)}
+                      {replacePlaceholders(selectedEmail.body, leadMagnetUrl, leadMagnetTitle)}
                     </p>
                   </CardContent>
                 </Card>
@@ -608,14 +608,14 @@ function ReviewStep({
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold">{authorName}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {replacePlaceholders(selectedEmail.subject, leadMagnetUrl)}
+                          {replacePlaceholders(selectedEmail.subject, leadMagnetUrl, leadMagnetTitle)}
                         </p>
                       </div>
                       <span className="text-xs text-muted-foreground shrink-0">now</span>
                     </div>
                     <div className="border-t border-border pt-3">
                       <p className="text-sm whitespace-pre-line leading-relaxed">
-                        {replacePlaceholders(selectedEmail.body, leadMagnetUrl)}
+                        {replacePlaceholders(selectedEmail.body, leadMagnetUrl, leadMagnetTitle)}
                       </p>
                     </div>
                   </div>
