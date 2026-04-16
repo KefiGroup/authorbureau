@@ -1,35 +1,29 @@
 
 
-# Fix: Author CRM Page Not Showing Contacts
+# Fix: `max_tokens` Parameter Incompatible with OpenAI GPT-5
 
 ## Root Cause
 
-**The "My Contacts" page is completely non-functional for authors.** All CRM data (contacts, tags, activity logs) lives in the project-local (Cloud) database, but authors authenticate via the shared backend. The RLS policy on `crm_contacts` requires `auth.uid() = author_id`, and since the author has no Cloud session, `auth.uid()` is null — every read and write is silently blocked.
+The error log shows:
+```
+Unsupported parameter: 'max_tokens' is not supported with this model. Use 'max_completion_tokens' instead.
+```
 
-This affects: viewing contacts, adding contacts manually, importing CSV, deleting contacts, viewing/adding tags, viewing/adding activity notes.
+The OpenAI GPT-5 model requires `max_completion_tokens` instead of `max_tokens`. This affects **7 edge functions** that all use `openai/gpt-5`.
 
-## Fix Approach
+## Fix
 
-Create a new edge function `author-crm-data` that handles all CRM operations with service role (bypassing RLS), after validating the author's shared-backend JWT. Then update `AuthorCRMPage` to call this edge function instead of directly querying the project-local client.
+Replace `max_tokens` with `max_completion_tokens` in all 7 edge functions:
 
-## Technical Details
+| File | Line | Current | Fix |
+|------|------|---------|-----|
+| `generate-bp01-email-marketing/index.ts` | 110 | `max_tokens: 4000` | `max_completion_tokens: 4000` |
+| `generate-bp02-social-pack/index.ts` | 145 | `max_tokens: 5000` | `max_completion_tokens: 5000` |
+| `generate-bp04-website/index.ts` | 126 | `max_tokens: 5000` | `max_completion_tokens: 5000` |
+| `generate-bp07-coaching/index.ts` | 74 | `max_tokens: 8192` | `max_completion_tokens: 8192` |
+| `generate-daily-insight/index.ts` | 85 | `max_tokens: 200` | `max_completion_tokens: 200` |
+| `abby-chat/index.ts` | 138 | `max_tokens: 800` | `max_completion_tokens: 800` |
+| `business-consultant/index.ts` | 3287 | `max_tokens: 6000` | `max_completion_tokens: 6000` |
 
-### 1. New edge function: `supabase/functions/author-crm-data/index.ts`
-- Accepts actions: `list`, `add`, `delete`, `add-tag`, `delete-tag`, `list-activities`, `add-note`, `import-csv`
-- Validates the caller's JWT via the shared backend to get the user ID
-- Uses service role on the project-local DB for all operations
-- Scopes all queries to `author_id = caller_user_id`
-
-### 2. Update `src/components/dashboard/AuthorCRMPage.tsx`
-- Remove import of `supabase` from `@/integrations/supabase/client`
-- Replace all direct Supabase calls with `fetch()` calls to the `author-crm-data` edge function
-- Use `getActiveToken()` for authentication (consistent with platform standard)
-
-### 3. Update `src/components/dashboard/crm/ContactForm.tsx`
-- Same pattern — route through the edge function instead of direct client calls
-
-### Files Changed
-- `supabase/functions/author-crm-data/index.ts` (new)
-- `src/components/dashboard/AuthorCRMPage.tsx` (rewrite data layer)
-- `src/components/dashboard/crm/ContactForm.tsx` (if it also uses project-local client)
+After editing, all 7 functions will be redeployed. The Email Marketing generation will work immediately.
 
