@@ -268,8 +268,17 @@ serve(async (req) => {
 
         const idempotencyKey = `quiz-result-${cleanEmail}-${quiz_stage}-${Date.now()}`;
 
-        const { error: emailError } = await supabaseAdmin.functions.invoke('send-transactional-email', {
-          body: {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+        const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+
+        const emailRes = await fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${serviceRoleKey}`,
+            "apikey": serviceRoleKey,
+          },
+          body: JSON.stringify({
             templateName: 'quiz-result',
             recipientEmail: cleanEmail,
             idempotencyKey,
@@ -281,8 +290,10 @@ serve(async (req) => {
               bookTitle,
               bookUrl,
             },
-          },
+          }),
         });
+
+        const emailError = !emailRes.ok ? await emailRes.text() : null;
 
         if (emailError) {
           console.error("[microsite-action] ❌ Quiz result email failed:", emailError);
