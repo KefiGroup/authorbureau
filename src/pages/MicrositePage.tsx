@@ -150,7 +150,7 @@ export default function MicrositePage() {
   const content = data.node.content_json || {};
 
 
-  const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
+  const handleSubmit = async (e: React.FormEvent, extraData?: Record<string, any>): Promise<boolean> => {
     e.preventDefault();
     if (!email || submitting) return false;
     setSubmitting(true);
@@ -166,6 +166,7 @@ export default function MicrositePage() {
           last_name: lastName,
           message: message || undefined,
           ...(quizData || {}),
+          ...(extraData || {}),
         },
       });
 
@@ -230,7 +231,7 @@ interface PageProps {
   bgColor: string;
 }
 interface FormPageProps extends PageProps {
-  onSubmit: (e: React.FormEvent) => Promise<boolean>;
+  onSubmit: (e: React.FormEvent, extraData?: Record<string, any>) => Promise<boolean>;
   email: string; setEmail: (v: string) => void;
   firstName: string; setFirstName: (v: string) => void;
   submitting: boolean; submitted: boolean;
@@ -298,16 +299,16 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 
   // After collecting email on gate, submit then show results
   const handleGateSubmit = async (e: React.FormEvent) => {
-    // Set quiz data for the parent handleSubmit to include
+    e.preventDefault();
+    // Build quiz data inline — don't rely on async state propagation
     const quizStageSlug = (tierName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    setQuizData({
+    const quizPayload = {
       quiz_stage: quizStageSlug,
       quiz_score: scorePercent,
       quiz_answers: answerDetails,
-    });
-    // Small delay to let state propagate
-    await new Promise(r => setTimeout(r, 50));
-    const success = await onSubmit(e);
+    };
+    setQuizData(quizPayload);
+    const success = await onSubmit(e, quizPayload);
     if (success) {
       setStage("results");
     }
@@ -472,6 +473,9 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
             </h1>
             <p className="text-lg" style={{ color: v.mutedText }}>
               You scored {totalScore} out of {maxScore}
+            </p>
+            <p className="text-sm mt-3 p-3 rounded-lg inline-block" style={{ background: `${accentColor}10`, color: accentColor }}>
+              ✉️ Your personalised plan is on its way to {email}! Check your inbox in the next few minutes.
             </p>
           </div>
 
