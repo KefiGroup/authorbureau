@@ -11,10 +11,10 @@ const SOURCE_LABELS: Record<string, string> = {
   social_media: "Social Media",
   podcast: "Podcast",
   webinar: "Webinar",
-  microsite: "Author Page",
-  "microsite-BP-02": "Author Page — Quiz",
-  "microsite-BP-04": "Author Page — Website",
-  "microsite-BP-05": "Author Page — Webinar",
+  microsite: "Author's Page",
+  "microsite-BP-02": "Author's Page — Quiz",
+  "microsite-BP-04": "Author's Page — Website",
+  "microsite-BP-05": "Author's Page — Webinar",
 };
 
 export function getSourceLabel(source: string | null | undefined): string {
