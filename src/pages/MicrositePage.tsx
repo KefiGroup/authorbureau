@@ -146,6 +146,9 @@ export default function MicrositePage() {
   const bgColor = theme.colors.heroBackground;
   const content = data.node.content_json || {};
 
+  // Quiz data ref for passing to handleSubmit
+  const [quizData, setQuizData] = useState<{ quiz_stage?: string; quiz_score?: number; quiz_answers?: any[] } | null>(null);
+
   const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
     if (!email || submitting) return false;
@@ -161,6 +164,7 @@ export default function MicrositePage() {
           first_name: firstName,
           last_name: lastName,
           message: message || undefined,
+          ...(quizData || {}),
         },
       });
 
