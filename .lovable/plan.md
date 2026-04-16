@@ -1,57 +1,115 @@
 
 
-# Sprint 30e — Redesign BP-01 Email Marketing as Visual Funnel Builder
+# Sprint 31 — Connect Quiz Result to Email Capture, CRM, and ABBY Personalised Nurture
 
-## What Changes
+## Overview
+Wire the BP-02 SUCKCESS Quiz into: email gate (teaser → capture → full results), CRM enrichment with quiz data, ABBY personalised welcome email (GPT-5 via Lovable AI Gateway), stage-based intelligence segments, and placeholder cleanup. Replace "microsite" with "Author Page" in all user-facing text.
 
-Replace the `ReviewStep` component inside `BP01Builder.tsx` with three new sections: a horizontal funnel flow map, a slide-in email preview panel, and a campaign activation bar.
+## Database Migration
 
-## Section 1 — Funnel Flow Map
+**Add quiz columns to `crm_contacts`:**
+- `quiz_stage text` (nullable)
+- `quiz_score integer` (nullable)  
+- `quiz_completed_at timestamptz` (nullable)
 
-A horizontal scrollable row of pill/node elements representing the reader journey:
+**Add quiz columns to `leads`:**
+- `quiz_stage text` (nullable)
+- `quiz_score integer` (nullable)
+- `quiz_completed_at timestamptz` (nullable)
 
-```text
-[Opt-in] → [Welcome] → [Day 2] → [Day 4] → [Day 7] → [Day 14 Offer] → [Broadcast]
-```
+**Create `quiz_responses` table:**
+- `id uuid PK`, `lead_id uuid FK→leads`, `question_number integer`, `answer_selected text`, `answer_text text`, `created_at timestamptz`
+- RLS enabled, service-role insert only
 
-Each node shows: step number, send timing, and a status dot (green if content exists, grey otherwise). Below each node, a muted label shows the CRM stage trigger (e.g., "New Lead", "Engaged", "Warm", "Hot", "Customer").
+## Part 1 — Quiz Gate Redesign
 
-Nodes are mapped from `content.welcome_sequence` (by `send_delay_days`) plus the broadcast and lead magnet offer. Clicking a node sets `selectedNode` state.
+**File: `src/pages/MicrositePage.tsx`** — `LeadMagnetPage` component, `stage === "gate"` block
 
-## Section 2 — Email Preview Panel (Sheet)
+Current gate shows generic "Quiz Complete!" with no teaser. Replace with:
+- Show stage name + one-sentence teaser from `resultTier.description` (truncated)
+- Copy: "Get your personalised action plan from [authorName]"
+- First name + email inputs → gold "Get My Personalised Plan →" button
+- Privacy note: "No spam. Unsubscribe anytime."
 
-When a node is clicked, a right-side `Sheet` opens showing:
-- Subject line (large, bold)
-- Preview text (italic, muted)
-- Email body rendered inside a styled card (whitespace-pre-line, not raw text)
-- "Preview as Reader" button opening a `Dialog` with a mock inbox view (From, Subject, body in an email-client-style card)
-- CRM trigger label: "When clicked → moves reader to [Stage]"
-- Status badge (Draft / Active)
+Also pass quiz data (`quiz_stage`, `quiz_score`, `quiz_answers`) in the `handleSubmit` body when `resolvedNodeId === "BP-02"`.
 
-**Placeholder fix**: Before rendering any email body, replace all `[Lead Magnet URL]` occurrences. The component will receive the real lead magnet URL (fetched from `generated_assets` / `author_nodes` BP-02 microsite_url in the parent). If none exists, substitute with italic text: "Your lead magnet link will be inserted automatically when BP-02 is built."
+## Part 2 — CRM + Leads Capture with Quiz Data
 
-## Section 3 — Campaign Activation Bar
+**File: `supabase/functions/microsite-action/index.ts`**
 
-Replace the current two-button row with:
-- Gold full-width button: "Activate My Email Campaign →"
-- Campaign name and list name displayed above
-- Note: "Sent via Authors Bureau — no external email platform needed."
+Accept new optional fields: `quiz_stage`, `quiz_score`, `quiz_answers`.
 
-## Data Fetching Addition
+When `node_id === "BP-02"` and quiz data is present:
+1. Insert into `leads` with `quiz_stage`, `quiz_score`, `quiz_completed_at`
+2. Update `crm_contacts` record with quiz fields
+3. Insert individual `quiz_responses` rows
+4. Log `nurture_events` entry: `event_type = "quiz_completed"`, `metadata = {stage, score}`
+5. Add tags: `quiz-completed` + stage-specific (e.g. `stage-3-seeker`)
+6. Activity log: "Completed SUCKCESS Quiz — Stage 3: Seeker (Score: 62)"
 
-In the parent `BP01Builder` `useEffect`, add a query for the BP-02 lead magnet URL:
-1. Query `author_nodes` where `node_id = 'BP-02'` for `microsite_url`
-2. Pass `leadMagnetUrl` to `ReviewStep`
+## Part 3 — ABBY Personalised Welcome Email
+
+**File: `supabase/functions/microsite-action/index.ts`** — inline after quiz capture block
+
+- Uses **openai/gpt-5** via the Lovable AI Gateway (user requested GPT-4o equivalent)
+- System prompt: "You are ABBY, the AI business coach for author [pen_name]. The reader just completed the SUCKCESS Stage Quiz at [quiz_stage]. Write a warm, personal welcome email from [pen_name]. Reference their specific stage. Quote one insight from [book_title]. End with a clear next step. Tone: warm, encouraging, personal — like a message from a friend. Max 200 words."
+- Send via Resend (existing pattern) with subject: "Your SUCKCESS Stage is [Stage Name] — here's what it means for you"
+- Non-blocking: failure does not break the submission flow
+
+## Part 4 — CRM Contact Card Shows Quiz Data
+
+**File: `src/components/crm/ContactDetailPanel.tsx`**
+- Add `quiz_stage`, `quiz_score`, `quiz_completed_at` to `CRMContact` interface
+- Show coloured quiz stage badge below contact name (e.g. "Stage 3 — Seeker")
+- Show quiz score as a small progress bar (0–100) if present
+
+**File: `src/components/crm/ContactListView.tsx`**
+- Add quiz_stage to interface; show badge in the table row when present
+
+**File: `supabase/functions/author-crm-data/index.ts`**
+- `list` action: include `quiz_stage`, `quiz_score`, `quiz_completed_at` in select (already selects `*`, so just ensure frontend reads them)
+- `abby-intelligence` action: include `quiz_stage` in select and inject stage distribution into AI prompt
+
+## Part 5 — ABBY Intelligence: Reader Segments Card
+
+**File: `src/components/crm/AbbyIntelligenceView.tsx`**
+- Add 5th card: "Your Reader Segments" with stage breakdown
+- Stage groups: Stage 1-2 (Suck), Stage 3-4 (Seek), Stage 5-6 (Succeed), Stage 7-8 (Sustain)
+- Each with count, visual bar, and ABBY-recommended action
+- Gold "Take Action" button per segment
+
+**File: `supabase/functions/author-crm-data/index.ts`**
+- In `abby-intelligence`, query contacts with `quiz_stage`, compute group counts
+- Add `readerSegments` to tool-call schema and response
+
+## Part 6 — User-Facing Text: "microsite" → "Author Page"
+
+All user-visible strings only (not code filenames):
+- `MicrositePage.tsx`: source in `handleSubmit` body stays `microsite`, but any UI-facing error messages or labels say "Author Page"
+- `microsite-action/index.ts`: notification messages, activity log content, email body — replace "microsite" with "Author Page"
+- CRM source labels in `crm-utils.ts` if applicable
+
+## Part 7 — BP-01 Placeholder Cleanup
+
+**File: `src/components/dashboard/builders/bp01/BP01Builder.tsx`**
+- Already handles `[Lead Magnet URL]`. Also add `[Link to Lead Magnet]` variant to the regex replacement.
 
 ## Files Changed
 
 | File | Change |
 |------|--------|
-| `src/components/dashboard/builders/bp01/BP01Builder.tsx` | Full rewrite of `ReviewStep`, add `FunnelFlowMap`, `EmailPreviewSheet`, `ReaderPreviewDialog`, `ActivationBar` sub-components. Add BP-02 URL fetch in parent. Remove Tabs import. |
+| **Migration SQL** | Add quiz columns to `crm_contacts` + `leads`; create `quiz_responses` |
+| `src/pages/MicrositePage.tsx` | Redesign gate with teaser; pass quiz data on submit |
+| `supabase/functions/microsite-action/index.ts` | Accept quiz data, write to leads/crm/quiz_responses/nurture_events; generate + send ABBY welcome email via openai/gpt-5; replace "microsite" in user-facing text |
+| `src/components/crm/ContactDetailPanel.tsx` | Quiz stage badge + score bar |
+| `src/components/crm/ContactListView.tsx` | Quiz stage badge in table |
+| `supabase/functions/author-crm-data/index.ts` | Include quiz fields in intelligence; add readerSegments to schema |
+| `src/components/crm/AbbyIntelligenceView.tsx` | Add "Reader Segments" card |
+| `src/components/dashboard/builders/bp01/BP01Builder.tsx` | Add `[Link to Lead Magnet]` variant to regex |
 
 ## What Does NOT Change
-- Steps 0, 1, 3 (Introduction, Generating, Publish/Success)
-- Generation logic and edge function
-- Database schema
-- No new files needed — all sub-components stay in the same file
+- Quiz questions, scoring logic, result categories
+- Existing BP node builders
+- Edge function filenames (microsite-action stays as-is)
+- Visual design system
 
