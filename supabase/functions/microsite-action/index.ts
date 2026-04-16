@@ -311,20 +311,25 @@ serve(async (req) => {
             </div>
           `;
 
-          await fetch("https://api.resend.com/emails", {
+          const resendResp = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${resendKey}`,
             },
             body: JSON.stringify({
-              from: `${penName} via Authors Bureau <notify@notify.authorsbureau.com>`,
+              from: `${penName} via Authors Bureau <noreply@notify.authorsbureau.com>`,
               to: [cleanEmail],
               subject: `Your SUCKCESS Stage: ${stageName} — Here's What It Means For You, ${readerName}`,
               html: emailHtml,
             }),
           });
-          console.log("[microsite-action] ✅ Quiz result email sent to:", cleanEmail);
+          const resendResult = await resendResp.json();
+          if (!resendResp.ok) {
+            console.error("[microsite-action] ❌ Resend quiz email FAILED:", resendResp.status, JSON.stringify(resendResult));
+          } else {
+            console.log("[microsite-action] ✅ Quiz result email sent to:", cleanEmail, "| Resend ID:", resendResult?.id);
+          }
         }
       } catch (emailErr) {
         console.error("[microsite-action] Quiz result email error (non-fatal):", emailErr);
