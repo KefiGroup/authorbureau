@@ -1,98 +1,52 @@
 
 
-# Rebuild My Contacts into ABBY-Powered CRM & Sales Funnel
+# Sprint 30c — My CRM: Three Critical Fixes
 
-## Current State
-- `crm_contacts` table has: id, author_id, full_name, email, phone, company, notes, source, created_at, updated_at
-- `crm_activity_log` table has: id, author_id, contact_id, type, content, created_at
-- `crm_contact_tags` table for tags
-- All CRM data flows through `author-crm-data` edge function (service role bypass, shared-backend JWT auth)
-- Sidebar entry is `author-crm` -> "My Contacts"
-- 2 existing contacts in DB
+## Fix 1: Source Label Utility
+Create a shared `getSourceLabel()` function in a new `src/lib/crm-utils.ts` file. Apply it in `PipelineView.tsx`, `ContactListView.tsx`, and `ContactDetailPanel.tsx` wherever `contact.source` is displayed.
 
-## Database Changes (Migration)
+## Fix 2: Scale Fixes
 
-Add columns to `crm_contacts`:
-```sql
-ALTER TABLE crm_contacts 
-  ADD COLUMN stage text NOT NULL DEFAULT 'new_lead',
-  ADD COLUMN abby_score integer NOT NULL DEFAULT 0,
-  ADD COLUMN last_activity_at timestamptz DEFAULT now();
-```
+### Edge function (`author-crm-data/index.ts`)
+- Update `list` action to accept `page`, `pageSize`, `search`, `stage` params
+- Use `{ count: "exact" }` with `.range()` for pagination (not the aggregate column approach from the spec)
+- Sanitize search input before PostgREST interpolation
+- Replace `bulk-delete` and `bulk-move-stage` for-loops with `.in()` batch queries
 
-No new tables needed. The existing `crm_activity_log` serves as the activity/event log. We add `stage_change` as a valid `type` value.
+### Frontend (`ContactListView.tsx`)
+- Add debounced search input, stage filter dropdown, source filter dropdown
+- Add pagination controls with "Showing X of Y" and Previous/Next buttons
+- Component now calls `crmFetch` directly (receives it as prop) instead of filtering in-memory
+- Pass `initialStageFilter` still works from Pipeline "View all" clicks
 
-## Edge Function Updates: `author-crm-data`
+### Frontend (`AuthorCRMPage.tsx`)
+- Remove the shared search bar idea from the spec (Pipeline uses a separate action and doesn't support search). Search stays on the Contacts tab only.
 
-Add new actions:
-- **`update-stage`**: Updates contact's `stage`, logs a `stage_change` event to `crm_activity_log`, recalculates `last_activity_at`
-- **`bulk-move-stage`**: Move multiple contacts to a new stage
-- **`bulk-delete`**: Delete multiple contacts
-- **`abby-intelligence`**: Calls Lovable AI Gateway (gemini-3-flash-preview) with contact summary data to generate: action list, funnel health, segment insights, predicted conversions. Returns structured JSON.
-- **`abby-contact-recommendation`**: Single-contact AI recommendation for the detail panel.
+## Fix 3: Pipeline Summary Mode
 
-Update **`list`** action to return the new `stage`, `abby_score`, `last_activity_at` fields.
+### Edge function (`author-crm-data/index.ts`)
+- Add new `pipeline-summary` action that returns `{ summary: [{ stage, count, top3 }] }` for all 7 stages
+- Uses `Promise.all` for parallel queries — fast regardless of contact count
 
-## Frontend: New Components
-
-### 1. `src/components/dashboard/AuthorCRMPage.tsx` (rewrite)
-- Rename header to "My CRM"
-- Stats bar: Total Contacts, Active This Week, Conversion Rate (customers/total), Pipeline Value
-- Three tabs: Pipeline (default), Contacts, ABBY Intelligence
-- Shared `crmFetch` utility stays the same
-
-### 2. `src/components/crm/PipelineView.tsx`
-- 7-column Kanban: New Lead, Engaged, Warm, Hot, Customer, VIP, Cold
-- Stage colors: blue, teal, amber, orange, green, gold, grey (left border)
-- Contact cards show: name, email, source badge, last activity date, ABBY Score badge
-- Drag-and-drop using HTML5 drag API (no library needed for 7 columns)
-- On drop: call `update-stage` action
-- Empty state per column with ABBY messaging
-
-### 3. `src/components/crm/ContactListView.tsx`
-- Sortable table: Name, Email, Stage, Source, Last Activity, ABBY Score, Tags
-- Search + filter (by stage, source)
-- Checkbox selection for bulk actions: Add Tag, Move Stage, Delete
-
-### 4. `src/components/crm/AbbyIntelligenceView.tsx`
-- ABBY avatar (gold star icon) header
-- 4 cards with loading states:
-  1. Today's Action List (top 5 contacts + reason)
-  2. Funnel Health Score (% per stage + commentary)
-  3. Segment Insights (behaviour groups + next action)
-  4. Predicted Conversions (likely buyers in 7 days)
-- Each card has "Take Action" button
-- Calls `abby-intelligence` edge function action
-
-### 5. `src/components/crm/ContactDetailPanel.tsx`
-- Right slide-in panel (Sheet component)
-- Shows: name, email, stage badge, ABBY score, activity timeline, tags
-- ABBY personalised recommendation (LLM call on open)
-- Quick actions: Add Note, Move Stage, Add Tag, Delete
-
-## Sidebar Change
-
-In `DashboardSidebar.tsx`: Change label from "My Contacts" to "My CRM", add subtitle "Sales Funnel & Contacts".
-
-## ABBY Score
-
-Calculated server-side in the edge function when activities are logged. For now, contacts start at score 0 and the score adjusts based on activity type logged in `crm_activity_log`:
-- opt_in: +2, email_open: +1 (max +3), link_click: +2, quiz_completed: +2, page_visit: +1, purchase: +3
-- Decay: -1 per 7 days inactivity (applied on list fetch)
+### Frontend (`PipelineView.tsx`)
+- Rewrite to call `pipeline-summary` instead of receiving all contacts as props
+- Each column: stage header + count badge, top 3 compact rows (avatar, name, score, click arrow), "View all N →" button
+- Remove drag-and-drop entirely
+- Accepts `crmFetch` as prop for data loading
 
 ## Files Changed
-- `supabase/migrations/new.sql` (add stage, abby_score, last_activity_at columns)
-- `supabase/functions/author-crm-data/index.ts` (add actions + AI calls)
-- `src/components/dashboard/AuthorCRMPage.tsx` (full rewrite with tabs)
-- `src/components/crm/PipelineView.tsx` (new)
-- `src/components/crm/ContactListView.tsx` (new)
-- `src/components/crm/AbbyIntelligenceView.tsx` (new)
-- `src/components/crm/ContactDetailPanel.tsx` (new)
-- `src/components/dashboard/DashboardSidebar.tsx` (label change)
+| File | Change |
+|------|--------|
+| `src/lib/crm-utils.ts` | New — `getSourceLabel()` utility |
+| `supabase/functions/author-crm-data/index.ts` | Update `list` (pagination/search), batch bulk ops, add `pipeline-summary` action |
+| `src/components/crm/PipelineView.tsx` | Rewrite for summary mode with own data fetching |
+| `src/components/crm/ContactListView.tsx` | Add search, filters, pagination, server-side data fetching |
+| `src/components/crm/ContactDetailPanel.tsx` | Apply `getSourceLabel()` |
+| `src/components/dashboard/AuthorCRMPage.tsx` | Pass `crmFetch` to children, remove all-contacts preload for Pipeline |
 
-## What We Do NOT Touch
-- No BP node builders
-- No Marketing Hub
-- No existing `crm_contacts` columns removed
-- No existing leads table (there is none; we use `crm_contacts`)
+## What Does NOT Change
+- No database migrations
+- No visual design changes
+- No changes to ABBY Intelligence, Contact Detail Panel logic, or Add Contact
+- No sidebar, routing, or other page changes
 
