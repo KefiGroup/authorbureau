@@ -192,7 +192,7 @@ serve(async (req) => {
 
         // Activity log
         const activityContent = isQuizCapture
-          ? `Completed SUCKCESS Quiz — ${quiz_stage} (Score: ${quiz_score}%)`
+          ? `Completed quiz — ${quiz_stage} (Score: ${quiz_score}%)`
           : `Lead captured from Author Page ${node_id} (${action_type}): ${cleanEmail}`;
 
         await supabaseAdmin.from("crm_activity_log").insert({
@@ -251,7 +251,7 @@ serve(async (req) => {
 
         const penName = profile.pen_name || "the author";
         const readerName = first_name || "there";
-        const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()).replace(/Suckcess/gi, "SUCKCESS");
+        const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
         const scoreVal = typeof quiz_score === "number" ? quiz_score : 0;
 
         // Get book Amazon URL for CTA
@@ -263,8 +263,8 @@ serve(async (req) => {
           .limit(1)
           .maybeSingle();
 
-        const bookTitle = bookData?.title || "Be SUCKcessful";
-        const bookUrl = bookData?.amazon_url || "https://www.amazon.com/dp/B0DQKZWK33";
+        const bookTitle = bookData?.title || "the book";
+        const bookUrl = bookData?.amazon_url || "";
 
         const idempotencyKey = `quiz-result-${cleanEmail}-${quiz_stage}-${Date.now()}`;
 
