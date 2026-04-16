@@ -58,6 +58,53 @@ serve(async (req) => {
     const commercialAngles = context?.commercial_angles ? JSON.stringify(context.commercial_angles) : "N/A";
     const authorName = author.pen_name || "Author";
 
+    // Fetch real BP-02 lead magnet from generated_assets
+    let leadMagnetInfo = "";
+    const { data: leadMagnet } = await supabase
+      .from("generated_assets")
+      .select("title, description, content, status")
+      .eq("author_id", author.user_id)
+      .eq("asset_type", "builder_draft_lead-magnet")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (leadMagnet) {
+      let lmDetails: Record<string, unknown> = {};
+      try {
+        lmDetails = typeof leadMagnet.content === "string" ? JSON.parse(leadMagnet.content) : (leadMagnet.content as any) || {};
+      } catch { /* ignore parse errors */ }
+
+      const lmTitle = leadMagnet.title || (lmDetails as any).title || "";
+      const lmType = (lmDetails as any).type || (lmDetails as any).lead_magnet_type || "free resource";
+      const lmHeadline = (lmDetails as any).headline || (lmDetails as any).quiz_title || "";
+      const lmDescription = leadMagnet.description || (lmDetails as any).description || "";
+
+      leadMagnetInfo = `
+EXISTING LEAD MAGNET (already built by the author — you MUST reference this):
+- Title: ${lmTitle}
+- Type: ${lmType}
+- Headline: ${lmHeadline}
+- Description: ${lmDescription}
+- Status: ${leadMagnet.status || "draft"}
+
+IMPORTANT: The lead_magnet_offer in your response MUST use this exact lead magnet title and description. Do NOT invent a new lead magnet. All email CTAs should drive readers to this specific resource.`;
+    }
+
+    // Also check author_nodes for BP-02 microsite URL
+    let leadMagnetUrl = "";
+    const { data: bp02Node } = await supabase
+      .from("author_nodes")
+      .select("microsite_url, status")
+      .eq("author_id", author_id)
+      .eq("node_id", "BP-02")
+      .maybeSingle();
+
+    if (bp02Node?.microsite_url) {
+      leadMagnetInfo += `\n- Public URL: ${bp02Node.microsite_url}`;
+      leadMagnetUrl = bp02Node.microsite_url;
+    }
+
     // Build the AI prompt
     const systemPrompt = `You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.`;
 
