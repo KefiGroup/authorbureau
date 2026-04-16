@@ -197,7 +197,7 @@ export default function MicrositePage() {
       </nav>
 
       {/* Node-specific content */}
-      {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} setQuizData={setQuizData} />}
       {resolvedNodeId === "BP-04" && <AuthorWebsitePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BP-05" && <WebinarPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
@@ -236,11 +236,12 @@ interface FormPageProps extends PageProps {
 }
 
 /* ═══ BP-02 — LEAD MAGNET ═══ */
-function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted }: FormPageProps) {
+function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted, setQuizData }: FormPageProps & { setQuizData: (d: any) => void }) {
   // New flow: landing → quiz → gate (collect email to see results) → results
   const [stage, setStage] = useState<"landing" | "quiz" | "gate" | "results">("landing");
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [answerDetails, setAnswerDetails] = useState<{ question_number: number; answer_selected: string; answer_text: string }[]>([]);
 
   // Extract from nested content_payload structure
   const lmContent = content.leadMagnetContent || content;
@@ -262,28 +263,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const accentColor = optin.color_palette?.primary || v.accent;
   const isQuiz = (config.type || "").toLowerCase().includes("quiz") || questions.length > 0;
 
-  // After collecting email on gate, submit then show results
-  const handleGateSubmit = async (e: React.FormEvent) => {
-    const success = await onSubmit(e);
-    if (success) {
-      setStage("results");
-    }
-  };
-
-  const handleAnswer = (optionIndex: number) => {
-    // Use actual points from option if available, otherwise fall back to index
-    const option = questions[currentQ]?.options?.[optionIndex];
-    const points = typeof option === "object" && option?.points != null ? option.points : optionIndex;
-    const newAnswers = [...answers, points];
-    setAnswers(newAnswers);
-    if (currentQ + 1 < questions.length) {
-      setCurrentQ(currentQ + 1);
-    } else {
-      setStage("gate");
-    }
-  };
-
-  // Calculate score and tier
+  // Calculate score and tier (needed for gate teaser too)
   const totalScore = answers.reduce((sum, a) => sum + a, 0);
   const maxPossiblePerQ = questions.length > 0 && typeof questions[0]?.options?.[0] === "object"
     ? Math.max(...questions.flatMap((q: any) => (q.options || []).map((o: any) => o.points || 0)))
@@ -294,11 +274,9 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const getResultTier = () => {
     if (scoringTiers.length === 0) return { label: "Your Result", name: "Your Result", description: "Thank you for completing the quiz!", tips: [], tips_from_book: [] };
     for (const tier of scoringTiers) {
-      // Support min/max format
       if (tier.min != null && tier.max != null) {
         if (totalScore >= tier.min && totalScore <= tier.max) return tier;
       }
-      // Support range string format
       if (tier.range) {
         const match = tier.range.match(/(\d+)\s*[-–]\s*(\d+)/);
         if (match) {
@@ -315,6 +293,44 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const resultTier = getResultTier();
   const tierName = resultTier.label || resultTier.name || "Complete";
   const tierTips: string[] = resultTier.tips_from_book || resultTier.tips || [];
+  const authorName = data?.author?.pen_name || "";
+
+  // After collecting email on gate, submit then show results
+  const handleGateSubmit = async (e: React.FormEvent) => {
+    // Set quiz data for the parent handleSubmit to include
+    const quizStageSlug = (tierName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    setQuizData({
+      quiz_stage: quizStageSlug,
+      quiz_score: scorePercent,
+      quiz_answers: answerDetails,
+    });
+    // Small delay to let state propagate
+    await new Promise(r => setTimeout(r, 50));
+    const success = await onSubmit(e);
+    if (success) {
+      setStage("results");
+    }
+  };
+
+  const handleAnswer = (optionIndex: number) => {
+    const option = questions[currentQ]?.options?.[optionIndex];
+    const points = typeof option === "object" && option?.points != null ? option.points : optionIndex;
+    const optLabel = typeof option === "string" ? option : option?.label || option?.text || `Option ${optionIndex + 1}`;
+    const newAnswers = [...answers, points];
+    setAnswers(newAnswers);
+    setAnswerDetails([...answerDetails, {
+      question_number: currentQ + 1,
+      answer_selected: String.fromCharCode(65 + optionIndex),
+      answer_text: optLabel,
+    }]);
+    if (currentQ + 1 < questions.length) {
+      setCurrentQ(currentQ + 1);
+    } else {
+      setStage("gate");
+    }
+  };
+
+  // (score/tier calculations moved to top of component)
 
   // ── STAGE: RESULTS (after email collected) ──
   if (stage === "results" && questions.length === 0) {
