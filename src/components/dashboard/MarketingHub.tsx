@@ -42,7 +42,7 @@ const CAMPAIGNS: CampaignConfig[] = [
     successMessage: "Your social media campaigns are live! ABBY is running your content automatically.",
   },
   {
-    id: "website-microsite", label: "Website / Microsite", phase: "A",
+    id: "website-microsite", label: "Author Page", phase: "A",
     description: "Lead capture form + author funnel pipeline",
     nodeIds: ["BP-04"],
     successMessage: "Your author website is now live and your lead capture funnel is running.",

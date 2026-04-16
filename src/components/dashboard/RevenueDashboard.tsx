@@ -226,7 +226,7 @@ function TrafficTab({ micrositeUrl, onCopyLink }: { micrositeUrl: string | null;
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
           <Eye className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="font-heading text-2xl font-bold">Microsite Traffic</h2>
+        <h2 className="font-heading text-2xl font-bold">Author Page Traffic</h2>
         <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
           Your microsite traffic data will appear here once your microsite starts receiving visitors.
           Share your microsite link to start driving traffic.
@@ -256,7 +256,7 @@ function TrafficTab({ micrositeUrl, onCopyLink }: { micrositeUrl: string | null;
   return (
     <div className="space-y-8">
       <div>
-        <h2 className="font-heading text-2xl font-bold">Microsite Traffic</h2>
+        <h2 className="font-heading text-2xl font-bold">Author Page Traffic</h2>
         <p className="text-sm text-muted-foreground mt-1">Visitor analytics for your author microsite.</p>
       </div>
 

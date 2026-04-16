@@ -21,7 +21,7 @@ const OPENED_KEY = "abby_help_opened";
 
 const PAGE_OPTIONS = [
   "Dashboard", "My Books Hub", "Analyze with Abby", "Brand Products",
-  "Build Authority", "Yield Revenue", "Author Profile", "My Microsite",
+  "Build Authority", "Yield Revenue", "Author Profile", "My Author Page",
   "Reading Club", "Admin Panel", "Homepage", "Directory", "Other"
 ];
 
