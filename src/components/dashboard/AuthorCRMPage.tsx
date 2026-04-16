@@ -1,6 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import ContactForm from "./crm/ContactForm";
+import { getActiveToken } from "@/lib/get-active-token";
 
 interface CRMContact {
   id: string;
@@ -38,6 +38,24 @@ interface Activity {
 
 interface Props {
   onNavigate?: (section: string) => void;
+}
+
+const CRM_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-crm-data`;
+
+async function crmFetch(action: string, extra: Record<string, any> = {}) {
+  const token = await getActiveToken();
+  if (!token) throw new Error("Not authenticated");
+  const res = await fetch(CRM_FN_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ action, ...extra }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || "Request failed");
+  return data;
 }
 
 export default function AuthorCRMPage({ onNavigate }: Props) {
@@ -63,31 +81,8 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     if (!user) return;
     setLoading(true);
     try {
-      const { data: contactRows, error } = await supabase
-        .from("crm_contacts")
-        .select("*")
-        .eq("author_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(500);
-
-      if (error) throw error;
-
-      const contactIds = (contactRows || []).map((c) => c.id);
-      let tagsMap: Record<string, string[]> = {};
-      if (contactIds.length > 0) {
-        const { data: tagRows } = await supabase
-          .from("crm_contact_tags")
-          .select("contact_id, tag")
-          .in("contact_id", contactIds);
-        (tagRows || []).forEach((t) => {
-          if (!tagsMap[t.contact_id]) tagsMap[t.contact_id] = [];
-          tagsMap[t.contact_id].push(t.tag);
-        });
-      }
-
-      setContacts(
-        (contactRows || []).map((c) => ({ ...c, tags: tagsMap[c.id] || [] }))
-      );
+      const data = await crmFetch("list");
+      setContacts(data.contacts || []);
     } catch (error) {
       toast({ title: "Failed to load contacts", variant: "destructive" });
     }
@@ -140,30 +135,18 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     if (!user) return;
     setFormLoading(true);
     try {
-      const { data: newContact, error } = await supabase
-        .from("crm_contacts")
-        .insert({
-          author_id: user.id,
-          full_name: data.full_name,
-          email: data.email || null,
-          phone: data.phone || null,
-          company: data.company || null,
-          notes: data.notes || null,
-          source: "manual",
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      const tags = data.tags?.split(",").map((t: string) => t.trim()).filter(Boolean);
-      if (tags?.length && newContact) {
-        await supabase.from("crm_contact_tags").insert(
-          tags.map((tag: string) => ({ author_id: user.id, contact_id: newContact.id, tag }))
-        );
-      }
+      await crmFetch("add", {
+        full_name: data.full_name,
+        email: data.email || null,
+        phone: data.phone || null,
+        company: data.company || null,
+        notes: data.notes || null,
+        tags: data.tags || "",
+      });
       toast({ title: "Contact added" });
       setShowForm(false);
       fetchContacts();
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
     setFormLoading(false);
@@ -171,9 +154,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   const handleDelete = async (id: string) => {
     try {
-      await supabase.from("crm_contact_tags").delete().eq("contact_id", id);
-      await supabase.from("crm_activity_log").delete().eq("contact_id", id);
-      await supabase.from("crm_contacts").delete().eq("id", id);
+      await crmFetch("delete", { contact_id: id });
       setContacts((prev) => prev.filter((c) => c.id !== id));
       if (selected?.id === id) setSelected(null);
       toast({ title: "Contact deleted" });
@@ -185,38 +166,32 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const handleSelect = async (contact: CRMContact) => {
     setSelected(contact);
     setActivitiesLoading(true);
-    const { data } = await supabase
-      .from("crm_activity_log")
-      .select("*")
-      .eq("contact_id", contact.id)
-      .order("created_at", { ascending: false })
-      .limit(50);
-    setActivities((data as Activity[]) || []);
+    try {
+      const data = await crmFetch("list-activities", { contact_id: contact.id });
+      setActivities(data.activities || []);
+    } catch {
+      setActivities([]);
+    }
     setActivitiesLoading(false);
   };
 
   const handleAddNote = async () => {
     if (!user || !selected || !newNote.trim()) return;
-    await supabase.from("crm_activity_log").insert({
-      author_id: user.id,
-      contact_id: selected.id,
-      type: "note",
-      content: newNote.trim(),
-    });
-    setNewNote("");
-    handleSelect(selected);
+    try {
+      await crmFetch("add-note", { contact_id: selected.id, content: newNote.trim() });
+      setNewNote("");
+      handleSelect(selected);
+    } catch {}
   };
 
   const handleAddTag = async () => {
     if (!user || !selected || !newTag.trim()) return;
-    await supabase.from("crm_contact_tags").insert({
-      author_id: user.id,
-      contact_id: selected.id,
-      tag: newTag.trim(),
-    });
-    setNewTag("");
-    fetchContacts();
-    setSelected({ ...selected, tags: [...selected.tags, newTag.trim()] });
+    try {
+      await crmFetch("add-tag", { contact_id: selected.id, tag: newTag.trim() });
+      setNewTag("");
+      fetchContacts();
+      setSelected({ ...selected, tags: [...selected.tags, newTag.trim()] });
+    } catch {}
   };
 
   const exportCSV = () => {
@@ -254,13 +229,12 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         return;
       }
 
-      // Parse header to find column indices
       const headerLine = lines[0];
-      const headers = headerLine.split(",").map((h) => h.replace(/"/g, "").trim().toLowerCase());
-      const nameIdx = headers.findIndex((h) => h.includes("name"));
-      const emailIdx = headers.findIndex((h) => h.includes("email"));
-      const phoneIdx = headers.findIndex((h) => h.includes("phone"));
-      const companyIdx = headers.findIndex((h) => h.includes("company") || h.includes("org"));
+      const hdrs = headerLine.split(",").map((h) => h.replace(/"/g, "").trim().toLowerCase());
+      const nameIdx = hdrs.findIndex((h) => h.includes("name"));
+      const emailIdx = hdrs.findIndex((h) => h.includes("email"));
+      const phoneIdx = hdrs.findIndex((h) => h.includes("phone"));
+      const companyIdx = hdrs.findIndex((h) => h.includes("company") || h.includes("org"));
 
       if (nameIdx === -1 && emailIdx === -1) {
         toast({ title: "CSV must have a 'Name' or 'Email' column", variant: "destructive" });
@@ -271,12 +245,10 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       const rows = lines.slice(1).map((line) => {
         const cols = line.split(",").map((c) => c.replace(/"/g, "").trim());
         return {
-          author_id: user.id,
           full_name: (nameIdx >= 0 ? cols[nameIdx] : cols[emailIdx]) || "Unknown",
           email: emailIdx >= 0 ? cols[emailIdx] || null : null,
           phone: phoneIdx >= 0 ? cols[phoneIdx] || null : null,
           company: companyIdx >= 0 ? cols[companyIdx] || null : null,
-          source: "csv_import",
         };
       }).filter((r) => r.full_name && r.full_name !== "Unknown");
 
@@ -286,25 +258,13 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         return;
       }
 
-      // Insert in batches of 50
-      let imported = 0;
-      for (let i = 0; i < rows.length; i += 50) {
-        const batch = rows.slice(i, i + 50);
-        const { error } = await supabase.from("crm_contacts").insert(batch);
-        if (error) {
-          console.error("CSV import batch error:", error);
-        } else {
-          imported += batch.length;
-        }
-      }
-
-      toast({ title: `Imported ${imported} contacts from CSV` });
+      const data = await crmFetch("import-csv", { rows });
+      toast({ title: `Imported ${data.imported} contacts from CSV` });
       fetchContacts();
-    } catch (err) {
+    } catch (err: any) {
       toast({ title: "Import failed", description: err.message, variant: "destructive" });
     }
     setImporting(false);
-    // Reset file input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
