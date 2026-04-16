@@ -35,7 +35,8 @@ interface Props {
 const CRM_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-crm-data`;
 
 async function crmFetch(action: string, extra: Record<string, any> = {}) {
-  const token = await getActiveToken();
+  const { data: sessionData } = await sharedSupabase.auth.getSession();
+  const token = sessionData?.session?.access_token;
   if (!token) throw new Error("Not authenticated");
   const res = await fetch(CRM_FN_URL, {
     method: "POST",
