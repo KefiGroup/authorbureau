@@ -1,35 +1,64 @@
 
 
-# Fix: Make Lead Capture Actually Work End-to-End
+# Link Path Audit — Dead End Analysis
 
-## Root Cause
+## Audit Method
+I checked every link path across the 28 nodes: dashboard hub links → builder routes → success screen URLs → public microsite resolution → edge function responses.
 
-The code is correctly wired: quiz gate → `handleGateSubmit` → `supabase.functions.invoke("microsite-action")` → 2-level CRM + email. However, the `microsite-action` edge function logs show **zero invocations** (only boot logs). This means either:
+## Findings
 
-1. The quiz page wasn't loading when you tested (the "portal not loading" issue from earlier)
-2. The function wasn't deployed at the time of your test
+### 1. CRITICAL: `getMicrositeUrl()` generates unreachable URLs
+**File:** `src/lib/node-slug-map.ts` line 84
+**Issue:** Generates `https://authorsbureau.com/pauline-teo/free-gift` but the actual published domain is `https://authorbureau.lovable.app`. This means every "Copy Link" and "View Live" button on the Publish Success Screen gives authors a **dead link** that resolves to nothing.
+**Impact:** All 24 nodes with public pages (everything except BP-01, BP-03, BA-15, BA-18).
+**Fix:** Change `getMicrositeUrl()` to use `window.location.origin` or a configurable base URL so links always point to the actual live domain.
 
-## What Needs to Happen
+### 2. OK: Dashboard → Builder routes
+All 28 `/node-builder/{nodeId}` routes resolve correctly:
+- `BrandProductsHub`, `BuildAuthorityHub`, `YieldRevenueHub` all link to `/node-builder/{id}`
+- Route `/node-builder/:nodeId` exists in `App.tsx` (line 139)
+- All 28 builder components exist and are imported in `NodeBuilder.tsx`
+- "Back to Hub" links use correct hub paths (`/brand-products`, `/build-authority`, `/yield-revenue`)
 
-### 1. Redeploy `microsite-action` to ensure latest code is live
-The function code has the 2-level CRM logic but may not have been successfully deployed with the latest version.
+### 3. OK: Public microsite routing
+- `/:authorSlug/:bookSlug` → `AuthorSubpageResolver` correctly checks `SLUG_TO_NODE` for known slugs and falls back to dynamic lookup
+- `get-microsite-page` edge function returns proper responses: 200 for live nodes, 404 with "Node not live" for inactive ones (handled as "Coming Soon" in the UI)
+- `/:authorSlug/:bookSlug/:productType` → `AuthorProductPage` with full product config for all types
 
-### 2. Add comprehensive logging to `microsite-action`
-Add `console.log` at entry point and at each CRM write so we can trace exactly what happens (or doesn't) when a lead submits.
+### 4. OK: Author slug consistency
+Author slugs are auto-generated via `generate_unique_author_slug()` trigger. The test author "Pauline Teo" resolves correctly as `pauline-teo`.
 
-### 3. Test end-to-end with curl
-After deployment, invoke the function directly via curl with test data to confirm:
-- Author-level CRM contact created
-- Platform-level CRM contact created  
-- Resend email sent
-- In-app notification created
+### 5. OK: Legacy redirects
+- `/authors/:slug` → `/:slug` (redirect)
+- `/books/:slug` → `/:authorSlug/:bookSlug` (redirect with DB lookup)
+- `/reader-portal/:id` → `/readers-bureau/learn/:id`
 
-### 4. Verify the quiz page loads on published URL
-Navigate to the published microsite URL and complete the full quiz flow to confirm the gate form triggers `microsite-action`.
+### 6. MINOR: `authorsbureau.com` references in website builder UI
+**Files:** `WebsiteSetupStep.tsx`, `WebsitePublishStep.tsx`, `SeoAnalyticsStep.tsx`
+These show `yourname.authorsbureau.com` as the subdomain format. This is display-only (subdomain hosting isn't implemented yet), so it's cosmetic but misleading if authors expect it to work.
 
-### Files Changed
-- `supabase/functions/microsite-action/index.ts` — add entry logging
+### 7. OK: No-microsite nodes handled correctly
+BP-01 (Email), BP-03 (Social), BA-15 (Media & PR), BA-18 (JV Partnerships) are correctly excluded from public URL generation via `NO_MICROSITE_NODES`.
 
-### No file changes needed for the client
-The client-side code in `MicrositePage.tsx` is correctly calling the function. The issue is deployment/invocation, not code.
+---
+
+## Plan: Fix the Dead Link Issue
+
+### File changes
+
+**`src/lib/node-slug-map.ts`** — Update `getMicrositeUrl()` to use the actual origin:
+```typescript
+export function getMicrositeUrl(penNameSlug: string, nodeId: string): string | null {
+  if (NO_MICROSITE_NODES.has(nodeId)) return null;
+  const slug = NODE_SLUG_MAP[nodeId];
+  if (slug === undefined) return null;
+  const base = typeof window !== 'undefined' ? window.location.origin : 'https://authorbureau.lovable.app';
+  return `${base}/${penNameSlug}/${slug}`;
+}
+```
+
+This single change fixes the "Copy Link" and "View Live" buttons across all 24 public-facing node success screens.
+
+### No other dead ends found
+All other paths (hub → builder, builder → success, public routes, legacy redirects) resolve correctly.
 
