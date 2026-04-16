@@ -118,6 +118,7 @@ Book details:
 - Key frameworks: ${keyFrameworks}
 - Unique insights: ${uniqueInsights}
 - Commercial angles: ${commercialAngles}
+${leadMagnetInfo}
 
 Generate the following as a JSON object with these exact keys:
 {
@@ -132,9 +133,9 @@ Generate the following as a JSON object with these exact keys:
     }
   ],
   "lead_magnet_offer": {
-    "title": "Name of the free resource to offer as a lead magnet",
-    "description": "One sentence describing what readers get",
-    "cta_text": "Button text for the opt-in form"
+    "title": "${leadMagnet ? "Use the author's existing lead magnet title exactly as provided above" : "Name of the free resource to offer as a lead magnet"}",
+    "description": "${leadMagnet ? "Describe the existing lead magnet accurately based on the details above" : "One sentence describing what readers get"}",
+    "cta_text": "Button text for the opt-in form"${leadMagnetUrl ? `,\n    "url": "${leadMagnetUrl}"` : ""}
   },
   "first_broadcast": {
     "subject": "Subject line for first broadcast email",
