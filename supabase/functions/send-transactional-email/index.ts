@@ -30,9 +30,9 @@ function generateToken(): string {
     .join('')
 }
 
-// Auth note: this function uses verify_jwt = true in config.toml, so Supabase's
-// gateway validates the caller's JWT (anon or service_role) before the request
-// reaches this code. No in-function auth check is needed.
+// Auth note: this function is callable by server-to-server callers.
+// It accepts either a service_role JWT (claims.role === 'service_role')
+// or the raw service role key in the Bearer token for internal calls.
 
 Deno.serve(async (req) => {
   // Handle CORS preflight
@@ -49,6 +49,45 @@ Deno.serve(async (req) => {
       JSON.stringify({ error: 'Server configuration error' }),
       {
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+
+  const token = authHeader.slice('Bearer '.length).trim()
+  const tokenParts = token.split('.')
+  let claims: Record<string, unknown> | null = null
+
+  if (tokenParts.length >= 2) {
+    try {
+      const payload = tokenParts[1]
+        .replaceAll('-', '+')
+        .replaceAll('_', '/')
+        .padEnd(Math.ceil(tokenParts[1].length / 4) * 4, '=')
+
+      claims = JSON.parse(atob(payload)) as Record<string, unknown>
+    } catch {
+      claims = null
+    }
+  }
+
+  const isServiceRoleCaller = token === supabaseServiceKey || claims?.role === 'service_role'
+  if (!isServiceRoleCaller) {
+    return new Response(
+      JSON.stringify({ error: 'Forbidden' }),
+      {
+        status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     )
