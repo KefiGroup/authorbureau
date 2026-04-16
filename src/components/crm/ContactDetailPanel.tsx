@@ -12,6 +12,7 @@ import {
   Mail, Phone, Building2, Star, Loader2, Trash2, Plus, MessageSquare,
   ArrowUpDown, Tag,
 } from "lucide-react";
+import { getSourceLabel } from "@/lib/crm-utils";
 
 interface CRMContact {
   id: string;

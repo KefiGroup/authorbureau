@@ -59,7 +59,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [contacts, setContacts] = useState<CRMContact[]>([]);
+  const [statsData, setStatsData] = useState<{ total: number; activeThisWeek: number; conversionRate: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -68,44 +68,38 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const [detailOpen, setDetailOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("pipeline");
   const [contactsStageFilter, setContactsStageFilter] = useState<string | undefined>(undefined);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchContacts = useCallback(async () => {
+  // Lightweight initial load: just get first page to check if empty + stats
+  const fetchInitial = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await crmFetch("list");
-      setContacts(data.contacts || []);
+      const data = await crmFetch("list", { page: 1, pageSize: 1 });
+      const total = data.totalCount || 0;
+      // We don't need full contacts for stats anymore — just total
+      setStatsData({ total, activeThisWeek: 0, conversionRate: 0 });
     } catch {
-      toast({ title: "Failed to load contacts", variant: "destructive" });
+      setStatsData({ total: 0, activeThisWeek: 0, conversionRate: 0 });
     }
     setLoading(false);
-  }, [user, toast]);
+  }, [user]);
 
-  useEffect(() => { fetchContacts(); }, [fetchContacts]);
+  useEffect(() => { fetchInitial(); }, [fetchInitial]);
 
-  const stats = useMemo(() => {
-    const total = contacts.length;
-    const now = new Date();
-    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const activeThisWeek = contacts.filter((c) =>
-      c.last_activity_at && new Date(c.last_activity_at) > weekAgo
-    ).length;
-    const customers = contacts.filter((c) => c.stage === "customer" || c.stage === "vip").length;
-    const conversionRate = total > 0 ? Math.round((customers / total) * 100) : 0;
-    return { total, activeThisWeek, conversionRate };
-  }, [contacts]);
+  const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
   const abbyMessage = useMemo(() => {
-    const n = contacts.length;
+    const n = statsData?.total || 0;
     if (n === 0) return "Add your first contact and ABBY will start building your funnel.";
     if (n < 10) return `You have ${n} contact${n > 1 ? "s" : ""}. ABBY is watching your pipeline.`;
     return "Great momentum! ABBY has insights ready for you in the Intelligence tab.";
-  }, [contacts.length]);
+  }, [statsData?.total]);
 
   const statValues: Record<string, string> = {
-    total: String(stats.total),
-    active: String(stats.activeThisWeek),
-    conversion: `${stats.conversionRate}%`,
+    total: String(statsData?.total || 0),
+    active: String(statsData?.activeThisWeek || 0),
+    conversion: `${statsData?.conversionRate || 0}%`,
     pipeline: "—",
   };
 
@@ -119,32 +113,25 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       });
       toast({ title: "Contact added" });
       setShowForm(false);
-      fetchContacts();
+      fetchInitial();
+      triggerRefresh();
     } catch (err: any) {
       toast({ title: "Error", description: err.message, variant: "destructive" });
     }
     setFormLoading(false);
   };
 
-  const handleContactClick = (contact: CRMContact) => {
-    setSelectedContact(contact);
+  const handleContactClick = (contact: any) => {
+    setSelectedContact(contact as CRMContact);
     setDetailOpen(true);
-  };
-
-  const handleStageChange = async (contactId: string, newStage: string) => {
-    try {
-      await crmFetch("update-stage", { contact_id: contactId, stage: newStage });
-      fetchContacts();
-    } catch {
-      toast({ title: "Failed to update stage", variant: "destructive" });
-    }
   };
 
   const handleBulkDelete = async (ids: string[]) => {
     try {
       await crmFetch("bulk-delete", { contact_ids: ids });
       toast({ title: `Deleted ${ids.length} contacts` });
-      fetchContacts();
+      fetchInitial();
+      triggerRefresh();
     } catch {
       toast({ title: "Bulk delete failed", variant: "destructive" });
     }
@@ -154,24 +141,32 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     try {
       await crmFetch("bulk-move-stage", { contact_ids: ids, stage });
       toast({ title: `Moved ${ids.length} contacts` });
-      fetchContacts();
+      fetchInitial();
+      triggerRefresh();
     } catch {
       toast({ title: "Bulk move failed", variant: "destructive" });
     }
   };
 
-  const exportCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Company", "Source", "Stage", "ABBY Score", "Tags"];
-    const rows = contacts.map((c) => [
-      c.full_name, c.email || "", c.phone || "", c.company || "",
-      c.source, c.stage, String(c.abby_score), c.tags.join("; "),
-    ]);
-    const csv = [headers, ...rows].map((r) => r.map((v) => `"${v}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = "crm-contacts.csv"; a.click();
-    URL.revokeObjectURL(url);
+  const exportCSV = async () => {
+    try {
+      // Fetch all contacts for export (up to 500)
+      const data = await crmFetch("list", { page: 1, pageSize: 500 });
+      const contacts = data.contacts || [];
+      const headers = ["Name", "Email", "Phone", "Company", "Source", "Stage", "ABBY Score", "Tags"];
+      const rows = contacts.map((c: any) => [
+        c.full_name, c.email || "", c.phone || "", c.company || "",
+        c.source, c.stage, String(c.abby_score), (c.tags || []).join("; "),
+      ]);
+      const csv = [headers, ...rows].map((r) => r.map((v: string) => `"${v}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = "crm-contacts.csv"; a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast({ title: "Export failed", variant: "destructive" });
+    }
   };
 
   const handleCSVImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -200,7 +195,8 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       if (rows.length === 0) { toast({ title: "No valid rows", variant: "destructive" }); setImporting(false); return; }
       const data = await crmFetch("import-csv", { rows });
       toast({ title: `Imported ${data.imported} contacts` });
-      fetchContacts();
+      fetchInitial();
+      triggerRefresh();
     } catch (err: any) {
       toast({ title: "Import failed", description: err.message, variant: "destructive" });
     }
@@ -216,10 +212,9 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     );
   }
 
-  if (contacts.length === 0 && !showForm) {
+  if ((statsData?.total || 0) === 0 && !showForm) {
     return (
       <div className="space-y-6">
-        {/* Navy Banner - Empty State */}
         <div className="rounded-xl bg-[#1E3A5F] px-6 py-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Star className="h-6 w-6 text-[#D4AF37]" />
@@ -361,9 +356,9 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       {/* Tab Content */}
       {activeTab === "pipeline" && (
         <PipelineView
-          contacts={contacts}
+          key={refreshKey}
+          crmFetch={crmFetch}
           onContactClick={handleContactClick}
-          onStageChange={handleStageChange}
           onViewStage={(stage) => {
             setContactsStageFilter(stage);
             setActiveTab("contacts");
@@ -372,7 +367,8 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       )}
       {activeTab === "contacts" && (
         <ContactListView
-          contacts={contacts}
+          key={`contacts-${refreshKey}`}
+          crmFetch={crmFetch}
           onContactClick={handleContactClick}
           onBulkDelete={handleBulkDelete}
           onBulkMoveStage={handleBulkMoveStage}
@@ -390,11 +386,8 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         onClose={() => setDetailOpen(false)}
         crmFetch={crmFetch}
         onRefresh={() => {
-          fetchContacts();
-          if (selectedContact) {
-            const updated = contacts.find((c) => c.id === selectedContact.id);
-            if (updated) setSelectedContact(updated);
-          }
+          fetchInitial();
+          triggerRefresh();
         }}
       />
     </div>
