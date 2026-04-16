@@ -77,10 +77,11 @@ serve(async (req) => {
     const fullName = [first_name, last_name].filter(Boolean).join(" ") || email;
     const cleanEmail = email.toLowerCase().trim();
 
-    // ─── GHL Contact ───
-    console.log("[microsite-action] Tag resolved:", tag, "| GHL sub:", ghlSubAccountId);
+    // ─── GHL Contact (skip for quiz completions to avoid wrong automation email) ───
+    console.log("[microsite-action] Tag resolved:", tag, "| GHL sub:", ghlSubAccountId, "| isQuiz:", !!isQuizCapture);
     let ghlContactId: string | null = null;
-    if (ghlSubAccountId && GHL_API_KEY) {
+    const skipGhl = node_id === "BP-02" && quiz_stage;
+    if (ghlSubAccountId && GHL_API_KEY && !skipGhl) {
       try {
         const ghlRes = await fetch("https://services.leadconnectorhq.com/contacts/", {
           method: "POST",
@@ -104,6 +105,8 @@ serve(async (req) => {
       } catch (ghlErr) {
         console.error("GHL contact creation failed:", ghlErr);
       }
+    } else if (skipGhl) {
+      console.log("[microsite-action] ⏭ Skipping GHL contact for quiz completion to avoid automation email");
     }
 
     // ─── Author Subscribers (existing) ───
