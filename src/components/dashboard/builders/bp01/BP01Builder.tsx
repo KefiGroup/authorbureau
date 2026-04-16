@@ -399,15 +399,19 @@ function getNodeEmail(content: any, node: FunnelNode) {
   return null;
 }
 
-function replacePlaceholders(text: string | undefined, leadMagnetUrl: string | null): string {
+function replacePlaceholders(text: string | undefined, leadMagnetUrl: string | null, leadMagnetTitle: string | null = null): string {
   if (!text) return "";
-  const replacement = leadMagnetUrl
+  const urlReplacement = leadMagnetUrl
     ? leadMagnetUrl
     : "Your quiz link will be inserted automatically when BP-02 is built.";
+  const titleReplacement = leadMagnetTitle || "Your Free Resource";
   return text
-    .replace(/\[Lead Magnet URL\]/gi, replacement)
-    .replace(/\[Link to Lead Magnet\]/gi, replacement)
-    .replace(/\[Lead_Magnet_URL\]/gi, replacement);
+    .replace(/\[Lead Magnet URL\]/gi, urlReplacement)
+    .replace(/\[Link to Lead Magnet\]/gi, urlReplacement)
+    .replace(/\[Lead_Magnet_URL\]/gi, urlReplacement)
+    .replace(/\[LEAD MAGNET TITLE\]/gi, titleReplacement)
+    .replace(/\[Lead Magnet Title\]/gi, titleReplacement)
+    .replace(/\[LEAD_MAGNET_TITLE\]/gi, titleReplacement);
 }
 
 /* ---- ReviewStep: Visual Funnel ---- */
