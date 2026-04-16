@@ -9,7 +9,11 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
+import SequencesTab from "./marketing-hub/SequencesTab";
+import ContactsTab from "./marketing-hub/ContactsTab";
+import SettingsTab from "./marketing-hub/SettingsTab";
 
 /* ─── Campaign / Node mapping ─── */
 
