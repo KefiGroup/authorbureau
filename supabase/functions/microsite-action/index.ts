@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("author_profiles")
-      .select("ghl_sub_account_id, pen_name, user_id")
+      .select("ghl_sub_account_id, pen_name, user_id, methodology_name, sign_off_phrase, quiz_name")
       .eq("id", author_id)
       .single();
 
