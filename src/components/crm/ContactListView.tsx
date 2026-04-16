@@ -20,6 +20,9 @@ interface CRMContact {
   source: string;
   last_activity_at: string | null;
   tags: string[];
+  quiz_stage?: string | null;
+  quiz_score?: number | null;
+  quiz_completed_at?: string | null;
 }
 
 interface Props {
@@ -171,13 +174,14 @@ export default function ContactListView({ crmFetch, onContactClick, onBulkDelete
                 <TableHead className="text-[11px] uppercase font-bold text-gray-500 tracking-wide">
                   <Star className="h-3 w-3 inline mr-1 text-[#D4AF37]" />Score
                 </TableHead>
+                <TableHead className="text-[11px] uppercase font-bold text-gray-500 tracking-wide">Quiz Stage</TableHead>
                 <TableHead className="text-[11px] uppercase font-bold text-gray-500 tracking-wide">Tags</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {contacts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-400">No contacts found</TableCell>
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-400">No contacts found</TableCell>
                 </TableRow>
               ) : (
                 contacts.map((c, idx) => (
@@ -205,6 +209,21 @@ export default function ContactListView({ crmFetch, onContactClick, onBulkDelete
                         <Star className="h-3 w-3 text-[#D4AF37] fill-[#D4AF37]" />
                         <span className="text-xs font-semibold text-[#1E3A5F]">{c.abby_score}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {c.quiz_stage ? (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold text-white" style={{
+                          backgroundColor: c.quiz_stage.toLowerCase().includes("suck") || c.quiz_stage.includes("1") || c.quiz_stage.includes("2") ? "#EF4444"
+                            : c.quiz_stage.toLowerCase().includes("seek") || c.quiz_stage.includes("3") || c.quiz_stage.includes("4") ? "#F59E0B"
+                            : c.quiz_stage.toLowerCase().includes("succeed") || c.quiz_stage.includes("5") || c.quiz_stage.includes("6") ? "#10B981"
+                            : c.quiz_stage.toLowerCase().includes("sustain") || c.quiz_stage.includes("7") || c.quiz_stage.includes("8") ? "#8B5CF6"
+                            : "#6B7280"
+                        }}>
+                          📊 {c.quiz_stage.replace(/-/g, " ").replace(/\b\w/g, (ch: string) => ch.toUpperCase())}
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-gray-300">—</span>
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1">

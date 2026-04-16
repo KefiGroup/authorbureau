@@ -1514,6 +1514,9 @@ export type Database = {
           last_activity_at: string | null
           notes: string | null
           phone: string | null
+          quiz_completed_at: string | null
+          quiz_score: number | null
+          quiz_stage: string | null
           source: string | null
           stage: string
           updated_at: string
@@ -1529,6 +1532,9 @@ export type Database = {
           last_activity_at?: string | null
           notes?: string | null
           phone?: string | null
+          quiz_completed_at?: string | null
+          quiz_score?: number | null
+          quiz_stage?: string | null
           source?: string | null
           stage?: string
           updated_at?: string
@@ -1544,6 +1550,9 @@ export type Database = {
           last_activity_at?: string | null
           notes?: string | null
           phone?: string | null
+          quiz_completed_at?: string | null
+          quiz_score?: number | null
+          quiz_stage?: string | null
           source?: string | null
           stage?: string
           updated_at?: string
@@ -2380,6 +2389,9 @@ export type Database = {
           metadata: Json | null
           name: string | null
           nurture_stage: string
+          quiz_completed_at: string | null
+          quiz_score: number | null
+          quiz_stage: string | null
           source: string
           status: string
           updated_at: string
@@ -2395,6 +2407,9 @@ export type Database = {
           metadata?: Json | null
           name?: string | null
           nurture_stage?: string
+          quiz_completed_at?: string | null
+          quiz_score?: number | null
+          quiz_stage?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -2410,6 +2425,9 @@ export type Database = {
           metadata?: Json | null
           name?: string | null
           nurture_stage?: string
+          quiz_completed_at?: string | null
+          quiz_score?: number | null
+          quiz_stage?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -2927,6 +2945,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      quiz_responses: {
+        Row: {
+          answer_selected: string | null
+          answer_text: string | null
+          created_at: string | null
+          id: string
+          lead_id: string | null
+          question_number: number
+        }
+        Insert: {
+          answer_selected?: string | null
+          answer_text?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          question_number: number
+        }
+        Update: {
+          answer_selected?: string | null
+          answer_text?: string | null
+          created_at?: string | null
+          id?: string
+          lead_id?: string | null
+          question_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_responses_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rate_limits: {
         Row: {

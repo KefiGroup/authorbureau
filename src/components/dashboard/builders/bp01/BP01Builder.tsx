@@ -397,8 +397,11 @@ function replacePlaceholders(text: string | undefined, leadMagnetUrl: string | n
   if (!text) return "";
   const replacement = leadMagnetUrl
     ? leadMagnetUrl
-    : "Your lead magnet link will be inserted automatically when BP-02 is built.";
-  return text.replace(/\[Lead Magnet URL\]/gi, replacement);
+    : "Your quiz link will be inserted automatically when BP-02 is built.";
+  return text
+    .replace(/\[Lead Magnet URL\]/gi, replacement)
+    .replace(/\[Link to Lead Magnet\]/gi, replacement)
+    .replace(/\[Lead_Magnet_URL\]/gi, replacement);
 }
 
 /* ---- ReviewStep: Visual Funnel ---- */

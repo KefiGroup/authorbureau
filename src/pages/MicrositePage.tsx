@@ -146,6 +146,9 @@ export default function MicrositePage() {
   const bgColor = theme.colors.heroBackground;
   const content = data.node.content_json || {};
 
+  // Quiz data ref for passing to handleSubmit
+  const [quizData, setQuizData] = useState<{ quiz_stage?: string; quiz_score?: number; quiz_answers?: any[] } | null>(null);
+
   const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
     if (!email || submitting) return false;
@@ -161,6 +164,7 @@ export default function MicrositePage() {
           first_name: firstName,
           last_name: lastName,
           message: message || undefined,
+          ...(quizData || {}),
         },
       });
 
@@ -193,7 +197,7 @@ export default function MicrositePage() {
       </nav>
 
       {/* Node-specific content */}
-      {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} setQuizData={setQuizData} />}
       {resolvedNodeId === "BP-04" && <AuthorWebsitePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BP-05" && <WebinarPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
@@ -232,11 +236,12 @@ interface FormPageProps extends PageProps {
 }
 
 /* ═══ BP-02 — LEAD MAGNET ═══ */
-function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted }: FormPageProps) {
+function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted, setQuizData }: FormPageProps & { setQuizData: (d: any) => void }) {
   // New flow: landing → quiz → gate (collect email to see results) → results
   const [stage, setStage] = useState<"landing" | "quiz" | "gate" | "results">("landing");
   const [currentQ, setCurrentQ] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [answerDetails, setAnswerDetails] = useState<{ question_number: number; answer_selected: string; answer_text: string }[]>([]);
 
   // Extract from nested content_payload structure
   const lmContent = content.leadMagnetContent || content;
@@ -258,28 +263,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const accentColor = optin.color_palette?.primary || v.accent;
   const isQuiz = (config.type || "").toLowerCase().includes("quiz") || questions.length > 0;
 
-  // After collecting email on gate, submit then show results
-  const handleGateSubmit = async (e: React.FormEvent) => {
-    const success = await onSubmit(e);
-    if (success) {
-      setStage("results");
-    }
-  };
-
-  const handleAnswer = (optionIndex: number) => {
-    // Use actual points from option if available, otherwise fall back to index
-    const option = questions[currentQ]?.options?.[optionIndex];
-    const points = typeof option === "object" && option?.points != null ? option.points : optionIndex;
-    const newAnswers = [...answers, points];
-    setAnswers(newAnswers);
-    if (currentQ + 1 < questions.length) {
-      setCurrentQ(currentQ + 1);
-    } else {
-      setStage("gate");
-    }
-  };
-
-  // Calculate score and tier
+  // Calculate score and tier (needed for gate teaser too)
   const totalScore = answers.reduce((sum, a) => sum + a, 0);
   const maxPossiblePerQ = questions.length > 0 && typeof questions[0]?.options?.[0] === "object"
     ? Math.max(...questions.flatMap((q: any) => (q.options || []).map((o: any) => o.points || 0)))
@@ -290,11 +274,9 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const getResultTier = () => {
     if (scoringTiers.length === 0) return { label: "Your Result", name: "Your Result", description: "Thank you for completing the quiz!", tips: [], tips_from_book: [] };
     for (const tier of scoringTiers) {
-      // Support min/max format
       if (tier.min != null && tier.max != null) {
         if (totalScore >= tier.min && totalScore <= tier.max) return tier;
       }
-      // Support range string format
       if (tier.range) {
         const match = tier.range.match(/(\d+)\s*[-–]\s*(\d+)/);
         if (match) {
@@ -311,6 +293,44 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const resultTier = getResultTier();
   const tierName = resultTier.label || resultTier.name || "Complete";
   const tierTips: string[] = resultTier.tips_from_book || resultTier.tips || [];
+  const authorName = data?.author?.pen_name || "";
+
+  // After collecting email on gate, submit then show results
+  const handleGateSubmit = async (e: React.FormEvent) => {
+    // Set quiz data for the parent handleSubmit to include
+    const quizStageSlug = (tierName || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    setQuizData({
+      quiz_stage: quizStageSlug,
+      quiz_score: scorePercent,
+      quiz_answers: answerDetails,
+    });
+    // Small delay to let state propagate
+    await new Promise(r => setTimeout(r, 50));
+    const success = await onSubmit(e);
+    if (success) {
+      setStage("results");
+    }
+  };
+
+  const handleAnswer = (optionIndex: number) => {
+    const option = questions[currentQ]?.options?.[optionIndex];
+    const points = typeof option === "object" && option?.points != null ? option.points : optionIndex;
+    const optLabel = typeof option === "string" ? option : option?.label || option?.text || `Option ${optionIndex + 1}`;
+    const newAnswers = [...answers, points];
+    setAnswers(newAnswers);
+    setAnswerDetails([...answerDetails, {
+      question_number: currentQ + 1,
+      answer_selected: String.fromCharCode(65 + optionIndex),
+      answer_text: optLabel,
+    }]);
+    if (currentQ + 1 < questions.length) {
+      setCurrentQ(currentQ + 1);
+    } else {
+      setStage("gate");
+    }
+  };
+
+  // (score/tier calculations moved to top of component)
 
   // ── STAGE: RESULTS (after email collected) ──
   if (stage === "results" && questions.length === 0) {
@@ -394,31 +414,42 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
     );
   }
 
-  // ── STAGE: GATE (after quiz, before results) ──
+  // ── STAGE: GATE (after quiz, before results — teaser + email capture) ──
   if (stage === "gate") {
+    const teaserDescription = resultTier.description
+      ? resultTier.description.split(".").slice(0, 1).join(".") + "."
+      : "You've completed the assessment — unlock your full personalised action plan.";
     return (
       <div className="min-h-[80vh] py-12 px-4 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
         <div className="max-w-md mx-auto">
           <Card className="p-8 shadow-xl border-2" style={{ background: v.cardBg, borderColor: `${accentColor}40` }}>
             <div className="text-center mb-6">
               <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl" style={{ background: `${accentColor}15` }}>
-                🎉
+                🎯
               </div>
               <h2 className="text-2xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
-                Quiz Complete!
+                You're at: {tierName}
               </h2>
-              <p className="text-base" style={{ color: v.mutedText }}>
-                Enter your name and email to unlock your personalised results and recommendations.
+              <p className="text-sm mb-4 italic" style={{ color: v.mutedText }}>
+                {teaserDescription}
+              </p>
+              <div className="w-full h-2 rounded-full mb-4 overflow-hidden" style={{ background: `${accentColor}15` }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${scorePercent}%`, background: accentColor }} />
+              </div>
+              <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>
+                Get your personalised action plan from {authorName || "the author"} — discover exactly what to do next based on your result.
               </p>
             </div>
             <form onSubmit={handleGateSubmit} className="space-y-3">
               <Input placeholder="Your first name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 text-base" />
               <Input type="email" placeholder="Your best email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base" />
               <Button type="submit" className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all" style={{ background: accentColor, color: "#fff" }} disabled={submitting}>
-                {submitting ? "Unlocking..." : "Show Me My Results!"}
+                {submitting ? "Unlocking..." : "Get My Personalised Plan →"}
               </Button>
             </form>
-            <p className="text-[11px] mt-4 text-center" style={{ color: v.mutedText }}>{privacyNote}</p>
+            <p className="text-[11px] mt-4 text-center flex items-center justify-center gap-1" style={{ color: v.mutedText }}>
+              🔒 No spam. Unsubscribe anytime.
+            </p>
           </Card>
         </div>
       </div>

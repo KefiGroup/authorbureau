@@ -7,6 +7,8 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,7 +18,7 @@ serve(async (req) => {
     console.log("[microsite-action] ▶ Function invoked");
     const body = await req.json();
     console.log("[microsite-action] Body received:", JSON.stringify({ author_id: body.author_id, node_id: body.node_id, action_type: body.action_type, email: body.email }));
-    const { author_id, node_id, action_type, email, first_name, last_name, ...extra } = body;
+    const { author_id, node_id, action_type, email, first_name, last_name, quiz_stage, quiz_score, quiz_answers, ...extra } = body;
 
     if (!author_id || !node_id || !action_type || !email) {
       return new Response(
@@ -126,6 +128,8 @@ serve(async (req) => {
     // ─── LEVEL 1: Author-level CRM ───
     console.log("[microsite-action] ▶ LEVEL 1 CRM for author_id:", authorUserId);
     let authorContactId: string | null = null;
+    const isQuizCapture = node_id === "BP-02" && quiz_stage;
+
     try {
       // Dedup by email
       const { data: existing } = await supabaseAdmin
@@ -135,11 +139,18 @@ serve(async (req) => {
         .eq("email", cleanEmail)
         .maybeSingle();
 
+      const quizFields = isQuizCapture ? {
+        quiz_stage: quiz_stage,
+        quiz_score: typeof quiz_score === "number" ? quiz_score : null,
+        quiz_completed_at: new Date().toISOString(),
+      } : {};
+
       if (existing) {
         authorContactId = existing.id;
-        if (fullName !== email) {
-          await supabaseAdmin.from("crm_contacts").update({ full_name: fullName }).eq("id", authorContactId);
-        }
+        await supabaseAdmin.from("crm_contacts").update({
+          ...(fullName !== email ? { full_name: fullName } : {}),
+          ...quizFields,
+        }).eq("id", authorContactId);
       } else {
         const { data: newContact } = await supabaseAdmin
           .from("crm_contacts")
@@ -150,32 +161,169 @@ serve(async (req) => {
             source: `microsite-${node_id}`,
             notes: extra.message || extra.budget ? JSON.stringify(extra) : null,
             company: extra.company || null,
+            abby_score: isQuizCapture ? 2 : 0,
+            ...quizFields,
           })
           .select("id")
           .single();
         authorContactId = newContact?.id || null;
       }
 
-      // Add tag (idempotent)
+      // Add tags (idempotent)
       if (authorContactId) {
-        await supabaseAdmin.from("crm_contact_tags").insert({
-          author_id: authorUserId,
-          contact_id: authorContactId,
-          tag,
-        }).then(({ error }) => {
-          if (error && !error.message.includes("duplicate")) console.error("Author tag error:", error);
-        });
+        const tagsToAdd = [tag];
+        if (isQuizCapture) {
+          tagsToAdd.push("quiz-completed");
+          if (quiz_stage) tagsToAdd.push(quiz_stage);
+        }
+
+        for (const t of tagsToAdd) {
+          await supabaseAdmin.from("crm_contact_tags").insert({
+            author_id: authorUserId,
+            contact_id: authorContactId,
+            tag: t,
+          }).then(({ error }) => {
+            if (error && !error.message.includes("duplicate")) console.error("Author tag error:", error);
+          });
+        }
 
         // Activity log
+        const activityContent = isQuizCapture
+          ? `Completed SUCKCESS Quiz — ${quiz_stage} (Score: ${quiz_score}%)`
+          : `Lead captured from Author Page ${node_id} (${action_type}): ${cleanEmail}`;
+
         await supabaseAdmin.from("crm_activity_log").insert({
           author_id: authorUserId,
           contact_id: authorContactId,
-          type: "note",
-          content: `Lead captured from microsite ${node_id} (${action_type}): ${cleanEmail}`,
+          type: isQuizCapture ? "quiz_completed" : "note",
+          content: activityContent,
         });
       }
     } catch (crmErr) {
       console.error("Author CRM capture failed:", crmErr);
+    }
+
+    // ─── Quiz Responses + Leads (BP-02 quiz only) ───
+    if (isQuizCapture) {
+      console.log("[microsite-action] ▶ Saving quiz responses and leads data");
+      try {
+        // Insert into leads table
+        const { data: lead } = await supabaseAdmin.from("leads").insert({
+          author_id: authorUserId,
+          email: cleanEmail,
+          name: fullName !== email ? fullName : null,
+          source: "BP-02 Quiz Funnel",
+          quiz_stage: quiz_stage,
+          quiz_score: typeof quiz_score === "number" ? quiz_score : null,
+          quiz_completed_at: new Date().toISOString(),
+        }).select("id").single();
+
+        // Insert quiz_responses
+        if (lead?.id && Array.isArray(quiz_answers) && quiz_answers.length > 0) {
+          const responseRows = quiz_answers.map((a: any) => ({
+            lead_id: lead.id,
+            question_number: a.question_number || 0,
+            answer_selected: a.answer_selected || "",
+            answer_text: a.answer_text || "",
+          }));
+          await supabaseAdmin.from("quiz_responses").insert(responseRows);
+        }
+
+        // Log nurture event
+        if (authorContactId) {
+          await supabaseAdmin.from("crm_activity_log").insert({
+            author_id: authorUserId,
+            contact_id: authorContactId,
+            type: "opt_in",
+            content: `Quiz nurture event: quiz_completed | Stage: ${quiz_stage} | Score: ${quiz_score}%`,
+          });
+        }
+      } catch (quizErr) {
+        console.error("Quiz data capture failed (non-fatal):", quizErr);
+      }
+
+      // ─── ABBY Personalised Welcome Email (non-blocking) ───
+      try {
+        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+        const resendKey = Deno.env.get("RESEND_API_KEY");
+
+        if (LOVABLE_API_KEY && resendKey) {
+          console.log("[microsite-action] ▶ Generating ABBY welcome email for quiz stage:", quiz_stage);
+
+          // Get book title for context
+          const { data: bookData } = await supabaseAdmin
+            .from("books")
+            .select("title")
+            .eq("author_id", profile.user_id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          const bookTitle = bookData?.title || "the book";
+          const penName = profile.pen_name || "the author";
+          const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+          const aiRes = await fetch(AI_GATEWAY, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${LOVABLE_API_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "openai/gpt-5",
+              messages: [
+                {
+                  role: "system",
+                  content: `You are ABBY, the AI business coach for author ${penName}. The reader has just completed the SUCKCESS Stage Quiz and is at "${stageName}". Write a warm, personal welcome email from ${penName} to this reader. Reference their specific stage. Quote one relevant insight from the book "${bookTitle}". End with a clear next step: read a specific chapter or get the book. Tone: warm, encouraging, personal — like a message from a friend who has been through it. Max 200 words. Return ONLY the email body text, no subject line or headers.`,
+                },
+                {
+                  role: "user",
+                  content: `Reader name: ${first_name || "there"}. Quiz stage: ${stageName}. Score: ${quiz_score}%. Write the welcome email.`,
+                },
+              ],
+              max_completion_tokens: 400,
+            }),
+          });
+
+          if (aiRes.ok) {
+            const aiData = await aiRes.json();
+            const emailBody = aiData.choices?.[0]?.message?.content || "";
+
+            if (emailBody) {
+              const emailHtml = `
+                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+                  <p style="color: #333; font-size: 16px; line-height: 1.7;">
+                    ${emailBody.replace(/\n/g, "<br/>")}
+                  </p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
+                  <p style="color: #999; font-size: 12px;">
+                    This email was sent from ${penName}'s Author Page, powered by Authors Bureau.
+                  </p>
+                </div>
+              `;
+
+              await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${resendKey}`,
+                },
+                body: JSON.stringify({
+                  from: `${penName} <notify@notify.authorsbureau.com>`,
+                  to: [cleanEmail],
+                  subject: `Your SUCKCESS Stage is ${stageName} — here's what it means for you`,
+                  html: emailHtml,
+                }),
+              });
+              console.log("[microsite-action] ✅ ABBY welcome email sent to:", cleanEmail);
+            }
+          } else {
+            console.error("[microsite-action] AI email generation failed:", aiRes.status);
+          }
+        }
+      } catch (emailGenErr) {
+        console.error("[microsite-action] ABBY welcome email error (non-fatal):", emailGenErr);
+      }
     }
 
     // ─── LEVEL 2: Platform-level CRM (first admin) ───
@@ -242,7 +390,7 @@ serve(async (req) => {
             author_id: platformAdminId,
             contact_id: platformContactId,
             type: "note",
-            content: `Platform lead from ${profile.pen_name || "author"}'s microsite ${node_id} (${action_type})`,
+            content: `Platform lead from ${profile.pen_name || "author"}'s Author Page ${node_id} (${action_type})`,
           });
         }
       }
@@ -263,6 +411,10 @@ serve(async (req) => {
             : action_type === "enquiry" ? "New enquiry"
             : "New application";
 
+          const quizInfo = isQuizCapture
+            ? `<p style="color: #333; margin: 8px 0 0;"><strong>Quiz Stage:</strong> ${quiz_stage}</p><p style="color: #333; margin: 8px 0 0;"><strong>Quiz Score:</strong> ${quiz_score}%</p>`
+            : "";
+
           await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
@@ -275,11 +427,12 @@ serve(async (req) => {
               subject: `${actionLabel} from ${fullName}`,
               html: `
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #1a1a1a;">${actionLabel} via your microsite</h2>
+                  <h2 style="color: #1a1a1a;">${actionLabel} via your Author Page</h2>
                   <p style="color: #555;"><strong>${fullName}</strong> (${cleanEmail}) submitted via <strong>${node_id}</strong>.</p>
                   <div style="background: #f5f5f5; border-radius: 8px; padding: 16px; margin: 16px 0;">
                     <p style="color: #333; margin: 0;"><strong>Action:</strong> ${action_type}</p>
                     <p style="color: #333; margin: 8px 0 0;"><strong>Tag:</strong> ${tag}</p>
+                    ${quizInfo}
                     ${extra.message ? `<p style="color: #333; margin: 8px 0 0;"><strong>Message:</strong> ${String(extra.message).slice(0, 300)}</p>` : ""}
                   </div>
                   <a href="https://authorbureau.lovable.app/dashboard?section=crm"
@@ -302,7 +455,7 @@ serve(async (req) => {
       await supabaseAdmin.from("notifications").insert({
         user_id: authorUserId,
         title: `New ${action_type} from ${node_id}`,
-        message: `${fullName} (${cleanEmail}) via your microsite`,
+        message: `${fullName} (${cleanEmail}) via your Author Page`,
         link: "/dashboard?section=crm",
       });
     } catch (notifErr) {
