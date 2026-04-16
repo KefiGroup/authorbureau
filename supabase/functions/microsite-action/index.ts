@@ -242,87 +242,89 @@ serve(async (req) => {
         console.error("Quiz data capture failed (non-fatal):", quizErr);
       }
 
-      // ─── ABBY Personalised Welcome Email (non-blocking) ───
+      // ─── Reader Quiz Result Email (non-blocking) ───
       try {
-        const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
         const resendKey = Deno.env.get("RESEND_API_KEY");
 
-        if (LOVABLE_API_KEY && resendKey) {
-          console.log("[microsite-action] ▶ Generating ABBY welcome email for quiz stage:", quiz_stage);
+        if (resendKey) {
+          console.log("[microsite-action] ▶ Sending quiz result email for stage:", quiz_stage);
 
-          // Get book title for context
+          const penName = profile.pen_name || "the author";
+          const readerName = first_name || "there";
+          const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+          const scoreVal = typeof quiz_score === "number" ? quiz_score : 0;
+
+          // Get book Amazon URL for CTA
           const { data: bookData } = await supabaseAdmin
             .from("books")
-            .select("title")
+            .select("title, amazon_url")
             .eq("author_id", profile.user_id)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
 
-          const bookTitle = bookData?.title || "the book";
-          const penName = profile.pen_name || "the author";
-          const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+          const bookTitle = bookData?.title || "Be SUCKcessful";
+          const bookUrl = bookData?.amazon_url || "https://www.amazon.com/dp/B0DQKZWK33";
 
-          const aiRes = await fetch(AI_GATEWAY, {
+          // Stage-specific descriptions
+          const stageDescriptions: Record<string, string> = {
+            "Stuck": "You're in the early stages of your journey — feeling overwhelmed or unsure where to start. That's completely normal, and recognising it is the first powerful step forward.",
+            "Unstuck": "You've started moving, but might still feel like you're figuring things out. The key now is building momentum and finding the right strategies to keep progressing.",
+            "Climbing": "You're making real progress and building confidence. This is where the right frameworks and support can accelerate your growth dramatically.",
+            "Kicking Goals": "You're achieving meaningful results and gaining clarity on your path. Now it's about optimising and scaling what's already working.",
+            "Cruising": "You've hit your stride and things are flowing. The focus now shifts to sustaining your success and exploring new opportunities.",
+            "Soaring": "You're at the top of your game — inspiring others and achieving at the highest level. Your story and experience are incredibly valuable.",
+          };
+
+          const stageMessage = stageDescriptions[stageName] ||
+            `You're at the ${stageName} stage of your SUCKCESS journey. This is a meaningful milestone, and understanding where you are is the first step to moving forward with clarity.`;
+
+          const emailHtml = `
+            <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff;">
+              <p style="color: #333; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+                Hi ${readerName},
+              </p>
+              <p style="color: #333; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+                You just discovered you're at <strong>${stageName}</strong> — scoring <strong>${scoreVal}%</strong> on the SUCKCESS journey.
+              </p>
+              <p style="color: #333; font-size: 16px; line-height: 1.7; margin: 0 0 20px;">
+                ${stageMessage}
+              </p>
+              <div style="text-align: center; margin: 32px 0;">
+                <a href="${bookUrl}" style="display: inline-block; background: #c8a45a; color: #fff; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 16px;">
+                  Get Your Copy of ${bookTitle} →
+                </a>
+              </div>
+              <p style="color: #333; font-size: 16px; line-height: 1.7; margin: 0 0 8px;">
+                To your SUCKCESS,
+              </p>
+              <p style="color: #333; font-size: 16px; line-height: 1.7; margin: 0; font-weight: bold;">
+                ${penName}
+              </p>
+              <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0 16px;" />
+              <p style="color: #999; font-size: 12px;">
+                This email was sent from ${penName}'s Author Page, powered by Authors Bureau.
+              </p>
+            </div>
+          `;
+
+          await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
               "Content-Type": "application/json",
+              Authorization: `Bearer ${resendKey}`,
             },
             body: JSON.stringify({
-              model: "openai/gpt-5",
-              messages: [
-                {
-                  role: "system",
-                  content: `You are ABBY, the AI business coach for author ${penName}. The reader has just completed the SUCKCESS Stage Quiz and is at "${stageName}". Write a warm, personal welcome email from ${penName} to this reader. Reference their specific stage. Quote one relevant insight from the book "${bookTitle}". End with a clear next step: read a specific chapter or get the book. Tone: warm, encouraging, personal — like a message from a friend who has been through it. Max 200 words. Return ONLY the email body text, no subject line or headers.`,
-                },
-                {
-                  role: "user",
-                  content: `Reader name: ${first_name || "there"}. Quiz stage: ${stageName}. Score: ${quiz_score}%. Write the welcome email.`,
-                },
-              ],
-              max_completion_tokens: 400,
+              from: `${penName} via Authors Bureau <notify@notify.authorsbureau.com>`,
+              to: [cleanEmail],
+              subject: `Your SUCKCESS Stage: ${stageName} — Here's What It Means For You, ${readerName}`,
+              html: emailHtml,
             }),
           });
-
-          if (aiRes.ok) {
-            const aiData = await aiRes.json();
-            const emailBody = aiData.choices?.[0]?.message?.content || "";
-
-            if (emailBody) {
-              const emailHtml = `
-                <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-                  <p style="color: #333; font-size: 16px; line-height: 1.7;">
-                    ${emailBody.replace(/\n/g, "<br/>")}
-                  </p>
-                  <hr style="border: none; border-top: 1px solid #eee; margin: 24px 0;" />
-                  <p style="color: #999; font-size: 12px;">
-                    This email was sent from ${penName}'s Author Page, powered by Authors Bureau.
-                  </p>
-                </div>
-              `;
-
-              await fetch("https://api.resend.com/emails", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${resendKey}`,
-                },
-                body: JSON.stringify({
-                  from: `${penName} <notify@notify.authorsbureau.com>`,
-                  to: [cleanEmail],
-                  subject: `Your SUCKCESS Stage is ${stageName} — here's what it means for you`,
-                  html: emailHtml,
-                }),
-              });
-              console.log("[microsite-action] ✅ ABBY welcome email sent to:", cleanEmail);
-            }
-          } else {
-            console.error("[microsite-action] AI email generation failed:", aiRes.status);
-          }
+          console.log("[microsite-action] ✅ Quiz result email sent to:", cleanEmail);
         }
-      } catch (emailGenErr) {
-        console.error("[microsite-action] ABBY welcome email error (non-fatal):", emailGenErr);
+      } catch (emailErr) {
+        console.error("[microsite-action] Quiz result email error (non-fatal):", emailErr);
       }
     }
 
