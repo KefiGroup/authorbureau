@@ -35,7 +35,7 @@ const QuizResultEmail = ({
   bookUrl = "https://www.amazon.com/dp/B0DQKZWK33",
 }: Props) => {
   const message = stageMessage || stageDescriptions[stageName] ||
-    `You're at the ${stageName} stage of your SUCKCESS journey. This is a meaningful milestone, and understanding where you are is the first step to moving forward with clarity.`
+    `You're at ${stageName} stage of your SUCKCESS journey. This is a meaningful milestone, and understanding where you are is the first step to moving forward with clarity.`
 
   return (
     <Html lang="en" dir="ltr">

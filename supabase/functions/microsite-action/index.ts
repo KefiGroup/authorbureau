@@ -251,7 +251,7 @@ serve(async (req) => {
 
         const penName = profile.pen_name || "the author";
         const readerName = first_name || "there";
-        const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()).replace(/Suckcess/gi, "SUCKCESS");
         const scoreVal = typeof quiz_score === "number" ? quiz_score : 0;
 
         // Get book Amazon URL for CTA
