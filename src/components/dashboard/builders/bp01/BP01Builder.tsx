@@ -45,6 +45,7 @@ export default function BP01Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [leadMagnetUrl, setLeadMagnetUrl] = useState<string | null>(null);
+  const [leadMagnetTitle, setLeadMagnetTitle] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -92,12 +93,17 @@ export default function BP01Builder({ authorId }: Props) {
       // Fetch BP-02 lead magnet URL
       const { data: bp02Node } = await supabase
         .from("author_nodes")
-        .select("microsite_url")
+        .select("microsite_url, content_json")
         .eq("author_id", authorId)
         .eq("node_id", "BP-02")
         .maybeSingle();
       if (bp02Node?.microsite_url) {
         setLeadMagnetUrl(bp02Node.microsite_url);
+      }
+      if (bp02Node?.content_json) {
+        const bp02Content = bp02Node.content_json as any;
+        const title = bp02Content?.lead_magnets?.[0]?.title || bp02Content?.funnel_name || null;
+        if (title) setLeadMagnetTitle(title);
       }
 
       // Check if content already generated
