@@ -220,7 +220,7 @@ export default function BP01Builder({ authorId }: Props) {
                 <>
                   <p className="text-muted-foreground mb-4">
                     Hi {authorName}! Email marketing is the single most powerful revenue tool for authors.
-                    I'm going to create a complete email marketing system for '{detectedBookTitle || "your book"}' — including
+                    I'm going to create a complete email marketing system for '{bookTitle || detectedBookTitle || "your book"}' — including
                     your welcome sequence, your list-building strategy, and your first campaign. This will run
                     automatically in the background. Ready to see what I've prepared for you?
                   </p>

@@ -30,7 +30,7 @@ serve(async (req) => {
     if (authorErr || !author) throw new Error("Author profile not found");
 
     // Fetch author context (book info)
-    const { data: context, error: ctxErr } = await supabase
+    const { data: context } = await supabase
       .from("author_context")
       .select("book_title, book_subtitle, core_thesis, key_frameworks, target_audience_persona, unique_insights, commercial_angles")
       .eq("author_id", author_id)
@@ -38,7 +38,18 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const bookTitle = context?.book_title || "your book";
+    // Fallback to books table if no author_context
+    let bookTitle = context?.book_title || "";
+    if (!bookTitle) {
+      const { data: book } = await supabase
+        .from("books")
+        .select("title, description")
+        .eq("author_id", author.user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      bookTitle = book?.title || "your book";
+    }
     const bookSubtitle = context?.book_subtitle || "";
     const coreThesis = context?.core_thesis || "";
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
@@ -101,12 +112,11 @@ Make everything specific to this author's book and audience. Never use generic p
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "google/gemini-2.5-flash",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
         max_completion_tokens: 4000,
       }),
     });
