@@ -150,7 +150,7 @@ export default function MicrositePage() {
   const content = data.node.content_json || {};
 
 
-  const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
+  const handleSubmit = async (e: React.FormEvent, extraData?: Record<string, any>): Promise<boolean> => {
     e.preventDefault();
     if (!email || submitting) return false;
     setSubmitting(true);
@@ -166,6 +166,7 @@ export default function MicrositePage() {
           last_name: lastName,
           message: message || undefined,
           ...(quizData || {}),
+          ...(extraData || {}),
         },
       });
 
