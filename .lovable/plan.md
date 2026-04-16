@@ -1,37 +1,57 @@
 
 
-# Fix: Connect BP-01 Email Marketing to Actual BP-02 Lead Magnet
+# Sprint 30e — Redesign BP-01 Email Marketing as Visual Funnel Builder
 
-## Problem
-The BP-01 Email Marketing generator creates a **fictional lead magnet** from scratch (e.g., "Personal Growth Kickstart Guide") instead of referencing the **real BP-02 lead magnet** the author already built (e.g., "SUCKCESS Starter Quiz"). These marketing nodes are completely disconnected.
+## What Changes
 
-The same issue likely applies to BP-03 (Social Media) and BP-04 (Author Website) — none of them pull from the actual lead magnet data.
+Replace the `ReviewStep` component inside `BP01Builder.tsx` with three new sections: a horizontal funnel flow map, a slide-in email preview panel, and a campaign activation bar.
 
-## Root Cause
-The `generate-bp01-email-marketing` edge function queries `author_context` and `books` for book info, but **never queries `generated_assets`** for the existing lead magnet (`asset_type = 'builder_draft_lead-magnet'`).
+## Section 1 — Funnel Flow Map
 
-## Fix
+A horizontal scrollable row of pill/node elements representing the reader journey:
 
-### 1. Edge Function: `generate-bp01-email-marketing/index.ts`
-- After fetching author context, also query `generated_assets` for `asset_type = 'builder_draft_lead-magnet'` belonging to this author
-- Extract the real lead magnet title, type (quiz), audience, headline, and quiz topic from the stored JSON
-- Inject this into the AI prompt so the `lead_magnet_offer` section references the real lead magnet (title, description, CTA) rather than inventing one
-- If no BP-02 lead magnet exists yet, fall back to the current generic generation
+```text
+[Opt-in] → [Welcome] → [Day 2] → [Day 4] → [Day 7] → [Day 14 Offer] → [Broadcast]
+```
 
-### 2. Prompt Update
-Change the `lead_magnet_offer` instruction from "Name of the free resource to offer" to "Use the author's existing lead magnet: [title]. Generate a CTA that drives readers to this specific resource." Include the lead magnet's public URL if published.
+Each node shows: step number, send timing, and a status dot (green if content exists, grey otherwise). Below each node, a muted label shows the CRM stage trigger (e.g., "New Lead", "Engaged", "Warm", "Hot", "Customer").
 
-### 3. Audit Other Marketing Nodes (scope check only)
-- Check if `generate-bp03-social-media` and the BP-04 website builder also ignore the real lead magnet data
-- If so, flag for a follow-up sprint (not fixed in this change)
+Nodes are mapped from `content.welcome_sequence` (by `send_delay_days`) plus the broadcast and lead magnet offer. Clicking a node sets `selectedNode` state.
+
+## Section 2 — Email Preview Panel (Sheet)
+
+When a node is clicked, a right-side `Sheet` opens showing:
+- Subject line (large, bold)
+- Preview text (italic, muted)
+- Email body rendered inside a styled card (whitespace-pre-line, not raw text)
+- "Preview as Reader" button opening a `Dialog` with a mock inbox view (From, Subject, body in an email-client-style card)
+- CRM trigger label: "When clicked → moves reader to [Stage]"
+- Status badge (Draft / Active)
+
+**Placeholder fix**: Before rendering any email body, replace all `[Lead Magnet URL]` occurrences. The component will receive the real lead magnet URL (fetched from `generated_assets` / `author_nodes` BP-02 microsite_url in the parent). If none exists, substitute with italic text: "Your lead magnet link will be inserted automatically when BP-02 is built."
+
+## Section 3 — Campaign Activation Bar
+
+Replace the current two-button row with:
+- Gold full-width button: "Activate My Email Campaign →"
+- Campaign name and list name displayed above
+- Note: "Sent via Authors Bureau — no external email platform needed."
+
+## Data Fetching Addition
+
+In the parent `BP01Builder` `useEffect`, add a query for the BP-02 lead magnet URL:
+1. Query `author_nodes` where `node_id = 'BP-02'` for `microsite_url`
+2. Pass `leadMagnetUrl` to `ReviewStep`
 
 ## Files Changed
+
 | File | Change |
 |------|--------|
-| `supabase/functions/generate-bp01-email-marketing/index.ts` | Fetch real lead magnet from `generated_assets`, inject into prompt |
+| `src/components/dashboard/builders/bp01/BP01Builder.tsx` | Full rewrite of `ReviewStep`, add `FunnelFlowMap`, `EmailPreviewSheet`, `ReaderPreviewDialog`, `ActivationBar` sub-components. Add BP-02 URL fetch in parent. Remove Tabs import. |
 
 ## What Does NOT Change
-- No database migrations
-- No frontend changes
-- No BP-02 builder changes
+- Steps 0, 1, 3 (Introduction, Generating, Publish/Success)
+- Generation logic and edge function
+- Database schema
+- No new files needed — all sub-components stay in the same file
 
