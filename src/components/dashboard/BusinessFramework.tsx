@@ -76,7 +76,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
               <Globe className="h-5 w-5 text-primary-foreground" />
             </div>
             <div>
-              <p className="font-heading font-bold text-sm">Book Microsite</p>
+              <p className="font-heading font-bold text-sm">Author Page</p>
               <p className="text-[11px] text-muted-foreground">Your live landing page & sales hub</p>
             </div>
           </div>

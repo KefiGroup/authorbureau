@@ -524,10 +524,10 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                       {/* View button with tooltip */}
                       <Button
                         variant="outline" size="icon" className="h-9 w-9 shrink-0"
-                        title="View Microsite"
+                        title="View Author Page"
                         onClick={() => {
                           if (book.published_at) window.open(`/books/${book.slug}`, "_blank");
-                          else toast({ title: "Microsite is under review" });
+                          else toast({ title: "Author Page is under review" });
                         }}
                       >
                         <Eye className="h-4 w-4" />
