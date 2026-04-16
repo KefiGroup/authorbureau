@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("author_profiles")
-      .select("ghl_sub_account_id, pen_name, user_id")
+      .select("ghl_sub_account_id, pen_name, user_id, methodology_name, sign_off_phrase, quiz_name")
       .eq("id", author_id)
       .single();
 
@@ -289,6 +289,8 @@ serve(async (req) => {
               penName,
               bookTitle,
               bookUrl,
+              signOffPhrase: profile.sign_off_phrase || "To your success",
+              quizName: profile.quiz_name || "quiz",
             },
           }),
         });

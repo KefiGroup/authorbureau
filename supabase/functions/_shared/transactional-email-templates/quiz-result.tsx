@@ -14,6 +14,8 @@ interface Props {
   penName?: string
   bookTitle?: string
   bookUrl?: string
+  signOffPhrase?: string
+  quizName?: string
 }
 
 const QuizResultEmail = ({
@@ -24,14 +26,16 @@ const QuizResultEmail = ({
   penName = "the author",
   bookTitle = "the book",
   bookUrl = "",
+  signOffPhrase = "To your success",
+  quizName = "quiz",
 }: Props) => {
   const message = stageMessage ||
-    `You're at the ${stageName} stage of your journey. This is a meaningful milestone, and understanding where you are is the first step to moving forward with clarity.`
+    `You're at ${stageName} stage of your journey. This is a meaningful milestone, and understanding where you are is the first step to moving forward with clarity.`
 
   return (
     <Html lang="en" dir="ltr">
       <Head />
-      <Preview>Your Stage: {stageName} — {scoreVal}%</Preview>
+      <Preview>Your {quizName} Result: {stageName} — {scoreVal}%</Preview>
       <Body style={main}>
         <Container style={container}>
           <Text style={text}>Hi {readerName},</Text>
@@ -46,7 +50,7 @@ const QuizResultEmail = ({
               </Button>
             </Section>
           ) : null}
-          <Text style={text}>To your success,</Text>
+          <Text style={text}>{signOffPhrase},</Text>
           <Text style={{ ...text, fontWeight: 'bold' as const, margin: '0' }}>{penName}</Text>
           <Text style={{ ...text, fontStyle: 'italic' as const, margin: '4px 0 0', fontSize: '14px' }}>Author of {bookTitle}</Text>
           <Hr style={divider} />
@@ -62,7 +66,7 @@ const QuizResultEmail = ({
 export const template = {
   component: QuizResultEmail,
   subject: (data: Record<string, any>) =>
-    `Your Stage: ${data.stageName || 'Your Stage'} — Here's What It Means For You, ${data.readerName || 'Friend'}`,
+    `Your ${data.quizName || 'Quiz'} Result: ${data.stageName || 'Your Stage'} — Here's What It Means For You, ${data.readerName || 'Friend'}`,
   displayName: 'Quiz result',
   previewData: {
     readerName: 'Jane',
@@ -71,6 +75,8 @@ export const template = {
     penName: 'Pauline Teo',
     bookTitle: 'Be SUCKcessful',
     bookUrl: 'https://www.amazon.com/dp/B0DQKZWK33',
+    signOffPhrase: 'To your SUCKCESS',
+    quizName: 'SUCKCESS Stage Quiz',
   },
 } satisfies TemplateEntry
 
