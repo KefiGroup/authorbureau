@@ -11,7 +11,7 @@ import PipelineView from "@/components/crm/PipelineView";
 import ContactListView from "@/components/crm/ContactListView";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
-import { getActiveToken } from "@/lib/get-active-token";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 interface CRMContact {
   id: string;
