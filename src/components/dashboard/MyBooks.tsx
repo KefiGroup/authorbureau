@@ -41,6 +41,8 @@ interface Book {
   paperback_price?: string | null;
   amazon_url?: string | null;
   bestseller_proof_url?: string | null;
+  approval_status?: string | null;
+  rejection_note?: string | null;
 }
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
