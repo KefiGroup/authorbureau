@@ -474,6 +474,9 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
             <p className="text-lg" style={{ color: v.mutedText }}>
               You scored {totalScore} out of {maxScore}
             </p>
+            <p className="text-sm mt-3 p-3 rounded-lg inline-block" style={{ background: `${accentColor}10`, color: accentColor }}>
+              ✉️ Your personalised plan is on its way to {email}! Check your inbox in the next few minutes.
+            </p>
           </div>
 
           {/* Score bar */}
