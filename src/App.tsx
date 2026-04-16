@@ -131,6 +131,7 @@ const AppRoutes = () => (
       <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
+      <Route path="/my-contacts" element={<AuthorDashboard initialSection={"author-crm" as any} />} />
       <Route path="/brand-products" element={<ProtectedRoute><BrandProductsHub /></ProtectedRoute>} />
       <Route path="/build-authority" element={<ProtectedRoute><BuildAuthorityHub /></ProtectedRoute>} />
       <Route path="/yield-revenue" element={<ProtectedRoute><YieldRevenueHub /></ProtectedRoute>} />

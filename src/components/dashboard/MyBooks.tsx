@@ -41,6 +41,8 @@ interface Book {
   paperback_price?: string | null;
   amazon_url?: string | null;
   bestseller_proof_url?: string | null;
+  approval_status?: string | null;
+  rejection_note?: string | null;
 }
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -430,8 +432,23 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                           {book.genre}
                         </span>
                       )}
+                      {book.approval_status === "approved" && (
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                          ✅ Approved
+                        </span>
+                      )}
+                      {book.approval_status === "rejected" && (
+                        <span className="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-[10px] font-semibold text-red-800" title={book.rejection_note || "No reason provided"}>
+                          ❌ Rejected
+                        </span>
+                      )}
+                      {(!book.approval_status || book.approval_status === "pending") && (
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-800">
+                          ⏳ Pending Review
+                        </span>
+                      )}
                       {book.published_at && (
-                        <span className="inline-flex items-center rounded-full bg-[#FEF3C7] px-2 py-0.5 text-[10px] font-semibold text-[#92400E]">
+                        <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
                           Published
                         </span>
                       )}
@@ -451,14 +468,21 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
                     {/* Status indicators */}
                     <div className="flex flex-col gap-1">
-                      {book.published_at ? (
+                      {book.approval_status === "approved" && book.published_at ? (
                         <div className="flex items-center gap-1.5">
-                          <div className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
                           <span className="text-[11px] text-muted-foreground">Book Page Live</span>
+                        </div>
+                      ) : book.approval_status === "rejected" ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                          <span className="text-[11px] text-red-600 font-medium">
+                            Rejected{book.rejection_note ? ` — ${book.rejection_note}` : ""}
+                          </span>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5">
-                          <div className="h-1.5 w-1.5 rounded-full bg-[#F59E0B] animate-pulse" />
+                          <div className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
                           <span className="text-[11px] text-amber-600 font-medium">Pending Admin Approval</span>
                         </div>
                       )}

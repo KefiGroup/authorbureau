@@ -239,7 +239,7 @@ Deno.serve(async (req) => {
     // Default: list books
     const { data: books, error: queryError } = await cloudAdmin
       .from("books")
-      .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at, owner_email")
+      .select("id, title, subtitle, slug, cover_image_url, published_at, entry_mode, genre, rating, badges, created_at, owner_email, approval_status, rejection_note")
       .or(ownershipFilter)
       .order("created_at", { ascending: false });
 
