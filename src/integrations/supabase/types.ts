@@ -1504,39 +1504,48 @@ export type Database = {
       }
       crm_contacts: {
         Row: {
+          abby_score: number
           author_id: string
           company: string | null
           created_at: string
           email: string | null
           full_name: string
           id: string
+          last_activity_at: string | null
           notes: string | null
           phone: string | null
           source: string | null
+          stage: string
           updated_at: string
         }
         Insert: {
+          abby_score?: number
           author_id: string
           company?: string | null
           created_at?: string
           email?: string | null
           full_name: string
           id?: string
+          last_activity_at?: string | null
           notes?: string | null
           phone?: string | null
           source?: string | null
+          stage?: string
           updated_at?: string
         }
         Update: {
+          abby_score?: number
           author_id?: string
           company?: string | null
           created_at?: string
           email?: string | null
           full_name?: string
           id?: string
+          last_activity_at?: string | null
           notes?: string | null
           phone?: string | null
           source?: string | null
+          stage?: string
           updated_at?: string
         }
         Relationships: []

@@ -185,7 +185,7 @@ export default function DashboardSidebar({
     { id: "profile", label: "Author Profile", icon: User },
     { id: "microsite-manager" as DashboardSection, label: "My Website", icon: Globe },
     {
-      id: "author-crm" as DashboardSection, label: "My Contacts",
+      id: "author-crm" as DashboardSection, label: "My CRM",
       icon: Contact,
       lockMessage: !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to access CRM" : undefined,
     },

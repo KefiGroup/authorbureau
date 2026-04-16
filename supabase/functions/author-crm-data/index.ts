@@ -9,6 +9,13 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
+const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+
+const SCORE_MAP: Record<string, number> = {
+  opt_in: 2, email_open: 1, link_click: 2, quiz_completed: 2,
+  page_visit: 1, purchase: 3, note: 0, stage_change: 0,
+};
+
 async function getUserId(authHeader: string): Promise<string | null> {
   const shared = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY, {
     global: { headers: { Authorization: authHeader } },
@@ -18,6 +25,46 @@ async function getUserId(authHeader: string): Promise<string | null> {
   return data.user.id;
 }
 
+function ok(data: any) {
+  return new Response(JSON.stringify(data), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+function err(msg: string, status = 400) {
+  return new Response(JSON.stringify({ error: msg }), {
+    status, headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function recalcScore(sb: any, contactId: string) {
+  const { data: logs } = await sb
+    .from("crm_activity_log")
+    .select("type, created_at")
+    .eq("contact_id", contactId)
+    .order("created_at", { ascending: false })
+    .limit(100);
+
+  let score = 0;
+  let emailOpens = 0;
+  (logs || []).forEach((l: any) => {
+    if (l.type === "email_open" && emailOpens >= 3) return;
+    if (l.type === "email_open") emailOpens++;
+    score += SCORE_MAP[l.type] || 0;
+  });
+
+  // Decay: -1 per 7 days since last activity
+  if (logs && logs.length > 0) {
+    const lastDate = new Date(logs[0].created_at);
+    const daysSince = Math.floor((Date.now() - lastDate.getTime()) / (1000 * 60 * 60 * 24));
+    score -= Math.floor(daysSince / 7);
+  }
+  score = Math.max(0, Math.min(10, score));
+
+  await sb.from("crm_contacts").update({ abby_score: score, last_activity_at: new Date().toISOString() }).eq("id", contactId);
+  return score;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -25,20 +72,10 @@ Deno.serve(async (req) => {
 
   try {
     const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!authHeader) return err("Unauthorized", 401);
 
     const userId = await getUserId(authHeader);
-    if (!userId) {
-      return new Response(JSON.stringify({ error: "Invalid token" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    if (!userId) return err("Invalid token", 401);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -76,177 +113,247 @@ Deno.serve(async (req) => {
         tags: tagsMap[c.id] || [],
       }));
 
-      return new Response(JSON.stringify({ contacts: result }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return ok({ contacts: result });
     }
 
     // ── ADD ──
     if (action === "add") {
       const { full_name, email, phone, company, notes, tags } = body;
-      if (!full_name) {
-        return new Response(JSON.stringify({ error: "full_name required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!full_name) return err("full_name required");
 
       const { data: newContact, error } = await sb
         .from("crm_contacts")
         .insert({
-          author_id: userId,
-          full_name,
-          email: email || null,
-          phone: phone || null,
-          company: company || null,
-          notes: notes || null,
-          source: "manual",
+          author_id: userId, full_name,
+          email: email || null, phone: phone || null,
+          company: company || null, notes: notes || null, source: "manual",
         })
         .select("id")
         .single();
       if (error) throw error;
 
-      const tagList = tags
-        ?.split(",")
-        .map((t: string) => t.trim())
-        .filter(Boolean);
+      const tagList = tags?.split(",").map((t: string) => t.trim()).filter(Boolean);
       if (tagList?.length && newContact) {
         await sb.from("crm_contact_tags").insert(
-          tagList.map((tag: string) => ({
-            author_id: userId,
-            contact_id: newContact.id,
-            tag,
-          }))
+          tagList.map((tag: string) => ({ author_id: userId, contact_id: newContact.id, tag }))
         );
       }
 
-      return new Response(JSON.stringify({ ok: true, id: newContact.id }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return ok({ ok: true, id: newContact.id });
     }
 
     // ── DELETE ──
     if (action === "delete") {
       const { contact_id } = body;
-      if (!contact_id) {
-        return new Response(JSON.stringify({ error: "contact_id required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      // Verify ownership
-      const { data: owned } = await sb
-        .from("crm_contacts")
-        .select("id")
-        .eq("id", contact_id)
-        .eq("author_id", userId)
-        .maybeSingle();
-      if (!owned) {
-        return new Response(JSON.stringify({ error: "Not found" }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!contact_id) return err("contact_id required");
+      const { data: owned } = await sb.from("crm_contacts").select("id").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      if (!owned) return err("Not found", 404);
       await sb.from("crm_contact_tags").delete().eq("contact_id", contact_id);
       await sb.from("crm_activity_log").delete().eq("contact_id", contact_id);
       await sb.from("crm_contacts").delete().eq("id", contact_id);
+      return ok({ ok: true });
+    }
 
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    // ── BULK DELETE ──
+    if (action === "bulk-delete") {
+      const { contact_ids } = body;
+      if (!contact_ids?.length) return err("contact_ids required");
+      for (const cid of contact_ids) {
+        await sb.from("crm_contact_tags").delete().eq("contact_id", cid);
+        await sb.from("crm_activity_log").delete().eq("contact_id", cid);
+        await sb.from("crm_contacts").delete().eq("id", cid).eq("author_id", userId);
+      }
+      return ok({ ok: true });
     }
 
     // ── ADD TAG ──
     if (action === "add-tag") {
       const { contact_id, tag } = body;
-      if (!contact_id || !tag) {
-        return new Response(JSON.stringify({ error: "contact_id and tag required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      await sb.from("crm_contact_tags").insert({
-        author_id: userId,
-        contact_id,
-        tag: tag.trim(),
-      });
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      if (!contact_id || !tag) return err("contact_id and tag required");
+      await sb.from("crm_contact_tags").insert({ author_id: userId, contact_id, tag: tag.trim() });
+      return ok({ ok: true });
     }
 
     // ── LIST ACTIVITIES ──
     if (action === "list-activities") {
       const { contact_id } = body;
       const { data, error } = await sb
-        .from("crm_activity_log")
-        .select("*")
-        .eq("contact_id", contact_id)
-        .eq("author_id", userId)
-        .order("created_at", { ascending: false })
-        .limit(50);
+        .from("crm_activity_log").select("*")
+        .eq("contact_id", contact_id).eq("author_id", userId)
+        .order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
-      return new Response(JSON.stringify({ activities: data || [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return ok({ activities: data || [] });
     }
 
     // ── ADD NOTE ──
     if (action === "add-note") {
       const { contact_id, content } = body;
-      if (!contact_id || !content) {
-        return new Response(JSON.stringify({ error: "contact_id and content required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      if (!contact_id || !content) return err("contact_id and content required");
+      await sb.from("crm_activity_log").insert({
+        author_id: userId, contact_id, type: "note", content: content.trim(),
+      });
+      await recalcScore(sb, contact_id);
+      return ok({ ok: true });
+    }
+
+    // ── UPDATE STAGE ──
+    if (action === "update-stage") {
+      const { contact_id, stage } = body;
+      const validStages = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
+      if (!contact_id || !stage) return err("contact_id and stage required");
+      if (!validStages.includes(stage)) return err("Invalid stage");
+
+      const { data: owned } = await sb.from("crm_contacts").select("id, stage").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      if (!owned) return err("Not found", 404);
+
+      const oldStage = owned.stage || "new_lead";
+      await sb.from("crm_contacts").update({ stage, last_activity_at: new Date().toISOString() }).eq("id", contact_id);
+      await sb.from("crm_activity_log").insert({
+        author_id: userId, contact_id, type: "stage_change",
+        content: `Moved from ${oldStage} to ${stage}`,
+      });
+      await recalcScore(sb, contact_id);
+      return ok({ ok: true });
+    }
+
+    // ── BULK MOVE STAGE ──
+    if (action === "bulk-move-stage") {
+      const { contact_ids, stage } = body;
+      const validStages = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
+      if (!contact_ids?.length || !stage) return err("contact_ids and stage required");
+      if (!validStages.includes(stage)) return err("Invalid stage");
+
+      for (const cid of contact_ids) {
+        await sb.from("crm_contacts").update({ stage, last_activity_at: new Date().toISOString() }).eq("id", cid).eq("author_id", userId);
+        await sb.from("crm_activity_log").insert({
+          author_id: userId, contact_id: cid, type: "stage_change",
+          content: `Bulk moved to ${stage}`,
         });
       }
-      await sb.from("crm_activity_log").insert({
-        author_id: userId,
-        contact_id,
-        type: "note",
-        content: content.trim(),
-      });
-      return new Response(JSON.stringify({ ok: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return ok({ ok: true });
     }
 
     // ── IMPORT CSV ──
     if (action === "import-csv") {
       const { rows } = body;
-      if (!rows || !Array.isArray(rows) || rows.length === 0) {
-        return new Response(JSON.stringify({ error: "rows required" }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (!rows || !Array.isArray(rows) || rows.length === 0) return err("rows required");
       let imported = 0;
       for (let i = 0; i < rows.length; i += 50) {
         const batch = rows.slice(i, i + 50).map((r: any) => ({
-          author_id: userId,
-          full_name: r.full_name || "Unknown",
-          email: r.email || null,
-          phone: r.phone || null,
-          company: r.company || null,
-          source: "csv_import",
+          author_id: userId, full_name: r.full_name || "Unknown",
+          email: r.email || null, phone: r.phone || null,
+          company: r.company || null, source: "csv_import",
         }));
         const { error } = await sb.from("crm_contacts").insert(batch);
         if (!error) imported += batch.length;
       }
-      return new Response(JSON.stringify({ ok: true, imported }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return ok({ ok: true, imported });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
-      status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    // ── ABBY INTELLIGENCE ──
+    if (action === "abby-intelligence") {
+      const { data: contacts } = await sb
+        .from("crm_contacts").select("id, full_name, email, stage, abby_score, last_activity_at, source")
+        .eq("author_id", userId).order("abby_score", { ascending: false }).limit(100);
+
+      const summary = (contacts || []).map((c: any) => ({
+        name: c.full_name, email: c.email, stage: c.stage,
+        score: c.abby_score, lastActivity: c.last_activity_at, source: c.source,
+      }));
+
+      const stageCounts: Record<string, number> = {};
+      (contacts || []).forEach((c: any) => {
+        stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
+      });
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) return err("AI not configured", 500);
+
+      const aiRes = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: `You are ABBY, an AI business advisor for authors. Analyse CRM contacts and provide actionable insights. Return valid JSON with this exact structure: {"actionList":[{"name":"string","reason":"string"}],"funnelHealth":{"summary":"string","stages":{"new_lead":0,"engaged":0,"warm":0,"hot":0,"customer":0,"vip":0,"cold":0}},"segmentInsights":[{"segment":"string","count":0,"nextAction":"string"}],"predictedConversions":[{"name":"string","likelihood":"string","reason":"string"}]}` },
+            { role: "user", content: `Here are ${summary.length} contacts:\n${JSON.stringify(summary)}\n\nStage distribution: ${JSON.stringify(stageCounts)}\n\nProvide: 1) Top 5 action items 2) Funnel health analysis 3) Segment insights 4) Predicted conversions for next 7 days` },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "crm_intelligence",
+              description: "Return CRM intelligence analysis",
+              parameters: {
+                type: "object",
+                properties: {
+                  actionList: { type: "array", items: { type: "object", properties: { name: { type: "string" }, reason: { type: "string" } }, required: ["name", "reason"] } },
+                  funnelHealth: { type: "object", properties: { summary: { type: "string" }, stages: { type: "object" } }, required: ["summary", "stages"] },
+                  segmentInsights: { type: "array", items: { type: "object", properties: { segment: { type: "string" }, count: { type: "number" }, nextAction: { type: "string" } }, required: ["segment", "count", "nextAction"] } },
+                  predictedConversions: { type: "array", items: { type: "object", properties: { name: { type: "string" }, likelihood: { type: "string" }, reason: { type: "string" } }, required: ["name", "likelihood", "reason"] } },
+                },
+                required: ["actionList", "funnelHealth", "segmentInsights", "predictedConversions"],
+              },
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "crm_intelligence" } },
+        }),
+      });
+
+      if (!aiRes.ok) {
+        console.error("AI error:", aiRes.status, await aiRes.text());
+        return err("AI analysis failed", 500);
+      }
+
+      const aiData = await aiRes.json();
+      const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+      let intelligence;
+      try {
+        intelligence = JSON.parse(toolCall?.function?.arguments || "{}");
+      } catch {
+        intelligence = { actionList: [], funnelHealth: { summary: "Unable to analyse", stages: {} }, segmentInsights: [], predictedConversions: [] };
+      }
+
+      return ok({ intelligence });
+    }
+
+    // ── ABBY CONTACT RECOMMENDATION ──
+    if (action === "abby-contact-recommendation") {
+      const { contact_id } = body;
+      if (!contact_id) return err("contact_id required");
+
+      const { data: contact } = await sb.from("crm_contacts").select("*").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      if (!contact) return err("Not found", 404);
+
+      const { data: activities } = await sb.from("crm_activity_log").select("type, content, created_at")
+        .eq("contact_id", contact_id).order("created_at", { ascending: false }).limit(20);
+
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (!LOVABLE_API_KEY) return err("AI not configured", 500);
+
+      const aiRes = await fetch(AI_GATEWAY, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: "You are ABBY, an AI business advisor. Give a short (2-3 sentence) personalised recommendation for how the author should engage this contact next. Be specific and actionable." },
+            { role: "user", content: `Contact: ${contact.full_name}, Email: ${contact.email}, Stage: ${contact.stage}, Score: ${contact.abby_score}, Source: ${contact.source}\nRecent activity: ${JSON.stringify(activities || [])}` },
+          ],
+          max_completion_tokens: 200,
+        }),
+      });
+
+      if (!aiRes.ok) return err("AI recommendation failed", 500);
+      const aiData = await aiRes.json();
+      const recommendation = aiData.choices?.[0]?.message?.content || "No recommendation available.";
+      return ok({ recommendation });
+    }
+
+    return err("Unknown action");
   } catch (err: any) {
     console.error("author-crm-data error:", err);
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });
