@@ -853,6 +853,7 @@ export type Database = {
           ai_enriched: boolean | null
           amazon_author_profile_url: string | null
           amazon_url: string | null
+          approval_status: string
           author_bio: string | null
           author_id: string
           author_name: string | null
@@ -873,6 +874,7 @@ export type Database = {
           price: string | null
           published_at: string | null
           rating: number | null
+          rejection_note: string | null
           review_count: number | null
           slug: string
           subtitle: string | null
@@ -883,6 +885,7 @@ export type Database = {
           ai_enriched?: boolean | null
           amazon_author_profile_url?: string | null
           amazon_url?: string | null
+          approval_status?: string
           author_bio?: string | null
           author_id: string
           author_name?: string | null
@@ -903,6 +906,7 @@ export type Database = {
           price?: string | null
           published_at?: string | null
           rating?: number | null
+          rejection_note?: string | null
           review_count?: number | null
           slug: string
           subtitle?: string | null
@@ -913,6 +917,7 @@ export type Database = {
           ai_enriched?: boolean | null
           amazon_author_profile_url?: string | null
           amazon_url?: string | null
+          approval_status?: string
           author_bio?: string | null
           author_id?: string
           author_name?: string | null
@@ -933,6 +938,7 @@ export type Database = {
           price?: string | null
           published_at?: string | null
           rating?: number | null
+          rejection_note?: string | null
           review_count?: number | null
           slug?: string
           subtitle?: string | null
