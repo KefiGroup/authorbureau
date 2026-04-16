@@ -32,6 +32,9 @@ export default function MicrositePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
+  // Quiz data ref for passing to handleSubmit
+  const [quizData, setQuizData] = useState<{ quiz_stage?: string; quiz_score?: number; quiz_answers?: any[] } | null>(null);
+
   const nodeId = nodeSlug ? SLUG_TO_NODE[nodeSlug] : null;
   const isDynamicSlug = nodeSlug && !nodeId; // slug not in hardcoded map — try dynamic lookup
 
@@ -146,8 +149,6 @@ export default function MicrositePage() {
   const bgColor = theme.colors.heroBackground;
   const content = data.node.content_json || {};
 
-  // Quiz data ref for passing to handleSubmit
-  const [quizData, setQuizData] = useState<{ quiz_stage?: string; quiz_score?: number; quiz_answers?: any[] } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
