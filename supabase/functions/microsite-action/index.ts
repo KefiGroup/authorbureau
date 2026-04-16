@@ -251,7 +251,13 @@ serve(async (req) => {
 
         const penName = profile.pen_name || "the author";
         const readerName = first_name || "there";
-        const stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        let stageName = (quiz_stage || "").replace(/-/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase());
+        // Apply author's methodology capitalisation (e.g. "Suckcess" → "SUCKCESS")
+        const methodologyName = profile.methodology_name;
+        if (methodologyName) {
+          const regex = new RegExp(methodologyName, "gi");
+          stageName = stageName.replace(regex, methodologyName);
+        }
         const scoreVal = typeof quiz_score === "number" ? quiz_score : 0;
 
         // Get book Amazon URL for CTA
