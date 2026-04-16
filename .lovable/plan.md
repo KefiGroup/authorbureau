@@ -1,64 +1,35 @@
 
 
-# Link Path Audit — Dead End Analysis
+# Fix: Author CRM Page Not Showing Contacts
 
-## Audit Method
-I checked every link path across the 28 nodes: dashboard hub links → builder routes → success screen URLs → public microsite resolution → edge function responses.
+## Root Cause
 
-## Findings
+**The "My Contacts" page is completely non-functional for authors.** All CRM data (contacts, tags, activity logs) lives in the project-local (Cloud) database, but authors authenticate via the shared backend. The RLS policy on `crm_contacts` requires `auth.uid() = author_id`, and since the author has no Cloud session, `auth.uid()` is null — every read and write is silently blocked.
 
-### 1. CRITICAL: `getMicrositeUrl()` generates unreachable URLs
-**File:** `src/lib/node-slug-map.ts` line 84
-**Issue:** Generates `https://authorsbureau.com/pauline-teo/free-gift` but the actual published domain is `https://authorbureau.lovable.app`. This means every "Copy Link" and "View Live" button on the Publish Success Screen gives authors a **dead link** that resolves to nothing.
-**Impact:** All 24 nodes with public pages (everything except BP-01, BP-03, BA-15, BA-18).
-**Fix:** Change `getMicrositeUrl()` to use `window.location.origin` or a configurable base URL so links always point to the actual live domain.
+This affects: viewing contacts, adding contacts manually, importing CSV, deleting contacts, viewing/adding tags, viewing/adding activity notes.
 
-### 2. OK: Dashboard → Builder routes
-All 28 `/node-builder/{nodeId}` routes resolve correctly:
-- `BrandProductsHub`, `BuildAuthorityHub`, `YieldRevenueHub` all link to `/node-builder/{id}`
-- Route `/node-builder/:nodeId` exists in `App.tsx` (line 139)
-- All 28 builder components exist and are imported in `NodeBuilder.tsx`
-- "Back to Hub" links use correct hub paths (`/brand-products`, `/build-authority`, `/yield-revenue`)
+## Fix Approach
 
-### 3. OK: Public microsite routing
-- `/:authorSlug/:bookSlug` → `AuthorSubpageResolver` correctly checks `SLUG_TO_NODE` for known slugs and falls back to dynamic lookup
-- `get-microsite-page` edge function returns proper responses: 200 for live nodes, 404 with "Node not live" for inactive ones (handled as "Coming Soon" in the UI)
-- `/:authorSlug/:bookSlug/:productType` → `AuthorProductPage` with full product config for all types
+Create a new edge function `author-crm-data` that handles all CRM operations with service role (bypassing RLS), after validating the author's shared-backend JWT. Then update `AuthorCRMPage` to call this edge function instead of directly querying the project-local client.
 
-### 4. OK: Author slug consistency
-Author slugs are auto-generated via `generate_unique_author_slug()` trigger. The test author "Pauline Teo" resolves correctly as `pauline-teo`.
+## Technical Details
 
-### 5. OK: Legacy redirects
-- `/authors/:slug` → `/:slug` (redirect)
-- `/books/:slug` → `/:authorSlug/:bookSlug` (redirect with DB lookup)
-- `/reader-portal/:id` → `/readers-bureau/learn/:id`
+### 1. New edge function: `supabase/functions/author-crm-data/index.ts`
+- Accepts actions: `list`, `add`, `delete`, `add-tag`, `delete-tag`, `list-activities`, `add-note`, `import-csv`
+- Validates the caller's JWT via the shared backend to get the user ID
+- Uses service role on the project-local DB for all operations
+- Scopes all queries to `author_id = caller_user_id`
 
-### 6. MINOR: `authorsbureau.com` references in website builder UI
-**Files:** `WebsiteSetupStep.tsx`, `WebsitePublishStep.tsx`, `SeoAnalyticsStep.tsx`
-These show `yourname.authorsbureau.com` as the subdomain format. This is display-only (subdomain hosting isn't implemented yet), so it's cosmetic but misleading if authors expect it to work.
+### 2. Update `src/components/dashboard/AuthorCRMPage.tsx`
+- Remove import of `supabase` from `@/integrations/supabase/client`
+- Replace all direct Supabase calls with `fetch()` calls to the `author-crm-data` edge function
+- Use `getActiveToken()` for authentication (consistent with platform standard)
 
-### 7. OK: No-microsite nodes handled correctly
-BP-01 (Email), BP-03 (Social), BA-15 (Media & PR), BA-18 (JV Partnerships) are correctly excluded from public URL generation via `NO_MICROSITE_NODES`.
+### 3. Update `src/components/dashboard/crm/ContactForm.tsx`
+- Same pattern — route through the edge function instead of direct client calls
 
----
-
-## Plan: Fix the Dead Link Issue
-
-### File changes
-
-**`src/lib/node-slug-map.ts`** — Update `getMicrositeUrl()` to use the actual origin:
-```typescript
-export function getMicrositeUrl(penNameSlug: string, nodeId: string): string | null {
-  if (NO_MICROSITE_NODES.has(nodeId)) return null;
-  const slug = NODE_SLUG_MAP[nodeId];
-  if (slug === undefined) return null;
-  const base = typeof window !== 'undefined' ? window.location.origin : 'https://authorbureau.lovable.app';
-  return `${base}/${penNameSlug}/${slug}`;
-}
-```
-
-This single change fixes the "Copy Link" and "View Live" buttons across all 24 public-facing node success screens.
-
-### No other dead ends found
-All other paths (hub → builder, builder → success, public routes, legacy redirects) resolve correctly.
+### Files Changed
+- `supabase/functions/author-crm-data/index.ts` (new)
+- `src/components/dashboard/AuthorCRMPage.tsx` (rewrite data layer)
+- `src/components/dashboard/crm/ContactForm.tsx` (if it also uses project-local client)
 
