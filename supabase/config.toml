@@ -121,4 +121,9 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.generate-bp02-lead-magnets]
     verify_jwt = false
+  [functions.generate-email-sequence]
+    verify_jwt = false
+  [functions.trigger-sequence]
+    verify_jwt = false
+  [functions.process-email-events]
     verify_jwt = false
