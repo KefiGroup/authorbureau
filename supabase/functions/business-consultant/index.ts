@@ -3284,7 +3284,7 @@ IMPORTANT RULES:
               { role: "system", content: "You are Abby, a world-class business consultant for authors. Generate detailed, specific, actionable business plans. Always use bullet points and clear formatting." },
               { role: "user", content: expandPrompt },
             ],
-            max_tokens: 6000,
+            max_completion_tokens: 6000,
           }),
         });
 
