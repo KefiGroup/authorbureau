@@ -2204,6 +2204,177 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_submissions: {
+        Row: {
+          author_id: string
+          created_at: string
+          custom_fields: Json | null
+          email: string
+          funnel_id: string
+          id: string
+          ip_address: string | null
+          name: string | null
+          phone: string | null
+          utm_campaign: string | null
+          utm_content: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          utm_term: string | null
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          custom_fields?: Json | null
+          email: string
+          funnel_id: string
+          id?: string
+          ip_address?: string | null
+          name?: string | null
+          phone?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          custom_fields?: Json | null
+          email?: string
+          funnel_id?: string
+          id?: string
+          ip_address?: string | null
+          name?: string | null
+          phone?: string | null
+          utm_campaign?: string | null
+          utm_content?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          utm_term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_submissions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      funnels: {
+        Row: {
+          accent_color: string | null
+          author_id: string
+          background_color: string | null
+          body_copy: string | null
+          conversions: number
+          created_at: string
+          cta_text: string | null
+          cta_url: string | null
+          funnel_type: string
+          headline: string | null
+          hero_image_url: string | null
+          id: string
+          node_id: string | null
+          page_views: number
+          published_at: string | null
+          slug: string
+          status: string
+          subheadline: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          accent_color?: string | null
+          author_id: string
+          background_color?: string | null
+          body_copy?: string | null
+          conversions?: number
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          funnel_type?: string
+          headline?: string | null
+          hero_image_url?: string | null
+          id?: string
+          node_id?: string | null
+          page_views?: number
+          published_at?: string | null
+          slug: string
+          status?: string
+          subheadline?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          accent_color?: string | null
+          author_id?: string
+          background_color?: string | null
+          body_copy?: string | null
+          conversions?: number
+          created_at?: string
+          cta_text?: string | null
+          cta_url?: string | null
+          funnel_type?: string
+          headline?: string | null
+          hero_image_url?: string | null
+          id?: string
+          node_id?: string | null
+          page_views?: number
+          published_at?: string | null
+          slug?: string
+          status?: string
+          subheadline?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnels_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnels_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnels_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       generated_assets: {
         Row: {
           asset_type: string
