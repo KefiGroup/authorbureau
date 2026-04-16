@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -9,7 +8,7 @@ import {
 import {
   Table, TableHeader, TableBody, TableHead, TableRow, TableCell,
 } from "@/components/ui/table";
-import { Search, Trash2, ArrowUpDown, Tag, Star } from "lucide-react";
+import { Search, Trash2, ArrowUpDown, Star } from "lucide-react";
 
 interface CRMContact {
   id: string;
@@ -34,11 +33,14 @@ const STAGE_LABELS: Record<string, string> = {
   hot: "Hot", customer: "Customer", vip: "VIP", cold: "Cold",
 };
 
-const STAGE_COLORS: Record<string, string> = {
-  new_lead: "bg-blue-500/20 text-blue-400", engaged: "bg-teal-500/20 text-teal-400",
-  warm: "bg-amber-500/20 text-amber-400", hot: "bg-orange-500/20 text-orange-400",
-  customer: "bg-green-500/20 text-green-400", vip: "bg-yellow-500/20 text-yellow-400",
-  cold: "bg-gray-500/20 text-gray-400",
+const STAGE_COLORS: Record<string, { bg: string; text: string }> = {
+  new_lead: { bg: "bg-[#3B82F6]", text: "text-white" },
+  engaged: { bg: "bg-[#14B8A6]", text: "text-white" },
+  warm: { bg: "bg-[#F59E0B]", text: "text-white" },
+  hot: { bg: "bg-[#EF4444]", text: "text-white" },
+  customer: { bg: "bg-[#10B981]", text: "text-white" },
+  vip: { bg: "bg-[#D4AF37]", text: "text-white" },
+  cold: { bg: "bg-[#6B7280]", text: "text-white" },
 };
 
 type SortKey = "full_name" | "stage" | "abby_score" | "last_activity_at";
@@ -92,7 +94,7 @@ export default function ContactListView({ contacts, onContactClick, onBulkDelete
       {/* Controls */}
       <div className="flex gap-3 flex-wrap items-center">
         <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search contacts..." className="pl-9" />
         </div>
         <Select value={stageFilter} onValueChange={setStageFilter}>
@@ -106,10 +108,10 @@ export default function ContactListView({ contacts, onContactClick, onBulkDelete
         </Select>
       </div>
 
-      {/* Bulk actions */}
+      {/* Bulk actions — gold bar */}
       {selected.size > 0 && (
-        <div className="flex items-center gap-3 bg-muted/50 rounded-lg px-4 py-2">
-          <span className="text-xs text-muted-foreground">{selected.size} selected</span>
+        <div className="flex items-center gap-3 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg px-4 py-2">
+          <span className="text-xs font-semibold text-[#1E3A5F]">{selected.size} selected</span>
           <Select onValueChange={(stage) => { onBulkMoveStage(Array.from(selected), stage); setSelected(new Set()); }}>
             <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Move Stage" /></SelectTrigger>
             <SelectContent>
@@ -125,64 +127,68 @@ export default function ContactListView({ contacts, onContactClick, onBulkDelete
       )}
 
       {/* Table */}
-      <div className="border rounded-lg">
+      <div className="border rounded-lg overflow-hidden bg-white">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-[#F0F4F8]">
               <TableHead className="w-10">
                 <Checkbox checked={selected.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} />
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("full_name")}>
+              <TableHead className="cursor-pointer text-[11px] uppercase font-bold text-gray-500 tracking-wide" onClick={() => toggleSort("full_name")}>
                 Name <ArrowUpDown className="h-3 w-3 inline ml-1" />
               </TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("stage")}>
+              <TableHead className="text-[11px] uppercase font-bold text-gray-500 tracking-wide">Email</TableHead>
+              <TableHead className="cursor-pointer text-[11px] uppercase font-bold text-gray-500 tracking-wide" onClick={() => toggleSort("stage")}>
                 Stage <ArrowUpDown className="h-3 w-3 inline ml-1" />
               </TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("last_activity_at")}>
+              <TableHead className="text-[11px] uppercase font-bold text-gray-500 tracking-wide">Source</TableHead>
+              <TableHead className="cursor-pointer text-[11px] uppercase font-bold text-gray-500 tracking-wide" onClick={() => toggleSort("last_activity_at")}>
                 Last Activity <ArrowUpDown className="h-3 w-3 inline ml-1" />
               </TableHead>
-              <TableHead className="cursor-pointer" onClick={() => toggleSort("abby_score")}>
-                <Star className="h-3 w-3 inline mr-1" />Score <ArrowUpDown className="h-3 w-3 inline ml-1" />
+              <TableHead className="cursor-pointer text-[11px] uppercase font-bold text-gray-500 tracking-wide" onClick={() => toggleSort("abby_score")}>
+                <Star className="h-3 w-3 inline mr-1 text-[#D4AF37]" />Score <ArrowUpDown className="h-3 w-3 inline ml-1" />
               </TableHead>
-              <TableHead>Tags</TableHead>
+              <TableHead className="text-[11px] uppercase font-bold text-gray-500 tracking-wide">Tags</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No contacts found</TableCell>
+                <TableCell colSpan={8} className="text-center py-8 text-gray-400">No contacts found</TableCell>
               </TableRow>
             ) : (
-              filtered.map((c) => (
-                <TableRow key={c.id} className="cursor-pointer hover:bg-muted/50" onClick={() => onContactClick(c)}>
+              filtered.map((c, idx) => (
+                <TableRow
+                  key={c.id}
+                  className={`cursor-pointer hover:bg-[#FFF8E7] transition-colors ${idx % 2 === 1 ? "bg-gray-50" : "bg-white"}`}
+                  onClick={() => onContactClick(c)}
+                >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <Checkbox checked={selected.has(c.id)} onCheckedChange={() => toggleOne(c.id)} />
                   </TableCell>
-                  <TableCell className="font-medium">{c.full_name}</TableCell>
-                  <TableCell className="text-muted-foreground text-xs">{c.email || "—"}</TableCell>
+                  <TableCell className="font-medium text-[#1E3A5F]">{c.full_name}</TableCell>
+                  <TableCell className="text-gray-500 text-xs">{c.email || "—"}</TableCell>
                   <TableCell>
-                    <Badge className={`text-[10px] ${STAGE_COLORS[c.stage] || ""}`}>
+                    <span className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${STAGE_COLORS[c.stage]?.bg || "bg-gray-500"} ${STAGE_COLORS[c.stage]?.text || "text-white"}`}>
                       {STAGE_LABELS[c.stage] || c.stage}
-                    </Badge>
+                    </span>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground">{c.source?.replace(/_/g, " ")}</TableCell>
-                  <TableCell className="text-xs text-muted-foreground">
+                  <TableCell className="text-xs text-gray-500">{c.source?.replace(/_/g, " ")}</TableCell>
+                  <TableCell className="text-xs text-gray-500">
                     {c.last_activity_at ? new Date(c.last_activity_at).toLocaleDateString() : "—"}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      <Star className="h-3 w-3 text-yellow-500" />
-                      <span className="text-xs font-semibold">{c.abby_score}</span>
+                      <Star className="h-3 w-3 text-[#D4AF37] fill-[#D4AF37]" />
+                      <span className="text-xs font-semibold text-[#1E3A5F]">{c.abby_score}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {c.tags.slice(0, 2).map((t) => (
-                        <Badge key={t} variant="secondary" className="text-[9px]">{t}</Badge>
+                        <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#14B8A6]/15 text-[#14B8A6] font-medium">{t}</span>
                       ))}
-                      {c.tags.length > 2 && <span className="text-[9px] text-muted-foreground">+{c.tags.length - 2}</span>}
+                      {c.tags.length > 2 && <span className="text-[9px] text-gray-400">+{c.tags.length - 2}</span>}
                     </div>
                   </TableCell>
                 </TableRow>
