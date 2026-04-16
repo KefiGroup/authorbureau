@@ -58,7 +58,7 @@ export default function CompactMicrositeCard({ profileState, authorSlug, authorN
         {profileState === "live" && authorSlug ? (
           <Button size="sm" variant="outline" onClick={onViewMicrosite} className="gap-1.5">
             <ExternalLink className="h-3.5 w-3.5" />
-            View Your Live Directory Profile
+            View Your Live Author's Page
           </Button>
         ) : (
           <Button size="sm" onClick={onSetupProfile} className="bg-amber-600 hover:bg-amber-700 text-white">

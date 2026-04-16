@@ -107,7 +107,7 @@ function buildPlatformGuides(bookTitle: string): PlatformGuide[] {
       profileUrl: "https://www.facebook.com/pages/create",
       quickWins: [
         {
-          label: "Create an Author Page (not personal profile)",
+          label: "Create an Author's Page (not personal profile)",
           detail: "Pages → Create → Category: Author. This unlocks insights, ads, and a professional presence.",
         },
         {

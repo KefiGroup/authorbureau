@@ -239,7 +239,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Globe className="h-5 w-5 text-secondary" />
-          <h2 className="font-heading text-2xl font-bold">My Author Page</h2>
+          <h2 className="font-heading text-2xl font-bold">My Author's Page</h2>
         </div>
         <p className="text-sm text-muted-foreground whitespace-nowrap">
           Your Author Page is hosted on Authors Bureau. Published products appear automatically on your page.
@@ -310,7 +310,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
             <div className="pt-3 border-t border-border">
               <p className="text-xs font-semibold mb-1">Custom Domain (Optional)</p>
               <p className="text-[10px] text-muted-foreground mb-2">
-                Point your domain to redirect to your Author Page.
+                Point your domain to redirect to your Author's Page.
               </p>
               <div className="flex gap-2">
                 <Input
