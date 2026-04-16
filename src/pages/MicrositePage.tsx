@@ -231,7 +231,7 @@ interface PageProps {
   bgColor: string;
 }
 interface FormPageProps extends PageProps {
-  onSubmit: (e: React.FormEvent) => Promise<boolean>;
+  onSubmit: (e: React.FormEvent, extraData?: Record<string, any>) => Promise<boolean>;
   email: string; setEmail: (v: string) => void;
   firstName: string; setFirstName: (v: string) => void;
   submitting: boolean; submitted: boolean;
