@@ -81,5 +81,6 @@ export function getMicrositeUrl(penNameSlug: string, nodeId: string): string | n
   if (NO_MICROSITE_NODES.has(nodeId)) return null;
   const slug = NODE_SLUG_MAP[nodeId];
   if (slug === undefined) return null;
-  return `https://authorsbureau.com/${penNameSlug}/${slug}`;
+  const base = typeof window !== 'undefined' ? window.location.origin : 'https://authorbureau.lovable.app';
+  return `${base}/${penNameSlug}/${slug}`;
 }
