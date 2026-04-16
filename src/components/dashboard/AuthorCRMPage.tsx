@@ -340,7 +340,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
             return (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key)}
+                onClick={() => { setActiveTab(tab.key); if (tab.key !== "contacts") setContactsStageFilter(undefined); }}
                 className={`
                   flex items-center gap-1.5 px-4 py-2 rounded-t-lg text-sm font-medium transition-all
                   ${isActive
