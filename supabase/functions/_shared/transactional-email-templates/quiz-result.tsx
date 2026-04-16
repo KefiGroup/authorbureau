@@ -16,44 +16,37 @@ interface Props {
   bookUrl?: string
 }
 
-const stageDescriptions: Record<string, string> = {
-  "Stuck": "You're in the early stages of your journey — feeling overwhelmed or unsure where to start. That's completely normal, and recognising it is the first powerful step forward.",
-  "Unstuck": "You've started moving, but might still feel like you're figuring things out. The key now is building momentum and finding the right strategies to keep progressing.",
-  "Climbing": "You're making real progress and building confidence. This is where the right frameworks and support can accelerate your growth dramatically.",
-  "Kicking Goals": "You're achieving meaningful results and gaining clarity on your path. Now it's about optimising and scaling what's already working.",
-  "Cruising": "You've hit your stride and things are flowing. The focus now shifts to sustaining your success and exploring new opportunities.",
-  "Soaring": "You're at the top of your game — inspiring others and achieving at the highest level. Your story and experience are incredibly valuable.",
-}
-
 const QuizResultEmail = ({
   readerName = "there",
   stageName = "Your Stage",
   scoreVal = 0,
   stageMessage,
   penName = "the author",
-  bookTitle = "Be SUCKcessful",
-  bookUrl = "https://www.amazon.com/dp/B0DQKZWK33",
+  bookTitle = "the book",
+  bookUrl = "",
 }: Props) => {
-  const message = stageMessage || stageDescriptions[stageName] ||
-    `You're at ${stageName} stage of your SUCKCESS journey. This is a meaningful milestone, and understanding where you are is the first step to moving forward with clarity.`
+  const message = stageMessage ||
+    `You're at the ${stageName} stage of your journey. This is a meaningful milestone, and understanding where you are is the first step to moving forward with clarity.`
 
   return (
     <Html lang="en" dir="ltr">
       <Head />
-      <Preview>Your SUCKCESS Stage: {stageName} — {scoreVal}%</Preview>
+      <Preview>Your Stage: {stageName} — {scoreVal}%</Preview>
       <Body style={main}>
         <Container style={container}>
           <Text style={text}>Hi {readerName},</Text>
           <Text style={text}>
-            You just discovered you're at <strong>{stageName}</strong> — scoring <strong>{scoreVal}%</strong> on the SUCKCESS journey.
+            You just discovered you're at <strong>{stageName}</strong> — scoring <strong>{scoreVal}%</strong> on the journey.
           </Text>
           <Text style={text}>{message}</Text>
-          <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
-            <Button style={button} href={bookUrl}>
-              Get Your Copy of {bookTitle} →
-            </Button>
-          </Section>
-          <Text style={text}>To your SUCKCESS,</Text>
+          {bookUrl ? (
+            <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+              <Button style={button} href={bookUrl}>
+                Get Your Copy of {bookTitle} →
+              </Button>
+            </Section>
+          ) : null}
+          <Text style={text}>To your success,</Text>
           <Text style={{ ...text, fontWeight: 'bold' as const, margin: '0' }}>{penName}</Text>
           <Text style={{ ...text, fontStyle: 'italic' as const, margin: '4px 0 0', fontSize: '14px' }}>Author of {bookTitle}</Text>
           <Hr style={divider} />
@@ -69,7 +62,7 @@ const QuizResultEmail = ({
 export const template = {
   component: QuizResultEmail,
   subject: (data: Record<string, any>) =>
-    `Your SUCKCESS Stage: ${data.stageName || 'Your Stage'} — Here's What It Means For You, ${data.readerName || 'Friend'}`,
+    `Your Stage: ${data.stageName || 'Your Stage'} — Here's What It Means For You, ${data.readerName || 'Friend'}`,
   displayName: 'Quiz result',
   previewData: {
     readerName: 'Jane',
