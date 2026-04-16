@@ -414,31 +414,42 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
     );
   }
 
-  // ── STAGE: GATE (after quiz, before results) ──
+  // ── STAGE: GATE (after quiz, before results — teaser + email capture) ──
   if (stage === "gate") {
+    const teaserDescription = resultTier.description
+      ? resultTier.description.split(".").slice(0, 1).join(".") + "."
+      : "You've completed the assessment — unlock your full personalised action plan.";
     return (
       <div className="min-h-[80vh] py-12 px-4 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
         <div className="max-w-md mx-auto">
           <Card className="p-8 shadow-xl border-2" style={{ background: v.cardBg, borderColor: `${accentColor}40` }}>
             <div className="text-center mb-6">
               <div className="w-16 h-16 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl" style={{ background: `${accentColor}15` }}>
-                🎉
+                🎯
               </div>
               <h2 className="text-2xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
-                Quiz Complete!
+                You're at: {tierName}
               </h2>
-              <p className="text-base" style={{ color: v.mutedText }}>
-                Enter your name and email to unlock your personalised results and recommendations.
+              <p className="text-sm mb-4 italic" style={{ color: v.mutedText }}>
+                {teaserDescription}
+              </p>
+              <div className="w-full h-2 rounded-full mb-4 overflow-hidden" style={{ background: `${accentColor}15` }}>
+                <div className="h-full rounded-full transition-all" style={{ width: `${scorePercent}%`, background: accentColor }} />
+              </div>
+              <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>
+                Get your personalised action plan from {authorName || "the author"} — discover exactly what to do next based on your result.
               </p>
             </div>
             <form onSubmit={handleGateSubmit} className="space-y-3">
               <Input placeholder="Your first name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="h-12 text-base" />
               <Input type="email" placeholder="Your best email" value={email} onChange={e => setEmail(e.target.value)} required className="h-12 text-base" />
               <Button type="submit" className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all" style={{ background: accentColor, color: "#fff" }} disabled={submitting}>
-                {submitting ? "Unlocking..." : "Show Me My Results!"}
+                {submitting ? "Unlocking..." : "Get My Personalised Plan →"}
               </Button>
             </form>
-            <p className="text-[11px] mt-4 text-center" style={{ color: v.mutedText }}>{privacyNote}</p>
+            <p className="text-[11px] mt-4 text-center flex items-center justify-center gap-1" style={{ color: v.mutedText }}>
+              🔒 No spam. Unsubscribe anytime.
+            </p>
           </Card>
         </div>
       </div>
