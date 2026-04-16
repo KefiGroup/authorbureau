@@ -196,7 +196,6 @@ Deno.serve(async (req) => {
     if (action === "bulk-delete") {
       const { contact_ids } = body;
       if (!contact_ids?.length) return err("contact_ids required");
-      // Verify ownership
       const { data: owned } = await sb.from("crm_contacts").select("id").eq("author_id", userId).in("id", contact_ids);
       const ownedIds = (owned || []).map((c: any) => c.id);
       if (ownedIds.length > 0) {
@@ -296,12 +295,13 @@ Deno.serve(async (req) => {
     // ── ABBY INTELLIGENCE ──
     if (action === "abby-intelligence") {
       const { data: contacts } = await sb
-        .from("crm_contacts").select("id, full_name, email, stage, abby_score, last_activity_at, source")
+        .from("crm_contacts").select("id, full_name, email, stage, abby_score, last_activity_at, source, quiz_stage, quiz_score")
         .eq("author_id", userId).order("abby_score", { ascending: false }).limit(100);
 
       const summary = (contacts || []).map((c: any) => ({
         name: c.full_name, email: c.email, stage: c.stage,
         score: c.abby_score, lastActivity: c.last_activity_at, source: c.source,
+        quizStage: c.quiz_stage || null,
       }));
 
       const stageCounts: Record<string, number> = {};
@@ -309,8 +309,24 @@ Deno.serve(async (req) => {
         stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1;
       });
 
+      // Compute reader segments by quiz stage
+      const readerSegmentCounts: Record<string, number> = { "suck": 0, "seek": 0, "succeed": 0, "sustain": 0 };
+      (contacts || []).forEach((c: any) => {
+        if (!c.quiz_stage) return;
+        const qs = c.quiz_stage.toLowerCase();
+        if (qs.includes("1") || qs.includes("2") || qs.includes("suck")) readerSegmentCounts["suck"]++;
+        else if (qs.includes("3") || qs.includes("4") || qs.includes("seek")) readerSegmentCounts["seek"]++;
+        else if (qs.includes("5") || qs.includes("6") || qs.includes("succeed")) readerSegmentCounts["succeed"]++;
+        else if (qs.includes("7") || qs.includes("8") || qs.includes("sustain")) readerSegmentCounts["sustain"]++;
+      });
+      const totalQuizContacts = Object.values(readerSegmentCounts).reduce((a, b) => a + b, 0);
+
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) return err("AI not configured", 500);
+
+      const quizContext = totalQuizContacts > 0
+        ? `\n\nSUCKCESS Quiz Reader Segments (${totalQuizContacts} quiz completions):\n- Stage 1-2 (Suck): ${readerSegmentCounts.suck} readers\n- Stage 3-4 (Seek): ${readerSegmentCounts.seek} readers\n- Stage 5-6 (Succeed): ${readerSegmentCounts.succeed} readers\n- Stage 7-8 (Sustain): ${readerSegmentCounts.sustain} readers\n\nInclude quiz stage-based segment insights in your analysis. Reference which stages have the most readers and what actions to take for each segment.`
+        : "";
 
       const aiRes = await fetch(AI_GATEWAY, {
         method: "POST",
@@ -318,8 +334,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: `You are ABBY, an AI business advisor for authors. Analyse CRM contacts and provide actionable insights. Return valid JSON with this exact structure: {"actionList":[{"name":"string","reason":"string"}],"funnelHealth":{"summary":"string","stages":{"new_lead":0,"engaged":0,"warm":0,"hot":0,"customer":0,"vip":0,"cold":0}},"segmentInsights":[{"segment":"string","count":0,"nextAction":"string"}],"predictedConversions":[{"name":"string","likelihood":"string","reason":"string"}]}` },
-            { role: "user", content: `Here are ${summary.length} contacts:\n${JSON.stringify(summary)}\n\nStage distribution: ${JSON.stringify(stageCounts)}\n\nProvide: 1) Top 5 action items 2) Funnel health analysis 3) Segment insights 4) Predicted conversions for next 7 days` },
+            { role: "system", content: `You are ABBY, an AI business advisor for authors. Analyse CRM contacts and provide actionable insights. Return valid JSON with this exact structure: {"actionList":[{"name":"string","reason":"string"}],"funnelHealth":{"summary":"string","stages":{"new_lead":0,"engaged":0,"warm":0,"hot":0,"customer":0,"vip":0,"cold":0}},"segmentInsights":[{"segment":"string","count":0,"nextAction":"string"}],"predictedConversions":[{"name":"string","likelihood":"string","reason":"string"}],"readerSegments":[{"group":"string","count":0,"recommendedAction":"string"}]}` },
+            { role: "user", content: `Here are ${summary.length} contacts:\n${JSON.stringify(summary)}\n\nStage distribution: ${JSON.stringify(stageCounts)}${quizContext}\n\nProvide: 1) Top 5 action items 2) Funnel health analysis 3) Segment insights 4) Predicted conversions for next 7 days 5) Reader segments by SUCKCESS quiz stage (if quiz data exists)` },
           ],
           tools: [{
             type: "function",
@@ -333,8 +349,9 @@ Deno.serve(async (req) => {
                   funnelHealth: { type: "object", properties: { summary: { type: "string" }, stages: { type: "object" } }, required: ["summary", "stages"] },
                   segmentInsights: { type: "array", items: { type: "object", properties: { segment: { type: "string" }, count: { type: "number" }, nextAction: { type: "string" } }, required: ["segment", "count", "nextAction"] } },
                   predictedConversions: { type: "array", items: { type: "object", properties: { name: { type: "string" }, likelihood: { type: "string" }, reason: { type: "string" } }, required: ["name", "likelihood", "reason"] } },
+                  readerSegments: { type: "array", items: { type: "object", properties: { group: { type: "string" }, count: { type: "number" }, recommendedAction: { type: "string" } }, required: ["group", "count", "recommendedAction"] } },
                 },
-                required: ["actionList", "funnelHealth", "segmentInsights", "predictedConversions"],
+                required: ["actionList", "funnelHealth", "segmentInsights", "predictedConversions", "readerSegments"],
               },
             },
           }],
@@ -353,8 +370,11 @@ Deno.serve(async (req) => {
       try {
         intelligence = JSON.parse(toolCall?.function?.arguments || "{}");
       } catch {
-        intelligence = { actionList: [], funnelHealth: { summary: "Unable to analyse", stages: {} }, segmentInsights: [], predictedConversions: [] };
+        intelligence = { actionList: [], funnelHealth: { summary: "Unable to analyse", stages: {} }, segmentInsights: [], predictedConversions: [], readerSegments: [] };
       }
+
+      // Ensure readerSegments exists
+      if (!intelligence.readerSegments) intelligence.readerSegments = [];
 
       return ok({ intelligence });
     }
@@ -370,6 +390,8 @@ Deno.serve(async (req) => {
       const { data: activities } = await sb.from("crm_activity_log").select("type, content, created_at")
         .eq("contact_id", contact_id).order("created_at", { ascending: false }).limit(20);
 
+      const quizInfo = contact.quiz_stage ? `, Quiz Stage: ${contact.quiz_stage}, Quiz Score: ${contact.quiz_score}%` : "";
+
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) return err("AI not configured", 500);
 
@@ -379,8 +401,8 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "You are ABBY, an AI business advisor. Give a short (2-3 sentence) personalised recommendation for how the author should engage this contact next. Be specific and actionable." },
-            { role: "user", content: `Contact: ${contact.full_name}, Email: ${contact.email}, Stage: ${contact.stage}, Score: ${contact.abby_score}, Source: ${contact.source}\nRecent activity: ${JSON.stringify(activities || [])}` },
+            { role: "system", content: "You are ABBY, an AI business advisor. Give a short (2-3 sentence) personalised recommendation for how the author should engage this contact next. Be specific and actionable. If the contact has quiz stage data, reference it in your recommendation." },
+            { role: "user", content: `Contact: ${contact.full_name}, Email: ${contact.email}, Stage: ${contact.stage}, Score: ${contact.abby_score}, Source: ${contact.source}${quizInfo}\nRecent activity: ${JSON.stringify(activities || [])}` },
           ],
           max_completion_tokens: 200,
         }),

@@ -26,6 +26,9 @@ interface CRMContact {
   last_activity_at: string | null;
   tags: string[];
   notes?: string | null;
+  quiz_stage?: string | null;
+  quiz_score?: number | null;
+  quiz_completed_at?: string | null;
 }
 
 interface Activity {
@@ -55,8 +58,30 @@ const STAGE_COLORS: Record<string, string> = {
 
 const ACTIVITY_ICONS: Record<string, string> = {
   note: "📝", stage_change: "↕", opt_in: "✉", purchase: "💳",
-  email_open: "📬", link_click: "🔗", page_visit: "👁",
+  email_open: "📬", link_click: "🔗", page_visit: "👁", quiz_completed: "📊",
 };
+
+const QUIZ_STAGE_COLORS: Record<string, string> = {
+  suck: "#EF4444",
+  seek: "#F59E0B",
+  succeed: "#10B981",
+  sustain: "#8B5CF6",
+};
+
+function getQuizStageColor(quizStage: string): string {
+  const qs = quizStage.toLowerCase();
+  if (qs.includes("1") || qs.includes("2") || qs.includes("suck")) return QUIZ_STAGE_COLORS.suck;
+  if (qs.includes("3") || qs.includes("4") || qs.includes("seek")) return QUIZ_STAGE_COLORS.seek;
+  if (qs.includes("5") || qs.includes("6") || qs.includes("succeed")) return QUIZ_STAGE_COLORS.succeed;
+  if (qs.includes("7") || qs.includes("8") || qs.includes("sustain")) return QUIZ_STAGE_COLORS.sustain;
+  return "#6B7280";
+}
+
+function formatQuizStageLabel(quizStage: string): string {
+  return quizStage
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -143,13 +168,22 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
               )}
             </div>
           </div>
-          <div className="flex items-center gap-3 mt-3">
+          <div className="flex items-center gap-3 mt-3 flex-wrap">
             <span
               className="text-[12px] px-2.5 py-0.5 rounded-full font-semibold text-white"
               style={{ backgroundColor: stageColor }}
             >
               {STAGE_LABELS[contact.stage] || contact.stage}
             </span>
+            {/* Quiz Stage Badge */}
+            {contact.quiz_stage && (
+              <span
+                className="text-[12px] px-2.5 py-0.5 rounded-full font-semibold text-white flex items-center gap-1"
+                style={{ backgroundColor: getQuizStageColor(contact.quiz_stage) }}
+              >
+                📊 {formatQuizStageLabel(contact.quiz_stage)}
+              </span>
+            )}
             <div className="flex items-center gap-1">
               <Star className="h-4 w-4 text-[#D4AF37] fill-[#D4AF37]" />
               <span className="text-sm font-bold text-white">{contact.abby_score}</span>
@@ -158,6 +192,30 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
         </div>
 
         <div className="p-5 space-y-5">
+          {/* Quiz Score Bar */}
+          {contact.quiz_score != null && (
+            <div className="bg-[#F0F4F8] rounded-lg p-3">
+              <div className="flex justify-between text-xs mb-1">
+                <span className="font-semibold text-[#1E3A5F]">Quiz Score</span>
+                <span className="font-bold text-[#D4AF37]">{contact.quiz_score}%</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-gray-200 overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${contact.quiz_score}%`,
+                    background: getQuizStageColor(contact.quiz_stage || ""),
+                  }}
+                />
+              </div>
+              {contact.quiz_completed_at && (
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Completed {new Date(contact.quiz_completed_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Contact Info */}
           <div className="space-y-1.5">
             {contact.phone && (
