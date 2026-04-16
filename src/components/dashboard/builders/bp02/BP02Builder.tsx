@@ -16,6 +16,7 @@ import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 

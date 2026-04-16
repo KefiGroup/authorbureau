@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Video, FileText, Mail, Megaphone, Star, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -137,6 +138,8 @@ export default function BP05Builder({ authorId }: Props) {
       const status = data?.status || "live";
       const liveUrl = data?.liveUrl;
       setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status, liveUrl }));
+      // Fire-and-forget: ensure email sequence exists for BP-05
+      ensureEmailSequence({ authorId: authorId!, nodeId: "BP-05" });
       if (status === "published_pending_ghl") {
         toast.success("Webinars saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
       } else {
