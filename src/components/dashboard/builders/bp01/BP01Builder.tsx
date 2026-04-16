@@ -230,8 +230,8 @@ export default function BP01Builder({ authorId }: Props) {
                 </>
               )}
               {error && (
-                <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                  I hit a snag generating your content. {error}
+                <div className="mt-4 p-3 rounded-md bg-[#D4AF37]/10 text-[#D4AF37] text-sm">
+                  ABBY is taking a moment — please try again in a few seconds.
                   <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>
                     Try Again
                   </Button>
