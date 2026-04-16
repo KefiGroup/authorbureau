@@ -331,70 +331,93 @@ export default function MarketingHub({ onNavigate }: Props) {
   }
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold font-heading">Your Marketing Hub</h1>
         <p className="text-muted-foreground mt-1">
-          Activate and manage your marketing campaigns. Build content first in Brand Products.
+          Activate campaigns, manage email sequences, and track every contact in one place.
         </p>
       </div>
 
-      {/* Stats bar */}
-      <div className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border">
-        <Megaphone className="h-5 w-5 text-primary" />
-        <div className="flex-1">
-          <p className="text-sm font-medium">
-            {activeCount} of {CAMPAIGNS.length} campaigns active{totalLeads > 0 ? ` · ${totalLeads} leads captured` : ""}
-          </p>
-          <div className="w-full bg-muted rounded-full h-1.5 mt-1.5">
-            <div
-              className="bg-primary h-1.5 rounded-full transition-all"
-              style={{ width: `${(activeCount / CAMPAIGNS.length) * 100}%` }}
-            />
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="sequences">Sequences</TabsTrigger>
+          <TabsTrigger value="contacts">Contacts</TabsTrigger>
+          <TabsTrigger value="settings">Settings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview" className="space-y-6 mt-6">
+          {/* Stats bar */}
+          <div className="flex items-center gap-4 p-4 rounded-xl bg-card border border-border">
+            <Megaphone className="h-5 w-5 text-primary" />
+            <div className="flex-1">
+              <p className="text-sm font-medium">
+                {activeCount} of {CAMPAIGNS.length} campaigns active{totalLeads > 0 ? ` · ${totalLeads} leads captured` : ""}
+              </p>
+              <div className="w-full bg-muted rounded-full h-1.5 mt-1.5">
+                <div
+                  className="bg-primary h-1.5 rounded-full transition-all"
+                  style={{ width: `${(activeCount / CAMPAIGNS.length) * 100}%` }}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Abby's Guidance */}
-      {activeCount < CAMPAIGNS.length && (
-        <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/20">
-          <p className="text-sm text-foreground">
-            <span className="font-semibold">Abby says:</span> {getAbbyRecommendation()}
-          </p>
-          {CAMPAIGNS.slice(0, 5).every(c => getCampaignStatus(c) === "not_built") && (
-            <Button
-              size="sm"
-              className="mt-3"
-              onClick={() => navigate("/brand-products")}
-            >
-              Go to Brand Products <ArrowRight className="ml-1 h-3 w-3" />
-            </Button>
+          {/* Abby's Guidance */}
+          {activeCount < CAMPAIGNS.length && (
+            <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/20">
+              <p className="text-sm text-foreground">
+                <span className="font-semibold">Abby says:</span> {getAbbyRecommendation()}
+              </p>
+              {CAMPAIGNS.slice(0, 5).every(c => getCampaignStatus(c) === "not_built") && (
+                <Button
+                  size="sm"
+                  className="mt-3"
+                  onClick={() => navigate("/brand-products")}
+                >
+                  Go to Brand Products <ArrowRight className="ml-1 h-3 w-3" />
+                </Button>
+              )}
+            </div>
           )}
-        </div>
-      )}
 
-      {/* Campaign list */}
-      <div className="space-y-3">
-        {CAMPAIGNS.map((campaign) => {
-          const status = getCampaignStatus(campaign);
-          const isHighlighted = highlightId === campaign.id;
-          return (
-            <CampaignRow
-              key={campaign.id}
-              ref={isHighlighted ? highlightRef : undefined}
-              campaign={campaign}
-              status={status}
-              isHighlighted={isHighlighted}
-              nodeRows={nodeRows}
-              isActivating={activatingCampaign === campaign.id}
-              totalLeads={totalLeads}
-              onActivate={() => handleActivate(campaign)}
-              onPause={() => handlePause(campaign)}
-            />
-          );
-        })}
-      </div>
+          {/* Campaign list */}
+          <div className="space-y-3">
+            {CAMPAIGNS.map((campaign) => {
+              const status = getCampaignStatus(campaign);
+              const isHighlighted = highlightId === campaign.id;
+              return (
+                <CampaignRow
+                  key={campaign.id}
+                  ref={isHighlighted ? highlightRef : undefined}
+                  campaign={campaign}
+                  status={status}
+                  isHighlighted={isHighlighted}
+                  nodeRows={nodeRows}
+                  isActivating={activatingCampaign === campaign.id}
+                  totalLeads={totalLeads}
+                  onActivate={() => handleActivate(campaign)}
+                  onPause={() => handlePause(campaign)}
+                />
+              );
+            })}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="sequences" className="mt-6">
+          <SequencesTab authorId={authorProfileId} />
+        </TabsContent>
+
+        <TabsContent value="contacts" className="mt-6">
+          <ContactsTab authorId={authorProfileId} />
+        </TabsContent>
+
+        <TabsContent value="settings" className="mt-6">
+          <SettingsTab authorId={authorProfileId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
