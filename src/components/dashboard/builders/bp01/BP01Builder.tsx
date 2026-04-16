@@ -45,6 +45,7 @@ export default function BP01Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [leadMagnetUrl, setLeadMagnetUrl] = useState<string | null>(null);
+  const [leadMagnetTitle, setLeadMagnetTitle] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
@@ -92,12 +93,17 @@ export default function BP01Builder({ authorId }: Props) {
       // Fetch BP-02 lead magnet URL
       const { data: bp02Node } = await supabase
         .from("author_nodes")
-        .select("microsite_url")
+        .select("microsite_url, content_json")
         .eq("author_id", authorId)
         .eq("node_id", "BP-02")
         .maybeSingle();
       if (bp02Node?.microsite_url) {
         setLeadMagnetUrl(bp02Node.microsite_url);
+      }
+      if (bp02Node?.content_json) {
+        const bp02Content = bp02Node.content_json as any;
+        const title = bp02Content?.lead_magnets?.[0]?.title || bp02Content?.funnel_name || null;
+        if (title) setLeadMagnetTitle(title);
       }
 
       // Check if content already generated
@@ -274,6 +280,7 @@ export default function BP01Builder({ authorId }: Props) {
             content={content}
             authorName={authorName}
             leadMagnetUrl={leadMagnetUrl}
+            leadMagnetTitle={leadMagnetTitle}
             onActivate={handlePublish}
           />
         )}
@@ -393,15 +400,19 @@ function getNodeEmail(content: any, node: FunnelNode) {
   return null;
 }
 
-function replacePlaceholders(text: string | undefined, leadMagnetUrl: string | null): string {
+function replacePlaceholders(text: string | undefined, leadMagnetUrl: string | null, leadMagnetTitle: string | null = null): string {
   if (!text) return "";
-  const replacement = leadMagnetUrl
+  const urlReplacement = leadMagnetUrl
     ? leadMagnetUrl
     : "Your quiz link will be inserted automatically when BP-02 is built.";
+  const titleReplacement = leadMagnetTitle || "Your Free Resource";
   return text
-    .replace(/\[Lead Magnet URL\]/gi, replacement)
-    .replace(/\[Link to Lead Magnet\]/gi, replacement)
-    .replace(/\[Lead_Magnet_URL\]/gi, replacement);
+    .replace(/\[Lead Magnet URL\]/gi, urlReplacement)
+    .replace(/\[Link to Lead Magnet\]/gi, urlReplacement)
+    .replace(/\[Lead_Magnet_URL\]/gi, urlReplacement)
+    .replace(/\[LEAD MAGNET TITLE\]/gi, titleReplacement)
+    .replace(/\[Lead Magnet Title\]/gi, titleReplacement)
+    .replace(/\[LEAD_MAGNET_TITLE\]/gi, titleReplacement);
 }
 
 /* ---- ReviewStep: Visual Funnel ---- */
@@ -410,11 +421,13 @@ function ReviewStep({
   content,
   authorName,
   leadMagnetUrl,
+  leadMagnetTitle,
   onActivate,
 }: {
   content: any;
   authorName: string;
   leadMagnetUrl: string | null;
+  leadMagnetTitle: string | null;
   onActivate: () => void;
 }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -531,7 +544,7 @@ function ReviewStep({
               <div>
                 <span className="text-xs text-muted-foreground uppercase tracking-wide">Subject</span>
                 <p className="text-lg font-bold mt-0.5">
-                  {replacePlaceholders(selectedEmail.subject, leadMagnetUrl)}
+                  {replacePlaceholders(selectedEmail.subject, leadMagnetUrl, leadMagnetTitle)}
                 </p>
               </div>
 
@@ -540,7 +553,7 @@ function ReviewStep({
                 <div>
                   <span className="text-xs text-muted-foreground uppercase tracking-wide">Preview text</span>
                   <p className="text-sm italic text-muted-foreground mt-0.5">
-                    {replacePlaceholders(selectedEmail.preview_text, leadMagnetUrl)}
+                    {replacePlaceholders(selectedEmail.preview_text, leadMagnetUrl, leadMagnetTitle)}
                   </p>
                 </div>
               )}
@@ -560,7 +573,7 @@ function ReviewStep({
                 <Card className="bg-card">
                   <CardContent className="pt-4">
                     <p className="text-sm whitespace-pre-line leading-relaxed">
-                      {replacePlaceholders(selectedEmail.body, leadMagnetUrl)}
+                      {replacePlaceholders(selectedEmail.body, leadMagnetUrl, leadMagnetTitle)}
                     </p>
                   </CardContent>
                 </Card>
@@ -595,14 +608,14 @@ function ReviewStep({
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold">{authorName}</p>
                         <p className="text-xs text-muted-foreground truncate">
-                          {replacePlaceholders(selectedEmail.subject, leadMagnetUrl)}
+                          {replacePlaceholders(selectedEmail.subject, leadMagnetUrl, leadMagnetTitle)}
                         </p>
                       </div>
                       <span className="text-xs text-muted-foreground shrink-0">now</span>
                     </div>
                     <div className="border-t border-border pt-3">
                       <p className="text-sm whitespace-pre-line leading-relaxed">
-                        {replacePlaceholders(selectedEmail.body, leadMagnetUrl)}
+                        {replacePlaceholders(selectedEmail.body, leadMagnetUrl, leadMagnetTitle)}
                       </p>
                     </div>
                   </div>
