@@ -71,7 +71,7 @@ Generate as JSON with these exact keys:
 study_weeks must have exactly 3 items (Week 1, Week 2, Week 3). Each week must have exactly 7 days. Make everything specific to this author's book content.` }
         ],
         temperature: 0.7,
-        max_tokens: 8192,
+        max_completion_tokens: 8192,
       }),
     });
 

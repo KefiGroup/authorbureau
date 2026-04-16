@@ -135,7 +135,7 @@ YOUR RULES:
           ...conversation_history.slice(-40),
           { role: "user", content: message },
         ],
-        max_tokens: 800,
+        max_completion_tokens: 800,
       }),
     });
 

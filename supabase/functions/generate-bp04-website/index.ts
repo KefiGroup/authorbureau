@@ -123,7 +123,7 @@ Make everything specific to this author's book, niche, and audience. Never use g
           { role: "user", content: userPrompt },
         ],
         temperature: 0.7,
-        max_tokens: 5000,
+        max_completion_tokens: 5000,
       }),
     });
 
