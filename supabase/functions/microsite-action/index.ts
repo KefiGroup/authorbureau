@@ -289,6 +289,8 @@ serve(async (req) => {
               penName,
               bookTitle,
               bookUrl,
+              signOffPhrase: profile.sign_off_phrase || "To your success",
+              quizName: profile.quiz_name || "quiz",
             },
           }),
         });
