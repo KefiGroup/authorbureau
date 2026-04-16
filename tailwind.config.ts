@@ -97,6 +97,10 @@ export default {
           "0%, 100%": { boxShadow: "0 0 20px -4px hsl(38 55% 50% / 0.25), 0 0 40px -8px hsl(38 55% 50% / 0.15)" },
           "50%": { boxShadow: "0 0 30px -4px hsl(38 55% 50% / 0.35), 0 0 60px -8px hsl(38 55% 50% / 0.2)" },
         },
+        "pulse-subtle": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
