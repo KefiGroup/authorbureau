@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Mail, Megaphone, Copy, Download } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Megaphone, Copy, Download } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
@@ -93,17 +93,32 @@ export default function BP03Builder({ authorId }: Props) {
         .eq("node_id", "BP-03")
         .maybeSingle();
 
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") {
-          setTimeout(() => setContent((prev: any) => ({ ...prev, activated: true })), 0);
-        }
-      } else if (node?.content_json && (node.content_json as any)?.source === "BP-02") {
-        // Pre-loaded from Lead Magnets but not yet at content_ready
-        setContent(node.content_json);
-        setStep(2);
+      const status = node?.status;
+      const hasContent = !!node?.content_json;
+      let resumedStep = 0;
+
+      if (status === "live") {
+        if (hasContent) setContent(node!.content_json);
+        resumedStep = 3;
+        setTimeout(() => setContent((prev: any) => ({ ...(prev || node?.content_json || {}), activated: true })), 0);
+      } else if (status === "content_ready" && hasContent) {
+        setContent(node!.content_json);
+        resumedStep = 2;
+      } else if (hasContent && (node!.content_json as any)?.source === "BP-02") {
+        setContent(node!.content_json);
+        resumedStep = 2;
+      } else if (status === "generating") {
+        resumedStep = 1;
       }
+
+      // Fallback: pull bookTitle from stored content if context query missed
+      const storedTitle = (node?.content_json as any)?.book_title;
+      if (storedTitle && !ctx?.book_title) {
+        setBookTitle((prev) => prev || storedTitle);
+      }
+
+      setStep(resumedStep);
+      console.log("[BP-03 mount]", { status, hasContent, step: resumedStep, bookTitleResolved: ctx?.book_title || storedTitle || "(pending)" });
     })();
   }, [authorId]);
 
@@ -428,12 +443,9 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
       </AbbyCard>
 
       <Tabs defaultValue="calendar" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 h-auto">
+        <TabsList className="w-full grid grid-cols-2 h-auto">
           <TabsTrigger value="calendar" className="text-xs py-2">
             <Calendar className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Social Calendar
-          </TabsTrigger>
-          <TabsTrigger value="emails" className="text-xs py-2">
-            <Mail className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Email Sequence
           </TabsTrigger>
           <TabsTrigger value="outreach" className="text-xs py-2">
             <Megaphone className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Outreach Kit
@@ -471,26 +483,11 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
           )}
         </TabsContent>
 
-        {/* Email Sequence Tab */}
-        <TabsContent value="emails" className="mt-4 space-y-3">
-          <AbbyCard>
-            <p className="text-sm text-muted-foreground">
-              These 30 emails follow the same story arc as your social posts — so your followers and your email list hear the same message at the same time.
-            </p>
-          </AbbyCard>
-          {content.email_sequence?.map((email: any, i: number) => (
-            <EmailCard key={i} email={email} index={i} />
-          ))}
-          {(!content.email_sequence || content.email_sequence.length === 0) && (
-            <p className="text-sm text-muted-foreground text-center py-4">Email sequence will appear here after generation.</p>
-          )}
-        </TabsContent>
-
         {/* Outreach Kit Tab */}
         <TabsContent value="outreach" className="mt-4 space-y-3">
           <AbbyCard>
             <p className="text-sm text-muted-foreground">
-              These 5 templates will help you get on podcasts, in the press, and in front of book clubs. Personalised to your book — just copy, paste, and send.
+              These 3 templates will help you get on podcasts, in the press, and in front of book clubs. Personalised to your book — just copy, paste, and send.
             </p>
           </AbbyCard>
           {content.outreach_kit?.map((template: any, i: number) => (
@@ -552,48 +549,6 @@ function PostCard({ post }: { post: any }) {
                 {platformData.hashtags?.length > 0 && (
                   <p className="text-xs text-primary">{platformData.hashtags.map((h: string) => `#${h}`).join(" ")}</p>
                 )}
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-function EmailCard({ email, index }: { email: any; index: number }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Card className="cursor-pointer" onClick={() => setOpen(!open)}>
-      <CardContent className="pt-4 pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs bg-muted px-2 py-0.5 rounded font-medium">Day {email.day || index + 1}</span>
-              <Badge variant="outline" className="text-[10px]">Email {index + 1}</Badge>
-            </div>
-            <p className="font-medium text-sm truncate">{email.subject_a}</p>
-            {email.subject_b && <p className="text-xs text-muted-foreground truncate">A/B: {email.subject_b}</p>}
-          </div>
-          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-        </div>
-        {open && (
-          <div className="mt-3 pt-3 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
-            {email.preview_text && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground">Preview:</span>
-                <p className="text-sm text-muted-foreground">{email.preview_text}</p>
-              </div>
-            )}
-            <div>
-              <span className="text-xs font-medium text-muted-foreground">Body:</span>
-              <p className="text-sm text-muted-foreground whitespace-pre-line mt-1">{email.body}</p>
-            </div>
-            {email.cta && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground">CTA:</span>
-                <p className="text-sm font-medium">{email.cta}</p>
               </div>
             )}
           </div>
