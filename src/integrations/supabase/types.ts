@@ -3900,6 +3900,7 @@ export type Database = {
       social_connections: {
         Row: {
           author_id: string
+          buffer_api_key: string | null
           channel_id: string
           channel_name: string | null
           created_at: string
@@ -3910,6 +3911,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          buffer_api_key?: string | null
           channel_id: string
           channel_name?: string | null
           created_at?: string
@@ -3920,6 +3922,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          buffer_api_key?: string | null
           channel_id?: string
           channel_name?: string | null
           created_at?: string

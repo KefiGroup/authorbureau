@@ -28,17 +28,34 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, buffer_api_key } = await req.json();
     if (!author_id) throw new Error("author_id required");
-
-    const BUFFER_API_KEY = Deno.env.get("BUFFER_API_KEY");
-    const BUFFER_ORG_ID = Deno.env.get("BUFFER_ORG_ID");
-    if (!BUFFER_API_KEY) throw new Error("Social Accounts service is not configured.");
-    if (!BUFFER_ORG_ID) throw new Error("Social Accounts org is not configured.");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceKey);
+
+    // Resolve API key: per-author override > stored key > global env fallback
+    let apiKey = (buffer_api_key || "").trim();
+
+    if (!apiKey) {
+      const { data: existing } = await sb
+        .from("social_connections")
+        .select("buffer_api_key")
+        .eq("author_id", author_id)
+        .not("buffer_api_key", "is", null)
+        .limit(1)
+        .maybeSingle();
+      if (existing?.buffer_api_key) apiKey = existing.buffer_api_key;
+    }
+
+    if (!apiKey) {
+      apiKey = Deno.env.get("BUFFER_API_KEY") || "";
+    }
+
+    const BUFFER_ORG_ID = Deno.env.get("BUFFER_ORG_ID");
+    if (!apiKey) throw new Error("Buffer API key is required. Please paste your key and try again.");
+    if (!BUFFER_ORG_ID) throw new Error("Social Accounts org is not configured.");
 
     const query = `query GetChannels($organizationId: String!) {
       channels(input: { organizationId: $organizationId }) {
@@ -51,7 +68,7 @@ serve(async (req) => {
     const resp = await fetch("https://api.bufferapp.com/graphql", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${BUFFER_API_KEY}`,
+        "Authorization": `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({ query, variables: { organizationId: BUFFER_ORG_ID } }),
@@ -65,13 +82,14 @@ serve(async (req) => {
 
     const channels = (json.data?.channels || []) as Array<{ id: string; name: string; service: string }>;
 
-    // Upsert into social_connections
+    // Upsert into social_connections, persisting the key per author
     const rows = channels.map((c) => ({
       author_id,
       channel_id: c.id,
       platform: normalizePlatform(c.service),
       channel_name: c.name,
       status: "active",
+      buffer_api_key: apiKey,
     }));
 
     if (rows.length > 0) {
@@ -84,8 +102,10 @@ serve(async (req) => {
       }
     }
 
+    const platforms = Array.from(new Set(rows.map((r) => r.platform)));
+
     return new Response(
-      JSON.stringify({ success: true, channels: rows, count: rows.length }),
+      JSON.stringify({ success: true, channels: rows, count: rows.length, platforms }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {

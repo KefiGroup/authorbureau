@@ -5,7 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, CreditCard, Sparkles, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import {
+  ArrowLeft, CreditCard, Sparkles, CheckCircle2, AlertCircle, Loader2,
+  Share2, Linkedin, Instagram, Facebook, Twitter, ExternalLink, RefreshCw,
+} from "lucide-react";
+
+const PLATFORMS = [
+  { key: "linkedin", name: "LinkedIn", Icon: Linkedin },
+  { key: "instagram", name: "Instagram", Icon: Instagram },
+  { key: "facebook", name: "Facebook", Icon: Facebook },
+  { key: "x", name: "X (Twitter)", Icon: Twitter },
+] as const;
+
+function maskKey(k: string): string {
+  if (!k) return "";
+  const tail = k.slice(-4);
+  return "••••••••" + tail;
+}
 
 export default function ConnectSettings() {
   const { user, loading: authLoading } = useAuth();
@@ -13,18 +32,67 @@ export default function ConnectSettings() {
   const [stripeConnected, setStripeConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Social Accounts state
+  const [authorId, setAuthorId] = useState<string | null>(null);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<Set<string>>(new Set());
+  const [apiKey, setApiKey] = useState("");
+  const [savedKeyMask, setSavedKeyMask] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
+
+  const loadConnections = async (aid: string) => {
+    const { data } = await supabase
+      .from("social_connections")
+      .select("platform, buffer_api_key, status")
+      .eq("author_id", aid);
+    const platforms = new Set<string>();
+    let storedKey: string | null = null;
+    (data || []).forEach((row: any) => {
+      if (row.status === "active" && row.platform) platforms.add(row.platform);
+      if (!storedKey && row.buffer_api_key) storedKey = row.buffer_api_key;
+    });
+    setConnectedPlatforms(platforms);
+    setSavedKeyMask(storedKey ? maskKey(storedKey) : null);
+  };
+
   useEffect(() => {
     if (!user?.id) return;
     (async () => {
-      const { data } = await supabase
+      const { data: profile } = await supabase
         .from("author_profiles")
-        .select("stripe_connected_account_id, stripe_onboarding_complete")
+        .select("id, stripe_connected_account_id, stripe_onboarding_complete")
         .eq("user_id", user.id)
         .maybeSingle();
-      setStripeConnected(!!data?.stripe_onboarding_complete);
+      setStripeConnected(!!profile?.stripe_onboarding_complete);
+      if (profile?.id) {
+        setAuthorId(profile.id);
+        await loadConnections(profile.id);
+      }
       setLoading(false);
     })();
   }, [user?.id]);
+
+  const handleSync = async () => {
+    if (!authorId) return;
+    setSyncing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("get-buffer-channels", {
+        body: { author_id: authorId, buffer_api_key: apiKey.trim() || undefined },
+      });
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || "Failed to sync from Buffer");
+
+      await loadConnections(authorId);
+      setApiKey("");
+      const count = data.count ?? 0;
+      toast.success(
+        `Done! I found ${count} connected account${count === 1 ? "" : "s"}. Go back to Social Media and click Activate to schedule your posts.`
+      );
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to sync from Buffer");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   if (authLoading || loading) {
     return (
@@ -33,6 +101,8 @@ export default function ConnectSettings() {
       </div>
     );
   }
+
+  const syncDisabled = syncing || (!apiKey.trim() && !savedKeyMask) || !authorId;
 
   return (
     <div className="min-h-screen bg-background">
@@ -95,6 +165,84 @@ export default function ConnectSettings() {
               <p className="text-sm text-muted-foreground">
                 ABBY manages all your email marketing, lead capture, and nurture sequences natively inside Authors Bureau. No external email tools or connections needed.
               </p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Social Accounts */}
+        <Card className="p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/10">
+              <Share2 className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-semibold text-sm">Social Accounts</p>
+                <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">via Buffer</Badge>
+              </div>
+              <p className="text-sm text-muted-foreground mb-4">
+                Connect your social accounts through Buffer so ABBY can schedule and publish posts on your behalf.
+              </p>
+
+              {/* Buffer API key */}
+              <div className="space-y-2 mb-5">
+                <Label htmlFor="buffer-api-key">Buffer API Key</Label>
+                <Input
+                  id="buffer-api-key"
+                  type="text"
+                  autoComplete="off"
+                  placeholder={savedKeyMask ? `${savedKeyMask}  (saved — paste a new key to replace)` : "Paste your Buffer API key here"}
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Get your key from Buffer → Settings → API → New Key
+                </p>
+                <a
+                  href="https://buffer.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                >
+                  Don't have Buffer? Set it up free <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+
+              {/* Platform list */}
+              <div className="space-y-2 mb-5">
+                {PLATFORMS.map(({ key, name, Icon }) => {
+                  const connected = connectedPlatforms.has(key);
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-3 py-2.5"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm font-medium">{name}</span>
+                      </div>
+                      {connected ? (
+                        <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
+                          <CheckCircle2 className="h-3 w-3 mr-1" /> Connected via Buffer
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px]">
+                          Not Connected
+                        </Badge>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <Button onClick={handleSync} disabled={syncDisabled} size="sm">
+                {syncing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-1.5" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-1.5" />
+                )}
+                Sync from Buffer
+              </Button>
             </div>
           </div>
         </Card>
