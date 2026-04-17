@@ -253,7 +253,7 @@ export default function BP03Builder({ authorId }: Props) {
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">_BP03_GATE_PLACEHOLDER_
+      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
@@ -261,7 +261,7 @@ export default function BP03Builder({ authorId }: Props) {
               <BookProfileQuickForm
                 authorId={authorId}
                 authorName={authorName}
-                onComplete={(t) => { setBookTitle(t); setHasContext(true); }}
+                onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }}
               />
             ) : (
               <>

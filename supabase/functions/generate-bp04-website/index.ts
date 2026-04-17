@@ -23,7 +23,7 @@ serve(async (req) => {
 
     const { data: author, error: authorErr } = await supabase
       .from("author_profiles")
-      .select("pen_name, genres")
+      .select("pen_name, genres, user_id")
       .eq("id", author_id)
       .single();
     if (authorErr || !author) throw new Error("Author profile not found");
@@ -36,16 +36,34 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    // Fallback: if no author_context, read from books table directly
+    let fallbackBook: { title?: string; description?: string; genre?: string } | null = null;
+    if (!context?.book_title && author.user_id) {
+      const { data: book } = await supabase
+        .from("books")
+        .select("title, description, genre")
+        .eq("author_id", author.user_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      fallbackBook = book;
+      console.log("[generate-bp04] Using books fallback:", { title: book?.title });
+    }
+
     const authorName = author.pen_name || "Author";
-    const bookTitle = context?.book_title || "your book";
+    const bookTitle = context?.book_title || fallbackBook?.title || "";
     const bookSubtitle = context?.book_subtitle || "";
-    const coreThesis = context?.core_thesis || "";
+    const coreThesis = context?.core_thesis || fallbackBook?.description || "";
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "general readers";
     const uniqueInsights = context?.unique_insights ? JSON.stringify(context.unique_insights) : "N/A";
-    const genre = Array.isArray(author.genres) ? author.genres[0] || "Non-fiction" : "Non-fiction";
+    const genre = Array.isArray(author.genres) ? author.genres[0] || fallbackBook?.genre || "Non-fiction" : fallbackBook?.genre || "Non-fiction";
 
-    const systemPrompt = `You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.`;
+    if (!bookTitle) {
+      throw new Error("No book found for this author. Please complete your book profile first.");
+    }
+
+    const systemPrompt = `You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. CRITICAL: You MUST write everything specifically for the EXACT book title and core thesis provided by the user. Never substitute a different topic, niche, or domain — even if the title or thesis seems unusual. Never default to generic finance, business, or self-help content unless that is exactly what the book is about. Always respond with valid JSON only — no markdown, no code fences.`;
 
     const userPrompt = `Create complete author website copy for ${authorName}'s book '${bookTitle}'.
 
