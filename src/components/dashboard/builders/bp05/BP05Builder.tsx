@@ -200,11 +200,11 @@ export default function BP05Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's set up your Webinars</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && hasContext === false && !hasBook ? (
               <BookProfileQuickForm
                 authorId={authorId}
                 authorName={authorName}
-                onComplete={(t) => { setBookTitle(t); setHasContext(true); }}
+                onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }}
               />
             ) : (
               <>

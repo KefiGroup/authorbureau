@@ -201,11 +201,11 @@ export default function BP04Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Author Website</h2>
-            {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && hasContext === false && !hasBook ? (
               <BookProfileQuickForm
                 authorId={authorId}
                 authorName={authorName}
-                onComplete={(t) => { setBookTitle(t); setHasContext(true); }}
+                onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }}
               />
             ) : (
               <>

@@ -261,7 +261,7 @@ export default function BP03Builder({ authorId }: Props) {
               <BookProfileQuickForm
                 authorId={authorId}
                 authorName={authorName}
-                onComplete={(t) => { setBookTitle(t); setHasContext(true); }}
+                onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }}
               />
             ) : (
               <>
