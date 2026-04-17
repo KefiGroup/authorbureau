@@ -292,13 +292,34 @@ export default function BP03Builder({ authorId }: Props) {
 
     const { data: existingNode, error: existingNodeError } = await supabase
       .from("author_nodes")
-      .select("id")
+      .select("id, status, activated_at, current_step, content_json")
       .eq("author_id", authorId)
       .eq("node_id", "BP-03")
       .maybeSingle();
 
     if (existingNodeError) {
       throw existingNodeError;
+    }
+
+    const existingContent = (existingNode?.content_json as any) || null;
+    const alreadySavedReviewState =
+      nextStatus === "content_ready" &&
+      !!existingNode &&
+      existingNode.status === "content_ready" &&
+      hasUsableSocialKit(existingContent);
+
+    if (alreadySavedReviewState) {
+      return {
+        id: existingNode.id,
+        status: existingNode.status,
+        activated_at: existingNode.activated_at,
+        current_step: Number(existingNode.current_step ?? targetStep),
+        content_json: {
+          ...existingContent,
+          _currentStep: Number(existingContent?._currentStep ?? existingNode.current_step ?? targetStep),
+          publishStatus: existingNode.status,
+        },
+      };
     }
 
     if (existingNode) {
