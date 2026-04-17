@@ -558,48 +558,6 @@ function PostCard({ post }: { post: any }) {
   );
 }
 
-function EmailCard({ email, index }: { email: any; index: number }) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Card className="cursor-pointer" onClick={() => setOpen(!open)}>
-      <CardContent className="pt-4 pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs bg-muted px-2 py-0.5 rounded font-medium">Day {email.day || index + 1}</span>
-              <Badge variant="outline" className="text-[10px]">Email {index + 1}</Badge>
-            </div>
-            <p className="font-medium text-sm truncate">{email.subject_a}</p>
-            {email.subject_b && <p className="text-xs text-muted-foreground truncate">A/B: {email.subject_b}</p>}
-          </div>
-          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
-        </div>
-        {open && (
-          <div className="mt-3 pt-3 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
-            {email.preview_text && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground">Preview:</span>
-                <p className="text-sm text-muted-foreground">{email.preview_text}</p>
-              </div>
-            )}
-            <div>
-              <span className="text-xs font-medium text-muted-foreground">Body:</span>
-              <p className="text-sm text-muted-foreground whitespace-pre-line mt-1">{email.body}</p>
-            </div>
-            {email.cta && (
-              <div>
-                <span className="text-xs font-medium text-muted-foreground">CTA:</span>
-                <p className="text-sm font-medium">{email.cta}</p>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
 function OutreachCard({ template }: { template: any }) {
   const [copied, setCopied] = useState(false);
 
