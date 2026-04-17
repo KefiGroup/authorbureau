@@ -135,17 +135,6 @@ export default function BP01Builder({ authorId }: Props) {
     }
   }, [step]);
 
-  // Elapsed timer for activating step
-  useEffect(() => {
-    if (step === 3 && !content?.activated) {
-      setActivatingElapsed(0);
-      const start = Date.now();
-      const t = setInterval(() => {
-        setActivatingElapsed(Math.floor((Date.now() - start) / 1000));
-      }, 1000);
-      return () => clearInterval(t);
-    }
-  }, [step, content?.activated]);
 
   const handleGenerate = async () => {
     setStep(1);
