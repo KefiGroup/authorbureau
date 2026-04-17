@@ -12,6 +12,7 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSig
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's unique qualities...", "Designing special edition concepts...", "Creating 3 premium edition tiers...", "Writing your exclusivity sales page...", "Finalising your special editions blueprint..."];

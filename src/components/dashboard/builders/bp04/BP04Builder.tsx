@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Home, User, BookOpen, Mail, Quote, ChevronDown, ChevronUp, Search, MessageSquare } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { toAbbyError } from "@/lib/abby-error";
+import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];

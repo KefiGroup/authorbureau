@@ -12,6 +12,7 @@ import PublishSuccessScreen from "@/components/dashboard/builders/shared/Publish
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 import { toAbbyError } from "@/lib/abby-error";
+import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
