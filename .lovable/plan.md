@@ -1,44 +1,65 @@
 
-Goal: fix only the BP-03 mount resume logic in `src/components/dashboard/builders/bp03/BP03Builder.tsx`, exactly as requested.
+Do I know what the issue is? Yes.
 
-What I found:
-- Pauline’s saved BP-03 backend row does exist and currently has `content_json.posts` populated (`posts_count = 5`).
-- That same row is not reliably marked as activated (`activated_at` is null), so any resume logic that depends on activation/status metadata can miss the saved kit.
-- The current mount effect still mixes multiple heuristics (`hasUsableSocialKit`, `status`, `activated_at`), instead of treating `content_json.posts.length > 0` as the single source of truth.
-- BP03Builder uses zero-based step state, so your requested mapping translates to:
-  - posts exist → `setStep(3)`  (user-visible Step 4 / Activate)
-  - status `generating` → `setStep(1)` (user-visible Step 2 / Generating)
-  - otherwise → `setStep(0)` (user-visible Step 1 / Introduction)
+## What I verified
+- Pauline’s BP-03 row does exist in the database.
+- That row currently has `status = 'content_ready'` and `content_json.posts.length = 5`.
+- The `author_nodes` RLS policy for “authors can manage own nodes” is still present.
+- The Sprint 36b `social_connections` / `social_posts` policies are separate and are not what BP-03 reads on mount.
+- I found no database log evidence of an RLS exception on `author_nodes`.
+
+## Actual root cause
+This does not look like a broken `author_nodes` policy.
+
+The real issue is a session-timing mismatch:
+- `NodeBuilder` gets the signed-in user from the shared auth flow.
+- `BP03Builder` queries `author_nodes` using the project-local database client.
+- On a fresh page load, BP-03 can mount before the project-local auth session is restored.
+- When that happens:
+  - `author_profiles` may still load because Pauline’s profile is public/listed
+  - `books` may still load because the book is published
+  - but `author_nodes` is private, so the query returns no row yet
+- Result: BP-03 silently falls back to Step 1 even though saved posts exist.
+
+That matches the screenshot: Intro screen with saved data still in the backend.
+
+## Fix plan
+### 1) Fix BP-03 to wait for auth restoration before querying saved node state
+Update `src/components/dashboard/builders/bp03/BP03Builder.tsx` to use the existing `useAuthReady()` pattern before running the mount resume query.
 
 Implementation:
-1. In the mount `useEffect`, keep the existing query to `author_nodes` for the current `authorId` + `node_id = 'BP-03'`.
-2. Replace the current resume branching with the exact rule you specified:
-   - Read `const cj = node?.content_json`
-   - Read `const postsCount = Array.isArray(cj?.posts) ? cj.posts.length : 0`
-   - If `postsCount > 0`:
-     - hydrate `content` from `content_json`
-     - send BP-03 directly to the saved final stage with `setStep(3)`
-   - Else if `node?.status === "generating"`:
-     - `setStep(1)`
-   - Else:
-     - `setStep(0)`
-3. Remove the current mount-time dependence on:
-   - `hasUsableSocialKit(...)`
-   - `status === "content_ready"`
-   - `activated_at` / `status === "live"`
-   for deciding the initial step.
-4. Make the mount effect set the resolved step directly, instead of using the current “only move forward” comparison, so the landing state is deterministic on every page load.
+- import `useAuthReady`
+- gate the mount `useEffect` with `isAuthReady`
+- keep the loading shield visible until auth is ready and the resume query finishes
 
-Scope guard:
-- No content generation changes
-- No edge function changes
-- No other builder changes
-- No Marketing Hub changes
-- Only `BP03Builder.tsx`
+### 2) Keep `content_json.posts` as the source of truth for resume
+After auth is ready, run the mount query and use this exact mapping:
+- if `content_json.posts.length > 0` → hydrate content and `setStep(3)` (user-visible Step 4)
+- else if `status === 'generating'` → `setStep(1)`
+- else → `setStep(0)`
 
-Validation after implementation:
-1. Open `authorsbureau.com → Brand Products → Social Media`
-2. Confirm Pauline’s BP-03 opens on the saved post-build stage, not Introduction
-3. Navigate away and come back
-4. Hard refresh the page
-5. Confirm it still lands on the saved BP-03 stage every time
+### 3) Make mount failures silent
+Keep mount-query error handling quiet:
+- log errors with `console.error`
+- fall back to Step 1
+- do not show the “ABBY hit a snag” banner from the mount path
+
+### 4) Small safety cleanup in the same file
+In the mount path only:
+- switch profile lookup from `.single()` to `.maybeSingle()` where appropriate
+- make sure `setError` is only used for generation/save/activate failures, not resume failures
+
+## RLS decision
+No RLS rollback is currently justified.
+From what I inspected, `author_nodes` access rules are still correct. Loosening RLS would mask the real bug and weaken security. The fix should be in BP-03 auth-ready resume timing, not in database policy changes.
+
+## File to change
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+
+## Validation after implementation
+1. Hard refresh BP-03 while signed in
+2. Confirm Pauline lands on Step 4, not Introduction
+3. Navigate away and back
+4. Confirm it still lands on Step 4
+5. Confirm no “ABBY hit a snag” banner appears on mount fallback
+6. Confirm true generation failures still show the banner normally
