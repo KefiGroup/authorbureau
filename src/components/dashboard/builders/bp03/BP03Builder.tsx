@@ -118,7 +118,7 @@ export default function BP03Builder({ authorId }: Props) {
 
         const { data: node, error: nodeErr } = await supabase
           .from("author_nodes")
-          .select("content_json, status, activated_at")
+          .select("content_json, status")
           .eq("author_id", authorId)
           .eq("node_id", "BP-03")
           .maybeSingle();
@@ -127,34 +127,28 @@ export default function BP03Builder({ authorId }: Props) {
 
         const status = node?.status;
         const cj: any = node?.content_json || null;
-        const hasContent = !!cj;
-        const hasUsableKit = hasUsableSocialKit(cj);
-        const isActivated = status === "live" || !!node?.activated_at;
+        const postsCount = Array.isArray(cj?.posts) ? cj.posts.length : 0;
         let resumedStep = 0;
 
-        if (isActivated && hasContent) {
+        if (postsCount > 0) {
           setContent({ ...cj, activated: true, publishStatus: status });
           resumedStep = 3;
-        } else if (hasUsableKit) {
-          // Trust saved content over status — even if status is stuck on "generating"
-          setContent(cj);
-          resumedStep = 2;
-        } else if (status === "content_ready" && hasContent) {
-          setContent(cj);
-          resumedStep = 2;
         } else if (status === "generating") {
+          setContent(null);
           resumedStep = 1;
+        } else {
+          setContent(null);
         }
 
-        const storedTitle = (node?.content_json as any)?.book_title;
+        const storedTitle = cj?.book_title;
         if (storedTitle) {
           setBookTitle((prev) => prev || storedTitle);
           setHasContext(true);
         }
 
-        setStep((prev) => (resumedStep > prev ? resumedStep : prev));
+        setStep(resumedStep);
         hasResumed.current = true;
-        console.log("[BP-03 resume] resolved", { status, hasContent, resumedStep });
+        console.log("[BP-03 resume] resolved", { status, postsCount, resumedStep });
       } catch (resumeError) {
         console.error("[BP-03 resume] Failed to restore builder state:", resumeError);
       } finally {
