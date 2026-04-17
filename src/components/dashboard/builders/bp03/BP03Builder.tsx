@@ -471,11 +471,37 @@ export default function BP03Builder({ authorId }: Props) {
               penNameSlug={authorSlug}
               abbyMessage={content?.abbyMessage || "Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts."}
             />
-            <div className="mt-4 flex justify-center">
-              <Button onClick={handlePublish} className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                Schedule posts now
-              </Button>
+            <div
+              className="mt-6 rounded-xl border-2 border-primary bg-primary/5 p-5 text-center"
+              style={{ position: "relative", zIndex: 50 }}
+            >
+              <p className="text-sm font-semibold mb-3">
+                Posts not scheduled yet? Click below to schedule them now:
+              </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  console.log("[BP-03] Re-run schedule clicked");
+                  handlePublish();
+                }}
+                style={{
+                  display: "inline-block",
+                  padding: "12px 24px",
+                  background: "hsl(var(--primary))",
+                  color: "hsl(var(--primary-foreground))",
+                  border: "none",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                  position: "relative",
+                  zIndex: 51,
+                }}
+              >
+                ✨ Schedule posts now
+              </button>
             </div>
             <BackToReviewLink onClick={() => setStep(2)} />
           </>
