@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Video, FileText, Mail, Megaphone, Star, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 import { toAbbyError } from "@/lib/abby-error";
@@ -211,6 +212,9 @@ export default function BP05Builder({ authorId }: Props) {
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Webinars are one of the most powerful ways to connect with your audience, establish your expertise, and sell your book and programs. I'm going to design a complete webinar system for '{detectedBookTitle || bookTitle || "your book"}' — including 3 signature webinar topics, a registration page, a follow-up email sequence, and a promotional strategy. Ready to go live?
                 </p>
+                <div className="mb-4">
+                  <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-05"]} />
+                </div>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Design My Webinars
                 </Button>
@@ -248,11 +252,14 @@ export default function BP05Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BP-05"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-            />
+          <>
+            <PublishSuccessScreen
+                nodeId="BP-05"
+                authorName={authorName}
+                penNameSlug={authorSlug}
+              />
+            <BackToReviewLink onClick={() => setStep(2)} />
+          </>
         )}
       </div>
     </div>

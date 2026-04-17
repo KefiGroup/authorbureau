@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Eye, Zap } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 
@@ -257,6 +258,9 @@ export default function BP01Builder({ authorId }: Props) {
                     your welcome sequence, your list-building strategy, and your first campaign. This will run
                     automatically in the background. Ready to see what I've prepared for you?
                   </p>
+                  <div className="mb-4">
+                    <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-01"]} />
+                  </div>
                   <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                     <Sparkles className="h-4 w-4 mr-2" /> Generate My Email Marketing
                   </Button>
@@ -312,11 +316,14 @@ export default function BP01Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BP-01"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-            />
+          <>
+            <PublishSuccessScreen
+                nodeId="BP-01"
+                authorName={authorName}
+                penNameSlug={authorSlug}
+              />
+            <BackToReviewLink onClick={() => setStep(2)} />
+          </>
         )}
       </div>
     </div>

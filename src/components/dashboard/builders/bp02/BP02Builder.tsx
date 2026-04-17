@@ -481,6 +481,9 @@ export default function BP02Builder({ authorId }: Props) {
                   Hi {authorName}! A lead magnet is a free resource you give readers in exchange for their email address — it's how you build your list.
                   I'm going to create 2 lead magnet concepts — a Quiz and a Checklist — perfectly matched to '{detectedBookTitle || bookTitle || "your book"}', plus a complete opt-in page that captures subscribers automatically. Ready?
                 </p>
+                <div className="mb-4">
+                  <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-02"]} />
+                </div>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Generate My Lead Magnets
                 </Button>
