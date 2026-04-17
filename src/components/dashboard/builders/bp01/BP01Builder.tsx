@@ -46,7 +46,6 @@ export default function BP01Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
-  const [activatingElapsed, setActivatingElapsed] = useState(0);
   const [leadMagnetUrl, setLeadMagnetUrl] = useState<string | null>(null);
   const [leadMagnetTitle, setLeadMagnetTitle] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -136,17 +135,6 @@ export default function BP01Builder({ authorId }: Props) {
     }
   }, [step]);
 
-  // Elapsed timer for activating step
-  useEffect(() => {
-    if (step === 3 && !content?.activated) {
-      setActivatingElapsed(0);
-      const start = Date.now();
-      const t = setInterval(() => {
-        setActivatingElapsed(Math.floor((Date.now() - start) / 1000));
-      }, 1000);
-      return () => clearInterval(t);
-    }
-  }, [step, content?.activated]);
 
   const handleGenerate = async () => {
     setStep(1);
@@ -287,7 +275,7 @@ export default function BP01Builder({ authorId }: Props) {
                 {GENERATING_MESSAGES[msgIndex]}
               </p>
               <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
-              <p className="text-xs text-muted-foreground">This usually takes 15–30 seconds</p>
+              <p className="text-xs text-muted-foreground">Abby usually takes 15–30 seconds</p>
             </div>
           </AbbyCard>
         )}
@@ -307,18 +295,11 @@ export default function BP01Builder({ authorId }: Props) {
         {step === 3 && !content?.activated && (
           <AbbyCard>
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-muted-foreground font-medium animate-pulse">
-                  {ACTIVATING_MESSAGES[msgIndex % ACTIVATING_MESSAGES.length]}
-                </p>
-                <span className="text-xs font-mono tabular-nums text-muted-foreground shrink-0">
-                  {Math.floor(activatingElapsed / 60)}:{String(activatingElapsed % 60).padStart(2, "0")}
-                </span>
-              </div>
-              <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
-              <p className="text-xs text-muted-foreground text-center">
-                This usually takes 30–60 seconds. Connecting to your Marketing Hub and saving your sequence…
+              <p className="text-muted-foreground font-medium animate-pulse">
+                {ACTIVATING_MESSAGES[msgIndex % ACTIVATING_MESSAGES.length]}
               </p>
+              <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
+              <p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p>
             </div>
           </AbbyCard>
         )}
