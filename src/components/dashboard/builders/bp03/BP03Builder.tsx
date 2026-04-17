@@ -16,6 +16,8 @@ import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/component
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
+import { fetchWithTimeout } from "@/lib/get-active-token";
+import { sharedSupabase } from "@/lib/shared-backend";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -42,6 +44,50 @@ function hasUsableSocialKit(value: any) {
 
 interface Props {
   authorId: string | null;
+}
+
+async function getBp03AuthToken(): Promise<string | null> {
+  try {
+    const { data: sharedSession } = await sharedSupabase.auth.getSession();
+    if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
+  } catch (_error) {
+    // Ignore and fall back to Cloud below.
+  }
+
+  try {
+    const { data: cloudSession } = await supabase.auth.getSession();
+    if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
+  } catch (_error) {
+    // Ignore and return null below.
+  }
+
+  return null;
+}
+
+async function fetchBp03NodeState(body: Record<string, unknown>) {
+  const token = await getBp03AuthToken();
+  if (!token) {
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  const response = await fetchWithTimeout(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-node-state`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    },
+  );
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.success) {
+    throw new Error(result?.error || "We couldn't save your social media kit.");
+  }
+
+  return result;
 }
 
 export default function BP03Builder({ authorId }: Props) {
@@ -81,62 +127,18 @@ export default function BP03Builder({ authorId }: Props) {
       setError(null);
 
       try {
-        const { data: profile, error: profileErr } = await supabase
-          .from("author_profiles")
-          .select("pen_name, author_slug, user_id")
-          .eq("id", authorId)
-          .maybeSingle();
+        const result = await fetchBp03NodeState({ action: "load", author_id: authorId });
         if (cancelled) return;
-        if (profileErr) console.error("[BP-03 resume] profile error:", profileErr);
+
+        const profile = result.profile as { pen_name?: string; author_slug?: string } | null;
+        const node = result.node as { content_json?: any; status?: string; current_step?: number } | null;
+        const resolvedBookTitle = typeof result.book_title === "string" ? result.book_title : "";
+        const resolvedHasContext = Boolean(result.has_context ?? resolvedBookTitle);
 
         setAuthorName(profile?.pen_name || "there");
         setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-
-        const { data: ctx } = await supabase
-          .from("author_context")
-          .select("book_title")
-          .eq("author_id", authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (cancelled) return;
-
-        if (ctx?.book_title) {
-          setBookTitle(ctx.book_title);
-          setHasContext(true);
-        } else {
-          const userId = profile?.user_id || authorId;
-          const { data: book } = await supabase
-            .from("books")
-            .select("title")
-            .eq("author_id", userId)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          if (cancelled) return;
-
-          if (book?.title) {
-            setBookTitle(book.title);
-            setHasContext(true);
-          } else {
-            setHasContext(false);
-          }
-        }
-
-        const { data: node, error: nodeErr } = await supabase
-          .from("author_nodes")
-          .select("content_json, status, current_step")
-          .eq("author_id", authorId)
-          .eq("node_id", "BP-03")
-          .maybeSingle();
-        if (cancelled) return;
-
-        if (nodeErr) {
-          console.error("BP03 resume query error:", nodeErr);
-          setContent(null);
-          setStep(0);
-          return;
-        }
+        setBookTitle(resolvedBookTitle);
+        setHasContext(resolvedHasContext);
 
         const status = node?.status;
         const cj: any = node?.content_json || null;
@@ -276,83 +278,14 @@ export default function BP03Builder({ authorId }: Props) {
       throw new Error("Generate your starter kit before saving it.");
     }
 
-    const targetStep = nextStatus === "live" ? 3 : 2;
-
-    const payload = {
+    const result = await fetchBp03NodeState({
+      action: "save",
+      author_id: authorId,
       status: nextStatus,
-      current_step: targetStep,
-      content_json: {
-        ...(content || {}),
-        _currentStep: targetStep,
-        publishStatus: nextStatus,
-      },
-      personalised_name: content?.calendar_name || "Social Media Starter Kit",
-      ...(nextStatus === "live" ? { activated_at: new Date().toISOString() } : {}),
-    };
+      content,
+    });
 
-    const { data: existingNode, error: existingNodeError } = await supabase
-      .from("author_nodes")
-      .select("id, status, activated_at, current_step, content_json")
-      .eq("author_id", authorId)
-      .eq("node_id", "BP-03")
-      .maybeSingle();
-
-    if (existingNodeError) {
-      throw existingNodeError;
-    }
-
-    const existingContent = (existingNode?.content_json as any) || null;
-    const alreadySavedReviewState =
-      nextStatus === "content_ready" &&
-      !!existingNode &&
-      existingNode.status === "content_ready" &&
-      hasUsableSocialKit(existingContent);
-
-    if (alreadySavedReviewState) {
-      return {
-        id: existingNode.id,
-        status: existingNode.status,
-        activated_at: existingNode.activated_at,
-        current_step: Number(existingNode.current_step ?? targetStep),
-        content_json: {
-          ...existingContent,
-          _currentStep: Number(existingContent?._currentStep ?? existingNode.current_step ?? targetStep),
-          publishStatus: existingNode.status,
-        },
-      };
-    }
-
-    if (existingNode) {
-      const { data: updatedNode, error: updateError } = await supabase
-        .from("author_nodes")
-        .update(payload)
-        .eq("id", existingNode.id)
-        .select("id, status, activated_at, current_step, content_json")
-        .single();
-
-      if (updateError) {
-        throw updateError;
-      }
-
-      return updatedNode;
-    }
-
-    const { data: insertedNode, error: insertError } = await supabase
-      .from("author_nodes")
-      .insert({
-        author_id: authorId,
-        node_id: "BP-03",
-        node_name: "Social Media",
-        ...payload,
-      })
-      .select("id, status, activated_at, current_step, content_json")
-      .single();
-
-    if (insertError) {
-      throw insertError;
-    }
-
-    return insertedNode;
+    return result.node;
   };
 
   const handleSave = async () => {
