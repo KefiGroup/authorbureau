@@ -23,10 +23,8 @@ export function useAuthorBook(): AuthorBookResult {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Wait until the auth session has been fully restored
     if (!isReady) return;
 
-    // No authenticated user — nothing to fetch
     if (!user) {
       setHasBook(false);
       setBookTitle("your book");
@@ -39,22 +37,21 @@ export function useAuthorBook(): AuthorBookResult {
       setIsLoading(true);
       try {
         const authUserId = user.id;
-        const userEmail = user.email?.toLowerCase() || null;
         console.log("[useAuthorBook] auth user ready:", authUserId);
 
-        // Query books directly with auth.users.id
-        const booksQuery = supabase
+        // Use limit(1) + [0] to safely handle the case where multiple book rows exist
+        // (.maybeSingle() throws PGRST116 when >1 row matches)
+        const { data: booksData, error: bookError } = await supabase
           .from("books")
           .select("title, author_name, genre")
           .eq("author_id", authUserId)
           .order("created_at", { ascending: false })
           .limit(1);
 
-        const { data: bookData, error: bookError } = await booksQuery.maybeSingle();
-
         if (bookError) {
           console.error("[useAuthorBook] Error querying books:", bookError);
         }
+        const bookData = booksData?.[0] || null;
 
         // Fallback: check author_context using author_profiles.id
         let contextTitle: string | null = null;
@@ -66,21 +63,20 @@ export function useAuthorBook(): AuthorBookResult {
             .maybeSingle();
 
           if (profile?.id) {
-            const { data: contextData } = await supabase
+            const { data: contextRows } = await supabase
               .from("author_context")
               .select("book_title")
               .eq("author_id", profile.id)
               .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            contextTitle = contextData?.book_title || null;
+              .limit(1);
+            contextTitle = contextRows?.[0]?.book_title || null;
           }
         }
 
         const detectedTitle = bookData?.title || contextTitle || null;
+        console.log("[useAuthorBook] resolved title:", detectedTitle);
 
         if (detectedTitle) {
-          console.log("[useAuthorBook] Book found:", detectedTitle);
           setHasBook(true);
           setBookTitle(detectedTitle);
           setBook({

@@ -49,18 +49,22 @@ export default function BookProfileQuickForm({ authorId, authorName, onComplete 
         .maybeSingle();
 
       if (existingCtx?.id) {
-        await supabase.from("author_context").update({
+        const { error: ctxUpdErr } = await supabase.from("author_context").update({
           book_title: title.trim(),
           core_thesis: transformation.trim(),
           target_audience_persona: { description: idealReader.trim() },
         }).eq("id", existingCtx.id);
+        console.log("[BookProfileQuickForm] author_context update:", { ctxUpdErr });
+        if (ctxUpdErr) throw ctxUpdErr;
       } else {
-        await supabase.from("author_context").insert({
+        const { error: ctxInsErr } = await supabase.from("author_context").insert({
           author_id: authorId,
           book_title: title.trim(),
           core_thesis: transformation.trim(),
           target_audience_persona: { description: idealReader.trim() },
         });
+        console.log("[BookProfileQuickForm] author_context insert:", { ctxInsErr });
+        if (ctxInsErr) throw ctxInsErr;
       }
 
       // Only insert a book if the author doesn't already have one with this title
