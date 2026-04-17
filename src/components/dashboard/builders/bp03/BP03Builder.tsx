@@ -443,12 +443,9 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
       </AbbyCard>
 
       <Tabs defaultValue="calendar" className="w-full">
-        <TabsList className="w-full grid grid-cols-3 h-auto">
+        <TabsList className="w-full grid grid-cols-2 h-auto">
           <TabsTrigger value="calendar" className="text-xs py-2">
             <Calendar className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Social Calendar
-          </TabsTrigger>
-          <TabsTrigger value="emails" className="text-xs py-2">
-            <Mail className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Email Sequence
           </TabsTrigger>
           <TabsTrigger value="outreach" className="text-xs py-2">
             <Megaphone className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Outreach Kit
