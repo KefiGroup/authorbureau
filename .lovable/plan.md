@@ -1,64 +1,44 @@
-<final-text>## Root cause
 
-This is not primarily a React re-render/dependency bug.
+Goal: fix only the BP-03 mount resume logic in `src/components/dashboard/builders/bp03/BP03Builder.tsx`, exactly as requested.
 
-I traced the failure to a broken BP-03 state machine:
-
-- The latest `author_nodes` row for `BP-03` is currently `status = 'generating'`
-- That same row still contains saved review content (`posts`, `outreach_kit`, `calendar_name`)
-- The `generate-bp03-social-media` backend logged a real failure: AI gateway `502`
-
-So the actual sequence is:
-
-1. BP-03 already has a valid saved kit
-2. User re-generates or retries
-3. `generate-bp03-social-media` immediately changes the node to `status='generating'`
-4. The AI call fails before completion
-5. The backend never restores the previous good status
-6. On refresh, `BP03Builder` trusts the stale `generating` status and sends the user back into the pre-review flow
-7. The UI also worsens this by doing `setStep(0)` on generation error
-
-That is why the issue keeps coming back: the saved backend record is being left in the wrong status after a failed rerun.
-
-## What to fix
-
-### 1) Fix the backend root cause
-Update `supabase/functions/generate-bp03-social-media/index.ts` so failed reruns do not leave a previously-saved node stuck in `generating`.
+What I found:
+- Pauline’s saved BP-03 backend row does exist and currently has `content_json.posts` populated (`posts_count = 5`).
+- That same row is not reliably marked as activated (`activated_at` is null), so any resume logic that depends on activation/status metadata can miss the saved kit.
+- The current mount effect still mixes multiple heuristics (`hasUsableSocialKit`, `status`, `activated_at`), instead of treating `content_json.posts.length > 0` as the single source of truth.
+- BP03Builder uses zero-based step state, so your requested mapping translates to:
+  - posts exist → `setStep(3)`  (user-visible Step 4 / Activate)
+  - status `generating` → `setStep(1)` (user-visible Step 2 / Generating)
+  - otherwise → `setStep(0)` (user-visible Step 1 / Introduction)
 
 Implementation:
-- Read the existing BP-03 node before writing progress
-- Track:
-  - previous status
-  - whether a usable saved kit already exists
-- During generation, it can still write progress
-- But in the `catch` path:
-  - if there was already a valid saved kit, restore the previous stable status (`content_ready` or `live`)
-  - only leave `generating` if there was no prior valid content at all
+1. In the mount `useEffect`, keep the existing query to `author_nodes` for the current `authorId` + `node_id = 'BP-03'`.
+2. Replace the current resume branching with the exact rule you specified:
+   - Read `const cj = node?.content_json`
+   - Read `const postsCount = Array.isArray(cj?.posts) ? cj.posts.length : 0`
+   - If `postsCount > 0`:
+     - hydrate `content` from `content_json`
+     - send BP-03 directly to the saved final stage with `setStep(3)`
+   - Else if `node?.status === "generating"`:
+     - `setStep(1)`
+   - Else:
+     - `setStep(0)`
+3. Remove the current mount-time dependence on:
+   - `hasUsableSocialKit(...)`
+   - `status === "content_ready"`
+   - `activated_at` / `status === "live"`
+   for deciding the initial step.
+4. Make the mount effect set the resolved step directly, instead of using the current “only move forward” comparison, so the landing state is deterministic on every page load.
 
-### 2) Make BP-03 resume logic content-aware
-Update `src/components/dashboard/builders/bp03/BP03Builder.tsx` so resume is based on usable saved content, not just the raw status string.
+Scope guard:
+- No content generation changes
+- No edge function changes
+- No other builder changes
+- No Marketing Hub changes
+- Only `BP03Builder.tsx`
 
-Implementation:
-- Treat BP-03 as resumable to Review when `content_json` already has the saved review payload
-- If saved posts/outreach content exists, open Review even if status temporarily says `generating`
-- Only show the Generating step when there is no usable saved review content yet
-
-### 3) Stop forcing the user back to Intro on transient failures
-In `handleGenerate`:
-- remove the unconditional `setStep(0)` on error
-- if prior saved content exists, keep the user on Review and show the error message there
-- only fall back to Intro when there is truly no saved content
-
-## Files to change
-- `supabase/functions/generate-bp03-social-media/index.ts`
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
-
-## Why the previous fixes did not hold
-They focused on the resume `useEffect` firing pattern, but the persistent bad state is coming from the backend record itself. Even a perfect mount effect will keep reopening the wrong step if the node is left as `generating` after a failed regeneration.
-
-## Validation
-1. Open an existing BP-03 kit -> lands on Review
-2. Refresh -> still lands on Review
-3. Trigger a failed regeneration -> refresh -> still lands on Review
-4. Live BP-03 nodes still reopen correctly in activated state
-5. Brand-new BP-03 with no prior content still behaves normally during first generation</final-text>
+Validation after implementation:
+1. Open `authorsbureau.com → Brand Products → Social Media`
+2. Confirm Pauline’s BP-03 opens on the saved post-build stage, not Introduction
+3. Navigate away and come back
+4. Hard refresh the page
+5. Confirm it still lands on the saved BP-03 stage every time
