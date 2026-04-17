@@ -148,8 +148,14 @@ export default function BP03Builder({ authorId }: Props) {
         }
 
         if (postsCount > 0) {
-          setContent({ ...cj, activated: true, publishStatus: status });
-          setStep(3);
+          // Respect actual node status: live → success screen, otherwise → Review (so users can edit)
+          if (status === "live") {
+            setContent({ ...cj, activated: true, publishStatus: status });
+            setStep(3);
+          } else {
+            setContent({ ...cj, activated: false, publishStatus: status });
+            setStep(2);
+          }
         } else if (status === "generating") {
           setContent(null);
           setStep(1);
