@@ -45,17 +45,32 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("revenue");
   const [slug, setSlug] = useState(authorSlug || "");
+  const [funnelStats, setFunnelStats] = useState({ count: 0, views: 0, conversions: 0 });
 
-  // Fetch author slug if not provided
+  // Fetch author slug + funnel stats
   useEffect(() => {
-    if (authorSlug || !user) return;
+    if (!user) return;
     (async () => {
-      const { data } = await supabase
+      const { data: profile } = await supabase
         .from("author_profiles")
-        .select("author_slug")
+        .select("id, author_slug")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data?.author_slug) setSlug(data.author_slug);
+      if (!authorSlug && profile?.author_slug) setSlug(profile.author_slug);
+      if (profile?.id) {
+        const { data: funnels } = await supabase
+          .from("funnels")
+          .select("page_views, conversions")
+          .eq("author_id", profile.id)
+          .eq("status", "live");
+        if (funnels) {
+          setFunnelStats({
+            count: funnels.length,
+            views: funnels.reduce((s, f) => s + (f.page_views || 0), 0),
+            conversions: funnels.reduce((s, f) => s + (f.conversions || 0), 0),
+          });
+        }
+      }
     })();
   }, [user, authorSlug]);
 
@@ -67,6 +82,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const earnings = grossSales - platformFee - stripeFees;
 
   const micrositeUrl = slug ? `${window.location.origin}/${slug}` : null;
+  const funnelConvRate = funnelStats.views > 0 ? (funnelStats.conversions / funnelStats.views) * 100 : 0;
 
   const copyLink = () => {
     if (micrositeUrl) {
@@ -207,6 +223,41 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
               </Card>
             ))}
           </div>
+
+          {/* Funnels performance */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-secondary" />
+                  Funnel Performance
+                </h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Live opt-in & lead capture pages built by ABBY</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={() => onNavigate?.("my-funnels")}>
+                Manage Funnels <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-muted/40">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Funnels</p>
+                <p className="text-2xl font-heading font-bold mt-1">{funnelStats.count}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Views</p>
+                <p className="text-2xl font-heading font-bold mt-1">{funnelStats.views.toLocaleString()}</p>
+              </div>
+              <div className="p-3 rounded-lg bg-muted/40">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Conversions</p>
+                <p className="text-2xl font-heading font-bold mt-1 text-accent">
+                  {funnelStats.conversions.toLocaleString()}
+                  {funnelStats.views > 0 && (
+                    <span className="text-xs text-muted-foreground font-normal ml-1.5">({funnelConvRate.toFixed(1)}%)</span>
+                  )}
+                </p>
+              </div>
+            </div>
+          </Card>
         </TabsContent>
 
         <TabsContent value="traffic" className="mt-4">
