@@ -6,201 +6,214 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+const SYSTEM_PROMPT =
+  "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. Always personalise to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.";
+
+async function callAI(userPrompt: string, maxTokens: number) {
+  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "openai/gpt-5.2",
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: userPrompt },
+      ],
+      max_completion_tokens: maxTokens,
+    }),
+  });
+  if (!resp.ok) {
+    const txt = await resp.text();
+    if (resp.status === 429) throw new Error("Rate limit exceeded — please try again in a moment");
+    if (resp.status === 402) throw new Error("Payment required — AI credits exhausted");
+    throw new Error(`AI gateway error [${resp.status}]: ${txt.slice(0, 200)}`);
+  }
+  const data = await resp.json();
+  const raw = data.choices?.[0]?.message?.content || "";
+  const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("No valid JSON in AI response");
+  return JSON.parse(match[0]);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const { author_id } = await req.json();
     if (!author_id) throw new Error("author_id required");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const sb = createClient(supabaseUrl, serviceKey);
+    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: profile } = await sb.from("author_profiles").select("pen_name, genres, user_id").eq("id", author_id).single();
-    const { data: ctx } = await sb.from("author_context").select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: profile } = await sb.from("author_profiles")
+      .select("pen_name, genres, user_id").eq("id", author_id).single();
+    const { data: ctx } = await sb.from("author_context")
+      .select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
 
-    // Fallback to books table if no author_context
     let bookTitle = ctx?.book_title || "";
-    let bookSubtitle = ctx?.book_subtitle || "";
     let coreThesis = ctx?.core_thesis || "";
-    let keyFrameworks = JSON.stringify(ctx?.key_frameworks || []);
-    let uniqueInsights = JSON.stringify(ctx?.unique_insights || []);
-    let audiencePersona = JSON.stringify(ctx?.target_audience_persona || {});
-
     if (!bookTitle) {
-      const { data: book } = await sb.from("books").select("title, subtitle, description").eq("author_id", profile?.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (book) {
-        bookTitle = book.title || "";
-        bookSubtitle = book.subtitle || "";
-        coreThesis = book.description || "";
-      }
+      const { data: book } = await sb.from("books")
+        .select("title, description").eq("author_id", profile?.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      bookTitle = book?.title || "";
+      coreThesis = book?.description || "";
     }
     if (!bookTitle) throw new Error("No book found. Please add a book first.");
 
     const authorName = profile?.pen_name || "Author";
     const genre = (profile?.genres && profile.genres[0]) || "general";
+    const audience = JSON.stringify(ctx?.target_audience_persona || {});
+    const frameworks = JSON.stringify(ctx?.key_frameworks || []);
 
-    const userPrompt = `Create a complete 30-day marketing kit for ${authorName}'s book '${bookTitle}'.
+    const baseContext = `
+Book: ${bookTitle}
+Author: ${authorName}
+Niche: ${genre}
+Core thesis: ${coreThesis}
+Target audience: ${audience}
+Key frameworks: ${frameworks}
+`.trim();
 
-Book details:
-- Title: ${bookTitle}
-- Subtitle: ${bookSubtitle || "N/A"}
-- Core thesis: ${coreThesis}
-- Target audience persona: ${audiencePersona}
-- Key frameworks: ${keyFrameworks}
-- Unique insights: ${uniqueInsights}
-- Niche: ${genre}
+    // Helper to write progress
+    const setProgress = async (step: number, label: string, partial: Record<string, unknown> = {}) => {
+      const { data: existingNode } = await sb.from("author_nodes")
+        .select("id, content_json").eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
+      const merged = { ...(existingNode?.content_json as object || {}), ...partial, progress: { step, label, total: 3 } };
+      if (existingNode) {
+        await sb.from("author_nodes").update({ status: "generating", content_json: merged }).eq("id", existingNode.id);
+      } else {
+        await sb.from("author_nodes").insert({
+          author_id, node_id: "BP-03", node_name: "Social Media",
+          status: "generating", content_json: merged,
+        });
+      }
+    };
 
-IMPORTANT INSTRUCTIONS:
+    // STEP 1 — LinkedIn (5 posts)
+    await setProgress(1, "Writing LinkedIn posts...");
+    const step1 = await callAI(
+      `${baseContext}
 
-1. SOCIAL MEDIA — Generate exactly 30 posts. Each post MUST have platform-specific content for all 4 platforms with these requirements:
-   - LinkedIn: Narrative with line breaks, insight-driven, professional thought leadership tone, 150–200 words
-   - Instagram: Visual-first caption, hook in line 1, conversational and aspirational, 80–120 words
-   - Facebook: Story-format post with question at end, warm community-focused tone, 100–150 words
-   - Twitter/X: Sharp thread opener, punchy and provocative, 40–60 words
+Generate exactly 5 LinkedIn posts for the book above. Each post: narrative with line breaks, insight-driven, professional thought leadership tone, 150–200 words. Each ends with a CTA pointing to the book.
 
-2. 4-WEEK STORY ARC — Posts MUST follow this narrative structure:
-   - Week 1 (Days 1–7): Establish the Problem — Surface the pain from the book's opening chapters
-   - Week 2 (Days 8–14): Introduce the Framework — Name the author's methodology, tease the solution using key_frameworks
-   - Week 3 (Days 15–21): Share Transformations — Social proof, reader results, case studies from the book
-   - Week 4 (Days 22–30): Make the Offer — Direct promotion, book/workbook/course/webinar, urgency
-
-3. REVENUE-LINKED CTAs — Every post must end with a CTA:
-    - Tips/Insights posts: "Get the full framework in ${bookTitle} — link in bio"
-    - Story posts: "This is from my book. Want the rest? Link in bio."
-    - Engagement posts: "Comment YES if you want my free [lead magnet]"
-    - Week 3 social proof: "This could be your story. Start here → [book link]"
-    - Week 4 promotional: "Get ${bookTitle} now — link in bio"
-   - Every 7th post: Direct lead magnet opt-in CTA
-
-4. EMAIL SEQUENCE — Generate exactly 30 emails matching the same 4-week story arc. Each email has:
-   - subject_a and subject_b (A/B test variants)
-   - preview_text
-   - body (200-400 words, matches the day's social theme)
-   - cta (specific action with link placeholder)
-   - day (1-30)
-
-5. OUTREACH KIT — Generate exactly 5 templates:
-   - Podcast Pitch Email (200–250 words)
-   - Media / Press Pitch Email (200–250 words)
-   - Book Review Request Email (100–150 words)
-   - Book Club Outreach Email (150–200 words)
-   - Colleague / Friend Referral Email (80–100 words)
-   Each has: type, subject, body
-
-Respond with valid JSON only (no markdown fences):
+Respond with JSON only:
 {
-  "calendar_name": "Name for this calendar",
-  "hashtag_strategy": {
-    "primary_hashtags": ["3-5 main hashtags"],
-    "secondary_hashtags": ["5-8 supporting hashtags"],
-    "author_hashtag": "#UniqueAuthorHashtag"
-  },
-  "posts": [
-    {
-      "day": 1,
-      "post_type": "Type (Quote, Tip, Behind the Scenes, Book Excerpt, Question, Story, Announcement)",
-      "theme": "Core message",
-      "cta_type": "insight|story|engagement|social_proof|promotional|lead_magnet",
-      "linkedin": { "caption": "...", "hashtags": ["..."] },
-      "instagram": { "caption": "...", "hashtags": ["..."] },
-      "facebook": { "caption": "...", "hashtags": ["..."] },
-      "twitter": { "caption": "...", "hashtags": ["..."] }
-    }
-  ],
-  "email_sequence": [
-    {
-      "day": 1,
-      "subject_a": "Subject line variant A",
-      "subject_b": "Subject line variant B",
-      "preview_text": "Preview text",
-      "body": "Full email body",
-      "cta": "Call to action"
-    }
-  ],
-  "outreach_kit": [
-    {
-      "type": "Podcast Pitch Email",
-      "subject": "Subject line",
-      "body": "Full template body"
-    }
-  ],
-  "posting_schedule": {
-    "recommended_days": ["Monday", "Wednesday", "Friday"],
-    "recommended_time": "9:00 AM local time",
-    "rationale": "Why this schedule works"
-  },
-  "abby_summary": "2-3 sentence summary of what was created"
+  "linkedin_posts": [
+    { "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
+  ]
 }
+The array must have exactly 5 items.`,
+      6000
+    );
 
-The posts array must have exactly 30 items. The email_sequence array must have exactly 30 items. The outreach_kit array must have exactly 5 items.
-Make ALL content specific to this author's book themes, frameworks, and insights. Never use generic placeholder text.`;
+    // STEP 2 — Instagram + Facebook (5 + 5)
+    await setProgress(2, "Writing Instagram & Facebook posts...", step1);
+    const step2 = await callAI(
+      `${baseContext}
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+Generate exactly 5 Instagram posts and 5 Facebook posts for the book above.
+- Instagram: visual-first caption, hook in line 1, conversational and aspirational, 80–120 words.
+- Facebook: story-format with question at end, warm community-focused tone, 100–150 words.
+Each ends with a CTA pointing to the book.
 
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5",
-        messages: [
-          {
-            role: "system",
-            content: "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.",
-          },
-          { role: "user", content: userPrompt },
-        ],
-        // temperature omitted — openai/gpt-5 only supports default (1)
-        max_completion_tokens: 32000,
-      }),
-    });
+Respond with JSON only:
+{
+  "instagram_posts": [{ "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }],
+  "facebook_posts": [{ "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }]
+}
+Each array must have exactly 5 items.`,
+      8000
+    );
 
-    if (!aiResp.ok) {
-      const errText = await aiResp.text();
-      throw new Error(`AI gateway error [${aiResp.status}]: ${errText}`);
-    }
+    // STEP 3 — Twitter/X + 3 outreach templates
+    await setProgress(3, "Writing Twitter/X posts and outreach templates...", { ...step1, ...step2 });
+    const step3 = await callAI(
+      `${baseContext}
 
-    const aiData = await aiResp.json();
-    const raw = aiData.choices?.[0]?.message?.content || "";
+Generate exactly 5 Twitter/X posts and 3 outreach email templates for the book above.
+- Twitter/X: sharp thread opener, punchy and provocative, 40–60 words. Each ends with a CTA pointing to the book.
+- Outreach templates: (1) Podcast Pitch Email (200–250 words), (2) Media/Press Pitch Email (200–250 words), (3) Book Review Request Email (100–150 words).
 
-    // Parse JSON — handle possible code fences
-    const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error("No valid JSON found in AI response");
+Respond with JSON only:
+{
+  "twitter_posts": [{ "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }],
+  "outreach_kit": [{ "type": "Podcast Pitch Email", "subject": "...", "body": "..." }],
+  "calendar_name": "Short name for this starter kit",
+  "abby_summary": "2-3 sentence summary of what was created",
+  "hashtag_strategy": {
+    "primary_hashtags": ["3-5"],
+    "secondary_hashtags": ["5-8"],
+    "author_hashtag": "#..."
+  }
+}
+The twitter_posts array must have exactly 5 items. The outreach_kit array must have exactly 3 items.`,
+      6000
+    );
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    // Compose final content_json — keep `posts` shape compatible with the existing review UI
+    const merged = { ...step1, ...step2, ...step3 } as Record<string, any>;
+    const linkedin = merged.linkedin_posts || [];
+    const instagram = merged.instagram_posts || [];
+    const facebook = merged.facebook_posts || [];
+    const twitter = merged.twitter_posts || [];
 
-    // Save to author_nodes
-    const { data: existingNode } = await sb.from("author_nodes").select("id").eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
-
-    if (existingNode) {
-      await sb.from("author_nodes").update({
-        status: "content_ready",
-        content_json: parsed,
-        personalised_name: parsed.calendar_name || "Social Media Marketing Kit",
-      }).eq("id", existingNode.id);
-    } else {
-      await sb.from("author_nodes").insert({
-        author_id,
-        node_id: "BP-03",
-        node_name: "Social Media",
-        status: "content_ready",
-        content_json: parsed,
-        personalised_name: parsed.calendar_name || "Social Media Marketing Kit",
+    // Build the unified `posts` array (one entry per day, with all 4 platforms)
+    const days = Math.max(linkedin.length, instagram.length, facebook.length, twitter.length);
+    const posts = [];
+    for (let i = 0; i < days; i++) {
+      const li = linkedin[i] || {};
+      const ig = instagram[i] || {};
+      const fb = facebook[i] || {};
+      const tw = twitter[i] || {};
+      posts.push({
+        day: i + 1,
+        theme: li.theme || ig.theme || fb.theme || tw.theme || "",
+        post_type: "Insight",
+        cta_type: "insight",
+        linkedin: { caption: li.caption || "", hashtags: li.hashtags || [] },
+        instagram: { caption: ig.caption || "", hashtags: ig.hashtags || [] },
+        facebook: { caption: fb.caption || "", hashtags: fb.hashtags || [] },
+        twitter: { caption: tw.caption || "", hashtags: tw.hashtags || [] },
       });
     }
 
-    return new Response(JSON.stringify({ success: true, content: parsed }), {
+    const finalContent = {
+      calendar_name: merged.calendar_name || "Social Media Starter Kit",
+      hashtag_strategy: merged.hashtag_strategy || { primary_hashtags: [], secondary_hashtags: [], author_hashtag: "" },
+      posts,
+      outreach_kit: merged.outreach_kit || [],
+      abby_summary: merged.abby_summary || `Your social media starter kit for '${bookTitle}' is ready — 20 posts across 4 platforms plus 3 outreach templates.`,
+      // Note: 30-day email sequence intentionally dropped — handled by the Email Engine.
+    };
+
+    // Save final
+    const { data: existingNode } = await sb.from("author_nodes")
+      .select("id").eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
+    if (existingNode) {
+      await sb.from("author_nodes").update({
+        status: "content_ready",
+        content_json: finalContent,
+        personalised_name: finalContent.calendar_name,
+      }).eq("id", existingNode.id);
+    } else {
+      await sb.from("author_nodes").insert({
+        author_id, node_id: "BP-03", node_name: "Social Media",
+        status: "content_ready", content_json: finalContent,
+        personalised_name: finalContent.calendar_name,
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, content: finalContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("generate-bp03-social-media error:", err);
-    return new Response(JSON.stringify({ success: false, error: err.message }), {
+    return new Response(JSON.stringify({ success: false, error: (err as Error).message }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
