@@ -11,6 +11,7 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, Video, FileText, Mail, Megaphon
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
+import { toAbbyError } from "@/lib/abby-error";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -217,7 +218,7 @@ export default function BP05Builder({ authorId }: Props) {
             )}
             {error && (
               <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                I hit a snag generating your content. {error}
+                I hit a snag generating your content. {toAbbyError(error)}
                 <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button>
               </div>
             )}

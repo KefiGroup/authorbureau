@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Mail, Megaphone, Copy, Download } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import JSZip from "jszip";
+import { toAbbyError } from "@/lib/abby-error";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -246,7 +247,7 @@ export default function BP03Builder({ authorId }: Props) {
             )}
             {error && (
               <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                I hit a snag generating your content. {error}
+                I hit a snag generating your content. {toAbbyError(error)}
                 <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button>
               </div>
             )}

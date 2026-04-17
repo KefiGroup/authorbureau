@@ -18,6 +18,7 @@ import SocialDistributionPack from "./SocialDistributionPack";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
+import { toAbbyError } from "@/lib/abby-error";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
@@ -487,7 +488,7 @@ export default function BP02Builder({ authorId }: Props) {
             )}
             {error && (
               <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                I hit a snag generating your content. {error}
+                I hit a snag generating your content. {toAbbyError(error)}
                 <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button>
               </div>
             )}
@@ -528,7 +529,7 @@ export default function BP02Builder({ authorId }: Props) {
               }
             }}
             onSaveDraft={handleSaveDraft}
-            error={error}
+            error={toAbbyError(error)}
             isSavingDraft={isSavingDraft}
           />
         )}
@@ -543,7 +544,7 @@ export default function BP02Builder({ authorId }: Props) {
             onSaveDraft={handleSaveDraft}
             isPublishing={isPublishing}
             isSavingDraft={isSavingDraft}
-            error={error}
+            error={toAbbyError(error)}
           />
         )}
 
@@ -1289,7 +1290,7 @@ function ReviewStep({
         </Button>
       </div>
       {error && (
-        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">{error}</div>
+        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">{toAbbyError(error)}</div>
       )}
     </div>
   );
@@ -1399,7 +1400,7 @@ function PublishStep({
         </Button>
       </div>
       {error && (
-        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">{error}</div>
+        <div className="p-3 rounded-md bg-destructive/10 text-destructive text-sm text-center">{toAbbyError(error)}</div>
       )}
     </div>
   );

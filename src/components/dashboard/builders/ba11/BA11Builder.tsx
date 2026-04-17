@@ -11,6 +11,7 @@ import { Sparkles, ArrowRight, Mic, BookOpen, DollarSign, Globe } from "lucide-r
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
+import { toAbbyError } from "@/lib/abby-error";
 
 const GEN_MSGS = ["Analysing your book's structure for audio...", "Writing your narrator brief...", "Creating chapter-by-chapter recording guides...", "Researching distribution platforms...", "Finalising your audiobook package..."];
 const ACT_MSGS = ["Preparing your audiobook production package...", "Setting up your distribution strategy...", "Creating your production checklist...", "Almost ready..."];
@@ -109,7 +110,7 @@ export default function BA11Builder({ authorId }: Props) {
               <><p className="text-muted-foreground mb-4">Hi {authorName}! Audiobooks are one of the fastest-growing formats in publishing. I'm going to prepare your complete audiobook production package — with a narrator brief, chapter-by-chapter recording guide, and distribution strategy for Audible, Spotify, and Apple Books. Ready to go audio?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Prepare My Audiobook</Button></>
             )}
-            {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
+            {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}

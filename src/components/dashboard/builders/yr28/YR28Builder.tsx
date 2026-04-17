@@ -11,6 +11,7 @@ import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, Succ
 import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
+import { toAbbyError } from "@/lib/abby-error";
 
 const GEN_MSGS = ["Designing your sponsorship programme...", "Creating sponsorship packages...", "Building your pitch deck outline...", "Finalising your outreach strategy..."];
 const ACT_MSGS = ["Setting up your enquiry pipeline...", "Creating payment links...", "Almost ready..."];
@@ -52,7 +53,7 @@ export default function YR28Builder({ authorId }: Props) {
     <div className="min-h-screen bg-background">
       <StepHeader nodeId="YR-28" nodeName="Exhibitors & Sponsors" step={step} />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Sponsorship Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Attracting exhibitors and sponsors to your events turns your audience into a revenue asset. I'm going to design your complete sponsorship and exhibitor programme — with packages, a pitch deck outline, and an outreach strategy. Ready to attract sponsors?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Sponsorship Programme</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
+        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Sponsorship Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Attracting exhibitors and sponsors to your events turns your audience into a revenue asset. I'm going to design your complete sponsorship and exhibitor programme — with packages, a pitch deck outline, and an outreach strategy. Ready to attract sponsors?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Sponsorship Programme</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
           <div className="space-y-4">
