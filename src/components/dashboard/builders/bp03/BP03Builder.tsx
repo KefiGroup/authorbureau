@@ -536,17 +536,30 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
       </Tabs>
 
       {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={handleDownloadZip} disabled={downloading}>
-          <Download className="h-4 w-4 mr-2" />{downloading ? "Downloading..." : "Download Marketing Kit"}
-        </Button>
-        <Button className="flex-1" size="lg" onClick={onActivate}>
-          Activate <ArrowRight className="h-4 w-4 ml-2" />
-        </Button>
+      <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
+        <p className="text-sm font-semibold text-foreground">What do you want to do next?</p>
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <Button variant="outline" className="w-full" onClick={handleDownloadZip} disabled={downloading}>
+              <Download className="h-4 w-4 mr-2" />{downloading ? "Downloading..." : "Download Marketing Kit"}
+            </Button>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Get a ZIP file with all 20 posts, captions, hashtags & outreach templates. Use it to post manually or hand off to your VA / social media manager.
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <Button className="w-full" size="default" onClick={onActivate}>
+              Activate <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Auto-schedule all 20 posts across LinkedIn, Instagram, Facebook & X via your connected marketing account. Posts go out on the recommended days — hands-free.
+            </p>
+          </div>
+        </div>
+        <p className="text-xs text-center text-muted-foreground pt-1 border-t border-border">
+          ✓ 20 posts ready across 4 platforms · ✓ 3 outreach templates · ✓ Already saved to your account
+        </p>
       </div>
-      <p className="text-xs text-center text-muted-foreground">
-        20 posts ready across 4 platforms + 3 outreach templates.
-      </p>
     </div>
   );
 }
