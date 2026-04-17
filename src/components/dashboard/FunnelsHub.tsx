@@ -41,6 +41,19 @@ const COLOR_PRESETS = [
   { bg: "#111827", accent: "#F472B6", name: "Charcoal + Pink" },
 ];
 
+interface LiveNode {
+  node_id: string;
+  microsite_url: string | null;
+}
+
+const FUNNEL_ELIGIBLE_NODES = ["BP-02", "BP-04", "BP-05", "BP-09"];
+const NODE_TO_FUNNEL_TYPE: Record<string, string> = {
+  "BP-02": "lead_magnet",
+  "BP-04": "opt_in",
+  "BP-05": "webinar_registration",
+  "BP-09": "sales",
+};
+
 export default function FunnelsHub() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [authorSlug, setAuthorSlug] = useState<string | null>(null);
@@ -50,6 +63,8 @@ export default function FunnelsHub() {
   const [saving, setSaving] = useState(false);
   const [regenerateTarget, setRegenerateTarget] = useState<Funnel | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
+  const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -63,7 +78,7 @@ export default function FunnelsHub() {
       if (!profile) { setLoading(false); return; }
       setAuthorId(profile.id);
       setAuthorSlug(profile.author_slug);
-      await loadFunnels(profile.id);
+      await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id)]);
       setLoading(false);
     })();
   }, []);
@@ -77,8 +92,37 @@ export default function FunnelsHub() {
     setFunnels((data as Funnel[]) || []);
   };
 
+  const loadLiveNodes = async (aid: string) => {
+    const { data } = await supabase
+      .from("author_nodes")
+      .select("node_id, microsite_url, status")
+      .eq("author_id", aid)
+      .in("node_id", FUNNEL_ELIGIBLE_NODES)
+      .eq("status", "live");
+    setLiveNodes((data as LiveNode[]) || []);
+  };
+
   const liveUrl = (slug: string) =>
     authorSlug ? `${window.location.origin}/${authorSlug}/${slug}` : "";
+
+  const generateForNode = async (nodeId: string) => {
+    if (!authorId) return;
+    setGeneratingNodeId(nodeId);
+    const { error } = await supabase.functions.invoke("generate-funnel", {
+      body: {
+        author_id: authorId,
+        node_id: nodeId,
+        funnel_type: NODE_TO_FUNNEL_TYPE[nodeId] || "opt_in",
+      },
+    });
+    setGeneratingNodeId(null);
+    if (error) {
+      toast({ title: "ABBY couldn't build that funnel", description: "Please try again in a moment.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Funnel generated!" });
+    await loadFunnels(authorId);
+  };
 
   const toggleStatus = async (f: Funnel) => {
     const newStatus = f.status === "live" ? "paused" : "live";
@@ -152,13 +196,53 @@ export default function FunnelsHub() {
         </p>
       </div>
 
+      {liveNodes.length > 0 && (
+        <Card className="mb-6 border-primary/40 bg-primary/5">
+          <CardContent className="py-5">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold mb-1">ABBY noticed something</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  You already have {liveNodes.length === 1 ? "a live product" : `${liveNodes.length} live products`}. Want me to build a high-converting opt-in funnel for {liveNodes.length === 1 ? "it" : "each"}? Takes about 30 seconds.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {liveNodes.map((n) => {
+                    const hasFunnel = funnels.some((f) => f.node_id === n.node_id);
+                    if (hasFunnel) return null;
+                    const isGen = generatingNodeId === n.node_id;
+                    return (
+                      <Button
+                        key={n.node_id}
+                        size="sm"
+                        onClick={() => generateForNode(n.node_id)}
+                        disabled={!!generatingNodeId}
+                      >
+                        {isGen ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Generate funnel for {NODE_NAMES[n.node_id] || n.node_id}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {funnels.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-16 text-center">
             <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary opacity-60" />
             <h3 className="text-xl font-semibold mb-2">No funnels yet</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Publish a Lead Magnet, Webinar, Author Website, or Book Sales page and ABBY will generate a high-converting funnel for it automatically.
+              {liveNodes.length > 0
+                ? "Click a button above to let ABBY build your first funnel."
+                : "Publish a Lead Magnet, Webinar, Author Website, or Book Sales page and ABBY will generate a high-converting funnel for it automatically."}
             </p>
           </CardContent>
         </Card>

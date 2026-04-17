@@ -46,13 +46,68 @@ interface NavItem {
   notificationCount?: number;
 }
 
+// 5-minute TTL cached counter to avoid "0 built" flicker on hydration
+const CACHE_TTL_MS = 5 * 60 * 1000;
+function readCachedCount(key: string): number {
+  if (typeof window === "undefined") return 0;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return 0;
+    const parsed = JSON.parse(raw) as { value: number; ts: number };
+    if (Date.now() - parsed.ts > CACHE_TTL_MS) return 0;
+    return typeof parsed.value === "number" ? parsed.value : 0;
+  } catch {
+    return 0;
+  }
+}
+function writeCachedCount(key: string, value: number) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(key, JSON.stringify({ value, ts: Date.now() }));
+  } catch {
+    /* ignore quota errors */
+  }
+}
+
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
   isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
-  buildUnlocked = 0, buildAuthorityUnlocked = 0, yieldUnlocked = 0,
+  buildUnlocked: buildUnlockedProp = 0,
+  buildAuthorityUnlocked: buildAuthorityUnlockedProp = 0,
+  yieldUnlocked: yieldUnlockedProp = 0,
   stripeConnected = false, pendingReviewCount = 0,
   buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
 }: Props) {
+
+  // Hydrate from cache to prevent "0 built" flash, then update from live props
+  const [buildUnlocked, setBuildUnlocked] = useState(() =>
+    buildUnlockedProp > 0 ? buildUnlockedProp : readCachedCount("ab_bp_built_count")
+  );
+  const [buildAuthorityUnlocked, setBuildAuthorityUnlocked] = useState(() =>
+    buildAuthorityUnlockedProp > 0 ? buildAuthorityUnlockedProp : readCachedCount("ab_ba_built_count")
+  );
+  const [yieldUnlocked, setYieldUnlocked] = useState(() =>
+    yieldUnlockedProp > 0 ? yieldUnlockedProp : readCachedCount("ab_yr_built_count")
+  );
+
+  useEffect(() => {
+    if (buildUnlockedProp > 0) {
+      setBuildUnlocked(buildUnlockedProp);
+      writeCachedCount("ab_bp_built_count", buildUnlockedProp);
+    }
+  }, [buildUnlockedProp]);
+  useEffect(() => {
+    if (buildAuthorityUnlockedProp > 0) {
+      setBuildAuthorityUnlocked(buildAuthorityUnlockedProp);
+      writeCachedCount("ab_ba_built_count", buildAuthorityUnlockedProp);
+    }
+  }, [buildAuthorityUnlockedProp]);
+  useEffect(() => {
+    if (yieldUnlockedProp > 0) {
+      setYieldUnlocked(yieldUnlockedProp);
+      writeCachedCount("ab_yr_built_count", yieldUnlockedProp);
+    }
+  }, [yieldUnlockedProp]);
 
   const bypassLocks = isPremium || isAdmin;
 
