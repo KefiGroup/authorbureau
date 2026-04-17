@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import SequencesTab from "./marketing-hub/SequencesTab";
+import SocialCalendarTab from "./marketing-hub/SocialCalendarTab";
 import ContactsTab from "./marketing-hub/ContactsTab";
 import SettingsTab from "./marketing-hub/SettingsTab";
 
@@ -341,9 +342,10 @@ export default function MarketingHub({ onNavigate }: Props) {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+        <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="sequences">Sequences</TabsTrigger>
+          <TabsTrigger value="social-calendar">Social Calendar</TabsTrigger>
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -408,6 +410,10 @@ export default function MarketingHub({ onNavigate }: Props) {
 
         <TabsContent value="sequences" className="mt-6">
           <SequencesTab authorId={authorProfileId} />
+        </TabsContent>
+
+        <TabsContent value="social-calendar" className="mt-6">
+          <SocialCalendarTab authorId={authorProfileId} />
         </TabsContent>
 
         <TabsContent value="contacts" className="mt-6">

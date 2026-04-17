@@ -133,3 +133,7 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.track-funnel-view]
     verify_jwt = false
+  [functions.get-buffer-channels]
+    verify_jwt = false
+  [functions.schedule-social-posts]
+    verify_jwt = false
