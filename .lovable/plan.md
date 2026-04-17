@@ -1,61 +1,74 @@
 
 
-## Sprint 35 — ABBY Funnel Engine: Plan
+## Sprint 35b — Fix Broken Author Flows
 
-### Audit findings (conflicts to resolve)
+Six bugs across BP-03/04/05/09 builders, Funnels Hub, and the sidebar counter. All native (no GHL). Plain-English ABBY voice throughout.
 
-1. **Route collision** — `/:authorSlug/:bookSlug` is already used by `AuthorSubpageResolver` which routes to MicrositePage / AuthorBookPage. Sprint 35's `/[author-slug]/[page-slug]` would collide.
-   - **Fix**: extend `AuthorSubpageResolver` to also check the new `funnels` table (live status). Resolution order: known node slug → dynamic microsite node → **funnel slug (NEW)** → book slug. No new route entry needed; quiz funnel `/free-gift` continues to resolve via existing path unchanged.
-2. **Sidebar location** — Spec says insert "My Funnels" between "My Author's Page" and "My CRM" in the YOUR BRAND section of `DashboardSidebar.tsx` (line 186-188). Clean insertion, no conflicts.
-3. **Section-based routing** — Per memory, dashboard uses `?section=` query params, not sub-routes. So "My Funnels" should be a new dashboard section (`?section=my-funnels`), not a top-level `/my-funnels` route. I'll deviate from the spec here to follow project convention (and confirm in plan).
-4. **AI model** — Spec says GPT-4o; project standard is Lovable AI Gateway with `openai/gpt-5.2` for generation. Will use gpt-5.2.
-5. **Email sequence hook** — Sprint 34's `email_flows.node_id` already maps; `submit-funnel` will reuse `trigger-sequence` (already built).
-6. **No conflicts** with Sprint 34 (Marketing Hub, email engine), quiz funnel, CRM, or admin.
+### Bug 1 — BP-04 "Edge Function" error
+- **Edge function (`generate-bp04-website`)**: add detailed `console.log` for inputs (author_id, hasContext, prompt length), wrap LLM call with explicit error capture, switch model to `openai/gpt-5.2` (project standard) and tighten `max_completion_tokens` to 4000 to avoid timeout. Return user-safe error string in `error` field instead of raw exception.
+- **Friendly error wrapper**: create `src/lib/abby-error.ts` with `toAbbyError(err)` that converts any technical/edge-function/network error into:
+  > "ABBY hit a snag and needs a moment to recover. Please click 'Try Again' — this usually resolves itself. If it keeps happening, reach out to support."
+- **All 28 builders**: replace inline `{error}` rendering with `{toAbbyError(error)}`. Try Again button already exists in most; verify presence and that it does NOT reset `step` to 0 mid-generation (only on retry click).
 
-### Phase A — Database (1 migration)
-- Create `funnels` table (id, author_id, node_id, funnel_type, title, slug, headline, subheadline, body_copy, cta_text, cta_url, hero_image_url, background_color, accent_color, status, page_views, conversions, published_at, timestamps, UNIQUE(author_id, slug))
-- Create `funnel_submissions` table (id, funnel_id, author_id, email, name, phone, custom_fields, ip, utm_*, created_at)
-- RLS: authors manage own; public can SELECT live funnels; public can INSERT submissions
-- Index on (author_id, slug) and (status)
+### Bug 2 — BP-03 stuck at 75%
+Refactor `generate-bp03-social-media` into 3 sequential LLM calls invoked from one orchestrator function:
+1. LinkedIn (5 posts, 150–200 words)
+2. Instagram (5) + Facebook (5)
+3. X/Twitter (5) + 3 outreach email templates
 
-### Phase B — Edge functions (3 new)
-1. **`generate-funnel`** — Lovable AI Gateway (`openai/gpt-5.2`), reads `author_context` + `author_profiles` + `books`, generates headline/subheadline/body/CTA/title/slug per funnel_type focus. Saves draft to `funnels`. `verify_jwt = true`.
-2. **`submit-funnel`** — Public endpoint (`verify_jwt = false`). Validates live funnel, inserts submission, upserts `leads` (with `abby_score=5`, `stage='new'`, source='funnel'), inserts `lead_activities`, increments conversions, calls `trigger-sequence` if matching `email_flows.node_id` exists.
-3. **`track-funnel-view`** — Public, increments `page_views`. `verify_jwt = false`.
+Drop the 30-day email sequence (handled by Sprint 34 Email Engine). Stream progress via incremental status updates written to `author_nodes.content_json.progress` (polled every 2s by client) so the UI shows: "Writing LinkedIn... ✓", "Now Instagram + Facebook...", "Almost there — outreach templates...".
 
-### Phase C — Public funnel renderer
-- New component `src/pages/FunnelPage.tsx` (dark navy + gold theme, mobile-first, no sidebar/nav)
-- Layout: minimal header → headline → subheadline → body → opt-in form (first name + email + CTA) → privacy note → author footer + "Powered by Authors Bureau"
-- On mount: call `track-funnel-view`. On submit: call `submit-funnel`, show inline thank-you (or redirect if `cta_url` set)
-- **Wire into `AuthorSubpageResolver.tsx`**: add a funnel-slug check (Supabase query against `funnels` where slug = bookSlug AND status = 'live') in the resolution order before falling back to AuthorBookPage. Quiz funnel path untouched.
+Update BP-03 introduction copy to:
+> "I'm going to create your social media starter kit for '${bookTitle}' — 20 ready-to-post pieces across LinkedIn, Instagram, Facebook, and X, plus 3 outreach email templates. Ready?"
 
-### Phase D — Funnel management UI
-- New section `?section=my-funnels` (following project routing convention) — file: `src/components/dashboard/FunnelsHub.tsx`
-- Card grid: title, node badge, type badge, status badge, views/conversions/rate, live URL, actions (Preview / Edit inline / Go Live-Pause / Copy Link)
-- Inline editor: headline, subheadline, body, CTA, bg/accent color preset swatches, Save, "Regenerate with ABBY" (with confirm dialog)
-- ABBY empty-state message
-- Add to `DashboardSidebar.tsx` between "My Author's Page" and "My CRM" with `Filter` icon, no lock badge (all tiers)
+Update `GENERATING_MESSAGES` array to match the 3-step flow.
 
-### Phase E — Node builder integration
-- Helper `src/lib/funnel-generation-hook.ts` (mirror of `email-sequence-hook.ts`): idempotent fire-and-forget call to `generate-funnel`
-- Wire into BP-02 (opt_in), BP-04 (opt_in), BP-05 (webinar_registration), BP-09 (sales) — call after existing content generation step. No UI restructure; reuses existing builder publish hooks alongside `ensureEmailSequence`.
+### Bug 3 — BP-05 / BP-09 dead-end gate
+Replace the "Complete Book Profile" redirect block in `BP05Builder.tsx` and `BP09Builder.tsx` with an inline `BookProfileQuickForm` component (3 fields: title, ideal reader, transformation). On submit, upsert into `author_context` and `books`, then proceed directly to ABBY's intro (no redirect). Skip entirely when all 3 fields already populated.
 
-### Phase F — Revenue Dashboard
-- Add "Funnel Performance" table section to `src/pages/RevenueFullDashboard.tsx`: Funnel Name | Node | Views | Conversions | Conv. Rate | Status. Sort by conversions desc. Empty state "No funnels yet".
+Apply same fix to BP-04 and BP-08 (same pattern present).
 
-### Phase G — Memory + QA
-- Save `mem://sprints/sprint-35-abby-funnel-engine` with reuse decisions (route resolver merge, gpt-5.2 over gpt-4o, section-based routing instead of `/my-funnels` top-level route, reuses Sprint 34 trigger-sequence)
-- QA: 11-step checklist from spec, plus regression tests for quiz funnel, microsite, book pages, BP-02 publish flow
+### Bug 4 — "'your book'" placeholder
+Audit all 28 builders. Pattern is already mostly correct (`{detectedBookTitle || "your book"}`) but `useAuthorBook` may resolve `detectedBookTitle` async, leaving the literal showing. Fix:
+- In each builder, gate the intro card render on `!isBookLoading` so the title is resolved before display.
+- Add fallback chain: `detectedBookTitle || ctxBookTitle || bookTitle || "your book"`.
+- Ensure the fallback string appears only when truly no book exists (in which case Bug 3's inline form should trigger instead).
 
-### Deviations from spec (flagged)
-| Spec | Decision | Reason |
-|---|---|---|
-| `/my-funnels` top-level route | `?section=my-funnels` dashboard section | Project memory: dashboard uses query-param sections |
-| GPT-4o | `openai/gpt-5.2` via Lovable AI Gateway | Project standard, no API key needed |
-| New `/[author-slug]/[page-slug]` route | Extend existing `AuthorSubpageResolver` | Avoids React Router collision with microsite/book routes |
+### Bug 5 — My Funnels retroactive prompt
+In `FunnelsHub.tsx`, when `funnels.length === 0`:
+- Query `author_nodes` for any live BP-02/04/05/09.
+- If found, render an ABBY card:
+  > "You already have a live lead magnet at authorsbureau.com/${authorSlug}/free-gift. Want me to build a high-converting opt-in landing page for it? Takes about 30 seconds."
+  > [Generate My Opt-In Page →]
+- Button calls `generate-funnel` with `{ author_id, node_id: 'BP-02', funnel_type: 'lead_magnet' }`, then reloads the list.
 
-### What this avoids
-- No regression to quiz funnel, microsite, BookPage, BP builders, Marketing Hub, or email engine
-- No duplicate routes; clean integration into existing slug resolver
-- Reuses Sprint 34's `trigger-sequence` and email engine
+### Bug 6 — Sidebar "0 built" flicker
+In `DashboardSidebar.tsx`:
+- Read `localStorage.getItem('ab_bp_built_count')` (with `{value, ts}` shape, 5-min TTL) at mount, hydrate `buildUnlocked` initial state.
+- After live fetch (already done in parent), write fresh value back to localStorage.
+- Apply same pattern to `buildAuthorityUnlocked` and `yieldUnlocked` keys.
+
+### Files touched
+- `supabase/functions/generate-bp04-website/index.ts` (logging, model, tokens)
+- `supabase/functions/generate-bp03-social-media/index.ts` (3-step refactor)
+- `src/lib/abby-error.ts` (new)
+- `src/components/dashboard/builders/shared/BookProfileQuickForm.tsx` (new)
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+- `src/components/dashboard/builders/bp04/BP04Builder.tsx`
+- `src/components/dashboard/builders/bp05/BP05Builder.tsx`
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+- All other BP/BA/YR builders: swap error rendering to `toAbbyError` (search-and-replace)
+- `src/components/dashboard/FunnelsHub.tsx` (retro prompt)
+- `src/components/dashboard/DashboardSidebar.tsx` (cached counters)
+
+### Out of scope (per master rule)
+BP-01, BP-02 (already-published quiz funnel), Marketing Hub, CRM, admin panel, Sprint 34/35 funnel infra. Untouched.
+
+### Phasing
+- **Phase A**: Bugs 1 + 4 (error wrapper + book title fix) — fastest unblock
+- **Phase B**: Bugs 2 + 3 (BP-03 refactor + inline book form)
+- **Phase C**: Bugs 5 + 6 (Funnels retro prompt + sidebar cache)
+
+Approve to proceed with Phase A.
 
