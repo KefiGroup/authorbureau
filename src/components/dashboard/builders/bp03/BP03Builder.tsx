@@ -512,7 +512,7 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
-        {totalPosts} posts ready across 4 platforms + 30 emails + 5 outreach templates.
+        20 posts ready across 4 platforms + 3 outreach templates.
       </p>
     </div>
   );
