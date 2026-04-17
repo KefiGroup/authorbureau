@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Helmet } from "react-helmet-async";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -83,12 +82,12 @@ export default function FunnelPage({ funnel }: FunnelPageProps) {
   const bg = funnel.background_color || "#0B1220";
   const accent = funnel.accent_color || "#D4AF37";
 
+  useEffect(() => {
+    document.title = funnel.headline.slice(0, 60);
+  }, [funnel.headline]);
+
   return (
     <>
-      <Helmet>
-        <title>{funnel.headline.slice(0, 60)}</title>
-        <meta name="description" content={(funnel.subheadline || funnel.headline).slice(0, 155)} />
-      </Helmet>
       <div
         className="min-h-screen flex flex-col"
         style={{ backgroundColor: bg, color: "#F8FAFC" }}
