@@ -314,9 +314,9 @@ export default function BP03Builder({ authorId }: Props) {
         scheduleErrorMsg = e?.message || "We couldn't reach your Social Accounts.";
       }
 
-      const abbyMsg = scheduleErrorMsg
-        ? `Your kit is saved. I couldn't schedule your posts yet — ${scheduleErrorMsg} Connect your Social Accounts in Account Settings, then come back.`
-        : `Done! I've scheduled ${scheduledCount} post${scheduledCount === 1 ? "" : "s"} across your social channels. Your first post goes out tomorrow. View your Social Calendar in the Marketing Hub.`;
+      const abbyMsg = (scheduleErrorMsg || scheduledCount === 0)
+        ? `Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts.`
+        : `Done! I've scheduled ${scheduledCount} post${scheduledCount === 1 ? "" : "s"} across your connected social accounts. Your first post goes out tomorrow. View your Social Calendar in the Marketing Hub to see the full schedule.`;
 
       setContent({
         ...(savedNode.content_json as any),
@@ -469,7 +469,7 @@ export default function BP03Builder({ authorId }: Props) {
               nodeId="BP-03"
               authorName={authorName}
               penNameSlug={authorSlug}
-              abbyMessage={content?.abbyMessage || "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
+              abbyMessage={content?.abbyMessage || "Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts."}
             />
             <BackToReviewLink onClick={() => setStep(2)} />
           </>
