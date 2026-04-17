@@ -46,6 +46,7 @@ export default function BP01Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [activatingElapsed, setActivatingElapsed] = useState(0);
   const [leadMagnetUrl, setLeadMagnetUrl] = useState<string | null>(null);
   const [leadMagnetTitle, setLeadMagnetTitle] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
