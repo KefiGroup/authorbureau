@@ -214,7 +214,7 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
   } catch (err) {
     console.error("generate-bp03-social-media error:", err);
     return new Response(JSON.stringify({ success: false, error: (err as Error).message }), {
-      status: 200,
+      status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

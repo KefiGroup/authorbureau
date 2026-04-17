@@ -39,28 +39,55 @@ export default function BookProfileQuickForm({ authorId, authorName, onComplete 
       const userId = profile?.user_id;
       if (!userId) throw new Error("Could not resolve user.");
 
-      // Upsert author_context
-      await supabase.from("author_context").insert({
-        author_id: authorId,
-        book_title: title.trim(),
-        core_thesis: transformation.trim(),
-        target_audience_persona: { description: idealReader.trim() },
-      });
+      // Upsert author_context (one row per author — update if present, else insert)
+      const { data: existingCtx } = await supabase
+        .from("author_context")
+        .select("id")
+        .eq("author_id", authorId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      // Upsert lightweight book record so other lookups succeed
-      const slug = title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/(^-|-$)/g, "")
-        .slice(0, 60) + "-" + Date.now().toString(36);
-      await supabase.from("books").insert({
-        author_id: userId,
-        title: title.trim(),
-        slug,
-        description: transformation.trim(),
-        author_name: authorName,
-        approval_status: "pending",
-      });
+      if (existingCtx?.id) {
+        await supabase.from("author_context").update({
+          book_title: title.trim(),
+          core_thesis: transformation.trim(),
+          target_audience_persona: { description: idealReader.trim() },
+        }).eq("id", existingCtx.id);
+      } else {
+        await supabase.from("author_context").insert({
+          author_id: authorId,
+          book_title: title.trim(),
+          core_thesis: transformation.trim(),
+          target_audience_persona: { description: idealReader.trim() },
+        });
+      }
+
+      // Only insert a book if the author doesn't already have one with this title
+      const { data: existingBook } = await supabase
+        .from("books")
+        .select("id")
+        .eq("author_id", userId)
+        .ilike("title", title.trim())
+        .maybeSingle();
+
+      if (!existingBook) {
+        const slug = title
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "")
+          .slice(0, 60) + "-" + Date.now().toString(36);
+        const { error: bookErr } = await supabase.from("books").insert({
+          author_id: userId,
+          title: title.trim(),
+          slug,
+          description: transformation.trim(),
+          author_name: authorName,
+          approval_status: "pending",
+        });
+        // Ignore unique-violation (race / dup); other errors bubble up
+        if (bookErr && !`${bookErr.message}`.toLowerCase().includes("duplicate")) throw bookErr;
+      }
 
       toast.success("Got it — let's build!");
       onComplete(title.trim());
