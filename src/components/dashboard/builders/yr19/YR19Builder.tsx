@@ -92,7 +92,7 @@ export default function YR19Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Coaching Practice</h2>
-            <p className="text-muted-foreground mb-4">Hi {authorName}! 1-on-1 coaching is the most direct way to create transformation and command premium fees. I'm going to design your complete coaching practice based on '{detectedBookTitle || "your book"}' — with coaching packages, a discovery call script, and a client agreement outline. Ready to build your coaching practice?</p>
+            <p className="text-muted-foreground mb-4">Hi {authorName}! 1-on-1 coaching is the most direct way to create transformation and command premium fees. I'm going to design your complete coaching practice based on '{detectedBookTitle || bookTitle || "your book"}' — with coaching packages, a discovery call script, and a client agreement outline. Ready to build your coaching practice?</p>
             <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Coaching Practice</Button>
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>

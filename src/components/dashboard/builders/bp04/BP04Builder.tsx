@@ -210,7 +210,7 @@ export default function BP04Builder({ authorId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Every author needs a professional online home — a place where readers discover you, learn about your book, and join your community. I'm going to build your complete author website for '{detectedBookTitle || "your book"}' — with a homepage, about page, book page, and contact form — all written and structured around your book and your brand. Ready?
+                  Hi {authorName}! Every author needs a professional online home — a place where readers discover you, learn about your book, and join your community. I'm going to build your complete author website for '{detectedBookTitle || bookTitle || "your book"}' — with a homepage, about page, book page, and contact form — all written and structured around your book and your brand. Ready?
                 </p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Build My Website
