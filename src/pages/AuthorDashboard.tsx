@@ -32,6 +32,7 @@ import PayoutSettingsPage from "@/components/dashboard/PayoutSettingsPage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import AuthorCRMPage from "@/components/dashboard/AuthorCRMPage";
 import AuthorMessagesPage from "@/components/dashboard/AuthorMessagesPage";
+import FunnelsHub from "@/components/dashboard/FunnelsHub";
 import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 // AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
@@ -459,6 +460,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         return gate("My Contacts", <AuthorCRMPage onNavigate={handleNavigate} />, "build");
       case "messages":
         return <AuthorMessagesPage />;
+      case "my-funnels":
+        return <FunnelsHub />;
       case "marketing-hub":
         return <MarketingHub onNavigate={handleNavigate} />;
       case "reading-club":
