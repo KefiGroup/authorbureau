@@ -242,6 +242,7 @@ export default function BP05Builder({ authorId }: Props) {
             <div className="space-y-4">
               <p className="text-muted-foreground font-medium animate-pulse">{ACTIVATING_MESSAGES[msgIndex % ACTIVATING_MESSAGES.length]}</p>
               <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
+              <p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p>
             </div>
           </AbbyCard>
         )}
