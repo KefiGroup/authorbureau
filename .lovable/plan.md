@@ -1,33 +1,36 @@
 
-The mount of BP-03 now reads `author_profiles` for the active session UID and finds nothing, so it shows "Please set up your author profile first."
+The user is telling me directly: she signs in with `pl@paulineteo.com`. My earlier audit said that email doesn't exist in `auth.users` for this Cloud project. I need to reconcile this before doing anything.
 
-What I need to verify before changing anything:
-1. Confirm Pauline's `author_profiles` row now has `user_id = 5fd84779-8ac5-49f6-9524-0d7f1dcd4f33` (the cloud session UID we relinked to in the last migration).
-2. Confirm her `books` row(s) have `author_id = 5fd84779-...` and the BP-03 row in `author_nodes` is keyed to the matching `author_profiles.id`.
-3. Check `BP03Builder.tsx` mount logic to see whether it looks up the profile by `user_id` (cloud UID) or by some other key, and how it derives `authorId` for the `author_nodes` query.
+Two possibilities:
+1. `pl@paulineteo.com` exists in `auth.users` but I missed it (e.g., case sensitivity, whitespace, or it's actually there and I queried wrong).
+2. She signs into a different Supabase project (the shared backend `wuftdpnekscrsghqtssd`), and the Cloud project only has `paulinet77@gmail.com`. The dual-backend pattern in this codebase (`@/lib/shared-backend` + `@/integrations/supabase/client`) makes this very plausible — she signs into shared backend, and a separate Cloud user (`paulinet77@gmail.com`) is what holds her data.
 
-Suspected cause:
-- The previous relink updated `author_profiles.user_id` to the cloud UID and `books.author_id` to the cloud UID, but `author_nodes.author_id` is `author_profiles.id` (the profile UUID `92326a2f-...`), not the user UID. If BP-03 derives `authorId` from `author_profiles.id` correctly, the profile lookup should succeed — so the "set up profile first" message means the profile lookup itself is failing for this session.
-- Most likely either:
-  a) The session is currently signed in as a different account than `5fd84779-...` (e.g., the shared-backend UID `ef23c521-...`), so `author_profiles.user_id = auth.uid()` no longer matches.
-  b) The relink left an orphaned/duplicate row, and BP-03's `.maybeSingle()` is returning null.
+Re-verification step (read-only, before any change):
+1. Query Cloud `auth.users` again with broader filter: `email ilike '%pauline%'` to catch case/whitespace.
+2. Check if there is a mapping table or linking record.
+3. Read `src/lib/shared-backend.ts` to confirm the dual-backend setup.
 
-Fix plan (single, minimal):
-1. Use `supabase--read_query` to:
-   - `select id, user_id, pen_name, author_slug from author_profiles where pen_name ilike '%pauline%' or author_slug ilike '%pauline%'`
-   - `select id, title, author_id, owner_email from books where owner_email = 'paulinet77@gmail.com'`
-   - `select id, author_id, node_id, status, jsonb_array_length(content_json->'posts') as posts from author_nodes where node_id = 'BP-03' and author_id = '92326a2f-3ed0-4873-a8cf-7a0b1350995a'`
-2. Read `BP03Builder.tsx` mount block to confirm exactly which column it queries against and how `authorId` is set for `author_nodes`.
-3. Based on findings, do ONE of:
-   - If profile `user_id` is correct but session is different → ask Pauline which account she's logged in as and align (no code change needed beyond the prior migration; may need a second relink to whichever UID is the real active session).
-   - If there are duplicate `author_profiles` rows for Pauline → migration to consolidate to a single row keyed on the active cloud UID.
-   - If BP-03 mount is using the wrong column (e.g., querying by `id` instead of `user_id`) → fix that single query in `BP03Builder.tsx`.
+Likely outcome: she authenticates against the shared backend with `pl@paulineteo.com`, and that session is mapped to the Cloud UID `5fd84779...` (paulinet77@gmail.com) for data ownership. The relink we did is correct, but the email mismatch is a UX bug — the header should show her actual sign-in email, not the Cloud auth email or `books.owner_email`.
 
-Scope guard:
-- No changes to generation, edge functions, other builders, or RLS.
-- At most: one consolidation migration on `author_profiles` + (only if needed) one query fix in `BP03Builder.tsx`.
+## Plan
 
-Validation:
-1. Hard refresh BP-03 → must NOT show "Please set up your author profile first."
-2. Must land on Step 4 (Activate) with the 5 saved posts.
-3. Navigate away and back → still Step 4.
+### Step 1 — Re-verify the auth identity (read-only)
+- Query Cloud `auth.users` with `email ilike '%pauline%'` (case-insensitive).
+- Read `src/lib/shared-backend.ts` to confirm whether sign-in goes to a separate Supabase project.
+- If shared-backend, query the shared-backend users table for `pl@paulineteo.com` to get the shared UID and confirm the mapping to Cloud UID `5fd84779...`.
+
+### Step 2 — Decide based on findings
+- **If `pl@paulineteo.com` exists in Cloud `auth.users`** with a different UID than `5fd84779...`: the data is linked to the wrong UID. Migration: relink `author_profiles`, `books`, `author_nodes` from `5fd84779...` → the real `pl@paulineteo.com` UID.
+- **If sign-in is via shared backend**: no UID change needed. The data is correctly linked to the Cloud UID that mirrors her shared-backend identity. The fix is purely in the dashboard header — show her actual sign-in email instead of `books.owner_email`.
+
+### Step 3 — Apply the single appropriate fix
+Either (A) one relink migration, or (B) one small change to `DashboardHeader.tsx` to display `user.email` from the active session (already passed in as `user.email`) instead of pulling `pen_name`/`owner_email`.
+
+### Step 4 — Validate
+1. Sign in as `pl@paulineteo.com` → header shows `pl@paulineteo.com`.
+2. BP-03 loads on Step 4 with the 5 saved posts.
+3. Lead magnet from earlier sessions appears.
+
+### Scope guard
+- No changes to RLS, edge functions, generation, or other builders.
+- At most ONE migration OR ONE small UI fix in `DashboardHeader.tsx`.
