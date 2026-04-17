@@ -13,17 +13,15 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
+import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
 const GENERATING_MESSAGES = [
-  "Studying your book's key themes and insights...",
-  "Building your 4-week story arc...",
-  "Writing platform-specific posts for LinkedIn, Instagram, Facebook, and Twitter/X...",
-  "Creating your 30-day email nurture sequence...",
-  "Crafting your outreach templates...",
-  "Adding revenue-linked CTAs to every post...",
-  "Finalising your complete marketing kit...",
+  "Step 1 of 3 — Writing your LinkedIn posts...",
+  "Step 2 of 3 — Writing Instagram + Facebook posts...",
+  "Step 3 of 3 — Writing Twitter/X posts and outreach templates...",
+  "Almost done — packaging your starter kit...",
 ];
 
 const ACTIVATING_MESSAGES = [
@@ -228,26 +226,24 @@ export default function BP03Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
             {!isBookLoading && !hasBook && hasContext === false ? (
-              <>
-                <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Before I can build your social media, I need to know about your book. Please complete your book profile first.
-                </p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-03")}>Complete Book Profile</Button>
-              </>
+              <BookProfileQuickForm
+                authorId={authorId}
+                authorName={authorName}
+                onComplete={(t) => { setBookTitle(t); setHasContext(true); }}
+              />
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! I'm going to create a complete marketing kit for '{detectedBookTitle || bookTitle || "your book"}' —
-                  120 social media posts across 4 platforms, a 30-day email nurture sequence, and 5 outreach templates — all personalised to your book's themes and audience. Ready?
+                  I'm going to create your social media starter kit for '{detectedBookTitle || bookTitle || "your book"}' — 20 ready-to-post pieces across LinkedIn, Instagram, Facebook, and X, plus 3 outreach email templates. Ready?
                 </p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
-                  <Sparkles className="h-4 w-4 mr-2" /> Generate My Marketing Kit
+                  <Sparkles className="h-4 w-4 mr-2" /> Generate My Starter Kit
                 </Button>
               </>
             )}
             {error && (
               <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                I hit a snag generating your content. {toAbbyError(error)}
+                {toAbbyError(error)}
                 <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button>
               </div>
             )}
