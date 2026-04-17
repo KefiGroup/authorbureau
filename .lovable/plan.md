@@ -1,60 +1,86 @@
 
 
-## Sprint 35b QA Audit — Findings
+## Root cause analysis
 
-I audited the database, edge functions, and recent Sprint 35b code. Most things are healthy. Below are the **real issues I found** that need fixing, plus a clean bill of health on what's working.
+All 3 bugs share one root cause: **`author_context` is empty for Pauline**, and the `books` fallback uses inconsistent ID resolution.
 
-### ✅ What's working
-- **Tables**: `funnels`, `funnel_submissions`, `author_nodes`, `author_context`, `books`, `author_profiles` all exist with RLS enabled.
-- **Edge functions**: `generate-bp03-social-media`, `generate-bp04-website`, `generate-funnel` all have correct CORS, auth, error handling, and are deployed (zero recent 4xx/5xx in edge logs).
-- **`abby-error.ts`**: clean, defensive, never throws.
-- **`DashboardSidebar` cache**: 5-min TTL, localStorage hydration logic is correct.
-- **`FunnelsHub` retroactive prompt**: queries live nodes, generates funnels per node correctly.
-- **`generate-funnel`**: supports `force` + `funnel_id` for regen, `lead_magnet`/`webinar`/`opt_in`/`sales` types — all wired.
+Verified data state for Pauline (`pl@paulineteo.com`):
+- `auth.users.id` = `ef23c521-9cce-4d86-9128-dc687748b65b`
+- `author_profiles.id` = `92326a2f-3ed0-4873-a8cf-7a0b1350995a` (this is what builders pass as `authorId`)
+- `books` row exists: title = "Be SUCKcessful", `author_id` = `ef23c521...` (auth user_id) ✓
+- `author_context` rows for her: **0** (empty) — this is why everything breaks
 
-### 🐞 Issues found (3 real bugs + 2 polish)
+Schema constraints confirmed:
+- `author_context.author_id` → FK to `author_profiles.id` (NOT auth.users.id)
+- `author_context` RLS: `author_id IN (SELECT id FROM author_profiles WHERE user_id = auth.uid())` ✓ (the form's upsert WILL pass RLS)
+- `books.author_id` = auth.users.id, RLS: `auth.uid() = author_id` ✓
 
-**Bug A — `BookProfileQuickForm` does an INSERT, not UPSERT** (medium)
-- File: `src/components/dashboard/builders/shared/BookProfileQuickForm.tsx` lines 43, 56.
-- Uses `.insert()` for both `author_context` and `books`. If the user re-opens the form (e.g. after a failed generation), it creates duplicate rows. Worse, `books.slug` has a unique constraint, so a second submit with the same title may fail.
-- **Fix**: change `author_context` insert to upsert by `author_id`, and check for an existing book before inserting (or catch the unique-violation gracefully).
+### Why each bug happens
 
-**Bug B — `BP03Builder` progress poll never stops if the user navigates away mid-generation** (low)
-- File: `src/components/dashboard/builders/bp03/BP03Builder.tsx` line 130.
-- `progressPollRef` interval is only cleared in the `finally` block of `handleGenerate`. If the component unmounts during generation (user clicks back), the interval leaks and keeps querying `author_nodes`.
-- **Fix**: add a `useEffect` cleanup that clears `progressPollRef.current` on unmount.
+**Bug A — Form save "fails"**: The upsert actually succeeds (RLS passes), but `BookProfileQuickForm.handleSubmit` calls `onComplete(title)` which in BP-04/05/08/09 only sets `setBookTitle(t)` and `setHasContext(true)`. In BP-04 the gate is `!isBookLoading && hasContext !== null && !hasBook && !hasContext` — after onComplete `hasContext=true` so the form correctly disappears, BUT the user must then click "Build My Website" manually. In BP-05/08/09 the gate is `!isBookLoading && !hasBook` — `hasBook` comes from `useAuthorBook` which doesn't refetch, so the form never disappears even after save. **That's the "form resets" symptom.**
 
-**Bug C — `FunnelsHub.loadLiveNodes` selects `microsite_url` but the type omits `status`** (low)
-- File: `src/components/dashboard/FunnelsHub.tsx` lines 44–47, 95–103.
-- The query selects `node_id, microsite_url, status` but `LiveNode` interface only declares `node_id` and `microsite_url`. Cast `as LiveNode[]` silently drops `status`. Currently harmless (status is filtered server-side via `.eq("status","live")`), but the type lies.
-- **Fix**: add `status: string` to the `LiveNode` interface, or drop `status` from the select.
+**Bug B — "your book" placeholder**: For Pauline, `useAuthorBook` queries `books` with `author_id = auth.uid()` which DOES return "Be SUCKcessful". So `bookTitle` from the hook should be populated. BUT the local `bookTitle` state (line 42) starts empty and is only set inside the `useEffect` that runs `eq("author_id", authorId)` against `author_context` — which is empty — then falls back to `books.eq("author_id", profile?.user_id || authorId)` which works. **Hypothesis**: when the page first renders, both local `bookTitle` AND hook `detectedBookTitle` are empty (loading), so the literal "your book" flashes. After load, `detectedBookTitle` should populate. If it stays empty, `useAuthorBook`'s `.maybeSingle()` is throwing because there are multiple books rows. Need to verify and fix to handle multi-book case.
 
-**Polish 1 — `generate-bp03-social-media` returns HTTP 200 on errors** (line 217)
-- Returns `status: 200` with `success: false`. The client `handleGenerate` does check `data.success`, so it works — but it breaks edge-log visibility (no 4xx/5xx ever recorded for this function, which is why our log query came back empty). Recommend returning `500` for true failures so they show up in monitoring.
+**Bug C — BP-04 generates wrong content**: `generate-bp04-website` reads ONLY from `author_context` (empty for Pauline), so `bookTitle = "your book"`, `coreThesis = ""`, `audiencePersona = "general readers"`. AI is told genre is "Non-fiction" (from author_profiles.genres) and generates generic finance content based on hallucination. **Fix: add `books` fallback in the edge function.**
 
-**Polish 2 — `generate-bp04-website` may still time out at 4000 tokens** (informational)
-- The website JSON has ~25 fields including 6-paragraph bios and 5 takeaways. 4000 tokens is tight. Bumping to 6000 gives headroom without risking gateway timeout (gateway limit is generous on `gpt-5.2`).
+### The Fix
 
-### 🔒 Database linter notes (pre-existing, not Sprint 35b)
-- 1 INFO: RLS-enabled-no-policy on one table (likely intentional admin-only).
-- 7 WARN: function search_path mutable on legacy functions (pre-existing tech debt).
-- 5 WARN: permissive RLS policies on legacy tables (pre-existing).
+**1. `BookProfileQuickForm.tsx`** — add `console.log` of upsert results, and after success call `onComplete` AFTER waiting briefly so parent can re-trigger book detection. No structural changes needed (upsert logic is already correct for `author_context` since RLS uses `author_profiles.id` and the form passes `authorId`= author_profiles.id).
 
-These are NOT Sprint 35b regressions and should be addressed in a dedicated security sprint, not here.
+**2. All 9 BP builders** — change the gate from `!hasBook` to `!hasBook && hasContext === false` so once the form fires `setHasContext(true)`, the form unmounts immediately and the intro+button render. Also auto-trigger `handleGenerate()` after `onComplete` fires so the user doesn't have to click twice. Strengthen the title display to: `{detectedBookTitle || bookTitle || titleFromForm || "your book"}`.
 
-### Phasing
-- **Phase 1 (this sprint)**: Fix Bugs A, B, C + Polish 1 + Polish 2.
-- All in 5 file edits, no migrations needed.
+**3. `useAuthorBook.ts`** — replace `.maybeSingle()` with `.limit(1)` then `[0]` to safely handle multiple book rows without throwing PGRST116. Add console log of the resolved title for debugging.
+
+**4. `generate-bp04-website/index.ts`** — when `author_context` is empty, fall back to `books` table (resolve via `author_profiles.user_id`):
+```ts
+if (!context?.book_title) {
+  const { data: profile } = await supabase
+    .from("author_profiles")
+    .select("user_id")
+    .eq("id", author_id).single();
+  const { data: book } = await supabase
+    .from("books")
+    .select("title, description, target_audience_persona, genre")
+    .eq("author_id", profile.user_id)
+    .order("created_at", { ascending: false })
+    .limit(1).maybeSingle();
+  bookTitle = book?.title;
+  coreThesis = book?.description;
+  audiencePersona = book?.target_audience_persona ?? "general readers";
+}
+if (!bookTitle) throw new Error("No book found — please complete your book profile first.");
+```
+Also strengthen the system prompt to explicitly bind the AI to the provided book title and reject generic substitutes.
+
+**5. Apply same fallback to `generate-bp03-social-media`** (and any other generators reading `author_context`) — same pattern, since Pauline-style users with `books` but no `author_context` will hit the same hallucination.
 
 ### Files touched
-- `src/components/dashboard/builders/shared/BookProfileQuickForm.tsx` (upsert pattern)
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx` (interval cleanup)
-- `src/components/dashboard/FunnelsHub.tsx` (LiveNode type)
-- `supabase/functions/generate-bp03-social-media/index.ts` (status 500 on error)
-- `supabase/functions/generate-bp04-website/index.ts` (max_completion_tokens → 6000)
+- `src/components/dashboard/builders/shared/BookProfileQuickForm.tsx` — add console.logs + return success signal
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx` — gate fix + auto-trigger
+- `src/components/dashboard/builders/bp04/BP04Builder.tsx` — gate fix + auto-trigger
+- `src/components/dashboard/builders/bp05/BP05Builder.tsx` — gate fix + auto-trigger
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — gate fix + auto-trigger
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — gate fix + auto-trigger
+- `src/hooks/useAuthorBook.ts` — robust multi-row handling + log
+- `supabase/functions/generate-bp04-website/index.ts` — books fallback + strict prompt (deploy)
+- `supabase/functions/generate-bp03-social-media/index.ts` — books fallback (deploy)
 
 ### Out of scope
-Pre-existing linter warnings, BP-01 quiz funnel, GHL deploy functions, anything outside Sprint 35b's surface.
+BP-06/07 and other generators (separate audit). Migration to backfill `author_context` from `books` (manual one-off, not in this fix). Pauline's missing `author_context` row will be auto-created the next time she opens any of the 5 BP builders touched here — OR we can run a one-off SQL backfill as part of this sprint to immediately unblock her.
 
-Approve to apply the 5 fixes?
+### Recommended addition
+Run a one-off backfill so Pauline (and any similar users) get an `author_context` row immediately:
+```sql
+INSERT INTO author_context (author_id, book_title, core_thesis, target_audience_persona)
+SELECT ap.id, b.title, COALESCE(b.description, b.title), '{"description":"general readers"}'::jsonb
+FROM author_profiles ap
+JOIN books b ON b.author_id = ap.user_id
+WHERE NOT EXISTS (SELECT 1 FROM author_context ac WHERE ac.author_id = ap.id);
+```
+This single migration solves Bug C immediately for ALL existing users without waiting for them to re-trigger the form.
+
+### Phasing
+- **Phase 1 (one shot)**: All 9 file edits + 2 edge-function deploys + 1 backfill migration. Small enough to ship together.
+
+Approve to proceed?
 
