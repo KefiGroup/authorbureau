@@ -73,21 +73,31 @@ export default function ConnectSettings() {
 
   const handleSync = async () => {
     if (!authorId) return;
+    console.log("[ConnectSettings] Starting sync from Buffer...", { authorId, hasNewKey: !!apiKey.trim() });
     setSyncing(true);
     try {
       const { data, error } = await supabase.functions.invoke("get-buffer-channels", {
         body: { author_id: authorId, buffer_api_key: apiKey.trim() || undefined },
       });
+      console.log("[ConnectSettings] Buffer sync response:", { data, error });
       if (error) throw error;
       if (!data?.success) throw new Error(data?.error || "Failed to sync from Buffer");
 
       await loadConnections(authorId);
+      // Re-query to log accurate count (state update is async)
+      const { data: rows } = await supabase
+        .from("social_connections")
+        .select("platform")
+        .eq("author_id", authorId);
+      console.log(`[ConnectSettings] social_connections rows after sync: ${rows?.length ?? 0}`);
+
       setApiKey("");
       const count = data.count ?? 0;
       toast.success(
         `Done! I found ${count} connected account${count === 1 ? "" : "s"}. Go back to Social Media and click Activate to schedule your posts.`
       );
     } catch (err: any) {
+      console.error("[ConnectSettings] Sync error:", err);
       toast.error(err?.message || "Failed to sync from Buffer");
     } finally {
       setSyncing(false);
