@@ -117,8 +117,15 @@ export default function BP01Builder({ authorId }: Props) {
         .maybeSingle();
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
+        const loaded = node.content_json as any;
+        // If node is live, mark content as activated so we don't re-run the activation loader
+        if (node.status === "live") {
+          setContent({ ...loaded, activated: true, publishStatus: loaded.publishStatus || "live" });
+          setStep(3);
+        } else {
+          setContent(loaded);
+          setStep(2);
+        }
       }
     })();
   }, [authorId]);
