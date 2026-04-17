@@ -66,10 +66,11 @@ serve(async (req) => {
         id
         name
         service
+        serviceId
       }
     }`;
 
-    const resp = await fetch("https://api.bufferapp.com/graphql", {
+    const resp = await fetch("https://api.buffer.com/graphql", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
