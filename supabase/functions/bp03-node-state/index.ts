@@ -85,7 +85,11 @@ async function resolveIdentity(token: string): Promise<{ userId: string; email: 
   return null;
 }
 
-async function resolveAuthorProfile(cloudAdmin: ReturnType<typeof createClient>, userId: string, requestedAuthorId?: string) {
+async function resolveAuthorProfile(
+  cloudAdmin: ReturnType<typeof createClient>,
+  identity: { userId: string; email: string | null },
+  requestedAuthorId?: string,
+) {
   if (requestedAuthorId) {
     const { data: requestedProfile, error } = await cloudAdmin
       .from("author_profiles")
@@ -94,21 +98,47 @@ async function resolveAuthorProfile(cloudAdmin: ReturnType<typeof createClient>,
       .maybeSingle();
 
     if (error) throw error;
-    if (!requestedProfile || requestedProfile.user_id !== userId) {
+    if (requestedProfile) {
+      // Allow if user_id matches OR if email matches the cloud auth user behind the profile
+      if (requestedProfile.user_id === identity.userId) return requestedProfile;
+      if (identity.email) {
+        const { data: cloudAuthUser } = await cloudAdmin.auth.admin.getUserById(requestedProfile.user_id);
+        if (cloudAuthUser?.user?.email?.toLowerCase() === identity.email.toLowerCase()) {
+          return requestedProfile;
+        }
+      }
       return null;
     }
-
-    return requestedProfile;
+    return null;
   }
 
+  // Try direct user_id match first
   const { data: profile, error } = await cloudAdmin
     .from("author_profiles")
     .select("id, pen_name, author_slug, user_id")
-    .eq("user_id", userId)
+    .eq("user_id", identity.userId)
     .maybeSingle();
 
   if (error) throw error;
-  return profile;
+  if (profile) return profile;
+
+  // Fallback: resolve via email — find cloud auth user by email, then match profile
+  if (identity.email) {
+    const { data: usersList } = await cloudAdmin.auth.admin.listUsers();
+    const match = usersList?.users?.find(
+      (u: any) => u.email?.toLowerCase() === identity.email!.toLowerCase(),
+    );
+    if (match?.id) {
+      const { data: emailProfile } = await cloudAdmin
+        .from("author_profiles")
+        .select("id, pen_name, author_slug, user_id")
+        .eq("user_id", match.id)
+        .maybeSingle();
+      if (emailProfile) return emailProfile;
+    }
+  }
+
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -142,7 +172,7 @@ Deno.serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const authorProfile = await resolveAuthorProfile(cloudAdmin, identity.userId, requestedAuthorId);
+    const authorProfile = await resolveAuthorProfile(cloudAdmin, identity, requestedAuthorId);
     if (!authorProfile) {
       return respond({ success: false, error: "Unable to locate your author profile." });
     }

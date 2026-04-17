@@ -16,8 +16,7 @@ import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/component
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
-import { fetchWithTimeout } from "@/lib/get-active-token";
-import { sharedSupabase } from "@/lib/shared-backend";
+import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -46,26 +45,8 @@ interface Props {
   authorId: string | null;
 }
 
-async function getBp03AuthToken(): Promise<string | null> {
-  try {
-    const { data: sharedSession } = await sharedSupabase.auth.getSession();
-    if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
-  } catch (_error) {
-    // Ignore and fall back to Cloud below.
-  }
-
-  try {
-    const { data: cloudSession } = await supabase.auth.getSession();
-    if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  } catch (_error) {
-    // Ignore and return null below.
-  }
-
-  return null;
-}
-
 async function fetchBp03NodeState(body: Record<string, unknown>) {
-  const token = await getBp03AuthToken();
+  const token = await getActiveToken();
   if (!token) {
     throw new Error("Your session has expired. Please sign in again.");
   }
