@@ -3897,6 +3897,39 @@ export type Database = {
         }
         Relationships: []
       }
+      social_connections: {
+        Row: {
+          author_id: string
+          channel_id: string
+          channel_name: string | null
+          created_at: string
+          id: string
+          platform: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          channel_id: string
+          channel_name?: string | null
+          created_at?: string
+          id?: string
+          platform: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          channel_id?: string
+          channel_name?: string | null
+          created_at?: string
+          id?: string
+          platform?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       social_media_content: {
         Row: {
           author_id: string
@@ -3963,6 +3996,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      social_posts: {
+        Row: {
+          author_id: string
+          buffer_post_id: string | null
+          channel_id: string | null
+          content: string
+          created_at: string
+          error_message: string | null
+          id: string
+          node_id: string
+          platform: string
+          published_at: string | null
+          scheduled_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          buffer_post_id?: string | null
+          channel_id?: string | null
+          content: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          node_id?: string
+          platform: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          buffer_post_id?: string | null
+          channel_id?: string | null
+          content?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          node_id?: string
+          platform?: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       speaking_topics: {
         Row: {
