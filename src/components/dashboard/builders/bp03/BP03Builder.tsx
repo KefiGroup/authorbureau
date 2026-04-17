@@ -30,6 +30,14 @@ const ACTIVATING_MESSAGES = [
   "Your marketing kit is almost ready...",
 ];
 
+function hasUsableSocialKit(value: any) {
+  return !!value && (
+    (Array.isArray(value.posts) && value.posts.length > 0) ||
+    (Array.isArray(value.outreach_kit) && value.outreach_kit.length > 0) ||
+    value.source === "BP-02"
+  );
+}
+
 interface Props {
   authorId: string | null;
 }
@@ -46,6 +54,7 @@ export default function BP03Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [progressLabel, setProgressLabel] = useState<string>("");
   const [isResuming, setIsResuming] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
@@ -109,7 +118,7 @@ export default function BP03Builder({ authorId }: Props) {
 
         const { data: node, error: nodeErr } = await supabase
           .from("author_nodes")
-          .select("content_json, status")
+          .select("content_json, status, activated_at")
           .eq("author_id", authorId)
           .eq("node_id", "BP-03")
           .maybeSingle();
@@ -119,18 +128,13 @@ export default function BP03Builder({ authorId }: Props) {
         const status = node?.status;
         const cj: any = node?.content_json || null;
         const hasContent = !!cj;
-        // Content-aware resume: a usable saved kit means posts or outreach_kit exists
-        const hasUsableKit =
-          !!cj &&
-          ((Array.isArray(cj.posts) && cj.posts.length > 0) ||
-            (Array.isArray(cj.outreach_kit) && cj.outreach_kit.length > 0) ||
-            cj.source === "BP-02");
+        const hasUsableKit = hasUsableSocialKit(cj);
+        const isActivated = status === "live" || !!node?.activated_at;
         let resumedStep = 0;
 
-        if (status === "live") {
-          if (hasContent) setContent(cj);
+        if (isActivated && hasContent) {
+          setContent({ ...cj, activated: true, publishStatus: status });
           resumedStep = 3;
-          setTimeout(() => setContent((prev: any) => ({ ...(prev || cj || {}), activated: true })), 0);
         } else if (hasUsableKit) {
           // Trust saved content over status — even if status is stuck on "generating"
           setContent(cj);
@@ -239,40 +243,93 @@ export default function BP03Builder({ authorId }: Props) {
     }
   };
 
+  const persistNodeState = async (nextStatus: "content_ready" | "live") => {
+    if (!authorId) {
+      throw new Error("Please wait for your author profile to finish loading.");
+    }
+
+    if (!hasUsableSocialKit(content)) {
+      throw new Error("Generate your starter kit before saving it.");
+    }
+
+    const payload = {
+      status: nextStatus,
+      content_json: content,
+      personalised_name: content?.calendar_name || "Social Media Starter Kit",
+      ...(nextStatus === "live" ? { activated_at: new Date().toISOString() } : {}),
+    };
+
+    const { data: existingNode, error: existingNodeError } = await supabase
+      .from("author_nodes")
+      .select("id")
+      .eq("author_id", authorId)
+      .eq("node_id", "BP-03")
+      .maybeSingle();
+
+    if (existingNodeError) {
+      throw existingNodeError;
+    }
+
+    if (existingNode) {
+      const { data: updatedNode, error: updateError } = await supabase
+        .from("author_nodes")
+        .update(payload)
+        .eq("id", existingNode.id)
+        .select("id, status, activated_at, content_json")
+        .single();
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      return updatedNode;
+    }
+
+    const { data: insertedNode, error: insertError } = await supabase
+      .from("author_nodes")
+      .insert({
+        author_id: authorId,
+        node_id: "BP-03",
+        node_name: "Social Media",
+        ...payload,
+      })
+      .select("id, status, activated_at, content_json")
+      .single();
+
+    if (insertError) {
+      throw insertError;
+    }
+
+    return insertedNode;
+  };
+
+  const handleSave = async () => {
+    setError(null);
+    setIsSaving(true);
+
+    try {
+      const savedNode = await persistNodeState("content_ready");
+      setContent(savedNode.content_json);
+      toast.success("Your social media kit is saved.");
+    } catch (e: any) {
+      console.error("Save error:", e);
+      setError(e.message || "We couldn't save your social media kit.");
+      toast.error("We couldn't save your social media kit.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handlePublish = async () => {
     setStep(3);
     setError(null);
     try {
-      // Native ABBY activation — update author_nodes directly
-      const { data: existingNode } = await supabase
-        .from("author_nodes")
-        .select("id")
-        .eq("author_id", authorId!)
-        .eq("node_id", "BP-03")
-        .maybeSingle();
-
-      if (existingNode) {
-        await supabase.from("author_nodes").update({
-          status: "live",
-          content_json: content,
-          activated_at: new Date().toISOString(),
-        }).eq("id", existingNode.id);
-      } else {
-        await supabase.from("author_nodes").insert({
-          author_id: authorId!,
-          node_id: "BP-03",
-          node_name: "Social Media",
-          status: "live",
-          content_json: content,
-          activated_at: new Date().toISOString(),
-        });
-      }
-
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      const savedNode = await persistNodeState("live");
+      setContent({ ...(savedNode.content_json as any), activated: true, publishStatus: savedNode.status });
       toast.success("Your social media campaigns are live! 🎉");
     } catch (e: any) {
-      console.error("Publish error:", e.message);
-      setError(e.message);
+      console.error("Publish error:", e);
+      setError(e.message || "We couldn't save your activation.");
       setStep(2);
     }
   };
@@ -378,7 +435,14 @@ export default function BP03Builder({ authorId }: Props) {
                 </div>
               </Card>
             )}
-            <ReviewStep content={content} authorName={authorName} bookTitle={bookTitle || detectedBookTitle || "your book"} onActivate={handlePublish} />
+            <ReviewStep
+              content={content}
+              authorName={authorName}
+              bookTitle={bookTitle || detectedBookTitle || "your book"}
+              onSave={handleSave}
+              onActivate={handlePublish}
+              isSaving={isSaving}
+            />
           </>
         )}
 
@@ -392,7 +456,12 @@ export default function BP03Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen nodeId="BP-03" authorName={authorName} penNameSlug={authorSlug} />
+          <PublishSuccessScreen
+            nodeId="BP-03"
+            authorName={authorName}
+            penNameSlug={authorSlug}
+            abbyMessage={content?.publishStatus === "live" ? undefined : "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
+          />
         )}
       </div>
     </div>
@@ -444,7 +513,21 @@ function getWeek(day: number): number {
   return 4;
 }
 
-function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: any; authorName: string; bookTitle: string; onActivate: () => void }) {
+function ReviewStep({
+  content,
+  authorName,
+  bookTitle,
+  onSave,
+  onActivate,
+  isSaving,
+}: {
+  content: any;
+  authorName: string;
+  bookTitle: string;
+  onSave: () => void;
+  onActivate: () => void;
+  isSaving: boolean;
+}) {
   const [downloading, setDownloading] = useState(false);
 
   const handleDownloadZip = async () => {
@@ -554,7 +637,15 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
       {/* Actions */}
       <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
         <p className="text-sm font-semibold text-foreground">What do you want to do next?</p>
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid sm:grid-cols-3 gap-3">
+          <div className="space-y-1.5">
+            <Button variant="outline" className="w-full" onClick={onSave} disabled={isSaving}>
+              <Check className="h-4 w-4 mr-2" />{isSaving ? "Saving..." : "Save to My Account"}
+            </Button>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Permanently store this exact starter kit so you can leave now and come back to it later.
+            </p>
+          </div>
           <div className="space-y-1.5">
             <Button variant="outline" className="w-full" onClick={handleDownloadZip} disabled={downloading}>
               <Download className="h-4 w-4 mr-2" />{downloading ? "Downloading..." : "Download Marketing Kit"}
@@ -573,7 +664,7 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
           </div>
         </div>
         <p className="text-xs text-center text-muted-foreground pt-1 border-t border-border">
-          ✓ 20 posts ready across 4 platforms · ✓ 3 outreach templates · ✓ Already saved to your account
+          ✓ 20 posts ready across 4 platforms · ✓ 3 outreach templates · ✓ Saved to your account after generation
         </p>
       </div>
     </div>
