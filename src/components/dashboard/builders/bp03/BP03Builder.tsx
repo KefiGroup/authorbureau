@@ -469,7 +469,7 @@ export default function BP03Builder({ authorId }: Props) {
               nodeId="BP-03"
               authorName={authorName}
               penNameSlug={authorSlug}
-              abbyMessage={content?.abbyMessage || "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
+              abbyMessage={content?.abbyMessage || "Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts."}
             />
             <BackToReviewLink onClick={() => setStep(2)} />
           </>

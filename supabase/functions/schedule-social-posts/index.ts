@@ -23,7 +23,6 @@ function extractPostsFromContent(content: any): SocialPost[] {
   const posts = Array.isArray(content?.posts) ? content.posts : [];
 
   for (const p of posts) {
-    // shape variant 1: { platform, text } or { platform, content }
     if (p?.platform && (p?.text || p?.content || p?.caption)) {
       out.push({
         platform: normalizePlatform(p.platform),
@@ -31,7 +30,6 @@ function extractPostsFromContent(content: any): SocialPost[] {
       });
       continue;
     }
-    // shape variant 2: per-platform sub-objects { linkedin: { caption }, instagram: { caption }, ... }
     for (const platform of ["linkedin", "instagram", "facebook", "twitter", "x"]) {
       const sub = p?.[platform];
       if (sub && (sub.caption || sub.text || sub.content)) {
@@ -48,8 +46,11 @@ function extractPostsFromContent(content: any): SocialPost[] {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  const errors: string[] = [];
+
   try {
     const { author_id, node_id = "BP-03" } = await req.json();
+    console.log(`[schedule] start author_id=${author_id} node_id=${node_id}`);
     if (!author_id) throw new Error("author_id required");
 
     const BUFFER_API_KEY = Deno.env.get("BUFFER_API_KEY");
@@ -71,6 +72,7 @@ serve(async (req) => {
     if (!node?.content_json) throw new Error("No social media content found to schedule.");
 
     const allPosts = extractPostsFromContent(node.content_json).slice(0, 20);
+    console.log(`[schedule] extracted ${allPosts.length} posts from content_json`);
     if (allPosts.length === 0) throw new Error("No social posts found in your kit.");
 
     // 2. Load connected channels
@@ -81,11 +83,15 @@ serve(async (req) => {
       .eq("status", "active");
 
     if (connErr) throw connErr;
+    console.log(
+      `[schedule] found ${connections?.length ?? 0} active connections: ${JSON.stringify(
+        (connections || []).map((c: any) => c.platform),
+      )}`,
+    );
     if (!connections || connections.length === 0) {
       throw new Error("No social accounts connected yet. Connect them first, then activate.");
     }
 
-    // map normalized platform -> channel_id (first active match)
     const platformToChannel = new Map<string, { channel_id: string; channel_name: string }>();
     for (const c of connections) {
       const key = normalizePlatform(c.platform);
@@ -93,8 +99,12 @@ serve(async (req) => {
         platformToChannel.set(key, { channel_id: c.channel_id, channel_name: c.channel_name || "" });
       }
     }
+    console.log(
+      `[schedule] platformToChannel map: ${JSON.stringify(
+        Array.from(platformToChannel.entries()).map(([k, v]) => ({ platform: k, channelId: v.channel_id })),
+      )}`,
+    );
 
-    // 3. For each post, schedule via Buffer createPost mutation
     const mutation = `mutation CreatePost($text: String!, $channelId: String!, $dueAt: DateTime!) {
       createPost(input: {
         text: $text,
@@ -111,8 +121,8 @@ serve(async (req) => {
     }`;
 
     const startDate = new Date();
-    startDate.setUTCDate(startDate.getUTCDate() + 1); // tomorrow
-    startDate.setUTCHours(13, 0, 0, 0); // 09:00 ET ≈ 13:00 UTC, safe default
+    startDate.setUTCDate(startDate.getUTCDate() + 1);
+    startDate.setUTCHours(13, 0, 0, 0);
 
     const results: any[] = [];
     let successCount = 0;
@@ -121,22 +131,29 @@ serve(async (req) => {
     for (let i = 0; i < allPosts.length; i++) {
       const post = allPosts[i];
       const channel = platformToChannel.get(post.platform);
-
-      // Space posts 1.5 days apart
       const dueAt = new Date(startDate.getTime() + i * 1.5 * 24 * 60 * 60 * 1000);
+
+      console.log(
+        `[schedule] post ${i} platform=${post.platform} channelId=${channel?.channel_id ?? "NONE"} dueAt=${dueAt.toISOString()}`,
+      );
 
       if (!channel) {
         skippedCount++;
-        // Save as failed (no connected channel for this platform)
-        await sb.from("social_posts").insert({
+        const reason = `No connected ${post.platform} account.`;
+        errors.push(`post ${i} (${post.platform}): ${reason}`);
+        const { error: insErr } = await sb.from("social_posts").insert({
           author_id,
           node_id,
           platform: post.platform,
           content: post.text,
           scheduled_at: dueAt.toISOString(),
           status: "failed",
-          error_message: `No connected ${post.platform} account.`,
+          error_message: reason,
         });
+        if (insErr) {
+          console.error(`[schedule] social_posts insert failed (no-channel) post ${i}:`, insErr);
+          errors.push(`post ${i} insert error: ${insErr.message}`);
+        }
         results.push({ ok: false, platform: post.platform, reason: "no_channel" });
         continue;
       }
@@ -157,13 +174,28 @@ serve(async (req) => {
             },
           }),
         });
-        const json = await resp.json();
 
-        const result = json.data?.createPost;
+        const rawBody = await resp.text();
+        if (!resp.ok) {
+          console.error(`[schedule] Buffer HTTP ${resp.status} for post ${i}: ${rawBody}`);
+          errors.push(`post ${i} (${post.platform}): Buffer HTTP ${resp.status}`);
+        }
+
+        let json: any = null;
+        try { json = JSON.parse(rawBody); } catch { json = null; }
+
+        const result = json?.data?.createPost;
         const bufferPostId = result?.post?.id || null;
-        const errMsg = !bufferPostId ? (result?.message || json.errors?.[0]?.message || "Unknown error") : null;
+        const errMsg = !bufferPostId
+          ? (result?.message || json?.errors?.[0]?.message || `Unknown error: ${rawBody.slice(0, 300)}`)
+          : null;
 
-        await sb.from("social_posts").insert({
+        if (!bufferPostId) {
+          console.error(`[schedule] Buffer no postId for post ${i}. Full response:`, rawBody);
+          errors.push(`post ${i} (${post.platform}): ${errMsg}`);
+        }
+
+        const { error: insErr } = await sb.from("social_posts").insert({
           author_id,
           node_id,
           buffer_post_id: bufferPostId,
@@ -174,6 +206,10 @@ serve(async (req) => {
           status: bufferPostId ? "queued" : "failed",
           error_message: errMsg,
         });
+        if (insErr) {
+          console.error(`[schedule] social_posts insert failed post ${i}:`, insErr);
+          errors.push(`post ${i} insert error: ${insErr.message}`);
+        }
 
         if (bufferPostId) {
           successCount++;
@@ -182,8 +218,9 @@ serve(async (req) => {
           results.push({ ok: false, platform: post.platform, reason: errMsg });
         }
       } catch (e) {
-        console.error(`Failed to schedule post ${i}:`, e);
-        await sb.from("social_posts").insert({
+        console.error(`[schedule] Failed to schedule post ${i}:`, e);
+        errors.push(`post ${i} (${post.platform}): ${(e as Error).message}`);
+        const { error: insErr } = await sb.from("social_posts").insert({
           author_id,
           node_id,
           channel_id: channel.channel_id,
@@ -193,14 +230,16 @@ serve(async (req) => {
           status: "failed",
           error_message: (e as Error).message,
         });
+        if (insErr) {
+          console.error(`[schedule] social_posts insert failed (catch) post ${i}:`, insErr);
+          errors.push(`post ${i} insert error: ${insErr.message}`);
+        }
         results.push({ ok: false, platform: post.platform, reason: (e as Error).message });
       }
 
-      // brief throttle
       if (i < allPosts.length - 1) await new Promise((r) => setTimeout(r, 250));
     }
 
-    // 4. Mark node as live
     await sb
       .from("author_nodes")
       .update({
@@ -210,6 +249,10 @@ serve(async (req) => {
       .eq("author_id", author_id)
       .eq("node_id", node_id);
 
+    console.log(
+      `[schedule] complete: scheduled=${successCount} skipped=${skippedCount} total=${allPosts.length} errorCount=${errors.length}`,
+    );
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -217,13 +260,14 @@ serve(async (req) => {
         skipped: skippedCount,
         total: allPosts.length,
         results,
+        errors,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("schedule-social-posts error:", err);
+    console.error("[schedule] fatal error:", err);
     return new Response(
-      JSON.stringify({ success: false, error: (err as Error).message }),
+      JSON.stringify({ success: false, error: (err as Error).message, errors }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }

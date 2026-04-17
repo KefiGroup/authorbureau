@@ -84,6 +84,8 @@ export default function ConnectSettings() {
       if (!data?.success) throw new Error(data?.error || "Failed to sync from Buffer");
 
       await loadConnections(authorId);
+      // Belt-and-suspenders: re-query 600ms later to catch DB read-replica lag after upserts
+      setTimeout(() => { loadConnections(authorId).catch(() => {}); }, 600);
       // Re-query to log accurate count (state update is async)
       const { data: rows } = await supabase
         .from("social_connections")
