@@ -43,12 +43,40 @@ async function callAI(userPrompt: string, maxTokens: number) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Track prior state so we can restore on failure
+  let priorStatus: string | null = null;
+  let priorContent: Record<string, unknown> | null = null;
+  let priorPersonalisedName: string | null = null;
+  let hadUsableKit = false;
+  let sb: ReturnType<typeof createClient> | null = null;
+  let nodeRowId: string | null = null;
+  let authorIdForCatch: string | null = null;
+
   try {
     const { author_id } = await req.json();
     if (!author_id) throw new Error("author_id required");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+    authorIdForCatch = author_id;
 
-    const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+
+    // Snapshot existing node BEFORE we touch status — so a failed rerun can restore it
+    {
+      const { data: existing } = await sb.from("author_nodes")
+        .select("id, status, content_json, personalised_name")
+        .eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
+      if (existing) {
+        nodeRowId = existing.id as string;
+        priorStatus = (existing.status as string) || null;
+        priorContent = (existing.content_json as Record<string, unknown>) || null;
+        priorPersonalisedName = (existing.personalised_name as string) || null;
+        const cj: any = priorContent;
+        hadUsableKit =
+          !!cj &&
+          ((Array.isArray(cj.posts) && cj.posts.length > 0) ||
+            (Array.isArray(cj.outreach_kit) && cj.outreach_kit.length > 0));
+      }
+    }
 
     const { data: profile } = await sb.from("author_profiles")
       .select("pen_name, genres, user_id").eq("id", author_id).single();
@@ -81,13 +109,13 @@ Key frameworks: ${frameworks}
 
     // Helper to write progress
     const setProgress = async (step: number, label: string, partial: Record<string, unknown> = {}) => {
-      const { data: existingNode } = await sb.from("author_nodes")
+      const { data: existingNode } = await sb!.from("author_nodes")
         .select("id, content_json").eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
       const merged = { ...(existingNode?.content_json as object || {}), ...partial, progress: { step, label, total: 3 } };
       if (existingNode) {
-        await sb.from("author_nodes").update({ status: "generating", content_json: merged }).eq("id", existingNode.id);
+        await sb!.from("author_nodes").update({ status: "generating", content_json: merged }).eq("id", existingNode.id);
       } else {
-        await sb.from("author_nodes").insert({
+        await sb!.from("author_nodes").insert({
           author_id, node_id: "BP-03", node_name: "Social Media",
           status: "generating", content_json: merged,
         });
