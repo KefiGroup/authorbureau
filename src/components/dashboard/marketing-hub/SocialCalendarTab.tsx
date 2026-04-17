@@ -155,9 +155,9 @@ export default function SocialCalendarTab({ authorId }: Props) {
     setPosts(loadedPosts);
     setConnections((connData as any) || []);
     // Anchor cursor on earliest scheduled post month
-    const earliest = loadedPosts
-      .filter((p: SocialPost) => p.scheduled_at)
-      .reduce<string | null>((acc: string | null, p: SocialPost) => (!acc || p.scheduled_at! < acc ? p.scheduled_at! : acc), null);
+    const earliest = (loadedPosts as SocialPost[])
+      .filter((p) => !!p.scheduled_at)
+      .reduce((acc: string | null, p) => (!acc || (p.scheduled_at as string) < acc ? (p.scheduled_at as string) : acc), null as string | null);
     if (earliest) setCursor(new Date(earliest));
     setLoading(false);
   };
