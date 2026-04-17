@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Mail, Megaphone, Copy, Download } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Megaphone, Copy, Download } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
