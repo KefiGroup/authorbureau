@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Eye, Zap } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
+import { ensureFunnel } from "@/lib/funnel-hook";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -167,8 +168,9 @@ export default function BP01Builder({ authorId }: Props) {
         activated: true,
         publishStatus: status,
       }));
-      // Fire-and-forget: ensure email sequence exists for BP-01
+      // Fire-and-forget: ensure email sequence + funnel exist for BP-01
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-01" });
+      ensureFunnel({ authorId: authorId!, nodeId: "BP-01", funnelType: "opt_in" });
       if (status === "published_pending_ghl") {
         toast.success("Email Marketing saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
       } else {
