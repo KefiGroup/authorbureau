@@ -52,7 +52,7 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
     fetchPenName();
   }, [user.id]);
 
-  const displayName = penName || user.email;
+  const displayName = user.email || penName;
   const effectiveTier = isAdmin ? "yield" : tier;
 
   const TIER_DISPLAY: Record<string, string> = {
