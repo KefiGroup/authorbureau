@@ -508,12 +508,19 @@ export default function BP03Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-            nodeId="BP-03"
-            authorName={authorName}
-            penNameSlug={authorSlug}
-            abbyMessage={content?.abbyMessage || "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
-          />
+          <>
+            <PublishSuccessScreen
+              nodeId="BP-03"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              abbyMessage={content?.abbyMessage || "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
+            />
+            <div className="text-center">
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back to review &amp; edit content
+              </Button>
+            </div>
+          </>
         )}
       </div>
     </div>
