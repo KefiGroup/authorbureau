@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Home, User, BookOpen, Mail, Quote, ChevronDown, ChevronUp, Search, MessageSquare } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
@@ -212,6 +213,9 @@ export default function BP04Builder({ authorId }: Props) {
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Every author needs a professional online home — a place where readers discover you, learn about your book, and join your community. I'm going to build your complete author website for '{detectedBookTitle || bookTitle || "your book"}' — with a homepage, about page, book page, and contact form — all written and structured around your book and your brand. Ready?
                 </p>
+                <div className="mb-4">
+                  <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-04"]} />
+                </div>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Build My Website
                 </Button>
@@ -249,11 +253,14 @@ export default function BP04Builder({ authorId }: Props) {
         )}
 
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BP-04"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-            />
+          <>
+            <PublishSuccessScreen
+                nodeId="BP-04"
+                authorName={authorName}
+                penNameSlug={authorSlug}
+              />
+            <BackToReviewLink onClick={() => setStep(2)} />
+          </>
         )}
       </div>
     </div>

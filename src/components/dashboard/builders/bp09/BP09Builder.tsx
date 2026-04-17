@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, ShoppingBag, LayoutList, DollarSign, FileText, TrendingUp } from "lucide-react";
 import { categoryStyles } from "../shared/BuilderTheme";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
@@ -93,7 +94,7 @@ export default function BP09Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's set up your Book Sales</h2>
-            {!isBookLoading && hasContext === false && !hasBook ? (<BookProfileQuickForm authorId={authorId} authorName={authorName} onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }} />) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || bookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
+            {!isBookLoading && hasContext === false && !hasBook ? (<BookProfileQuickForm authorId={authorId} authorName={authorName} onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }} />) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || bookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
@@ -170,7 +171,7 @@ export default function BP09Builder({ authorId }: Props) {
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <PublishSuccessScreen nodeId="BP-09" authorName={authorName} penNameSlug={authorSlug} />}
+        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-09" authorName={authorName} penNameSlug={authorSlug} /><BackToReviewLink onClick={() => setStep(2)} /></>}
       </div>
     </div>
   );

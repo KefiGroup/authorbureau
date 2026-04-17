@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Megaphone, Copy, Download } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
@@ -445,6 +446,9 @@ export default function BP03Builder({ authorId }: Props) {
                 <p className="text-muted-foreground mb-4">
                   I'm going to create your social media starter kit for '{detectedBookTitle || bookTitle || "your book"}' — 20 ready-to-post pieces across LinkedIn, Instagram, Facebook, and X, plus 3 outreach email templates. Ready?
                 </p>
+                <div className="mb-4">
+                  <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-03"]} />
+                </div>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
                   <Sparkles className="h-4 w-4 mr-2" /> Generate My Starter Kit
                 </Button>
@@ -515,11 +519,7 @@ export default function BP03Builder({ authorId }: Props) {
               penNameSlug={authorSlug}
               abbyMessage={content?.abbyMessage || "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
             />
-            <div className="text-center">
-              <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back to review &amp; edit content
-              </Button>
-            </div>
+            <BackToReviewLink onClick={() => setStep(2)} />
           </>
         )}
       </div>
