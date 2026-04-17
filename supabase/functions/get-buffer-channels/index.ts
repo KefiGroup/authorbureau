@@ -61,7 +61,7 @@ serve(async (req) => {
     if (!apiKey) throw new Error("Buffer API key is required. Please paste your key and try again.");
     if (!BUFFER_ORG_ID) throw new Error("Social Accounts org is not configured.");
 
-    const query = `query GetChannels($organizationId: String!) {
+    const query = `query GetChannels($organizationId: OrganizationId!) {
       channels(input: { organizationId: $organizationId }) {
         id
         name
