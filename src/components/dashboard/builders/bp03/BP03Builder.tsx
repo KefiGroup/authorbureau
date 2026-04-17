@@ -52,8 +52,9 @@ export default function BP03Builder({ authorId }: Props) {
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
+    console.log("[BP-03 mount] authorId =", authorId);
     if (!authorId) {
-      setIsResuming(false);
+      // Keep the loading shield up while parent resolves authorId — don't show intro prematurely
       return;
     }
 
@@ -64,12 +65,13 @@ export default function BP03Builder({ authorId }: Props) {
       setError(null);
 
       try {
-        const { data: profile } = await supabase
+        const { data: profile, error: profileErr } = await supabase
           .from("author_profiles")
           .select("pen_name, author_slug, user_id")
           .eq("id", authorId)
           .single();
         if (cancelled) return;
+        if (profileErr) console.error("[BP-03 resume] profile error:", profileErr);
 
         setAuthorName(profile?.pen_name || "there");
         setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
@@ -105,13 +107,14 @@ export default function BP03Builder({ authorId }: Props) {
           }
         }
 
-        const { data: node } = await supabase
+        const { data: node, error: nodeErr } = await supabase
           .from("author_nodes")
           .select("content_json, status")
           .eq("author_id", authorId)
           .eq("node_id", "BP-03")
           .maybeSingle();
         if (cancelled) return;
+        if (nodeErr) console.error("[BP-03 resume] node error:", nodeErr);
 
         const status = node?.status;
         const hasContent = !!node?.content_json;
@@ -132,15 +135,14 @@ export default function BP03Builder({ authorId }: Props) {
         }
 
         const storedTitle = (node?.content_json as any)?.book_title;
-        if (storedTitle && !ctx?.book_title) {
+        if (storedTitle) {
           setBookTitle((prev) => prev || storedTitle);
           setHasContext(true);
         }
 
-        // Only advance forward — never overwrite a user who's progressed past the resumed step
         setStep((prev) => (resumedStep > prev ? resumedStep : prev));
         hasResumed.current = true;
-        console.log("[BP-03 mount]", { status, hasContent, step: resumedStep, bookTitleResolved: ctx?.book_title || storedTitle || "(pending)" });
+        console.log("[BP-03 resume] resolved", { status, hasContent, resumedStep });
       } catch (resumeError) {
         console.error("[BP-03 resume] Failed to restore builder state:", resumeError);
       } finally {
