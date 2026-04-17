@@ -1,40 +1,42 @@
 
+## Fix BP-03 — Resume state, book title resolution, remove Email tab
 
-## Fix BP-03 book title display + ABBY review copy
+Three targeted edits to `src/components/dashboard/builders/bp03/BP03Builder.tsx`. Data already verified correct in DB (Pauline's BP-03 = `content_ready`, ctx & books titles = "Be SUCKcessful"). Bugs are all in the React layer.
 
-Two small targeted edits to `src/components/dashboard/builders/bp03/BP03Builder.tsx`.
+### Bug 1 — Step resets on navigate-back (CRITICAL)
 
-### Fix 1 — Book title shows "your book" on first render
-
-**Root cause**: On first render, `useAuthorBook` is still loading (`isBookLoading=true`, `detectedBookTitle=""`), and the local `bookTitle` state hasn't been populated yet by the `useEffect` that queries `author_context`/`books`. The introduction string evaluates to `"your book"` and never updates reactively because the JSX uses string concatenation that's already been computed.
-
-The JSX itself IS reactive (it re-evaluates on every render), so the real issue is purely that the literal "your book" flashes during the loading window before either source resolves. After loading, `detectedBookTitle` should populate.
+Mount logic at lines 89–106 already handles `content_ready` → `step=2` and `live` → `step=3`. But it gates on `node.content_json` being truthy AND status matching. If the node row exists but `content_json` is empty/null (or status is `generating`), the resume falls through and `step` stays at 0. Also: there's no resume for the rare `generating` status (user closed tab mid-gen).
 
 **Fix**:
-1. Hide the intro paragraph + button until `!isBookLoading` AND we have a resolved title (or context check finished). While loading, show a small "Loading your book details…" line instead of the misleading "your book" placeholder.
-2. Also make the intro actively prefer `detectedBookTitle || bookTitle` (already correct), and add a `useEffect` that logs both sources for verification.
+- Broaden the resume to: if `node.status === "live"` → step 3 + activated. Else if `node.status === "content_ready"` AND `content_json` present → step 2. Else if `node.status === "generating"` → step 1 (and re-attach progress poll).
+- Add `console.log("[BP-03 mount]", { status, hasContent, step })` for verification.
+- Run the resume effect AFTER the book-context block (already does) but ensure `setStep` happens regardless of `hasContext` resolution.
 
-Concrete change in step 0 render block (around lines 257–283):
-- Wrap the intro in `{!isBookLoading && (detectedBookTitle || bookTitle) ? (…intro…) : !isBookLoading && hasContext === false ? (…BookProfileQuickForm…) : (<p>Loading your book details…</p>)}`
+### Bug 2 — "your book" placeholder still flashes
 
-### Fix 2 — Review copy mentions "30-day email sequence"
+Mount queries `author_context.author_id = authorId` (author_profiles.id) ✓ — works for Pauline. `useAuthorBook` queries `books.author_id = auth.uid()` ✓ — also works. Both should populate. The visible 'your book' is either (a) a flash before load completes, or (b) appearing inside ReviewStep where `bookTitle` prop falls through to "your book" because step transitioned to 2 before local `bookTitle` state populated (race: line 89 query for node fires in parallel with line 61 ctx query, and if node returns first with content_ready, `step=2` renders ReviewStep before `setBookTitle` resolves).
 
-**Location**: Line 435, inside `ReviewStep`'s ABBY message:
-> "You have {totalPosts} social posts across 4 platforms, a 30-day email sequence, and a full outreach kit"
+**Fix**:
+- Restructure mount: `await` all three queries (profile, ctx/books, node) sequentially OR at minimum set `bookTitle` BEFORE setting `step=2`.
+- Add `console.log("[BP-03 title resolution]", { detectedBookTitle, localBookTitle, hasBook, isBookLoading })` after each set.
+- Strengthen ReviewStep prop chain: `bookTitle={bookTitle || detectedBookTitle || "your book"}` is already correct, but we'll add a fallback to the node's stored content (some legacy gens stored `book_title` in `content_json`).
 
-**Fix**: Replace with:
-> "You have 20 social posts across 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates — all personalised to your book. Review everything below, then click Activate."
+### Bug 3 — Email Sequence tab still visible
 
-Also fix `totalPosts` math: BP-03 now generates 5 posts × 4 platforms = 20, not 30 × 4. Hardcode `20` in the copy (cleaner than recomputing) since the new edge function is fixed at 5/platform.
+Lines 431, 435–437 (TabsList) and 474–487 (TabsContent value="emails") still render the Email Sequence tab. Removed in copy/ZIP last sprint, but the UI tab was missed.
 
-### Out of scope
-- The ZIP download still references `30_day_email_sequence.txt` and the README still mentions a 30-day sequence + 120 posts. Those are now stale because the email sequence was removed from BP-03 in Sprint 35b. I'll also clean these up so the downloaded kit matches reality:
-  - Remove the email_sequence folder from the ZIP (the `if (content.email_sequence?.length)` block becomes a no-op since the field is no longer generated, but leaving dead code is risky — remove it).
-  - Update README to: "20 posts across 4 platforms (5 per platform)" + "3 outreach templates (podcast, media, review)" + remove the email-sequence line.
+**Fix**:
+- Change `TabsList` to `grid-cols-2`.
+- Delete the `<TabsTrigger value="emails">` (lines 435–437).
+- Delete the entire `<TabsContent value="emails">` block (lines 474–487).
+- Delete the now-unused `EmailCard` component (lines 564–604) and the `Mail` import.
+- Update Outreach tab description (line 493): "These 5 templates" → "These 3 templates" to match actual generation count.
 
 ### Files touched
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx` (3 small edits: intro gate, ReviewStep copy, ZIP cleanup)
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx` (single file, ~5 small edits)
+
+### Out of scope
+Other BP builders (this report is BP-03 only). No DB changes. No edge function changes.
 
 ### Phasing
-One shot — all changes in a single file edit.
-
+One shot — single file.
