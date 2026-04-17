@@ -500,7 +500,7 @@ export default function BP02Builder({ authorId }: Props) {
             <div className="space-y-4">
               <p className="text-muted-foreground font-medium animate-pulse">{GENERATING_MESSAGES[msgIndex]}</p>
               <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
-              <p className="text-xs text-muted-foreground">This usually takes about 1 minute</p>
+              <p className="text-xs text-muted-foreground">Abby usually takes about 1 minute</p>
             </div>
           </AbbyCard>
         )}
