@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Home, User, BookOpen, Mail, Quote, ChevronDown, ChevronUp, Search, MessageSquare } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { toAbbyError } from "@/lib/abby-error";
+import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -201,12 +202,11 @@ export default function BP04Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Author Website</h2>
             {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
-              <>
-                <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Before I can build your website, I need to know about your book. Please complete your book profile first.
-                </p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-04")}>Complete Book Profile</Button>
-              </>
+              <BookProfileQuickForm
+                authorId={authorId}
+                authorName={authorName}
+                onComplete={(t) => { setBookTitle(t); setHasContext(true); }}
+              />
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
