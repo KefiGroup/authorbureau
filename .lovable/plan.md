@@ -1,56 +1,55 @@
 
-I checked the BP-03 flow against the current code and the existing saved records for Pauline Teo. The current fix is not sufficient yet.
 
-What I found
-- Pauline Teo’s author profile exists, and the BP-03 “Social Media” node already contains a full generated kit.
-- The node is stuck in a half-saved state: the content is there, but the resume metadata is not fully normalized.
-- Specifically, the builder depends on step markers like `current_step`, `_currentStep`, and `publishStatus`, but the existing BP-03 row is not consistently updated to that stable review state.
-- That explains both symptoms:
-  - “Save” still errors
-  - the node can drop back to Introduction instead of reopening at Review
+The user wants per-author Buffer API keys. Currently `get-buffer-channels` uses a global `BUFFER_API_KEY` env var. Need to accept a per-author key, store it, and surface it in Connect Settings UI.
 
-Why this is happening
-- BP-03 is using its own custom token/auth path instead of the project’s standard token helper.
-- Its backend save/load function is also doing a stricter identity/profile match than the rest of the app.
-- So the generated content can exist, while the manual save/resume handshake still fails for a live user session.
+## Plan: Social Accounts card + per-author Buffer API key
 
-Implementation plan
-1. Standardize BP-03 auth
-   - Remove the BP-03-only token resolver.
-   - Switch BP-03 to the shared `getActiveToken()` + `fetchWithTimeout()` pattern already used elsewhere in the project.
-   - Stop hiding the real backend message behind the generic “couldn’t save” state.
+### 1. Database — add column
+Migration: `ALTER TABLE social_connections ADD COLUMN buffer_api_key text;`
 
-2. Harden the BP-03 backend function
-   - Update `bp03-node-state` so it resolves the signed-in user with the same resilient identity pattern used in other functions.
-   - Validate ownership using the platform’s canonical author mapping instead of one brittle match path.
-   - Return explicit errors for token mismatch, author mismatch, missing profile, and invalid payload.
+### 2. Edge function — `supabase/functions/get-buffer-channels/index.ts`
+- Accept `{ author_id, buffer_api_key }` in body.
+- If `buffer_api_key` provided: use it as the bearer token; otherwise fall back to `BUFFER_API_KEY` env (keeps Pauline working).
+- After successful Buffer GraphQL fetch, include `buffer_api_key` on every upserted row so it persists per author.
+- Return `{ success, channels, count }` (existing shape) plus `platforms` list (e.g. `["linkedin","instagram"]`) so UI can show which were found.
 
-3. Auto-heal already-generated BP-03 records
-   - If a usable social kit already exists, treat it as reviewable even when step metadata is stale or missing.
-   - On successful load/save, normalize the record into a stable review state by writing:
-     - `current_step = 2`
-     - `_currentStep = 2`
-     - `publishStatus = content_ready`
-   - This will stop already-generated kits from falling back to Introduction.
+### 3. UI — `src/pages/ConnectSettings.tsx`
+Add a new "Social Accounts" Card below Email Marketing.
 
-4. Make Save idempotent
-   - If the exact kit is already stored, Save should return success instead of attempting a brittle second write.
-   - That keeps “Save to My Account” safe to click repeatedly.
+**State additions**
+- `authorId`, `connectedPlatforms: Set<string>`, `apiKey: string`, `savedKeyMask: string | null`, `syncing: boolean`
 
-5. Verify on live, not just preview
-   - Test with Pauline’s live account flow.
-   - Confirm these exact behaviors:
-     - Save succeeds with no error toast
-     - refresh returns to Review
-     - leaving and re-entering BP-03 resumes correctly
-     - Activate still works after the save-path fix
+**On mount** — extend existing fetch to also load:
+- `author_profiles.id` → `authorId`
+- `social_connections` rows for this author → derive `connectedPlatforms` and pull `buffer_api_key` (mask all but last 4 chars → `savedKeyMask`)
 
-Files likely involved
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
-- `supabase/functions/bp03-node-state/index.ts`
-- Possibly `src/pages/NodeBuilder.tsx` if the parent author-id hydration also needs tightening
+**Card contents**
+1. Header: "Social Accounts" + 1-line description.
+2. Buffer API Key field:
+   - `<Label>Buffer API Key</Label>`
+   - `<Input>` — placeholder `"Paste your Buffer API key here"`, value bound to `apiKey`. If `savedKeyMask` exists and `apiKey` is empty, show mask as placeholder so user knows it's stored.
+   - Helper text: `"Get your key from Buffer → Settings → API → New Key"`
+   - Link: `"Don't have Buffer? Set it up free →"` opens `https://buffer.com` in new tab (`target="_blank" rel="noopener noreferrer"`).
+3. 4 platform rows (LinkedIn, Instagram, Facebook, X) using lucide `Linkedin`, `Instagram`, `Facebook`, `Twitter`:
+   - Icon + name + Badge (`"Connected via Buffer"` green if in `connectedPlatforms`, else `"Not Connected"` neutral).
+4. `<Button>` "Sync from Buffer":
+   - Disabled when `apiKey.trim() === "" && !savedKeyMask` (allow re-sync with stored key when input empty).
+   - On click → `handleSync()`.
 
-Technical details
-- This is not a generation problem. The BP-03 content already exists in the database.
-- It is a save/resume state problem caused by inconsistent step persistence and a brittle live-session identity check.
-- I would keep the fix tightly scoped to BP-03 first, then only widen it if the live verification shows the same pattern elsewhere.
+**`handleSync()`**
+- `setSyncing(true)`
+- `supabase.functions.invoke("get-buffer-channels", { body: { author_id: authorId, buffer_api_key: apiKey || undefined } })`
+- On success:
+  - Re-query `social_connections`, refresh `connectedPlatforms` + `savedKeyMask`, clear input.
+  - Toast: `"Done! I found {count} connected accounts. Go back to Social Media and click Activate to schedule your posts."`
+- On error: toast with the function's error message.
+- `setSyncing(false)`
+
+### Out of scope
+No changes to BP-03, Marketing Hub, or other settings pages.
+
+### Files touched
+- DB migration (add `buffer_api_key` column)
+- `supabase/functions/get-buffer-channels/index.ts`
+- `src/pages/ConnectSettings.tsx`
+
