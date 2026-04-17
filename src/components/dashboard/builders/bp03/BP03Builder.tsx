@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,10 +59,15 @@ export default function BP03Builder({ authorId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
+  const { isReady: isAuthReady } = useAuthReady();
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
-    console.log("[BP-03 mount] authorId =", authorId);
+    console.log("[BP-03 mount] authorId =", authorId, "authReady =", isAuthReady);
+    if (!isAuthReady) {
+      return;
+    }
+
     if (!authorId) {
       // Keep the loading shield up while parent resolves authorId — don't show intro prematurely
       return;
@@ -78,7 +84,7 @@ export default function BP03Builder({ authorId }: Props) {
           .from("author_profiles")
           .select("pen_name, author_slug, user_id")
           .eq("id", authorId)
-          .single();
+          .maybeSingle();
         if (cancelled) return;
         if (profileErr) console.error("[BP-03 resume] profile error:", profileErr);
 
@@ -123,22 +129,17 @@ export default function BP03Builder({ authorId }: Props) {
           .eq("node_id", "BP-03")
           .maybeSingle();
         if (cancelled) return;
-        if (nodeErr) console.error("[BP-03 resume] node error:", nodeErr);
+
+        if (nodeErr) {
+          console.error("BP03 resume query error:", nodeErr);
+          setContent(null);
+          setStep(0);
+          return;
+        }
 
         const status = node?.status;
         const cj: any = node?.content_json || null;
         const postsCount = Array.isArray(cj?.posts) ? cj.posts.length : 0;
-        let resumedStep = 0;
-
-        if (postsCount > 0) {
-          setContent({ ...cj, activated: true, publishStatus: status });
-          resumedStep = 3;
-        } else if (status === "generating") {
-          setContent(null);
-          resumedStep = 1;
-        } else {
-          setContent(null);
-        }
 
         const storedTitle = cj?.book_title;
         if (storedTitle) {
@@ -146,11 +147,29 @@ export default function BP03Builder({ authorId }: Props) {
           setHasContext(true);
         }
 
-        setStep(resumedStep);
+        if (postsCount > 0) {
+          setContent({ ...cj, activated: true, publishStatus: status });
+          setStep(3);
+        } else if (status === "generating") {
+          setContent(null);
+          setStep(1);
+        } else {
+          setContent(null);
+          setStep(0);
+        }
+
         hasResumed.current = true;
-        console.log("[BP-03 resume] resolved", { status, postsCount, resumedStep });
+        console.log("[BP-03 resume] resolved", {
+          status,
+          postsCount,
+          resumedStep: postsCount > 0 ? 3 : status === "generating" ? 1 : 0,
+        });
       } catch (resumeError) {
-        console.error("[BP-03 resume] Failed to restore builder state:", resumeError);
+        if (!cancelled) {
+          console.error("BP03 mount error:", resumeError);
+          setContent(null);
+          setStep(0);
+        }
       } finally {
         if (!cancelled) {
           setIsResuming(false);
@@ -163,7 +182,7 @@ export default function BP03Builder({ authorId }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [authorId]);
+  }, [authorId, isAuthReady]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
