@@ -118,9 +118,26 @@ export default function BP03Builder({ authorId }: Props) {
     }
   }, [step]);
 
+  const [progressLabel, setProgressLabel] = useState<string>("");
+  const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   const handleGenerate = async () => {
     setStep(1);
     setError(null);
+    setProgressLabel("");
+
+    // Poll author_nodes.content_json.progress every 2s while generating
+    progressPollRef.current = setInterval(async () => {
+      const { data } = await supabase
+        .from("author_nodes")
+        .select("content_json")
+        .eq("author_id", authorId!)
+        .eq("node_id", "BP-03")
+        .maybeSingle();
+      const prog = (data?.content_json as any)?.progress;
+      if (prog?.label) setProgressLabel(prog.label);
+    }, 2000);
+
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp03-social-media", {
         body: { author_id: authorId },
@@ -141,6 +158,11 @@ export default function BP03Builder({ authorId }: Props) {
     } catch (e: any) {
       setError(e.message);
       setStep(0);
+    } finally {
+      if (progressPollRef.current) {
+        clearInterval(progressPollRef.current);
+        progressPollRef.current = null;
+      }
     }
   };
 
