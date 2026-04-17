@@ -71,6 +71,37 @@ async function fetchBp03NodeState(body: Record<string, unknown>) {
   return result;
 }
 
+async function invokeScheduleSocialPosts(authorId: string) {
+  const token = await getActiveToken();
+  if (!token) {
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+
+  const response = await fetchWithTimeout(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/schedule-social-posts`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ author_id: authorId, node_id: "BP-03" }),
+    },
+    45000,
+  );
+
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result) {
+    throw new Error("We couldn't reach your social scheduler.");
+  }
+
+  if (!result.success) {
+    throw new Error(result.error || "Couldn't schedule your posts.");
+  }
+
+  return result;
+}
+
 export default function BP03Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
@@ -304,21 +335,24 @@ export default function BP03Builder({ authorId }: Props) {
       let scheduledCount = 0;
       let scheduleErrorMsg: string | null = null;
       try {
-        const { data: scheduleResp, error: scheduleErr } = await supabase.functions.invoke(
-          "schedule-social-posts",
-          { body: { author_id: authorId, node_id: "BP-03" } },
-        );
-        if (scheduleErr) throw scheduleErr;
-        if (!scheduleResp?.success) throw new Error(scheduleResp?.error || "Couldn't schedule your posts.");
+        const scheduleResp = await invokeScheduleSocialPosts(authorId);
         scheduledCount = scheduleResp.scheduled || 0;
+        const haltedReason = typeof scheduleResp.haltedReason === "string" ? scheduleResp.haltedReason : null;
+        if (haltedReason && scheduledCount === 0) {
+          scheduleErrorMsg = haltedReason;
+        }
       } catch (e: any) {
         console.error("schedule-social-posts error (non-blocking):", e);
         scheduleErrorMsg = e?.message || "We couldn't reach your Social Accounts.";
       }
 
-      const abbyMsg = (scheduleErrorMsg || scheduledCount === 0)
-        ? `Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts.`
-        : `Done! I've scheduled ${scheduledCount} post${scheduledCount === 1 ? "" : "s"} across your connected social accounts. Your first post goes out tomorrow. View your Social Calendar in the Marketing Hub to see the full schedule.`;
+      const abbyMsg = scheduleErrorMsg
+        ? scheduleErrorMsg.toLowerCase().includes("rate limit")
+          ? "Your kit is saved, but Buffer hit its rate limit, so scheduling paused for now. Please wait a bit and click Schedule posts now again."
+          : `Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts.`
+        : scheduledCount === 0
+          ? `Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts.`
+          : `Done! I've scheduled ${scheduledCount} posts across your connected social accounts. Your first post goes out tomorrow. View your Social Calendar in the Marketing Hub to see the full schedule.`;
 
       setContent({
         ...(savedNode.content_json as any),
@@ -329,7 +363,11 @@ export default function BP03Builder({ authorId }: Props) {
       });
 
       if (scheduleErrorMsg) {
-        toast.success("Your kit is saved.");
+        toast.success(
+          scheduleErrorMsg.toLowerCase().includes("rate limit")
+            ? "Buffer rate limit reached — try scheduling again shortly."
+            : "Your kit is saved."
+        );
       } else {
         toast.success(`Scheduled ${scheduledCount} posts across your social channels 🎉`);
       }
