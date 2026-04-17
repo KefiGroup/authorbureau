@@ -471,14 +471,12 @@ export default function BP03Builder({ authorId }: Props) {
               penNameSlug={authorSlug}
               abbyMessage={content?.abbyMessage || "Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts."}
             />
-            {(!content?.scheduledCount || content.scheduledCount === 0) && (
-              <div className="mt-4 flex justify-center">
-                <Button onClick={handlePublish} className="gap-2">
-                  <Sparkles className="h-4 w-4" />
-                  Re-run activation & schedule posts now
-                </Button>
-              </div>
-            )}
+            <div className="mt-4 flex justify-center">
+              <Button onClick={handlePublish} className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                Schedule posts now
+              </Button>
+            </div>
             <BackToReviewLink onClick={() => setStep(2)} />
           </>
         )}
