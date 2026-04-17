@@ -75,6 +75,31 @@ serve(async (req) => {
     console.log(`[schedule] extracted ${allPosts.length} posts from content_json`);
     if (allPosts.length === 0) throw new Error("No social posts found in your kit.");
 
+    // Idempotency: skip if posts already successfully scheduled for this node
+    const { data: existingPosts } = await sb
+      .from("social_posts")
+      .select("id, buffer_post_id, status")
+      .eq("author_id", author_id)
+      .eq("node_id", node_id)
+      .eq("status", "queued")
+      .not("buffer_post_id", "is", null);
+
+    const alreadyScheduled = existingPosts?.length ?? 0;
+    if (alreadyScheduled >= allPosts.length) {
+      console.log(`[schedule] already scheduled ${alreadyScheduled} posts — skipping re-run`);
+      return new Response(
+        JSON.stringify({
+          success: true,
+          scheduled: alreadyScheduled,
+          skipped: 0,
+          total: allPosts.length,
+          alreadyScheduled: true,
+          message: `Already scheduled ${alreadyScheduled} posts — no action taken.`,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // 2. Load connected channels
     const { data: connections, error: connErr } = await sb
       .from("social_connections")
@@ -159,26 +184,35 @@ serve(async (req) => {
       }
 
       try {
-        const resp = await fetch("https://api.buffer.com/graphql", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${BUFFER_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: mutation,
-            variables: {
-              text: post.text,
-              channelId: channel.channel_id,
-              dueAt: dueAt.toISOString(),
+        // Retry up to 3 times on 429 with exponential backoff
+        let resp: Response | null = null;
+        let rawBody = "";
+        for (let attempt = 0; attempt < 3; attempt++) {
+          resp = await fetch("https://api.buffer.com/graphql", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${BUFFER_API_KEY}`,
+              "Content-Type": "application/json",
             },
-          }),
-        });
-
-        const rawBody = await resp.text();
-        if (!resp.ok) {
-          console.error(`[schedule] Buffer HTTP ${resp.status} for post ${i}: ${rawBody}`);
-          errors.push(`post ${i} (${post.platform}): Buffer HTTP ${resp.status}`);
+            body: JSON.stringify({
+              query: mutation,
+              variables: {
+                text: post.text,
+                channelId: channel.channel_id,
+                dueAt: dueAt.toISOString(),
+              },
+            }),
+          });
+          rawBody = await resp.text();
+          const is429 = resp.status === 429 || rawBody.includes("RATE_LIMIT_EXCEEDED");
+          if (!is429) break;
+          const wait = 2000 * Math.pow(2, attempt);
+          console.warn(`[schedule] post ${i} got 429, retrying in ${wait}ms (attempt ${attempt + 1}/3)`);
+          await new Promise((r) => setTimeout(r, wait));
+        }
+        if (!resp!.ok) {
+          console.error(`[schedule] Buffer HTTP ${resp!.status} for post ${i}: ${rawBody}`);
+          errors.push(`post ${i} (${post.platform}): Buffer HTTP ${resp!.status}`);
         }
 
         let json: any = null;
@@ -237,7 +271,8 @@ serve(async (req) => {
         results.push({ ok: false, platform: post.platform, reason: (e as Error).message });
       }
 
-      if (i < allPosts.length - 1) await new Promise((r) => setTimeout(r, 250));
+      // Throttle to ~1 req/sec to stay under Buffer rate limits
+      if (i < allPosts.length - 1) await new Promise((r) => setTimeout(r, 1100));
     }
 
     await sb
