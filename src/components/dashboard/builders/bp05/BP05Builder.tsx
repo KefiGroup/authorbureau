@@ -201,12 +201,11 @@ export default function BP05Builder({ authorId }: Props) {
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's set up your Webinars</h2>
             {!isBookLoading && !hasBook ? (
-              <>
-                <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Before I can set up your webinars, I need to know about your book. Please complete your book profile first.
-                </p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-05")}>Complete Book Profile</Button>
-              </>
+              <BookProfileQuickForm
+                authorId={authorId}
+                authorName={authorName}
+                onComplete={(t) => { setBookTitle(t); setHasContext(true); }}
+              />
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
