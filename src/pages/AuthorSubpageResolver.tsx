@@ -1,8 +1,10 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { SLUG_TO_NODE } from "@/lib/node-slug-map";
+import { supabase } from "@/integrations/supabase/client";
 import MicrositePage from "./MicrositePage";
 import AuthorBookPage from "./AuthorBookPage";
+import FunnelPage from "./FunnelPage";
 
 /**
  * Smart resolver for /:authorSlug/:slug routes.
@@ -11,45 +13,78 @@ import AuthorBookPage from "./AuthorBookPage";
  * MicrositePage shows not-found for unrecognised slugs, but we intercept
  * that case and fall back to AuthorBookPage.
  */
+type Resolution =
+  | { kind: "loading" }
+  | { kind: "node" }
+  | { kind: "funnel"; funnel: any }
+  | { kind: "book" };
+
 export default function AuthorSubpageResolver() {
   const { bookSlug } = useParams<{ bookSlug: string }>();
-  const [isDynamicNode, setIsDynamicNode] = useState<boolean | null>(null);
+  const [resolution, setResolution] = useState<Resolution>({ kind: "loading" });
 
   const isKnownNode = bookSlug ? !!SLUG_TO_NODE[bookSlug] : false;
 
   useEffect(() => {
-    // For known node slugs or empty slugs, skip the check
-    if (isKnownNode || !bookSlug) {
-      setIsDynamicNode(false);
+    if (!bookSlug) {
+      setResolution({ kind: "book" });
+      return;
+    }
+    if (isKnownNode) {
+      setResolution({ kind: "node" });
       return;
     }
 
-    // For unknown slugs, probe the edge function to check if it's a dynamic node slug
     let cancelled = false;
     const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
     const authorSlug = window.location.pathname.split("/")[1];
 
-    fetch(
-      `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&slug=${encodeURIComponent(bookSlug)}`,
-      { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
-    )
-      .then(res => {
-        if (!cancelled) setIsDynamicNode(res.ok);
-      })
-      .catch(() => {
-        if (!cancelled) setIsDynamicNode(false);
-      });
+    (async () => {
+      // 1. Probe dynamic microsite node
+      try {
+        const nodeRes = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&slug=${encodeURIComponent(bookSlug)}`,
+          { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+        );
+        if (cancelled) return;
+        if (nodeRes.ok) {
+          setResolution({ kind: "node" });
+          return;
+        }
+      } catch { /* fall through */ }
+
+      // 2. Check funnels table for live funnel matching this slug + author
+      try {
+        const { data: author } = await supabase
+          .from("author_profiles")
+          .select("id, pen_name")
+          .eq("author_slug", authorSlug)
+          .maybeSingle();
+
+        if (author) {
+          const { data: funnel } = await supabase
+            .from("funnels")
+            .select("id, title, headline, subheadline, body_copy, cta_text, cta_url, hero_image_url, background_color, accent_color")
+            .eq("author_id", author.id)
+            .eq("slug", bookSlug)
+            .eq("status", "live")
+            .maybeSingle();
+
+          if (!cancelled && funnel) {
+            setResolution({ kind: "funnel", funnel: { ...funnel, author_name: author.pen_name } });
+            return;
+          }
+        }
+      } catch { /* fall through */ }
+
+      // 3. Fall back to book page
+      if (!cancelled) setResolution({ kind: "book" });
+    })();
 
     return () => { cancelled = true; };
   }, [bookSlug, isKnownNode]);
 
-  // Known node slug — always MicrositePage
-  if (isKnownNode) {
-    return <MicrositePage />;
-  }
-
-  // Still checking dynamic slug
-  if (isDynamicNode === null) {
+  if (resolution.kind === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-gray-600" />
@@ -57,11 +92,7 @@ export default function AuthorSubpageResolver() {
     );
   }
 
-  // Dynamic slug matched a node
-  if (isDynamicNode) {
-    return <MicrositePage />;
-  }
-
-  // Not a node slug — render as book page
+  if (resolution.kind === "node") return <MicrositePage />;
+  if (resolution.kind === "funnel") return <FunnelPage funnel={resolution.funnel} />;
   return <AuthorBookPage />;
 }
