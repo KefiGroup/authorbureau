@@ -483,26 +483,11 @@ function ReviewStep({ content, authorName, bookTitle, onActivate }: { content: a
           )}
         </TabsContent>
 
-        {/* Email Sequence Tab */}
-        <TabsContent value="emails" className="mt-4 space-y-3">
-          <AbbyCard>
-            <p className="text-sm text-muted-foreground">
-              These 30 emails follow the same story arc as your social posts — so your followers and your email list hear the same message at the same time.
-            </p>
-          </AbbyCard>
-          {content.email_sequence?.map((email: any, i: number) => (
-            <EmailCard key={i} email={email} index={i} />
-          ))}
-          {(!content.email_sequence || content.email_sequence.length === 0) && (
-            <p className="text-sm text-muted-foreground text-center py-4">Email sequence will appear here after generation.</p>
-          )}
-        </TabsContent>
-
         {/* Outreach Kit Tab */}
         <TabsContent value="outreach" className="mt-4 space-y-3">
           <AbbyCard>
             <p className="text-sm text-muted-foreground">
-              These 5 templates will help you get on podcasts, in the press, and in front of book clubs. Personalised to your book — just copy, paste, and send.
+              These 3 templates will help you get on podcasts, in the press, and in front of book clubs. Personalised to your book — just copy, paste, and send.
             </p>
           </AbbyCard>
           {content.outreach_kit?.map((template: any, i: number) => (
