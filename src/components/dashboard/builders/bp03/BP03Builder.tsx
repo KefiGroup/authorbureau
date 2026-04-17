@@ -56,8 +56,6 @@ export default function BP03Builder({ authorId }: Props) {
       setIsResuming(false);
       return;
     }
-    if (hasResumed.current) return;
-    hasResumed.current = true;
 
     let cancelled = false;
 
@@ -139,7 +137,9 @@ export default function BP03Builder({ authorId }: Props) {
           setHasContext(true);
         }
 
-        setStep(resumedStep);
+        // Only advance forward — never overwrite a user who's progressed past the resumed step
+        setStep((prev) => (resumedStep > prev ? resumedStep : prev));
+        hasResumed.current = true;
         console.log("[BP-03 mount]", { status, hasContent, step: resumedStep, bookTitleResolved: ctx?.book_title || storedTitle || "(pending)" });
       } catch (resumeError) {
         console.error("[BP-03 resume] Failed to restore builder state:", resumeError);
