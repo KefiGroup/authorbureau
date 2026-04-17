@@ -45,10 +45,13 @@ export default function BP03Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hasResumed = useRef(false);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
     if (!authorId) return;
+    if (hasResumed.current) return;
+    hasResumed.current = true;
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
