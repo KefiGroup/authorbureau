@@ -12,10 +12,29 @@ type SocialPost = {
   platform: string;
 };
 
+type RateLimitMeta = {
+  hit: boolean;
+  window: string | null;
+};
+
 function normalizePlatform(p: string): string {
   const s = (p || "").toLowerCase().trim();
   if (s === "twitter" || s === "x") return "x";
   return s;
+}
+
+function getRateLimitMeta(status: number, rawBody: string): RateLimitMeta {
+  if (status !== 429 && !rawBody.includes("RATE_LIMIT_EXCEEDED")) {
+    return { hit: false, window: null };
+  }
+
+  try {
+    const parsed = JSON.parse(rawBody);
+    const window = parsed?.errors?.[0]?.extensions?.window;
+    return { hit: true, window: typeof window === "string" ? window : null };
+  } catch {
+    return { hit: true, window: null };
+  }
 }
 
 function extractPostsFromContent(content: any): SocialPost[] {
@@ -152,8 +171,15 @@ serve(async (req) => {
     const results: any[] = [];
     let successCount = 0;
     let skippedCount = 0;
+    let haltedReason: string | null = null;
 
     for (let i = 0; i < allPosts.length; i++) {
+      if (haltedReason) {
+        skippedCount++;
+        results.push({ ok: false, platform: allPosts[i].platform, reason: haltedReason });
+        continue;
+      }
+
       const post = allPosts[i];
       const channel = platformToChannel.get(post.platform);
       const dueAt = new Date(startDate.getTime() + i * 1.5 * 24 * 60 * 60 * 1000);
@@ -184,32 +210,35 @@ serve(async (req) => {
       }
 
       try {
-        // Retry up to 3 times on 429 with exponential backoff
         let resp: Response | null = null;
         let rawBody = "";
-        for (let attempt = 0; attempt < 3; attempt++) {
-          resp = await fetch("https://api.buffer.com/graphql", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${BUFFER_API_KEY}`,
-              "Content-Type": "application/json",
+        resp = await fetch("https://api.buffer.com/graphql", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${BUFFER_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            query: mutation,
+            variables: {
+              text: post.text,
+              channelId: channel.channel_id,
+              dueAt: dueAt.toISOString(),
             },
-            body: JSON.stringify({
-              query: mutation,
-              variables: {
-                text: post.text,
-                channelId: channel.channel_id,
-                dueAt: dueAt.toISOString(),
-              },
-            }),
-          });
-          rawBody = await resp.text();
-          const is429 = resp.status === 429 || rawBody.includes("RATE_LIMIT_EXCEEDED");
-          if (!is429) break;
-          const wait = 2000 * Math.pow(2, attempt);
-          console.warn(`[schedule] post ${i} got 429, retrying in ${wait}ms (attempt ${attempt + 1}/3)`);
-          await new Promise((r) => setTimeout(r, wait));
+          }),
+        });
+        rawBody = await resp.text();
+        const rateLimit = getRateLimitMeta(resp.status, rawBody);
+
+        if (rateLimit.hit) {
+          const limitMessage = rateLimit.window
+            ? `Buffer rate limit reached (${rateLimit.window} window).`
+            : "Buffer rate limit reached. Please try again later.";
+          console.error(`[schedule] ${limitMessage} Stopping after post ${i}: ${rawBody}`);
+          errors.push(`post ${i} (${post.platform}): ${limitMessage}`);
+          haltedReason = limitMessage;
         }
+
         if (!resp!.ok) {
           console.error(`[schedule] Buffer HTTP ${resp!.status} for post ${i}: ${rawBody}`);
           errors.push(`post ${i} (${post.platform}): Buffer HTTP ${resp!.status}`);
@@ -250,6 +279,10 @@ serve(async (req) => {
           results.push({ ok: true, platform: post.platform, id: bufferPostId });
         } else {
           results.push({ ok: false, platform: post.platform, reason: errMsg });
+        }
+
+        if (haltedReason) {
+          console.warn(`[schedule] halting remaining posts after rate limit at post ${i}`);
         }
       } catch (e) {
         console.error(`[schedule] Failed to schedule post ${i}:`, e);
@@ -296,6 +329,7 @@ serve(async (req) => {
         total: allPosts.length,
         results,
         errors,
+        haltedReason,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
