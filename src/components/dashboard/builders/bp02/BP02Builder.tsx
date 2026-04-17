@@ -19,6 +19,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 import { toAbbyError } from "@/lib/abby-error";
+import BuilderIntroBlock, { BP_INTRO_SPECS } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
