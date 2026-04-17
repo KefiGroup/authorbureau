@@ -2,7 +2,7 @@ import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
-  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone, Settings,
+  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone, Settings, Filter,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -184,6 +184,7 @@ export default function DashboardSidebar({
   const brandItems: NavItem[] = [
     { id: "profile", label: "Author Profile", icon: User },
     { id: "microsite-manager" as DashboardSection, label: "My Author's Page", icon: Globe },
+    { id: "my-funnels" as DashboardSection, label: "My Funnels", icon: Filter },
     {
       id: "author-crm" as DashboardSection, label: "My CRM",
       icon: Contact,
