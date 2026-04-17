@@ -12,6 +12,7 @@ import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, Succ
 import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
+import { toAbbyError } from "@/lib/abby-error";
 
 const GEN_MSGS = ["Designing your fundraising campaign...", "Creating donation tiers...", "Building your communication plan...", "Finalising your campaign..."];
 const ACT_MSGS = ["Creating donation payment links...", "Almost ready..."];
@@ -49,7 +50,7 @@ export default function YR27Builder({ authorId }: Props) {
     <div className="min-h-screen bg-background">
       <StepHeader nodeId="YR-27" nodeName="Fundraising" step={step} />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's launch your Fundraising Campaign</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Fundraising connects your platform to a cause greater than yourself — and builds deep loyalty with your audience. I'm going to design a complete fundraising campaign based on '{bookTitle || "your book"}' — with a campaign concept, donation tiers, and a donor communication plan. Ready to make an impact?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Campaign</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
+        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's launch your Fundraising Campaign</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Fundraising connects your platform to a cause greater than yourself — and builds deep loyalty with your audience. I'm going to design a complete fundraising campaign based on '{bookTitle || "your book"}' — with a campaign concept, donation tiers, and a donor communication plan. Ready to make an impact?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Campaign</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
           <div className="space-y-4">

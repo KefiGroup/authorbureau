@@ -110,27 +110,42 @@ Make everything specific to this author's book, niche, and audience. Never use g
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_completion_tokens: 5000,
-      }),
+    console.log("[generate-bp04] Inputs:", {
+      author_id,
+      authorName,
+      bookTitle,
+      hasContext: !!context,
+      promptLength: userPrompt.length,
     });
+
+    let aiResponse: Response;
+    try {
+      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "openai/gpt-5.2",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          max_completion_tokens: 4000,
+        }),
+      });
+    } catch (fetchErr) {
+      console.error("[generate-bp04] Network error calling AI gateway:", fetchErr);
+      throw new Error("Network error reaching AI gateway");
+    }
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error("AI gateway error:", errText);
-      throw new Error(`AI generation failed (${aiResponse.status})`);
+      console.error("[generate-bp04] AI gateway error", aiResponse.status, errText);
+      if (aiResponse.status === 429) throw new Error("Rate limit exceeded — please try again in a moment");
+      if (aiResponse.status === 402) throw new Error("Payment required — AI credits exhausted");
+      throw new Error(`AI generation failed (status ${aiResponse.status})`);
     }
 
     const aiData = await aiResponse.json();

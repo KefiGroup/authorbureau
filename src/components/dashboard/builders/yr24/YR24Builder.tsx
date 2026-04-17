@@ -12,6 +12,7 @@ import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, Succ
 import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
+import { toAbbyError } from "@/lib/abby-error";
 
 const GEN_MSGS = ["Designing your retreat experience...", "Crafting your itinerary...", "Building retreat packages...", "Finalising your retreat programme..."];
 const ACT_MSGS = ["Creating your booking pages...", "Setting up payment links...", "Almost ready..."];
@@ -53,7 +54,7 @@ export default function YR24Builder({ authorId }: Props) {
     <div className="min-h-screen bg-background">
       <StepHeader nodeId="YR-24" nodeName="Retreats" step={step} />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's plan your Retreat</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Retreats create the deepest transformation and command the highest per-person fees. I'm going to design your complete retreat experience based on '{detectedBookTitle || "your book"}' — with a retreat concept, itinerary, and pricing. Ready to create an unforgettable experience?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Retreat</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
+        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's plan your Retreat</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Retreats create the deepest transformation and command the highest per-person fees. I'm going to design your complete retreat experience based on '{detectedBookTitle || bookTitle || "your book"}' — with a retreat concept, itinerary, and pricing. Ready to create an unforgettable experience?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Retreat</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
           <div className="space-y-4">

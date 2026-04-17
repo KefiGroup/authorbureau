@@ -11,6 +11,7 @@ import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, Succ
 import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
+import { toAbbyError } from "@/lib/abby-error";
 
 const GEN_MSGS = ["Designing your conference concept...", "Building the programme...", "Creating sponsorship packages...", "Finalising your event plan..."];
 const ACT_MSGS = ["Setting up ticket sales...", "Creating sponsorship pipeline...", "Almost ready..."];
@@ -52,7 +53,7 @@ export default function YR26Builder({ authorId }: Props) {
     <div className="min-h-screen bg-background">
       <StepHeader nodeId="YR-26" nodeName="Conferences" step={step} />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's plan your Conference</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Running your own conference positions you as the definitive authority in your field. I'm going to design your complete conference concept based on '{detectedBookTitle || "your book"}' — with an event concept, speaker programme, and ticket pricing. Ready to host your own event?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Conference</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}</div>}</AbbyCard>)}
+        {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's plan your Conference</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Running your own conference positions you as the definitive authority in your field. I'm going to design your complete conference concept based on '{detectedBookTitle || bookTitle || "your book"}' — with an event concept, speaker programme, and ticket pricing. Ready to host your own event?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Conference</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
           <div className="space-y-4">

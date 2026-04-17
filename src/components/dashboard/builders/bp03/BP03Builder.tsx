@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Mail, Megaphone, Copy, Download } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import JSZip from "jszip";
+import { toAbbyError } from "@/lib/abby-error";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -236,7 +237,7 @@ export default function BP03Builder({ authorId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! I'm going to create a complete marketing kit for '{detectedBookTitle || "your book"}' —
+                  Hi {authorName}! I'm going to create a complete marketing kit for '{detectedBookTitle || bookTitle || "your book"}' —
                   120 social media posts across 4 platforms, a 30-day email nurture sequence, and 5 outreach templates — all personalised to your book's themes and audience. Ready?
                 </p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
@@ -246,7 +247,7 @@ export default function BP03Builder({ authorId }: Props) {
             )}
             {error && (
               <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
-                I hit a snag generating your content. {error}
+                I hit a snag generating your content. {toAbbyError(error)}
                 <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button>
               </div>
             )}

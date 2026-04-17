@@ -11,6 +11,7 @@ import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark, HighT
 import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
+import { toAbbyError } from "@/lib/abby-error";
 
 const GEN_MSGS = ["Crafting your signature talks...", "Building your speaker one-sheet...", "Designing your fee schedule...", "Finalising your speaking business..."];
 const ACT_MSGS = ["Setting up your speaking enquiry pipeline...", "Creating your booking calendar...", "Almost ready..."];
@@ -98,7 +99,7 @@ export default function YR21Builder({ authorId }: Props) {
             <h2 className="text-xl font-bold mb-3">Let's build your Speaking Business</h2>
             <p className="text-muted-foreground mb-4">Hi {authorName}! Keynote speaking is one of the most prestigious and lucrative ways to share your expertise. I'm going to build your complete speaking business — with 3 signature talks, a speaker one-sheet, and a fee schedule. Ready to take the stage?</p>
             <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Speaking Business</Button>
-            {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{error}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
+            {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
