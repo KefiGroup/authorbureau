@@ -241,6 +241,24 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
     });
   } catch (err) {
     console.error("generate-bp03-social-media error:", err);
+
+    // Restore prior stable state if a usable kit existed before this run
+    try {
+      if (sb && nodeRowId && hadUsableKit && priorStatus && priorStatus !== "generating" && priorContent) {
+        const restored = { ...priorContent };
+        // Drop transient progress marker so the UI doesn't see stale generating state
+        delete (restored as Record<string, unknown>).progress;
+        await sb.from("author_nodes").update({
+          status: priorStatus,
+          content_json: restored,
+          ...(priorPersonalisedName ? { personalised_name: priorPersonalisedName } : {}),
+        }).eq("id", nodeRowId);
+        console.log("[BP-03] Restored prior status after failure:", priorStatus);
+      }
+    } catch (restoreErr) {
+      console.error("[BP-03] Failed to restore prior status:", restoreErr);
+    }
+
     return new Response(JSON.stringify({ success: false, error: (err as Error).message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
