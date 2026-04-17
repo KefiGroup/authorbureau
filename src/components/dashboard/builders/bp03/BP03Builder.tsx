@@ -224,7 +224,13 @@ export default function BP03Builder({ authorId }: Props) {
       setStep(2);
     } catch (e: any) {
       setError(e.message);
-      setStep(0);
+      // If we already have a saved kit, stay on Review and surface the error there
+      // Only fall back to Intro when there's truly nothing to show
+      const hasUsableKit =
+        !!content &&
+        ((Array.isArray(content.posts) && content.posts.length > 0) ||
+          (Array.isArray(content.outreach_kit) && content.outreach_kit.length > 0));
+      setStep(hasUsableKit ? 2 : 0);
     } finally {
       if (progressPollRef.current) {
         clearInterval(progressPollRef.current);
