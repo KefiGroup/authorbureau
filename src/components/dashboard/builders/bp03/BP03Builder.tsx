@@ -84,6 +84,7 @@ export default function BP03Builder({ authorId }: Props) {
   const [progressLabel, setProgressLabel] = useState<string>("");
   const [isResuming, setIsResuming] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isScheduling, setIsScheduling] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
@@ -295,6 +296,7 @@ export default function BP03Builder({ authorId }: Props) {
   const handlePublish = async () => {
     setStep(3);
     setError(null);
+    setIsScheduling(true);
     try {
       const savedNode = await persistNodeState("live");
 
@@ -335,6 +337,8 @@ export default function BP03Builder({ authorId }: Props) {
       console.error("Publish error:", e);
       setError(e.message || "We couldn't save your activation.");
       setStep(2);
+    } finally {
+      setIsScheduling(false);
     }
   };
 
@@ -480,6 +484,7 @@ export default function BP03Builder({ authorId }: Props) {
               </p>
               <button
                 type="button"
+                disabled={isScheduling}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -495,12 +500,13 @@ export default function BP03Builder({ authorId }: Props) {
                   borderRadius: "8px",
                   fontSize: "14px",
                   fontWeight: 600,
-                  cursor: "pointer",
+                  cursor: isScheduling ? "not-allowed" : "pointer",
+                  opacity: isScheduling ? 0.6 : 1,
                   position: "relative",
                   zIndex: 51,
                 }}
               >
-                ✨ Schedule posts now
+                {isScheduling ? "Scheduling..." : "✨ Schedule posts now"}
               </button>
             </div>
             <BackToReviewLink onClick={() => setStep(2)} />
