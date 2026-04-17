@@ -196,13 +196,53 @@ export default function FunnelsHub() {
         </p>
       </div>
 
+      {liveNodes.length > 0 && (
+        <Card className="mb-6 border-primary/40 bg-primary/5">
+          <CardContent className="py-5">
+            <div className="flex items-start gap-3">
+              <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <h3 className="font-semibold mb-1">ABBY noticed something</h3>
+                <p className="text-sm text-muted-foreground mb-3">
+                  You already have {liveNodes.length === 1 ? "a live product" : `${liveNodes.length} live products`}. Want me to build a high-converting opt-in funnel for {liveNodes.length === 1 ? "it" : "each"}? Takes about 30 seconds.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {liveNodes.map((n) => {
+                    const hasFunnel = funnels.some((f) => f.node_id === n.node_id);
+                    if (hasFunnel) return null;
+                    const isGen = generatingNodeId === n.node_id;
+                    return (
+                      <Button
+                        key={n.node_id}
+                        size="sm"
+                        onClick={() => generateForNode(n.node_id)}
+                        disabled={!!generatingNodeId}
+                      >
+                        {isGen ? (
+                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                        )}
+                        Generate funnel for {NODE_NAMES[n.node_id] || n.node_id}
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {funnels.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-16 text-center">
             <Sparkles className="h-12 w-12 mx-auto mb-4 text-primary opacity-60" />
             <h3 className="text-xl font-semibold mb-2">No funnels yet</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
-              Publish a Lead Magnet, Webinar, Author Website, or Book Sales page and ABBY will generate a high-converting funnel for it automatically.
+              {liveNodes.length > 0
+                ? "Click a button above to let ABBY build your first funnel."
+                : "Publish a Lead Magnet, Webinar, Author Website, or Book Sales page and ABBY will generate a high-converting funnel for it automatically."}
             </p>
           </CardContent>
         </Card>
