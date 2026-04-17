@@ -125,7 +125,7 @@ export default function BP03Builder({ authorId }: Props) {
 
         const { data: node, error: nodeErr } = await supabase
           .from("author_nodes")
-          .select("content_json, status")
+          .select("content_json, status, current_step")
           .eq("author_id", authorId)
           .eq("node_id", "BP-03")
           .maybeSingle();
@@ -141,6 +141,9 @@ export default function BP03Builder({ authorId }: Props) {
         const status = node?.status;
         const cj: any = node?.content_json || null;
         const postsCount = Array.isArray(cj?.posts) ? cj.posts.length : 0;
+        const savedStep = Number((cj as any)?._currentStep ?? node?.current_step ?? 0);
+        const hasSavedKit = hasUsableSocialKit(cj);
+        const hasReviewableState = hasSavedKit || status === "content_ready" || status === "live" || savedStep >= 2;
 
         const storedTitle = cj?.book_title;
         if (storedTitle) {
@@ -148,15 +151,15 @@ export default function BP03Builder({ authorId }: Props) {
           setHasContext(true);
         }
 
-        if (postsCount > 0) {
-          // Respect actual node status: live → success screen, otherwise → Review (so users can edit)
-          if (status === "live") {
-            setContent({ ...cj, activated: true, publishStatus: status });
-            setStep(3);
-          } else {
-            setContent({ ...cj, activated: false, publishStatus: status });
-            setStep(2);
-          }
+        if (status === "live") {
+          setContent({ ...(cj || {}), activated: true, publishStatus: status, _currentStep: 3 });
+          setStep(3);
+        } else if (status === "generating") {
+          setContent(cj);
+          setStep(1);
+        } else if (hasReviewableState) {
+          setContent({ ...(cj || {}), activated: false, publishStatus: status || "content_ready", _currentStep: Math.max(savedStep, 2) });
+          setStep(2);
         } else if (status === "generating") {
           setContent(null);
           setStep(1);
@@ -169,7 +172,8 @@ export default function BP03Builder({ authorId }: Props) {
         console.log("[BP-03 resume] resolved", {
           status,
           postsCount,
-          resumedStep: postsCount > 0 ? 3 : status === "generating" ? 1 : 0,
+          savedStep,
+          resumedStep: status === "live" ? 3 : status === "generating" ? 1 : hasReviewableState ? 2 : 0,
         });
       } catch (resumeError) {
         if (!cancelled) {
@@ -272,9 +276,16 @@ export default function BP03Builder({ authorId }: Props) {
       throw new Error("Generate your starter kit before saving it.");
     }
 
+    const targetStep = nextStatus === "live" ? 3 : 2;
+
     const payload = {
       status: nextStatus,
-      content_json: content,
+      current_step: targetStep,
+      content_json: {
+        ...(content || {}),
+        _currentStep: targetStep,
+        publishStatus: nextStatus,
+      },
       personalised_name: content?.calendar_name || "Social Media Starter Kit",
       ...(nextStatus === "live" ? { activated_at: new Date().toISOString() } : {}),
     };
@@ -295,7 +306,7 @@ export default function BP03Builder({ authorId }: Props) {
         .from("author_nodes")
         .update(payload)
         .eq("id", existingNode.id)
-        .select("id, status, activated_at, content_json")
+        .select("id, status, activated_at, current_step, content_json")
         .single();
 
       if (updateError) {
@@ -313,7 +324,7 @@ export default function BP03Builder({ authorId }: Props) {
         node_name: "Social Media",
         ...payload,
       })
-      .select("id, status, activated_at, content_json")
+      .select("id, status, activated_at, current_step, content_json")
       .single();
 
     if (insertError) {
@@ -329,7 +340,13 @@ export default function BP03Builder({ authorId }: Props) {
 
     try {
       const savedNode = await persistNodeState("content_ready");
-      setContent(savedNode.content_json);
+      setContent({
+        ...(savedNode.content_json as any),
+        activated: false,
+        publishStatus: savedNode.status,
+        _currentStep: Number((savedNode.content_json as any)?._currentStep ?? savedNode.current_step ?? 2),
+      });
+      setStep(2);
       toast.success("Your social media kit is saved.");
     } catch (e: any) {
       console.error("Save error:", e);
