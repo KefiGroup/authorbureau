@@ -17,6 +17,7 @@ import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
+import { ensureFunnel } from "@/lib/funnel-hook";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
@@ -395,6 +396,9 @@ export default function BP02Builder({ authorId }: Props) {
 
       setLiveUrl(micrositeUrl);
       setContent((prev: any) => ({ ...prev, activated: true, publishChannels, _currentStep: 4 }));
+      // Fire-and-forget: ensure email sequence + funnel exist for BP-02
+      ensureEmailSequence({ authorId: authorId!, nodeId: "BP-02" });
+      ensureFunnel({ authorId: authorId!, nodeId: "BP-02", funnelType: "lead_magnet" });
       toast.success("Your lead magnet is live! 🎉");
     } catch (e: any) {
       toast.error(e.message || "Something went wrong during publishing.");
