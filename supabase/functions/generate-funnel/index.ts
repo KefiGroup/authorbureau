@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { author_id, node_id, funnel_type, book_id } = await req.json();
+    const { author_id, node_id, funnel_type, book_id, force, funnel_id } = await req.json();
     if (!author_id || !funnel_type) {
       return new Response(JSON.stringify({ error: 'author_id and funnel_type required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -43,8 +43,8 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Idempotency: skip if a funnel already exists for this author + node
-    if (node_id) {
+    // Idempotency: skip if a funnel already exists for this author + node (unless force)
+    if (node_id && !force) {
       const { data: existing } = await supabase
         .from('funnels')
         .select('id, slug, status')
@@ -68,7 +68,9 @@ Deno.serve(async (req) => {
 
     const book = bookRes.data;
     const focusByType: Record<string, string> = {
-      opt_in: 'a high-converting lead-magnet opt-in page that promises a quick win',
+      opt_in: 'a high-converting newsletter opt-in page that promises a clear, recurring benefit',
+      lead_magnet: 'a high-converting lead-magnet opt-in page that promises a quick win in exchange for an email',
+      webinar: 'a webinar registration page that builds anticipation and credibility',
       webinar_registration: 'a webinar registration page that builds anticipation and credibility',
       sales: 'a long-form sales page that justifies the price and overcomes objections',
     };
@@ -152,24 +154,46 @@ Return JSON with: title (5-8 words), slug (kebab-case, max 40 chars), headline (
       if (suffix > 20) { slug = `${slug}-${Date.now().toString(36)}`; break; }
     }
 
-    const { data: inserted, error: insErr } = await supabase
-      .from('funnels')
-      .insert({
-        author_id,
-        node_id: node_id || null,
-        funnel_type,
-        title: copy.title,
-        slug,
-        headline: copy.headline,
-        subheadline: copy.subheadline,
-        body_copy: copy.body_copy,
-        cta_text: copy.cta_text,
-        status: 'draft',
-      })
-      .select()
-      .single();
-
-    if (insErr) throw insErr;
+    let inserted: any;
+    if (force && funnel_id) {
+      // Update existing funnel in place (regenerate)
+      const { data: updated, error: updErr } = await supabase
+        .from('funnels')
+        .update({
+          funnel_type,
+          title: copy.title,
+          headline: copy.headline,
+          subheadline: copy.subheadline,
+          body_copy: copy.body_copy,
+          cta_text: copy.cta_text,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', funnel_id)
+        .eq('author_id', author_id)
+        .select()
+        .single();
+      if (updErr) throw updErr;
+      inserted = updated;
+    } else {
+      const { data: created, error: insErr } = await supabase
+        .from('funnels')
+        .insert({
+          author_id,
+          node_id: node_id || null,
+          funnel_type,
+          title: copy.title,
+          slug,
+          headline: copy.headline,
+          subheadline: copy.subheadline,
+          body_copy: copy.body_copy,
+          cta_text: copy.cta_text,
+          status: 'draft',
+        })
+        .select()
+        .single();
+      if (insErr) throw insErr;
+      inserted = created;
+    }
 
     return new Response(JSON.stringify({ success: true, funnel: inserted }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
