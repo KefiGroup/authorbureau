@@ -130,7 +130,7 @@ serve(async (req) => {
       )}`,
     );
 
-    const mutation = `mutation CreatePost($text: String!, $channelId: String!, $dueAt: DateTime!) {
+    const mutation = `mutation CreatePost($text: String!, $channelId: ChannelId!, $dueAt: DateTime!) {
       createPost(input: {
         text: $text,
         channelId: $channelId,
