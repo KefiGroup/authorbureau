@@ -44,85 +44,117 @@ export default function BP03Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [progressLabel, setProgressLabel] = useState<string>("");
+  const [isResuming, setIsResuming] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!authorId) {
+      setIsResuming(false);
+      return;
+    }
     if (hasResumed.current) return;
     hasResumed.current = true;
-    (async () => {
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("pen_name, author_slug, user_id")
-        .eq("id", authorId)
-        .single();
-      setAuthorName(profile?.pen_name || "there");
-      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
-      const { data: ctx } = await supabase
-        .from("author_context")
-        .select("book_title")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else {
-        // Fallback: query books using auth user_id (not author_profiles.id)
-        const userId = profile?.user_id || authorId;
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", userId)
+    let cancelled = false;
+
+    const resumeBuilder = async () => {
+      setIsResuming(true);
+      setError(null);
+
+      try {
+        const { data: profile } = await supabase
+          .from("author_profiles")
+          .select("pen_name, author_slug, user_id")
+          .eq("id", authorId)
+          .single();
+        if (cancelled) return;
+
+        setAuthorName(profile?.pen_name || "there");
+        setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
+
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
+        if (cancelled) return;
+
+        if (ctx?.book_title) {
+          setBookTitle(ctx.book_title);
           setHasContext(true);
         } else {
-          setHasContext(false);
+          const userId = profile?.user_id || authorId;
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("author_id", userId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (cancelled) return;
+
+          if (book?.title) {
+            setBookTitle(book.title);
+            setHasContext(true);
+          } else {
+            setHasContext(false);
+          }
+        }
+
+        const { data: node } = await supabase
+          .from("author_nodes")
+          .select("content_json, status")
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-03")
+          .maybeSingle();
+        if (cancelled) return;
+
+        const status = node?.status;
+        const hasContent = !!node?.content_json;
+        let resumedStep = 0;
+
+        if (status === "live") {
+          if (hasContent) setContent(node!.content_json);
+          resumedStep = 3;
+          setTimeout(() => setContent((prev: any) => ({ ...(prev || node?.content_json || {}), activated: true })), 0);
+        } else if (status === "content_ready" && hasContent) {
+          setContent(node!.content_json);
+          resumedStep = 2;
+        } else if (hasContent && (node!.content_json as any)?.source === "BP-02") {
+          setContent(node!.content_json);
+          resumedStep = 2;
+        } else if (status === "generating") {
+          resumedStep = 1;
+        }
+
+        const storedTitle = (node?.content_json as any)?.book_title;
+        if (storedTitle && !ctx?.book_title) {
+          setBookTitle((prev) => prev || storedTitle);
+          setHasContext(true);
+        }
+
+        setStep(resumedStep);
+        console.log("[BP-03 mount]", { status, hasContent, step: resumedStep, bookTitleResolved: ctx?.book_title || storedTitle || "(pending)" });
+      } catch (resumeError) {
+        console.error("[BP-03 resume] Failed to restore builder state:", resumeError);
+      } finally {
+        if (!cancelled) {
+          setIsResuming(false);
         }
       }
+    };
 
-      const { data: node } = await supabase
-        .from("author_nodes")
-        .select("content_json, status")
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-03")
-        .maybeSingle();
+    void resumeBuilder();
 
-      const status = node?.status;
-      const hasContent = !!node?.content_json;
-      let resumedStep = 0;
-
-      if (status === "live") {
-        if (hasContent) setContent(node!.content_json);
-        resumedStep = 3;
-        setTimeout(() => setContent((prev: any) => ({ ...(prev || node?.content_json || {}), activated: true })), 0);
-      } else if (status === "content_ready" && hasContent) {
-        setContent(node!.content_json);
-        resumedStep = 2;
-      } else if (hasContent && (node!.content_json as any)?.source === "BP-02") {
-        setContent(node!.content_json);
-        resumedStep = 2;
-      } else if (status === "generating") {
-        resumedStep = 1;
-      }
-
-      // Fallback: pull bookTitle from stored content if context query missed
-      const storedTitle = (node?.content_json as any)?.book_title;
-      if (storedTitle && !ctx?.book_title) {
-        setBookTitle((prev) => prev || storedTitle);
-      }
-
-      setStep(resumedStep);
-      console.log("[BP-03 mount]", { status, hasContent, step: resumedStep, bookTitleResolved: ctx?.book_title || storedTitle || "(pending)" });
-    })();
+    return () => {
+      cancelled = true;
+    };
   }, [authorId]);
 
   useEffect(() => {
@@ -135,9 +167,6 @@ export default function BP03Builder({ authorId }: Props) {
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
   }, [step]);
-
-  const [progressLabel, setProgressLabel] = useState<string>("");
-  const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Cleanup progress poll on unmount to prevent leak if user navigates mid-generation
   useEffect(() => {
@@ -272,7 +301,11 @@ export default function BP03Builder({ authorId }: Props) {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {step === 0 && (
+        {isResuming ? (
+          <AbbyCard>
+            <p className="text-muted-foreground">Loading your saved social media kit…</p>
+          </AbbyCard>
+        ) : step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
             {isBookLoading || hasContext === null ? (
