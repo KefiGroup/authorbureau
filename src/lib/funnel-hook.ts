@@ -9,7 +9,7 @@ export async function ensureFunnel(params: {
   authorId: string;
   nodeId: "BP-01" | "BP-02" | "BP-05";
   bookId?: string | null;
-  funnelType?: "opt_in" | "lead_magnet" | "webinar";
+  funnelType?: "opt_in" | "lead_magnet" | "webinar" | "webinar_registration" | "sales";
 }) {
   const { authorId, nodeId, bookId, funnelType } = params;
   try {
