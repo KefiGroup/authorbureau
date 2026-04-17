@@ -132,7 +132,7 @@ Make everything specific to this author's book, niche, and audience. Never use g
             { role: "system", content: systemPrompt },
             { role: "user", content: userPrompt },
           ],
-          max_completion_tokens: 4000,
+          max_completion_tokens: 6000,
         }),
       });
     } catch (fetchErr) {

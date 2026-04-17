@@ -44,6 +44,7 @@ const COLOR_PRESETS = [
 interface LiveNode {
   node_id: string;
   microsite_url: string | null;
+  status: string;
 }
 
 const FUNNEL_ELIGIBLE_NODES = ["BP-02", "BP-04", "BP-05", "BP-09"];

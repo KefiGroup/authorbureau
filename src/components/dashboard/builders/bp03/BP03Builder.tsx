@@ -121,6 +121,16 @@ export default function BP03Builder({ authorId }: Props) {
   const [progressLabel, setProgressLabel] = useState<string>("");
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Cleanup progress poll on unmount to prevent leak if user navigates mid-generation
+  useEffect(() => {
+    return () => {
+      if (progressPollRef.current) {
+        clearInterval(progressPollRef.current);
+        progressPollRef.current = null;
+      }
+    };
+  }, []);
+
   const handleGenerate = async () => {
     setStep(1);
     setError(null);
