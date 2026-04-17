@@ -1,74 +1,60 @@
 
 
-## Sprint 35b — Fix Broken Author Flows
+## Sprint 35b QA Audit — Findings
 
-Six bugs across BP-03/04/05/09 builders, Funnels Hub, and the sidebar counter. All native (no GHL). Plain-English ABBY voice throughout.
+I audited the database, edge functions, and recent Sprint 35b code. Most things are healthy. Below are the **real issues I found** that need fixing, plus a clean bill of health on what's working.
 
-### Bug 1 — BP-04 "Edge Function" error
-- **Edge function (`generate-bp04-website`)**: add detailed `console.log` for inputs (author_id, hasContext, prompt length), wrap LLM call with explicit error capture, switch model to `openai/gpt-5.2` (project standard) and tighten `max_completion_tokens` to 4000 to avoid timeout. Return user-safe error string in `error` field instead of raw exception.
-- **Friendly error wrapper**: create `src/lib/abby-error.ts` with `toAbbyError(err)` that converts any technical/edge-function/network error into:
-  > "ABBY hit a snag and needs a moment to recover. Please click 'Try Again' — this usually resolves itself. If it keeps happening, reach out to support."
-- **All 28 builders**: replace inline `{error}` rendering with `{toAbbyError(error)}`. Try Again button already exists in most; verify presence and that it does NOT reset `step` to 0 mid-generation (only on retry click).
+### ✅ What's working
+- **Tables**: `funnels`, `funnel_submissions`, `author_nodes`, `author_context`, `books`, `author_profiles` all exist with RLS enabled.
+- **Edge functions**: `generate-bp03-social-media`, `generate-bp04-website`, `generate-funnel` all have correct CORS, auth, error handling, and are deployed (zero recent 4xx/5xx in edge logs).
+- **`abby-error.ts`**: clean, defensive, never throws.
+- **`DashboardSidebar` cache**: 5-min TTL, localStorage hydration logic is correct.
+- **`FunnelsHub` retroactive prompt**: queries live nodes, generates funnels per node correctly.
+- **`generate-funnel`**: supports `force` + `funnel_id` for regen, `lead_magnet`/`webinar`/`opt_in`/`sales` types — all wired.
 
-### Bug 2 — BP-03 stuck at 75%
-Refactor `generate-bp03-social-media` into 3 sequential LLM calls invoked from one orchestrator function:
-1. LinkedIn (5 posts, 150–200 words)
-2. Instagram (5) + Facebook (5)
-3. X/Twitter (5) + 3 outreach email templates
+### 🐞 Issues found (3 real bugs + 2 polish)
 
-Drop the 30-day email sequence (handled by Sprint 34 Email Engine). Stream progress via incremental status updates written to `author_nodes.content_json.progress` (polled every 2s by client) so the UI shows: "Writing LinkedIn... ✓", "Now Instagram + Facebook...", "Almost there — outreach templates...".
+**Bug A — `BookProfileQuickForm` does an INSERT, not UPSERT** (medium)
+- File: `src/components/dashboard/builders/shared/BookProfileQuickForm.tsx` lines 43, 56.
+- Uses `.insert()` for both `author_context` and `books`. If the user re-opens the form (e.g. after a failed generation), it creates duplicate rows. Worse, `books.slug` has a unique constraint, so a second submit with the same title may fail.
+- **Fix**: change `author_context` insert to upsert by `author_id`, and check for an existing book before inserting (or catch the unique-violation gracefully).
 
-Update BP-03 introduction copy to:
-> "I'm going to create your social media starter kit for '${bookTitle}' — 20 ready-to-post pieces across LinkedIn, Instagram, Facebook, and X, plus 3 outreach email templates. Ready?"
+**Bug B — `BP03Builder` progress poll never stops if the user navigates away mid-generation** (low)
+- File: `src/components/dashboard/builders/bp03/BP03Builder.tsx` line 130.
+- `progressPollRef` interval is only cleared in the `finally` block of `handleGenerate`. If the component unmounts during generation (user clicks back), the interval leaks and keeps querying `author_nodes`.
+- **Fix**: add a `useEffect` cleanup that clears `progressPollRef.current` on unmount.
 
-Update `GENERATING_MESSAGES` array to match the 3-step flow.
+**Bug C — `FunnelsHub.loadLiveNodes` selects `microsite_url` but the type omits `status`** (low)
+- File: `src/components/dashboard/FunnelsHub.tsx` lines 44–47, 95–103.
+- The query selects `node_id, microsite_url, status` but `LiveNode` interface only declares `node_id` and `microsite_url`. Cast `as LiveNode[]` silently drops `status`. Currently harmless (status is filtered server-side via `.eq("status","live")`), but the type lies.
+- **Fix**: add `status: string` to the `LiveNode` interface, or drop `status` from the select.
 
-### Bug 3 — BP-05 / BP-09 dead-end gate
-Replace the "Complete Book Profile" redirect block in `BP05Builder.tsx` and `BP09Builder.tsx` with an inline `BookProfileQuickForm` component (3 fields: title, ideal reader, transformation). On submit, upsert into `author_context` and `books`, then proceed directly to ABBY's intro (no redirect). Skip entirely when all 3 fields already populated.
+**Polish 1 — `generate-bp03-social-media` returns HTTP 200 on errors** (line 217)
+- Returns `status: 200` with `success: false`. The client `handleGenerate` does check `data.success`, so it works — but it breaks edge-log visibility (no 4xx/5xx ever recorded for this function, which is why our log query came back empty). Recommend returning `500` for true failures so they show up in monitoring.
 
-Apply same fix to BP-04 and BP-08 (same pattern present).
+**Polish 2 — `generate-bp04-website` may still time out at 4000 tokens** (informational)
+- The website JSON has ~25 fields including 6-paragraph bios and 5 takeaways. 4000 tokens is tight. Bumping to 6000 gives headroom without risking gateway timeout (gateway limit is generous on `gpt-5.2`).
 
-### Bug 4 — "'your book'" placeholder
-Audit all 28 builders. Pattern is already mostly correct (`{detectedBookTitle || "your book"}`) but `useAuthorBook` may resolve `detectedBookTitle` async, leaving the literal showing. Fix:
-- In each builder, gate the intro card render on `!isBookLoading` so the title is resolved before display.
-- Add fallback chain: `detectedBookTitle || ctxBookTitle || bookTitle || "your book"`.
-- Ensure the fallback string appears only when truly no book exists (in which case Bug 3's inline form should trigger instead).
+### 🔒 Database linter notes (pre-existing, not Sprint 35b)
+- 1 INFO: RLS-enabled-no-policy on one table (likely intentional admin-only).
+- 7 WARN: function search_path mutable on legacy functions (pre-existing tech debt).
+- 5 WARN: permissive RLS policies on legacy tables (pre-existing).
 
-### Bug 5 — My Funnels retroactive prompt
-In `FunnelsHub.tsx`, when `funnels.length === 0`:
-- Query `author_nodes` for any live BP-02/04/05/09.
-- If found, render an ABBY card:
-  > "You already have a live lead magnet at authorsbureau.com/${authorSlug}/free-gift. Want me to build a high-converting opt-in landing page for it? Takes about 30 seconds."
-  > [Generate My Opt-In Page →]
-- Button calls `generate-funnel` with `{ author_id, node_id: 'BP-02', funnel_type: 'lead_magnet' }`, then reloads the list.
-
-### Bug 6 — Sidebar "0 built" flicker
-In `DashboardSidebar.tsx`:
-- Read `localStorage.getItem('ab_bp_built_count')` (with `{value, ts}` shape, 5-min TTL) at mount, hydrate `buildUnlocked` initial state.
-- After live fetch (already done in parent), write fresh value back to localStorage.
-- Apply same pattern to `buildAuthorityUnlocked` and `yieldUnlocked` keys.
-
-### Files touched
-- `supabase/functions/generate-bp04-website/index.ts` (logging, model, tokens)
-- `supabase/functions/generate-bp03-social-media/index.ts` (3-step refactor)
-- `src/lib/abby-error.ts` (new)
-- `src/components/dashboard/builders/shared/BookProfileQuickForm.tsx` (new)
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
-- `src/components/dashboard/builders/bp04/BP04Builder.tsx`
-- `src/components/dashboard/builders/bp05/BP05Builder.tsx`
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
-- All other BP/BA/YR builders: swap error rendering to `toAbbyError` (search-and-replace)
-- `src/components/dashboard/FunnelsHub.tsx` (retro prompt)
-- `src/components/dashboard/DashboardSidebar.tsx` (cached counters)
-
-### Out of scope (per master rule)
-BP-01, BP-02 (already-published quiz funnel), Marketing Hub, CRM, admin panel, Sprint 34/35 funnel infra. Untouched.
+These are NOT Sprint 35b regressions and should be addressed in a dedicated security sprint, not here.
 
 ### Phasing
-- **Phase A**: Bugs 1 + 4 (error wrapper + book title fix) — fastest unblock
-- **Phase B**: Bugs 2 + 3 (BP-03 refactor + inline book form)
-- **Phase C**: Bugs 5 + 6 (Funnels retro prompt + sidebar cache)
+- **Phase 1 (this sprint)**: Fix Bugs A, B, C + Polish 1 + Polish 2.
+- All in 5 file edits, no migrations needed.
 
-Approve to proceed with Phase A.
+### Files touched
+- `src/components/dashboard/builders/shared/BookProfileQuickForm.tsx` (upsert pattern)
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx` (interval cleanup)
+- `src/components/dashboard/FunnelsHub.tsx` (LiveNode type)
+- `supabase/functions/generate-bp03-social-media/index.ts` (status 500 on error)
+- `supabase/functions/generate-bp04-website/index.ts` (max_completion_tokens → 6000)
+
+### Out of scope
+Pre-existing linter warnings, BP-01 quiz funnel, GHL deploy functions, anything outside Sprint 35b's surface.
+
+Approve to apply the 5 fixes?
 
