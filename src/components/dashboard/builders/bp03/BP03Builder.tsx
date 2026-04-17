@@ -325,8 +325,40 @@ export default function BP03Builder({ authorId }: Props) {
     setError(null);
     try {
       const savedNode = await persistNodeState("live");
-      setContent({ ...(savedNode.content_json as any), activated: true, publishStatus: savedNode.status });
-      toast.success("Your social media campaigns are live! 🎉");
+
+      // Sprint 36b — schedule posts via Buffer (Social Accounts)
+      let scheduledCount = 0;
+      let scheduleErrorMsg: string | null = null;
+      try {
+        const { data: scheduleResp, error: scheduleErr } = await supabase.functions.invoke(
+          "schedule-social-posts",
+          { body: { author_id: authorId, node_id: "BP-03" } },
+        );
+        if (scheduleErr) throw scheduleErr;
+        if (!scheduleResp?.success) throw new Error(scheduleResp?.error || "Couldn't schedule your posts.");
+        scheduledCount = scheduleResp.scheduled || 0;
+      } catch (e: any) {
+        console.error("schedule-social-posts error (non-blocking):", e);
+        scheduleErrorMsg = e?.message || "We couldn't reach your Social Accounts.";
+      }
+
+      const abbyMsg = scheduleErrorMsg
+        ? `Your kit is saved. I couldn't schedule your posts yet — ${scheduleErrorMsg} Connect your Social Accounts in Account Settings, then come back.`
+        : `Done! I've scheduled ${scheduledCount} post${scheduledCount === 1 ? "" : "s"} across your social channels. Your first post goes out tomorrow. View your Social Calendar in the Marketing Hub.`;
+
+      setContent({
+        ...(savedNode.content_json as any),
+        activated: true,
+        publishStatus: savedNode.status,
+        scheduledCount,
+        abbyMessage: abbyMsg,
+      });
+
+      if (scheduleErrorMsg) {
+        toast.success("Your kit is saved.");
+      } else {
+        toast.success(`Scheduled ${scheduledCount} posts across your social channels 🎉`);
+      }
     } catch (e: any) {
       console.error("Publish error:", e);
       setError(e.message || "We couldn't save your activation.");
@@ -460,7 +492,7 @@ export default function BP03Builder({ authorId }: Props) {
             nodeId="BP-03"
             authorName={authorName}
             penNameSlug={authorSlug}
-            abbyMessage={content?.publishStatus === "live" ? undefined : "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
+            abbyMessage={content?.abbyMessage || "Your social media kit is safely saved to your account, and you can come back anytime without losing it."}
           />
         )}
       </div>
