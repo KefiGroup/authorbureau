@@ -41,6 +41,19 @@ const COLOR_PRESETS = [
   { bg: "#111827", accent: "#F472B6", name: "Charcoal + Pink" },
 ];
 
+interface LiveNode {
+  node_id: string;
+  microsite_url: string | null;
+}
+
+const FUNNEL_ELIGIBLE_NODES = ["BP-02", "BP-04", "BP-05", "BP-09"];
+const NODE_TO_FUNNEL_TYPE: Record<string, string> = {
+  "BP-02": "lead_magnet",
+  "BP-04": "opt_in",
+  "BP-05": "webinar_registration",
+  "BP-09": "sales",
+};
+
 export default function FunnelsHub() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [authorSlug, setAuthorSlug] = useState<string | null>(null);
@@ -50,6 +63,8 @@ export default function FunnelsHub() {
   const [saving, setSaving] = useState(false);
   const [regenerateTarget, setRegenerateTarget] = useState<Funnel | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
+  const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
