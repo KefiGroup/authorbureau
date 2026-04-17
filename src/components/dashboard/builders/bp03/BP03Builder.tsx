@@ -275,9 +275,11 @@ export default function BP03Builder({ authorId }: Props) {
         {step === 1 && (
           <AbbyCard>
             <div className="space-y-4">
-              <p className="text-muted-foreground font-medium animate-pulse">{GENERATING_MESSAGES[msgIndex]}</p>
+              <p className="text-muted-foreground font-medium animate-pulse">
+                {progressLabel || GENERATING_MESSAGES[msgIndex]}
+              </p>
               <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
-              <p className="text-xs text-muted-foreground">This usually takes 60–90 seconds</p>
+              <p className="text-xs text-muted-foreground">3 quick steps — usually 30–60 seconds</p>
             </div>
           </AbbyCard>
         )}
