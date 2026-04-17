@@ -1,36 +1,56 @@
 
-The user is telling me directly: she signs in with `pl@paulineteo.com`. My earlier audit said that email doesn't exist in `auth.users` for this Cloud project. I need to reconcile this before doing anything.
+I checked the BP-03 flow against the current code and the existing saved records for Pauline Teo. The current fix is not sufficient yet.
 
-Two possibilities:
-1. `pl@paulineteo.com` exists in `auth.users` but I missed it (e.g., case sensitivity, whitespace, or it's actually there and I queried wrong).
-2. She signs into a different Supabase project (the shared backend `wuftdpnekscrsghqtssd`), and the Cloud project only has `paulinet77@gmail.com`. The dual-backend pattern in this codebase (`@/lib/shared-backend` + `@/integrations/supabase/client`) makes this very plausible — she signs into shared backend, and a separate Cloud user (`paulinet77@gmail.com`) is what holds her data.
+What I found
+- Pauline Teo’s author profile exists, and the BP-03 “Social Media” node already contains a full generated kit.
+- The node is stuck in a half-saved state: the content is there, but the resume metadata is not fully normalized.
+- Specifically, the builder depends on step markers like `current_step`, `_currentStep`, and `publishStatus`, but the existing BP-03 row is not consistently updated to that stable review state.
+- That explains both symptoms:
+  - “Save” still errors
+  - the node can drop back to Introduction instead of reopening at Review
 
-Re-verification step (read-only, before any change):
-1. Query Cloud `auth.users` again with broader filter: `email ilike '%pauline%'` to catch case/whitespace.
-2. Check if there is a mapping table or linking record.
-3. Read `src/lib/shared-backend.ts` to confirm the dual-backend setup.
+Why this is happening
+- BP-03 is using its own custom token/auth path instead of the project’s standard token helper.
+- Its backend save/load function is also doing a stricter identity/profile match than the rest of the app.
+- So the generated content can exist, while the manual save/resume handshake still fails for a live user session.
 
-Likely outcome: she authenticates against the shared backend with `pl@paulineteo.com`, and that session is mapped to the Cloud UID `5fd84779...` (paulinet77@gmail.com) for data ownership. The relink we did is correct, but the email mismatch is a UX bug — the header should show her actual sign-in email, not the Cloud auth email or `books.owner_email`.
+Implementation plan
+1. Standardize BP-03 auth
+   - Remove the BP-03-only token resolver.
+   - Switch BP-03 to the shared `getActiveToken()` + `fetchWithTimeout()` pattern already used elsewhere in the project.
+   - Stop hiding the real backend message behind the generic “couldn’t save” state.
 
-## Plan
+2. Harden the BP-03 backend function
+   - Update `bp03-node-state` so it resolves the signed-in user with the same resilient identity pattern used in other functions.
+   - Validate ownership using the platform’s canonical author mapping instead of one brittle match path.
+   - Return explicit errors for token mismatch, author mismatch, missing profile, and invalid payload.
 
-### Step 1 — Re-verify the auth identity (read-only)
-- Query Cloud `auth.users` with `email ilike '%pauline%'` (case-insensitive).
-- Read `src/lib/shared-backend.ts` to confirm whether sign-in goes to a separate Supabase project.
-- If shared-backend, query the shared-backend users table for `pl@paulineteo.com` to get the shared UID and confirm the mapping to Cloud UID `5fd84779...`.
+3. Auto-heal already-generated BP-03 records
+   - If a usable social kit already exists, treat it as reviewable even when step metadata is stale or missing.
+   - On successful load/save, normalize the record into a stable review state by writing:
+     - `current_step = 2`
+     - `_currentStep = 2`
+     - `publishStatus = content_ready`
+   - This will stop already-generated kits from falling back to Introduction.
 
-### Step 2 — Decide based on findings
-- **If `pl@paulineteo.com` exists in Cloud `auth.users`** with a different UID than `5fd84779...`: the data is linked to the wrong UID. Migration: relink `author_profiles`, `books`, `author_nodes` from `5fd84779...` → the real `pl@paulineteo.com` UID.
-- **If sign-in is via shared backend**: no UID change needed. The data is correctly linked to the Cloud UID that mirrors her shared-backend identity. The fix is purely in the dashboard header — show her actual sign-in email instead of `books.owner_email`.
+4. Make Save idempotent
+   - If the exact kit is already stored, Save should return success instead of attempting a brittle second write.
+   - That keeps “Save to My Account” safe to click repeatedly.
 
-### Step 3 — Apply the single appropriate fix
-Either (A) one relink migration, or (B) one small change to `DashboardHeader.tsx` to display `user.email` from the active session (already passed in as `user.email`) instead of pulling `pen_name`/`owner_email`.
+5. Verify on live, not just preview
+   - Test with Pauline’s live account flow.
+   - Confirm these exact behaviors:
+     - Save succeeds with no error toast
+     - refresh returns to Review
+     - leaving and re-entering BP-03 resumes correctly
+     - Activate still works after the save-path fix
 
-### Step 4 — Validate
-1. Sign in as `pl@paulineteo.com` → header shows `pl@paulineteo.com`.
-2. BP-03 loads on Step 4 with the 5 saved posts.
-3. Lead magnet from earlier sessions appears.
+Files likely involved
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+- `supabase/functions/bp03-node-state/index.ts`
+- Possibly `src/pages/NodeBuilder.tsx` if the parent author-id hydration also needs tightening
 
-### Scope guard
-- No changes to RLS, edge functions, generation, or other builders.
-- At most ONE migration OR ONE small UI fix in `DashboardHeader.tsx`.
+Technical details
+- This is not a generation problem. The BP-03 content already exists in the database.
+- It is a save/resume state problem caused by inconsistent step persistence and a brittle live-session identity check.
+- I would keep the fix tightly scoped to BP-03 first, then only widen it if the live verification shows the same pattern elsewhere.
