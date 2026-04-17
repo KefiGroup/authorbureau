@@ -117,18 +117,26 @@ export default function BP03Builder({ authorId }: Props) {
         if (nodeErr) console.error("[BP-03 resume] node error:", nodeErr);
 
         const status = node?.status;
-        const hasContent = !!node?.content_json;
+        const cj: any = node?.content_json || null;
+        const hasContent = !!cj;
+        // Content-aware resume: a usable saved kit means posts or outreach_kit exists
+        const hasUsableKit =
+          !!cj &&
+          ((Array.isArray(cj.posts) && cj.posts.length > 0) ||
+            (Array.isArray(cj.outreach_kit) && cj.outreach_kit.length > 0) ||
+            cj.source === "BP-02");
         let resumedStep = 0;
 
         if (status === "live") {
-          if (hasContent) setContent(node!.content_json);
+          if (hasContent) setContent(cj);
           resumedStep = 3;
-          setTimeout(() => setContent((prev: any) => ({ ...(prev || node?.content_json || {}), activated: true })), 0);
-        } else if (status === "content_ready" && hasContent) {
-          setContent(node!.content_json);
+          setTimeout(() => setContent((prev: any) => ({ ...(prev || cj || {}), activated: true })), 0);
+        } else if (hasUsableKit) {
+          // Trust saved content over status — even if status is stuck on "generating"
+          setContent(cj);
           resumedStep = 2;
-        } else if (hasContent && (node!.content_json as any)?.source === "BP-02") {
-          setContent(node!.content_json);
+        } else if (status === "content_ready" && hasContent) {
+          setContent(cj);
           resumedStep = 2;
         } else if (status === "generating") {
           resumedStep = 1;
