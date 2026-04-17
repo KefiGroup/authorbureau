@@ -1,23 +1,35 @@
 
-## Plan: Fix Buffer API host in both edge functions
+Hardcoding the org ID defeats the existing `BUFFER_ORG_ID` secret pattern and breaks multi-org support. The real fix is the GraphQL type — change `String!` to `OrganizationId!` and keep the variable. That matches Buffer's schema and keeps the secret-driven config.
 
-**Scope:** 2 files, 1 URL change each (plus minor query/upsert additions in get-buffer-channels).
+## Plan
 
-### File 1: `supabase/functions/get-buffer-channels/index.ts`
-1. Change fetch URL: `https://api.bufferapp.com/graphql` → `https://api.buffer.com/graphql`
-2. Extend GraphQL `channels` query to also return `serviceId`
-3. `PLATFORM_MAP` already includes `youtube` → keep as-is
-4. Skip writing `service_id` to DB (column may not exist in `social_connections`); keep `channel_id`/`platform`/`channel_name` upsert as today. If user wants `service_id` persisted, that's a follow-up migration.
+**File:** `supabase/functions/get-buffer-channels/index.ts` (only file)
 
-### File 2: `supabase/functions/schedule-social-posts/index.ts`
-1. Change fetch URL: `https://api.bufferapp.com/graphql` → `https://api.buffer.com/graphql` (single occurrence)
-2. No other changes — mutation, scheduling, DB writes untouched.
+**Change:** Single line in the GraphQL query string.
 
-### Out of scope
-- `diagnose-buffer/index.ts` (still uses old host, but no longer needed once channels sync correctly)
-- `ConnectSettings.tsx` (no UI change)
-- Schema migration for `service_id`
+Replace:
+```graphql
+query GetChannels($organizationId: String!) {
+  channels(input: { organizationId: $organizationId }) { ... }
+}
+```
 
-### Test expectation after deploy
-- Connect Settings → paste key → Sync → toast "Done! I found 7 connected accounts." with all 4 platforms green
-- BP-03 → Activate → posts schedule successfully via Buffer
+With:
+```graphql
+query GetChannels($organizationId: OrganizationId!) {
+  channels(input: { organizationId: $organizationId }) { ... }
+}
+```
+
+Everything else stays:
+- `BUFFER_ORG_ID` env var still drives the value
+- `variables: { organizationId: BUFFER_ORG_ID }` unchanged
+- Upsert logic, platform map, response shape unchanged
+
+### Why not hardcode
+- Loses secret-driven config (would require code edit per org)
+- Breaks if `BUFFER_ORG_ID` is ever rotated
+- The error is a type mismatch, not a variable-vs-literal issue — fixing the type resolves it cleanly
+
+### Test
+Connect Settings → paste key → Sync → expect "Done! I found 7 connected accounts" and 4 platform badges green.
