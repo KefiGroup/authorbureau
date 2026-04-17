@@ -93,17 +93,32 @@ export default function BP03Builder({ authorId }: Props) {
         .eq("node_id", "BP-03")
         .maybeSingle();
 
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") {
-          setTimeout(() => setContent((prev: any) => ({ ...prev, activated: true })), 0);
-        }
-      } else if (node?.content_json && (node.content_json as any)?.source === "BP-02") {
-        // Pre-loaded from Lead Magnets but not yet at content_ready
-        setContent(node.content_json);
-        setStep(2);
+      const status = node?.status;
+      const hasContent = !!node?.content_json;
+      let resumedStep = 0;
+
+      if (status === "live") {
+        if (hasContent) setContent(node!.content_json);
+        resumedStep = 3;
+        setTimeout(() => setContent((prev: any) => ({ ...(prev || node?.content_json || {}), activated: true })), 0);
+      } else if (status === "content_ready" && hasContent) {
+        setContent(node!.content_json);
+        resumedStep = 2;
+      } else if (hasContent && (node!.content_json as any)?.source === "BP-02") {
+        setContent(node!.content_json);
+        resumedStep = 2;
+      } else if (status === "generating") {
+        resumedStep = 1;
       }
+
+      // Fallback: pull bookTitle from stored content if context query missed
+      const storedTitle = (node?.content_json as any)?.book_title;
+      if (storedTitle && !ctx?.book_title) {
+        setBookTitle((prev) => prev || storedTitle);
+      }
+
+      setStep(resumedStep);
+      console.log("[BP-03 mount]", { status, hasContent, step: resumedStep, bookTitleResolved: ctx?.book_title || storedTitle || "(pending)" });
     })();
   }, [authorId]);
 
