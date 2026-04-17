@@ -78,7 +78,7 @@ export default function FunnelsHub() {
       if (!profile) { setLoading(false); return; }
       setAuthorId(profile.id);
       setAuthorSlug(profile.author_slug);
-      await loadFunnels(profile.id);
+      await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id)]);
       setLoading(false);
     })();
   }, []);
@@ -92,8 +92,37 @@ export default function FunnelsHub() {
     setFunnels((data as Funnel[]) || []);
   };
 
+  const loadLiveNodes = async (aid: string) => {
+    const { data } = await supabase
+      .from("author_nodes")
+      .select("node_id, microsite_url, status")
+      .eq("author_id", aid)
+      .in("node_id", FUNNEL_ELIGIBLE_NODES)
+      .eq("status", "live");
+    setLiveNodes((data as LiveNode[]) || []);
+  };
+
   const liveUrl = (slug: string) =>
     authorSlug ? `${window.location.origin}/${authorSlug}/${slug}` : "";
+
+  const generateForNode = async (nodeId: string) => {
+    if (!authorId) return;
+    setGeneratingNodeId(nodeId);
+    const { error } = await supabase.functions.invoke("generate-funnel", {
+      body: {
+        author_id: authorId,
+        node_id: nodeId,
+        funnel_type: NODE_TO_FUNNEL_TYPE[nodeId] || "opt_in",
+      },
+    });
+    setGeneratingNodeId(null);
+    if (error) {
+      toast({ title: "ABBY couldn't build that funnel", description: "Please try again in a moment.", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Funnel generated!" });
+    await loadFunnels(authorId);
+  };
 
   const toggleStatus = async (f: Funnel) => {
     const newStatus = f.status === "live" ? "paused" : "live";
