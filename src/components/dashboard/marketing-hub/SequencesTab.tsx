@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,52 +33,43 @@ const statusBadge: Record<string, string> = {
   paused: "bg-muted text-muted-foreground border-border",
 };
 
-export default function SequencesTab({ authorId }: { authorId: string | null }) {
+export default function SequencesTab() {
   const navigate = useNavigate();
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
+  const load = async () => {
+    try {
+      const res = await callMarketingHubState<{
+        flows: FlowRow[];
+        steps_by_flow: Record<string, Step[]>;
+      }>("sequences");
+      setFlows(res.flows || []);
+      setSteps(res.steps_by_flow || {});
+    } catch (err: any) {
+      toast({ title: "Couldn't load sequences", description: err.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { load(); }, []);
+
   const toggleStatus = async (flow: FlowRow) => {
     const next = flow.status === "active" ? "paused" : "active";
     setUpdatingId(flow.id);
-    const { error } = await supabase.from("email_flows").update({ status: next }).eq("id", flow.id);
-    setUpdatingId(null);
-    if (error) {
-      toast({ title: "Couldn't update sequence", description: error.message, variant: "destructive" });
-      return;
+    try {
+      await callMarketingHubState("toggle_sequence_status", { flow_id: flow.id, status: next });
+      setFlows((prev) => prev.map((f) => (f.id === flow.id ? { ...f, status: next } : f)));
+      toast({ title: next === "active" ? "Sequence resumed" : "Sequence paused" });
+    } catch (err: any) {
+      toast({ title: "Couldn't update sequence", description: err.message, variant: "destructive" });
+    } finally {
+      setUpdatingId(null);
     }
-    setFlows((prev) => prev.map((f) => (f.id === flow.id ? { ...f, status: next } : f)));
-    toast({ title: next === "active" ? "Sequence resumed" : "Sequence paused" });
   };
-
-  useEffect(() => {
-    if (!authorId) return;
-    (async () => {
-      const { data: f } = await supabase
-        .from("email_flows")
-        .select("id, title, description, flow_type, node_id, status, total_subscribers, open_rate, click_rate, ai_generated, created_at")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false });
-      const flowList = (f as FlowRow[]) || [];
-      setFlows(flowList);
-
-      if (flowList.length > 0) {
-        const { data: s } = await supabase
-          .from("email_flow_steps")
-          .select("id, flow_id, step_number, subject, trigger_delay_days")
-          .in("flow_id", flowList.map((x) => x.id))
-          .order("step_number", { ascending: true });
-        const grouped: Record<string, Step[]> = {};
-        (s || []).forEach((row: any) => {
-          (grouped[row.flow_id] = grouped[row.flow_id] || []).push(row);
-        });
-        setSteps(grouped);
-      }
-      setLoading(false);
-    })();
-  }, [authorId]);
 
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
@@ -130,7 +121,7 @@ export default function SequencesTab({ authorId }: { authorId: string | null }) 
                   <Pencil className="h-3 w-3 mr-1" /> Edit
                 </Button>
               )}
-              {(f.status === "active" || f.status === "paused") && (
+              {(f.status === "active" || f.status === "paused" || f.status === "draft") && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -145,7 +136,7 @@ export default function SequencesTab({ authorId }: { authorId: string | null }) 
                   ) : (
                     <PlayCircle className="h-3 w-3 mr-1" />
                   )}
-                  {f.status === "active" ? "Pause" : "Resume"}
+                  {f.status === "active" ? "Pause" : "Activate"}
                 </Button>
               )}
             </div>
