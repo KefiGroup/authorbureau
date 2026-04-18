@@ -285,7 +285,9 @@ export default function MarketingHub({ onNavigate }: Props) {
   /* ─── Derive campaign status (worst-state for grouped) ─── */
   const getCampaignStatus = (campaign: CampaignConfig): NodeStatus => {
     if (activatingCampaign === campaign.id) return "ready"; // show as ready while activating
-    const statuses = campaign.nodeIds.map(nid => deriveNodeStatus(nodeRows.find(r => r.node_id === nid)));
+    const statuses = campaign.nodeIds.map(nid =>
+      deriveNodeStatus(nodeRows.find(r => r.node_id === nid), nid, bp03PostsCount),
+    );
     if (statuses.every(s => s === "active")) return "active";
     if (statuses.some(s => s === "active" || s === "ready")) return "ready";
     if (statuses.some(s => s === "draft")) return "draft";
@@ -301,6 +303,49 @@ export default function MarketingHub({ onNavigate }: Props) {
 
     setActivatingCampaign(campaign.id);
     try {
+      // BP-03 has its own activation semantics: rebuild social_posts via repair_calendar.
+      if (campaign.id === "social-media") {
+        const bp03Row = nodeRows.find(r => r.node_id === "BP-03");
+        if (!bp03Row || !["live", "content_ready"].includes(bp03Row.status)) {
+          toast({
+            title: "Build your kit first",
+            description: "Open the Social Media builder and generate your starter kit before activating.",
+            variant: "destructive",
+          });
+          navigate("/node-builder/BP-03");
+          return;
+        }
+
+        const token = await getActiveToken();
+        if (!token) {
+          toast({ title: "Session expired", description: "Please sign in again.", variant: "destructive" });
+          return;
+        }
+        const res = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-node-state`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ action: "repair_calendar", author_id: authorProfileId }),
+          },
+        );
+        const json = await res.json().catch(() => null);
+        if (!res.ok || !json?.success) {
+          toast({
+            title: "Activation failed",
+            description: json?.error || "We couldn't rebuild your Social Calendar. Please open BP-03 and try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+        toast({
+          title: "🎉 Social Media activated!",
+          description: `${json.saved || 0} posts added to your Social Calendar.`,
+        });
+        await fetchNodes();
+        return;
+      }
+
       const liveNodeIds = campaign.nodeIds.filter(nid => {
         const row = nodeRows.find(r => r.node_id === nid);
         return row?.status === "live" && !row?.marketing_activated_at;
@@ -315,7 +360,6 @@ export default function MarketingHub({ onNavigate }: Props) {
       const now = new Date().toISOString();
       const results = await Promise.all(
         liveNodeIds.map(async (nid) => {
-          // Try update first
           const { data: updated, error: updErr } = await supabase
             .from("author_nodes")
             .update({ marketing_activated_at: now })
@@ -324,7 +368,6 @@ export default function MarketingHub({ onNavigate }: Props) {
             .select("node_id, marketing_activated_at");
           if (updErr) return { nid, data: null, error: updErr };
           if (updated && updated.length > 0) return { nid, data: updated, error: null };
-          // Row didn't exist (e.g. synthesized BP-01) — insert it
           const { data: inserted, error: insErr } = await supabase
             .from("author_nodes")
             .insert({
@@ -367,6 +410,19 @@ export default function MarketingHub({ onNavigate }: Props) {
   const handlePause = async (campaign: CampaignConfig) => {
     if (!authorProfileId) return;
     try {
+      // For BP-03, "pause" means clearing the calendar's ready/draft posts.
+      if (campaign.id === "social-media") {
+        await supabase
+          .from("social_posts" as any)
+          .delete()
+          .eq("author_id", authorProfileId)
+          .eq("node_id", "BP-03")
+          .in("status", ["draft", "ready"]);
+        toast({ title: "Campaign paused", description: "Social Calendar cleared. Re-activate anytime to refill it." });
+        await fetchNodes();
+        return;
+      }
+
       await Promise.all(
         campaign.nodeIds.map(nid =>
           supabase
