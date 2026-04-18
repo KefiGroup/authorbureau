@@ -363,7 +363,7 @@ export default function MarketingHub({ onNavigate }: Props) {
         </p>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="sequences">Sequences</TabsTrigger>
