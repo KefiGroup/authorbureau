@@ -1,77 +1,42 @@
 
-The user wants native direct integrations to LinkedIn / Facebook / Instagram / X — no Buffer. I need to be honest about what each platform actually allows in 2026, since several of them have hard policy/technical blockers that no amount of code can bypass.
+Root cause confirmed: `author_email_settings.author_id` stores the Author Profile ID, but the current RLS policy is `auth.uid() = author_id`. That can never pass for normal saves, so the insert/upsert is rejected with the row-level security error. The Settings tab is also the odd one out in Marketing Hub because it writes directly to the table instead of using the existing backend action pattern.
 
-Let me lay out the reality per network, then propose a concrete native build.
+Plan
 
-## Platform-by-Platform Reality Check (2026)
+1. Fix the broken backend policy
+- Create a migration that removes the current `author_email_settings` policy.
+- Replace it with authenticated owner policies that resolve ownership through `author_profiles`:
+  - SELECT: allow when `author_profiles.id = author_email_settings.author_id` and `author_profiles.user_id = auth.uid()`
+  - INSERT: same ownership rule in `WITH CHECK`
+  - UPDATE: same ownership rule in both `USING` and `WITH CHECK`
+- Keep the admin read policy intact.
 
-| Platform | Auto-publish from 3rd-party app? | What it costs / requires | Verdict |
-|---|---|---|---|
-| **LinkedIn** | ✅ Yes | OAuth 2.0 + `w_member_social` scope. Free. Posts to personal profile or Company Page. Stable API. | **Fully automatable** |
-| **Facebook Pages** | ✅ Yes | Meta Graph API + `pages_manage_posts` + `pages_read_engagement`. App must pass Meta App Review (~1–3 weeks). Posts to **Pages only**, not personal profiles (Meta killed personal-profile posting in 2018). | **Automatable to Pages only** |
-| **Instagram Business/Creator** | ✅ Yes (with caveats) | Instagram Graph API via a connected Facebook Page. Account must be **Business or Creator** (not personal). Image/video must be hosted at a public URL. Stories & Reels supported, carousels supported. Same Meta App Review required. | **Automatable for Business accounts only** |
-| **Instagram Personal** | ❌ No | Meta blocks all third-party publishing to personal IG accounts. Period. | **Manual only** |
-| **X / Twitter** | ⚠️ Yes but paid | X API v2 requires **Basic tier minimum = $200/month** as of 2024. Free tier allows ~17 posts/day total across the whole app, not per user. | **Automatable only if author or platform pays $200+/mo** |
-| **TikTok** | ⚠️ Limited | Content Posting API exists but requires audit + only posts as drafts to user's inbox for personal accounts; full direct-post needs approval. | **Semi-automatable** |
-| **Threads** | ✅ Yes | Threads API via Meta, similar review process. | **Automatable** |
+2. Align Settings with the existing Marketing Hub backend flow
+- Extend `supabase/functions/marketing-hub-state/index.ts` with:
+  - `email_settings` action to load sender settings for the resolved author profile
+  - `save_email_settings` action to upsert settings for that author profile
+- Reuse the existing token + identity + author profile resolution already used by the other Marketing Hub tabs.
 
-### Bottom line
-- **LinkedIn + Facebook Page + Instagram Business**: real native auto-posting is possible. This is the realistic MVP.
-- **X/Twitter**: only viable if we accept the $200/mo X API cost OR keep it manual ("Copy & open X").
-- **Personal Instagram, personal Facebook**: Meta forbids it. Will always be manual.
+3. Update the Settings UI to stop writing directly to the table
+- Refactor `src/components/dashboard/marketing-hub/SettingsTab.tsx` to use `callMarketingHubState(...)` for both load and save.
+- Keep the same UI, but return clearer errors from the backend instead of raw table/RLS failures.
+- Preserve the current sender name, reply-to email, and verified badge behavior.
 
-## Proposed Native Build (no Buffer)
+4. Fix the “Verify domain & connections” behavior
+- Make the Settings tab reload the latest verification state from the backend instead of relying only on local table reads.
+- Keep the button routed to Connections if that remains the intended setup path, but ensure the badge/status is sourced from the same backend action so it stays consistent.
 
-### Scope
-1. **LinkedIn** — full native OAuth + auto-publish to personal profile and/or Company Page.
-2. **Facebook Pages** — full native OAuth + auto-publish to selected Page.
-3. **Instagram Business** — auto-publish via the connected Facebook Page (Meta requires this pairing).
-4. **X / Twitter** — keep manual ("Copy + Open X") for now, with a clear note explaining the $200/mo API cost. Can be upgraded later if you decide to pay.
-5. **Personal IG/FB** — keep manual with a one-tap "Copy + Open app" button.
+5. Validate end-to-end
+- Test save when no settings row exists yet.
+- Test save when a row already exists.
+- Reload the page and confirm values persist.
+- Confirm another signed-in user cannot read or update someone else’s settings.
+- Confirm the error toast disappears and success toast appears.
 
-### Architecture
-
-**New tables**
-- `social_connections` (author_id, platform, account_id, account_name, access_token, refresh_token, token_expires_at, page_id, ig_business_id, scopes, status)
-- `social_posts` already exists from earlier sprint — we'll add `published_post_url`, `published_post_id`, `publish_error`.
-
-**New edge functions (all `verify_jwt = true`)**
-- `social-connect-start` — generates OAuth URL per platform, returns it.
-- `social-connect-callback` — receives code, exchanges for token, stores connection.
-- `social-publish` — invoked by scheduler. Routes to the right platform handler.
-- `social-scheduler` — pg_cron job runs every 5 min, finds `social_posts` with `scheduled_at <= now()` and `status='ready'`, calls `social-publish`.
-
-**Frontend**
-- New "Connect Accounts" panel inside Marketing Hub → Social Calendar. Shows each platform with Connect / Connected / Reconnect state, plus realistic capability badges (e.g. "LinkedIn — auto-post", "X — manual only").
-- Calendar post cards get a status chip: `Scheduled` → `Published` (with link) or `Failed` (with retry).
-
-### Required secrets (you'll need to create developer apps)
-| Secret | Where to get it |
-|---|---|
-| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | linkedin.com/developers — instant |
-| `META_APP_ID` / `META_APP_SECRET` | developers.facebook.com — covers FB + IG. Requires App Review for production. |
-| `X_CLIENT_ID` / `X_CLIENT_SECRET` (optional) | developer.x.com — only if you decide to pay $200/mo |
-
-I'll request these via the secret tool once you approve.
-
-### Phasing
-- **Phase 1 (this sprint)**: LinkedIn end-to-end. Fastest, no app review, immediate value.
-- **Phase 2**: Meta (FB Page + IG Business). Code is ready immediately, but goes live after Meta App Review approval.
-- **Phase 3 (optional)**: X paid tier if you greenlight the cost.
-
-### Files to create / change
-- `supabase/migrations/...` — `social_connections` table + columns on `social_posts`.
-- `supabase/functions/social-connect-start/index.ts` (new)
-- `supabase/functions/social-connect-callback/index.ts` (new)
-- `supabase/functions/social-publish/index.ts` (new)
-- `supabase/functions/social-scheduler/index.ts` (new) + pg_cron schedule
-- `src/components/dashboard/marketing-hub/SocialConnectionsPanel.tsx` (new)
-- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` — show publish status, auto vs manual badges
-- `src/pages/ConnectSettings.tsx` — replace "Manual posting" badges with real connect buttons
-
-### What I will NOT promise
-- Auto-posting to personal Instagram or personal Facebook profiles (Meta forbids).
-- Free X auto-posting at any meaningful volume (X charges).
-- Skipping Meta App Review (required by Meta, not by us).
-
-If you approve, I'll start with **Phase 1 (LinkedIn native)** end-to-end so you can see real auto-posts within this sprint, then queue Meta right after.
+Technical details
+- Files to update:
+  - `supabase/migrations/...new migration...sql`
+  - `supabase/functions/marketing-hub-state/index.ts`
+  - `src/components/dashboard/marketing-hub/SettingsTab.tsx`
+- I will not touch the auto-generated Supabase client.
+- This approach fixes the immediate RLS bug and also removes the fragile direct-write path that caused the repeated auth confusion earlier.
