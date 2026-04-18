@@ -465,9 +465,9 @@ export default function MarketingHub({ onNavigate }: Props) {
                 <Button
                   size="sm"
                   className="mt-3"
-                  onClick={() => navigate("/brand-products")}
+                  onClick={() => navigate("/node-builder/BP-04")}
                 >
-                  Go to Brand Products <ArrowRight className="ml-1 h-3 w-3" />
+                  Start with Your Website <ArrowRight className="ml-1 h-3 w-3" />
                 </Button>
               )}
             </div>
