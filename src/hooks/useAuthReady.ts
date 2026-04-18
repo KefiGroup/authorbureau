@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User } from "@supabase/supabase-js";
 
@@ -18,25 +18,46 @@ interface AuthReadyState {
 export function useAuthReady(): AuthReadyState {
   const [user, setUser] = useState<User | null>(null);
   const [isReady, setIsReady] = useState(false);
+  const initialResolvedRef = useRef(false);
+  const latestUserRef = useRef<User | null>(null);
 
   useEffect(() => {
-    // 1. Subscribe first so we never miss the INITIAL_SESSION event
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log("[useAuthReady] event fired:", _event, "user:", session?.user?.id ?? "none");
+    latestUserRef.current = user;
+  }, [user]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    // Restore once from storage first.
+    void supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+      initialResolvedRef.current = true;
       setUser(session?.user ?? null);
       setIsReady(true);
     });
 
-    // 2. Fallback: if onAuthStateChange already fired before we subscribed,
-    //    getSession() will return the cached result synchronously.
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser((prev) => prev ?? session?.user ?? null);
+    // Then listen for subsequent auth changes.
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+
+      // Ignore stale empty INITIAL_SESSION events that can arrive after a
+      // valid session has already been restored, otherwise components can
+      // incorrectly flip back to a signed-out state.
+      if (_event === "INITIAL_SESSION" && initialResolvedRef.current && !session?.user && latestUserRef.current) {
+        return;
+      }
+
+      initialResolvedRef.current = true;
+      setUser(session?.user ?? null);
       setIsReady(true);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   return { user, isReady };
