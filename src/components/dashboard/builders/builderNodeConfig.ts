@@ -58,7 +58,7 @@ const socialMediaBuilder: BuilderNodeConfig = {
   color: "text-emerald-500",
   customRenderer: "social-media",
   abbyGreeting: "A consistent social media presence is key to building your author brand. Let's create a 90-day content calendar from your book.",
-  abbyPublishMessage: "Your social media calendar is ready! Export it to Buffer or schedule manually. Consider building your Email Marketing next.",
+  abbyPublishMessage: "Your social media kit is ready! All 20 posts are saved to your Social Calendar in Marketing Hub — copy, post, and mark them done as you go.",
   loadingMessages: [
     "Reading your manuscript",
     "Extracting quotable insights and key themes",
