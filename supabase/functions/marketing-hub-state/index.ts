@@ -10,7 +10,15 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-type Action = "snapshot" | "social_calendar" | "update_social_post" | "reschedule_social_post";
+type Action =
+  | "snapshot"
+  | "social_calendar"
+  | "update_social_post"
+  | "reschedule_social_post"
+  | "sequences"
+  | "toggle_sequence_status"
+  | "activate_node"
+  | "pause_node";
 
 function respond(payload: Record<string, unknown>) {
   return new Response(JSON.stringify(payload), {
@@ -253,6 +261,122 @@ Deno.serve(async (req) => {
       }
 
       return respond({ success: true, post: updatedPost });
+    }
+
+    if (action === "sequences") {
+      const { data: flows, error: flowsErr } = await cloudAdmin
+        .from("email_flows")
+        .select("id, title, description, flow_type, node_id, status, total_subscribers, open_rate, click_rate, ai_generated, created_at")
+        .eq("author_id", authorProfile.id)
+        .order("created_at", { ascending: false });
+
+      if (flowsErr) throw flowsErr;
+
+      const flowList = flows ?? [];
+      let stepsByFlow: Record<string, any[]> = {};
+
+      if (flowList.length > 0) {
+        const { data: steps, error: stepsErr } = await cloudAdmin
+          .from("email_flow_steps")
+          .select("id, flow_id, step_number, subject, trigger_delay_days")
+          .in("flow_id", flowList.map((f) => f.id))
+          .order("step_number", { ascending: true });
+
+        if (stepsErr) throw stepsErr;
+
+        (steps ?? []).forEach((row: any) => {
+          (stepsByFlow[row.flow_id] = stepsByFlow[row.flow_id] || []).push(row);
+        });
+      }
+
+      return respond({
+        success: true,
+        author_profile_id: authorProfile.id,
+        flows: flowList,
+        steps_by_flow: stepsByFlow,
+      });
+    }
+
+    if (action === "toggle_sequence_status") {
+      const flowId = typeof body?.flow_id === "string" ? body.flow_id : "";
+      const nextStatus = body?.status === "active" ? "active" : body?.status === "paused" ? "paused" : null;
+      if (!flowId || !nextStatus) {
+        return respond({ success: false, error: "A valid flow id and status are required." });
+      }
+
+      const { data: updatedFlow, error } = await cloudAdmin
+        .from("email_flows")
+        .update({ status: nextStatus })
+        .eq("id", flowId)
+        .eq("author_id", authorProfile.id)
+        .select("id, status")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!updatedFlow) {
+        return respond({ success: false, error: "Sequence not found." });
+      }
+
+      return respond({ success: true, flow: updatedFlow });
+    }
+
+    if (action === "activate_node" || action === "pause_node") {
+      const nodeIds = Array.isArray(body?.node_ids) ? body.node_ids.filter((n: any) => typeof n === "string") : [];
+      if (nodeIds.length === 0) {
+        return respond({ success: false, error: "At least one node id is required." });
+      }
+
+      const now = action === "activate_node" ? new Date().toISOString() : null;
+      const results: any[] = [];
+
+      for (const nid of nodeIds) {
+        const { data: existing } = await cloudAdmin
+          .from("author_nodes")
+          .select("id, status")
+          .eq("author_id", authorProfile.id)
+          .eq("node_id", nid)
+          .maybeSingle();
+
+        if (existing) {
+          const { data: updated, error: updErr } = await cloudAdmin
+            .from("author_nodes")
+            .update({ marketing_activated_at: now })
+            .eq("id", existing.id)
+            .select("node_id, marketing_activated_at")
+            .maybeSingle();
+          if (updErr) {
+            results.push({ node_id: nid, error: updErr.message });
+          } else {
+            results.push({ node_id: nid, ok: true, row: updated });
+          }
+        } else if (action === "activate_node") {
+          const { data: inserted, error: insErr } = await cloudAdmin
+            .from("author_nodes")
+            .insert({
+              author_id: authorProfile.id,
+              node_id: nid,
+              node_name: nid,
+              status: "live",
+              marketing_activated_at: now,
+            })
+            .select("node_id, marketing_activated_at")
+            .maybeSingle();
+          if (insErr) {
+            results.push({ node_id: nid, error: insErr.message });
+          } else {
+            results.push({ node_id: nid, ok: true, row: inserted });
+          }
+        } else {
+          results.push({ node_id: nid, ok: true, row: null });
+        }
+      }
+
+      const failed = results.filter((r) => r.error);
+      return respond({
+        success: failed.length === 0,
+        results,
+        error: failed.length > 0 ? failed.map((f) => `${f.node_id}: ${f.error}`).join("; ") : undefined,
+      });
     }
 
     return respond({ success: false, error: "Unsupported action." });

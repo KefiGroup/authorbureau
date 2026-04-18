@@ -315,44 +315,13 @@ export default function MarketingHub({ onNavigate }: Props) {
         return;
       }
 
-      const now = new Date().toISOString();
-      const results = await Promise.all(
-        liveNodeIds.map(async (nid) => {
-          const { data: updated, error: updErr } = await supabase
-            .from("author_nodes")
-            .update({ marketing_activated_at: now })
-            .eq("author_id", authorProfileId)
-            .eq("node_id", nid)
-            .select("node_id, marketing_activated_at");
-          if (updErr) return { nid, data: null, error: updErr };
-          if (updated && updated.length > 0) return { nid, data: updated, error: null };
-          const { data: inserted, error: insErr } = await supabase
-            .from("author_nodes")
-            .insert({
-              author_id: authorProfileId,
-              node_id: nid,
-              node_name: nid,
-              status: "live",
-              marketing_activated_at: now,
-            })
-            .select("node_id, marketing_activated_at");
-          return { nid, data: inserted, error: insErr };
-        })
+      const result = await callMarketingHubState<{ success: boolean; error?: string }>(
+        "activate_node",
+        { node_ids: liveNodeIds },
       );
 
-      const failed = results.filter(r => r.error);
-      const updated = results.filter(r => !r.error && r.data && r.data.length > 0);
-
-      if (failed.length > 0) {
-        console.error("Activation errors:", failed);
-        toast({
-          title: "Activation partially failed",
-          description: failed.map(f => `${f.nid}: ${f.error?.message}`).join("; "),
-          variant: "destructive",
-        });
-      }
-      if (updated.length === 0) {
-        toast({ title: "Nothing was activated", description: "No rows updated. Please refresh and try again.", variant: "destructive" });
+      if (!result.success) {
+        toast({ title: "Activation failed", description: result.error || "Please refresh and try again.", variant: "destructive" });
       } else {
         toast({ title: "🎉 Campaign activated!", description: campaign.successMessage });
       }
@@ -381,15 +350,7 @@ export default function MarketingHub({ onNavigate }: Props) {
         return;
       }
 
-      await Promise.all(
-        campaign.nodeIds.map(nid =>
-          supabase
-            .from("author_nodes")
-            .update({ marketing_activated_at: null })
-            .eq("author_id", authorProfileId)
-            .eq("node_id", nid)
-        )
-      );
+      await callMarketingHubState("pause_node", { node_ids: campaign.nodeIds });
       toast({ title: "Campaign paused", description: `${campaign.label} has been paused.` });
       await fetchNodes();
     } catch (err: any) {
@@ -553,7 +514,7 @@ export default function MarketingHub({ onNavigate }: Props) {
         </TabsContent>
 
         <TabsContent value="sequences" className="mt-6">
-          <SequencesTab authorId={authorProfileId} />
+          <SequencesTab />
         </TabsContent>
 
         <TabsContent value="social-calendar" className="mt-6">
