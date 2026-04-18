@@ -92,6 +92,29 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
+  // Deep-link: open contact detail when ?contactId= is present (e.g. from Marketing Hub)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkContactId = searchParams.get("contactId");
+  useEffect(() => {
+    if (!deepLinkContactId || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("crm_contacts")
+        .select("id, full_name, email, phone, company, notes, source, stage, abby_score, last_activity_at, created_at")
+        .eq("id", deepLinkContactId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setSelectedContact({ ...(data as any), tags: [] });
+      setDetailOpen(true);
+      // strip the param so reopening the page doesn't keep re-triggering
+      const sp = new URLSearchParams(searchParams);
+      sp.delete("contactId");
+      setSearchParams(sp, { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [deepLinkContactId, user]);
+
   const abbyMessage = useMemo(() => {
     const n = statsData?.total || 0;
     if (n === 0) return "Add your first contact and ABBY will start building your funnel.";
