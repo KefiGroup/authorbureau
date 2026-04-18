@@ -3899,37 +3899,73 @@ export type Database = {
       }
       social_connections: {
         Row: {
+          access_token: string | null
+          account_avatar_url: string | null
+          account_id: string | null
+          account_name: string | null
           author_id: string
           buffer_api_key: string | null
           channel_id: string
           channel_name: string | null
+          connected_at: string
           created_at: string
           id: string
+          ig_business_id: string | null
+          last_error: string | null
+          page_id: string | null
           platform: string
+          refresh_token: string | null
+          scopes: string[] | null
           status: string
+          token_expires_at: string | null
           updated_at: string
+          user_id: string | null
         }
         Insert: {
+          access_token?: string | null
+          account_avatar_url?: string | null
+          account_id?: string | null
+          account_name?: string | null
           author_id: string
           buffer_api_key?: string | null
           channel_id: string
           channel_name?: string | null
+          connected_at?: string
           created_at?: string
           id?: string
+          ig_business_id?: string | null
+          last_error?: string | null
+          page_id?: string | null
           platform: string
+          refresh_token?: string | null
+          scopes?: string[] | null
           status?: string
+          token_expires_at?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
+          access_token?: string | null
+          account_avatar_url?: string | null
+          account_id?: string | null
+          account_name?: string | null
           author_id?: string
           buffer_api_key?: string | null
           channel_id?: string
           channel_name?: string | null
+          connected_at?: string
           created_at?: string
           id?: string
+          ig_business_id?: string | null
+          last_error?: string | null
+          page_id?: string | null
           platform?: string
+          refresh_token?: string | null
+          scopes?: string[] | null
           status?: string
+          token_expires_at?: string | null
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3944,6 +3980,10 @@ export type Database = {
           id: string
           image_prompt: string | null
           platform: string
+          publish_error: string | null
+          published_at: string | null
+          published_post_id: string | null
+          published_post_url: string | null
           scheduled_date: string | null
           source_asset_id: string | null
           status: string
@@ -3958,6 +3998,10 @@ export type Database = {
           id?: string
           image_prompt?: string | null
           platform?: string
+          publish_error?: string | null
+          published_at?: string | null
+          published_post_id?: string | null
+          published_post_url?: string | null
           scheduled_date?: string | null
           source_asset_id?: string | null
           status?: string
@@ -3972,6 +4016,10 @@ export type Database = {
           id?: string
           image_prompt?: string | null
           platform?: string
+          publish_error?: string | null
+          published_at?: string | null
+          published_post_id?: string | null
+          published_post_url?: string | null
           scheduled_date?: string | null
           source_asset_id?: string | null
           status?: string

@@ -2,39 +2,118 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   ArrowLeft, CreditCard, Sparkles, CheckCircle2, AlertCircle, Loader2,
-  Share2, Linkedin, Instagram, Facebook, Twitter,
+  Share2, Linkedin, Instagram, Facebook, Twitter, ExternalLink,
 } from "lucide-react";
 
+type ConnRow = {
+  id: string;
+  platform: string;
+  account_name: string | null;
+  status: string;
+};
+
 const PLATFORMS = [
-  { key: "linkedin", name: "LinkedIn", Icon: Linkedin },
-  { key: "instagram", name: "Instagram", Icon: Instagram },
-  { key: "facebook", name: "Facebook", Icon: Facebook },
-  { key: "x", name: "X (Twitter)", Icon: Twitter },
+  {
+    key: "linkedin",
+    name: "LinkedIn",
+    Icon: Linkedin,
+    autoPost: true,
+    capability: "Auto-post enabled",
+    note: "Posts publish to your LinkedIn profile automatically on the scheduled date.",
+  },
+  {
+    key: "facebook",
+    name: "Facebook Page",
+    Icon: Facebook,
+    autoPost: true,
+    capability: "Auto-post (Pages only)",
+    note: "Auto-posts to your Facebook Page. Personal profiles are not supported by Meta.",
+  },
+  {
+    key: "instagram",
+    name: "Instagram Business",
+    Icon: Instagram,
+    autoPost: true,
+    capability: "Auto-post (Business accounts)",
+    note: "Requires an IG Business or Creator account linked to a Facebook Page. Each post needs an image.",
+  },
+  {
+    key: "x",
+    name: "X (Twitter)",
+    Icon: Twitter,
+    autoPost: false,
+    capability: "Manual posting",
+    note: "X requires a paid API tier ($200/mo) for auto-posting. For now, copy the post and publish manually.",
+  },
 ] as const;
 
 export default function ConnectSettings() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [stripeConnected, setStripeConnected] = useState(false);
+  const [connections, setConnections] = useState<ConnRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refresh = async () => {
     if (!user?.id) return;
-    (async () => {
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("id, stripe_connected_account_id, stripe_onboarding_complete")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      setStripeConnected(!!profile?.stripe_onboarding_complete);
-      setLoading(false);
-    })();
-  }, [user?.id]);
+    const [{ data: profile }, { data: conns }] = await Promise.all([
+      supabase.from("author_profiles").select("id, stripe_onboarding_complete").eq("user_id", user.id).maybeSingle(),
+      supabase.from("social_connections").select("id, platform, account_name, status").eq("user_id", user.id),
+    ]);
+    setStripeConnected(!!profile?.stripe_onboarding_complete);
+    setConnections((conns as ConnRow[]) || []);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, [user?.id]);
+
+  const connFor = (p: string) => connections.find(c => c.platform === p && c.status === "connected");
+
+  const handleConnect = async (platform: string) => {
+    setConnectingPlatform(platform);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { toast({ title: "Please sign in again", variant: "destructive" }); return; }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-start`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          body: JSON.stringify({ platform, origin: window.location.origin }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        toast({
+          title: data.needs_setup ? "Setup needed" : "Could not start connection",
+          description: data.error,
+          variant: "destructive",
+        });
+        return;
+      }
+      window.location.href = data.authUrl;
+    } finally {
+      setConnectingPlatform(null);
+    }
+  };
+
+  const handleDisconnect = async (id: string, name: string) => {
+    const { error } = await supabase.from("social_connections").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Could not disconnect", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `Disconnected ${name}` });
+    refresh();
+  };
 
   if (authLoading || loading) {
     return (
@@ -103,13 +182,13 @@ export default function ConnectSettings() {
                 <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Native</Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                ABBY manages all your email marketing, lead capture, and nurture sequences natively inside Authors Bureau. No external email tools or connections needed.
+                ABBY manages all your email marketing, lead capture, and nurture sequences natively. No external email tools needed.
               </p>
             </div>
           </div>
         </Card>
 
-        {/* Social Media — native */}
+        {/* Social Media — native direct connections */}
         <Card className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/10">
@@ -117,29 +196,70 @@ export default function ConnectSettings() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <p className="font-semibold text-sm">Social Media</p>
+                <p className="font-semibold text-sm">Social Media — Direct Connections</p>
                 <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Native</Badge>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                ABBY generates a 20-post Social Media Kit for you. Posts live in your Social Calendar — copy each one, post it on the platform, and click <strong>Mark as Posted</strong>. No external scheduler required.
+                Connect each network directly. Posts will publish automatically on their scheduled date — no Buffer, no third-party scheduler.
               </p>
-              <div className="space-y-2 mb-4">
-                {PLATFORMS.map(({ key, name, Icon }) => (
-                  <div
-                    key={key}
-                    className="flex items-center justify-between rounded-lg border border-border bg-background/50 px-3 py-2.5"
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <Icon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm font-medium">{name}</span>
+
+              <div className="space-y-3">
+                {PLATFORMS.map(({ key, name, Icon, autoPost, capability, note }) => {
+                  const conn = connFor(key);
+                  return (
+                    <div
+                      key={key}
+                      className="rounded-lg border border-border bg-background/50 p-3 space-y-2"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
+                          <span className="text-sm font-medium truncate">{name}</span>
+                          <Badge
+                            variant="secondary"
+                            className={`text-[10px] ${autoPost ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
+                          >
+                            {capability}
+                          </Badge>
+                        </div>
+                        {conn ? (
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
+                              <CheckCircle2 className="h-3 w-3 mr-1" /> {conn.account_name || "Connected"}
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => handleDisconnect(conn.id, name)}
+                            >
+                              Disconnect
+                            </Button>
+                          </div>
+                        ) : autoPost ? (
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            disabled={connectingPlatform === key}
+                            onClick={() => handleConnect(key)}
+                          >
+                            {connectingPlatform === key ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>Connect <ExternalLink className="h-3 w-3 ml-1" /></>
+                            )}
+                          </Button>
+                        ) : (
+                          <Badge variant="outline" className="text-[10px]">Manual only</Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{note}</p>
                     </div>
-                    <Badge variant="secondary" className="text-[10px]">
-                      Manual posting
-                    </Badge>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              <Button size="sm" onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}>
+
+              <Button size="sm" className="mt-4" onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}>
                 Open Social Calendar
               </Button>
             </div>
