@@ -172,6 +172,12 @@ export default function MarketingHub({ onNavigate }: Props) {
   const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
   const [leadCounts, setLeadCounts] = useState<Record<string, number>>({});
+  const [crossCounts, setCrossCounts] = useState<{
+    sequences: number;
+    socialQueued: number;
+    contacts: number;
+    domainPending: boolean;
+  }>({ sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
 
