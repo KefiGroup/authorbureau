@@ -503,8 +503,13 @@ const CampaignRow = forwardRef<HTMLDivElement, {
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" /> Activating…
               </Button>
             ) : status === "not_built" ? (
-              <Button size="sm" variant="outline" className="text-xs" onClick={() => navigate("/brand-products")}>
-                <Hammer className="h-3 w-3 mr-1" /> Build in Brand Products
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-xs"
+                onClick={() => navigate(`/node-builder/${campaign.nodeIds[0]}`)}
+              >
+                <Hammer className="h-3 w-3 mr-1" /> Build {campaign.label}
               </Button>
             ) : status === "draft" ? (
               <Button
@@ -548,10 +553,10 @@ const CampaignRow = forwardRef<HTMLDivElement, {
           <p className="text-xs text-muted-foreground mt-2">
             Build this first in{" "}
             <button
-              onClick={() => navigate("/brand-products")}
+              onClick={() => navigate(`/node-builder/${campaign.nodeIds[0]}`)}
               className="underline underline-offset-2 hover:text-foreground transition-colors"
             >
-              Brand Products
+              the {campaign.label} builder
             </button>
           </p>
         )}
