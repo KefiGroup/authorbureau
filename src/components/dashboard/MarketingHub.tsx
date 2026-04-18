@@ -185,6 +185,7 @@ export default function MarketingHub({ onNavigate }: Props) {
   };
 
   const [nodeRows, setNodeRows] = useState<NodeRow[]>([]);
+  const [bp03PostsCount, setBp03PostsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
