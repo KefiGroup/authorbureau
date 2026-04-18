@@ -433,6 +433,76 @@ Deno.serve(async (req) => {
       return respond({ success: true, settings: saved });
     }
 
+    if (action === "send_verification_email") {
+      const { data: settings, error: loadErr } = await cloudAdmin
+        .from("author_email_settings")
+        .select("id, sender_name, reply_to_email, domain_verified, verification_token, verification_sent_at")
+        .eq("author_id", authorProfile.id)
+        .maybeSingle();
+
+      if (loadErr) throw loadErr;
+      if (!settings || !settings.reply_to_email || !settings.sender_name) {
+        return respond({ success: false, error: "Save your sender name and reply-to email before sending a confirmation." });
+      }
+      if (settings.domain_verified) {
+        return respond({ success: true, already_verified: true });
+      }
+
+      // Throttle: 60s between sends
+      if (settings.verification_sent_at) {
+        const last = new Date(settings.verification_sent_at).getTime();
+        if (Date.now() - last < 60_000) {
+          return respond({ success: false, error: "Please wait a moment before sending another confirmation email." });
+        }
+      }
+
+      const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "");
+      const sentAt = new Date().toISOString();
+
+      const { error: tokenErr } = await cloudAdmin
+        .from("author_email_settings")
+        .update({ verification_token: token, verification_sent_at: sentAt })
+        .eq("id", settings.id);
+
+      if (tokenErr) throw tokenErr;
+
+      const verifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/verify-sender-email?token=${token}`;
+
+      try {
+        const sendRes = await fetch(
+          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({
+              templateName: "sender-email-verification",
+              recipientEmail: settings.reply_to_email,
+              idempotencyKey: `sender-verify-${settings.id}-${sentAt}`,
+              templateData: {
+                senderName: settings.sender_name,
+                verifyUrl,
+              },
+            }),
+          },
+        );
+        if (!sendRes.ok) {
+          const errText = await sendRes.text().catch(() => "");
+          console.error("send-transactional-email failed:", sendRes.status, errText);
+        }
+      } catch (e) {
+        console.error("send-transactional-email error:", e);
+      }
+
+      return respond({
+        success: true,
+        sent_to: settings.reply_to_email,
+        sent_at: sentAt,
+      });
+    }
+
     return respond({ success: false, error: "Unsupported action." });
   } catch (err) {
     console.error("marketing-hub-state error:", err);
