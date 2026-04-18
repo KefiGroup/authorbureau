@@ -12,6 +12,9 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, ShoppingBag, LayoutList, Dollar
 import { categoryStyles } from "../shared/BuilderTheme";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
+import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
+import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
+import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
@@ -89,9 +92,18 @@ export default function BP09Builder({ authorId }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className={`border-b border-border bg-gradient-to-r ${categoryStyles.brand.headerGradient} px-4 py-3`}><div className="max-w-3xl mx-auto flex items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}><ArrowLeft className="h-4 w-4" /></Button><div className="flex-1"><h1 className="text-lg font-semibold">Book Sales (Events)</h1></div></div></div>
-      <div className="max-w-3xl mx-auto px-4 pt-6 pb-2"><div className="flex items-center gap-1">{STEPS.map((label, i) => (<div key={label} className="flex items-center gap-1 flex-1"><div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${i < step ? categoryStyles.brand.stepDone : i === step ? categoryStyles.brand.stepActiveRing : "bg-muted text-muted-foreground"}`}>{i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}</div><span className="text-xs text-muted-foreground hidden sm:inline truncate">{label}</span>{i < STEPS.length - 1 && <div className="flex-1 h-px bg-border" />}</div>))}</div></div>
+      <div className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
+        <BuilderHeader
+          nodeId="BP-09"
+          title="Book Sales (Events)"
+          subtitle="Event sales strategy + pricing tiers + follow-up"
+          icon={ShoppingBag}
+          onBack={() => navigate("/brand-products")}
+        />
+        <UnifiedStepper nodeId="BP-09" steps={STEPS} current={step} />
+      </div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <NodeHowItWorks nodeId="BP-09" defaultOpen={step === 0} />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's set up your Book Sales</h2>
             {!isBookLoading && hasContext === false && !hasBook ? (<BookProfileQuickForm authorId={authorId} authorName={authorName} onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }} />) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || bookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}

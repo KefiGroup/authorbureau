@@ -12,6 +12,9 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Eye, Zap } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
+import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
+import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
+import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 
@@ -202,42 +205,20 @@ export default function BP01Builder({ authorId }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card px-4 py-3">
-        <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/brand-products")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">Email Marketing</h1>
-            
-          </div>
-        </div>
-      </div>
-
-      {/* Step indicator */}
-      <div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
-        <div className="flex items-center gap-1">
-          {STEPS.map((label, i) => (
-            <div key={label} className="flex items-center gap-1 flex-1">
-              <div
-                className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${
-                  i < step ? "bg-primary text-primary-foreground"
-                  : i === step ? "bg-primary text-primary-foreground ring-2 ring-primary/30"
-                  : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
-              </div>
-              <span className="text-xs text-muted-foreground hidden sm:inline truncate">{label}</span>
-              {i < STEPS.length - 1 && <div className="flex-1 h-px bg-border" />}
-            </div>
-          ))}
-        </div>
+      <div className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
+        <BuilderHeader
+          nodeId="BP-01"
+          title="Email Marketing"
+          subtitle="Welcome sequence + lead magnet offer + first broadcast"
+          icon={Mail}
+          onBack={() => navigate("/brand-products")}
+        />
+        <UnifiedStepper nodeId="BP-01" steps={STEPS} current={step} />
       </div>
 
       {/* Content */}
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
+        <NodeHowItWorks nodeId="BP-01" defaultOpen={step === 0} />
         {/* STEP 0: Introduction */}
         {step === 0 && (
           <>
