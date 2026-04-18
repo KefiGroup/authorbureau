@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -121,8 +122,10 @@ function buildWeekGrid(anchor: Date): Date[] {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SocialCalendarTab({ authorId }: Props) {
+  const { isReady: isAuthReady } = useAuthReady();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bp03Activated, setBp03Activated] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
@@ -130,14 +133,30 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = async () => {
-    if (!authorId) return;
+    if (!authorId || !isAuthReady) return;
     setLoading(true);
-    const { data: postsData } = await supabase
+
+    // Check whether BP-03 was activated, so we can show a helpful retry
+    // instead of a misleading "empty" state when posts fail to load.
+    const { data: nodeRow } = await supabase
+      .from("author_nodes")
+      .select("status, marketing_activated_at")
+      .eq("author_id", authorId)
+      .eq("node_id", "BP-03")
+      .maybeSingle();
+    setBp03Activated(!!nodeRow && (nodeRow.status === "live" || !!nodeRow.marketing_activated_at));
+
+    const { data: postsData, error } = await supabase
       .from("social_posts" as any)
       .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
       .eq("author_id", authorId)
       .order("scheduled_at", { ascending: true })
       .limit(500);
+
+    if (error) {
+      console.error("[SocialCalendar] Failed to load posts:", error);
+      toast.error("Couldn't load your calendar — tap Refresh to retry.");
+    }
     const loadedPosts: SocialPost[] = (postsData as any) || [];
     setPosts(loadedPosts);
 
@@ -148,7 +167,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [authorId]);
+  useEffect(() => { load(); }, [authorId, isAuthReady]);
 
   const filteredPosts = useMemo(() => {
     if (filter === "all") return posts;
@@ -254,8 +273,38 @@ export default function SocialCalendarTab({ authorId }: Props) {
     );
   }
 
-  // Empty state
+  // Empty state — branch on whether BP-03 was activated.
   if (posts.length === 0) {
+    if (bp03Activated) {
+      return (
+        <div className="space-y-5">
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="p-6 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-md">
+                <Loader2 className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-extrabold text-amber-700 uppercase tracking-[0.15em] mb-1">Almost there</p>
+                <p className="text-sm text-foreground mb-1">
+                  Your Social Media kit is activated, but the calendar didn't load. This usually clears after a quick refresh.
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  If it persists, sign out and back in — your saved kit is safe.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={load}>
+                    <Loader2 className="h-4 w-4 mr-1" /> Refresh Calendar
+                  </Button>
+                  <Button variant="outline" onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
+                    Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     return (
       <div className="space-y-5">
         <Card className="border-secondary/30 bg-gradient-to-br from-secondary/8 via-secondary/4 to-transparent">
@@ -268,9 +317,12 @@ export default function SocialCalendarTab({ authorId }: Props) {
               <p className="text-sm text-foreground mb-4">
                 Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll send your 20 posts straight here.
               </p>
-              <Button onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
-                Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
+                  Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+                <Button variant="outline" onClick={load}>Refresh</Button>
+              </div>
             </div>
           </CardContent>
         </Card>
