@@ -582,45 +582,21 @@ function ReviewStep({
             </Badge>
           </div>
 
-          <div className="divide-y divide-border rounded-md border border-border">
+          <div className="space-y-3">
             {funnelNodes.map((node) => {
               const email = getNodeEmail(content, node);
               if (!email) return null;
               return (
-                <button
+                <InlineEmailCard
                   key={node.id}
-                  onClick={() => setSelectedNodeId(node.id)}
-                  className="w-full text-left p-4 hover:bg-accent/40 transition-colors block"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
-                        {node.label}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{node.timing}</span>
-                      <span className="text-[10px] font-medium text-primary/80 bg-primary/5 px-2 py-0.5 rounded-full whitespace-nowrap">
-                        → {node.crmStage}
-                      </span>
-                    </div>
-                    <Pencil className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                  </div>
-                  <p className="text-sm font-semibold mb-1 line-clamp-2">
-                    {replacePlaceholders(email.subject, leadMagnetUrl, leadMagnetTitle) || <span className="text-muted-foreground italic">No subject</span>}
-                  </p>
-                  {email.preview_text && (
-                    <p className="text-xs italic text-muted-foreground mb-2 line-clamp-1">
-                      {replacePlaceholders(email.preview_text, leadMagnetUrl, leadMagnetTitle)}
-                    </p>
-                  )}
-                  {email.body && (
-                    <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-4 leading-relaxed">
-                      {replacePlaceholders(email.body, leadMagnetUrl, leadMagnetTitle)}
-                    </p>
-                  )}
-                  <span className="inline-block mt-2 text-xs text-primary font-medium">
-                    Click to read full email & edit →
-                  </span>
-                </button>
+                  node={node}
+                  email={email}
+                  content={content}
+                  setContent={setContent}
+                  authorId={authorId}
+                  leadMagnetUrl={leadMagnetUrl}
+                  leadMagnetTitle={leadMagnetTitle}
+                />
               );
             })}
           </div>
@@ -826,6 +802,201 @@ function ReviewStep({
           </Dialog>
         </SheetContent>
       </Sheet>
+    </div>
+  );
+}
+
+/* ---- InlineEmailCard: always-readable, expand to edit inline ---- */
+
+function InlineEmailCard({
+  node,
+  email,
+  content,
+  setContent,
+  authorId,
+  leadMagnetUrl,
+  leadMagnetTitle,
+}: {
+  node: FunnelNode;
+  email: any;
+  content: any;
+  setContent: (c: any) => void;
+  authorId: string | null;
+  leadMagnetUrl: string | null;
+  leadMagnetTitle: string | null;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState({
+    subject: email.subject || "",
+    preview_text: email.preview_text || "",
+    body: email.body || "",
+    cta_text: email.cta_text || "",
+  });
+
+  function startEdit() {
+    setDraft({
+      subject: email.subject || "",
+      preview_text: email.preview_text || "",
+      body: email.body || "",
+      cta_text: email.cta_text || "",
+    });
+    setIsEditing(true);
+    setExpanded(true);
+  }
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const next = JSON.parse(JSON.stringify(content));
+      if (node.type === "email" && node.emailIndex !== undefined) {
+        next.welcome_sequence[node.emailIndex] = {
+          ...next.welcome_sequence[node.emailIndex],
+          subject: draft.subject,
+          preview_text: draft.preview_text,
+          body: draft.body,
+        };
+      } else if (node.type === "broadcast") {
+        next.first_broadcast = {
+          ...(next.first_broadcast || {}),
+          subject: draft.subject,
+          preview_text: draft.preview_text,
+          body: draft.body,
+        };
+      } else if (node.type === "optin") {
+        next.lead_magnet_offer = {
+          ...(next.lead_magnet_offer || {}),
+          title: draft.subject,
+          description: draft.body,
+          cta_text: draft.cta_text,
+        };
+      }
+      if (authorId) {
+        const { error } = await supabase
+          .from("author_nodes")
+          .update({ content_json: next })
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-01");
+        if (error) throw error;
+      }
+      setContent(next);
+      setIsEditing(false);
+      toast.success("Email updated");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="border border-border rounded-md overflow-hidden bg-card">
+      {/* Header — always visible */}
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
+              {node.label}
+            </span>
+            <span className="text-xs text-muted-foreground">{node.timing}</span>
+            <span className="text-[10px] font-medium text-primary/80 bg-primary/5 px-2 py-0.5 rounded-full whitespace-nowrap">
+              → {node.crmStage}
+            </span>
+          </div>
+          <div className="flex items-center gap-1 shrink-0">
+            {!isEditing && (
+              <Button variant="ghost" size="sm" onClick={startEdit}>
+                <Pencil className="h-3.5 w-3.5 mr-1" />
+                Edit
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setExpanded((v) => !v)}
+            >
+              {expanded ? "Hide" : "Show full email"}
+            </Button>
+          </div>
+        </div>
+        <p className="text-sm font-semibold">
+          {replacePlaceholders(email.subject, leadMagnetUrl, leadMagnetTitle) || (
+            <span className="text-muted-foreground italic">No subject</span>
+          )}
+        </p>
+        {email.preview_text && (
+          <p className="text-xs italic text-muted-foreground mt-1">
+            {replacePlaceholders(email.preview_text, leadMagnetUrl, leadMagnetTitle)}
+          </p>
+        )}
+      </div>
+
+      {/* Expanded body / editor */}
+      {expanded && (
+        <div className="border-t border-border p-4 bg-muted/20">
+          {isEditing ? (
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  {node.type === "optin" ? "Title" : "Subject"}
+                </label>
+                <Input
+                  value={draft.subject}
+                  onChange={(e) => setDraft({ ...draft, subject: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+              {node.type !== "optin" && (
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wide">Preview text</label>
+                  <Input
+                    value={draft.preview_text}
+                    onChange={(e) => setDraft({ ...draft, preview_text: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+              {node.type === "optin" && (
+                <div>
+                  <label className="text-xs text-muted-foreground uppercase tracking-wide">Button text</label>
+                  <Input
+                    value={draft.cta_text}
+                    onChange={(e) => setDraft({ ...draft, cta_text: e.target.value })}
+                    className="mt-1"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="text-xs text-muted-foreground uppercase tracking-wide">
+                  {node.type === "optin" ? "Description" : "Body"}
+                </label>
+                <Textarea
+                  value={draft.body}
+                  onChange={(e) => setDraft({ ...draft, body: e.target.value })}
+                  className="mt-1 min-h-[240px] font-mono text-sm"
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button onClick={handleSave} disabled={saving} className="flex-1">
+                  <Save className="h-4 w-4 mr-2" />
+                  {saving ? "Saving..." : "Save changes"}
+                </Button>
+                <Button variant="outline" onClick={() => setIsEditing(false)} disabled={saving}>
+                  <X className="h-4 w-4 mr-1" />
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          ) : (
+            email.body && (
+              <p className="text-sm whitespace-pre-line leading-relaxed text-foreground">
+                {replacePlaceholders(email.body, leadMagnetUrl, leadMagnetTitle)}
+              </p>
+            )
+          )}
+        </div>
+      )}
     </div>
   );
 }
