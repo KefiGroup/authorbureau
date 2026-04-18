@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +39,7 @@ import {
 
 interface Props {
   authorId: string | null;
+  backendSource?: "cloud" | "shared";
 }
 
 interface SocialPost {
@@ -123,9 +125,10 @@ function buildWeekGrid(anchor: Date): Date[] {
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default function SocialCalendarTab({ authorId }: Props) {
+export default function SocialCalendarTab({ authorId, backendSource = "cloud" }: Props) {
   const navigate = useNavigate();
   const { isReady: isAuthReady } = useAuthReady();
+  const dataSupabase = backendSource === "shared" ? sharedSupabase : supabase;
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [repairing, setRepairing] = useState(false);
@@ -142,7 +145,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
     // Check whether BP-03 was activated, so we can show a helpful retry
     // instead of a misleading "empty" state when posts fail to load.
-    const { data: nodeRow } = await supabase
+      const { data: nodeRow } = await dataSupabase
       .from("author_nodes")
       .select("status, marketing_activated_at")
       .eq("author_id", authorId)
@@ -150,7 +153,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
       .maybeSingle();
     setBp03Activated(!!nodeRow && (nodeRow.status === "live" || !!nodeRow.marketing_activated_at));
 
-    const { data: postsData, error } = await supabase
+      const { data: postsData, error } = await dataSupabase
       .from("social_posts" as any)
       .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
       .eq("author_id", authorId)
@@ -171,7 +174,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [authorId, isAuthReady]);
+  useEffect(() => { load(); }, [authorId, isAuthReady, backendSource]);
 
   const repairCalendar = async () => {
     if (!authorId) return;
@@ -274,7 +277,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
   };
 
   const markAsPosted = async (post: SocialPost) => {
-    const { error } = await supabase
+    const { error } = await dataSupabase
       .from("social_posts" as any)
       .update({ status: "posted", posted_at: new Date().toISOString() })
       .eq("id", post.id);
@@ -287,7 +290,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
   };
 
   const unmark = async (post: SocialPost) => {
-    const { error } = await supabase
+    const { error } = await dataSupabase
       .from("social_posts" as any)
       .update({ status: "ready", posted_at: null })
       .eq("id", post.id);
