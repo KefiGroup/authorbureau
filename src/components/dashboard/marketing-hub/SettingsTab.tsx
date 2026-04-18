@@ -78,13 +78,13 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="sender">Sender name</Label>
-          <Input id="sender" value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Your name or brand" />
+          <Label htmlFor="sender">Sender name <span className="text-destructive">*</span></Label>
+          <Input id="sender" required value={senderName} onChange={(e) => setSenderName(e.target.value)} placeholder="Your name or brand" />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="reply">Reply-to email</Label>
-          <Input id="reply" type="email" value={replyTo} onChange={(e) => setReplyTo(e.target.value)} placeholder="you@yourdomain.com" />
+          <Label htmlFor="reply">Reply-to email <span className="text-destructive">*</span></Label>
+          <Input id="reply" type="email" required value={replyTo} onChange={(e) => setReplyTo(e.target.value)} placeholder="you@yourdomain.com" />
         </div>
       </div>
 
