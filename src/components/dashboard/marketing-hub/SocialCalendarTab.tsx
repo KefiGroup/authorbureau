@@ -122,8 +122,10 @@ function buildWeekGrid(anchor: Date): Date[] {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SocialCalendarTab({ authorId }: Props) {
+  const { isReady: isAuthReady } = useAuthReady();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [bp03Activated, setBp03Activated] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
@@ -131,14 +133,30 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = async () => {
-    if (!authorId) return;
+    if (!authorId || !isAuthReady) return;
     setLoading(true);
-    const { data: postsData } = await supabase
+
+    // Check whether BP-03 was activated, so we can show a helpful retry
+    // instead of a misleading "empty" state when posts fail to load.
+    const { data: nodeRow } = await supabase
+      .from("author_nodes")
+      .select("status, marketing_activated_at")
+      .eq("author_id", authorId)
+      .eq("node_id", "BP-03")
+      .maybeSingle();
+    setBp03Activated(!!nodeRow && (nodeRow.status === "live" || !!nodeRow.marketing_activated_at));
+
+    const { data: postsData, error } = await supabase
       .from("social_posts" as any)
       .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
       .eq("author_id", authorId)
       .order("scheduled_at", { ascending: true })
       .limit(500);
+
+    if (error) {
+      console.error("[SocialCalendar] Failed to load posts:", error);
+      toast.error("Couldn't load your calendar — tap Refresh to retry.");
+    }
     const loadedPosts: SocialPost[] = (postsData as any) || [];
     setPosts(loadedPosts);
 
@@ -149,7 +167,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [authorId]);
+  useEffect(() => { load(); }, [authorId, isAuthReady]);
 
   const filteredPosts = useMemo(() => {
     if (filter === "all") return posts;
