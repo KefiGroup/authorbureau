@@ -4003,14 +4003,17 @@ export type Database = {
       social_posts: {
         Row: {
           author_id: string
-          buffer_post_id: string | null
           channel_id: string | null
           content: string
           created_at: string
           error_message: string | null
+          graphic_url: string | null
           id: string
           node_id: string
           platform: string
+          post_index: number | null
+          post_type: string | null
+          posted_at: string | null
           published_at: string | null
           scheduled_at: string | null
           status: string
@@ -4018,14 +4021,17 @@ export type Database = {
         }
         Insert: {
           author_id: string
-          buffer_post_id?: string | null
           channel_id?: string | null
           content: string
           created_at?: string
           error_message?: string | null
+          graphic_url?: string | null
           id?: string
           node_id?: string
           platform: string
+          post_index?: number | null
+          post_type?: string | null
+          posted_at?: string | null
           published_at?: string | null
           scheduled_at?: string | null
           status?: string
@@ -4033,14 +4039,17 @@ export type Database = {
         }
         Update: {
           author_id?: string
-          buffer_post_id?: string | null
           channel_id?: string | null
           content?: string
           created_at?: string
           error_message?: string | null
+          graphic_url?: string | null
           id?: string
           node_id?: string
           platform?: string
+          post_index?: number | null
+          post_type?: string | null
+          posted_at?: string | null
           published_at?: string | null
           scheduled_at?: string | null
           status?: string

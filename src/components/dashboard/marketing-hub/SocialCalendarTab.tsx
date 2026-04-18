@@ -4,6 +4,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Loader2,
   Linkedin,
   Instagram,
@@ -11,14 +17,21 @@ import {
   Twitter,
   Calendar as CalendarIcon,
   Sparkles,
-  Plug,
   ChevronLeft,
   ChevronRight,
   X,
   ArrowRight,
+  Copy,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import {
+  PLATFORM_LABELS,
+  composerUrl,
+  dayKey,
+} from "@/components/dashboard/builders/social-media/socialKitHelpers";
 
 interface Props {
   authorId: string | null;
@@ -30,17 +43,12 @@ interface SocialPost {
   content: string;
   scheduled_at: string | null;
   status: string;
-  error_message: string | null;
+  posted_at: string | null;
+  post_type: string | null;
+  post_index: number | null;
 }
 
-interface SocialConnection {
-  id: string;
-  platform: string;
-  channel_name: string | null;
-  status: string;
-}
-
-const PLATFORMS = [
+const PLATFORM_FILTERS = [
   { id: "all", label: "All" },
   { id: "linkedin", label: "LinkedIn" },
   { id: "instagram", label: "Instagram" },
@@ -52,16 +60,9 @@ const PLATFORM_COLORS: Record<string, string> = {
   linkedin: "bg-[#0A66C2]",
   instagram: "bg-pink-500",
   facebook: "bg-[#1877F2]",
-  x: "bg-black",
-  twitter: "bg-black",
+  x: "bg-foreground",
+  twitter: "bg-foreground",
 };
-
-const SUMMARY_PLATFORMS = [
-  { id: "linkedin", label: "LinkedIn" },
-  { id: "instagram", label: "Instagram" },
-  { id: "facebook", label: "Facebook" },
-  { id: "x", label: "X", aliases: ["x", "twitter"] },
-];
 
 function platformIcon(p: string) {
   const cls = "h-4 w-4";
@@ -77,19 +78,12 @@ function platformIcon(p: string) {
 
 function statusBadge(status: string) {
   const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    queued: { label: "Queued", variant: "secondary" },
-    published: { label: "Published", variant: "default" },
-    failed: { label: "Failed", variant: "destructive" },
+    draft: { label: "Draft", variant: "outline" },
+    ready: { label: "Ready to post", variant: "secondary" },
+    posted: { label: "Posted ✓", variant: "default" },
   };
   const s = map[status] || { label: status, variant: "outline" as const };
   return <Badge variant={s.variant} className="text-[10px]">{s.label}</Badge>;
-}
-
-function dayKey(d: Date) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
 }
 
 function groupPostsByDay(posts: SocialPost[]) {
@@ -106,7 +100,7 @@ function groupPostsByDay(posts: SocialPost[]) {
 function buildMonthGrid(monthDate: Date): Date[] {
   const first = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
   const start = new Date(first);
-  start.setDate(first.getDate() - first.getDay()); // Sunday start
+  start.setDate(first.getDate() - first.getDay());
   return Array.from({ length: 42 }, (_, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
@@ -128,34 +122,26 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SocialCalendarTab({ authorId }: Props) {
   const [posts, setPosts] = useState<SocialPost[]>([]);
-  const [connections, setConnections] = useState<SocialConnection[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
-  const [syncing, setSyncing] = useState(false);
   const [view, setView] = useState<"month" | "week">("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = async () => {
     if (!authorId) return;
     setLoading(true);
-    const [{ data: postsData }, { data: connData }] = await Promise.all([
-      supabase
-        .from("social_posts" as any)
-        .select("id, platform, content, scheduled_at, status, error_message")
-        .eq("author_id", authorId)
-        .order("scheduled_at", { ascending: true })
-        .limit(200),
-      supabase
-        .from("social_connections" as any)
-        .select("id, platform, channel_name, status")
-        .eq("author_id", authorId),
-    ]);
-    const loadedPosts = (postsData as any) || [];
+    const { data: postsData } = await supabase
+      .from("social_posts" as any)
+      .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
+      .eq("author_id", authorId)
+      .order("scheduled_at", { ascending: true })
+      .limit(500);
+    const loadedPosts: SocialPost[] = (postsData as any) || [];
     setPosts(loadedPosts);
-    setConnections((connData as any) || []);
-    // Anchor cursor on earliest scheduled post month
-    const earliest = (loadedPosts as SocialPost[])
+
+    const earliest = loadedPosts
       .filter((p) => !!p.scheduled_at)
       .reduce((acc: string | null, p) => (!acc || (p.scheduled_at as string) < acc ? (p.scheduled_at as string) : acc), null as string | null);
     if (earliest) setCursor(new Date(earliest));
@@ -174,29 +160,16 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   const postsByDay = useMemo(() => groupPostsByDay(filteredPosts), [filteredPosts]);
 
-  const syncAccounts = async () => {
-    if (!authorId) return;
-    setSyncing(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("get-buffer-channels", {
-        body: { author_id: authorId },
-      });
-      if (error) throw error;
-      if (!data?.success) throw new Error(data?.error || "Sync failed");
-      toast.success(`Synced ${data.count} social account${data.count === 1 ? "" : "s"}.`);
-      await load();
-    } catch (e: any) {
-      toast.error(e.message || "Couldn't sync your social accounts.");
-    } finally {
-      setSyncing(false);
-    }
-  };
+  const totalCount = posts.length;
+  const postedCount = posts.filter(p => p.status === "posted").length;
+  const remainingCount = totalCount - postedCount;
+  const nextUp = posts
+    .filter(p => p.status === "ready" && p.scheduled_at && new Date(p.scheduled_at) >= new Date())
+    .sort((a, b) => (a.scheduled_at! < b.scheduled_at! ? -1 : 1))[0];
 
   const lastScheduled = posts
     .filter(p => p.scheduled_at)
     .reduce<string | null>((acc, p) => (!acc || (p.scheduled_at! > acc) ? p.scheduled_at! : acc), null);
-
-  const connectedSet = useMemo(() => new Set(connections.map(c => c.platform)), [connections]);
 
   const shiftCursor = (delta: number) => {
     const next = new Date(cursor);
@@ -229,6 +202,50 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   const expandedPosts = expandedDay ? (postsByDay.get(expandedDay) || []) : [];
 
+  const copyCaption = (post: SocialPost) => {
+    navigator.clipboard.writeText(post.content);
+    setCopiedId(post.id);
+    toast.success("Caption copied");
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  const copyAndOpen = (post: SocialPost) => {
+    navigator.clipboard.writeText(post.content);
+    if (post.platform === "instagram") {
+      toast.message("Caption copied", {
+        description: "Instagram doesn't support web pre-fill — paste it into the IG mobile app.",
+      });
+    } else {
+      toast.success("Caption copied — opening composer");
+    }
+    window.open(composerUrl(post.platform, post.content), "_blank", "noopener,noreferrer");
+  };
+
+  const markAsPosted = async (post: SocialPost) => {
+    const { error } = await supabase
+      .from("social_posts" as any)
+      .update({ status: "posted", posted_at: new Date().toISOString() })
+      .eq("id", post.id);
+    if (error) {
+      toast.error("Couldn't mark as posted");
+      return;
+    }
+    toast.success("Marked as posted ✓");
+    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: "posted", posted_at: new Date().toISOString() } : p));
+  };
+
+  const unmark = async (post: SocialPost) => {
+    const { error } = await supabase
+      .from("social_posts" as any)
+      .update({ status: "ready", posted_at: null })
+      .eq("id", post.id);
+    if (error) {
+      toast.error("Couldn't update post");
+      return;
+    }
+    setPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: "ready", posted_at: null } : p));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -249,17 +266,11 @@ export default function SocialCalendarTab({ authorId }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-extrabold text-secondary uppercase tracking-[0.15em] mb-1">Abby</p>
               <p className="text-sm text-foreground mb-4">
-                Your social calendar is empty. Go to <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll schedule all your posts automatically.
+                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll send your 20 posts straight here.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <Button onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
-                  Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
-                </Button>
-                <Button variant="outline" onClick={syncAccounts} disabled={syncing}>
-                  {syncing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Plug className="h-3.5 w-3.5 mr-1.5" />}
-                  Sync Social Accounts
-                </Button>
-              </div>
+              <Button onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
+                Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -269,43 +280,31 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Summary row */}
-      <Card>
-        <CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-3 text-sm">
+      {/* Progress tracker header */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
           <div>
-            <span className="text-muted-foreground">Total posts scheduled: </span>
-            <strong className="text-foreground">{posts.length}</strong>
-          </div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-muted-foreground">Platforms:</span>
-            {SUMMARY_PLATFORMS.map(p => {
-              const aliases = (p as any).aliases || [p.id];
-              const isConnected = aliases.some((a: string) => connectedSet.has(a));
-              return (
-                <Badge
-                  key={p.id}
-                  variant={isConnected ? "secondary" : "outline"}
-                  className={cn("gap-1", !isConnected && "opacity-50")}
-                >
-                  {p.label} {isConnected && "✅"}
-                </Badge>
-              );
-            })}
+            <strong className="text-foreground text-base">{postedCount}</strong>
+            <span className="text-muted-foreground"> of {totalCount} posted</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Calendar runs until: </span>
-            <strong className="text-foreground">
-              {lastScheduled
-                ? new Date(lastScheduled).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
-                : "—"}
-            </strong>
+            <span className="text-muted-foreground">Remaining: </span>
+            <strong className="text-foreground">{remainingCount}</strong>
           </div>
-          <div className="ml-auto">
-            <Button variant="outline" size="sm" onClick={syncAccounts} disabled={syncing}>
-              {syncing ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Plug className="h-3.5 w-3.5 mr-1.5" />}
-              Sync Social Accounts
-            </Button>
-          </div>
+          {nextUp && (
+            <div>
+              <span className="text-muted-foreground">Next up: </span>
+              <strong className="text-foreground">
+                {new Date(nextUp.scheduled_at!).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })}
+              </strong>{" "}
+              <span className="text-muted-foreground">({PLATFORM_LABELS[nextUp.platform] || nextUp.platform})</span>
+            </div>
+          )}
+          {lastScheduled && (
+            <div className="ml-auto text-xs text-muted-foreground">
+              Calendar runs until {new Date(lastScheduled).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -325,7 +324,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
       {/* Platform filter */}
       <div className="flex flex-wrap gap-2">
-        {PLATFORMS.map(p => (
+        {PLATFORM_FILTERS.map(p => (
           <Button
             key={p.id}
             variant={filter === p.id ? "default" : "outline"}
@@ -345,7 +344,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
               <div key={d} className="text-[11px] font-semibold text-muted-foreground text-center py-1">{d}</div>
             ))}
           </div>
-          <div className={cn("grid grid-cols-7 gap-1", view === "week" ? "" : "")}>
+          <div className="grid grid-cols-7 gap-1">
             {cells.map((d, i) => {
               const k = dayKey(d);
               const dayPosts = postsByDay.get(k) || [];
@@ -381,15 +380,19 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
                   {view === "month" ? (
                     <div className="mt-1 flex flex-wrap gap-1">
-                      {dayPosts.slice(0, 3).map(p => (
+                      {dayPosts.slice(0, 4).map(p => (
                         <span
                           key={p.id}
-                          className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[p.platform] || "bg-muted-foreground")}
-                          title={p.platform}
+                          className={cn(
+                            "h-2 w-2 rounded-full",
+                            PLATFORM_COLORS[p.platform] || "bg-muted-foreground",
+                            p.status === "posted" && "ring-1 ring-emerald-500",
+                          )}
+                          title={`${p.platform} · ${p.status}`}
                         />
                       ))}
-                      {dayPosts.length > 3 && (
-                        <span className="text-[10px] text-muted-foreground leading-none">+{dayPosts.length - 3}</span>
+                      {dayPosts.length > 4 && (
+                        <span className="text-[10px] text-muted-foreground leading-none">+{dayPosts.length - 4}</span>
                       )}
                     </div>
                   ) : (
@@ -397,7 +400,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
                       {dayPosts.slice(0, 5).map(p => (
                         <div key={p.id} className="flex items-center gap-1">
                           <span className={cn("h-2 w-2 rounded-full shrink-0", PLATFORM_COLORS[p.platform] || "bg-muted-foreground")} />
-                          <span className="text-[10px] text-foreground truncate">
+                          <span className={cn("text-[10px] truncate", p.status === "posted" ? "text-muted-foreground line-through" : "text-foreground")}>
                             {(p.content || "").slice(0, 28)}
                           </span>
                         </div>
@@ -432,25 +435,47 @@ export default function SocialCalendarTab({ authorId }: Props) {
               <div className="space-y-2">
                 {expandedPosts.map(post => (
                   <div key={post.id} className="border border-border rounded-md p-3 hover:border-primary/40 transition-colors">
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
                         {platformIcon(post.platform)}
-                        <span className="capitalize">{post.platform}</span>
+                        <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
+                        {post.post_type && <Badge variant="outline" className="text-[10px]">{post.post_type}</Badge>}
                       </div>
                       <div className="flex items-center gap-2">
                         {statusBadge(post.status)}
-                        <span className="text-[11px] text-muted-foreground">
-                          {post.scheduled_at ? new Date(post.scheduled_at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }) : ""}
-                        </span>
                       </div>
                     </div>
-                    <p className="text-sm text-foreground">
-                      {(post.content || "").slice(0, 80)}{(post.content || "").length > 80 ? "…" : ""}
+                    <p className={cn("text-sm whitespace-pre-line mb-2", post.status === "posted" ? "text-muted-foreground" : "text-foreground")}>
+                      {post.content}
                     </p>
-                    {post.status === "failed" && post.error_message && (
-                      <p className="text-[11px] text-destructive mt-1">{post.error_message}</p>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="outline" onClick={() => copyCaption(post)}>
+                        {copiedId === post.id ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                        Copy
+                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <ExternalLink className="h-3.5 w-3.5 mr-1" /> Copy & Post
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start">
+                          <DropdownMenuItem onClick={() => copyAndOpen(post)}>
+                            Open {PLATFORM_LABELS[post.platform] || post.platform} composer
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      {post.status === "posted" ? (
+                        <Button size="sm" variant="ghost" onClick={() => unmark(post)}>
+                          Undo
+                        </Button>
+                      ) : (
+                        <Button size="sm" onClick={() => markAsPosted(post)}>
+                          <Check className="h-3.5 w-3.5 mr-1" /> Mark as Posted
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
