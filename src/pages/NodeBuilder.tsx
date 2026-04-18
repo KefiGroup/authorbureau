@@ -70,12 +70,22 @@ export default function NodeBuilder() {
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (cancelled) return;
         if (error) {
           console.error("[NodeBuilder] Failed to load author profile:", error.message);
         }
-        setAuthorId(data?.id || null);
+        let id = data?.id || null;
+        if (!id) {
+          // Fallback: shared backend
+          const { data: sp } = await sharedSupabase
+            .from("author_profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          id = sp?.id || null;
+        }
+        setAuthorId(id);
         setLoading(false);
       });
 
