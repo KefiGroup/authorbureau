@@ -1,93 +1,61 @@
 
-I am clear on the intent.
 
-Intent summary:
-- Marketing Hub is the control layer, not the content-creation layer.
-- Node builders create the assets.
-- Marketing Hub should only surface real backend state and route each CTA to the exact next action:
-  - Build/Edit asset → `/node-builder/{nodeId}`
-  - Review contacts → `/my-contacts` or `?contactId=...`
-  - Manage connections → `/account-settings?tab=connections`
-  - Social posting view → Marketing Hub Social Calendar backed by real `social_posts`
-- It should never fake campaign state, never infer activation from unrelated data, and never bounce users back to generic dashboard/book hub paths.
+## Findings
 
-What I found in the code:
-1. The top active-count is not aligned with BP-03 intent.
-   - `MarketingHub.tsx` only counts a campaign as active when `author_nodes.marketing_activated_at` exists.
-   - But BP-03 builder activation (`BP03Builder.tsx`) sets the node to `live` and writes `social_posts`; it does not set `marketing_activated_at`.
-   - Result: BP-03 can be truly activated for its intended use, yet the top counter still shows `0`.
+**1. Email node ↔ Marketing Hub Sequences linkage is broken on the read path.**
+- DB has 1 real `email_flows` row for the user (`node_id=BP-01`, status=draft).
+- `SequencesTab.tsx` queries `supabase.from("email_flows")` directly from the browser. This is the same RLS-on-cloud-client failure pattern as the social calendar — it returns empty even when rows exist (snapshot already proves it: `cross_counts.sequences` from the edge function would show >0 while the tab shows 0).
+- The hub never tells `SequencesTab` which author profile to use either: it's invoked without `authorId` in `MarketingHub.tsx` (need to verify) and uses local-client RLS → the "No email sequences yet" empty state shows up.
 
-2. BP-03 “Refresh Calendar” cannot work as designed right now.
-   - `SocialCalendarTab.tsx` refresh only re-runs the same read queries.
-   - It does not rebuild or hydrate `social_posts`.
-   - So if BP-03 is live but calendar rows are missing, refresh can never fix the problem.
+**2. Other BP nodes are not actually linked to Marketing Hub artifacts.**
+- BP-01 → `email_flows` (only created by `generate-email-sequence` / `populate-assets` edge functions, not by the BP-01 builder publish flow).
+- BP-02 (Lead Magnet), BP-04 (Author Page), BP-05 (Webinar) → **no email_flows rows are created anywhere when published**. The BP-0x builders themselves never insert into `email_flows`.
+- Result: even if the tab worked, only BP-01 would ever appear. BP-02/04/05 publishing leaves the Sequences tab empty for those campaigns.
 
-3. Marketing Hub activation is incomplete for BP-03.
-   - `handleActivate()` in `MarketingHub.tsx` only updates `author_nodes.marketing_activated_at`.
-   - BP-03 actually needs calendar rows in `social_posts`.
-   - So “Activate Campaign” in Marketing Hub does not perform the real BP-03 activation side effect.
+**3. Activation in MarketingHub uses the wrong write path for non-BP-03 nodes.**
+- `handleActivate()` updates `author_nodes.marketing_activated_at` via the cloud client (`supabase.from("author_nodes").update(...)`) — same RLS surface that returns empty reads.
+- Even when activation appears to succeed in the UI, the snapshot edge function may not see the update, depending on which backend holds the rows.
 
-4. There is hard-coded/synthetic state in Marketing Hub.
-   - `MarketingHub.tsx` injects a fake BP-01 row when an author has an `author_slug`.
-   - That violates the “single source of truth” rule and can make statuses/counts look real when they are not.
+**4. Right-panel scroll is coupled to viewport, not to the panel.**
+- `AuthorDashboard.tsx` line 590: the `<main>` is the scrolling element with `overflow-y-auto`, but its parent flex column is `min-h-[100dvh]` (not constrained to viewport). This makes the whole page scroll instead of just the right panel — sidebar moves with content on smaller heights, and "scroll independence" is lost.
+- Should be: outer wrapper `h-[100dvh] overflow-hidden`, sidebar `h-full overflow-y-auto`, right column `h-full overflow-hidden`, `<main>` `flex-1 overflow-y-auto`.
 
-5. Auth/profile resolution is inconsistent.
-   - Marketing Hub uses local client + shared fallback.
-   - BP-03 builder uses `getActiveToken()` + edge function.
-   - `NodeBuilder.tsx` resolves author profile only from local backend.
-   - This mismatch can make links appear broken or load builders without the correct `authorId`.
+## Plan
 
-6. Some CTAs use hard redirects instead of the app’s routing conventions.
-   - `window.location.href` is used in Social Calendar and Settings.
-   - That is less reliable than routed navigation and does not follow the query-parameter/dashboard navigation pattern.
+### A. Fix Sequences tab read path (mirror the SocialCalendar pattern)
+1. Add a `sequences` action to `supabase/functions/marketing-hub-state/index.ts` that returns `email_flows` + `email_flow_steps` for the resolved author via service role.
+2. Add a `toggle_sequence_status` action for pause/resume.
+3. Refactor `SequencesTab.tsx` to use `callMarketingHubState("sequences")` instead of querying `supabase` directly. Remove the `authorId` prop dependency (the edge function resolves it).
 
-Implementation plan:
-1. Rebuild Marketing Hub state around real backend truth
-   - Remove synthetic BP-01 status injection.
-   - Derive each campaign from real tables only:
-     - BP-01 / BP-02 / BP-05 from `author_nodes` plus real `email_flows`/funnel artifacts where relevant
-     - BP-03 from `author_nodes` + `social_posts`
-     - Contacts from `crm_contacts` / `leads`
-     - Settings from `author_email_settings`
-   - Make the top count reflect actual activated outcomes, not button availability.
+### B. Auto-link BP-02 / BP-04 / BP-05 to email_flows on publish
+Each of these nodes already has a "publish/activate" path in its builder. On a successful publish:
+1. Call the existing `generate-email-sequence` edge function (or insert a default flow row) so a corresponding `email_flows` row exists with the correct `node_id` (BP-02/04/05). This is the actual link to the Marketing Hub.
+2. The Marketing Hub Sequences tab will then surface them, scoped by `node_id` badge (already in UI).
 
-2. Normalize BP-03 activation semantics
-   - Treat BP-03 as active when its node is live and its calendar payload exists in the intended form.
-   - Align Marketing Hub logic with BP-03 builder logic so both use the same definition of “active”.
+### C. Standardise activation writes through the edge function
+1. Add an `activate_node` / `pause_node` action to `marketing-hub-state` that writes `marketing_activated_at` server-side via service role (bypasses any RLS mismatch).
+2. Replace direct `supabase.from("author_nodes").update(...)` calls in `MarketingHub.handleActivate` / `handlePause` with the new edge action.
+3. Keep BP-03 special-case (`repair_calendar`) untouched — it already works.
 
-3. Add a real BP-03 calendar repair path
-   - Extend the existing BP-03 backend flow with a repair/hydrate action that rebuilds `social_posts` from saved node content when the node is already live/content-ready.
-   - Wire “Refresh Calendar” to this repair path instead of a plain re-fetch.
-   - Keep it idempotent so repeated clicks do not duplicate posts.
+### D. Independent right-panel scrolling
+Restructure `AuthorDashboard.tsx` shell:
+- Outer: `h-[100dvh] overflow-hidden flex`
+- Sidebar wrapper: `h-full overflow-y-auto` (its own scroll)
+- Right column: `flex-1 h-full overflow-hidden flex flex-col`
+- `<main>`: `flex-1 min-h-0 overflow-y-auto` (right panel scrolls only, sidebar stays put)
+- Remove `min-h-[100dvh]` from inner column so it inherits parent height.
 
-4. Fix Marketing Hub BP-03 CTA behavior
-   - If BP-03 is not built: CTA goes to `/node-builder/BP-03`
-   - If BP-03 is ready but not activated: CTA goes to the BP-03 activate step or triggers the proper activation flow
-   - If BP-03 is live but posts are missing: CTA repairs the calendar
-   - If BP-03 is live and posts exist: CTA opens `?tab=social-calendar`
+### E. QA after implementation
+- Verify Sequences tab now lists the BP-01 flow (`Welcome + Nurture Sequence`).
+- Publish BP-02 lead magnet → verify a new `email_flows` row appears tagged BP-02.
+- Activate a campaign from Marketing Hub → verify `marketing_activated_at` is set in DB and top counter increments.
+- Scroll the right panel on iPad/desktop → sidebar stays fixed, right side scrolls independently.
 
-5. Standardize auth/profile loading
-   - Use the project’s shared-token pattern for Marketing Hub data loading and BP-03-related actions.
-   - Ensure Node Builder and Marketing Hub resolve the same author profile consistently before querying `author_nodes` or `social_posts`.
+## Files to change
+- `supabase/functions/marketing-hub-state/index.ts` — add `sequences`, `toggle_sequence_status`, `activate_node`, `pause_node` actions.
+- `src/lib/marketing-hub-state.ts` — type updates for new actions.
+- `src/components/dashboard/marketing-hub/SequencesTab.tsx` — switch to edge function reads/writes.
+- `src/components/dashboard/MarketingHub.tsx` — activate/pause via edge function.
+- `src/components/dashboard/builders/bp02/...`, `bp04/...`, `bp05/...` — on publish, create the linked `email_flows` row (via `generate-email-sequence` or direct insert through a new `marketing-hub-state` action).
+- `src/pages/AuthorDashboard.tsx` — restructure shell for independent scroll panes.
 
-6. Replace fragile CTA navigation
-   - Replace `window.location.href` with routed navigation.
-   - Keep all Marketing Hub buttons pointed to the exact intended destination, never generic dashboard/book hub fallbacks.
-
-7. Detailed QA after implementation
-   - Verify BP-03 activated in builder shows posts in Social Calendar
-   - Verify top campaign count increases when BP-03 is truly active
-   - Verify “Refresh Calendar” repairs missing posts
-   - Verify “Open Social Media Kit” goes to `/node-builder/BP-03`
-   - Verify Contacts and Settings CTAs land on the correct deep links
-   - Verify no campaign status is inferred from hard-coded or unrelated fields
-
-Technical notes:
-- Main files to update:
-  - `src/components/dashboard/MarketingHub.tsx`
-  - `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
-  - `src/pages/NodeBuilder.tsx`
-  - `src/components/dashboard/builders/bp03/BP03Builder.tsx`
-  - `supabase/functions/bp03-node-state/index.ts`
-- No schema change is obviously required from this audit; this looks like a logic/alignment issue across UI + backend behavior.
-- The biggest bug is not styling or links alone: it is that BP-03 has two different activation models today, and Marketing Hub is using the wrong one.
