@@ -385,7 +385,7 @@ Deno.serve(async (req) => {
     if (action === "email_settings") {
       const { data: settings, error } = await cloudAdmin
         .from("author_email_settings")
-        .select("sender_name, reply_to_email, domain_verified, subdomain")
+        .select("sender_name, reply_to_email, domain_verified, subdomain, verification_sent_at, verified_at")
         .eq("author_id", authorProfile.id)
         .maybeSingle();
 
@@ -399,6 +399,8 @@ Deno.serve(async (req) => {
           reply_to_email: "",
           domain_verified: false,
           subdomain: null,
+          verification_sent_at: null,
+          verified_at: null,
         },
       });
     }
