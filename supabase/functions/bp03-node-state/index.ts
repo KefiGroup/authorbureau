@@ -307,6 +307,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === "repair_calendar") {
+      // Idempotently rebuild social_posts from saved node content_json
+      const { data: existingNode, error: existingNodeError } = await cloudAdmin
+        .from("author_nodes")
+        .select("id, status, activated_at, current_step, content_json")
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03")
+        .maybeSingle();
+      if (existingNodeError) throw existingNodeError;
+
+      const cj: any = existingNode?.content_json || null;
+      if (!hasUsableSocialKit(cj)) {
+        return respond({
+          success: false,
+          error: "No saved social media kit found. Please open BP-03 and generate it first.",
+        });
+      }
+
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj);
+
+      // Promote node to live if it's not already, so Marketing Hub treats it as active
+      if (existingNode && existingNode.status !== "live") {
+        await cloudAdmin
+          .from("author_nodes")
+          .update({
+            status: "live",
+            current_step: 3,
+            activated_at: existingNode.activated_at || new Date().toISOString(),
+            content_json: { ...cj, _currentStep: 3, publishStatus: "live" },
+          })
+          .eq("id", existingNode.id);
+      }
+
+      return respond({ success: true, saved, node: normalizeNode(existingNode) });
+    }
+
     if (action !== "save") {
       return respond({ success: false, error: "Unsupported action." });
     }
