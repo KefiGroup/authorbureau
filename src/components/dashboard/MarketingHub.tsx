@@ -305,21 +305,27 @@ export default function MarketingHub({ onNavigate }: Props) {
       const now = new Date().toISOString();
       const results = await Promise.all(
         liveNodeIds.map(async (nid) => {
-          // Upsert ensures synthesized rows (e.g. BP-01 from author_slug) actually persist
-          const { data, error } = await supabase
+          // Try update first
+          const { data: updated, error: updErr } = await supabase
             .from("author_nodes")
-            .upsert(
-              {
-                author_id: authorProfileId,
-                node_id: nid,
-                node_name: nid,
-                status: "live",
-                marketing_activated_at: now,
-              },
-              { onConflict: "author_id,node_id" }
-            )
+            .update({ marketing_activated_at: now })
+            .eq("author_id", authorProfileId)
+            .eq("node_id", nid)
             .select("node_id, marketing_activated_at");
-          return { nid, data, error };
+          if (updErr) return { nid, data: null, error: updErr };
+          if (updated && updated.length > 0) return { nid, data: updated, error: null };
+          // Row didn't exist (e.g. synthesized BP-01) — insert it
+          const { data: inserted, error: insErr } = await supabase
+            .from("author_nodes")
+            .insert({
+              author_id: authorProfileId,
+              node_id: nid,
+              node_name: nid,
+              status: "live",
+              marketing_activated_at: now,
+            })
+            .select("node_id, marketing_activated_at");
+          return { nid, data: inserted, error: insErr };
         })
       );
 
