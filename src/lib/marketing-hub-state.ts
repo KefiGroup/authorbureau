@@ -8,7 +8,9 @@ type MarketingHubAction =
   | "sequences"
   | "toggle_sequence_status"
   | "activate_node"
-  | "pause_node";
+  | "pause_node"
+  | "email_settings"
+  | "save_email_settings";
 
 export async function callMarketingHubState<T = any>(
   action: MarketingHubAction,
