@@ -409,6 +409,52 @@ export default function MarketingHub({ onNavigate }: Props) {
             </div>
           </div>
 
+          {/* Cross-tab nudges — quick jumps so each tab is discoverable */}
+          {(crossCounts.sequences > 0 || crossCounts.socialQueued > 0 || crossCounts.contacts > 0 || crossCounts.domainPending) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {crossCounts.sequences > 0 && (
+                <button
+                  onClick={() => handleTabChange("sequences")}
+                  className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary/40 transition-colors"
+                >
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Sequences</p>
+                  <p className="text-sm font-medium mt-0.5">{crossCounts.sequences} email flow{crossCounts.sequences === 1 ? "" : "s"}</p>
+                  <p className="text-[11px] text-primary mt-1 inline-flex items-center">View <ArrowRight className="h-3 w-3 ml-0.5" /></p>
+                </button>
+              )}
+              {crossCounts.socialQueued > 0 && (
+                <button
+                  onClick={() => handleTabChange("social-calendar")}
+                  className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary/40 transition-colors"
+                >
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Social Calendar</p>
+                  <p className="text-sm font-medium mt-0.5">{crossCounts.socialQueued} post{crossCounts.socialQueued === 1 ? "" : "s"} queued</p>
+                  <p className="text-[11px] text-primary mt-1 inline-flex items-center">Open <ArrowRight className="h-3 w-3 ml-0.5" /></p>
+                </button>
+              )}
+              {crossCounts.contacts > 0 && (
+                <button
+                  onClick={() => handleTabChange("contacts")}
+                  className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary/40 transition-colors"
+                >
+                  <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Contacts</p>
+                  <p className="text-sm font-medium mt-0.5">{crossCounts.contacts} lead{crossCounts.contacts === 1 ? "" : "s"} captured</p>
+                  <p className="text-[11px] text-primary mt-1 inline-flex items-center">View <ArrowRight className="h-3 w-3 ml-0.5" /></p>
+                </button>
+              )}
+              {crossCounts.domainPending && (
+                <button
+                  onClick={() => handleTabChange("settings")}
+                  className="text-left rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 hover:border-amber-500/60 transition-colors"
+                >
+                  <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide">Sender Domain</p>
+                  <p className="text-sm font-medium mt-0.5">Verification pending</p>
+                  <p className="text-[11px] text-amber-700 mt-1 inline-flex items-center">Settings <ArrowRight className="h-3 w-3 ml-0.5" /></p>
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Abby's Guidance */}
           {activeCount < CAMPAIGNS.length && (
             <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/20">
