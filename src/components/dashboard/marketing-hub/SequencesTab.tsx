@@ -34,9 +34,24 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function SequencesTab({ authorId }: { authorId: string | null }) {
+  const navigate = useNavigate();
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const toggleStatus = async (flow: FlowRow) => {
+    const next = flow.status === "active" ? "paused" : "active";
+    setUpdatingId(flow.id);
+    const { error } = await supabase.from("email_flows").update({ status: next }).eq("id", flow.id);
+    setUpdatingId(null);
+    if (error) {
+      toast({ title: "Couldn't update sequence", description: error.message, variant: "destructive" });
+      return;
+    }
+    setFlows((prev) => prev.map((f) => (f.id === flow.id ? { ...f, status: next } : f)));
+    toast({ title: next === "active" ? "Sequence resumed" : "Sequence paused" });
+  };
 
   useEffect(() => {
     if (!authorId) return;
