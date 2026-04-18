@@ -173,6 +173,35 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   useEffect(() => { load(); }, [authorId, isAuthReady]);
 
+  const repairCalendar = async () => {
+    if (!authorId) return;
+    setRepairing(true);
+    try {
+      const token = await getActiveToken();
+      if (!token) {
+        toast.error("Session expired. Please sign in again.");
+        return;
+      }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-node-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "repair_calendar", author_id: authorId }),
+        },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || "Couldn't rebuild your calendar. Open the Social Media builder and try again.");
+        return;
+      }
+      toast.success(`${json.saved || 0} posts loaded into your Social Calendar.`);
+      await load();
+    } finally {
+      setRepairing(false);
+    }
+  };
+
   const filteredPosts = useMemo(() => {
     if (filter === "all") return posts;
     return posts.filter(p => {
