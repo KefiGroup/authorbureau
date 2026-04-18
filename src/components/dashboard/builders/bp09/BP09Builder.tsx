@@ -104,7 +104,6 @@ export default function BP09Builder({ authorId }: Props) {
       </div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <NodeHowItWorks nodeId="BP-09" defaultOpen={step === 0} />
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's set up your Book Sales</h2>
             {!isBookLoading && hasContext === false && !hasBook ? (<BookProfileQuickForm authorId={authorId} authorName={authorName} onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }} />) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || bookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
