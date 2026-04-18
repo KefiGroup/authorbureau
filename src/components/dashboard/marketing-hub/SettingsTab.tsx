@@ -38,6 +38,15 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
       toast({ title: "Sender name required", description: "Please enter a sender name.", variant: "destructive" });
       return;
     }
+    if (!replyTo.trim()) {
+      toast({ title: "Reply-to email required", description: "Please enter a reply-to email address.", variant: "destructive" });
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(replyTo.trim())) {
+      toast({ title: "Invalid email", description: "Please enter a valid reply-to email address.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const result = await callMarketingHubState<{ settings: any }>("save_email_settings", {
