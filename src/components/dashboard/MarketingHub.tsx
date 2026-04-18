@@ -130,7 +130,77 @@ interface NodeRow {
   node_id: string;
   status: string;
   marketing_activated_at: string | null;
+  activated_at?: string | null;
+  microsite_url?: string | null;
   content_json: any;
+}
+
+interface HubSnapshot {
+  nodeRows: NodeRow[];
+  bp03PostsCount: number;
+  leadCount: number;
+  crossCounts: {
+    sequences: number;
+    socialQueued: number;
+    contacts: number;
+    domainPending: boolean;
+  };
+  score: number;
+}
+
+async function loadHubSnapshot(client: typeof supabase, profileId: string): Promise<HubSnapshot> {
+  const [
+    nodesRes,
+    bp03Res,
+    leadsRes,
+    seqRes,
+    socialRes,
+    contactsRes,
+    settingsRes,
+  ] = await Promise.all([
+    client
+      .from("author_nodes")
+      .select("node_id, status, marketing_activated_at, activated_at, microsite_url, content_json")
+      .eq("author_id", profileId),
+    client
+      .from("social_posts" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("author_id", profileId)
+      .eq("node_id", "BP-03"),
+    client.from("leads").select("id", { count: "exact", head: true }).eq("author_id", profileId),
+    client.from("email_flows").select("id", { count: "exact", head: true }).eq("author_id", profileId),
+    client
+      .from("social_posts" as any)
+      .select("id", { count: "exact", head: true })
+      .eq("author_id", profileId)
+      .neq("status", "posted"),
+    client.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", profileId),
+    client.from("author_email_settings").select("domain_verified").eq("author_id", profileId).maybeSingle(),
+  ]);
+
+  const nodeRows = (nodesRes.data as NodeRow[]) || [];
+  const bp03PostsCount = bp03Res.count || 0;
+  const leadCount = leadsRes.count || 0;
+  const crossCounts = {
+    sequences: seqRes.count || 0,
+    socialQueued: socialRes.count || 0,
+    contacts: contactsRes.count || 0,
+    domainPending: !!settingsRes.data && settingsRes.data.domain_verified === false,
+  };
+
+  const liveNodes = nodeRows.filter((row) => row.status === "live").length;
+  const readyNodes = nodeRows.filter((row) => row.status === "content_ready").length;
+  const score =
+    liveNodes * 10 +
+    readyNodes * 5 +
+    bp03PostsCount +
+    leadCount +
+    crossCounts.sequences +
+    crossCounts.socialQueued +
+    crossCounts.contacts +
+    (crossCounts.domainPending ? 1 : 0);
+
+  return { nodeRows, bp03PostsCount, leadCount, crossCounts, score };
 }
 
 interface Props {
@@ -207,67 +277,50 @@ export default function MarketingHub({ onNavigate }: Props) {
   const fetchNodes = useCallback(async () => {
     if (!user) return;
     try {
-      let profileId: string | null = null;
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profile) {
-        profileId = profile.id;
-      } else {
-        const { data: sp } = await sharedSupabase
-          .from("author_profiles")
-          .select("id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (sp) profileId = sp.id;
+      const [cloudProfileRes, sharedProfileRes] = await Promise.all([
+        supabase.from("author_profiles").select("id").eq("user_id", user.id).maybeSingle(),
+        sharedSupabase.from("author_profiles").select("id").eq("user_id", user.id).maybeSingle(),
+      ]);
+
+      const candidates = await Promise.all([
+        cloudProfileRes.data?.id
+          ? loadHubSnapshot(supabase, cloudProfileRes.data.id).then((snapshot) => ({
+              ...snapshot,
+              profileId: cloudProfileRes.data!.id,
+              source: "cloud" as const,
+            }))
+          : Promise.resolve(null),
+        sharedProfileRes.data?.id
+          ? loadHubSnapshot(sharedSupabase, sharedProfileRes.data.id).then((snapshot) => ({
+              ...snapshot,
+              profileId: sharedProfileRes.data!.id,
+              source: "shared" as const,
+            }))
+          : Promise.resolve(null),
+      ]);
+
+      const available = candidates.filter(Boolean) as Array<HubSnapshot & { profileId: string; source: BackendSource }>;
+      if (available.length === 0) {
+        setAuthorProfileId(null);
+        setNodeRows([]);
+        setBp03PostsCount(0);
+        setLeadCounts({ all: 0 });
+        setCrossCounts({ sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
+        return;
       }
-      if (profileId) setAuthorProfileId(profileId);
 
-      if (profileId) {
-        const { data } = await supabase
-          .from("author_nodes")
-          .select("node_id, status, marketing_activated_at, content_json")
-          .eq("author_id", profileId);
-        const rows = (data as NodeRow[]) || [];
-        setNodeRows(rows);
+      const selected = available.reduce((best, current) => {
+        if (current.score > best.score) return current;
+        if (current.score === best.score && current.source === "cloud") return current;
+        return best;
+      });
 
-        // Count BP-03 social_posts (real source of truth for BP-03 active status)
-        const { count: bp03Count } = await supabase
-          .from("social_posts" as any)
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", profileId)
-          .eq("node_id", "BP-03");
-        setBp03PostsCount(bp03Count || 0);
-
-        // Fetch lead counts
-        const { data: leads } = await supabase
-          .from("leads")
-          .select("source")
-          .eq("author_id", profileId);
-        if (leads) {
-          const counts: Record<string, number> = {};
-          leads.forEach(() => {
-            counts["all"] = (counts["all"] || 0) + 1;
-          });
-          setLeadCounts(counts);
-        }
-
-        // Cross-tab counts powering the nudge band
-        const [seqRes, socialRes, contactsRes, settingsRes] = await Promise.all([
-          supabase.from("email_flows").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-          supabase.from("social_posts" as any).select("id", { count: "exact", head: true }).eq("author_id", profileId).neq("status", "posted"),
-          supabase.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-          supabase.from("author_email_settings").select("domain_verified").eq("author_id", profileId).maybeSingle(),
-        ]);
-        setCrossCounts({
-          sequences: seqRes.count || 0,
-          socialQueued: socialRes.count || 0,
-          contacts: contactsRes.count || 0,
-          domainPending: !!settingsRes.data && settingsRes.data.domain_verified === false,
-        });
-      }
+      setBackendSource(selected.source);
+      setAuthorProfileId(selected.profileId);
+      setNodeRows(selected.nodeRows);
+      setBp03PostsCount(selected.bp03PostsCount);
+      setLeadCounts({ all: selected.leadCount });
+      setCrossCounts(selected.crossCounts);
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
     } finally {
@@ -289,9 +342,19 @@ export default function MarketingHub({ onNavigate }: Props) {
   /* ─── Derive campaign status (worst-state for grouped) ─── */
   const getCampaignStatus = (campaign: CampaignConfig): NodeStatus => {
     if (activatingCampaign === campaign.id) return "ready"; // show as ready while activating
-    const statuses = campaign.nodeIds.map(nid =>
-      deriveNodeStatus(nodeRows.find(r => r.node_id === nid), nid, bp03PostsCount),
-    );
+    const statuses = campaign.nodeIds.map((nid) => {
+      const row = nodeRows.find((candidate) => candidate.node_id === nid);
+      if (!row) return "not_built" as const;
+
+      if (nid === "BP-01" && row.status === "live") {
+        return crossCounts.sequences > 0 ? "active" : "ready";
+      }
+      if (["BP-02", "BP-04", "BP-05"].includes(nid) && row.status === "live") {
+        return "active";
+      }
+
+      return deriveNodeStatus(row, nid, bp03PostsCount);
+    });
     if (statuses.every(s => s === "active")) return "active";
     if (statuses.some(s => s === "active" || s === "ready")) return "ready";
     if (statuses.some(s => s === "draft")) return "draft";
@@ -330,7 +393,7 @@ export default function MarketingHub({ onNavigate }: Props) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: "repair_calendar", author_id: authorProfileId }),
+            body: JSON.stringify({ action: "repair_calendar" }),
           },
         );
         const json = await res.json().catch(() => null);
@@ -364,7 +427,7 @@ export default function MarketingHub({ onNavigate }: Props) {
       const now = new Date().toISOString();
       const results = await Promise.all(
         liveNodeIds.map(async (nid) => {
-          const { data: updated, error: updErr } = await supabase
+          const { data: updated, error: updErr } = await dataSupabase
             .from("author_nodes")
             .update({ marketing_activated_at: now })
             .eq("author_id", authorProfileId)
@@ -372,7 +435,7 @@ export default function MarketingHub({ onNavigate }: Props) {
             .select("node_id, marketing_activated_at");
           if (updErr) return { nid, data: null, error: updErr };
           if (updated && updated.length > 0) return { nid, data: updated, error: null };
-          const { data: inserted, error: insErr } = await supabase
+          const { data: inserted, error: insErr } = await dataSupabase
             .from("author_nodes")
             .insert({
               author_id: authorProfileId,
