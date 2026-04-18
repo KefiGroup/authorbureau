@@ -13,13 +13,17 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
   const [replyTo, setReplyTo] = useState("");
   const [verified, setVerified] = useState(false);
 
+  const [userId, setUserId] = useState<string | null>(null);
+
   useEffect(() => {
-    if (!authorId) return;
     (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+      setUserId(user.id);
       const { data } = await supabase
         .from("author_email_settings")
         .select("sender_name, reply_to_email, domain_verified")
-        .eq("author_id", authorId)
+        .eq("author_id", user.id)
         .maybeSingle();
       if (data) {
         setSenderName(data.sender_name || "");
@@ -31,13 +35,16 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
   }, [authorId]);
 
   const handleSave = async () => {
-    if (!authorId) return;
+    if (!userId) {
+      toast({ title: "Not signed in", description: "Please sign in again.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const { error } = await supabase
         .from("author_email_settings")
         .upsert({
-          author_id: authorId,
+          author_id: userId,
           sender_name: senderName,
           reply_to_email: replyTo || null,
         }, { onConflict: "author_id" });
