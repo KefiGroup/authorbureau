@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuth } from "@/hooks/useAuth";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import {
   Loader2, Megaphone, CheckCircle2, Clock, Zap,
   ArrowRight, Sparkles, PauseCircle, FileText, Hammer,
