@@ -83,6 +83,8 @@ const CAMPAIGNS: CampaignConfig[] = [
 
 type NodeStatus = "not_built" | "draft" | "ready" | "active";
 
+type BackendSource = "cloud" | "shared";
+
 /**
  * Derive a node's marketing status. BP-03 has its own activation semantics:
  * it is active when the node is live AND social_posts exist for the author.
@@ -189,6 +191,7 @@ export default function MarketingHub({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
+  const [backendSource, setBackendSource] = useState<BackendSource>("cloud");
   const [leadCounts, setLeadCounts] = useState<Record<string, number>>({});
   const [crossCounts, setCrossCounts] = useState<{
     sequences: number;
@@ -198,6 +201,7 @@ export default function MarketingHub({ onNavigate }: Props) {
   }>({ sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
+  const dataSupabase = backendSource === "shared" ? sharedSupabase : supabase;
 
   /* ─── Fetch author nodes ─── */
   const fetchNodes = useCallback(async () => {
