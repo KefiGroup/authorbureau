@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -12,6 +13,7 @@ import ContactListView from "@/components/crm/ContactListView";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CRMContact {
   id: string;
@@ -89,6 +91,29 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   useEffect(() => { fetchInitial(); }, [fetchInitial]);
 
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
+
+  // Deep-link: open contact detail when ?contactId= is present (e.g. from Marketing Hub)
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLinkContactId = searchParams.get("contactId");
+  useEffect(() => {
+    if (!deepLinkContactId || !user) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("crm_contacts")
+        .select("id, full_name, email, phone, company, notes, source, stage, abby_score, last_activity_at, created_at")
+        .eq("id", deepLinkContactId)
+        .maybeSingle();
+      if (cancelled || !data) return;
+      setSelectedContact({ ...(data as any), tags: [] });
+      setDetailOpen(true);
+      // strip the param so reopening the page doesn't keep re-triggering
+      const sp = new URLSearchParams(searchParams);
+      sp.delete("contactId");
+      setSearchParams(sp, { replace: true });
+    })();
+    return () => { cancelled = true; };
+  }, [deepLinkContactId, user]);
 
   const abbyMessage = useMemo(() => {
     const n = statsData?.total || 0;
