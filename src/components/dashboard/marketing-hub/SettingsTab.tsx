@@ -1,31 +1,26 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
 
 export default function SettingsTab({ authorId }: { authorId: string | null }) {
-  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [senderName, setSenderName] = useState("");
   const [replyTo, setReplyTo] = useState("");
   const [verified, setVerified] = useState(false);
 
-  const userId = user?.id ?? null;
-
   useEffect(() => {
-    if (authLoading) return;
-    if (!user) { setLoading(false); return; }
+    if (!authorId) { setLoading(false); return; }
     (async () => {
       setLoading(true);
       const { data } = await supabase
         .from("author_email_settings")
         .select("sender_name, reply_to_email, domain_verified")
-        .eq("author_id", user.id)
+        .eq("author_id", authorId)
         .maybeSingle();
       if (data) {
         setSenderName(data.sender_name || "");
@@ -34,11 +29,11 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
       }
       setLoading(false);
     })();
-  }, [authLoading, user?.id]);
+  }, [authorId]);
 
   const handleSave = async () => {
-    if (!userId) {
-      toast({ title: "Not signed in", description: "Please sign in again.", variant: "destructive" });
+    if (!authorId) {
+      toast({ title: "Author profile not loaded", description: "Please refresh and try again.", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -46,7 +41,7 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
       const { error } = await supabase
         .from("author_email_settings")
         .upsert({
-          author_id: userId,
+          author_id: authorId,
           sender_name: senderName,
           reply_to_email: replyTo || null,
         }, { onConflict: "author_id" });
