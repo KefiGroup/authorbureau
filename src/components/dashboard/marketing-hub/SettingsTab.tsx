@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import { Loader2, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function SettingsTab({ authorId }: { authorId: string | null }) {
-  const { user, isReady } = useAuthReady();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [senderName, setSenderName] = useState("");
@@ -18,9 +18,10 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
   const userId = user?.id ?? null;
 
   useEffect(() => {
-    if (!isReady) return;
+    if (authLoading) return;
     if (!user) { setLoading(false); return; }
     (async () => {
+      setLoading(true);
       const { data } = await supabase
         .from("author_email_settings")
         .select("sender_name, reply_to_email, domain_verified")
@@ -33,7 +34,7 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
       }
       setLoading(false);
     })();
-  }, [isReady, user?.id]);
+  }, [authLoading, user?.id]);
 
   const handleSave = async () => {
     if (!userId) {

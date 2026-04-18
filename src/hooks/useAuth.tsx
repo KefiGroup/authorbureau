@@ -131,6 +131,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const subscriptionCheckInFlightRef = useRef(false);
   const checkSubscriptionRef = useRef<() => Promise<void>>(async () => {});
 
+  const clearAuthState = useCallback(() => {
+    setSession(null);
+    setUser(null);
+    setIsAdmin(false);
+    setSubscription(signedOutSubscriptionState);
+  }, []);
+
+  const applyValidatedSession = useCallback(async (nextSession: Session | null) => {
+    if (!nextSession) {
+      clearAuthState();
+      setAuthLoading(false);
+      return;
+    }
+
+    setAuthLoading(true);
+
+    const { data, error } = await supabase.auth.getUser();
+    if (error || !data.user) {
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      clearAuthState();
+      setAuthLoading(false);
+      return;
+    }
+
+    setSession(nextSession);
+    setUser(data.user);
+
+    const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+    Promise.resolve(supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" }))
+      .then(({ data: hasAdminRole }) => {
+        setIsAdmin(!!hasAdminRole || isAdminSession);
+      })
+      .catch(() => {
+        setIsAdmin(isAdminSession);
+      })
+      .finally(() => {
+        setAuthLoading(false);
+      });
+  }, [clearAuthState]);
+
   const clearSubscriptionRetry = useCallback(() => {
     if (retryTimeoutRef.current !== null) {
       window.clearTimeout(retryTimeoutRef.current);
@@ -251,47 +291,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-
-        if (session?.user) {
-          const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-          if (isAdminSession) setIsAdmin(true);
-
-          // Check admin role - don't set loading false until this completes
-          const userId = session.user.id;
-          Promise.resolve(supabase.rpc("has_role", { _user_id: userId, _role: "admin" }))
-            .then(({ data }) => {
-              setIsAdmin(!!data || isAdminSession);
-            })
-            .catch(() => {
-              setIsAdmin(isAdminSession);
-            })
-            .finally(() => {
-              setAuthLoading(false);
-            });
-        } else {
-          setIsAdmin(false);
-          setSubscription(signedOutSubscriptionState);
-          setAuthLoading(false);
-        }
+        void applyValidatedSession(session);
       }
     );
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-
-      if (session?.user) {
-        const { data } = await supabase.rpc("has_role", {
-          _user_id: session.user.id,
-          _role: "admin",
-        });
-        const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-        setIsAdmin(!!data || isAdminSession);
-      }
-
-      setAuthLoading(false);
+      await applyValidatedSession(session);
     }).catch(() => {
       setAuthLoading(false);
     });
@@ -304,7 +309,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(timeout);
       clearSubscriptionRetry();
     };
-  }, [clearSubscriptionRetry]);
+  }, [applyValidatedSession, clearSubscriptionRetry]);
 
   useEffect(() => {
     clearSubscriptionRetry();
