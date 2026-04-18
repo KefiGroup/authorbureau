@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { Loader2, Users, Flame, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,8 +30,9 @@ const stageColor: Record<string, string> = {
   hot: "bg-red-500/10 text-red-600 border-red-500/20",
 };
 
-export default function ContactsTab({ authorId }: { authorId: string | null }) {
+export default function ContactsTab({ authorId, backendSource = "cloud" }: { authorId: string | null; backendSource?: "cloud" | "shared" }) {
   const navigate = useNavigate();
+  const dataSupabase = backendSource === "shared" ? sharedSupabase : supabase;
   const [leads, setLeads] = useState<Lead[]>([]);
   const [lists, setLists] = useState<ListRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,13 +41,13 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
     if (!authorId) return;
     (async () => {
       const [{ data: l }, { data: lst }] = await Promise.all([
-        supabase
+        dataSupabase
           .from("crm_contacts")
           .select("id, email, full_name, abby_score, stage, source, last_activity_at")
           .eq("author_id", authorId)
           .order("last_activity_at", { ascending: false, nullsFirst: false })
           .limit(25),
-        supabase
+        dataSupabase
           .from("email_lists")
           .select("id, name, description, subscriber_count")
           .eq("author_id", authorId)
@@ -55,7 +57,7 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
       setLists((lst as ListRow[]) || []);
       setLoading(false);
     })();
-  }, [authorId]);
+  }, [authorId, backendSource]);
 
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
