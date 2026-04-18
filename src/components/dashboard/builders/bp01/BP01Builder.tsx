@@ -582,45 +582,21 @@ function ReviewStep({
             </Badge>
           </div>
 
-          <div className="divide-y divide-border rounded-md border border-border">
+          <div className="space-y-3">
             {funnelNodes.map((node) => {
               const email = getNodeEmail(content, node);
               if (!email) return null;
               return (
-                <button
+                <InlineEmailCard
                   key={node.id}
-                  onClick={() => setSelectedNodeId(node.id)}
-                  className="w-full text-left p-4 hover:bg-accent/40 transition-colors block"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-semibold bg-primary/10 text-primary px-2 py-0.5 rounded-full whitespace-nowrap">
-                        {node.label}
-                      </span>
-                      <span className="text-xs text-muted-foreground">{node.timing}</span>
-                      <span className="text-[10px] font-medium text-primary/80 bg-primary/5 px-2 py-0.5 rounded-full whitespace-nowrap">
-                        → {node.crmStage}
-                      </span>
-                    </div>
-                    <Pencil className="h-3.5 w-3.5 text-muted-foreground shrink-0 mt-0.5" />
-                  </div>
-                  <p className="text-sm font-semibold mb-1 line-clamp-2">
-                    {replacePlaceholders(email.subject, leadMagnetUrl, leadMagnetTitle) || <span className="text-muted-foreground italic">No subject</span>}
-                  </p>
-                  {email.preview_text && (
-                    <p className="text-xs italic text-muted-foreground mb-2 line-clamp-1">
-                      {replacePlaceholders(email.preview_text, leadMagnetUrl, leadMagnetTitle)}
-                    </p>
-                  )}
-                  {email.body && (
-                    <p className="text-xs text-muted-foreground whitespace-pre-line line-clamp-4 leading-relaxed">
-                      {replacePlaceholders(email.body, leadMagnetUrl, leadMagnetTitle)}
-                    </p>
-                  )}
-                  <span className="inline-block mt-2 text-xs text-primary font-medium">
-                    Click to read full email & edit →
-                  </span>
-                </button>
+                  node={node}
+                  email={email}
+                  content={content}
+                  setContent={setContent}
+                  authorId={authorId}
+                  leadMagnetUrl={leadMagnetUrl}
+                  leadMagnetTitle={leadMagnetTitle}
+                />
               );
             })}
           </div>
