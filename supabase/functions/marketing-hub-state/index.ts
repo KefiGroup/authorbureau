@@ -20,7 +20,8 @@ type Action =
   | "activate_node"
   | "pause_node"
   | "email_settings"
-  | "save_email_settings";
+  | "save_email_settings"
+  | "send_verification_email";
 
 function respond(payload: Record<string, unknown>) {
   return new Response(JSON.stringify(payload), {
