@@ -124,9 +124,11 @@ function buildWeekGrid(anchor: Date): Date[] {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SocialCalendarTab({ authorId }: Props) {
+  const navigate = useNavigate();
   const { isReady: isAuthReady } = useAuthReady();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [repairing, setRepairing] = useState(false);
   const [bp03Activated, setBp03Activated] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<"month" | "week">("month");
