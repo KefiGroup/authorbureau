@@ -83,9 +83,25 @@ const CAMPAIGNS: CampaignConfig[] = [
 
 type NodeStatus = "not_built" | "draft" | "ready" | "active";
 
-function deriveNodeStatus(row: NodeRow | undefined): NodeStatus {
+/**
+ * Derive a node's marketing status. BP-03 has its own activation semantics:
+ * it is active when the node is live AND social_posts exist for the author.
+ * All other nodes use marketing_activated_at as the activation marker.
+ */
+function deriveNodeStatus(
+  row: NodeRow | undefined,
+  nodeId: string,
+  bp03PostsCount: number,
+): NodeStatus {
   if (!row || row.status === "locked") return "not_built";
   if (row.status === "draft") return "draft";
+
+  if (nodeId === "BP-03") {
+    if (row.status === "live" && bp03PostsCount > 0) return "active";
+    if (row.status === "live" || row.status === "content_ready") return "ready";
+    return "draft";
+  }
+
   if (row.status === "content_ready") return "ready";
   if (row.status === "live" && row.marketing_activated_at) return "active";
   if (row.status === "live") return "ready";
