@@ -8,15 +8,20 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, Clock, Settings, ChevronDown, ChevronUp, Megaphone, Copy, Download } from "lucide-react";
-import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, ChevronDown, ChevronUp, Megaphone, Copy, Download, MapPin, ExternalLink, PencilLine } from "lucide-react";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
+import {
+  PLATFORMS,
+  PLATFORM_LABELS,
+  flattenPosts,
+  computeScheduleDates,
+  type Frequency,
+} from "@/components/dashboard/builders/social-media/socialKitHelpers";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -28,9 +33,9 @@ const GENERATING_MESSAGES = [
 ];
 
 const ACTIVATING_MESSAGES = [
-  "Setting up your content calendar...",
-  "Scheduling your campaigns...",
-  "Your marketing kit is almost ready...",
+  "Saving your kit to your account...",
+  "Building your Social Calendar...",
+  "Almost ready...",
 ];
 
 function hasUsableSocialKit(value: any) {
@@ -47,18 +52,13 @@ interface Props {
 
 async function fetchBp03NodeState(body: Record<string, unknown>) {
   const token = await getActiveToken();
-  if (!token) {
-    throw new Error("Your session has expired. Please sign in again.");
-  }
+  if (!token) throw new Error("Your session has expired. Please sign in again.");
 
   const response = await fetchWithTimeout(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-node-state`,
     {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     },
   );
@@ -67,39 +67,55 @@ async function fetchBp03NodeState(body: Record<string, unknown>) {
   if (!response.ok || !result?.success) {
     throw new Error(result?.error || "We couldn't save your social media kit.");
   }
-
   return result;
 }
 
-async function invokeScheduleSocialPosts(authorId: string) {
-  const token = await getActiveToken();
-  if (!token) {
-    throw new Error("Your session has expired. Please sign in again.");
+/**
+ * Persist the flattened kit into the social_posts table so it shows up in the
+ * Social Calendar with status='ready' and a deterministic schedule.
+ */
+async function persistSocialPostsToCalendar(authorId: string, content: any, startDate: Date, frequency: Frequency) {
+  const flat = flattenPosts(content);
+  if (flat.length === 0) return { saved: 0 };
+
+  // Schedule dates by post.day so all 4 platform posts on the same day share a date
+  const uniqueDays = Array.from(new Set(flat.map(p => p.day))).sort((a, b) => a - b);
+  const dayDates = computeScheduleDates(startDate, uniqueDays.length, frequency);
+  const dayToDate = new Map<number, Date>();
+  uniqueDays.forEach((d, i) => dayToDate.set(d, dayDates[i]));
+
+  // Wipe previous BP-03 ready/draft posts for this author so re-Activate is idempotent
+  await supabase
+    .from("social_posts" as any)
+    .delete()
+    .eq("author_id", authorId)
+    .eq("node_id", "BP-03")
+    .in("status", ["draft", "ready"]);
+
+  const rows = flat.map(p => {
+    const date = dayToDate.get(p.day) || startDate;
+    const scheduled = new Date(date);
+    scheduled.setHours(9, 0, 0, 0);
+    return {
+      author_id: authorId,
+      node_id: "BP-03",
+      platform: p.platform,
+      content: [p.caption, p.hashtags.length ? p.hashtags.map(h => `#${h}`).join(" ") : ""].filter(Boolean).join("\n\n"),
+      scheduled_at: scheduled.toISOString(),
+      status: "ready",
+      post_index: p.index,
+      post_type: p.post_type,
+    };
+  });
+
+  // Insert in chunks of 50
+  for (let i = 0; i < rows.length; i += 50) {
+    const batch = rows.slice(i, i + 50);
+    const { error } = await supabase.from("social_posts" as any).insert(batch);
+    if (error) throw error;
   }
 
-  const response = await fetchWithTimeout(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/schedule-social-posts`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ author_id: authorId, node_id: "BP-03" }),
-    },
-    45000,
-  );
-
-  const result = await response.json().catch(() => null);
-  if (!response.ok || !result) {
-    throw new Error("We couldn't reach your social scheduler.");
-  }
-
-  if (!result.success) {
-    throw new Error(result.error || "Couldn't schedule your posts.");
-  }
-
-  return result;
+  return { saved: rows.length };
 }
 
 export default function BP03Builder({ authorId }: Props) {
@@ -115,7 +131,8 @@ export default function BP03Builder({ authorId }: Props) {
   const [progressLabel, setProgressLabel] = useState<string>("");
   const [isResuming, setIsResuming] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isScheduling, setIsScheduling] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [savedCount, setSavedCount] = useState<number>(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
@@ -123,16 +140,7 @@ export default function BP03Builder({ authorId }: Props) {
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
-    console.log("[BP-03 mount] authorId =", authorId, "authReady =", isAuthReady);
-    if (!isAuthReady) {
-      return;
-    }
-
-    if (!authorId) {
-      // Keep the loading shield up while parent resolves authorId — don't show intro prematurely
-      return;
-    }
-
+    if (!isAuthReady || !authorId) return;
     let cancelled = false;
 
     const resumeBuilder = async () => {
@@ -155,7 +163,6 @@ export default function BP03Builder({ authorId }: Props) {
 
         const status = node?.status;
         const cj: any = node?.content_json || null;
-        const postsCount = Array.isArray(cj?.posts) ? cj.posts.length : 0;
         const savedStep = Number((cj as any)?._currentStep ?? node?.current_step ?? 0);
         const hasSavedKit = hasUsableSocialKit(cj);
         const hasReviewableState = hasSavedKit || status === "content_ready" || status === "live" || savedStep >= 2;
@@ -169,27 +176,25 @@ export default function BP03Builder({ authorId }: Props) {
         if (status === "live") {
           setContent({ ...(cj || {}), activated: true, publishStatus: status, _currentStep: 3 });
           setStep(3);
+          // Look up how many posts are in the calendar so success screen is accurate
+          const { count } = await supabase
+            .from("social_posts" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", authorId)
+            .eq("node_id", "BP-03");
+          setSavedCount(count || 0);
         } else if (status === "generating") {
           setContent(cj);
           setStep(1);
         } else if (hasReviewableState) {
           setContent({ ...(cj || {}), activated: false, publishStatus: status || "content_ready", _currentStep: Math.max(savedStep, 2) });
           setStep(2);
-        } else if (status === "generating") {
-          setContent(null);
-          setStep(1);
         } else {
           setContent(null);
           setStep(0);
         }
 
         hasResumed.current = true;
-        console.log("[BP-03 resume] resolved", {
-          status,
-          postsCount,
-          savedStep,
-          resumedStep: status === "live" ? 3 : status === "generating" ? 1 : hasReviewableState ? 2 : 0,
-        });
       } catch (resumeError) {
         if (!cancelled) {
           console.error("BP03 mount error:", resumeError);
@@ -197,17 +202,12 @@ export default function BP03Builder({ authorId }: Props) {
           setStep(0);
         }
       } finally {
-        if (!cancelled) {
-          setIsResuming(false);
-        }
+        if (!cancelled) setIsResuming(false);
       }
     };
 
     void resumeBuilder();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [authorId, isAuthReady]);
 
   useEffect(() => {
@@ -219,9 +219,8 @@ export default function BP03Builder({ authorId }: Props) {
       }, 3000);
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
-  }, [step]);
+  }, [step, content?.activated]);
 
-  // Cleanup progress poll on unmount to prevent leak if user navigates mid-generation
   useEffect(() => {
     return () => {
       if (progressPollRef.current) {
@@ -236,7 +235,6 @@ export default function BP03Builder({ authorId }: Props) {
     setError(null);
     setProgressLabel("");
 
-    // Poll author_nodes.content_json.progress every 2s while generating
     progressPollRef.current = setInterval(async () => {
       const { data } = await supabase
         .from("author_nodes")
@@ -254,12 +252,8 @@ export default function BP03Builder({ authorId }: Props) {
       });
       if (fnErr) {
         const msg = fnErr.message || "";
-        if (msg.includes("401") || msg.includes("Unauthorized")) {
-          throw new Error("Your session has expired. Please refresh the page and try again.");
-        }
-        if (msg.includes("500") || msg.includes("Internal")) {
-          throw new Error("Abby is having trouble generating content right now. Please try again in a moment.");
-        }
+        if (msg.includes("401") || msg.includes("Unauthorized")) throw new Error("Your session has expired. Please refresh the page and try again.");
+        if (msg.includes("500") || msg.includes("Internal")) throw new Error("Abby is having trouble generating content right now. Please try again in a moment.");
         throw new Error(msg || "Generation failed. Please try again.");
       }
       if (!data?.success) throw new Error(data?.error || "Generation failed. Please try again.");
@@ -267,8 +261,6 @@ export default function BP03Builder({ authorId }: Props) {
       setStep(2);
     } catch (e: any) {
       setError(e.message);
-      // If we already have a saved kit, stay on Review and surface the error there
-      // Only fall back to Intro when there's truly nothing to show
       const hasUsableKit =
         !!content &&
         ((Array.isArray(content.posts) && content.posts.length > 0) ||
@@ -283,28 +275,20 @@ export default function BP03Builder({ authorId }: Props) {
   };
 
   const persistNodeState = async (nextStatus: "content_ready" | "live") => {
-    if (!authorId) {
-      throw new Error("Please wait for your author profile to finish loading.");
-    }
-
-    if (!hasUsableSocialKit(content)) {
-      throw new Error("Generate your starter kit before saving it.");
-    }
-
+    if (!authorId) throw new Error("Please wait for your author profile to finish loading.");
+    if (!hasUsableSocialKit(content)) throw new Error("Generate your starter kit before saving it.");
     const result = await fetchBp03NodeState({
       action: "save",
       author_id: authorId,
       status: nextStatus,
       content,
     });
-
     return result.node;
   };
 
   const handleSave = async () => {
     setError(null);
     setIsSaving(true);
-
     try {
       const savedNode = await persistNodeState("content_ready");
       setContent({
@@ -324,59 +308,38 @@ export default function BP03Builder({ authorId }: Props) {
     }
   };
 
-  const handlePublish = async () => {
+  /**
+   * Activate = save kit as live + persist all posts to social_posts (status='ready')
+   * with a default schedule (start tomorrow, every 3 days). NO Buffer.
+   */
+  const handleActivate = async () => {
+    if (!authorId) return;
     setStep(3);
     setError(null);
-    setIsScheduling(true);
+    setIsActivating(true);
     try {
       const savedNode = await persistNodeState("live");
 
-      // Sprint 36b — schedule posts via Buffer (Social Accounts)
-      let scheduledCount = 0;
-      let scheduleErrorMsg: string | null = null;
-      try {
-        const scheduleResp = await invokeScheduleSocialPosts(authorId);
-        scheduledCount = scheduleResp.scheduled || 0;
-        const haltedReason = typeof scheduleResp.haltedReason === "string" ? scheduleResp.haltedReason : null;
-        if (haltedReason && scheduledCount === 0) {
-          scheduleErrorMsg = haltedReason;
-        }
-      } catch (e: any) {
-        console.error("schedule-social-posts error (non-blocking):", e);
-        scheduleErrorMsg = e?.message || "We couldn't reach your Social Accounts.";
-      }
-
-      const abbyMsg = scheduleErrorMsg
-        ? scheduleErrorMsg.toLowerCase().includes("rate limit")
-          ? "Your kit is saved, but Buffer hit its rate limit, so scheduling paused for now. Please wait a bit and click Schedule posts now again."
-          : `Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts.`
-        : scheduledCount === 0
-          ? `Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts.`
-          : `Done! I've scheduled ${scheduledCount} posts across your connected social accounts. Your first post goes out tomorrow. View your Social Calendar in the Marketing Hub to see the full schedule.`;
+      // Default schedule: start tomorrow, every 3 days
+      const start = new Date();
+      start.setDate(start.getDate() + 1);
+      const { saved } = await persistSocialPostsToCalendar(authorId, content, start, "every_3_days");
+      setSavedCount(saved);
 
       setContent({
         ...(savedNode.content_json as any),
         activated: true,
         publishStatus: savedNode.status,
-        scheduledCount,
-        abbyMessage: abbyMsg,
+        scheduledCount: saved,
       });
 
-      if (scheduleErrorMsg) {
-        toast.success(
-          scheduleErrorMsg.toLowerCase().includes("rate limit")
-            ? "Buffer rate limit reached — try scheduling again shortly."
-            : "Your kit is saved."
-        );
-      } else {
-        toast.success(`Scheduled ${scheduledCount} posts across your social channels 🎉`);
-      }
+      toast.success(`${saved} posts saved to your Social Calendar.`);
     } catch (e: any) {
-      console.error("Publish error:", e);
-      setError(e.message || "We couldn't save your activation.");
+      console.error("Activate error:", e);
+      setError(e.message || "We couldn't activate your social media kit.");
       setStep(2);
     } finally {
-      setIsScheduling(false);
+      setIsActivating(false);
     }
   };
 
@@ -421,9 +384,7 @@ export default function BP03Builder({ authorId }: Props) {
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {isResuming ? (
-          <AbbyCard>
-            <p className="text-muted-foreground">Loading your saved social media kit…</p>
-          </AbbyCard>
+          <AbbyCard><p className="text-muted-foreground">Loading your saved social media kit…</p></AbbyCard>
         ) : step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
@@ -489,7 +450,7 @@ export default function BP03Builder({ authorId }: Props) {
               authorName={authorName}
               bookTitle={bookTitle || detectedBookTitle || "your book"}
               onSave={handleSave}
-              onActivate={handlePublish}
+              onActivate={handleActivate}
               isSaving={isSaving}
             />
           </>
@@ -500,56 +461,21 @@ export default function BP03Builder({ authorId }: Props) {
             <div className="space-y-4">
               <p className="text-muted-foreground font-medium animate-pulse">{ACTIVATING_MESSAGES[msgIndex % ACTIVATING_MESSAGES.length]}</p>
               <Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" />
-              <p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p>
+              <p className="text-xs text-muted-foreground">Usually 5–10 seconds</p>
             </div>
           </AbbyCard>
         )}
 
         {step === 3 && content?.activated && (
-          <>
-            <PublishSuccessScreen
-              nodeId="BP-03"
-              authorName={authorName}
-              penNameSlug={authorSlug}
-              abbyMessage={content?.abbyMessage || "Your kit is saved. Connect your social accounts in Connect Settings first, then come back and click Activate to schedule your posts."}
-            />
-            <div
-              className="mt-6 rounded-xl border-2 border-primary bg-primary/5 p-5 text-center"
-              style={{ position: "relative", zIndex: 50 }}
-            >
-              <p className="text-sm font-semibold mb-3">
-                Posts not scheduled yet? Click below to schedule them now:
-              </p>
-              <button
-                type="button"
-                disabled={isScheduling}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  console.log("[BP-03] Re-run schedule clicked");
-                  handlePublish();
-                }}
-                style={{
-                  display: "inline-block",
-                  padding: "12px 24px",
-                  background: "hsl(var(--primary))",
-                  color: "hsl(var(--primary-foreground))",
-                  border: "none",
-                  borderRadius: "8px",
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  cursor: isScheduling ? "not-allowed" : "pointer",
-                  opacity: isScheduling ? 0.6 : 1,
-                  position: "relative",
-                  zIndex: 51,
-                }}
-              >
-                {isScheduling ? "Scheduling..." : "✨ Schedule posts now"}
-              </button>
-            </div>
-            <BackToReviewLink onClick={() => setStep(2)} />
-          </>
+          <SuccessScreen
+            scheduledCount={savedCount || (content as any)?.scheduledCount || 0}
+            authorName={authorName}
+            bookTitle={bookTitle || detectedBookTitle || "your book"}
+            onEditKit={() => setStep(2)}
+            onDownloadZip={() => downloadKitZip(content, bookTitle, authorName)}
+          />
         )}
+        {step === 3 && content?.activated && <BackToReviewLink onClick={() => setStep(2)} />}
       </div>
     </div>
   );
@@ -579,13 +505,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   twitter: "bg-foreground text-background",
 };
 
-const PLATFORM_LABELS: Record<string, string> = {
-  linkedin: "LinkedIn",
-  instagram: "Instagram",
-  facebook: "Facebook",
-  twitter: "Twitter/X",
-};
-
 const WEEK_LABELS: Record<number, string> = {
   1: "Week 1 — Establish the Problem",
   2: "Week 2 — Introduce the Framework",
@@ -598,6 +517,59 @@ function getWeek(day: number): number {
   if (day <= 14) return 2;
   if (day <= 21) return 3;
   return 4;
+}
+
+async function downloadKitZip(content: any, bookTitle: string, authorName: string) {
+  try {
+    const zip = new JSZip();
+    const folder = zip.folder(`${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit`)!;
+
+    // social_media folder
+    const socialFolder = folder.folder("social_media")!;
+    for (const platform of PLATFORMS) {
+      const posts = content.posts?.map((p: any) => `--- Day ${p.day}: ${p.theme} ---\n${p[platform]?.caption || ""}\nHashtags: ${(p[platform]?.hashtags || []).map((h: string) => `#${h}`).join(" ")}\n`).join("\n");
+      socialFolder.file(`${PLATFORM_LABELS[platform]?.toLowerCase().replace(/[^a-z]/g, "_") || platform}_posts.txt`, posts || "");
+    }
+
+    // posts.csv
+    const csvHeader = "day,platform,caption,hashtags";
+    const csvRows: string[] = [csvHeader];
+    (content.posts || []).forEach((p: any) => {
+      for (const platform of PLATFORMS) {
+        const pp = p[platform];
+        if (!pp?.caption) continue;
+        const caption = `"${(pp.caption || "").replace(/"/g, '""')}"`;
+        const tags = `"${(pp.hashtags || []).map((h: string) => `#${h}`).join(" ")}"`;
+        csvRows.push(`${p.day},${platform},${caption},${tags}`);
+      }
+    });
+    folder.file("posts.csv", csvRows.join("\n"));
+
+    // Outreach
+    if (content.outreach_kit?.length) {
+      const outreachFolder = folder.folder("outreach_kit")!;
+      for (const template of content.outreach_kit) {
+        const filename = template.type.toLowerCase().replace(/[^a-z0-9]+/g, "_") + ".txt";
+        outreachFolder.file(filename, `--- ${template.type} ---\nSubject: ${template.subject}\n\n${template.body}\n`);
+      }
+    }
+
+    folder.file(
+      "README.txt",
+      `${bookTitle} — Complete Marketing Kit\nGenerated by ABBY for ${authorName}\n\nContents:\n- social_media/ — 20 posts across 4 platforms\n- outreach_kit/ — 3 outreach templates\n- posts.csv — combined manifest with day, platform, caption, hashtags\n\nHow to use:\n1. Open the platform-specific .txt files for ready-to-post copy.\n2. Use posts.csv to import into a spreadsheet or scheduler.\n3. In Authors Bureau → Marketing Hub → Social Calendar you can mark posts as posted as you go.\n`
+    );
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit.zip`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success("Marketing Kit downloaded!");
+  } catch (e: any) {
+    toast.error("Download failed: " + e.message);
+  }
 }
 
 function ReviewStep({
@@ -619,40 +591,7 @@ function ReviewStep({
 
   const handleDownloadZip = async () => {
     setDownloading(true);
-    try {
-      const zip = new JSZip();
-      const folder = zip.folder(`${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit`)!;
-
-      // Social media posts by platform
-      const socialFolder = folder.folder("social_media")!;
-      for (const platform of ["linkedin", "instagram", "facebook", "twitter"]) {
-        const posts = content.posts?.map((p: any) => `--- Day ${p.day}: ${p.theme} ---\n${p[platform]?.caption || ""}\nHashtags: ${(p[platform]?.hashtags || []).map((h: string) => `#${h}`).join(" ")}\n`).join("\n");
-        socialFolder.file(`${PLATFORM_LABELS[platform]?.toLowerCase().replace("/", "_") || platform}_posts.txt`, posts || "");
-      }
-
-      // Outreach kit
-      if (content.outreach_kit?.length) {
-        const outreachFolder = folder.folder("outreach_kit")!;
-        for (const template of content.outreach_kit) {
-          const filename = template.type.toLowerCase().replace(/[^a-z0-9]+/g, "_") + ".txt";
-          outreachFolder.file(filename, `--- ${template.type} ---\nSubject: ${template.subject}\n\n${template.body}\n`);
-        }
-      }
-
-      // README
-      folder.file("README.txt", `${bookTitle} — Complete Marketing Kit\nGenerated by ABBY for ${authorName}\n\nContents:\n- social_media/ — 20 posts across 4 platforms (5 per platform)\n- outreach_kit/ — 3 outreach templates (podcast, media, review)\n\nAll content is personalised to your book.\n`);
-
-      const blob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit.zip`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("Marketing Kit downloaded!");
-    } catch (e: any) {
-      toast.error("Download failed: " + e.message);
-    }
+    await downloadKitZip(content, bookTitle, authorName);
     setDownloading(false);
   };
 
@@ -660,7 +599,7 @@ function ReviewStep({
     <div className="space-y-4">
       <AbbyCard>
         <p className="text-muted-foreground">
-          Your complete marketing kit is ready! You have 20 social posts across 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates — all personalised to your book. Review everything below, then click Activate.
+          Your complete marketing kit is ready! You have 20 social posts across 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates — all personalised to your book. Review everything below, then click Activate to send them to your Social Calendar.
         </p>
       </AbbyCard>
 
@@ -674,9 +613,7 @@ function ReviewStep({
           </TabsTrigger>
         </TabsList>
 
-        {/* Social Calendar Tab */}
         <TabsContent value="calendar" className="space-y-2 mt-4">
-          {/* Week grouping */}
           {[1, 2, 3, 4].map(week => {
             const weekPosts = content.posts?.filter((p: any) => getWeek(p.day) === week) || [];
             if (weekPosts.length === 0) return null;
@@ -689,7 +626,6 @@ function ReviewStep({
               </div>
             );
           })}
-          {/* Hashtag strategy */}
           {content.hashtag_strategy && (
             <Card className="mt-4">
               <CardContent className="pt-4 space-y-3">
@@ -705,7 +641,6 @@ function ReviewStep({
           )}
         </TabsContent>
 
-        {/* Outreach Kit Tab */}
         <TabsContent value="outreach" className="mt-4 space-y-3">
           <AbbyCard>
             <p className="text-sm text-muted-foreground">
@@ -721,7 +656,6 @@ function ReviewStep({
         </TabsContent>
       </Tabs>
 
-      {/* Actions */}
       <div className="rounded-xl border border-border bg-muted/30 p-4 space-y-3">
         <p className="text-sm font-semibold text-foreground">What do you want to do next?</p>
         <div className="grid sm:grid-cols-3 gap-3">
@@ -738,7 +672,7 @@ function ReviewStep({
               <Download className="h-4 w-4 mr-2" />{downloading ? "Downloading..." : "Download Marketing Kit"}
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Get a ZIP file with all 20 posts, captions, hashtags & outreach templates. Use it to post manually or hand off to your VA / social media manager.
+              ZIP with all 20 posts, captions, hashtags, posts.csv & outreach templates. Use it offline or hand off to your VA.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -746,12 +680,12 @@ function ReviewStep({
               Activate <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Auto-schedule all 20 posts across LinkedIn, Instagram, Facebook & X via your connected marketing account. Posts go out on the recommended days — hands-free.
+              Sends all 20 posts to your Social Calendar (Marketing Hub) where you can copy, post and mark them done.
             </p>
           </div>
         </div>
         <p className="text-xs text-center text-muted-foreground pt-1 border-t border-border">
-          ✓ 20 posts ready across 4 platforms · ✓ 3 outreach templates · ✓ Saved to your account after generation
+          ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Saved to your Social Calendar on Activate
         </p>
       </div>
     </div>
@@ -803,7 +737,6 @@ function PostCard({ post }: { post: any }) {
 
 function OutreachCard({ template }: { template: any }) {
   const [copied, setCopied] = useState(false);
-
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
     const text = `Subject: ${template.subject}\n\n${template.body}`;
@@ -829,5 +762,131 @@ function OutreachCard({ template }: { template: any }) {
         <p className="text-sm text-muted-foreground whitespace-pre-line">{template.body}</p>
       </CardContent>
     </Card>
+  );
+}
+
+/* ---- Success Screen (replaces Buffer-coupled PublishSuccessScreen) ---- */
+
+function SuccessScreen({
+  scheduledCount,
+  authorName,
+  bookTitle,
+  onEditKit,
+  onDownloadZip,
+}: {
+  scheduledCount: number;
+  authorName: string;
+  bookTitle: string;
+  onEditKit: () => void;
+  onDownloadZip: () => void;
+}) {
+  const navigate = useNavigate();
+  const headline =
+    scheduledCount > 0
+      ? "Your Social Media Kit is Live 🎉"
+      : "Your Social Media Kit is Saved ✓";
+
+  return (
+    <div className="space-y-4">
+      {/* Persistent breadcrumb banner */}
+      <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+        <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+        <span className="text-foreground">
+          Your kit lives in <strong>Marketing Hub → Social Calendar</strong>. You can edit, reschedule, copy or mark posts as posted anytime.
+        </span>
+      </div>
+
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6 space-y-5">
+          <div className="flex gap-3">
+            <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <Sparkles className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-xl font-bold mb-1">{headline}</h2>
+              <p className="text-sm text-muted-foreground">
+                {scheduledCount > 0
+                  ? `I've added ${scheduledCount} posts to your Social Calendar for "${bookTitle}". When you're ready, copy each post and publish it on your accounts — then click "Mark as Posted" so we can track your consistency.`
+                  : `I've saved your kit for "${bookTitle}". Open the Social Calendar to start posting whenever you're ready.`}
+              </p>
+            </div>
+          </div>
+
+          {/* 3 destination cards */}
+          <div className="grid sm:grid-cols-3 gap-3">
+            <DestinationCard
+              icon={<Calendar className="h-5 w-5" />}
+              title="View Social Calendar"
+              description="See, copy, and mark off all 20 posts."
+              cta="Open Calendar"
+              primary
+              onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}
+            />
+            <DestinationCard
+              icon={<PencilLine className="h-5 w-5" />}
+              title="Edit My Kit"
+              description="Tweak captions, hashtags, or rewrite a post."
+              cta="Edit posts"
+              onClick={onEditKit}
+            />
+            <DestinationCard
+              icon={<Download className="h-5 w-5" />}
+              title="Download Marketing Kit"
+              description="ZIP with .txt files, posts.csv & outreach templates."
+              cta="Download .zip"
+              onClick={onDownloadZip}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap items-center gap-2 justify-end">
+        <Button variant="ghost" size="sm" onClick={() => navigate("/brand-products")}>
+          ← Back to Brand Products
+        </Button>
+        <Button size="sm" onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}>
+          View Social Calendar <ArrowRight className="h-4 w-4 ml-1" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function DestinationCard({
+  icon,
+  title,
+  description,
+  cta,
+  onClick,
+  primary,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  cta: string;
+  onClick: () => void;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`text-left rounded-lg border p-3 space-y-2 transition-colors ${
+        primary
+          ? "border-primary bg-primary/10 hover:bg-primary/15"
+          : "border-border bg-background hover:border-primary/40 hover:bg-muted/30"
+      }`}
+    >
+      <div className={`w-8 h-8 rounded-md flex items-center justify-center ${primary ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-sm font-semibold">{title}</p>
+        <p className="text-xs text-muted-foreground leading-snug">{description}</p>
+      </div>
+      <p className={`text-xs font-medium inline-flex items-center gap-1 ${primary ? "text-primary" : "text-foreground"}`}>
+        {cta} <ArrowRight className="h-3 w-3" />
+      </p>
+    </button>
   );
 }

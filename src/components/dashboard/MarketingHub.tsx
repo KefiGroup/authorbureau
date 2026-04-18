@@ -42,9 +42,9 @@ const CAMPAIGNS: CampaignConfig[] = [
   },
   {
     id: "social-media", label: "Social Media", phase: "A",
-    description: "90-day content calendar with daily reminders",
+    description: "20 posts across LinkedIn, Instagram, Facebook & X — copy, post, mark done",
     nodeIds: ["BP-03"],
-    successMessage: "Your social media campaigns are live! ABBY is running your content automatically.",
+    successMessage: "Your Social Media Kit is in the Social Calendar — copy and post when you're ready.",
   },
   {
     id: "website-microsite", label: "Author's Page", phase: "A",
