@@ -302,17 +302,49 @@ export default function MarketingHub({ onNavigate }: Props) {
         return;
       }
 
-      await Promise.all(
-        liveNodeIds.map(nid =>
-          supabase
+      const now = new Date().toISOString();
+      const results = await Promise.all(
+        liveNodeIds.map(async (nid) => {
+          // Try update first
+          const { data: updated, error: updErr } = await supabase
             .from("author_nodes")
-            .update({ marketing_activated_at: new Date().toISOString() })
+            .update({ marketing_activated_at: now })
             .eq("author_id", authorProfileId)
             .eq("node_id", nid)
-        )
+            .select("node_id, marketing_activated_at");
+          if (updErr) return { nid, data: null, error: updErr };
+          if (updated && updated.length > 0) return { nid, data: updated, error: null };
+          // Row didn't exist (e.g. synthesized BP-01) — insert it
+          const { data: inserted, error: insErr } = await supabase
+            .from("author_nodes")
+            .insert({
+              author_id: authorProfileId,
+              node_id: nid,
+              node_name: nid,
+              status: "live",
+              marketing_activated_at: now,
+            })
+            .select("node_id, marketing_activated_at");
+          return { nid, data: inserted, error: insErr };
+        })
       );
 
-      toast({ title: "🎉 Campaign activated!", description: campaign.successMessage });
+      const failed = results.filter(r => r.error);
+      const updated = results.filter(r => !r.error && r.data && r.data.length > 0);
+
+      if (failed.length > 0) {
+        console.error("Activation errors:", failed);
+        toast({
+          title: "Activation partially failed",
+          description: failed.map(f => `${f.nid}: ${f.error?.message}`).join("; "),
+          variant: "destructive",
+        });
+      }
+      if (updated.length === 0) {
+        toast({ title: "Nothing was activated", description: "No rows updated. Please refresh and try again.", variant: "destructive" });
+      } else {
+        toast({ title: "🎉 Campaign activated!", description: campaign.successMessage });
+      }
       await fetchNodes();
     } catch (err: any) {
       toast({ title: "Activation failed", description: err.message, variant: "destructive" });
