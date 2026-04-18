@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,44 +137,36 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const load = async () => {
-    if (!authorId || !isAuthReady) return;
+    if (!isAuthReady) return;
     setLoading(true);
 
-    // Check whether BP-03 was activated, so we can show a helpful retry
-    // instead of a misleading "empty" state when posts fail to load.
-    const { data: nodeRow } = await supabase
-      .from("author_nodes")
-      .select("status, marketing_activated_at")
-      .eq("author_id", authorId)
-      .eq("node_id", "BP-03")
-      .maybeSingle();
-    setBp03Activated(!!nodeRow && (nodeRow.status === "live" || !!nodeRow.marketing_activated_at));
+    try {
+      const result = await callMarketingHubState<{
+        bp03_activated: boolean;
+        posts: SocialPost[];
+      }>("social_calendar");
 
-    const { data: postsData, error } = await supabase
-      .from("social_posts" as any)
-      .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
-      .eq("author_id", authorId)
-      .order("scheduled_at", { ascending: true })
-      .limit(500);
+      const loadedPosts: SocialPost[] = result.posts || [];
+      setBp03Activated(!!result.bp03_activated);
+      setPosts(loadedPosts);
 
-    if (error) {
+      const earliest = loadedPosts
+        .filter((p) => !!p.scheduled_at)
+        .reduce((acc: string | null, p) => (!acc || (p.scheduled_at as string) < acc ? (p.scheduled_at as string) : acc), null as string | null);
+      if (earliest) setCursor(new Date(earliest));
+    } catch (error) {
       console.error("[SocialCalendar] Failed to load posts:", error);
       toast.error("Couldn't load your calendar — tap Refresh to retry.");
+      setPosts([]);
+      setBp03Activated(false);
+    } finally {
+      setLoading(false);
     }
-    const loadedPosts: SocialPost[] = (postsData as any) || [];
-    setPosts(loadedPosts);
-
-    const earliest = loadedPosts
-      .filter((p) => !!p.scheduled_at)
-      .reduce((acc: string | null, p) => (!acc || (p.scheduled_at as string) < acc ? (p.scheduled_at as string) : acc), null as string | null);
-    if (earliest) setCursor(new Date(earliest));
-    setLoading(false);
   };
 
   useEffect(() => { load(); }, [authorId, isAuthReady]);
 
   const repairCalendar = async () => {
-    if (!authorId) return;
     setRepairing(true);
     try {
       const token = await getActiveToken();
@@ -187,7 +179,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "repair_calendar", author_id: authorId }),
+            body: JSON.stringify({ action: "repair_calendar" }),
         },
       );
       const json = await res.json().catch(() => null);
@@ -274,11 +266,9 @@ export default function SocialCalendarTab({ authorId }: Props) {
   };
 
   const markAsPosted = async (post: SocialPost) => {
-    const { error } = await supabase
-      .from("social_posts" as any)
-      .update({ status: "posted", posted_at: new Date().toISOString() })
-      .eq("id", post.id);
-    if (error) {
+    try {
+      await callMarketingHubState("update_social_post", { post_id: post.id, status: "posted" });
+    } catch (_error) {
       toast.error("Couldn't mark as posted");
       return;
     }
@@ -287,11 +277,9 @@ export default function SocialCalendarTab({ authorId }: Props) {
   };
 
   const unmark = async (post: SocialPost) => {
-    const { error } = await supabase
-      .from("social_posts" as any)
-      .update({ status: "ready", posted_at: null })
-      .eq("id", post.id);
-    if (error) {
+    try {
+      await callMarketingHubState("update_social_post", { post_id: post.id, status: "ready" });
+    } catch (_error) {
       toast.error("Couldn't update post");
       return;
     }
