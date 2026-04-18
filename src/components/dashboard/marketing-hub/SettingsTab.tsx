@@ -5,21 +5,22 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { useAuthReady } from "@/hooks/useAuthReady";
 
 export default function SettingsTab({ authorId }: { authorId: string | null }) {
+  const { user, isReady } = useAuthReady();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [senderName, setSenderName] = useState("");
   const [replyTo, setReplyTo] = useState("");
   const [verified, setVerified] = useState(false);
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const userId = user?.id ?? null;
 
   useEffect(() => {
+    if (!isReady) return;
+    if (!user) { setLoading(false); return; }
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
-      setUserId(user.id);
       const { data } = await supabase
         .from("author_email_settings")
         .select("sender_name, reply_to_email, domain_verified")
@@ -32,7 +33,7 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
       }
       setLoading(false);
     })();
-  }, [authorId]);
+  }, [isReady, user?.id]);
 
   const handleSave = async () => {
     if (!userId) {
