@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Users, Flame } from "lucide-react";
+import { Loader2, Users, Flame, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface Lead {
   id: string;
@@ -28,6 +30,7 @@ const stageColor: Record<string, string> = {
 };
 
 export default function ContactsTab({ authorId }: { authorId: string | null }) {
+  const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [lists, setLists] = useState<ListRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +86,17 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
 
       {/* Recent leads */}
       <div>
-        <h3 className="text-sm font-semibold mb-3">Recent Leads</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold">Recent Leads</h3>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs"
+            onClick={() => navigate("/my-contacts")}
+          >
+            Open full CRM <ArrowRight className="h-3 w-3 ml-1" />
+          </Button>
+        </div>
         {leads.length === 0 ? (
           <div className="text-center py-8 rounded-xl border border-dashed border-border bg-card">
             <p className="text-sm text-muted-foreground">No leads captured yet. Activate a campaign to start collecting.</p>
@@ -102,7 +115,11 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
               </thead>
               <tbody>
                 {leads.map((l) => (
-                  <tr key={l.id} className="border-t border-border">
+                  <tr
+                    key={l.id}
+                    className="border-t border-border hover:bg-muted/40 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/my-contacts?contactId=${l.id}`)}
+                  >
                     <td className="px-4 py-2">
                       <p className="font-medium text-xs">{l.full_name || "—"}</p>
                       <p className="text-[10px] text-muted-foreground">{l.email || "—"}</p>

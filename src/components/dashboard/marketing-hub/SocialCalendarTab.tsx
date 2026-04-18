@@ -295,7 +295,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
                   <Button onClick={load}>
                     <Loader2 className="h-4 w-4 mr-1" /> Refresh Calendar
                   </Button>
-                  <Button variant="outline" onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
+                  <Button variant="outline" onClick={() => { window.location.href = "/node-builder/BP-03"; }}>
                     Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
@@ -318,7 +318,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
                 Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll send your 20 posts straight here.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
+                <Button onClick={() => { window.location.href = "/node-builder/BP-03"; }}>
                   Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
                 <Button variant="outline" onClick={load}>Refresh</Button>

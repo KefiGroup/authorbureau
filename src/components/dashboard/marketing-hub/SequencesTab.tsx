@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles } from "lucide-react";
+import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 
 interface FlowRow {
   id: string;
@@ -32,9 +34,24 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function SequencesTab({ authorId }: { authorId: string | null }) {
+  const navigate = useNavigate();
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
   const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  const toggleStatus = async (flow: FlowRow) => {
+    const next = flow.status === "active" ? "paused" : "active";
+    setUpdatingId(flow.id);
+    const { error } = await supabase.from("email_flows").update({ status: next }).eq("id", flow.id);
+    setUpdatingId(null);
+    if (error) {
+      toast({ title: "Couldn't update sequence", description: error.message, variant: "destructive" });
+      return;
+    }
+    setFlows((prev) => prev.map((f) => (f.id === flow.id ? { ...f, status: next } : f)));
+    toast({ title: next === "active" ? "Sequence resumed" : "Sequence paused" });
+  };
 
   useEffect(() => {
     if (!authorId) return;
@@ -85,7 +102,7 @@ export default function SequencesTab({ authorId }: { authorId: string | null }) 
         <div key={f.id} className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-0.5">
+              <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                 <Mail className="h-4 w-4 text-primary shrink-0" />
                 <p className="text-sm font-medium truncate">{f.title}</p>
                 <Badge variant="outline" className={`text-[10px] ${statusBadge[f.status] || statusBadge.draft}`}>
@@ -101,6 +118,36 @@ export default function SequencesTab({ authorId }: { authorId: string | null }) 
                 )}
               </div>
               {f.description && <p className="text-xs text-muted-foreground line-clamp-1">{f.description}</p>}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {f.node_id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  onClick={() => navigate(`/node-builder/${f.node_id}`)}
+                >
+                  <Pencil className="h-3 w-3 mr-1" /> Edit
+                </Button>
+              )}
+              {(f.status === "active" || f.status === "paused") && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                  disabled={updatingId === f.id}
+                  onClick={() => toggleStatus(f)}
+                >
+                  {updatingId === f.id ? (
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  ) : f.status === "active" ? (
+                    <PauseCircle className="h-3 w-3 mr-1" />
+                  ) : (
+                    <PlayCircle className="h-3 w-3 mr-1" />
+                  )}
+                  {f.status === "active" ? "Pause" : "Resume"}
+                </Button>
+              )}
             </div>
           </div>
 

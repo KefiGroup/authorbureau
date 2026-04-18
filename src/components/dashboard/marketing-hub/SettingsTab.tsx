@@ -87,6 +87,16 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
         <p className="text-sm text-muted-foreground mt-2">
           Your emails are sent through Authors Bureau's managed delivery. No DNS setup needed.
         </p>
+        {!verified && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => { window.location.href = "/account-settings?tab=connections"; }}
+          >
+            Verify domain & connections
+          </Button>
+        )}
       </div>
 
       <Button onClick={handleSave} disabled={saving}>
