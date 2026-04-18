@@ -1,61 +1,77 @@
 
+The user wants native direct integrations to LinkedIn / Facebook / Instagram / X — no Buffer. I need to be honest about what each platform actually allows in 2026, since several of them have hard policy/technical blockers that no amount of code can bypass.
 
-## Findings
+Let me lay out the reality per network, then propose a concrete native build.
 
-**1. Email node ↔ Marketing Hub Sequences linkage is broken on the read path.**
-- DB has 1 real `email_flows` row for the user (`node_id=BP-01`, status=draft).
-- `SequencesTab.tsx` queries `supabase.from("email_flows")` directly from the browser. This is the same RLS-on-cloud-client failure pattern as the social calendar — it returns empty even when rows exist (snapshot already proves it: `cross_counts.sequences` from the edge function would show >0 while the tab shows 0).
-- The hub never tells `SequencesTab` which author profile to use either: it's invoked without `authorId` in `MarketingHub.tsx` (need to verify) and uses local-client RLS → the "No email sequences yet" empty state shows up.
+## Platform-by-Platform Reality Check (2026)
 
-**2. Other BP nodes are not actually linked to Marketing Hub artifacts.**
-- BP-01 → `email_flows` (only created by `generate-email-sequence` / `populate-assets` edge functions, not by the BP-01 builder publish flow).
-- BP-02 (Lead Magnet), BP-04 (Author Page), BP-05 (Webinar) → **no email_flows rows are created anywhere when published**. The BP-0x builders themselves never insert into `email_flows`.
-- Result: even if the tab worked, only BP-01 would ever appear. BP-02/04/05 publishing leaves the Sequences tab empty for those campaigns.
+| Platform | Auto-publish from 3rd-party app? | What it costs / requires | Verdict |
+|---|---|---|---|
+| **LinkedIn** | ✅ Yes | OAuth 2.0 + `w_member_social` scope. Free. Posts to personal profile or Company Page. Stable API. | **Fully automatable** |
+| **Facebook Pages** | ✅ Yes | Meta Graph API + `pages_manage_posts` + `pages_read_engagement`. App must pass Meta App Review (~1–3 weeks). Posts to **Pages only**, not personal profiles (Meta killed personal-profile posting in 2018). | **Automatable to Pages only** |
+| **Instagram Business/Creator** | ✅ Yes (with caveats) | Instagram Graph API via a connected Facebook Page. Account must be **Business or Creator** (not personal). Image/video must be hosted at a public URL. Stories & Reels supported, carousels supported. Same Meta App Review required. | **Automatable for Business accounts only** |
+| **Instagram Personal** | ❌ No | Meta blocks all third-party publishing to personal IG accounts. Period. | **Manual only** |
+| **X / Twitter** | ⚠️ Yes but paid | X API v2 requires **Basic tier minimum = $200/month** as of 2024. Free tier allows ~17 posts/day total across the whole app, not per user. | **Automatable only if author or platform pays $200+/mo** |
+| **TikTok** | ⚠️ Limited | Content Posting API exists but requires audit + only posts as drafts to user's inbox for personal accounts; full direct-post needs approval. | **Semi-automatable** |
+| **Threads** | ✅ Yes | Threads API via Meta, similar review process. | **Automatable** |
 
-**3. Activation in MarketingHub uses the wrong write path for non-BP-03 nodes.**
-- `handleActivate()` updates `author_nodes.marketing_activated_at` via the cloud client (`supabase.from("author_nodes").update(...)`) — same RLS surface that returns empty reads.
-- Even when activation appears to succeed in the UI, the snapshot edge function may not see the update, depending on which backend holds the rows.
+### Bottom line
+- **LinkedIn + Facebook Page + Instagram Business**: real native auto-posting is possible. This is the realistic MVP.
+- **X/Twitter**: only viable if we accept the $200/mo X API cost OR keep it manual ("Copy & open X").
+- **Personal Instagram, personal Facebook**: Meta forbids it. Will always be manual.
 
-**4. Right-panel scroll is coupled to viewport, not to the panel.**
-- `AuthorDashboard.tsx` line 590: the `<main>` is the scrolling element with `overflow-y-auto`, but its parent flex column is `min-h-[100dvh]` (not constrained to viewport). This makes the whole page scroll instead of just the right panel — sidebar moves with content on smaller heights, and "scroll independence" is lost.
-- Should be: outer wrapper `h-[100dvh] overflow-hidden`, sidebar `h-full overflow-y-auto`, right column `h-full overflow-hidden`, `<main>` `flex-1 overflow-y-auto`.
+## Proposed Native Build (no Buffer)
 
-## Plan
+### Scope
+1. **LinkedIn** — full native OAuth + auto-publish to personal profile and/or Company Page.
+2. **Facebook Pages** — full native OAuth + auto-publish to selected Page.
+3. **Instagram Business** — auto-publish via the connected Facebook Page (Meta requires this pairing).
+4. **X / Twitter** — keep manual ("Copy + Open X") for now, with a clear note explaining the $200/mo API cost. Can be upgraded later if you decide to pay.
+5. **Personal IG/FB** — keep manual with a one-tap "Copy + Open app" button.
 
-### A. Fix Sequences tab read path (mirror the SocialCalendar pattern)
-1. Add a `sequences` action to `supabase/functions/marketing-hub-state/index.ts` that returns `email_flows` + `email_flow_steps` for the resolved author via service role.
-2. Add a `toggle_sequence_status` action for pause/resume.
-3. Refactor `SequencesTab.tsx` to use `callMarketingHubState("sequences")` instead of querying `supabase` directly. Remove the `authorId` prop dependency (the edge function resolves it).
+### Architecture
 
-### B. Auto-link BP-02 / BP-04 / BP-05 to email_flows on publish
-Each of these nodes already has a "publish/activate" path in its builder. On a successful publish:
-1. Call the existing `generate-email-sequence` edge function (or insert a default flow row) so a corresponding `email_flows` row exists with the correct `node_id` (BP-02/04/05). This is the actual link to the Marketing Hub.
-2. The Marketing Hub Sequences tab will then surface them, scoped by `node_id` badge (already in UI).
+**New tables**
+- `social_connections` (author_id, platform, account_id, account_name, access_token, refresh_token, token_expires_at, page_id, ig_business_id, scopes, status)
+- `social_posts` already exists from earlier sprint — we'll add `published_post_url`, `published_post_id`, `publish_error`.
 
-### C. Standardise activation writes through the edge function
-1. Add an `activate_node` / `pause_node` action to `marketing-hub-state` that writes `marketing_activated_at` server-side via service role (bypasses any RLS mismatch).
-2. Replace direct `supabase.from("author_nodes").update(...)` calls in `MarketingHub.handleActivate` / `handlePause` with the new edge action.
-3. Keep BP-03 special-case (`repair_calendar`) untouched — it already works.
+**New edge functions (all `verify_jwt = true`)**
+- `social-connect-start` — generates OAuth URL per platform, returns it.
+- `social-connect-callback` — receives code, exchanges for token, stores connection.
+- `social-publish` — invoked by scheduler. Routes to the right platform handler.
+- `social-scheduler` — pg_cron job runs every 5 min, finds `social_posts` with `scheduled_at <= now()` and `status='ready'`, calls `social-publish`.
 
-### D. Independent right-panel scrolling
-Restructure `AuthorDashboard.tsx` shell:
-- Outer: `h-[100dvh] overflow-hidden flex`
-- Sidebar wrapper: `h-full overflow-y-auto` (its own scroll)
-- Right column: `flex-1 h-full overflow-hidden flex flex-col`
-- `<main>`: `flex-1 min-h-0 overflow-y-auto` (right panel scrolls only, sidebar stays put)
-- Remove `min-h-[100dvh]` from inner column so it inherits parent height.
+**Frontend**
+- New "Connect Accounts" panel inside Marketing Hub → Social Calendar. Shows each platform with Connect / Connected / Reconnect state, plus realistic capability badges (e.g. "LinkedIn — auto-post", "X — manual only").
+- Calendar post cards get a status chip: `Scheduled` → `Published` (with link) or `Failed` (with retry).
 
-### E. QA after implementation
-- Verify Sequences tab now lists the BP-01 flow (`Welcome + Nurture Sequence`).
-- Publish BP-02 lead magnet → verify a new `email_flows` row appears tagged BP-02.
-- Activate a campaign from Marketing Hub → verify `marketing_activated_at` is set in DB and top counter increments.
-- Scroll the right panel on iPad/desktop → sidebar stays fixed, right side scrolls independently.
+### Required secrets (you'll need to create developer apps)
+| Secret | Where to get it |
+|---|---|
+| `LINKEDIN_CLIENT_ID` / `LINKEDIN_CLIENT_SECRET` | linkedin.com/developers — instant |
+| `META_APP_ID` / `META_APP_SECRET` | developers.facebook.com — covers FB + IG. Requires App Review for production. |
+| `X_CLIENT_ID` / `X_CLIENT_SECRET` (optional) | developer.x.com — only if you decide to pay $200/mo |
 
-## Files to change
-- `supabase/functions/marketing-hub-state/index.ts` — add `sequences`, `toggle_sequence_status`, `activate_node`, `pause_node` actions.
-- `src/lib/marketing-hub-state.ts` — type updates for new actions.
-- `src/components/dashboard/marketing-hub/SequencesTab.tsx` — switch to edge function reads/writes.
-- `src/components/dashboard/MarketingHub.tsx` — activate/pause via edge function.
-- `src/components/dashboard/builders/bp02/...`, `bp04/...`, `bp05/...` — on publish, create the linked `email_flows` row (via `generate-email-sequence` or direct insert through a new `marketing-hub-state` action).
-- `src/pages/AuthorDashboard.tsx` — restructure shell for independent scroll panes.
+I'll request these via the secret tool once you approve.
 
+### Phasing
+- **Phase 1 (this sprint)**: LinkedIn end-to-end. Fastest, no app review, immediate value.
+- **Phase 2**: Meta (FB Page + IG Business). Code is ready immediately, but goes live after Meta App Review approval.
+- **Phase 3 (optional)**: X paid tier if you greenlight the cost.
+
+### Files to create / change
+- `supabase/migrations/...` — `social_connections` table + columns on `social_posts`.
+- `supabase/functions/social-connect-start/index.ts` (new)
+- `supabase/functions/social-connect-callback/index.ts` (new)
+- `supabase/functions/social-publish/index.ts` (new)
+- `supabase/functions/social-scheduler/index.ts` (new) + pg_cron schedule
+- `src/components/dashboard/marketing-hub/SocialConnectionsPanel.tsx` (new)
+- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` — show publish status, auto vs manual badges
+- `src/pages/ConnectSettings.tsx` — replace "Manual posting" badges with real connect buttons
+
+### What I will NOT promise
+- Auto-posting to personal Instagram or personal Facebook profiles (Meta forbids).
+- Free X auto-posting at any meaningful volume (X charges).
+- Skipping Meta App Review (required by Meta, not by us).
+
+If you approve, I'll start with **Phase 1 (LinkedIn native)** end-to-end so you can see real auto-posts within this sprint, then queue Meta right after.
