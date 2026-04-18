@@ -10,8 +10,95 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-type Action = "load" | "save";
+type Action = "load" | "save" | "repair_calendar";
 type NextStatus = "content_ready" | "live";
+
+const PLATFORMS = ["linkedin", "instagram", "facebook", "twitter"] as const;
+
+function flattenPosts(content: any): Array<{
+  index: number;
+  day: number;
+  platform: string;
+  caption: string;
+  hashtags: string[];
+  post_type: string;
+}> {
+  const days: any[] = Array.isArray(content?.posts) ? content.posts : [];
+  const flat: any[] = [];
+  let idx = 0;
+  for (const d of days) {
+    for (const platform of PLATFORMS) {
+      const p = d?.[platform];
+      if (!p?.caption) continue;
+      flat.push({
+        index: idx++,
+        day: Number(d.day) || 0,
+        platform,
+        caption: p.caption,
+        hashtags: Array.isArray(p.hashtags) ? p.hashtags : [],
+        post_type: d.post_type || "insight",
+      });
+    }
+  }
+  return flat;
+}
+
+function computeScheduleDates(start: Date, count: number, stepDays: number): Date[] {
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i * stepDays);
+    return d;
+  });
+}
+
+async function rebuildSocialPosts(
+  cloudAdmin: ReturnType<typeof createClient>,
+  authorId: string,
+  content: any,
+): Promise<number> {
+  const flat = flattenPosts(content);
+  if (flat.length === 0) return 0;
+
+  // Idempotent: wipe previous BP-03 ready/draft posts, keep posted ones
+  await cloudAdmin
+    .from("social_posts")
+    .delete()
+    .eq("author_id", authorId)
+    .eq("node_id", "BP-03")
+    .in("status", ["draft", "ready"]);
+
+  const start = new Date();
+  start.setDate(start.getDate() + 1);
+  const uniqueDays = Array.from(new Set(flat.map((p) => p.day))).sort((a, b) => a - b);
+  const dayDates = computeScheduleDates(start, uniqueDays.length, 3);
+  const dayToDate = new Map<number, Date>();
+  uniqueDays.forEach((d, i) => dayToDate.set(d, dayDates[i]));
+
+  const rows = flat.map((p) => {
+    const date = dayToDate.get(p.day) || start;
+    const scheduled = new Date(date);
+    scheduled.setHours(9, 0, 0, 0);
+    return {
+      author_id: authorId,
+      node_id: "BP-03",
+      platform: p.platform,
+      content: [p.caption, p.hashtags.length ? p.hashtags.map((h: string) => `#${h}`).join(" ") : ""]
+        .filter(Boolean)
+        .join("\n\n"),
+      scheduled_at: scheduled.toISOString(),
+      status: "ready",
+      post_index: p.index,
+      post_type: p.post_type,
+    };
+  });
+
+  for (let i = 0; i < rows.length; i += 50) {
+    const batch = rows.slice(i, i + 50);
+    const { error } = await cloudAdmin.from("social_posts").insert(batch);
+    if (error) throw error;
+  }
+  return rows.length;
+}
 
 function respond(payload: Record<string, unknown>) {
   return new Response(JSON.stringify(payload), {
@@ -218,6 +305,42 @@ Deno.serve(async (req) => {
         has_context: Boolean(bookTitle),
         node: normalizeNode(node),
       });
+    }
+
+    if (action === "repair_calendar") {
+      // Idempotently rebuild social_posts from saved node content_json
+      const { data: existingNode, error: existingNodeError } = await cloudAdmin
+        .from("author_nodes")
+        .select("id, status, activated_at, current_step, content_json")
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03")
+        .maybeSingle();
+      if (existingNodeError) throw existingNodeError;
+
+      const cj: any = existingNode?.content_json || null;
+      if (!hasUsableSocialKit(cj)) {
+        return respond({
+          success: false,
+          error: "No saved social media kit found. Please open BP-03 and generate it first.",
+        });
+      }
+
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj);
+
+      // Promote node to live if it's not already, so Marketing Hub treats it as active
+      if (existingNode && existingNode.status !== "live") {
+        await cloudAdmin
+          .from("author_nodes")
+          .update({
+            status: "live",
+            current_step: 3,
+            activated_at: existingNode.activated_at || new Date().toISOString(),
+            content_json: { ...cj, _currentStep: 3, publishStatus: "live" },
+          })
+          .eq("id", existingNode.id);
+      }
+
+      return respond({ success: true, saved, node: normalizeNode(existingNode) });
     }
 
     if (action !== "save") {

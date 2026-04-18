@@ -2,6 +2,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import BP01Builder from "@/components/dashboard/builders/bp01/BP01Builder";
@@ -69,12 +70,22 @@ export default function NodeBuilder() {
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle()
-      .then(({ data, error }) => {
+      .then(async ({ data, error }) => {
         if (cancelled) return;
         if (error) {
           console.error("[NodeBuilder] Failed to load author profile:", error.message);
         }
-        setAuthorId(data?.id || null);
+        let id = data?.id || null;
+        if (!id) {
+          // Fallback: shared backend
+          const { data: sp } = await sharedSupabase
+            .from("author_profiles")
+            .select("id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          id = sp?.id || null;
+        }
+        setAuthorId(id);
         setLoading(false);
       });
 

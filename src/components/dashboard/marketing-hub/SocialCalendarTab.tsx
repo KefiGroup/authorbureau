@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -122,9 +124,11 @@ function buildWeekGrid(anchor: Date): Date[] {
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 export default function SocialCalendarTab({ authorId }: Props) {
+  const navigate = useNavigate();
   const { isReady: isAuthReady } = useAuthReady();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [repairing, setRepairing] = useState(false);
   const [bp03Activated, setBp03Activated] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<"month" | "week">("month");
@@ -168,6 +172,35 @@ export default function SocialCalendarTab({ authorId }: Props) {
   };
 
   useEffect(() => { load(); }, [authorId, isAuthReady]);
+
+  const repairCalendar = async () => {
+    if (!authorId) return;
+    setRepairing(true);
+    try {
+      const token = await getActiveToken();
+      if (!token) {
+        toast.error("Session expired. Please sign in again.");
+        return;
+      }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-node-state`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ action: "repair_calendar", author_id: authorId }),
+        },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || "Couldn't rebuild your calendar. Open the Social Media builder and try again.");
+        return;
+      }
+      toast.success(`${json.saved || 0} posts loaded into your Social Calendar.`);
+      await load();
+    } finally {
+      setRepairing(false);
+    }
+  };
 
   const filteredPosts = useMemo(() => {
     if (filter === "all") return posts;
@@ -292,10 +325,11 @@ export default function SocialCalendarTab({ authorId }: Props) {
                   If it persists, sign out and back in — your saved kit is safe.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={load}>
-                    <Loader2 className="h-4 w-4 mr-1" /> Refresh Calendar
+                  <Button onClick={repairCalendar} disabled={repairing}>
+                    {repairing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Loader2 className="h-4 w-4 mr-1" />}
+                    {repairing ? "Rebuilding…" : "Refresh Calendar"}
                   </Button>
-                  <Button variant="outline" onClick={() => { window.location.href = "/node-builder/BP-03"; }}>
+                  <Button variant="outline" onClick={() => navigate("/node-builder/BP-03")}>
                     Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
@@ -318,10 +352,12 @@ export default function SocialCalendarTab({ authorId }: Props) {
                 Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll send your 20 posts straight here.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => { window.location.href = "/node-builder/BP-03"; }}>
+                <Button onClick={() => navigate("/node-builder/BP-03")}>
                   Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
-                <Button variant="outline" onClick={load}>Refresh</Button>
+                <Button variant="outline" onClick={repairCalendar} disabled={repairing}>
+                  {repairing ? "Rebuilding…" : "Refresh"}
+                </Button>
               </div>
             </div>
           </CardContent>
