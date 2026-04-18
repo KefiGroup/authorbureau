@@ -179,7 +179,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: "repair_calendar" }),
+          body: JSON.stringify({ action: "repair_calendar" }),
         },
       );
       const json = await res.json().catch(() => null);

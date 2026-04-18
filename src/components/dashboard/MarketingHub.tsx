@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef, forwardRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import {
   Loader2, Megaphone, CheckCircle2, Clock, Zap,
   ArrowRight, Sparkles, PauseCircle, FileText, Hammer,
@@ -86,7 +86,7 @@ type NodeStatus = "not_built" | "draft" | "ready" | "active";
 /**
  * Derive a node's marketing status. BP-03 has its own activation semantics:
  * it is active when the node is live AND social_posts exist for the author.
- * All other nodes use marketing_activated_at as the activation marker.
+ * Other nodes are active when the underlying node is already live.
  */
 function deriveNodeStatus(
   row: NodeRow | undefined,
@@ -102,9 +102,8 @@ function deriveNodeStatus(
     return "draft";
   }
 
+  if (row.status === "live") return "active";
   if (row.status === "content_ready") return "ready";
-  if (row.status === "live" && row.marketing_activated_at) return "active";
-  if (row.status === "live") return "ready";
   return "not_built";
 }
 
@@ -128,6 +127,7 @@ interface NodeRow {
   node_id: string;
   status: string;
   marketing_activated_at: string | null;
+  activated_at?: string | null;
   content_json: any;
 }
 
@@ -202,68 +202,26 @@ export default function MarketingHub({ onNavigate }: Props) {
   /* ─── Fetch author nodes ─── */
   const fetchNodes = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
     try {
-      let profileId: string | null = null;
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (profile) {
-        profileId = profile.id;
-      } else {
-        const { data: sp } = await sharedSupabase
-          .from("author_profiles")
-          .select("id")
-          .eq("user_id", user.id)
-          .maybeSingle();
-        if (sp) profileId = sp.id;
-      }
-      if (profileId) setAuthorProfileId(profileId);
+      const snapshot = await callMarketingHubState<{
+        author_profile_id: string;
+        node_rows: NodeRow[];
+        bp03_posts_count: number;
+        lead_count: number;
+        cross_counts: {
+          sequences: number;
+          socialQueued: number;
+          contacts: number;
+          domainPending: boolean;
+        };
+      }>("snapshot");
 
-      if (profileId) {
-        const { data } = await supabase
-          .from("author_nodes")
-          .select("node_id, status, marketing_activated_at, content_json")
-          .eq("author_id", profileId);
-        const rows = (data as NodeRow[]) || [];
-        setNodeRows(rows);
-
-        // Count BP-03 social_posts (real source of truth for BP-03 active status)
-        const { count: bp03Count } = await supabase
-          .from("social_posts" as any)
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", profileId)
-          .eq("node_id", "BP-03");
-        setBp03PostsCount(bp03Count || 0);
-
-        // Fetch lead counts
-        const { data: leads } = await supabase
-          .from("leads")
-          .select("source")
-          .eq("author_id", profileId);
-        if (leads) {
-          const counts: Record<string, number> = {};
-          leads.forEach(() => {
-            counts["all"] = (counts["all"] || 0) + 1;
-          });
-          setLeadCounts(counts);
-        }
-
-        // Cross-tab counts powering the nudge band
-        const [seqRes, socialRes, contactsRes, settingsRes] = await Promise.all([
-          supabase.from("email_flows").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-          supabase.from("social_posts" as any).select("id", { count: "exact", head: true }).eq("author_id", profileId).neq("status", "posted"),
-          supabase.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-          supabase.from("author_email_settings").select("domain_verified").eq("author_id", profileId).maybeSingle(),
-        ]);
-        setCrossCounts({
-          sequences: seqRes.count || 0,
-          socialQueued: socialRes.count || 0,
-          contacts: contactsRes.count || 0,
-          domainPending: !!settingsRes.data && settingsRes.data.domain_verified === false,
-        });
-      }
+      setAuthorProfileId(snapshot.author_profile_id || null);
+      setNodeRows(snapshot.node_rows || []);
+      setBp03PostsCount(snapshot.bp03_posts_count || 0);
+      setLeadCounts({ all: snapshot.lead_count || 0 });
+      setCrossCounts(snapshot.cross_counts || { sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
     } finally {
@@ -637,6 +595,8 @@ const CampaignRow = forwardRef<HTMLDivElement, {
   // Activation date
   const activatedAt = firstNodeRow?.marketing_activated_at
     ? new Date(firstNodeRow.marketing_activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : firstNodeRow?.activated_at
+    ? new Date(firstNodeRow.activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
 
   const borderClass = isHighlighted
