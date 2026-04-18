@@ -380,6 +380,9 @@ export type Database = {
           sender_name: string
           subdomain: string | null
           updated_at: string
+          verification_sent_at: string | null
+          verification_token: string | null
+          verified_at: string | null
         }
         Insert: {
           author_id: string
@@ -391,6 +394,9 @@ export type Database = {
           sender_name?: string
           subdomain?: string | null
           updated_at?: string
+          verification_sent_at?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
         }
         Update: {
           author_id?: string
@@ -402,6 +408,9 @@ export type Database = {
           sender_name?: string
           subdomain?: string | null
           updated_at?: string
+          verification_sent_at?: string | null
+          verification_token?: string | null
+          verified_at?: string | null
         }
         Relationships: []
       }

@@ -10,7 +10,8 @@ type MarketingHubAction =
   | "activate_node"
   | "pause_node"
   | "email_settings"
-  | "save_email_settings";
+  | "save_email_settings"
+  | "send_verification_email";
 
 export async function callMarketingHubState<T = any>(
   action: MarketingHubAction,
