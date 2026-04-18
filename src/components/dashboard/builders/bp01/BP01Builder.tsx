@@ -8,8 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Eye, Zap } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Eye, Zap, Pencil, Save, X } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
@@ -276,6 +278,8 @@ export default function BP01Builder({ authorId }: Props) {
         {step === 2 && content && (
           <ReviewStep
             content={content}
+            setContent={setContent}
+            authorId={authorId}
             authorName={authorName}
             leadMagnetUrl={leadMagnetUrl}
             leadMagnetTitle={leadMagnetTitle}
@@ -421,12 +425,16 @@ function replacePlaceholders(text: string | undefined, leadMagnetUrl: string | n
 
 function ReviewStep({
   content,
+  setContent,
+  authorId,
   authorName,
   leadMagnetUrl,
   leadMagnetTitle,
   onActivate,
 }: {
   content: any;
+  setContent: (c: any) => void;
+  authorId: string | null;
   authorName: string;
   leadMagnetUrl: string | null;
   leadMagnetTitle: string | null;
@@ -434,10 +442,74 @@ function ReviewStep({
 }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [readerPreviewOpen, setReaderPreviewOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editDraft, setEditDraft] = useState<{ subject: string; preview_text: string; body: string; cta_text?: string }>({ subject: "", preview_text: "", body: "" });
+  const [saving, setSaving] = useState(false);
 
   const funnelNodes = buildFunnelNodes(content);
   const selectedNode = funnelNodes.find((n) => n.id === selectedNodeId) || null;
   const selectedEmail = selectedNode ? getNodeEmail(content, selectedNode) : null;
+
+  // Reset edit state when switching email
+  useEffect(() => {
+    if (selectedEmail) {
+      setEditDraft({
+        subject: selectedEmail.subject || "",
+        preview_text: selectedEmail.preview_text || "",
+        body: selectedEmail.body || "",
+        cta_text: selectedEmail.cta_text || "",
+      });
+      setIsEditing(false);
+    }
+  }, [selectedNodeId]);
+
+  async function handleSaveEdit() {
+    if (!selectedNode) return;
+    setSaving(true);
+    try {
+      const next = JSON.parse(JSON.stringify(content));
+      if (selectedNode.type === "email" && selectedNode.emailIndex !== undefined) {
+        next.welcome_sequence[selectedNode.emailIndex] = {
+          ...next.welcome_sequence[selectedNode.emailIndex],
+          subject: editDraft.subject,
+          preview_text: editDraft.preview_text,
+          body: editDraft.body,
+        };
+      } else if (selectedNode.type === "broadcast") {
+        next.first_broadcast = {
+          ...(next.first_broadcast || {}),
+          subject: editDraft.subject,
+          preview_text: editDraft.preview_text,
+          body: editDraft.body,
+        };
+      } else if (selectedNode.type === "optin") {
+        next.lead_magnet_offer = {
+          ...(next.lead_magnet_offer || {}),
+          title: editDraft.subject,
+          description: editDraft.body,
+          cta_text: editDraft.cta_text,
+        };
+      }
+
+      // Persist to author_nodes
+      if (authorId) {
+        const { error } = await supabase
+          .from("author_nodes")
+          .update({ content_json: next })
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-01");
+        if (error) throw error;
+      }
+
+      setContent(next);
+      setIsEditing(false);
+      toast.success("Email updated");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -521,12 +593,20 @@ function ReviewStep({
       </Card>
 
       {/* Section 2: Email Preview Sheet */}
-      <Sheet open={!!selectedNodeId} onOpenChange={(open) => { if (!open) setSelectedNodeId(null); }}>
+      <Sheet open={!!selectedNodeId} onOpenChange={(open) => { if (!open) { setSelectedNodeId(null); setIsEditing(false); } }}>
         <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto">
           <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Mail className="h-4 w-4" />
-              {selectedNode?.label}
+            <SheetTitle className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Mail className="h-4 w-4" />
+                {selectedNode?.label}
+              </span>
+              {selectedEmail && !isEditing && (
+                <Button variant="ghost" size="sm" onClick={() => setIsEditing(true)}>
+                  <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                  Edit
+                </Button>
+              )}
             </SheetTitle>
           </SheetHeader>
 
@@ -542,54 +622,111 @@ function ReviewStep({
                 )}
               </div>
 
-              {/* Subject */}
-              <div>
-                <span className="text-xs text-muted-foreground uppercase tracking-wide">Subject</span>
-                <p className="text-lg font-bold mt-0.5">
-                  {replacePlaceholders(selectedEmail.subject, leadMagnetUrl, leadMagnetTitle)}
-                </p>
-              </div>
-
-              {/* Preview text */}
-              {selectedEmail.preview_text && (
-                <div>
-                  <span className="text-xs text-muted-foreground uppercase tracking-wide">Preview text</span>
-                  <p className="text-sm italic text-muted-foreground mt-0.5">
-                    {replacePlaceholders(selectedEmail.preview_text, leadMagnetUrl, leadMagnetTitle)}
-                  </p>
-                </div>
-              )}
-
-              {/* CTA for opt-in */}
-              {selectedNode?.type === "optin" && selectedEmail.cta_text && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Button:</span>
-                  <span className="text-sm font-medium bg-primary/10 px-3 py-1 rounded-full">
-                    {selectedEmail.cta_text}
-                  </span>
-                </div>
-              )}
-
-              {/* Email body card */}
-              {selectedEmail.body && (
-                <Card className="bg-card">
-                  <CardContent className="pt-4">
-                    <p className="text-sm whitespace-pre-line leading-relaxed">
-                      {replacePlaceholders(selectedEmail.body, leadMagnetUrl, leadMagnetTitle)}
+              {isEditing ? (
+                <>
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase tracking-wide">
+                      {selectedNode?.type === "optin" ? "Title" : "Subject"}
+                    </label>
+                    <Input
+                      value={editDraft.subject}
+                      onChange={(e) => setEditDraft({ ...editDraft, subject: e.target.value })}
+                      className="mt-1"
+                    />
+                  </div>
+                  {selectedNode?.type !== "optin" && (
+                    <div>
+                      <label className="text-xs text-muted-foreground uppercase tracking-wide">Preview text</label>
+                      <Input
+                        value={editDraft.preview_text}
+                        onChange={(e) => setEditDraft({ ...editDraft, preview_text: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  )}
+                  {selectedNode?.type === "optin" && (
+                    <div>
+                      <label className="text-xs text-muted-foreground uppercase tracking-wide">Button text</label>
+                      <Input
+                        value={editDraft.cta_text || ""}
+                        onChange={(e) => setEditDraft({ ...editDraft, cta_text: e.target.value })}
+                        className="mt-1"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className="text-xs text-muted-foreground uppercase tracking-wide">
+                      {selectedNode?.type === "optin" ? "Description" : "Body"}
+                    </label>
+                    <Textarea
+                      value={editDraft.body}
+                      onChange={(e) => setEditDraft({ ...editDraft, body: e.target.value })}
+                      className="mt-1 min-h-[240px] font-mono text-sm"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button onClick={handleSaveEdit} disabled={saving} className="flex-1">
+                      <Save className="h-4 w-4 mr-2" />
+                      {saving ? "Saving..." : "Save changes"}
+                    </Button>
+                    <Button variant="outline" onClick={() => setIsEditing(false)} disabled={saving}>
+                      <X className="h-4 w-4 mr-1" />
+                      Cancel
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Subject */}
+                  <div>
+                    <span className="text-xs text-muted-foreground uppercase tracking-wide">Subject</span>
+                    <p className="text-lg font-bold mt-0.5">
+                      {replacePlaceholders(selectedEmail.subject, leadMagnetUrl, leadMagnetTitle)}
                     </p>
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
 
-              {/* Preview as Reader */}
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={() => setReaderPreviewOpen(true)}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                Preview as Reader
-              </Button>
+                  {/* Preview text */}
+                  {selectedEmail.preview_text && (
+                    <div>
+                      <span className="text-xs text-muted-foreground uppercase tracking-wide">Preview text</span>
+                      <p className="text-sm italic text-muted-foreground mt-0.5">
+                        {replacePlaceholders(selectedEmail.preview_text, leadMagnetUrl, leadMagnetTitle)}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* CTA for opt-in */}
+                  {selectedNode?.type === "optin" && selectedEmail.cta_text && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Button:</span>
+                      <span className="text-sm font-medium bg-primary/10 px-3 py-1 rounded-full">
+                        {selectedEmail.cta_text}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Email body card */}
+                  {selectedEmail.body && (
+                    <Card className="bg-card">
+                      <CardContent className="pt-4">
+                        <p className="text-sm whitespace-pre-line leading-relaxed">
+                          {replacePlaceholders(selectedEmail.body, leadMagnetUrl, leadMagnetTitle)}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Preview as Reader */}
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setReaderPreviewOpen(true)}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    Preview as Reader
+                  </Button>
+                </>
+              )}
             </div>
           )}
 
