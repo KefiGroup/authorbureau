@@ -142,8 +142,30 @@ function getContentPreview(contentJson: any): string {
 export default function MarketingHub({ onNavigate }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
+  const tabParam = searchParams.get("tab");
+  const VALID_TABS = ["overview", "sequences", "social-calendar", "contacts", "settings"] as const;
+  const initialTab = (VALID_TABS as readonly string[]).includes(tabParam || "")
+    ? (tabParam as string)
+    : "overview";
+  const [activeTab, setActiveTab] = useState<string>(initialTab);
+
+  // Sync from URL whenever it changes (e.g. deep-link from BP-03 success screen)
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t && (VALID_TABS as readonly string[]).includes(t) && t !== activeTab) {
+      setActiveTab(t);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (next: string) => {
+    setActiveTab(next);
+    const sp = new URLSearchParams(searchParams);
+    if (next === "overview") sp.delete("tab");
+    else sp.set("tab", next);
+    setSearchParams(sp, { replace: true });
+  };
 
   const [nodeRows, setNodeRows] = useState<NodeRow[]>([]);
   const [loading, setLoading] = useState(true);
