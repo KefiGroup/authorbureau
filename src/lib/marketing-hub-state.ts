@@ -1,6 +1,6 @@
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 
-type MarketingHubAction = "snapshot" | "social_calendar" | "update_social_post";
+type MarketingHubAction = "snapshot" | "social_calendar" | "update_social_post" | "reschedule_social_post";
 
 export async function callMarketingHubState<T = any>(
   action: MarketingHubAction,

@@ -10,7 +10,7 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-type Action = "snapshot" | "social_calendar" | "update_social_post";
+type Action = "snapshot" | "social_calendar" | "update_social_post" | "reschedule_social_post";
 
 function respond(payload: Record<string, unknown>) {
   return new Response(JSON.stringify(payload), {
@@ -211,6 +211,40 @@ Deno.serve(async (req) => {
         .eq("id", postId)
         .eq("author_id", authorProfile.id)
         .select("id, status, posted_at")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!updatedPost) {
+        return respond({ success: false, error: "Post not found." });
+      }
+
+      return respond({ success: true, post: updatedPost });
+    }
+
+    if (action === "reschedule_social_post") {
+      const postId = typeof body?.post_id === "string" ? body.post_id : "";
+      const scheduledAt = typeof body?.scheduled_at === "string" ? body.scheduled_at : "";
+      if (!postId || !scheduledAt) {
+        return respond({ success: false, error: "A valid post id and scheduled date are required." });
+      }
+
+      const parsedDate = new Date(scheduledAt);
+      if (Number.isNaN(parsedDate.getTime())) {
+        return respond({ success: false, error: "The new scheduled date is invalid." });
+      }
+
+      parsedDate.setHours(9, 0, 0, 0);
+
+      const { data: updatedPost, error } = await cloudAdmin
+        .from("social_posts")
+        .update({
+          scheduled_at: parsedDate.toISOString(),
+          status: "ready",
+          posted_at: null,
+        })
+        .eq("id", postId)
+        .eq("author_id", authorProfile.id)
+        .select("id, status, posted_at, scheduled_at")
         .maybeSingle();
 
       if (error) throw error;

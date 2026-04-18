@@ -6,6 +6,7 @@ import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -135,6 +136,19 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const [cursor, setCursor] = useState<Date>(new Date());
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [reschedulingPostId, setReschedulingPostId] = useState<string | null>(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [savingReschedule, setSavingReschedule] = useState(false);
+
+  const formatDateInput = (value: string | null) => {
+    if (!value) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return "";
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   const load = async () => {
     if (!isAuthReady) return;
@@ -286,6 +300,48 @@ export default function SocialCalendarTab({ authorId }: Props) {
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: "ready", posted_at: null } : p));
   };
 
+  const startReschedule = (post: SocialPost) => {
+    setReschedulingPostId(post.id);
+    setRescheduleDate(formatDateInput(post.scheduled_at));
+  };
+
+  const cancelReschedule = () => {
+    setReschedulingPostId(null);
+    setRescheduleDate("");
+  };
+
+  const saveReschedule = async (post: SocialPost) => {
+    if (!rescheduleDate) {
+      toast.error("Choose a new posting date first");
+      return;
+    }
+
+    setSavingReschedule(true);
+    try {
+      const result = await callMarketingHubState<{ post: Pick<SocialPost, "id" | "scheduled_at" | "status" | "posted_at"> }>(
+        "reschedule_social_post",
+        { post_id: post.id, scheduled_at: rescheduleDate },
+      );
+
+      const nextScheduledAt = result.post?.scheduled_at ?? new Date(`${rescheduleDate}T09:00:00`).toISOString();
+      setPosts(prev =>
+        [...prev]
+          .map((p) => p.id === post.id
+            ? { ...p, scheduled_at: nextScheduledAt, status: "ready", posted_at: null }
+            : p)
+          .sort((a, b) => (a.scheduled_at || "").localeCompare(b.scheduled_at || ""))
+      );
+      setCursor(new Date(nextScheduledAt));
+      setExpandedDay(formatDateInput(nextScheduledAt));
+      toast.success("Post rescheduled");
+      cancelReschedule();
+    } catch (_error) {
+      toast.error("Couldn't reschedule this post");
+    } finally {
+      setSavingReschedule(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
@@ -355,7 +411,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 pb-8">
       {/* Progress tracker header */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -391,7 +447,10 @@ export default function SocialCalendarTab({ authorId }: Props) {
           <Button size="sm" variant={view === "week" ? "default" : "outline"} onClick={() => setView("week")}>Week</Button>
         </div>
         <div className="flex-1 text-center font-semibold text-foreground">{headerLabel}</div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 flex-wrap justify-end">
+          <Button size="sm" variant="outline" onClick={repairCalendar} disabled={repairing}>
+            {repairing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh Calendar"}
+          </Button>
           <Button size="sm" variant="outline" onClick={() => shiftCursor(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button size="sm" variant="outline" onClick={goToday}>Today</Button>
           <Button size="sm" variant="outline" onClick={() => shiftCursor(1)}><ChevronRight className="h-4 w-4" /></Button>
@@ -551,7 +610,36 @@ export default function SocialCalendarTab({ authorId }: Props) {
                           <Check className="h-3.5 w-3.5 mr-1" /> Mark as Posted
                         </Button>
                       )}
+                      <Button size="sm" variant="ghost" onClick={() => startReschedule(post)}>
+                        Reschedule
+                      </Button>
                     </div>
+                    {reschedulingPostId === post.id && (
+                      <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
+                        <p className="text-xs font-medium text-foreground mb-2">Choose a new live date</p>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                          <Input
+                            type="date"
+                            value={rescheduleDate}
+                            min={formatDateInput(new Date().toISOString())}
+                            onChange={(e) => setRescheduleDate(e.target.value)}
+                            className="sm:max-w-[220px]"
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => saveReschedule(post)} disabled={savingReschedule || !rescheduleDate}>
+                              {savingReschedule ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                              Save Date
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={cancelReschedule} disabled={savingReschedule}>
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-[11px] text-muted-foreground">
+                          Rescheduling keeps this post active in your calendar and moves it to the new date.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

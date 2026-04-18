@@ -576,7 +576,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
         />
       </div>
-      <div className="flex flex-1 flex-col min-w-0 min-h-[100dvh] overflow-hidden">
+      <div className="flex flex-1 flex-col min-w-0 min-h-[100dvh] overflow-x-hidden">
         <DashboardHeader
           user={user}
           isPremium={isPremium}
@@ -587,7 +587,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <main className={`flex-1 min-h-0 ${isBuilderActive ? "" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 lg:p-8 space-y-4"}`}>
+        <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
           {/* Onboarding banners for redirected pages */}
           {activeSection === "profile" && (
             <OnboardingBanner
