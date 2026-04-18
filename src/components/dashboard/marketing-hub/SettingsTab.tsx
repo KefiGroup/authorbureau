@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { Loader2, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 
-export default function SettingsTab({ authorId, backendSource = "cloud" }: { authorId: string | null; backendSource?: "cloud" | "shared" }) {
-  const navigate = useNavigate();
-  const dataSupabase = backendSource === "shared" ? sharedSupabase : supabase;
+export default function SettingsTab({ authorId }: { authorId: string | null }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [senderName, setSenderName] = useState("");
@@ -20,7 +16,7 @@ export default function SettingsTab({ authorId, backendSource = "cloud" }: { aut
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data } = await dataSupabase
+      const { data } = await supabase
         .from("author_email_settings")
         .select("sender_name, reply_to_email, domain_verified")
         .eq("author_id", authorId)
@@ -32,13 +28,13 @@ export default function SettingsTab({ authorId, backendSource = "cloud" }: { aut
       }
       setLoading(false);
     })();
-  }, [authorId, backendSource]);
+  }, [authorId]);
 
   const handleSave = async () => {
     if (!authorId) return;
     setSaving(true);
     try {
-      const { error } = await dataSupabase
+      const { error } = await supabase
         .from("author_email_settings")
         .upsert({
           author_id: authorId,
@@ -96,7 +92,7 @@ export default function SettingsTab({ authorId, backendSource = "cloud" }: { aut
             variant="outline"
             size="sm"
             className="mt-3"
-            onClick={() => navigate("/account-settings?tab=connections")}
+            onClick={() => { window.location.href = "/account-settings?tab=connections"; }}
           >
             Verify domain & connections
           </Button>

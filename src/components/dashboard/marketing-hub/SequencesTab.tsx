@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,9 +33,8 @@ const statusBadge: Record<string, string> = {
   paused: "bg-muted text-muted-foreground border-border",
 };
 
-export default function SequencesTab({ authorId, backendSource = "cloud" }: { authorId: string | null; backendSource?: "cloud" | "shared" }) {
+export default function SequencesTab({ authorId }: { authorId: string | null }) {
   const navigate = useNavigate();
-  const dataSupabase = backendSource === "shared" ? sharedSupabase : supabase;
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
   const [loading, setLoading] = useState(true);
@@ -45,7 +43,7 @@ export default function SequencesTab({ authorId, backendSource = "cloud" }: { au
   const toggleStatus = async (flow: FlowRow) => {
     const next = flow.status === "active" ? "paused" : "active";
     setUpdatingId(flow.id);
-    const { error } = await dataSupabase.from("email_flows").update({ status: next }).eq("id", flow.id);
+    const { error } = await supabase.from("email_flows").update({ status: next }).eq("id", flow.id);
     setUpdatingId(null);
     if (error) {
       toast({ title: "Couldn't update sequence", description: error.message, variant: "destructive" });
@@ -58,7 +56,7 @@ export default function SequencesTab({ authorId, backendSource = "cloud" }: { au
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: f } = await dataSupabase
+      const { data: f } = await supabase
         .from("email_flows")
         .select("id, title, description, flow_type, node_id, status, total_subscribers, open_rate, click_rate, ai_generated, created_at")
         .eq("author_id", authorId)
@@ -67,7 +65,7 @@ export default function SequencesTab({ authorId, backendSource = "cloud" }: { au
       setFlows(flowList);
 
       if (flowList.length > 0) {
-        const { data: s } = await dataSupabase
+        const { data: s } = await supabase
           .from("email_flow_steps")
           .select("id, flow_id, step_number, subject, trigger_delay_days")
           .in("flow_id", flowList.map((x) => x.id))
@@ -80,7 +78,7 @@ export default function SequencesTab({ authorId, backendSource = "cloud" }: { au
       }
       setLoading(false);
     })();
-  }, [authorId, backendSource]);
+  }, [authorId]);
 
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;

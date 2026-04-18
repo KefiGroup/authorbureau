@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef, forwardRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import {
   Loader2, Megaphone, CheckCircle2, Clock, Zap,
   ArrowRight, Sparkles, PauseCircle, FileText, Hammer,
@@ -83,12 +83,10 @@ const CAMPAIGNS: CampaignConfig[] = [
 
 type NodeStatus = "not_built" | "draft" | "ready" | "active";
 
-type BackendSource = "cloud" | "shared";
-
 /**
  * Derive a node's marketing status. BP-03 has its own activation semantics:
  * it is active when the node is live AND social_posts exist for the author.
- * All other nodes use marketing_activated_at as the activation marker.
+ * Other nodes are active when the underlying node is already live.
  */
 function deriveNodeStatus(
   row: NodeRow | undefined,
@@ -104,9 +102,8 @@ function deriveNodeStatus(
     return "draft";
   }
 
+  if (row.status === "live") return "active";
   if (row.status === "content_ready") return "ready";
-  if (row.status === "live" && row.marketing_activated_at) return "active";
-  if (row.status === "live") return "ready";
   return "not_built";
 }
 
@@ -131,76 +128,7 @@ interface NodeRow {
   status: string;
   marketing_activated_at: string | null;
   activated_at?: string | null;
-  microsite_url?: string | null;
   content_json: any;
-}
-
-interface HubSnapshot {
-  nodeRows: NodeRow[];
-  bp03PostsCount: number;
-  leadCount: number;
-  crossCounts: {
-    sequences: number;
-    socialQueued: number;
-    contacts: number;
-    domainPending: boolean;
-  };
-  score: number;
-}
-
-async function loadHubSnapshot(client: typeof supabase, profileId: string): Promise<HubSnapshot> {
-  const [
-    nodesRes,
-    bp03Res,
-    leadsRes,
-    seqRes,
-    socialRes,
-    contactsRes,
-    settingsRes,
-  ] = await Promise.all([
-    client
-      .from("author_nodes")
-      .select("node_id, status, marketing_activated_at, activated_at, microsite_url, content_json")
-      .eq("author_id", profileId),
-    client
-      .from("social_posts" as any)
-      .select("id", { count: "exact", head: true })
-      .eq("author_id", profileId)
-      .eq("node_id", "BP-03"),
-    client.from("leads").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-    client.from("email_flows").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-    client
-      .from("social_posts" as any)
-      .select("id", { count: "exact", head: true })
-      .eq("author_id", profileId)
-      .neq("status", "posted"),
-    client.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", profileId),
-    client.from("author_email_settings").select("domain_verified").eq("author_id", profileId).maybeSingle(),
-  ]);
-
-  const nodeRows = (nodesRes.data as NodeRow[]) || [];
-  const bp03PostsCount = bp03Res.count || 0;
-  const leadCount = leadsRes.count || 0;
-  const crossCounts = {
-    sequences: seqRes.count || 0,
-    socialQueued: socialRes.count || 0,
-    contacts: contactsRes.count || 0,
-    domainPending: !!settingsRes.data && settingsRes.data.domain_verified === false,
-  };
-
-  const liveNodes = nodeRows.filter((row) => row.status === "live").length;
-  const readyNodes = nodeRows.filter((row) => row.status === "content_ready").length;
-  const score =
-    liveNodes * 10 +
-    readyNodes * 5 +
-    bp03PostsCount +
-    leadCount +
-    crossCounts.sequences +
-    crossCounts.socialQueued +
-    crossCounts.contacts +
-    (crossCounts.domainPending ? 1 : 0);
-
-  return { nodeRows, bp03PostsCount, leadCount, crossCounts, score };
 }
 
 interface Props {
@@ -261,7 +189,6 @@ export default function MarketingHub({ onNavigate }: Props) {
   const [loading, setLoading] = useState(true);
   const [activatingCampaign, setActivatingCampaign] = useState<string | null>(null);
   const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
-  const [backendSource, setBackendSource] = useState<BackendSource>("cloud");
   const [leadCounts, setLeadCounts] = useState<Record<string, number>>({});
   const [crossCounts, setCrossCounts] = useState<{
     sequences: number;
@@ -271,56 +198,30 @@ export default function MarketingHub({ onNavigate }: Props) {
   }>({ sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
 
   const highlightRef = useRef<HTMLDivElement | null>(null);
-  const dataSupabase = backendSource === "shared" ? sharedSupabase : supabase;
 
   /* ─── Fetch author nodes ─── */
   const fetchNodes = useCallback(async () => {
     if (!user) return;
+    setLoading(true);
     try {
-      const [cloudProfileRes, sharedProfileRes] = await Promise.all([
-        supabase.from("author_profiles").select("id").eq("user_id", user.id).maybeSingle(),
-        sharedSupabase.from("author_profiles").select("id").eq("user_id", user.id).maybeSingle(),
-      ]);
+      const snapshot = await callMarketingHubState<{
+        author_profile_id: string;
+        node_rows: NodeRow[];
+        bp03_posts_count: number;
+        lead_count: number;
+        cross_counts: {
+          sequences: number;
+          socialQueued: number;
+          contacts: number;
+          domainPending: boolean;
+        };
+      }>("snapshot");
 
-      const candidates = await Promise.all([
-        cloudProfileRes.data?.id
-          ? loadHubSnapshot(supabase, cloudProfileRes.data.id).then((snapshot) => ({
-              ...snapshot,
-              profileId: cloudProfileRes.data!.id,
-              source: "cloud" as const,
-            }))
-          : Promise.resolve(null),
-        sharedProfileRes.data?.id
-          ? loadHubSnapshot(sharedSupabase, sharedProfileRes.data.id).then((snapshot) => ({
-              ...snapshot,
-              profileId: sharedProfileRes.data!.id,
-              source: "shared" as const,
-            }))
-          : Promise.resolve(null),
-      ]);
-
-      const available = candidates.filter(Boolean) as Array<HubSnapshot & { profileId: string; source: BackendSource }>;
-      if (available.length === 0) {
-        setAuthorProfileId(null);
-        setNodeRows([]);
-        setBp03PostsCount(0);
-        setLeadCounts({ all: 0 });
-        setCrossCounts({ sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
-        return;
-      }
-
-      const selected = available.reduce((best, current) => {
-        if (current.score > best.score) return current;
-        if (current.score === best.score && current.source === "cloud") return current;
-        return best;
-      });
-
-      setBackendSource(selected.source);
-      setAuthorProfileId(selected.profileId);
-      setNodeRows(selected.nodeRows);
-      setBp03PostsCount(selected.bp03PostsCount);
-      setLeadCounts({ all: selected.leadCount });
-      setCrossCounts(selected.crossCounts);
+      setAuthorProfileId(snapshot.author_profile_id || null);
+      setNodeRows(snapshot.node_rows || []);
+      setBp03PostsCount(snapshot.bp03_posts_count || 0);
+      setLeadCounts({ all: snapshot.lead_count || 0 });
+      setCrossCounts(snapshot.cross_counts || { sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
     } finally {
@@ -342,19 +243,9 @@ export default function MarketingHub({ onNavigate }: Props) {
   /* ─── Derive campaign status (worst-state for grouped) ─── */
   const getCampaignStatus = (campaign: CampaignConfig): NodeStatus => {
     if (activatingCampaign === campaign.id) return "ready"; // show as ready while activating
-    const statuses = campaign.nodeIds.map((nid) => {
-      const row = nodeRows.find((candidate) => candidate.node_id === nid);
-      if (!row) return "not_built" as const;
-
-      if (nid === "BP-01" && row.status === "live") {
-        return crossCounts.sequences > 0 ? "active" : "ready";
-      }
-      if (["BP-02", "BP-04", "BP-05"].includes(nid) && row.status === "live") {
-        return "active";
-      }
-
-      return deriveNodeStatus(row, nid, bp03PostsCount);
-    });
+    const statuses = campaign.nodeIds.map(nid =>
+      deriveNodeStatus(nodeRows.find(r => r.node_id === nid), nid, bp03PostsCount),
+    );
     if (statuses.every(s => s === "active")) return "active";
     if (statuses.some(s => s === "active" || s === "ready")) return "ready";
     if (statuses.some(s => s === "draft")) return "draft";
@@ -393,7 +284,7 @@ export default function MarketingHub({ onNavigate }: Props) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: "repair_calendar" }),
+            body: JSON.stringify({ action: "repair_calendar", author_id: authorProfileId }),
           },
         );
         const json = await res.json().catch(() => null);
@@ -427,7 +318,7 @@ export default function MarketingHub({ onNavigate }: Props) {
       const now = new Date().toISOString();
       const results = await Promise.all(
         liveNodeIds.map(async (nid) => {
-          const { data: updated, error: updErr } = await dataSupabase
+          const { data: updated, error: updErr } = await supabase
             .from("author_nodes")
             .update({ marketing_activated_at: now })
             .eq("author_id", authorProfileId)
@@ -435,7 +326,7 @@ export default function MarketingHub({ onNavigate }: Props) {
             .select("node_id, marketing_activated_at");
           if (updErr) return { nid, data: null, error: updErr };
           if (updated && updated.length > 0) return { nid, data: updated, error: null };
-          const { data: inserted, error: insErr } = await dataSupabase
+          const { data: inserted, error: insErr } = await supabase
             .from("author_nodes")
             .insert({
               author_id: authorProfileId,
@@ -479,7 +370,7 @@ export default function MarketingHub({ onNavigate }: Props) {
     try {
       // For BP-03, "pause" means clearing the calendar's ready/draft posts.
       if (campaign.id === "social-media") {
-        await dataSupabase
+        await supabase
           .from("social_posts" as any)
           .delete()
           .eq("author_id", authorProfileId)
@@ -492,7 +383,7 @@ export default function MarketingHub({ onNavigate }: Props) {
 
       await Promise.all(
         campaign.nodeIds.map(nid =>
-          dataSupabase
+          supabase
             .from("author_nodes")
             .update({ marketing_activated_at: null })
             .eq("author_id", authorProfileId)
@@ -662,19 +553,19 @@ export default function MarketingHub({ onNavigate }: Props) {
         </TabsContent>
 
         <TabsContent value="sequences" className="mt-6">
-          <SequencesTab authorId={authorProfileId} backendSource={backendSource} />
+          <SequencesTab authorId={authorProfileId} />
         </TabsContent>
 
         <TabsContent value="social-calendar" className="mt-6">
-          <SocialCalendarTab authorId={authorProfileId} backendSource={backendSource} />
+          <SocialCalendarTab authorId={authorProfileId} />
         </TabsContent>
 
         <TabsContent value="contacts" className="mt-6">
-          <ContactsTab authorId={authorProfileId} backendSource={backendSource} />
+          <ContactsTab authorId={authorProfileId} />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <SettingsTab authorId={authorProfileId} backendSource={backendSource} />
+          <SettingsTab authorId={authorProfileId} />
         </TabsContent>
       </Tabs>
     </div>
@@ -702,9 +593,10 @@ const CampaignRow = forwardRef<HTMLDivElement, {
   const preview = status !== "not_built" ? getContentPreview(firstNodeRow?.content_json) : "";
 
   // Activation date
-  const activationTimestamp = firstNodeRow?.marketing_activated_at || firstNodeRow?.activated_at || null;
-  const activatedAt = activationTimestamp
-    ? new Date(activationTimestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const activatedAt = firstNodeRow?.marketing_activated_at
+    ? new Date(firstNodeRow.marketing_activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+    : firstNodeRow?.activated_at
+    ? new Date(firstNodeRow.activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
 
   const borderClass = isHighlighted
