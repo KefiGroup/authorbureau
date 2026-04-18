@@ -479,7 +479,7 @@ export default function MarketingHub({ onNavigate }: Props) {
     try {
       // For BP-03, "pause" means clearing the calendar's ready/draft posts.
       if (campaign.id === "social-media") {
-        await supabase
+        await dataSupabase
           .from("social_posts" as any)
           .delete()
           .eq("author_id", authorProfileId)
@@ -492,7 +492,7 @@ export default function MarketingHub({ onNavigate }: Props) {
 
       await Promise.all(
         campaign.nodeIds.map(nid =>
-          supabase
+          dataSupabase
             .from("author_nodes")
             .update({ marketing_activated_at: null })
             .eq("author_id", authorProfileId)
@@ -662,19 +662,19 @@ export default function MarketingHub({ onNavigate }: Props) {
         </TabsContent>
 
         <TabsContent value="sequences" className="mt-6">
-          <SequencesTab authorId={authorProfileId} />
+          <SequencesTab authorId={authorProfileId} backendSource={backendSource} />
         </TabsContent>
 
         <TabsContent value="social-calendar" className="mt-6">
-          <SocialCalendarTab authorId={authorProfileId} />
+          <SocialCalendarTab authorId={authorProfileId} backendSource={backendSource} />
         </TabsContent>
 
         <TabsContent value="contacts" className="mt-6">
-          <ContactsTab authorId={authorProfileId} />
+          <ContactsTab authorId={authorProfileId} backendSource={backendSource} />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
-          <SettingsTab authorId={authorProfileId} />
+          <SettingsTab authorId={authorProfileId} backendSource={backendSource} />
         </TabsContent>
       </Tabs>
     </div>
@@ -702,8 +702,9 @@ const CampaignRow = forwardRef<HTMLDivElement, {
   const preview = status !== "not_built" ? getContentPreview(firstNodeRow?.content_json) : "";
 
   // Activation date
-  const activatedAt = firstNodeRow?.marketing_activated_at
-    ? new Date(firstNodeRow.marketing_activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  const activationTimestamp = firstNodeRow?.marketing_activated_at || firstNodeRow?.activated_at || null;
+  const activatedAt = activationTimestamp
+    ? new Date(activationTimestamp).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
 
   const borderClass = isHighlighted
