@@ -14,6 +14,7 @@ import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader"
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import { toAbbyError } from "@/lib/abby-error";
+import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 
@@ -149,6 +150,8 @@ export default function BP04Builder({ authorId }: Props) {
       const status = data?.status || "live";
       const liveUrl = data?.liveUrl;
       setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status, liveUrl }));
+      // Fire-and-forget: ensure email sequence exists for BP-04
+      ensureEmailSequence({ authorId: authorId!, nodeId: "BP-04" });
       if (status === "published_pending_ghl") {
         toast.success("Author Website saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
       } else {

@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export async function ensureEmailSequence(params: {
   authorId: string;
-  nodeId: "BP-01" | "BP-02" | "BP-05";
+  nodeId: "BP-01" | "BP-02" | "BP-04" | "BP-05";
   bookId?: string | null;
 }) {
   const { authorId, nodeId, bookId } = params;
