@@ -92,7 +92,7 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
             size="sm"
             variant="outline"
             className="h-7 text-xs"
-            onClick={() => navigate("/my-crm")}
+            onClick={() => navigate("/my-contacts")}
           >
             Open full CRM <ArrowRight className="h-3 w-3 ml-1" />
           </Button>
@@ -118,7 +118,7 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
                   <tr
                     key={l.id}
                     className="border-t border-border hover:bg-muted/40 cursor-pointer transition-colors"
-                    onClick={() => navigate(`/my-crm?contactId=${l.id}`)}
+                    onClick={() => navigate(`/my-contacts?contactId=${l.id}`)}
                   >
                     <td className="px-4 py-2">
                       <p className="font-medium text-xs">{l.full_name || "—"}</p>
