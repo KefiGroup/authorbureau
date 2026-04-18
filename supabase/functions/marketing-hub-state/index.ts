@@ -18,7 +18,9 @@ type Action =
   | "sequences"
   | "toggle_sequence_status"
   | "activate_node"
-  | "pause_node";
+  | "pause_node"
+  | "email_settings"
+  | "save_email_settings";
 
 function respond(payload: Record<string, unknown>) {
   return new Response(JSON.stringify(payload), {
@@ -377,6 +379,57 @@ Deno.serve(async (req) => {
         results,
         error: failed.length > 0 ? failed.map((f) => `${f.node_id}: ${f.error}`).join("; ") : undefined,
       });
+    }
+
+    if (action === "email_settings") {
+      const { data: settings, error } = await cloudAdmin
+        .from("author_email_settings")
+        .select("sender_name, reply_to_email, domain_verified, subdomain")
+        .eq("author_id", authorProfile.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return respond({
+        success: true,
+        author_profile_id: authorProfile.id,
+        settings: settings ?? {
+          sender_name: "",
+          reply_to_email: "",
+          domain_verified: false,
+          subdomain: null,
+        },
+      });
+    }
+
+    if (action === "save_email_settings") {
+      const senderName = typeof body?.sender_name === "string" ? body.sender_name.trim() : "";
+      const replyToRaw = typeof body?.reply_to_email === "string" ? body.reply_to_email.trim() : "";
+      const replyTo = replyToRaw === "" ? null : replyToRaw;
+
+      if (!senderName) {
+        return respond({ success: false, error: "Sender name is required." });
+      }
+      if (replyTo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(replyTo)) {
+        return respond({ success: false, error: "Reply-to email is not a valid email address." });
+      }
+
+      const { data: saved, error } = await cloudAdmin
+        .from("author_email_settings")
+        .upsert(
+          {
+            author_id: authorProfile.id,
+            sender_name: senderName,
+            reply_to_email: replyTo,
+          },
+          { onConflict: "author_id" },
+        )
+        .select("sender_name, reply_to_email, domain_verified, subdomain")
+        .maybeSingle();
+
+      if (error) throw error;
+
+      return respond({ success: true, settings: saved });
     }
 
     return respond({ success: false, error: "Unsupported action." });

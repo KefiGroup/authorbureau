@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Loader2, Save, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { callMarketingHubState } from "@/lib/marketing-hub-state";
 
 export default function SettingsTab({ authorId }: { authorId: string | null }) {
   const [loading, setLoading] = useState(true);
@@ -13,39 +13,41 @@ export default function SettingsTab({ authorId }: { authorId: string | null }) {
   const [replyTo, setReplyTo] = useState("");
   const [verified, setVerified] = useState(false);
 
-  useEffect(() => {
-    if (!authorId) { setLoading(false); return; }
-    (async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("author_email_settings")
-        .select("sender_name, reply_to_email, domain_verified")
-        .eq("author_id", authorId)
-        .maybeSingle();
-      if (data) {
-        setSenderName(data.sender_name || "");
-        setReplyTo(data.reply_to_email || "");
-        setVerified(!!data.domain_verified);
-      }
+  const loadSettings = async () => {
+    setLoading(true);
+    try {
+      const result = await callMarketingHubState<{ settings: any }>("email_settings");
+      const s = result?.settings ?? {};
+      setSenderName(s.sender_name || "");
+      setReplyTo(s.reply_to_email || "");
+      setVerified(!!s.domain_verified);
+    } catch (e: any) {
+      toast({ title: "Couldn't load settings", description: e.message, variant: "destructive" });
+    } finally {
       setLoading(false);
-    })();
+    }
+  };
+
+  useEffect(() => {
+    loadSettings();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorId]);
 
   const handleSave = async () => {
-    if (!authorId) {
-      toast({ title: "Author profile not loaded", description: "Please refresh and try again.", variant: "destructive" });
+    if (!senderName.trim()) {
+      toast({ title: "Sender name required", description: "Please enter a sender name.", variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
-      const { error } = await supabase
-        .from("author_email_settings")
-        .upsert({
-          author_id: authorId,
-          sender_name: senderName,
-          reply_to_email: replyTo || null,
-        }, { onConflict: "author_id" });
-      if (error) throw error;
+      const result = await callMarketingHubState<{ settings: any }>("save_email_settings", {
+        sender_name: senderName,
+        reply_to_email: replyTo,
+      });
+      const s = result?.settings ?? {};
+      setSenderName(s.sender_name || senderName);
+      setReplyTo(s.reply_to_email || "");
+      setVerified(!!s.domain_verified);
       toast({ title: "Settings saved", description: "Your email settings have been updated." });
     } catch (e: any) {
       toast({ title: "Save failed", description: e.message, variant: "destructive" });
