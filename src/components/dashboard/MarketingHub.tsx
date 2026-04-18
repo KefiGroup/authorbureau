@@ -239,6 +239,20 @@ export default function MarketingHub({ onNavigate }: Props) {
           });
           setLeadCounts(counts);
         }
+
+        // Cross-tab counts powering the nudge band
+        const [seqRes, socialRes, contactsRes, settingsRes] = await Promise.all([
+          supabase.from("email_flows").select("id", { count: "exact", head: true }).eq("author_id", profileId),
+          supabase.from("social_posts" as any).select("id", { count: "exact", head: true }).eq("author_id", profileId).neq("status", "posted"),
+          supabase.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", profileId),
+          supabase.from("author_email_settings").select("domain_verified").eq("author_id", profileId).maybeSingle(),
+        ]);
+        setCrossCounts({
+          sequences: seqRes.count || 0,
+          socialQueued: socialRes.count || 0,
+          contacts: contactsRes.count || 0,
+          domainPending: !!settingsRes.data && settingsRes.data.domain_verified === false,
+        });
       }
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
