@@ -440,6 +440,15 @@ export default function SocialCalendarTab({ authorId }: Props) {
         </CardContent>
       </Card>
 
+      {/* How-to-use instructions */}
+      <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
+        <span className="text-base leading-none">💡</span>
+        <div className="space-y-1">
+          <p><strong className="text-foreground">How to use this calendar:</strong> Each blue dot is a scheduled post. <strong className="text-foreground">Click any day with a dot</strong> to view the post copy, copy it to your clipboard, mark it as posted, or reschedule to a different date.</p>
+          <p>Switch to <strong className="text-foreground">Week view</strong> for a more detailed look, or filter by platform above.</p>
+        </div>
+      </div>
+
       {/* View toggle + nav */}
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex gap-1">
