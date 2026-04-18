@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
+import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
+import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
