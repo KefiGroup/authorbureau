@@ -325,10 +325,11 @@ export default function SocialCalendarTab({ authorId }: Props) {
                   If it persists, sign out and back in — your saved kit is safe.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={load}>
-                    <Loader2 className="h-4 w-4 mr-1" /> Refresh Calendar
+                  <Button onClick={repairCalendar} disabled={repairing}>
+                    {repairing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Loader2 className="h-4 w-4 mr-1" />}
+                    {repairing ? "Rebuilding…" : "Refresh Calendar"}
                   </Button>
-                  <Button variant="outline" onClick={() => { window.location.href = "/node-builder/BP-03"; }}>
+                  <Button variant="outline" onClick={() => navigate("/node-builder/BP-03")}>
                     Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
