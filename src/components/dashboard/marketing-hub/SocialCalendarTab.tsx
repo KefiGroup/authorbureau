@@ -273,8 +273,38 @@ export default function SocialCalendarTab({ authorId }: Props) {
     );
   }
 
-  // Empty state
+  // Empty state — branch on whether BP-03 was activated.
   if (posts.length === 0) {
+    if (bp03Activated) {
+      return (
+        <div className="space-y-5">
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="p-6 flex items-start gap-4">
+              <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-md">
+                <Loader2 className="h-5 w-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-extrabold text-amber-700 uppercase tracking-[0.15em] mb-1">Almost there</p>
+                <p className="text-sm text-foreground mb-1">
+                  Your Social Media kit is activated, but the calendar didn't load. This usually clears after a quick refresh.
+                </p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  If it persists, sign out and back in — your saved kit is safe.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={load}>
+                    <Loader2 className="h-4 w-4 mr-1" /> Refresh Calendar
+                  </Button>
+                  <Button variant="outline" onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
+                    Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      );
+    }
     return (
       <div className="space-y-5">
         <Card className="border-secondary/30 bg-gradient-to-br from-secondary/8 via-secondary/4 to-transparent">
@@ -287,9 +317,12 @@ export default function SocialCalendarTab({ authorId }: Props) {
               <p className="text-sm text-foreground mb-4">
                 Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll send your 20 posts straight here.
               </p>
-              <Button onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
-                Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={() => { window.location.href = "/dashboard?section=brand-products"; }}>
+                  Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
+                </Button>
+                <Button variant="outline" onClick={load}>Refresh</Button>
+              </div>
             </div>
           </CardContent>
         </Card>
