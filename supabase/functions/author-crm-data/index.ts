@@ -252,8 +252,8 @@ Deno.serve(async (req) => {
       const summaries = await Promise.all(
         STAGES.map(async (stage) => {
           const [countRes, top3Res] = await Promise.all([
-            sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", userId).eq("stage", stage),
-            sb.from("crm_contacts").select("id, full_name, abby_score").eq("author_id", userId).eq("stage", stage).order("abby_score", { ascending: false }).limit(3),
+            sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", authorContactKey).eq("stage", stage),
+            sb.from("crm_contacts").select("id, full_name, abby_score").eq("author_id", authorContactKey).eq("stage", stage).order("abby_score", { ascending: false }).limit(3),
           ]);
           return {
             stage,
