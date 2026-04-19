@@ -143,13 +143,22 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return err("Unauthorized", 401);
 
-    const userId = await getUserId(authHeader);
+    const { userId, email: tokenEmail } = await getUserIdAndEmail(authHeader);
     if (!userId) return err("Invalid token", 401);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Resolve canonical author key (matches what submit-funnel writes to crm_contacts)
+    const { authorContactKey, authorProfileId: resolvedProfileId } = await resolveAuthorKey(sb, userId, tokenEmail);
+    console.log("[author-crm-data] 🧭 author key resolved:", JSON.stringify({
+      token_user_id: userId,
+      token_email: tokenEmail,
+      author_contact_key: authorContactKey,
+      author_profile_id: resolvedProfileId,
+    }));
 
     const body = await req.json();
     const { action } = body;
