@@ -1,152 +1,90 @@
-# Authors Bureau — Stratira-Beating Build Plan
 
-Source: `Authors_Bureau_-_Platform_Build_Roadmap.pdf` + `Authors_Bureau_-_Master_Architecture_Reference.pdf` (Apr 2026).
 
-**Promise:** Author uploads book → ABBY reads it, builds the entire business, runs it. Author only shows up to engage.
+## Sprint 37 — 5 Critical Fixes Plan
 
-**Where we stand:** ~35% built. Content generation works. Revenue engine, CRM intelligence, and cross-node wiring do NOT. An author who completes every live node today earns $0.
+I traced every issue to a concrete root cause. Here is the minimal change set.
 
 ---
 
-## The 4 Critical Money Leaks (must fix BEFORE any new node)
+### Fix 1 — Leads not flowing to CRM (CRITICAL)
 
-These are the only things blocking the first dollar.
+**Root cause:** The quiz at `/[slug]/free-gift` is rendered by `MicrositePage` which submits to the **`microsite-action`** edge function (NOT the new `submit-quiz-response` we deployed). Inside `microsite-action` (line 214-222) the `leads` insert uses:
+- `author_id: authorUserId` — the **auth user_id**, but `FunnelsHub`, `RevenueDashboard`, and the CRM all query `leads.author_id = author_profiles.id`. Mismatch → leads exist in DB but never visible.
+- No `abby_score`, no `stage`, no row in `lead_activities` (only `crm_activity_log`).
 
-### Fix 1 — Wire CRM to opt-in form submissions
-On quiz submit at `/[slug]/free-gift`:
-- INSERT into `leads` (name, email, quiz_stage, abby_score = 10)
-- INSERT one row per answer into `quiz_responses`
-- Call `trigger-email-sequence` edge function with the BP-02 sequence id
-- Redirect to `/[slug]/thank-you` with book CTA
-
-### Fix 2 — Connect Resend so emails actually send
-- `trigger-email-sequence` must call Resend API and write a row to `email_sends`
-- Prompt author for Resend API key in Connect Settings if missing
-- All future sequences fire automatically once connected
-
-### Fix 3 — Auto-generate the funnel on BP-02 activate
-On BP-02 Activate:
-- INSERT into `funnels` (opt-in funnel record + thank-you page record)
-- Thank-you page = book purchase CTA + upsell to BP-06 workbook
-- Enrol the author into Resend list automatically
-- "My Funnels" page must show this funnel immediately with live URL + conversion rate
-
-### Fix 4 — Un-break Revenue Dashboard + Review & Publish
-Both currently show forever-loading skeletons.
-- **Revenue Dashboard:** total leads, leads this week (with trend arrow), revenue this month (sum of `purchases`), active nodes (count `author_nodes.status='live'`), email open rate, top funnel, "Hot leads today" (ABBY score > 60)
-- **Review & Publish:** grid of activated nodes with public URLs + Copy-link button, "What's live" checklist, "What's missing" with one-click Activate, "Share my author page" button
+**Fix:**
+1. In `microsite-action/index.ts`, change the leads insert to use `author_id: author_id` (the profile id passed from the client) instead of `authorUserId`. Add `abby_score: 10`, `stage: "new"`, `nurture_stage: "welcome"`, `last_activity_at`.
+2. Also write to `lead_activities` (`activity_type: "quiz_completed"`, `metadata: { quiz_stage, quiz_score }`) — this is the table `RevenueDashboard` and CRM widgets read from.
+3. Wrap quiz email send in its own try/catch so a Resend failure never throws before lead insert (already mostly true — just confirm ordering: lead insert must happen BEFORE the email block).
 
 ---
 
-## The 7 Native Engines (foundation everything else plugs into)
+### Fix 2 — `/[slug]/thank-you` returns 404
 
-| # | Engine | Provider | Key tables |
-|---|---|---|---|
-| 1 | Email | Resend | `email_sequences`, `email_sequence_steps`, `email_sends`, `email_lists` |
-| 2 | Funnel | Native | `funnels`, `funnel_submissions` |
-| 3 | Course | Supabase S3 | `courses`, `course_modules`, `course_lessons`, `course_enrolments`, `course_progress` |
-| 4 | Podcast | Native RSS + Podcastindex.org | `podcast_shows`, `podcast_episodes` |
-| 5 | Sessions | Daily.co | `sessions`, `session_registrations` |
-| 6 | Commerce | Stripe direct | `products`, `purchases`, `subscriptions` |
-| 7 | CRM (intelligence) | Native | `leads`, `lead_activities`, `quiz_responses` |
+**Root cause:** `AuthorSubpageResolver` only resolves: known node slugs, dynamic microsite nodes, or live funnels with matching slug. "thank-you" matches none → falls through to `AuthorBookPage` which 404s.
 
-**Removed for good:** GoHighLevel, Thinkific, Transistor, Zoom, Zapier, Buffer.
-
-### ABBY Score (0–100) — drives the whole CRM
-+10 quiz · +2 email open · +5 link click · +5 sales-page visit · +10 second visit · +15 session register · +20 attend · +30 purchase · −3 inactive 7d · −50 unsubscribe.
-
-Pipeline auto-routing: New (0–15) → Engaged (16–35) → Warm (36–60) → Hot (61–80) → Customer (81–100) → VIP (100).
+**Fix:**
+1. Create `src/pages/ThankYouPage.tsx` (public, no auth). Loads author by `authorSlug` param + their primary book. Shows:
+   - Headline: "You're in! Check your inbox 📬"
+   - Subheadline as specified
+   - Primary CTA: "Get the Book on Amazon →" → `books.amazon_url` (the column exists)
+   - Optional calendar section if `author_profiles.calendar_url` exists (column may not exist — gracefully hide)
+   - Footer: `© [Pen Name] | Powered by Authors Bureau`
+2. Add a special case in `AuthorSubpageResolver`: if `bookSlug === "thank-you"` → render `<ThankYouPage />`.
+3. After successful submit in `MicrositePage` LeadMagnetPage `results` stage, replace inline message with `window.location.href = "/${authorSlug}/thank-you"` (keep it for BP-02 only so other nodes are unaffected).
 
 ---
 
-## Sprint Roadmap (delivery order, locked)
+### Fix 3 — My Funnels shows "No funnels yet" despite BP-02 Live
 
-> Rule: do **not** start the next sprint until acceptance criteria of the current one pass.
+**Root cause:** Pauline Teo has `author_nodes` BP-02 = "live" but **zero rows in `funnels`**. The BP-02 Builder calls `deploy-bp02-to-ghl`, never `bp02-activate-funnel` (which would create the funnel row). So `FunnelsHub.loadFunnels()` returns empty.
 
-### Sprint 37 — CRM + Email Engine + Funnel Engine ⚡ FOUNDATION
-Implements the 4 critical fixes above. Acceptance: submit test quiz → lead appears in CRM with score 10, welcome email arrives in inbox in <60s, thank-you page loads, My Funnels shows the funnel.
-
-### Sprint 38 — BP-03 Social Media (Stratira-level kit)
-- 20 posts each show a **branded graphic card** (new `generate-social-graphic` edge fn — uses book cover colours + author name + book title + caption quote)
-- LinkedIn / Instagram / Facebook / X tabs swap both graphic dimensions and caption
-- Per-post: Copy caption · Download PNG · Edit inline · Mark as Posted toggle
-- Posting schedule (today + 3 days per post)
-- "Download full kit (.zip)" → 20 graphics + captions + CSV schedule + VA README
-- Success screen: 5 thumbnails + 3 destinations (View Calendar / Edit Kit / Download ZIP)
-
-### Sprint 39 — BP-04 Author Page + BP-05 Webinars + BP-06 Workbook 💰
-- **BP-04:** photo + book cover + Get-the-book CTA + Get-my-free-quiz capture + socials + testimonials section. Fully editable.
-- **BP-05:** rip out the wrong "book trailer script" content. Generate webinar title + 60-min outline (5 sections) + registration page at `/[slug]/webinar/[slug]` + 3-email confirmation/reminder sequence + 3-email post-webinar sequence. Daily.co room created when date set.
-- **BP-06:** 20-page workbook PDF from chapters + Stripe product + sales page at `/[slug]/workbook` + S3 PDF delivery email after purchase.
-
-### Sprint 40 — Revenue Dashboard + Review & Publish + ABBY Daily Report 📊
-Implements Fix 4 fully + adds the **ABBY Daily Intelligence Report** sent at 8am local: new leads yesterday, hot lead count, revenue yesterday, best-performing node, one specific recommended action.
-
-### Sprint 41 — BA-10 Online Course + BA-12 Membership Site 🔁
-- **BA-10:** 6–8 modules (one per chapter), 3–5 lessons each, video upload, course portal at `/[slug]/course/[slug]` with player + progress + certificate. Stripe one-time product.
-- **BA-12:** membership concept + recurring Stripe subscription + member portal at `/[slug]/members` + monthly newsletter via Email Engine.
-
-### Sprint 42 — BA-14 Podcast + BA-11 Audiobook + BA-15 Media & PR
-- **BA-14:** show meta + cover-art prompt + first 5 episode outlines + native RSS at `/[slug]/podcast/feed.xml` + step-by-step Apple/Spotify submission guide.
-- **BA-11:** narration script + ElevenLabs TTS chapter-by-chapter + ACX submission guide.
-- **BA-15:** media kit PDF + 5 podcast pitch templates + 3 press release templates + 3-email follow-up sequence + new "Media Contacts" CRM stage.
-
-### Sprint 43 — YR-19 1-on-1 Coaching + YR-20 Big-Ticket Offers
-- **YR-19:** Sessions Engine booking calendar + Stripe checkout + Daily.co room + 24h/1h reminders.
-- **YR-20:** application funnel (not direct checkout) + manual approval + invoice via Commerce Engine.
-
-### Sprint 44 — YR-22 Corporate Training + YR-23 Mastermind + YR-24 Retreats
-Same engine pattern: Sessions + Commerce + Funnel + Email.
-
-### Sprint 45 — YR-25 Certification + YR-26 Conferences + YR-27 Fundraising + YR-28 Sponsors
-Closes out the 28-node map.
+**Fix:**
+1. In `BP02Builder.tsx` activation flow, after the existing `deploy-bp02-to-ghl` call succeeds, also invoke `bp02-activate-funnel` (already deployed in Pass 1) to write the `funnels` row. Non-fatal if it fails.
+2. Update `bp02-activate-funnel` to be idempotent: if a funnel for `(author_id, node_id='BP-02')` already exists, update it instead of inserting; ensure `slug='free-gift'`, `status='live'`, `cta_url='/[slug]/thank-you'`.
+3. **Backfill once**: a one-shot migration that inserts a funnel row for every author who has `author_nodes.node_id='BP-02' AND status='live'` but no matching `funnels` row. Uses content from `author_nodes.content_json` for headline/copy where available, falls back to the book title.
+4. `FunnelsHub` already renders the cards correctly with stats — no UI change needed beyond what's already there.
 
 ---
 
-## The Author Experience Standard (gate before "complete" on every node)
+### Fix 4 — Revenue Dashboard "Could not load dashboard data"
 
-1. **No dead ends** — every screen has ≥2 next actions
-2. **No empty states without guidance** — explain why + give the action ("You have no leads yet. Share your free quiz link: [Copy]")
-3. **ABBY always visible** — avatar + contextual tip on every builder
-4. **Mobile-first** — Calendar, CRM, Revenue Dashboard must all work on phone
-5. **One-click for the important action** — copy / download / share / mark posted
-6. **Progress is always visible** — 28-node map showing live / in-progress / locked
+**Root cause:** This message comes from `ABBYFrameworkDashboard.tsx` (line 135), which is rendered for the dashboard root, not `RevenueDashboard.tsx`. The `loadDashboard()` `try` block fetches several edge functions (`dashboard-state`, `list-my-books`) — if ANY one rejects (e.g. AbortError, 500), the whole dashboard renders the error card with a Retry button.
 
----
-
-## What I'm proposing to start with (this turn, after approval)
-
-**Sprint 37 in two passes**, because it unlocks every dollar:
-
-**Pass 1 — the wiring (no UI churn):**
-1. Migration: ensure `funnels`, `funnel_submissions`, `email_sends`, `email_lists`, `lead_activities` exist with correct columns + RLS (most are already there from Sprint 34/35 — audit + add what's missing).
-2. Edge fn `submit-quiz-response` (or extend existing): write `leads` + `quiz_responses` + call `trigger-email-sequence` + return thank-you redirect URL.
-3. Edge fn `trigger-email-sequence`: confirm it calls Resend with the author's saved API key, log to `email_sends`. If no key → return a structured error the UI can surface as "Connect Resend" CTA.
-4. Edge fn `bp02-activate-funnel`: on BP-02 Activate, INSERT a `funnels` row (opt-in + thank-you variant) and seed the BP-02 follow-up sequence.
-
-**Pass 2 — the visible surfaces:**
-5. Public `/[slug]/thank-you` page with book CTA + webinar CTA when BP-05 live.
-6. **My Funnels** page: replace "No funnels yet" with the auto-generated funnel card (live URL, visits, submissions, conversion %, View button).
-7. **Revenue Dashboard**: kill the loading skeleton, render the 6 metric cards + Hot Leads list from real queries.
-8. **Review & Publish**: kill the loading skeleton, render the activated-nodes grid + "What's missing" checklist + "Share my author page" copy button.
-9. Connect Settings: add a "Resend API key" field with a green "Connected" badge that updates after save.
-
-**Acceptance test (mandatory before declaring Sprint 37 done):**
-- Test author submits the quiz → lead in CRM (score = 10) within 5s
-- Welcome email lands in test inbox within 60s
-- `/[slug]/thank-you` renders with book CTA
-- My Funnels shows the new opt-in funnel
-- Revenue Dashboard + Review & Publish both render (no skeleton)
-
-Once Sprint 37 passes, we move to Sprint 38 (BP-03 graphics kit). I will NOT touch any BA or YR node until 37 → 40 are green.
+**Fix:**
+1. In `ABBYFrameworkDashboard.tsx`, soft-fail per-call: wrap each `fetchWithTimeout` in its own try/catch and use safe defaults (0 books, empty plan) instead of throwing out of the parent. Only show the error card when ALL three calls fail.
+2. Increase the per-call timeout to 15s and remove the abort throw on partial success.
+3. `RevenueDashboard.tsx` — already correct (graceful zero state) — no change.
 
 ---
 
-## What I am explicitly NOT doing
+### Fix 5 — Review & Publish infinite loading
 
-- Not touching the defunct Manus `authors-bureau-v2` project
-- Not adding Buffer, GHL, Mailchimp, Calendly, Zoom, or Thinkific code paths back
-- Not building BA-10 → YR-28 ahead of the foundation sprints
-- Not changing the design system / branding (Sprint 12 freeze stays)
+**Root cause:** `ReviewProductsPage.fetchDrafts` calls `builder-draft-state` with `action: "list-drafts"`. If that function is slow or returns 500, the `setLoading(false)` is in the catch path BUT only after the `await resp.json()` resolves. If the function never responds (no timeout), spinner shows forever.
 
-Reply **"Approve Sprint 37 Pass 1"** to start with the wiring, or tell me to scope differently (e.g. "do Fix 4 only first" or "audit current state before building").
+**Fix:**
+1. Use `fetchWithTimeout` with an 8-second timeout (already imported).
+2. On timeout or error, set `products = []` and stop the spinner so the empty state renders ("Nothing published yet — go to Brand Products to build your first product").
+3. Add a 3-second visual fallback: if `loading` is still true after 3s, render the empty state with a small "still loading…" hint instead of a bare spinner.
+
+---
+
+### Files to change
+- `supabase/functions/microsite-action/index.ts` — Fix 1 (leads insert + lead_activities)
+- `supabase/functions/bp02-activate-funnel/index.ts` — Fix 3 (idempotent upsert, correct cta_url)
+- `supabase/migrations/<new>.sql` — Fix 3 backfill
+- `src/pages/ThankYouPage.tsx` — NEW (Fix 2)
+- `src/pages/AuthorSubpageResolver.tsx` — Fix 2 (thank-you special-case)
+- `src/pages/MicrositePage.tsx` — Fix 2 (redirect after BP-02 submit)
+- `src/components/dashboard/builders/bp02/BP02Builder.tsx` — Fix 3 (also invoke `bp02-activate-funnel`)
+- `src/components/dashboard/ABBYFrameworkDashboard.tsx` — Fix 4 (soft-fail)
+- `src/components/dashboard/ReviewProductsPage.tsx` — Fix 5 (timeout + empty fallback)
+
+### Quality audit (run after deploy)
+1. Submit quiz at `/pauline-teo/free-gift` → `leads` row appears with `author_id = 92326a2f-…` and `abby_score = 10`; visible in My CRM.
+2. After submit, browser lands on `/pauline-teo/thank-you` (200, not 404) with Amazon CTA.
+3. My Funnels lists Pauline's BP-02 funnel with opt-in + thank-you URLs.
+4. Revenue Dashboard renders zero-state cards (no error card, no Retry).
+5. Review & Publish shows products or empty state within 3s.
+6. No console errors on any page.
+
