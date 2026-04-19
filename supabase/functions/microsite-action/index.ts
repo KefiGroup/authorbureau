@@ -47,6 +47,14 @@ serve(async (req) => {
 
     const authorUserId = profile.user_id;
     const ghlSubAccountId = profile.ghl_sub_account_id;
+    console.log("[microsite-action] 🔑 Author resolution:", JSON.stringify({
+      author_profile_id: author_id,
+      author_user_id: authorUserId,
+      pen_name: profile.pen_name,
+      node_id,
+      action_type,
+      email: email?.toLowerCase?.().trim(),
+    }));
     const GHL_API_KEY = Deno.env.get("GHL_API_KEY") || Deno.env.get("GHL_SUBACCOUNT_KEY") || "";
 
     // Tag map
