@@ -14,6 +14,8 @@ import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/component
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
+import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
+import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 
@@ -125,10 +127,15 @@ export default function BP06Builder({ authorId }: Props) {
           icon={FileText}
           onBack={() => navigate("/brand-products")}
         />
-        <UnifiedStepper nodeId="BP-06" steps={STEPS} current={step} />
+        <UnifiedStepper
+          nodeId="BP-06"
+          steps={STEPS}
+          current={step}
+          onStepClick={(i) => { if (i <= step) setStep(i); }}
+        />
       </div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        <NodeHowItWorks nodeId="BP-06" defaultOpen={step === 0} />
+        <NodeHowItWorks nodeId="BP-06" />
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Workbook</h2>
@@ -143,7 +150,18 @@ export default function BP06Builder({ authorId }: Props) {
           </AbbyCard>
         )}
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 2 && content && <ReviewStep content={content} authorName={authorName} onActivate={handlePublish} priceOverride={priceOverride} setPriceOverride={setPriceOverride} />}
+        {step === 2 && content && (
+          <ReviewStep
+            content={content}
+            setContent={setContent}
+            authorId={authorId}
+            authorName={authorName}
+            onActivate={handlePublish}
+            onPrevious={() => setStep(0)}
+            priceOverride={priceOverride}
+            setPriceOverride={setPriceOverride}
+          />
+        )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 3 && content?.activated && (
           <>
@@ -157,10 +175,11 @@ export default function BP06Builder({ authorId }: Props) {
 }
 
 function AbbyCard({ children }: { children: React.ReactNode }) {
-  return <Card className="border-primary/20 bg-primary/5"><CardContent className="pt-6"><div className="flex gap-3"><div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div><div className="flex-1 min-w-0">{children}</div></div></CardContent></Card>;
+  const s = categoryStyles.brand;
+  return <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}><div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} /><CardContent className="pt-6 pl-7"><div className="flex gap-3"><div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}><Sparkles className={`h-5 w-5 ${s.iconText}`} /></div><div className="flex-1 min-w-0">{children}</div></div></CardContent></Card>;
 }
 
-function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOverride }: { content: any; authorName: string; onActivate: () => void; priceOverride: number | null; setPriceOverride: (n: number) => void }) {
+function ReviewStep({ content, setContent, authorId, authorName, onActivate, onPrevious, priceOverride, setPriceOverride }: { content: any; setContent: (c: any) => void; authorId: string | null; authorName: string; onActivate: () => void; onPrevious: () => void; priceOverride: number | null; setPriceOverride: (n: number) => void }) {
   return (
     <div className="space-y-4">
       <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
@@ -209,8 +228,16 @@ function ReviewStep({ content, authorName, onActivate, priceOverride, setPriceOv
           </CardContent></Card>
         </TabsContent>
       </Tabs>
+      <div className="space-y-3 pt-2">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick edits</p>
+        <InlineSectionCard nodeId="BP-06" authorId={authorId} content={content} setContent={setContent} path="workbook_title" label="Workbook title" type="input" />
+        <InlineSectionCard nodeId="BP-06" authorId={authorId} content={content} setContent={setContent} path="transformation_promise" label="Transformation promise" type="textarea" />
+        <InlineSectionCard nodeId="BP-06" authorId={authorId} content={content} setContent={setContent} path="sales_page.headline" label="Sales page headline" type="input" />
+      </div>
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
-        <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
+        <Button variant="ghost" className="sm:w-auto" onClick={onPrevious}>
+          <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+        </Button>
         <Button className="flex-1" size="lg" onClick={onActivate}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">Your workbook will be published as a free lead magnet on your author site.</p>
