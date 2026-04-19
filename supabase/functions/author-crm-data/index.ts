@@ -284,7 +284,7 @@ Deno.serve(async (req) => {
       const tagList = tags?.split(",").map((t: string) => t.trim()).filter(Boolean);
       if (tagList?.length && newContact) {
         await sb.from("crm_contact_tags").insert(
-          tagList.map((tag: string) => ({ author_id: userId, contact_id: newContact.id, tag }))
+          tagList.map((tag: string) => ({ author_id: authorContactKey, contact_id: newContact.id, tag }))
         );
       }
 
