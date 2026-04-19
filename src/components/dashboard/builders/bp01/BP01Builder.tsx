@@ -17,6 +17,7 @@ import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/component
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
+import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 
@@ -215,7 +216,16 @@ export default function BP01Builder({ authorId }: Props) {
           icon={Mail}
           onBack={() => navigate("/brand-products")}
         />
-        <UnifiedStepper nodeId="BP-01" steps={STEPS} current={step} />
+        <UnifiedStepper
+          nodeId="BP-01"
+          steps={STEPS}
+          current={step}
+          onStepClick={(i) => {
+            // Allow jumping back to Introduction (0) or Review (2). Skip Generating (1).
+            if (i === 0) setStep(0);
+            else if (i === 2 && content) setStep(2);
+          }}
+        />
       </div>
 
       {/* Content */}
@@ -318,12 +328,14 @@ export default function BP01Builder({ authorId }: Props) {
 /* ---- Sub-components ---- */
 
 function AbbyCard({ children }: { children: React.ReactNode }) {
+  const s = categoryStyles.brand;
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="pt-6">
+    <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} />
+      <CardContent className="pt-6 pl-7">
         <div className="flex gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-primary" />
+          <div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}>
+            <Sparkles className={`h-5 w-5 ${s.iconText}`} />
           </div>
           <div className="flex-1 min-w-0">{children}</div>
         </div>
@@ -624,6 +636,26 @@ function ReviewStep({
             <Zap className="h-4 w-4 mr-2" />
             Activate My Email Campaign →
           </Button>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={() => window.open("/marketing-hub", "_blank")}
+            >
+              <Eye className="h-3.5 w-3.5 mr-1.5" />
+              View in Marketing Hub
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="flex-1"
+              onClick={() => window.dispatchEvent(new CustomEvent("bp01:goto-intro"))}
+            >
+              <ArrowLeft className="h-3.5 w-3.5 mr-1.5" />
+              Previous
+            </Button>
+          </div>
           <p className="text-xs text-center text-muted-foreground">
             Sent via Authors Bureau — no external email platform needed.
           </p>
