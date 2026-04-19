@@ -331,6 +331,12 @@ Deno.serve(async (req) => {
           bookTitle: titleMap[d.book_id] || (d.table === "author_nodes" ? "" : "Unknown Book"),
         }));
 
+        console.log("[builder-draft-state] 📋 list-drafts result:", JSON.stringify({
+          allUserIds,
+          total: enriched.length,
+          by_table: enriched.reduce((acc: any, d: any) => { acc[d.table] = (acc[d.table] || 0) + 1; return acc; }, {}),
+        }));
+
         return new Response(JSON.stringify({ drafts: enriched }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
