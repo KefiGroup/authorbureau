@@ -364,7 +364,15 @@ export default function BP03Builder({ authorId }: Props) {
           icon={Share2}
           onBack={() => navigate("/brand-products")}
         />
-        <UnifiedStepper nodeId="BP-03" steps={STEPS} current={step} />
+        <UnifiedStepper
+          nodeId="BP-03"
+          steps={STEPS}
+          current={step}
+          onStepClick={(i) => {
+            if (i === 0) setStep(0);
+            else if (i === 2 && content) setStep(2);
+          }}
+        />
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -470,12 +478,14 @@ export default function BP03Builder({ authorId }: Props) {
 /* ---- Sub-components ---- */
 
 function AbbyCard({ children }: { children: React.ReactNode }) {
+  const s = categoryStyles.brand;
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="pt-6">
+    <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} />
+      <CardContent className="pt-6 pl-7">
         <div className="flex gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-primary" />
+          <div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}>
+            <Sparkles className={`h-5 w-5 ${s.iconText}`} />
           </div>
           <div className="flex-1 min-w-0">{children}</div>
         </div>

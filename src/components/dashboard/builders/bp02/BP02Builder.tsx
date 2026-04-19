@@ -441,7 +441,16 @@ export default function BP02Builder({ authorId }: Props) {
           icon={Gift}
           onBack={() => navigate("/brand-products")}
         />
-        <UnifiedStepper nodeId="BP-02" steps={STEPS} current={Math.max(step, 0)} />
+        <UnifiedStepper
+          nodeId="BP-02"
+          steps={STEPS}
+          current={Math.max(step, 0)}
+          onStepClick={(i) => {
+            if (i === 0) setStep(0);
+            else if (i === 2 && content) setStep(2);
+            else if (i === 3 && content) setStep(3);
+          }}
+        />
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">

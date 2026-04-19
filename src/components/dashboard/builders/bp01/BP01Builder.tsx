@@ -149,6 +149,13 @@ export default function BP01Builder({ authorId }: Props) {
     }
   }, [step]);
 
+  // Listen for "Previous" navigation requests from inside the Review step
+  useEffect(() => {
+    const goIntro = () => setStep(0);
+    window.addEventListener("bp01:goto-intro", goIntro);
+    return () => window.removeEventListener("bp01:goto-intro", goIntro);
+  }, []);
+
 
   const handleGenerate = async () => {
     setStep(1);
