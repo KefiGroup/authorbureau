@@ -13,7 +13,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { funnel_id, email, name, phone, custom_fields, utm } = body;
+    const { funnel_id, email, name, phone, custom_fields, utm, quiz_responses } = body;
     if (!funnel_id || !email) {
       return new Response(JSON.stringify({ error: 'funnel_id and email required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -41,12 +41,13 @@ Deno.serve(async (req) => {
     }
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
+    const cleanEmail = email.toLowerCase().trim();
 
-    // Insert submission
+    // 1) Funnel submission
     await supabase.from('funnel_submissions').insert({
       funnel_id: funnel.id,
       author_id: funnel.author_id,
-      email,
+      email: cleanEmail,
       name: name || null,
       phone: phone || null,
       custom_fields: custom_fields || {},
@@ -58,28 +59,88 @@ Deno.serve(async (req) => {
       utm_content: utm?.content || null,
     });
 
-    // Increment conversions
     await supabase.from('funnels').update({ conversions: (funnel.conversions || 0) + 1 }).eq('id', funnel.id);
 
-    // Upsert subscriber
+    // 2) Upsert lead with abby_score=10 (Fix 1)
+    const { data: existingLead } = await supabase
+      .from('leads')
+      .select('id, abby_score')
+      .eq('author_id', funnel.author_id)
+      .eq('email', cleanEmail)
+      .maybeSingle();
+
+    let leadId: string | undefined;
+    if (existingLead) {
+      leadId = existingLead.id;
+      await supabase.from('leads').update({
+        name: name || null,
+        last_activity_at: new Date().toISOString(),
+        abby_score: Math.max(existingLead.abby_score || 0, 10),
+        stage: 'new',
+      }).eq('id', leadId);
+    } else {
+      const { data: newLead, error: leadErr } = await supabase.from('leads').insert({
+        author_id: funnel.author_id,
+        email: cleanEmail,
+        name: name || null,
+        source: 'funnel',
+        status: 'active',
+        nurture_stage: 'welcome',
+        stage: 'new',
+        abby_score: 10,
+        captured_at: new Date().toISOString(),
+        last_activity_at: new Date().toISOString(),
+        metadata: { funnel_id: funnel.id, node_id: funnel.node_id },
+      }).select('id').single();
+      if (leadErr) console.error('lead insert error', leadErr);
+      leadId = newLead?.id;
+    }
+
+    // 3) Quiz responses (Fix 1)
+    if (Array.isArray(quiz_responses) && quiz_responses.length && leadId) {
+      const rows = quiz_responses.map((q: any, idx: number) => ({
+        lead_id: leadId,
+        question_number: q.question_number ?? idx + 1,
+        answer_selected: q.answer_selected ?? null,
+        answer_text: q.answer_text ?? null,
+      }));
+      await supabase.from('quiz_responses').insert(rows);
+
+      await supabase.from('leads').update({
+        quiz_completed_at: new Date().toISOString(),
+        quiz_score: quiz_responses.length,
+      }).eq('id', leadId);
+    }
+
+    // 4) Lead activity
+    if (leadId) {
+      await supabase.from('lead_activities').insert({
+        lead_id: leadId,
+        author_id: funnel.author_id,
+        activity_type: 'funnel_submission',
+        metadata: { funnel_id: funnel.id, node_id: funnel.node_id },
+      });
+    }
+
+    // 5) Subscriber upsert
     const { data: existingSub } = await supabase
       .from('author_subscribers')
       .select('id')
       .eq('author_id', funnel.author_id)
-      .eq('email', email)
+      .eq('email', cleanEmail)
       .maybeSingle();
 
     let subscriberId = existingSub?.id;
     if (!subscriberId) {
       const { data: newSub } = await supabase
         .from('author_subscribers')
-        .insert({ author_id: funnel.author_id, email, name: name || null, source: 'funnel', source_detail: funnel.id, status: 'active' })
+        .insert({ author_id: funnel.author_id, email: cleanEmail, name: name || null, source: 'funnel', source_detail: funnel.id, status: 'active' })
         .select('id')
         .single();
       subscriberId = newSub?.id;
     }
 
-    // Trigger matching email sequence if one exists for this node
+    // 6) Trigger sequence — now also sends step 1 via Resend
     if (funnel.node_id && subscriberId) {
       const { data: flow } = await supabase
         .from('email_flows')
@@ -91,18 +152,15 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (flow) {
-        await fetch(`${SUPABASE_URL}/functions/v1/trigger-sequence`, {
+        fetch(`${SUPABASE_URL}/functions/v1/trigger-sequence`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-          },
-          body: JSON.stringify({ flow_id: flow.id, subscriber_id: subscriberId, email, name }),
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+          body: JSON.stringify({ flow_id: flow.id, subscriber_id: subscriberId, lead_id: leadId, email: cleanEmail, name }),
         }).catch((e) => console.warn('trigger-sequence failed', e));
       }
     }
 
-    return new Response(JSON.stringify({ success: true, redirect_url: funnel.cta_url || null }), {
+    return new Response(JSON.stringify({ success: true, lead_id: leadId, redirect_url: funnel.cta_url || null }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
