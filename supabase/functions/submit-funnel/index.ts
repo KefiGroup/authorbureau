@@ -43,6 +43,26 @@ Deno.serve(async (req) => {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
     const cleanEmail = email.toLowerCase().trim();
 
+    // Resolve canonical author_user_id from author_profiles (crm_contacts is keyed by user_id)
+    let authorUserId: string | null = null;
+    try {
+      const { data: profile } = await supabase
+        .from('author_profiles')
+        .select('user_id')
+        .eq('id', funnel.author_id)
+        .maybeSingle();
+      authorUserId = profile?.user_id ?? null;
+    } catch (e) {
+      console.warn('[submit-funnel] author_user_id resolve failed', e);
+    }
+    console.log('[submit-funnel] 📝 WRITE AUDIT', JSON.stringify({
+      funnel_id: funnel.id,
+      funnel_author_id_profile: funnel.author_id,
+      author_user_id: authorUserId,
+      email: cleanEmail,
+      node_id: funnel.node_id,
+    }));
+
     // 1) Funnel submission
     await supabase.from('funnel_submissions').insert({
       funnel_id: funnel.id,
