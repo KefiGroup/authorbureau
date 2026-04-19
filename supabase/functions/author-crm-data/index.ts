@@ -378,7 +378,7 @@ Deno.serve(async (req) => {
         .in("id", contact_ids);
 
       const activityRows = contact_ids.map((cid: string) => ({
-        author_id: userId, contact_id: cid, type: "stage_change",
+        author_id: authorContactKey, contact_id: cid, type: "stage_change",
         content: `Bulk moved to ${stage}`,
       }));
       await sb.from("crm_activity_log").insert(activityRows);
