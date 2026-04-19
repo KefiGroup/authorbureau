@@ -246,7 +246,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                 Manage Funnels <ArrowRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="p-3 rounded-lg bg-muted/40">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Funnels</p>
                 <p className="text-2xl font-heading font-bold mt-1">{funnelStats.count}</p>
@@ -263,6 +263,10 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                     <span className="text-xs text-muted-foreground font-normal ml-1.5">({funnelConvRate.toFixed(1)}%)</span>
                   )}
                 </p>
+              </div>
+              <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/30">
+                <p className="text-[10px] text-secondary uppercase tracking-wider font-semibold">Leads in CRM</p>
+                <p className="text-2xl font-heading font-bold mt-1 text-secondary">{leadsCount.toLocaleString()}</p>
               </div>
             </div>
           </Card>
