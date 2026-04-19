@@ -97,21 +97,24 @@ export default function FunnelsHub() {
   }, [authLoading, user]);
 
   const loadFunnels = async (aid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("funnels")
       .select("*")
       .eq("author_id", aid)
       .order("created_at", { ascending: false });
+    if (error) console.error("[FunnelsHub] funnels query error:", error);
+    console.log("[FunnelsHub] funnels loaded for author_id", aid, "→", (data || []).length, "rows");
     setFunnels((data as Funnel[]) || []);
   };
 
   const loadLiveNodes = async (aid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("author_nodes")
       .select("node_id, microsite_url, status")
       .eq("author_id", aid)
       .in("node_id", FUNNEL_ELIGIBLE_NODES)
       .eq("status", "live");
+    if (error) console.error("[FunnelsHub] live nodes error:", error);
     setLiveNodes((data as LiveNode[]) || []);
   };
 
