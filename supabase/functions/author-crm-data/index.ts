@@ -18,7 +18,7 @@ const SCORE_MAP: Record<string, number> = {
 
 const STAGES = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
 
-async function getUserId(authHeader: string): Promise<string | null> {
+async function getUserIdAndEmail(authHeader: string): Promise<{ userId: string | null; email: string | null }> {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   // Try shared backend first
   try {
@@ -26,7 +26,7 @@ async function getUserId(authHeader: string): Promise<string | null> {
     const { data, error } = await shared.auth.getUser(token);
     if (!error && data?.user) {
       console.log("[author-crm-data] 🔑 token resolved via shared backend → user", data.user.id);
-      return data.user.id;
+      return { userId: data.user.id, email: data.user.email ?? null };
     }
   } catch (_) { /* ignore */ }
   // Fallback to local/cloud token
@@ -38,10 +38,57 @@ async function getUserId(authHeader: string): Promise<string | null> {
     const { data, error } = await local.auth.getUser(token);
     if (!error && data?.user) {
       console.log("[author-crm-data] 🔑 token resolved via local backend → user", data.user.id);
-      return data.user.id;
+      return { userId: data.user.id, email: data.user.email ?? null };
     }
   } catch (_) { /* ignore */ }
-  return null;
+  return { userId: null, email: null };
+}
+
+/**
+ * Resolve the canonical author key used by crm_contacts/_tags/_activity_log.
+ * Writes (e.g. submit-funnel) key these tables on author_profiles.user_id (the
+ * shared-backend user id). When a user signs in via the cloud auth, the token
+ * user id can be a different UUID — so we look up the matching author_profile
+ * by user_id first, then fall back to email match.
+ */
+async function resolveAuthorKey(
+  sb: any,
+  tokenUserId: string,
+  tokenEmail: string | null,
+): Promise<{ authorContactKey: string; authorProfileId: string | null }> {
+  // 1) Direct match on user_id (shared-token path)
+  const { data: byUserId } = await sb
+    .from("author_profiles")
+    .select("id, user_id")
+    .eq("user_id", tokenUserId)
+    .maybeSingle();
+  if (byUserId?.user_id) {
+    return { authorContactKey: byUserId.user_id, authorProfileId: byUserId.id };
+  }
+
+  // 2) Email fallback (cloud-token path) — look up auth.users → author_profiles
+  if (tokenEmail) {
+    const { data: usersByEmail } = await sb
+      .schema("auth")
+      .from("users")
+      .select("id")
+      .eq("email", tokenEmail)
+      .limit(5);
+    const candidateIds = (usersByEmail || []).map((u: any) => u.id).filter(Boolean);
+    if (candidateIds.length > 0) {
+      const { data: profileByEmail } = await sb
+        .from("author_profiles")
+        .select("id, user_id")
+        .in("user_id", candidateIds)
+        .maybeSingle();
+      if (profileByEmail?.user_id) {
+        return { authorContactKey: profileByEmail.user_id, authorProfileId: profileByEmail.id };
+      }
+    }
+  }
+
+  // 3) Last resort: use token user id as-is (won't match crm_contacts but won't crash)
+  return { authorContactKey: tokenUserId, authorProfileId: null };
 }
 
 function ok(data: any) {
