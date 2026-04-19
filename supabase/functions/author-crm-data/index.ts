@@ -341,7 +341,7 @@ Deno.serve(async (req) => {
       const { contact_id, content } = body;
       if (!contact_id || !content) return err("contact_id and content required");
       await sb.from("crm_activity_log").insert({
-        author_id: userId, contact_id, type: "note", content: content.trim(),
+        author_id: authorContactKey, contact_id, type: "note", content: content.trim(),
       });
       await recalcScore(sb, contact_id);
       return ok({ ok: true });
