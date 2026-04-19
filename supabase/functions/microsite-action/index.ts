@@ -216,7 +216,14 @@ serve(async (req) => {
 
     // ─── Quiz Responses + Leads (BP-02 quiz only) ───
     if (isQuizCapture) {
-      console.log("[microsite-action] ▶ Saving quiz responses and leads data");
+      console.log("[microsite-action] 📝 WRITE AUDIT:", JSON.stringify({
+        crm_contacts_author_id: authorUserId,
+        leads_author_id: author_id,
+        lead_activities_author_id: author_id,
+        email: cleanEmail,
+        node_id,
+        quiz_stage,
+      }));
       try {
         // Insert into leads table — author_id MUST be the author_profiles.id
         // (FunnelsHub, RevenueDashboard, CRM all query leads by profile id)
@@ -237,7 +244,9 @@ serve(async (req) => {
         }, { onConflict: "author_id,email" }).select("id").single();
 
         if (leadErr) {
-          console.error("[microsite-action] Lead upsert failed:", leadErr);
+          console.error("[microsite-action] ❌ Lead upsert failed:", leadErr);
+        } else {
+          console.log("[microsite-action] ✅ Lead upserted id:", lead?.id, "author_id:", author_id);
         }
 
         // Insert quiz_responses

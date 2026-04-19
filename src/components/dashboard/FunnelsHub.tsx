@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -67,41 +67,54 @@ export default function FunnelsHub() {
   const [regenerating, setRegenerating] = useState(false);
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
-  const { user, isReady } = useAuthReady();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
-    if (!isReady) return;
+    if (authLoading) return;
     if (!user) { setLoading(false); return; }
+    let cancelled = false;
     (async () => {
-      const { data: profile } = await supabase
+      console.log("[FunnelsHub] 🔑 Resolving profile for user_id:", user.id);
+      const { data: profile, error: profileErr } = await supabase
         .from("author_profiles")
         .select("id, author_slug")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (!profile) { setLoading(false); return; }
+      if (cancelled) return;
+      if (profileErr) console.error("[FunnelsHub] profile lookup error:", profileErr);
+      if (!profile) {
+        console.warn("[FunnelsHub] No author_profile found for user_id:", user.id);
+        setLoading(false);
+        return;
+      }
+      console.log("[FunnelsHub] ✅ Resolved author_profile.id:", profile.id);
       setAuthorId(profile.id);
       setAuthorSlug(profile.author_slug);
       await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id)]);
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     })();
-  }, [isReady, user]);
+    return () => { cancelled = true; };
+  }, [authLoading, user]);
 
   const loadFunnels = async (aid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("funnels")
       .select("*")
       .eq("author_id", aid)
       .order("created_at", { ascending: false });
+    if (error) console.error("[FunnelsHub] funnels query error:", error);
+    console.log("[FunnelsHub] funnels loaded for author_id", aid, "→", (data || []).length, "rows");
     setFunnels((data as Funnel[]) || []);
   };
 
   const loadLiveNodes = async (aid: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("author_nodes")
       .select("node_id, microsite_url, status")
       .eq("author_id", aid)
       .in("node_id", FUNNEL_ELIGIBLE_NODES)
       .eq("status", "live");
+    if (error) console.error("[FunnelsHub] live nodes error:", error);
     setLiveNodes((data as LiveNode[]) || []);
   };
 

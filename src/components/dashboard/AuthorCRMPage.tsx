@@ -12,8 +12,8 @@ import PipelineView from "@/components/crm/PipelineView";
 import ContactListView from "@/components/crm/ContactListView";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface CRMContact {
   id: string;
@@ -37,10 +37,9 @@ interface Props {
 const CRM_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-crm-data`;
 
 async function crmFetch(action: string, extra: Record<string, any> = {}) {
-  const { data: sessionData } = await sharedSupabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
+  const token = await getActiveToken();
   if (!token) throw new Error("Not authenticated");
-  const res = await fetch(CRM_FN_URL, {
+  const res = await fetchWithTimeout(CRM_FN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ action, ...extra }),
@@ -62,7 +61,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [statsData, setStatsData] = useState<{ total: number; activeThisWeek: number; conversionRate: number } | null>(null);
+  const [statsData, setStatsData] = useState<{ total: number; effectiveTotal: number; activeThisWeek: number; conversionRate: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -74,20 +73,20 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [recentLeads, setRecentLeads] = useState<Array<{ id: string; email: string; name: string | null; created_at: string; abby_score: number | null; quiz_stage: string | null }>>([]);
 
-  // Lightweight initial load: just get first page to check if empty + stats.
-  // The edge function now also returns `recentLeads` from the leads table (server-side
-  // identity resolution), so we no longer need a client-side fallback query.
   const fetchInitial = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       const data = await crmFetch("list", { page: 1, pageSize: 1 });
       const total = data.totalCount || 0;
-      setStatsData({ total, activeThisWeek: 0, conversionRate: 0 });
-      setRecentLeads(Array.isArray(data.recentLeads) ? data.recentLeads : []);
+      const recent = Array.isArray(data.recentLeads) ? data.recentLeads : [];
+      const effectiveTotal = data.effectiveTotal ?? Math.max(total, recent.length);
+      console.log("[CRM] initial load →", { total, effectiveTotal, recentLeads: recent.length, authorProfileId: data.authorProfileId });
+      setStatsData({ total, effectiveTotal, activeThisWeek: 0, conversionRate: 0 });
+      setRecentLeads(recent);
     } catch (e) {
       console.warn("[CRM] initial load failed:", e);
-      setStatsData({ total: 0, activeThisWeek: 0, conversionRate: 0 });
+      setStatsData({ total: 0, effectiveTotal: 0, activeThisWeek: 0, conversionRate: 0 });
       setRecentLeads([]);
     }
     setLoading(false);
@@ -243,7 +242,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     );
   }
 
-  if ((statsData?.total || 0) === 0 && !showForm) {
+  if ((statsData?.effectiveTotal || 0) === 0 && !showForm) {
     return (
       <div className="space-y-6">
         <div className="rounded-xl bg-[#1E3A5F] px-6 py-8 text-center">
