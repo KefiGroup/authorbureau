@@ -133,7 +133,42 @@ Deno.serve(async (req) => {
         tags: tagsMap[c.id] || [],
       }));
 
-      return ok({ contacts: result, totalCount: count || 0, page, pageSize });
+      // Server-side fallback: also fetch recent `leads` rows keyed off author_profiles.id
+      // so fresh quiz captures show up immediately even if crm_contacts mirror lags.
+      let recentLeads: any[] = [];
+      let authorProfileId: string | null = null;
+      try {
+        const { data: profile } = await sb
+          .from("author_profiles")
+          .select("id")
+          .eq("user_id", userId)
+          .maybeSingle();
+        authorProfileId = profile?.id ?? null;
+        if (authorProfileId) {
+          const { data: leads } = await sb
+            .from("leads")
+            .select("id, email, name, created_at, abby_score, quiz_stage, source, stage")
+            .eq("author_id", authorProfileId)
+            .order("created_at", { ascending: false })
+            .limit(10);
+          recentLeads = leads || [];
+        }
+      } catch (e) {
+        console.warn("[author-crm-data] recentLeads fetch failed:", e);
+      }
+
+      const totalCount = count || 0;
+      const effectiveTotal = Math.max(totalCount, recentLeads.length);
+
+      return ok({
+        contacts: result,
+        totalCount,
+        effectiveTotal,
+        recentLeads,
+        authorProfileId,
+        page,
+        pageSize,
+      });
     }
 
     // ── PIPELINE SUMMARY ──
