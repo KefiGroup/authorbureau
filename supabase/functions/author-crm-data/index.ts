@@ -20,27 +20,43 @@ const STAGES = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"]
 
 async function getUserIdAndEmail(authHeader: string): Promise<{ userId: string | null; email: string | null }> {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
-  // Try shared backend first
+  if (!token) return { userId: null, email: null };
+
+  const cloudAdmin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  // 1) Try Cloud auth first (current browser session token)
+  try {
+    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+    if (cloudUser) {
+      console.log("[author-crm-data] 🔑 token resolved via cloud → user", cloudUser.id, cloudUser.email);
+      return { userId: cloudUser.id, email: cloudUser.email ?? null };
+    }
+  } catch (_) { /* ignore */ }
+
+  // 2) Fallback: try shared backend (SSO sessions), then map to cloud user by email
   try {
     const shared = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data, error } = await shared.auth.getUser(token);
-    if (!error && data?.user) {
-      console.log("[author-crm-data] 🔑 token resolved via shared backend → user", data.user.id);
-      return { userId: data.user.id, email: data.user.email ?? null };
+    const { data: { user: sharedUser } } = await shared.auth.getUser(token);
+    if (sharedUser) {
+      let mappedId = sharedUser.id;
+      if (sharedUser.email) {
+        try {
+          const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+          const match = users?.find(
+            (u: any) => u.email?.toLowerCase() === sharedUser.email?.toLowerCase()
+          );
+          if (match) mappedId = match.id;
+        } catch (_) { /* ignore */ }
+      }
+      console.log("[author-crm-data] 🔑 token resolved via shared → mapped to cloud user", mappedId, sharedUser.email);
+      return { userId: mappedId, email: sharedUser.email ?? null };
     }
   } catch (_) { /* ignore */ }
-  // Fallback to local/cloud token
-  try {
-    const local = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-    );
-    const { data, error } = await local.auth.getUser(token);
-    if (!error && data?.user) {
-      console.log("[author-crm-data] 🔑 token resolved via local backend → user", data.user.id);
-      return { userId: data.user.id, email: data.user.email ?? null };
-    }
-  } catch (_) { /* ignore */ }
+
+  console.warn("[author-crm-data] 🔑 token resolution FAILED for both cloud and shared backends");
   return { userId: null, email: null };
 }
 
