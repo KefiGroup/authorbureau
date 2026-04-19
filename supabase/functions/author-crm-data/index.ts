@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
       let query = sb
         .from("crm_contacts")
         .select("*", { count: "exact" })
-        .eq("author_id", userId)
+        .eq("author_id", authorContactKey)
         .order("created_at", { ascending: false });
 
       if (stageFilter) query = query.eq("stage", stageFilter);
