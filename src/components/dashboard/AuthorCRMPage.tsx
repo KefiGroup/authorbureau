@@ -12,8 +12,8 @@ import PipelineView from "@/components/crm/PipelineView";
 import ContactListView from "@/components/crm/ContactListView";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface CRMContact {
   id: string;
@@ -37,10 +37,9 @@ interface Props {
 const CRM_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-crm-data`;
 
 async function crmFetch(action: string, extra: Record<string, any> = {}) {
-  const { data: sessionData } = await sharedSupabase.auth.getSession();
-  const token = sessionData?.session?.access_token;
+  const token = await getActiveToken();
   if (!token) throw new Error("Not authenticated");
-  const res = await fetch(CRM_FN_URL, {
+  const res = await fetchWithTimeout(CRM_FN_URL, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify({ action, ...extra }),
