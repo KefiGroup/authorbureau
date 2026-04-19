@@ -210,16 +210,27 @@ serve(async (req) => {
     if (isQuizCapture) {
       console.log("[microsite-action] ▶ Saving quiz responses and leads data");
       try {
-        // Insert into leads table
-        const { data: lead } = await supabaseAdmin.from("leads").insert({
-          author_id: authorUserId,
+        // Insert into leads table — author_id MUST be the author_profiles.id
+        // (FunnelsHub, RevenueDashboard, CRM all query leads by profile id)
+        const nowIso = new Date().toISOString();
+        const { data: lead, error: leadErr } = await supabaseAdmin.from("leads").upsert({
+          author_id: author_id,
           email: cleanEmail,
           name: fullName !== email ? fullName : null,
           source: "BP-02 Quiz Funnel",
           quiz_stage: quiz_stage,
           quiz_score: typeof quiz_score === "number" ? quiz_score : null,
-          quiz_completed_at: new Date().toISOString(),
-        }).select("id").single();
+          quiz_completed_at: nowIso,
+          abby_score: 10,
+          stage: "new",
+          nurture_stage: "welcome",
+          status: "active",
+          last_activity_at: nowIso,
+        }, { onConflict: "author_id,email" }).select("id").single();
+
+        if (leadErr) {
+          console.error("[microsite-action] Lead upsert failed:", leadErr);
+        }
 
         // Insert quiz_responses
         if (lead?.id && Array.isArray(quiz_answers) && quiz_answers.length > 0) {
@@ -230,6 +241,21 @@ serve(async (req) => {
             answer_text: a.answer_text || "",
           }));
           await supabaseAdmin.from("quiz_responses").insert(responseRows);
+        }
+
+        // Write to lead_activities — RevenueDashboard reads from this table
+        if (lead?.id) {
+          await supabaseAdmin.from("lead_activities").insert({
+            lead_id: lead.id,
+            author_id: author_id,
+            activity_type: "quiz_completed",
+            metadata: {
+              quiz_stage,
+              quiz_score: typeof quiz_score === "number" ? quiz_score : null,
+              source: "BP-02",
+              email: cleanEmail,
+            },
+          });
         }
 
         // Log nurture event
