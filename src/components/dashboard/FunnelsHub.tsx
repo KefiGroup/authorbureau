@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,11 +67,12 @@ export default function FunnelsHub() {
   const [regenerating, setRegenerating] = useState(false);
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
+  const { user, isReady } = useAuthReady();
 
   useEffect(() => {
+    if (!isReady) return;
+    if (!user) { setLoading(false); return; }
     (async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { setLoading(false); return; }
       const { data: profile } = await supabase
         .from("author_profiles")
         .select("id, author_slug")
@@ -82,7 +84,7 @@ export default function FunnelsHub() {
       await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id)]);
       setLoading(false);
     })();
-  }, []);
+  }, [isReady, user]);
 
   const loadFunnels = async (aid: string) => {
     const { data } = await supabase
