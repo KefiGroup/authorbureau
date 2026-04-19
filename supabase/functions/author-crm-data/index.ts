@@ -295,7 +295,7 @@ Deno.serve(async (req) => {
     if (action === "delete") {
       const { contact_id } = body;
       if (!contact_id) return err("contact_id required");
-      const { data: owned } = await sb.from("crm_contacts").select("id").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      const { data: owned } = await sb.from("crm_contacts").select("id").eq("id", contact_id).eq("author_id", authorContactKey).maybeSingle();
       if (!owned) return err("Not found", 404);
       await sb.from("crm_contact_tags").delete().eq("contact_id", contact_id);
       await sb.from("crm_activity_log").delete().eq("contact_id", contact_id);
