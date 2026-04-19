@@ -14,6 +14,8 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, GraduationCap, LayoutList, DollarSign, FileText } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
+import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
+import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 
@@ -92,10 +94,15 @@ export default function BP07Builder({ authorId }: Props) {
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 pt-4 pb-2 space-y-3">
         <BuilderHeader nodeId="BP-07" title="Home Study Course" subtitle="Self-paced programme built from your book" icon={GraduationCap} onBack={() => navigate("/brand-products")} />
-        <UnifiedStepper nodeId="BP-07" steps={STEPS} current={step} />
+        <UnifiedStepper
+          nodeId="BP-07"
+          steps={STEPS}
+          current={step}
+          onStepClick={(i) => { if (i <= step) setStep(i); }}
+        />
       </div>
       <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
-        <NodeHowItWorks nodeId="BP-07" defaultOpen={step === 0} />
+        <NodeHowItWorks nodeId="BP-07" />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Home Study Course</h2>
             {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your home study course, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{detectedBookTitle || bookTitle || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>)}
@@ -153,8 +160,16 @@ export default function BP07Builder({ authorId }: Props) {
                 <Card><CardContent className="pt-6 space-y-4"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2><p className="text-muted-foreground">{content.sales_page?.subheadline}</p><p className="text-sm">{content.sales_page?.pain_point}</p><p className="text-sm">{content.sales_page?.solution_statement}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Start Your Journey"}</span></div></CardContent></Card>
               </TabsContent>
             </Tabs>
+            <div className="space-y-3 pt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick edits</p>
+              <InlineSectionCard nodeId="BP-07" authorId={authorId} content={content} setContent={setContent} path="programme_title" label="Programme title" type="input" />
+              <InlineSectionCard nodeId="BP-07" authorId={authorId} content={content} setContent={setContent} path="transformation_promise" label="Transformation promise" type="textarea" />
+              <InlineSectionCard nodeId="BP-07" authorId={authorId} content={content} setContent={setContent} path="sales_page.headline" label="Sales page headline" type="input" />
+            </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
+              <Button variant="ghost" className="sm:w-auto" onClick={() => setStep(0)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+              </Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
             <p className="text-xs text-center text-muted-foreground">Your home study course will be set up automatically with a payment link.</p>
@@ -168,5 +183,6 @@ export default function BP07Builder({ authorId }: Props) {
 }
 
 function AbbyCard({ children }: { children: React.ReactNode }) {
-  return <Card className="border-primary/20 bg-primary/5"><CardContent className="pt-6"><div className="flex gap-3"><div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center"><Sparkles className="h-5 w-5 text-primary" /></div><div className="flex-1 min-w-0">{children}</div></div></CardContent></Card>;
+  const s = categoryStyles.brand;
+  return <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}><div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} /><CardContent className="pt-6 pl-7"><div className="flex gap-3"><div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}><Sparkles className={`h-5 w-5 ${s.iconText}`} /></div><div className="flex-1 min-w-0">{children}</div></div></CardContent></Card>;
 }

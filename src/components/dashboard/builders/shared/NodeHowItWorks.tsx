@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronDown, ChevronUp, Sparkles, MapPin, Pencil, Clock, AlertTriangle } from "lucide-react";
 import { BP_INTRO_SPECS } from "./BuilderIntroBlock";
 import { categoryStyles, getBuilderCategory } from "./BuilderTheme";
@@ -8,17 +8,31 @@ import { cn } from "@/lib/utils";
  * Collapsible "How this node works" guide rendered above step content.
  * Reuses BP_INTRO_SPECS so copy lives in one place.
  *
- * Default open on the Introduction step (step 0); collapsed on later steps so
- * authors who already know the flow aren't slowed down.
+ * Default behaviour: open by default for every node so the roadmap stays
+ * visible to new users on every step. Once a user collapses it, that
+ * preference is remembered per-node in localStorage so power users don't
+ * have to re-collapse on every visit.
  */
 interface Props {
   nodeId: string;        // e.g. "BP-03"
   defaultOpen?: boolean;
 }
 
-export default function NodeHowItWorks({ nodeId, defaultOpen = false }: Props) {
+export default function NodeHowItWorks({ nodeId, defaultOpen = true }: Props) {
   const spec = BP_INTRO_SPECS[nodeId];
-  const [open, setOpen] = useState(defaultOpen);
+  const storageKey = `nodeHowItWorks:${nodeId}:open`;
+
+  const [open, setOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return defaultOpen;
+    const saved = window.localStorage.getItem(storageKey);
+    if (saved === null) return defaultOpen;
+    return saved === "1";
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(storageKey, open ? "1" : "0");
+  }, [open, storageKey]);
 
   if (!spec) return null;
 

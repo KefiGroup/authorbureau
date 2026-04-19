@@ -15,6 +15,7 @@ import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/component
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
+import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
@@ -100,10 +101,15 @@ export default function BP09Builder({ authorId }: Props) {
           icon={ShoppingBag}
           onBack={() => navigate("/brand-products")}
         />
-        <UnifiedStepper nodeId="BP-09" steps={STEPS} current={step} />
+        <UnifiedStepper
+          nodeId="BP-09"
+          steps={STEPS}
+          current={step}
+          onStepClick={(i) => { if (i <= step) setStep(i); }}
+        />
       </div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        <NodeHowItWorks nodeId="BP-09" defaultOpen={step === 0} />
+        <NodeHowItWorks nodeId="BP-09" />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's set up your Book Sales</h2>
             {!isBookLoading && hasContext === false && !hasBook ? (<BookProfileQuickForm authorId={authorId} authorName={authorName} onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }} />) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || bookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
@@ -175,8 +181,16 @@ export default function BP09Builder({ authorId }: Props) {
                 <Card><CardContent className="pt-6 space-y-4"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2><p className="text-muted-foreground">{content.sales_page?.subheadline}</p><p className="text-sm">{content.sales_page?.pain_point}</p><p className="text-sm">{content.sales_page?.solution_statement}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Buy Now"}</span></div></CardContent></Card>
               </TabsContent>
             </Tabs>
+            <div className="space-y-3 pt-2">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick edits</p>
+              <InlineSectionCard nodeId="BP-09" authorId={authorId} content={content} setContent={setContent} path="sales_kit_title" label="Sales kit title" type="input" />
+              <InlineSectionCard nodeId="BP-09" authorId={authorId} content={content} setContent={setContent} path="who_its_for" label="Who it's for" type="textarea" />
+              <InlineSectionCard nodeId="BP-09" authorId={authorId} content={content} setContent={setContent} path="sales_page.headline" label="Sales page headline" type="input" />
+            </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon. Activate now and request changes from ABBY later.")}>Edit</Button>
+              <Button variant="ghost" className="sm:w-auto" onClick={() => setStep(0)}>
+                <ArrowLeft className="h-4 w-4 mr-1" /> Previous
+              </Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
             <p className="text-xs text-center text-muted-foreground">Your book sales page and payment link will be set up automatically.</p>
