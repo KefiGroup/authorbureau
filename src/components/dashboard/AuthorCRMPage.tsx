@@ -271,6 +271,36 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           <p className="text-[#D4AF37] text-sm mb-1">Sales Funnel & Contacts — powered by ABBY</p>
           <p className="text-white/70 text-[13px] italic">{abbyMessage}</p>
         </div>
+
+        {recentLeads.length > 0 && (
+          <div className="max-w-3xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-heading text-base font-bold text-[#1E3A5F]">
+                Recent quiz leads ({recentLeads.length})
+              </h3>
+              <span className="text-[11px] text-gray-500">From your funnel captures</span>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {recentLeads.map((l) => (
+                <li key={l.id} className="py-2.5 flex items-center justify-between text-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium text-[#1E3A5F] truncate">{l.name || l.email}</p>
+                    <p className="text-[12px] text-gray-500 truncate">{l.email}</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-[11px] text-gray-500 shrink-0 ml-4">
+                    {l.quiz_stage && <span className="px-2 py-0.5 rounded bg-[#D4AF37]/15 text-[#1E3A5F]">{l.quiz_stage}</span>}
+                    {typeof l.abby_score === "number" && <span>score {l.abby_score}</span>}
+                    <span>{new Date(l.created_at).toLocaleDateString()}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-gray-400 mt-3 italic">
+              These leads were captured by your funnels. They will appear in your full CRM shortly.
+            </p>
+          </div>
+        )}
+
         <div className="max-w-xl mx-auto text-center space-y-4">
           <p className="text-muted-foreground text-sm leading-relaxed">
             Your CRM will grow as readers engage with your website, download your resources,
