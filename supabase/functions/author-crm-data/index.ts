@@ -495,7 +495,7 @@ Deno.serve(async (req) => {
       const { contact_id } = body;
       if (!contact_id) return err("contact_id required");
 
-      const { data: contact } = await sb.from("crm_contacts").select("*").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      const { data: contact } = await sb.from("crm_contacts").select("*").eq("id", contact_id).eq("author_id", authorContactKey).maybeSingle();
       if (!contact) return err("Not found", 404);
 
       const { data: activities } = await sb.from("crm_activity_log").select("type, content, created_at")
