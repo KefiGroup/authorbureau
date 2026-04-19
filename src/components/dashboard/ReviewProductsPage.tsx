@@ -369,6 +369,14 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             )
+          ) : loadError ? (
+            <Card className="p-6 text-center border-destructive/40 bg-destructive/5">
+              <p className="text-sm font-semibold text-destructive">Couldn't load your products</p>
+              <p className="text-xs text-muted-foreground mt-1">{loadError}</p>
+              <Button size="sm" variant="outline" className="mt-3" onClick={() => fetchDrafts()}>
+                Retry
+              </Button>
+            </Card>
           ) : filtered.length === 0 ? (
             <EmptyState tab={activeTab} onNavigate={onNavigate} />
           ) : (
