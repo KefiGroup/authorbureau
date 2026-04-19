@@ -393,7 +393,7 @@ Deno.serve(async (req) => {
       let imported = 0;
       for (let i = 0; i < rows.length; i += 50) {
         const batch = rows.slice(i, i + 50).map((r: any) => ({
-          author_id: userId, full_name: r.full_name || "Unknown",
+          author_id: authorContactKey, full_name: r.full_name || "Unknown",
           email: r.email || null, phone: r.phone || null,
           company: r.company || null, source: "csv_import",
         }));
