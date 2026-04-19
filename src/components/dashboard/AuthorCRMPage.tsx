@@ -242,7 +242,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     );
   }
 
-  if ((statsData?.total || 0) === 0 && !showForm) {
+  if ((statsData?.effectiveTotal || 0) === 0 && !showForm) {
     return (
       <div className="space-y-6">
         <div className="rounded-xl bg-[#1E3A5F] px-6 py-8 text-center">
