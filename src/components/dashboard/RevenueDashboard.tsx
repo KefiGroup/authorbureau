@@ -46,8 +46,9 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const [activeTab, setActiveTab] = useState("revenue");
   const [slug, setSlug] = useState(authorSlug || "");
   const [funnelStats, setFunnelStats] = useState({ count: 0, views: 0, conversions: 0 });
+  const [leadsCount, setLeadsCount] = useState(0);
 
-  // Fetch author slug + funnel stats
+  // Fetch author slug + funnel stats + leads
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -58,11 +59,17 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
         .maybeSingle();
       if (!authorSlug && profile?.author_slug) setSlug(profile.author_slug);
       if (profile?.id) {
-        const { data: funnels } = await supabase
-          .from("funnels")
-          .select("page_views, conversions")
-          .eq("author_id", profile.id)
-          .eq("status", "live");
+        const [{ data: funnels }, { count: lc }] = await Promise.all([
+          supabase
+            .from("funnels")
+            .select("page_views, conversions")
+            .eq("author_id", profile.id)
+            .eq("status", "live"),
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", profile.id),
+        ]);
         if (funnels) {
           setFunnelStats({
             count: funnels.length,
@@ -70,6 +77,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
             conversions: funnels.reduce((s, f) => s + (f.conversions || 0), 0),
           });
         }
+        setLeadsCount(lc || 0);
       }
     })();
   }, [user, authorSlug]);
