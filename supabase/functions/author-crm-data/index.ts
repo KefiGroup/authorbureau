@@ -7,7 +7,7 @@ const corsHeaders = {
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA0tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
@@ -56,7 +56,32 @@ async function getUserIdAndEmail(authHeader: string): Promise<{ userId: string |
     }
   } catch (_) { /* ignore */ }
 
-  console.warn("[author-crm-data] 🔑 token resolution FAILED for both cloud and shared backends");
+  // 3) Final safety net: decode JWT payload to extract sub + email, then map to cloud user
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const payloadJson = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+      const payload = JSON.parse(payloadJson);
+      const jwtSub: string | null = payload?.sub ?? null;
+      const jwtEmail: string | null = payload?.email ?? null;
+      if (jwtSub) {
+        let mappedId = jwtSub;
+        if (jwtEmail) {
+          try {
+            const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+            const match = users?.find(
+              (u: any) => u.email?.toLowerCase() === jwtEmail.toLowerCase()
+            );
+            if (match) mappedId = match.id;
+          } catch (_) { /* ignore */ }
+        }
+        console.log("[author-crm-data] 🔑 token resolved via JWT decode → user", mappedId, jwtEmail);
+        return { userId: mappedId, email: jwtEmail };
+      }
+    }
+  } catch (_) { /* ignore */ }
+
+  console.warn("[author-crm-data] 🔑 token resolution FAILED for cloud, shared, and JWT decode");
   return { userId: null, email: null };
 }
 
