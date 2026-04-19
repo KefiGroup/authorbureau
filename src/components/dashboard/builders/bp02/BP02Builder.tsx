@@ -690,13 +690,53 @@ function ReviewStep({
 
   const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
 
+  // Auto-save edits to author_nodes.content_json (debounced)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  const persistContent = useCallback((nextContent: any) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        setSavingEdit(true);
+        const { data: existingNode } = await supabase
+          .from("author_nodes")
+          .select("id")
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-02")
+          .maybeSingle();
+        if (existingNode) {
+          await supabase
+            .from("author_nodes")
+            .update({ content_json: nextContent })
+            .eq("id", existingNode.id);
+        }
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("[BP02] Auto-save failed:", e);
+        toast.error(toAbbyError(e));
+      } finally {
+        setSavingEdit(false);
+      }
+    }, 700);
+  }, [authorId]);
+
   const updateField = useCallback((path: (string | number)[], value: any) => {
-    setContent((prev: any) => deepSet(prev, path, value));
-  }, [setContent]);
+    setContent((prev: any) => {
+      const next = deepSet(prev, path, value);
+      persistContent(next);
+      return next;
+    });
+  }, [setContent, persistContent]);
 
   const handleSelectMagnet = (idx: number) => {
     setSelectedMagnetIdx(idx);
-    setContent((prev: any) => ({ ...prev, selected_lead_magnet: idx }));
+    setContent((prev: any) => {
+      const next = { ...prev, selected_lead_magnet: idx };
+      persistContent(next);
+      return next;
+    });
   };
 
   const selectHeadline = (headline: string) => {
@@ -711,6 +751,17 @@ function ReviewStep({
       <AbbyCard>
         <p className="text-muted-foreground">{content.abby_summary}</p>
       </AbbyCard>
+
+      {/* Always-visible editability hint */}
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-foreground">
+          <Pencil className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span><strong>Everything below is editable.</strong> Click any field — headline, question, email, social post — to refine. Edits save automatically.</span>
+        </div>
+        <span className="text-[10px] text-muted-foreground shrink-0">
+          {savingEdit ? "Saving…" : savedAt ? "Saved" : ""}
+        </span>
+      </div>
 
       <Tabs defaultValue="magnets" className="w-full">
         <TabsList className="w-full grid grid-cols-5 h-auto">
