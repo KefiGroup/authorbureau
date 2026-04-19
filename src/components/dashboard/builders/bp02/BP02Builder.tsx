@@ -584,7 +584,7 @@ function deepSet(obj: any, path: (string | number)[], value: any): any {
   return clone;
 }
 
-/* ---- Editable text component ---- */
+/* ---- Editable text component (always-visible edit affordance) ---- */
 function EditableText({
   value,
   onSave,
@@ -603,25 +603,28 @@ function EditableText({
 
   if (!editing) {
     return (
-      <div className="group relative">
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="group relative w-full text-left rounded-md px-2 py-1 -mx-2 -my-1 border border-dashed border-transparent hover:border-primary/40 hover:bg-primary/5 focus:outline-none focus:border-primary/60 focus:bg-primary/5 transition-colors"
+        title="Click to edit"
+      >
         {multiline ? (
-          <p className={`whitespace-pre-wrap ${className}`}>{value || <span className="italic text-muted-foreground">Empty — click to edit</span>}</p>
+          <p className={`whitespace-pre-wrap ${className}`}>
+            {value || <span className="italic text-muted-foreground">Empty — click to edit</span>}
+          </p>
         ) : (
-          <span className={className}>{value || <span className="italic text-muted-foreground">Empty — click to edit</span>}</span>
+          <span className={className}>
+            {value || <span className="italic text-muted-foreground">Empty — click to edit</span>}
+          </span>
         )}
-        <button
-          onClick={() => setEditing(true)}
-          className="absolute -right-1 -top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-muted hover:bg-muted/80"
-          title="Edit"
-        >
-          <Pencil className="h-3 w-3 text-muted-foreground" />
-        </button>
-      </div>
+        <Pencil className="inline-block ml-1.5 h-3 w-3 text-muted-foreground/60 align-middle" />
+      </button>
     );
   }
 
-  const handleBlur = () => {
-    onSave(draft);
+  const commit = () => {
+    if (draft !== value) onSave(draft);
     setEditing(false);
   };
 
@@ -630,7 +633,7 @@ function EditableText({
       <Textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleBlur}
+        onBlur={commit}
         autoFocus
         className={`${className} min-h-[80px]`}
       />
@@ -640,7 +643,8 @@ function EditableText({
     <Input
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
-      onBlur={handleBlur}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }}
       autoFocus
       className={className}
     />
