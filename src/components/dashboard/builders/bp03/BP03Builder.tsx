@@ -13,6 +13,7 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, ChevronDown, Ch
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
+import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
@@ -136,11 +137,34 @@ export default function BP03Builder({ authorId }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [savedCount, setSavedCount] = useState<number>(0);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
   const { isReady: isAuthReady } = useAuthReady();
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+
+  // Check which social accounts the author has connected. Re-checks every time we land on Review.
+  useEffect(() => {
+    if (!isAuthReady || !authorId || step !== 2) return;
+    let cancelled = false;
+    (async () => {
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("user_id")
+        .eq("id", authorId)
+        .maybeSingle();
+      const userId = profile?.user_id;
+      if (!userId) return;
+      const { data } = await supabase
+        .from("social_connections")
+        .select("platform, status")
+        .eq("user_id", userId)
+        .eq("status", "connected");
+      if (!cancelled) setConnectedPlatforms((data || []).map((r: any) => r.platform));
+    })();
+    return () => { cancelled = true; };
+  }, [authorId, isAuthReady, step]);
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
@@ -364,7 +388,15 @@ export default function BP03Builder({ authorId }: Props) {
           icon={Share2}
           onBack={() => navigate("/brand-products")}
         />
-        <UnifiedStepper nodeId="BP-03" steps={STEPS} current={step} />
+        <UnifiedStepper
+          nodeId="BP-03"
+          steps={STEPS}
+          current={step}
+          onStepClick={(i) => {
+            if (i === 0) setStep(0);
+            else if (i === 2 && content) setStep(2);
+          }}
+        />
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -431,6 +463,40 @@ export default function BP03Builder({ authorId }: Props) {
                 </div>
               </Card>
             )}
+
+            {/* Social-account connection check banner */}
+            {connectedPlatforms.length === 0 ? (
+              <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30">
+                <div className="flex gap-3 items-start">
+                  <div className="shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                    <Share2 className="h-4 w-4 text-amber-700 dark:text-amber-300" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                      Connect your social accounts to schedule
+                    </p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                      You haven't connected any social accounts yet. Posts will still save to your Social Calendar, but they won't auto-publish until you connect at least one account.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-2 border-amber-400 text-amber-800 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-200 dark:hover:bg-amber-900/40"
+                      onClick={() => navigate("/account-settings?tab=connections")}
+                    >
+                      Connect accounts →
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-3 border-green-300 dark:border-green-700 bg-green-50/60 dark:bg-green-950/30">
+                <p className="text-xs text-green-800 dark:text-green-200 flex items-center gap-2">
+                  <Check className="h-3.5 w-3.5" />
+                  Connected: <strong>{connectedPlatforms.join(", ")}</strong>. Posts will auto-publish on schedule.
+                </p>
+              </Card>
+            )}
             <ReviewStep
               content={content}
               authorName={authorName}
@@ -470,12 +536,14 @@ export default function BP03Builder({ authorId }: Props) {
 /* ---- Sub-components ---- */
 
 function AbbyCard({ children }: { children: React.ReactNode }) {
+  const s = categoryStyles.brand;
   return (
-    <Card className="border-primary/20 bg-primary/5">
-      <CardContent className="pt-6">
+    <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}>
+      <div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} />
+      <CardContent className="pt-6 pl-7">
         <div className="flex gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Sparkles className="h-5 w-5 text-primary" />
+          <div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}>
+            <Sparkles className={`h-5 w-5 ${s.iconText}`} />
           </div>
           <div className="flex-1 min-w-0">{children}</div>
         </div>
