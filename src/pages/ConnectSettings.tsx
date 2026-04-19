@@ -170,19 +170,22 @@ export default function ConnectSettings() {
           </div>
         </Card>
 
-        {/* Email Marketing — native */}
+        {/* Email Marketing — native (Resend-powered) */}
         <Card className="p-6">
           <div className="flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/10">
               <Sparkles className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <p className="font-semibold text-sm">Email Marketing</p>
                 <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Native</Badge>
+                <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Resend Connected
+                </Badge>
               </div>
               <p className="text-sm text-muted-foreground">
-                ABBY manages all your email marketing, lead capture, and nurture sequences natively. No external email tools needed.
+                ABBY manages all your email marketing, lead capture, and nurture sequences natively via Resend. The first email in each sequence fires the moment a lead opts in — no setup required.
               </p>
             </div>
           </div>

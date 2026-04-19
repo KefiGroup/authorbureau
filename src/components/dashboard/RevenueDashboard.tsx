@@ -46,8 +46,9 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const [activeTab, setActiveTab] = useState("revenue");
   const [slug, setSlug] = useState(authorSlug || "");
   const [funnelStats, setFunnelStats] = useState({ count: 0, views: 0, conversions: 0 });
+  const [leadsCount, setLeadsCount] = useState(0);
 
-  // Fetch author slug + funnel stats
+  // Fetch author slug + funnel stats + leads
   useEffect(() => {
     if (!user) return;
     (async () => {
@@ -58,11 +59,17 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
         .maybeSingle();
       if (!authorSlug && profile?.author_slug) setSlug(profile.author_slug);
       if (profile?.id) {
-        const { data: funnels } = await supabase
-          .from("funnels")
-          .select("page_views, conversions")
-          .eq("author_id", profile.id)
-          .eq("status", "live");
+        const [{ data: funnels }, { count: lc }] = await Promise.all([
+          supabase
+            .from("funnels")
+            .select("page_views, conversions")
+            .eq("author_id", profile.id)
+            .eq("status", "live"),
+          supabase
+            .from("leads")
+            .select("id", { count: "exact", head: true })
+            .eq("author_id", profile.id),
+        ]);
         if (funnels) {
           setFunnelStats({
             count: funnels.length,
@@ -70,6 +77,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
             conversions: funnels.reduce((s, f) => s + (f.conversions || 0), 0),
           });
         }
+        setLeadsCount(lc || 0);
       }
     })();
   }, [user, authorSlug]);
@@ -238,7 +246,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                 Manage Funnels <ArrowRight className="h-3.5 w-3.5 ml-1" />
               </Button>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="p-3 rounded-lg bg-muted/40">
                 <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Funnels</p>
                 <p className="text-2xl font-heading font-bold mt-1">{funnelStats.count}</p>
@@ -255,6 +263,10 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                     <span className="text-xs text-muted-foreground font-normal ml-1.5">({funnelConvRate.toFixed(1)}%)</span>
                   )}
                 </p>
+              </div>
+              <div className="p-3 rounded-lg bg-secondary/10 border border-secondary/30">
+                <p className="text-[10px] text-secondary uppercase tracking-wider font-semibold">Leads in CRM</p>
+                <p className="text-2xl font-heading font-bold mt-1 text-secondary">{leadsCount.toLocaleString()}</p>
               </div>
             </div>
           </Card>
