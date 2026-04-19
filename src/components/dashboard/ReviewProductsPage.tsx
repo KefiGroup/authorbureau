@@ -107,11 +107,13 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("all");
   const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     setShowSlowHint(false);
-    // After 3s, show "still loading…" hint instead of bare spinner
+    setLoadError(null);
     const hintTimer = setTimeout(() => setShowSlowHint(true), 3000);
     try {
       const token = await getActiveToken();
@@ -124,10 +126,15 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "list-drafts" }),
         },
-        8000, // 8-second timeout — fixes infinite spinner
+        12000,
       );
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || "Failed to load");
+
+      console.log("[ReviewProducts] drafts payload →", {
+        count: (result.drafts || []).length,
+        by_table: (result.drafts || []).reduce((acc: any, d: any) => { acc[d.table] = (acc[d.table] || 0) + 1; return acc; }, {}),
+      });
 
       const drafts: DraftProduct[] = (result.drafts || []).map((item: any) => {
         const nodeConfig = ALL_BUILDER_NODES.find(n => n.id === item.nodeId);
@@ -159,7 +166,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
       setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
-      console.warn("Failed to fetch drafts (showing empty state):", err);
+      console.warn("[ReviewProducts] Failed to fetch drafts:", err);
+      setLoadError(err instanceof Error ? err.message : "Failed to load products");
       setProducts([]);
     } finally {
       clearTimeout(hintTimer);
@@ -361,6 +369,14 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             )
+          ) : loadError ? (
+            <Card className="p-6 text-center border-destructive/40 bg-destructive/5">
+              <p className="text-sm font-semibold text-destructive">Couldn't load your products</p>
+              <p className="text-xs text-muted-foreground mt-1">{loadError}</p>
+              <Button size="sm" variant="outline" className="mt-3" onClick={() => fetchDrafts()}>
+                Retry
+              </Button>
+            </Card>
           ) : filtered.length === 0 ? (
             <EmptyState tab={activeTab} onNavigate={onNavigate} />
           ) : (

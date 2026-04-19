@@ -43,6 +43,26 @@ Deno.serve(async (req) => {
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
     const cleanEmail = email.toLowerCase().trim();
 
+    // Resolve canonical author_user_id from author_profiles (crm_contacts is keyed by user_id)
+    let authorUserId: string | null = null;
+    try {
+      const { data: profile } = await supabase
+        .from('author_profiles')
+        .select('user_id')
+        .eq('id', funnel.author_id)
+        .maybeSingle();
+      authorUserId = profile?.user_id ?? null;
+    } catch (e) {
+      console.warn('[submit-funnel] author_user_id resolve failed', e);
+    }
+    console.log('[submit-funnel] 📝 WRITE AUDIT', JSON.stringify({
+      funnel_id: funnel.id,
+      funnel_author_id_profile: funnel.author_id,
+      author_user_id: authorUserId,
+      email: cleanEmail,
+      node_id: funnel.node_id,
+    }));
+
     // 1) Funnel submission
     await supabase.from('funnel_submissions').insert({
       funnel_id: funnel.id,
@@ -120,6 +140,65 @@ Deno.serve(async (req) => {
         activity_type: 'funnel_submission',
         metadata: { funnel_id: funnel.id, node_id: funnel.node_id },
       });
+    }
+
+    // 4b) Mirror into crm_contacts (keyed by author_user_id) so My CRM list view sees it
+    if (authorUserId) {
+      try {
+        const { data: existingContact } = await supabase
+          .from('crm_contacts')
+          .select('id, abby_score')
+          .eq('author_id', authorUserId)
+          .eq('email', cleanEmail)
+          .maybeSingle();
+
+        let contactId: string | undefined = existingContact?.id;
+        const quizDone = Array.isArray(quiz_responses) && quiz_responses.length > 0;
+
+        if (existingContact) {
+          await supabase.from('crm_contacts').update({
+            full_name: name || cleanEmail,
+            last_activity_at: new Date().toISOString(),
+            abby_score: Math.max(existingContact.abby_score || 0, 2),
+            ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
+          }).eq('id', existingContact.id);
+        } else {
+          const { data: newContact } = await supabase.from('crm_contacts').insert({
+            author_id: authorUserId,
+            full_name: name || cleanEmail,
+            email: cleanEmail,
+            phone: phone || null,
+            source: 'funnel',
+            stage: 'new_lead',
+            abby_score: 2,
+            last_activity_at: new Date().toISOString(),
+            ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
+          }).select('id').single();
+          contactId = newContact?.id;
+        }
+
+        if (contactId) {
+          // Tag (best-effort, ignore unique conflicts)
+          await supabase.from('crm_contact_tags').insert({
+            author_id: authorUserId, contact_id: contactId, tag: 'funnel-lead',
+          }).then(() => null, () => null);
+
+          await supabase.from('crm_activity_log').insert({
+            author_id: authorUserId,
+            contact_id: contactId,
+            type: 'opt_in',
+            content: `Captured via funnel ${funnel.node_id || ''}`.trim(),
+          });
+        }
+
+        console.log('[submit-funnel] ✅ crm_contacts mirrored', JSON.stringify({
+          author_user_id: authorUserId, contact_id: contactId, email: cleanEmail,
+        }));
+      } catch (e) {
+        console.warn('[submit-funnel] crm_contacts mirror failed', e);
+      }
+    } else {
+      console.warn('[submit-funnel] ⚠️ no author_user_id — skipping crm_contacts mirror');
     }
 
     // 5) Subscriber upsert

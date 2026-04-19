@@ -19,12 +19,29 @@ const SCORE_MAP: Record<string, number> = {
 const STAGES = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
 
 async function getUserId(authHeader: string): Promise<string | null> {
-  const shared = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data, error } = await shared.auth.getUser();
-  if (error || !data?.user) return null;
-  return data.user.id;
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
+  // Try shared backend first
+  try {
+    const shared = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+    const { data, error } = await shared.auth.getUser(token);
+    if (!error && data?.user) {
+      console.log("[author-crm-data] 🔑 token resolved via shared backend → user", data.user.id);
+      return data.user.id;
+    }
+  } catch (_) { /* ignore */ }
+  // Fallback to local/cloud token
+  try {
+    const local = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+    );
+    const { data, error } = await local.auth.getUser(token);
+    if (!error && data?.user) {
+      console.log("[author-crm-data] 🔑 token resolved via local backend → user", data.user.id);
+      return data.user.id;
+    }
+  } catch (_) { /* ignore */ }
+  return null;
 }
 
 function ok(data: any) {
