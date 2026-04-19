@@ -584,7 +584,7 @@ function deepSet(obj: any, path: (string | number)[], value: any): any {
   return clone;
 }
 
-/* ---- Editable text component ---- */
+/* ---- Editable text component (always-visible edit affordance) ---- */
 function EditableText({
   value,
   onSave,
@@ -603,25 +603,28 @@ function EditableText({
 
   if (!editing) {
     return (
-      <div className="group relative">
+      <button
+        type="button"
+        onClick={() => setEditing(true)}
+        className="group relative w-full text-left rounded-md px-2 py-1 -mx-2 -my-1 border border-dashed border-transparent hover:border-primary/40 hover:bg-primary/5 focus:outline-none focus:border-primary/60 focus:bg-primary/5 transition-colors"
+        title="Click to edit"
+      >
         {multiline ? (
-          <p className={`whitespace-pre-wrap ${className}`}>{value || <span className="italic text-muted-foreground">Empty — click to edit</span>}</p>
+          <p className={`whitespace-pre-wrap ${className}`}>
+            {value || <span className="italic text-muted-foreground">Empty — click to edit</span>}
+          </p>
         ) : (
-          <span className={className}>{value || <span className="italic text-muted-foreground">Empty — click to edit</span>}</span>
+          <span className={className}>
+            {value || <span className="italic text-muted-foreground">Empty — click to edit</span>}
+          </span>
         )}
-        <button
-          onClick={() => setEditing(true)}
-          className="absolute -right-1 -top-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full bg-muted hover:bg-muted/80"
-          title="Edit"
-        >
-          <Pencil className="h-3 w-3 text-muted-foreground" />
-        </button>
-      </div>
+        <Pencil className="inline-block ml-1.5 h-3 w-3 text-muted-foreground/60 align-middle" />
+      </button>
     );
   }
 
-  const handleBlur = () => {
-    onSave(draft);
+  const commit = () => {
+    if (draft !== value) onSave(draft);
     setEditing(false);
   };
 
@@ -630,7 +633,7 @@ function EditableText({
       <Textarea
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
-        onBlur={handleBlur}
+        onBlur={commit}
         autoFocus
         className={`${className} min-h-[80px]`}
       />
@@ -640,7 +643,8 @@ function EditableText({
     <Input
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
-      onBlur={handleBlur}
+      onBlur={commit}
+      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commit(); } }}
       autoFocus
       className={className}
     />
@@ -686,13 +690,53 @@ function ReviewStep({
 
   const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
 
+  // Auto-save edits to author_nodes.content_json (debounced)
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  const persistContent = useCallback((nextContent: any) => {
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(async () => {
+      try {
+        setSavingEdit(true);
+        const { data: existingNode } = await supabase
+          .from("author_nodes")
+          .select("id")
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-02")
+          .maybeSingle();
+        if (existingNode) {
+          await supabase
+            .from("author_nodes")
+            .update({ content_json: nextContent })
+            .eq("id", existingNode.id);
+        }
+        setSavedAt(Date.now());
+      } catch (e) {
+        console.error("[BP02] Auto-save failed:", e);
+        toast.error(toAbbyError(e));
+      } finally {
+        setSavingEdit(false);
+      }
+    }, 700);
+  }, [authorId]);
+
   const updateField = useCallback((path: (string | number)[], value: any) => {
-    setContent((prev: any) => deepSet(prev, path, value));
-  }, [setContent]);
+    setContent((prev: any) => {
+      const next = deepSet(prev, path, value);
+      persistContent(next);
+      return next;
+    });
+  }, [setContent, persistContent]);
 
   const handleSelectMagnet = (idx: number) => {
     setSelectedMagnetIdx(idx);
-    setContent((prev: any) => ({ ...prev, selected_lead_magnet: idx }));
+    setContent((prev: any) => {
+      const next = { ...prev, selected_lead_magnet: idx };
+      persistContent(next);
+      return next;
+    });
   };
 
   const selectHeadline = (headline: string) => {
@@ -707,6 +751,17 @@ function ReviewStep({
       <AbbyCard>
         <p className="text-muted-foreground">{content.abby_summary}</p>
       </AbbyCard>
+
+      {/* Always-visible editability hint */}
+      <div className="flex items-center justify-between gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
+        <div className="flex items-center gap-2 text-xs text-foreground">
+          <Pencil className="h-3.5 w-3.5 text-primary shrink-0" />
+          <span><strong>Everything below is editable.</strong> Click any field — headline, question, email, social post — to refine. Edits save automatically.</span>
+        </div>
+        <span className="text-[10px] text-muted-foreground shrink-0">
+          {savingEdit ? "Saving…" : savedAt ? "Saved" : ""}
+        </span>
+      </div>
 
       <Tabs defaultValue="magnets" className="w-full">
         <TabsList className="w-full grid grid-cols-5 h-auto">
@@ -1481,14 +1536,14 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
             <div className="flex items-center gap-2 text-sm">
               <span className="text-emerald-500">✓</span>
               <Mail className="h-3.5 w-3.5 text-indigo-500" />
-              <span>Email Nurture → BP-04</span>
+              <span>Email Nurture → Email Marketing</span>
             </div>
           )}
           {activatedPlatforms.map(p => (
             <div key={p as string} className="flex items-center gap-2 text-sm">
               <span className="text-emerald-500">✓</span>
               <Share2 className="h-3.5 w-3.5 text-purple-500" />
-              <span>{p} → BP-03</span>
+              <span>{p} → Social Media</span>
             </div>
           ))}
         </div>

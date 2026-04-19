@@ -31,10 +31,10 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "Your lead magnet offer email",
       "Your first broadcast campaign",
     ],
-    livesAt: "Marketing Hub → Email Sequences (auto-deployed to your connected GHL account).",
-    editLater: "Open BP-01 anytime to review every email, edit copy, or re-generate.",
+    livesAt: "Marketing Hub → Email Sequences (auto-deployed to your connected marketing account).",
+    editLater: "Re-open Email Marketing anytime to review every email, edit copy, or re-generate.",
     estimate: "20–40 seconds",
-    prerequisites: ["Connect your Marketing Hub in Account Settings → Connections so emails can deploy to GHL."],
+    prerequisites: ["Connect your Marketing Hub in Account Settings → Connections so emails can deploy."],
   },
   "BP-02": {
     creates: [
@@ -43,7 +43,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "A 4-email nurture sequence + social distribution pack",
     ],
     livesAt: "A public microsite at /your-slug/lead-magnet/... — share the link to start collecting subscribers.",
-    editLater: "Re-open BP-02 to edit headline, design, questions, or push refreshed copy to social/email.",
+    editLater: "Re-open Lead Magnet to edit headline, design, questions, or push refreshed copy to social/email.",
     estimate: "60–90 seconds",
   },
   "BP-03": {
@@ -53,7 +53,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "3 outreach email templates (podcast, media, review)",
     ],
     livesAt: "Auto-scheduled to your connected social accounts via Marketing Hub. Manage in Marketing Hub → Social Calendar.",
-    editLater: "Come back to BP-03 anytime to edit posts, download the kit as a ZIP, or re-schedule.",
+    editLater: "Re-open Social Media anytime to edit posts, download the kit as a ZIP, or re-schedule.",
     estimate: "30–60 seconds",
     prerequisites: ["Connect your Social Accounts in Account Settings → Connections before activating, or your posts will save but not schedule."],
   },
@@ -64,7 +64,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "An integrated lead capture form",
     ],
     livesAt: "Your public author site at /your-slug — visible to readers immediately after activating.",
-    editLater: "Re-open BP-04 to refresh any section. Profile changes also sync from Account Settings → Profile.",
+    editLater: "Re-open Author Website to refresh any section. Profile changes also sync from Account Settings → Profile.",
     estimate: "45–75 seconds",
   },
   "BP-05": {
@@ -74,7 +74,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "Social cut-down captions for promotion",
     ],
     livesAt: "Saved to your Brand Products library. Trailer assets are downloadable for use on YouTube, Amazon A+, or your site.",
-    editLater: "Re-open BP-05 to edit script, regenerate sections, or download updated assets.",
+    editLater: "Re-open Book Trailer to edit script, regenerate sections, or download updated assets.",
     estimate: "30–60 seconds",
   },
   "BP-06": {
@@ -84,7 +84,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "A branded PDF cover",
     ],
     livesAt: "Downloadable PDF saved to your Brand Products library. Sells from your microsite + can be bundled in courses.",
-    editLater: "Re-open BP-06 to edit prompts, regenerate exercises, or upload your own PDF.",
+    editLater: "Re-open Workbook to edit prompts, regenerate exercises, or upload your own PDF.",
     estimate: "60–90 seconds",
   },
   "BP-07": {
@@ -94,9 +94,9 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "A sales page draft",
     ],
     livesAt: "Course detail page at /your-slug/course/... — sells via Stripe, fulfilled through your dashboard.",
-    editLater: "Re-open BP-07 to edit modules, sales copy, or pricing. Workbook (BP-06) recommended first.",
+    editLater: "Re-open Home Study Course to edit modules, sales copy, or pricing. Workbook recommended first.",
     estimate: "60–120 seconds",
-    prerequisites: ["BP-06 Workbook should exist first so course exercises reference your real workbook content."],
+    prerequisites: ["Your Workbook should exist first so course exercises reference your real workbook content."],
   },
   "BP-08": {
     creates: [
@@ -105,7 +105,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "Pricing recommendations",
     ],
     livesAt: "Listed on your Brand Products library + sales page at /your-slug/special-edition/...",
-    editLater: "Re-open BP-08 to edit framing, bonuses, or pricing.",
+    editLater: "Re-open Special Edition to edit framing, bonuses, or pricing.",
     estimate: "45–75 seconds",
   },
   "BP-09": {
@@ -115,7 +115,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "Distribution checklist for ACX / Findaway / Spotify",
     ],
     livesAt: "Audiobook detail in your Brand Products library, with download-ready scripts and a public sales page.",
-    editLater: "Re-open BP-09 to edit chapters, regenerate narration, or update distribution status.",
+    editLater: "Re-open Audiobook to edit chapters, regenerate narration, or update distribution status.",
     estimate: "90–120 seconds",
   },
 };
