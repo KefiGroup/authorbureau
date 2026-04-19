@@ -353,7 +353,7 @@ Deno.serve(async (req) => {
       if (!contact_id || !stage) return err("contact_id and stage required");
       if (!STAGES.includes(stage)) return err("Invalid stage");
 
-      const { data: owned } = await sb.from("crm_contacts").select("id, stage").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      const { data: owned } = await sb.from("crm_contacts").select("id, stage").eq("id", contact_id).eq("author_id", authorContactKey).maybeSingle();
       if (!owned) return err("Not found", 404);
 
       const oldStage = owned.stage || "new_lead";
