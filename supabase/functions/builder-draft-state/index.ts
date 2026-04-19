@@ -78,21 +78,41 @@ async function resolveIdentity(token: string): Promise<{ userId: string; email: 
 }
 
 async function resolveAllUserIds(cloudAdmin: any, identity: { userId: string; email: string | null }): Promise<string[]> {
-  const { data: profile } = await cloudAdmin
+  const allUserIds: string[] = [identity.userId];
+
+  // Primary: look up profile by user_id
+  let { data: profile } = await cloudAdmin
     .from("author_profiles")
     .select("pen_name, user_id")
     .eq("user_id", identity.userId)
     .maybeSingle();
 
-  const allUserIds: string[] = [identity.userId];
+  // Fallback: if no profile by user_id, try matching by email through auth.users
+  // (handles shared-vs-cloud user id mismatches)
+  if (!profile && identity.email) {
+    const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+    const match = (users || []).find((u: any) => u.email?.toLowerCase() === identity.email!.toLowerCase());
+    if (match) {
+      if (!allUserIds.includes(match.id)) allUserIds.push(match.id);
+      const { data: emailProfile } = await cloudAdmin
+        .from("author_profiles")
+        .select("pen_name, user_id")
+        .eq("user_id", match.id)
+        .maybeSingle();
+      profile = emailProfile;
+    }
+  }
+
   if (profile?.pen_name) {
     const { data: siblings } = await cloudAdmin
       .from("author_profiles")
       .select("user_id")
-      .eq("pen_name", profile.pen_name)
-      .neq("user_id", identity.userId);
-    for (const s of siblings || []) allUserIds.push(s.user_id);
+      .eq("pen_name", profile.pen_name);
+    for (const s of siblings || []) {
+      if (!allUserIds.includes(s.user_id)) allUserIds.push(s.user_id);
+    }
   }
+  console.log("[builder-draft-state] 🔑 resolveAllUserIds →", { input: identity, allUserIds, pen_name: profile?.pen_name });
   return allUserIds;
 }
 
