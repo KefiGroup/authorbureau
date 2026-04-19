@@ -18,7 +18,7 @@ const SCORE_MAP: Record<string, number> = {
 
 const STAGES = ["new_lead", "engaged", "warm", "hot", "customer", "vip", "cold"];
 
-async function getUserId(authHeader: string): Promise<string | null> {
+async function getUserIdAndEmail(authHeader: string): Promise<{ userId: string | null; email: string | null }> {
   const token = authHeader.replace(/^Bearer\s+/i, '').trim();
   // Try shared backend first
   try {
@@ -26,7 +26,7 @@ async function getUserId(authHeader: string): Promise<string | null> {
     const { data, error } = await shared.auth.getUser(token);
     if (!error && data?.user) {
       console.log("[author-crm-data] 🔑 token resolved via shared backend → user", data.user.id);
-      return data.user.id;
+      return { userId: data.user.id, email: data.user.email ?? null };
     }
   } catch (_) { /* ignore */ }
   // Fallback to local/cloud token
@@ -38,10 +38,57 @@ async function getUserId(authHeader: string): Promise<string | null> {
     const { data, error } = await local.auth.getUser(token);
     if (!error && data?.user) {
       console.log("[author-crm-data] 🔑 token resolved via local backend → user", data.user.id);
-      return data.user.id;
+      return { userId: data.user.id, email: data.user.email ?? null };
     }
   } catch (_) { /* ignore */ }
-  return null;
+  return { userId: null, email: null };
+}
+
+/**
+ * Resolve the canonical author key used by crm_contacts/_tags/_activity_log.
+ * Writes (e.g. submit-funnel) key these tables on author_profiles.user_id (the
+ * shared-backend user id). When a user signs in via the cloud auth, the token
+ * user id can be a different UUID — so we look up the matching author_profile
+ * by user_id first, then fall back to email match.
+ */
+async function resolveAuthorKey(
+  sb: any,
+  tokenUserId: string,
+  tokenEmail: string | null,
+): Promise<{ authorContactKey: string; authorProfileId: string | null }> {
+  // 1) Direct match on user_id (shared-token path)
+  const { data: byUserId } = await sb
+    .from("author_profiles")
+    .select("id, user_id")
+    .eq("user_id", tokenUserId)
+    .maybeSingle();
+  if (byUserId?.user_id) {
+    return { authorContactKey: byUserId.user_id, authorProfileId: byUserId.id };
+  }
+
+  // 2) Email fallback (cloud-token path) — look up auth.users → author_profiles
+  if (tokenEmail) {
+    const { data: usersByEmail } = await sb
+      .schema("auth")
+      .from("users")
+      .select("id")
+      .eq("email", tokenEmail)
+      .limit(5);
+    const candidateIds = (usersByEmail || []).map((u: any) => u.id).filter(Boolean);
+    if (candidateIds.length > 0) {
+      const { data: profileByEmail } = await sb
+        .from("author_profiles")
+        .select("id, user_id")
+        .in("user_id", candidateIds)
+        .maybeSingle();
+      if (profileByEmail?.user_id) {
+        return { authorContactKey: profileByEmail.user_id, authorProfileId: profileByEmail.id };
+      }
+    }
+  }
+
+  // 3) Last resort: use token user id as-is (won't match crm_contacts but won't crash)
+  return { authorContactKey: tokenUserId, authorProfileId: null };
 }
 
 function ok(data: any) {
@@ -96,13 +143,22 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization");
     if (!authHeader) return err("Unauthorized", 401);
 
-    const userId = await getUserId(authHeader);
+    const { userId, email: tokenEmail } = await getUserIdAndEmail(authHeader);
     if (!userId) return err("Invalid token", 401);
 
     const sb = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+
+    // Resolve canonical author key (matches what submit-funnel writes to crm_contacts)
+    const { authorContactKey, authorProfileId: resolvedProfileId } = await resolveAuthorKey(sb, userId, tokenEmail);
+    console.log("[author-crm-data] 🧭 author key resolved:", JSON.stringify({
+      token_user_id: userId,
+      token_email: tokenEmail,
+      author_contact_key: authorContactKey,
+      author_profile_id: resolvedProfileId,
+    }));
 
     const body = await req.json();
     const { action } = body;
@@ -118,7 +174,7 @@ Deno.serve(async (req) => {
       let query = sb
         .from("crm_contacts")
         .select("*", { count: "exact" })
-        .eq("author_id", userId)
+        .eq("author_id", authorContactKey)
         .order("created_at", { ascending: false });
 
       if (stageFilter) query = query.eq("stage", stageFilter);
@@ -153,14 +209,8 @@ Deno.serve(async (req) => {
       // Server-side fallback: also fetch recent `leads` rows keyed off author_profiles.id
       // so fresh quiz captures show up immediately even if crm_contacts mirror lags.
       let recentLeads: any[] = [];
-      let authorProfileId: string | null = null;
+      const authorProfileId: string | null = resolvedProfileId;
       try {
-        const { data: profile } = await sb
-          .from("author_profiles")
-          .select("id")
-          .eq("user_id", userId)
-          .maybeSingle();
-        authorProfileId = profile?.id ?? null;
         if (authorProfileId) {
           const { data: leads } = await sb
             .from("leads")
@@ -178,7 +228,8 @@ Deno.serve(async (req) => {
       const effectiveTotal = Math.max(totalCount, recentLeads.length);
 
       console.log("[author-crm-data] 🔑 list audit:", JSON.stringify({
-        author_user_id: userId,
+        token_user_id: userId,
+        author_contact_key: authorContactKey,
         author_profile_id: authorProfileId,
         crm_contacts_count: totalCount,
         leads_count: recentLeads.length,
@@ -201,8 +252,8 @@ Deno.serve(async (req) => {
       const summaries = await Promise.all(
         STAGES.map(async (stage) => {
           const [countRes, top3Res] = await Promise.all([
-            sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", userId).eq("stage", stage),
-            sb.from("crm_contacts").select("id, full_name, abby_score").eq("author_id", userId).eq("stage", stage).order("abby_score", { ascending: false }).limit(3),
+            sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", authorContactKey).eq("stage", stage),
+            sb.from("crm_contacts").select("id, full_name, abby_score").eq("author_id", authorContactKey).eq("stage", stage).order("abby_score", { ascending: false }).limit(3),
           ]);
           return {
             stage,
@@ -222,7 +273,7 @@ Deno.serve(async (req) => {
       const { data: newContact, error } = await sb
         .from("crm_contacts")
         .insert({
-          author_id: userId, full_name,
+          author_id: authorContactKey, full_name,
           email: email || null, phone: phone || null,
           company: company || null, notes: notes || null, source: "manual",
         })
@@ -233,7 +284,7 @@ Deno.serve(async (req) => {
       const tagList = tags?.split(",").map((t: string) => t.trim()).filter(Boolean);
       if (tagList?.length && newContact) {
         await sb.from("crm_contact_tags").insert(
-          tagList.map((tag: string) => ({ author_id: userId, contact_id: newContact.id, tag }))
+          tagList.map((tag: string) => ({ author_id: authorContactKey, contact_id: newContact.id, tag }))
         );
       }
 
@@ -244,7 +295,7 @@ Deno.serve(async (req) => {
     if (action === "delete") {
       const { contact_id } = body;
       if (!contact_id) return err("contact_id required");
-      const { data: owned } = await sb.from("crm_contacts").select("id").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      const { data: owned } = await sb.from("crm_contacts").select("id").eq("id", contact_id).eq("author_id", authorContactKey).maybeSingle();
       if (!owned) return err("Not found", 404);
       await sb.from("crm_contact_tags").delete().eq("contact_id", contact_id);
       await sb.from("crm_activity_log").delete().eq("contact_id", contact_id);
@@ -256,7 +307,7 @@ Deno.serve(async (req) => {
     if (action === "bulk-delete") {
       const { contact_ids } = body;
       if (!contact_ids?.length) return err("contact_ids required");
-      const { data: owned } = await sb.from("crm_contacts").select("id").eq("author_id", userId).in("id", contact_ids);
+      const { data: owned } = await sb.from("crm_contacts").select("id").eq("author_id", authorContactKey).in("id", contact_ids);
       const ownedIds = (owned || []).map((c: any) => c.id);
       if (ownedIds.length > 0) {
         await sb.from("crm_contact_tags").delete().in("contact_id", ownedIds);
@@ -270,7 +321,7 @@ Deno.serve(async (req) => {
     if (action === "add-tag") {
       const { contact_id, tag } = body;
       if (!contact_id || !tag) return err("contact_id and tag required");
-      await sb.from("crm_contact_tags").insert({ author_id: userId, contact_id, tag: tag.trim() });
+      await sb.from("crm_contact_tags").insert({ author_id: authorContactKey, contact_id, tag: tag.trim() });
       return ok({ ok: true });
     }
 
@@ -279,7 +330,7 @@ Deno.serve(async (req) => {
       const { contact_id } = body;
       const { data, error } = await sb
         .from("crm_activity_log").select("*")
-        .eq("contact_id", contact_id).eq("author_id", userId)
+        .eq("contact_id", contact_id).eq("author_id", authorContactKey)
         .order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
       return ok({ activities: data || [] });
@@ -290,7 +341,7 @@ Deno.serve(async (req) => {
       const { contact_id, content } = body;
       if (!contact_id || !content) return err("contact_id and content required");
       await sb.from("crm_activity_log").insert({
-        author_id: userId, contact_id, type: "note", content: content.trim(),
+        author_id: authorContactKey, contact_id, type: "note", content: content.trim(),
       });
       await recalcScore(sb, contact_id);
       return ok({ ok: true });
@@ -302,13 +353,13 @@ Deno.serve(async (req) => {
       if (!contact_id || !stage) return err("contact_id and stage required");
       if (!STAGES.includes(stage)) return err("Invalid stage");
 
-      const { data: owned } = await sb.from("crm_contacts").select("id, stage").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      const { data: owned } = await sb.from("crm_contacts").select("id, stage").eq("id", contact_id).eq("author_id", authorContactKey).maybeSingle();
       if (!owned) return err("Not found", 404);
 
       const oldStage = owned.stage || "new_lead";
       await sb.from("crm_contacts").update({ stage, last_activity_at: new Date().toISOString() }).eq("id", contact_id);
       await sb.from("crm_activity_log").insert({
-        author_id: userId, contact_id, type: "stage_change",
+        author_id: authorContactKey, contact_id, type: "stage_change",
         content: `Moved from ${oldStage} to ${stage}`,
       });
       await recalcScore(sb, contact_id);
@@ -323,11 +374,11 @@ Deno.serve(async (req) => {
 
       await sb.from("crm_contacts")
         .update({ stage, last_activity_at: new Date().toISOString() })
-        .eq("author_id", userId)
+        .eq("author_id", authorContactKey)
         .in("id", contact_ids);
 
       const activityRows = contact_ids.map((cid: string) => ({
-        author_id: userId, contact_id: cid, type: "stage_change",
+        author_id: authorContactKey, contact_id: cid, type: "stage_change",
         content: `Bulk moved to ${stage}`,
       }));
       await sb.from("crm_activity_log").insert(activityRows);
@@ -342,7 +393,7 @@ Deno.serve(async (req) => {
       let imported = 0;
       for (let i = 0; i < rows.length; i += 50) {
         const batch = rows.slice(i, i + 50).map((r: any) => ({
-          author_id: userId, full_name: r.full_name || "Unknown",
+          author_id: authorContactKey, full_name: r.full_name || "Unknown",
           email: r.email || null, phone: r.phone || null,
           company: r.company || null, source: "csv_import",
         }));
@@ -356,7 +407,7 @@ Deno.serve(async (req) => {
     if (action === "abby-intelligence") {
       const { data: contacts } = await sb
         .from("crm_contacts").select("id, full_name, email, stage, abby_score, last_activity_at, source, quiz_stage, quiz_score")
-        .eq("author_id", userId).order("abby_score", { ascending: false }).limit(100);
+        .eq("author_id", authorContactKey).order("abby_score", { ascending: false }).limit(100);
 
       const summary = (contacts || []).map((c: any) => ({
         name: c.full_name, email: c.email, stage: c.stage,
@@ -444,7 +495,7 @@ Deno.serve(async (req) => {
       const { contact_id } = body;
       if (!contact_id) return err("contact_id required");
 
-      const { data: contact } = await sb.from("crm_contacts").select("*").eq("id", contact_id).eq("author_id", userId).maybeSingle();
+      const { data: contact } = await sb.from("crm_contacts").select("*").eq("id", contact_id).eq("author_id", authorContactKey).maybeSingle();
       if (!contact) return err("Not found", 404);
 
       const { data: activities } = await sb.from("crm_activity_log").select("type, content, created_at")
