@@ -359,7 +359,7 @@ Deno.serve(async (req) => {
       const oldStage = owned.stage || "new_lead";
       await sb.from("crm_contacts").update({ stage, last_activity_at: new Date().toISOString() }).eq("id", contact_id);
       await sb.from("crm_activity_log").insert({
-        author_id: userId, contact_id, type: "stage_change",
+        author_id: authorContactKey, contact_id, type: "stage_change",
         content: `Moved from ${oldStage} to ${stage}`,
       });
       await recalcScore(sb, contact_id);
