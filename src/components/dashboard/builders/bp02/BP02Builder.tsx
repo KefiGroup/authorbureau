@@ -1536,14 +1536,14 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
             <div className="flex items-center gap-2 text-sm">
               <span className="text-emerald-500">✓</span>
               <Mail className="h-3.5 w-3.5 text-indigo-500" />
-              <span>Email Nurture → BP-04</span>
+              <span>Email Nurture → Email Marketing</span>
             </div>
           )}
           {activatedPlatforms.map(p => (
             <div key={p as string} className="flex items-center gap-2 text-sm">
               <span className="text-emerald-500">✓</span>
               <Share2 className="h-3.5 w-3.5 text-purple-500" />
-              <span>{p} → BP-03</span>
+              <span>{p} → Social Media</span>
             </div>
           ))}
         </div>
