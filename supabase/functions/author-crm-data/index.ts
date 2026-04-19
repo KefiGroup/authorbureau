@@ -273,7 +273,7 @@ Deno.serve(async (req) => {
       const { data: newContact, error } = await sb
         .from("crm_contacts")
         .insert({
-          author_id: userId, full_name,
+          author_id: authorContactKey, full_name,
           email: email || null, phone: phone || null,
           company: company || null, notes: notes || null, source: "manual",
         })
