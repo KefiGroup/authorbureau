@@ -160,6 +160,14 @@ Deno.serve(async (req) => {
       const totalCount = count || 0;
       const effectiveTotal = Math.max(totalCount, recentLeads.length);
 
+      console.log("[author-crm-data] 🔑 list audit:", JSON.stringify({
+        author_user_id: userId,
+        author_profile_id: authorProfileId,
+        crm_contacts_count: totalCount,
+        leads_count: recentLeads.length,
+        effective_total: effectiveTotal,
+      }));
+
       return ok({
         contacts: result,
         totalCount,
