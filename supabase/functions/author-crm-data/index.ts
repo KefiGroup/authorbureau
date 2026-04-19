@@ -374,7 +374,7 @@ Deno.serve(async (req) => {
 
       await sb.from("crm_contacts")
         .update({ stage, last_activity_at: new Date().toISOString() })
-        .eq("author_id", userId)
+        .eq("author_id", authorContactKey)
         .in("id", contact_ids);
 
       const activityRows = contact_ids.map((cid: string) => ({
