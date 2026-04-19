@@ -62,6 +62,7 @@ Deno.serve(async (req) => {
       email: cleanEmail,
       node_id: funnel.node_id,
     }));
+    console.log(`[submit-funnel] author_user_id=${authorUserId}`);
 
     // 1) Funnel submission
     await supabase.from('funnel_submissions').insert({
