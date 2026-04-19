@@ -407,7 +407,7 @@ Deno.serve(async (req) => {
     if (action === "abby-intelligence") {
       const { data: contacts } = await sb
         .from("crm_contacts").select("id, full_name, email, stage, abby_score, last_activity_at, source, quiz_stage, quiz_score")
-        .eq("author_id", userId).order("abby_score", { ascending: false }).limit(100);
+        .eq("author_id", authorContactKey).order("abby_score", { ascending: false }).limit(100);
 
       const summary = (contacts || []).map((c: any) => ({
         name: c.full_name, email: c.email, stage: c.stage,
