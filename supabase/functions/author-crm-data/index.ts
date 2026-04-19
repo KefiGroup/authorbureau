@@ -209,14 +209,8 @@ Deno.serve(async (req) => {
       // Server-side fallback: also fetch recent `leads` rows keyed off author_profiles.id
       // so fresh quiz captures show up immediately even if crm_contacts mirror lags.
       let recentLeads: any[] = [];
-      let authorProfileId: string | null = null;
+      const authorProfileId: string | null = resolvedProfileId;
       try {
-        const { data: profile } = await sb
-          .from("author_profiles")
-          .select("id")
-          .eq("user_id", userId)
-          .maybeSingle();
-        authorProfileId = profile?.id ?? null;
         if (authorProfileId) {
           const { data: leads } = await sb
             .from("leads")
