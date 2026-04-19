@@ -773,7 +773,7 @@ function ReviewStep({
       </div>
 
       <Tabs defaultValue="magnets" className="w-full">
-        <TabsList className="w-full grid grid-cols-5 h-auto">
+        <TabsList className="w-full grid grid-cols-6 h-auto">
           <TabsTrigger value="magnets" className="text-xs py-2 data-[state=active]:bg-teal-500/10 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-300">
             <Gift className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Magnets
           </TabsTrigger>
@@ -786,8 +786,11 @@ function ReviewStep({
           <TabsTrigger value="thankyou" className="text-xs py-2 data-[state=active]:bg-green-500/10 data-[state=active]:text-green-700 dark:data-[state=active]:text-green-300">
             <ThumbsUp className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Thanks
           </TabsTrigger>
+          <TabsTrigger value="share" className="text-xs py-2 data-[state=active]:bg-purple-500/10 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300">
+            <Share2 className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Share
+          </TabsTrigger>
           <TabsTrigger value="distribution" className="text-xs py-2 data-[state=active]:bg-amber-500/10 data-[state=active]:text-amber-700 dark:data-[state=active]:text-amber-300">
-            <Share2 className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Flow
+            <BarChart3 className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Flow
           </TabsTrigger>
         </TabsList>
 
@@ -1268,6 +1271,18 @@ function ReviewStep({
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ---- Share Tab — Social Distribution Pack ---- */}
+        <TabsContent value="share" className="mt-4 space-y-4">
+          <div className="rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/40 dark:bg-purple-950/20 p-3 text-xs text-purple-800 dark:text-purple-200">
+            Copy these ready-made captions to LinkedIn, Instagram, Facebook, X or your email list to drive opt-ins to your lead magnet.
+          </div>
+          <SocialDistributionPack
+            authorId={authorId}
+            content={content?.social_pack || null}
+            onContentLoaded={(socialPack) => setContent({ ...content, social_pack: socialPack })}
+          />
         </TabsContent>
 
         {/* ---- Distribution Tab ---- */}

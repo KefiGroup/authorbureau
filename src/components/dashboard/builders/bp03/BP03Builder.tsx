@@ -13,6 +13,7 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, Calendar, Hash, ChevronDown, Ch
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
+import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
