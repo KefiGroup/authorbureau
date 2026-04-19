@@ -67,16 +67,33 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       }
 
       const headers = { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+      const TIMEOUT = 15000;
 
-      const [stateRes, booksRes, slugRes] = await Promise.all([
-        fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`, { method: "POST", headers }),
-        fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`, { method: "POST", headers }),
+      // Soft-fail per call: each failure is captured but does not abort the dashboard.
+      const [stateSettled, booksSettled, slugSettled] = await Promise.allSettled([
+        fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`, { method: "POST", headers }, TIMEOUT)
+          .then(r => r.json()),
+        fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`, { method: "POST", headers }, TIMEOUT)
+          .then(r => r.json()),
         cloudSupabase.from("author_profiles").select("author_slug").eq("user_id", user.id).maybeSingle(),
       ]);
 
-      const [state, booksData] = await Promise.all([stateRes.json(), booksRes.json()]);
+      const state = stateSettled.status === "fulfilled" ? stateSettled.value : null;
+      const booksData = booksSettled.status === "fulfilled" ? booksSettled.value : null;
+      const slugRes = slugSettled.status === "fulfilled" ? slugSettled.value : { data: null };
 
-      if (state.profile) {
+      if (stateSettled.status === "rejected") console.warn("[Dashboard] dashboard-state failed:", stateSettled.reason);
+      if (booksSettled.status === "rejected") console.warn("[Dashboard] list-my-books failed:", booksSettled.reason);
+      if (slugSettled.status === "rejected") console.warn("[Dashboard] slug lookup failed:", slugSettled.reason);
+
+      // Only show full error card when ALL three calls failed
+      const allFailed = !state && !booksData && slugSettled.status === "rejected";
+      if (allFailed && isInitialLoad) {
+        setError("Could not load dashboard data. Please try again.");
+        return;
+      }
+
+      if (state?.profile) {
         const p = state.profile;
         const hasName = !!p.pen_name?.trim();
         const hasPhoto = !!p.photo_url?.trim();
@@ -87,12 +104,11 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         setProfileState(isListed && hasName && hasPhoto && hasBio ? "live" : (hasName || hasPhoto ? "incomplete" : "none"));
       }
 
-      setBookCount(state.bookCount || 0);
-      if (slugRes.data?.author_slug) setAuthorSlug(slugRes.data.author_slug);
+      setBookCount(state?.bookCount || 0);
+      if (slugRes?.data?.author_slug) setAuthorSlug(slugRes.data.author_slug);
 
-      if (booksData.books) {
+      if (booksData?.books) {
         setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
-        // Check if any book is approved (has published_at)
         const anyApproved = booksData.books.some((b: any) => !!b.published_at);
         setBookApproved(anyApproved);
 
@@ -101,7 +117,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           fetchWithTimeout(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
             { method: "POST", headers, body: JSON.stringify({ action: "status", bookId: firstBook.id }) },
-            10000
+            TIMEOUT
           ).then(r => r.json()).then(planData => {
             if (planData.plan) {
               setHasPlan(true);
@@ -113,7 +129,6 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
               });
               setBuiltProducts(planData.completedAssets || []);
               setRecommendedByAbby(planData.plan.products?.map((p: any) => p.name || p.label) || []);
-              // Check if first time seeing post-analysis dashboard
               try {
                 const key = `abby_post_analysis_seen_${user.id}`;
                 if (!localStorage.getItem(key)) {
@@ -131,8 +146,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       }
     } catch (err) {
       console.error("Failed to load dashboard:", err);
+      // Soft-fail: bootstrap with empty state so dashboard renders
       if (isInitialLoad) {
-        setError(err?.name === "AbortError" ? "Request timed out. Please try again." : "Could not load dashboard data. Please try again.");
+        setHasBootstrapped(true);
       }
     } finally {
       if (isInitialLoad) {

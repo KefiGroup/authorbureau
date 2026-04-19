@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import MicrositePage from "./MicrositePage";
 import AuthorBookPage from "./AuthorBookPage";
 import FunnelPage from "./FunnelPage";
+import ThankYouPage from "./ThankYouPage";
 
 /**
  * Smart resolver for /:authorSlug/:slug routes.
@@ -21,11 +22,12 @@ type Resolution =
 
 export default function AuthorSubpageResolver() {
   const { bookSlug } = useParams<{ bookSlug: string }>();
+  const isThankYou = bookSlug === "thank-you";
+  const isKnownNode = bookSlug ? !!SLUG_TO_NODE[bookSlug] : false;
   const [resolution, setResolution] = useState<Resolution>({ kind: "loading" });
 
-  const isKnownNode = bookSlug ? !!SLUG_TO_NODE[bookSlug] : false;
-
   useEffect(() => {
+    if (isThankYou) return; // handled by early return below — no async resolution
     if (!bookSlug) {
       setResolution({ kind: "book" });
       return;
@@ -83,6 +85,8 @@ export default function AuthorSubpageResolver() {
 
     return () => { cancelled = true; };
   }, [bookSlug, isKnownNode]);
+
+  if (isThankYou) return <ThankYouPage />;
 
   if (resolution.kind === "loading") {
     return (

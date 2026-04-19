@@ -404,6 +404,31 @@ export default function BP02Builder({ authorId }: Props) {
       // Fire-and-forget: ensure email sequence + funnel exist for BP-02
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-02" });
       ensureFunnel({ authorId: authorId!, nodeId: "BP-02", funnelType: "lead_magnet" });
+
+      // Also write a row to the funnels table so it appears in My Funnels.
+      // Idempotent — bp02-activate-funnel will update if a row already exists.
+      try {
+        const lmTitle = (content?.leadMagnetContent?.optin_page?.headline)
+          || (content?.optin_page?.headline)
+          || (content?.headline)
+          || "Free Lead Magnet";
+        const lmSubheadline = (content?.leadMagnetContent?.optin_page?.subheadline)
+          || (content?.optin_page?.subheadline)
+          || undefined;
+        supabase.functions.invoke("bp02-activate-funnel", {
+          body: {
+            node_id: "BP-02",
+            lead_magnet_title: lmTitle,
+            headline: lmTitle,
+            subheadline: lmSubheadline,
+          },
+        }).then(({ error: bpErr }) => {
+          if (bpErr) console.warn("[BP02] bp02-activate-funnel non-fatal:", bpErr.message);
+        });
+      } catch (e) {
+        console.warn("[BP02] bp02-activate-funnel invoke threw (non-fatal):", e);
+      }
+
       toast.success("Your lead magnet is live! 🎉");
     } catch (e: any) {
       toast.error(e.message || "Something went wrong during publishing.");

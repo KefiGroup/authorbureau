@@ -96,6 +96,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const { user } = useAuth();
   const [products, setProducts] = useState<DraftProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSlowHint, setShowSlowHint] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmProduct, setConfirmProduct] = useState<DraftProduct | null>(null);
@@ -109,6 +110,9 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setShowSlowHint(false);
+    // After 3s, show "still loading…" hint instead of bare spinner
+    const hintTimer = setTimeout(() => setShowSlowHint(true), 3000);
     try {
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
@@ -119,7 +123,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "list-drafts" }),
-        }
+        },
+        8000, // 8-second timeout — fixes infinite spinner
       );
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || "Failed to load");
@@ -154,9 +159,13 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
       setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
-      console.error("Failed to fetch drafts:", err);
+      console.warn("Failed to fetch drafts (showing empty state):", err);
+      setProducts([]);
+    } finally {
+      clearTimeout(hintTimer);
+      setLoading(false);
+      setShowSlowHint(false);
     }
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {
@@ -345,9 +354,13 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
         <TabsContent value={activeTab} className="mt-4">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-            </div>
+            showSlowHint ? (
+              <EmptyState tab={activeTab} onNavigate={onNavigate} slowHint />
+            ) : (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            )
           ) : filtered.length === 0 ? (
             <EmptyState tab={activeTab} onNavigate={onNavigate} />
           ) : (
@@ -644,9 +657,9 @@ function ProductCard({
   );
 }
 
-function EmptyState({ tab, onNavigate }: { tab: string; onNavigate?: (s: string) => void }) {
+function EmptyState({ tab, onNavigate, slowHint }: { tab: string; onNavigate?: (s: string) => void; slowHint?: boolean }) {
   const messages: Record<string, string> = {
-    all: "Build products from Brand Products, Build Authority, or Yield Revenue sections, then they'll appear here for review.",
+    all: "Nothing published yet — go to Brand Products to build your first product.",
     review: "No products are ready for review yet. Complete a product in the builder studio to move it here.",
     build: "No Brand Products in progress. Start with a Workbook or Home Study Course.",
     bridge: "No Build Authority products yet. Try building an Online Course or Podcast.",
@@ -658,9 +671,16 @@ function EmptyState({ tab, onNavigate }: { tab: string; onNavigate?: (s: string)
       <Package className="h-10 w-10 text-muted-foreground/30 mx-auto mb-4" />
       <h3 className="font-heading text-lg font-semibold mb-2">No Products Yet</h3>
       <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">{messages[tab] || messages.all}</p>
-      <Button variant="outline" onClick={() => onNavigate?.("revenue-streams")}>
-        Start Building Products →
-      </Button>
+      {slowHint && (
+        <p className="text-xs text-muted-foreground/70 mb-3 inline-flex items-center gap-1.5">
+          <Loader2 className="h-3 w-3 animate-spin" /> still loading…
+        </p>
+      )}
+      <div>
+        <Button variant="outline" onClick={() => onNavigate?.("brand-products")}>
+          Go to Brand Products →
+        </Button>
+      </div>
     </Card>
   );
 }
