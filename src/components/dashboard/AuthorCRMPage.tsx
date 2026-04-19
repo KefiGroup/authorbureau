@@ -61,7 +61,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [statsData, setStatsData] = useState<{ total: number; activeThisWeek: number; conversionRate: number } | null>(null);
+  const [statsData, setStatsData] = useState<{ total: number; effectiveTotal: number; activeThisWeek: number; conversionRate: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
@@ -73,20 +73,20 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [recentLeads, setRecentLeads] = useState<Array<{ id: string; email: string; name: string | null; created_at: string; abby_score: number | null; quiz_stage: string | null }>>([]);
 
-  // Lightweight initial load: just get first page to check if empty + stats.
-  // The edge function now also returns `recentLeads` from the leads table (server-side
-  // identity resolution), so we no longer need a client-side fallback query.
   const fetchInitial = useCallback(async () => {
     if (!user) return;
     setLoading(true);
     try {
       const data = await crmFetch("list", { page: 1, pageSize: 1 });
       const total = data.totalCount || 0;
-      setStatsData({ total, activeThisWeek: 0, conversionRate: 0 });
-      setRecentLeads(Array.isArray(data.recentLeads) ? data.recentLeads : []);
+      const recent = Array.isArray(data.recentLeads) ? data.recentLeads : [];
+      const effectiveTotal = data.effectiveTotal ?? Math.max(total, recent.length);
+      console.log("[CRM] initial load →", { total, effectiveTotal, recentLeads: recent.length, authorProfileId: data.authorProfileId });
+      setStatsData({ total, effectiveTotal, activeThisWeek: 0, conversionRate: 0 });
+      setRecentLeads(recent);
     } catch (e) {
       console.warn("[CRM] initial load failed:", e);
-      setStatsData({ total: 0, activeThisWeek: 0, conversionRate: 0 });
+      setStatsData({ total: 0, effectiveTotal: 0, activeThisWeek: 0, conversionRate: 0 });
       setRecentLeads([]);
     }
     setLoading(false);
