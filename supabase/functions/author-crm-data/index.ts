@@ -330,7 +330,7 @@ Deno.serve(async (req) => {
       const { contact_id } = body;
       const { data, error } = await sb
         .from("crm_activity_log").select("*")
-        .eq("contact_id", contact_id).eq("author_id", userId)
+        .eq("contact_id", contact_id).eq("author_id", authorContactKey)
         .order("created_at", { ascending: false }).limit(50);
       if (error) throw error;
       return ok({ activities: data || [] });
