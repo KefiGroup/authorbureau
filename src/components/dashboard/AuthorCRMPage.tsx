@@ -72,6 +72,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("pipeline");
   const [contactsStageFilter, setContactsStageFilter] = useState<string | undefined>(undefined);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [recentLeads, setRecentLeads] = useState<Array<{ id: string; email: string; name: string | null; created_at: string; abby_score: number | null; quiz_stage: string | null }>>([]);
 
   // Lightweight initial load: just get first page to check if empty + stats
   const fetchInitial = useCallback(async () => {
@@ -84,6 +85,27 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       setStatsData({ total, activeThisWeek: 0, conversionRate: 0 });
     } catch {
       setStatsData({ total: 0, activeThisWeek: 0, conversionRate: 0 });
+    }
+
+    // Fallback: also pull recent leads from `leads` table (author_profiles.id) so fresh quiz captures
+    // are visible even if crm_contacts mirror lags behind.
+    try {
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (profile?.id) {
+        const { data: leads } = await supabase
+          .from("leads")
+          .select("id, email, name, created_at, abby_score, quiz_stage")
+          .eq("author_id", profile.id)
+          .order("created_at", { ascending: false })
+          .limit(10);
+        setRecentLeads((leads as any) || []);
+      }
+    } catch (e) {
+      console.warn("[CRM] recent leads fallback failed:", e);
     }
     setLoading(false);
   }, [user]);
