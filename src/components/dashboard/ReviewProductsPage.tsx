@@ -96,6 +96,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const { user } = useAuth();
   const [products, setProducts] = useState<DraftProduct[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showSlowHint, setShowSlowHint] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmProduct, setConfirmProduct] = useState<DraftProduct | null>(null);
@@ -109,6 +110,9 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    setShowSlowHint(false);
+    // After 3s, show "still loading…" hint instead of bare spinner
+    const hintTimer = setTimeout(() => setShowSlowHint(true), 3000);
     try {
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
@@ -119,7 +123,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "list-drafts" }),
-        }
+        },
+        8000, // 8-second timeout — fixes infinite spinner
       );
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || "Failed to load");
@@ -154,9 +159,13 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
       setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
-      console.error("Failed to fetch drafts:", err);
+      console.warn("Failed to fetch drafts (showing empty state):", err);
+      setProducts([]);
+    } finally {
+      clearTimeout(hintTimer);
+      setLoading(false);
+      setShowSlowHint(false);
     }
-    setLoading(false);
   }, [user]);
 
   useEffect(() => {

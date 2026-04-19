@@ -310,6 +310,12 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
     setQuizData(quizPayload);
     const success = await onSubmit(e, quizPayload);
     if (success) {
+      // BP-02: redirect to dedicated thank-you page (404 fix)
+      const slug = data.author?.author_slug;
+      if (slug) {
+        window.location.href = `/${slug}/thank-you`;
+        return;
+      }
       setStage("results");
     }
   };

@@ -53,48 +53,53 @@ Deno.serve(async (req) => {
     }
 
     const title = lead_magnet_title || 'Free Lead Magnet';
-    const baseSlug = slugify(title);
-
-    // Build a unique slug per author
-    let slug = baseSlug;
-    let attempt = 1;
-    while (true) {
-      const { data: clash } = await supabase
-        .from('funnels')
-        .select('id')
-        .eq('author_id', author.id)
-        .eq('slug', slug)
-        .maybeSingle();
-      if (!clash) break;
-      attempt += 1;
-      slug = `${baseSlug}-${attempt}`;
-      if (attempt > 20) break;
-    }
-
-    // No separate /thank-you route — FunnelPage renders inline success after submit.
-    // cta_url points to the live funnel itself, which is a real, indexable page.
+    // Idempotent: BP-02 always uses the canonical 'free-gift' slug so MicrositePage routes correctly.
+    const slug = 'free-gift';
     const publicFunnelUrl = author.author_slug ? `/${author.author_slug}/${slug}` : `/${slug}`;
+    const thankYouUrl = author.author_slug ? `/${author.author_slug}/thank-you` : `/thank-you`;
 
-    // Insert opt-in funnel
-    const { data: funnel, error: funnelErr } = await supabase
+    // Idempotent upsert — if a funnel for (author_id, node_id) exists, update it; else insert.
+    const { data: existingFunnel } = await supabase
       .from('funnels')
-      .insert({
-        author_id: author.id,
-        node_id,
-        funnel_type: 'opt_in',
-        title,
-        slug,
-        headline: headline || `Get ${title} — Free`,
-        subheadline: subheadline || 'Drop your email and get instant access.',
-        body_copy: 'No spam. Unsubscribe anytime.',
-        cta_text: 'Get Instant Access',
-        cta_url: publicFunnelUrl,
-        status: 'live',
-        published_at: new Date().toISOString(),
-      })
-      .select('id, slug')
-      .single();
-    if (funnelErr) throw funnelErr;
+      .select('id')
+      .eq('author_id', author.id)
+      .eq('node_id', node_id)
+      .maybeSingle();
+
+    const funnelPayload = {
+      author_id: author.id,
+      node_id,
+      funnel_type: 'opt_in',
+      title,
+      slug,
+      headline: headline || `Get ${title} — Free`,
+      subheadline: subheadline || 'Drop your email and get instant access.',
+      body_copy: 'No spam. Unsubscribe anytime.',
+      cta_text: 'Get Instant Access',
+      cta_url: thankYouUrl,
+      status: 'live',
+      published_at: new Date().toISOString(),
+    };
+
+    let funnel: { id: string; slug: string };
+    if (existingFunnel) {
+      const { data: updated, error: upErr } = await supabase
+        .from('funnels')
+        .update(funnelPayload)
+        .eq('id', existingFunnel.id)
+        .select('id, slug')
+        .single();
+      if (upErr) throw upErr;
+      funnel = updated;
+    } else {
+      const { data: inserted, error: funnelErr } = await supabase
+        .from('funnels')
+        .insert(funnelPayload)
+        .select('id, slug')
+        .single();
+      if (funnelErr) throw funnelErr;
+      funnel = inserted;
+    }
 
     // Seed welcome email_flow if missing
     const { data: existingFlow } = await supabase
