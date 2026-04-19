@@ -100,7 +100,17 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const dashboardNavigate = useNavigate();
-  const sectionParam = searchParams.get("section") as DashboardSection | null;
+  const sectionParamRaw = searchParams.get("section");
+  const INITIAL_ALIASES: Record<string, DashboardSection> = {
+    "review-publish": "review-products",
+    "review": "review-products",
+    "funnels": "my-funnels",
+    "crm": "author-crm",
+    "contacts": "author-crm",
+  };
+  const sectionParam = (sectionParamRaw
+    ? (INITIAL_ALIASES[sectionParamRaw] || (sectionParamRaw as DashboardSection))
+    : null);
   const [activeSection, setActiveSectionState] = useState<DashboardSection>(
     sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
@@ -112,21 +122,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     "marketing-channels": "/build-authority",
     "authority-builders": "/yield-revenue",
     "analytics": "/revenue-dashboard",
+    "revenue-dashboard": "/revenue-dashboard",
+    "revenue": "/revenue-dashboard",
     "abby-coach": "/abby-coach",
     "connect-settings": "/connect-settings",
   };
 
+  // URL aliases → real internal section keys (e.g. /dashboard?section=funnels → my-funnels)
+  const URL_SECTION_ALIASES: Record<string, DashboardSection> = {
+    "review-publish": "review-products",
+    "review": "review-products",
+    "funnels": "my-funnels",
+    "crm": "author-crm",
+    "contacts": "author-crm",
+  };
+
   // Keep dashboard state in sync when URL params change (e.g. internal links)
   useEffect(() => {
-    const urlSection = searchParams.get("section") as DashboardSection | null;
-    if (urlSection) {
-      const redirectPath = REDIRECT_SECTIONS[urlSection];
+    const urlSectionRaw = searchParams.get("section");
+    if (urlSectionRaw) {
+      const redirectPath = REDIRECT_SECTIONS[urlSectionRaw];
       if (redirectPath) {
         dashboardNavigate(redirectPath, { replace: true });
         return;
       }
-      if (urlSection !== activeSection) {
-        setActiveSectionState(urlSection);
+      const resolved = (URL_SECTION_ALIASES[urlSectionRaw] || urlSectionRaw) as DashboardSection;
+      if (resolved !== activeSection) {
+        setActiveSectionState(resolved);
       }
     }
   }, [searchParams]);
