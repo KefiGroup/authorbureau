@@ -307,7 +307,7 @@ Deno.serve(async (req) => {
     if (action === "bulk-delete") {
       const { contact_ids } = body;
       if (!contact_ids?.length) return err("contact_ids required");
-      const { data: owned } = await sb.from("crm_contacts").select("id").eq("author_id", userId).in("id", contact_ids);
+      const { data: owned } = await sb.from("crm_contacts").select("id").eq("author_id", authorContactKey).in("id", contact_ids);
       const ownedIds = (owned || []).map((c: any) => c.id);
       if (ownedIds.length > 0) {
         await sb.from("crm_contact_tags").delete().in("contact_id", ownedIds);
