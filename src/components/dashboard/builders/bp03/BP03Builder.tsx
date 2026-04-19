@@ -137,11 +137,34 @@ export default function BP03Builder({ authorId }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [savedCount, setSavedCount] = useState<number>(0);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
   const { isReady: isAuthReady } = useAuthReady();
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+
+  // Check which social accounts the author has connected. Re-checks every time we land on Review.
+  useEffect(() => {
+    if (!isAuthReady || !authorId || step !== 2) return;
+    let cancelled = false;
+    (async () => {
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("user_id")
+        .eq("id", authorId)
+        .maybeSingle();
+      const userId = profile?.user_id;
+      if (!userId) return;
+      const { data } = await supabase
+        .from("social_connections")
+        .select("platform, status")
+        .eq("user_id", userId)
+        .eq("status", "connected");
+      if (!cancelled) setConnectedPlatforms((data || []).map((r: any) => r.platform));
+    })();
+    return () => { cancelled = true; };
+  }, [authorId, isAuthReady, step]);
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
