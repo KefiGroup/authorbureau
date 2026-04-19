@@ -71,7 +71,9 @@ Deno.serve(async (req) => {
       if (attempt > 20) break;
     }
 
-    const thankYouUrl = author.author_slug ? `/${author.author_slug}/thank-you` : `/thank-you`;
+    // No separate /thank-you route — FunnelPage renders inline success after submit.
+    // cta_url points to the live funnel itself, which is a real, indexable page.
+    const publicFunnelUrl = author.author_slug ? `/${author.author_slug}/${slug}` : `/${slug}`;
 
     // Insert opt-in funnel
     const { data: funnel, error: funnelErr } = await supabase
@@ -86,7 +88,7 @@ Deno.serve(async (req) => {
         subheadline: subheadline || 'Drop your email and get instant access.',
         body_copy: 'No spam. Unsubscribe anytime.',
         cta_text: 'Get Instant Access',
-        cta_url: thankYouUrl,
+        cta_url: publicFunnelUrl,
         status: 'live',
         published_at: new Date().toISOString(),
       })
@@ -128,7 +130,7 @@ Deno.serve(async (req) => {
           trigger_delay_days: 0,
           subject: `Here's your ${title}`,
           preview_text: 'Your free guide is ready inside.',
-          body_markdown: `Hi {{name}},\n\nThanks for grabbing **${title}** — here's your instant access.\n\n[Open it now](${thankYouUrl})\n\nOver the next few days I'll share a few short notes that go deeper. Reply any time — I read every email.\n\nTalk soon,\n${author.pen_name || 'The Author'}`,
+          body_markdown: `Hi {{name}},\n\nThanks for grabbing **${title}** — here's your instant access.\n\n[Open it now](${publicFunnelUrl})\n\nOver the next few days I'll share a few short notes that go deeper. Reply any time — I read every email.\n\nTalk soon,\n${author.pen_name || 'The Author'}`,
           status: 'active',
         },
         {
