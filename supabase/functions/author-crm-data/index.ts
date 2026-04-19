@@ -321,7 +321,7 @@ Deno.serve(async (req) => {
     if (action === "add-tag") {
       const { contact_id, tag } = body;
       if (!contact_id || !tag) return err("contact_id and tag required");
-      await sb.from("crm_contact_tags").insert({ author_id: userId, contact_id, tag: tag.trim() });
+      await sb.from("crm_contact_tags").insert({ author_id: authorContactKey, contact_id, tag: tag.trim() });
       return ok({ ok: true });
     }
 
