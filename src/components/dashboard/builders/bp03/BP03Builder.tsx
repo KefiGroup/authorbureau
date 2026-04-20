@@ -1002,8 +1002,8 @@ function SuccessScreen({
             />
             <DestinationCard
               icon={<Download className="h-5 w-5" />}
-              title="Download Marketing Kit"
-              description="ZIP with .txt files, posts.csv & outreach templates."
+              title="Download Full Kit (.zip)"
+              description="80 branded graphics + captions.csv + VA README."
               cta="Download .zip"
               onClick={onDownloadZip}
             />
