@@ -749,7 +749,15 @@ function ReviewStep({
               <div key={week} className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground mt-4">{WEEK_LABELS[week]}</h3>
                 {weekPosts.map((post: any) => (
-                  <PostCard key={post.day} post={post} />
+                  <PostCard
+                    key={post.day}
+                    post={post}
+                    authorName={authorName}
+                    authorPhotoUrl={authorPhotoUrl}
+                    bookColor={bookColor}
+                    bookTitle={bookTitle}
+                    onClick={() => openEditor(post)}
+                  />
                 ))}
               </div>
             );
