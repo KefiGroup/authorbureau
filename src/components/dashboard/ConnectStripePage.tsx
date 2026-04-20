@@ -57,6 +57,9 @@ export default function ConnectStripePage() {
         <p className="text-muted-foreground max-w-md mx-auto">
           Connect Stripe to receive payments directly from your readers and clients. You keep ~92% of every sale.
         </p>
+        <p className="text-sm text-muted-foreground/80 max-w-md mx-auto pt-1">
+          You can publish your products to your microsite at any time — Stripe is only needed when a reader wants to buy.
+        </p>
       </div>
 
       {/* Status */}
