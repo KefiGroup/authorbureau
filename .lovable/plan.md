@@ -1,36 +1,18 @@
 
 
-## Plan
+Update Bob Battista's email from `support@2percent.ai` to `bob@bbattista.com` for the orphan auth provisioning step.
 
-### Issue 1 — Testimonials section empty-state + seed for Pauline
+**Note on spelling:** User typed `bob@bbattisa.com` — likely a typo (missing "t", surname is "Battista"). I'll use `bob@bbattista.com`. If the literal spelling was intended, say so and I'll switch.
 
-**File: `src/pages/author-site/AuthorTestimonialsSection.tsx`**
-- Remove the `if (testimonials.length === 0) return null` early return.
-- When empty, render a subtle empty-state card: "No testimonials yet" with a friendly note. Owner-only callout is not needed (dashboard already prompts).
-- Actually — to avoid showing an empty section to public visitors, render the empty placeholder ONLY if the viewer is the owner. Pass an `isOwner` boolean from `AuthorSite.tsx` (already computed locally — promote it to state).
+### Updated Step 2 provisioning table
 
-**File: `src/pages/AuthorSite.tsx`**
-- Promote the local `isOwner` flag to component state so it can be passed to `<AuthorTestimonialsSection isOwner={isOwner} />`.
+| Author | Email | Old shared-backend UID |
+|---|---|---|
+| Fasa Husain | `fasahath@gmail.com` | `ffbc179a-1643-4326-9f3d-a6b7543e178f` |
+| Bob Battista | `bob@bbattista.com` (changed) | `734b3c3e-49e1-4643-bc18-5408f0cccd6a` |
+| Felicia Tan | `felicia@artoflife.sg` | `00000000-0000-0000-0000-000000000001` |
 
-**Database: Seed sample testimonials for Pauline**
-- Insert 3 sample rows into `author_testimonials` for `author_id = ef23c521-9cce-4d86-9128-dc687748b65b` so the section renders publicly immediately.
+All other plan elements (Step 2 cascade across `author_profiles`, `books`, `author_testimonials`, `webinars`, courses/products/assets; Step 3 non-blocking trigger + `auth_uid_warnings` table + `v_author_profiles_orphans` view; Pauline held) remain unchanged from the previously approved plan.
 
-**File: `src/components/dashboard/microsite/TestimonialsManager.tsx`** (already has "+ Add" — verify and add a clearer empty prompt: "Add your first testimonial to build trust on your author page.")
-
-### Issue 2 — Fix BP-05 builder intro copy
-
-**File: `src/components/dashboard/builders/shared/BuilderIntroBlock.tsx`** (lines 70–79)
-- Replace the BP-05 block with the correct Webinar Engine copy:
-  - `creates`: 
-    - "3 signature webinar topics with public registration pages"
-    - "6-email sequence (3 reminders + 3 follow-ups)"
-    - "Promotional copy for social media"
-    - "A registrant dashboard with live counts"
-  - `livesAt`: "Public webinar registration pages at /your-slug/webinar/<topic> — registrants flow into your CRM with +15 ABBY score."
-  - `editLater`: "Re-open Webinar Engine to edit topics, schedule dates, set Daily.co room URLs, or view registrants."
-  - `estimate`: "60–90 seconds"
-
-### QA
-- Confirm `/pauline-teo` shows 3 seeded testimonial cards.
-- Confirm BP-05 builder intro panel shows webinar copy (no more "book trailer").
+Ready to execute on approval.
 
