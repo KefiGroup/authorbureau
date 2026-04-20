@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth, TIERS, type SubscriptionTier } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
@@ -117,6 +117,37 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   }, [user]);
 
   useEffect(() => { fetchBooks(); }, [user, fetchBooks]);
+
+  // Deep-link support: ?bookId=&focus=
+  const [searchParams] = useSearchParams();
+  useEffect(() => {
+    const focusBookId = searchParams.get("bookId");
+    const focusField = searchParams.get("focus");
+    if (!focusBookId || loading || books.length === 0) return;
+    const target = books.find((b) => b.id === focusBookId);
+    if (!target) return;
+    // Scroll into view
+    setTimeout(() => {
+      const el = document.getElementById(`book-card-${focusBookId}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        el.classList.add("ring-2", "ring-amber-400");
+        setTimeout(() => el.classList.remove("ring-2", "ring-amber-400"), 4000);
+      }
+    }, 200);
+    if (focusField) {
+      const fieldLabel: Record<string, string> = {
+        description: "book description",
+        cover: "cover image",
+        genre: "genre",
+        title: "title",
+      };
+      toast({
+        title: `Add the missing ${fieldLabel[focusField] || focusField}`,
+        description: `Update '${target.title}' to unlock the next builder.`,
+      });
+    }
+  }, [searchParams, books, loading, toast]);
 
   const handleUploadCover = async (bookId: string, file: File) => {
     setUploadingCover(bookId);
@@ -372,7 +403,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
               const isBestseller = book.badges?.some(b => b.toLowerCase().includes("bestseller"));
 
               return (
-                <Card key={book.id} className="overflow-hidden group flex flex-col">
+                <Card key={book.id} id={`book-card-${book.id}`} className="overflow-hidden group flex flex-col transition-shadow">
                   {/* A. Cover Image */}
                   <div className="h-[220px] bg-muted flex items-center justify-center overflow-hidden relative">
                     {book.cover_image_url ? (
