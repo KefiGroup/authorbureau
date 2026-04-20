@@ -165,38 +165,34 @@ export default function RevenueFullDashboard() {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Sync metrics (max once per hour — simplified: just call on mount)
+  // Background sync — enriches with GHL pipeline + Stripe revenue if connected.
+  // Does NOT block initial render. Direct DB counts already shown.
   const syncMetrics = useCallback(async () => {
     if (!authorId) return;
     try {
       const [ghlRes, stripeRes] = await Promise.all([
-        supabase.functions.invoke("sync-ghl-metrics", { body: { author_id: authorId } }),
-        supabase.functions.invoke("sync-stripe-metrics", { body: { author_id: authorId } }),
+        supabase.functions.invoke("sync-ghl-metrics", { body: { author_id: authorId } }).catch(() => ({ data: null })),
+        supabase.functions.invoke("sync-stripe-metrics", { body: { author_id: authorId } }).catch(() => ({ data: null })),
       ]);
 
-      const ghl = ghlRes.data;
-      const stripe = stripeRes.data;
+      const ghl = (ghlRes as any)?.data;
+      const stripe = (stripeRes as any)?.data;
 
-      if (ghl?.success) {
-        setMetrics((m) => ({
-          ...m,
-          contacts: ghl.data.total_contacts || 0,
-          subscribers: ghl.data.email_subscribers || 0,
-          pipeline: ghl.data.pipeline_value_usd || 0,
-        }));
-        setProjected((p) => ({ ...p, ghl: ghl.projected }));
-        setNodesLive(ghl.nodes_live || 0);
+      // Only enrich pipeline value from GHL — keep direct CRM count for contacts
+      if (ghl?.success && ghl.data?.pipeline_value_usd) {
+        setMetrics((m) => ({ ...m, pipeline: ghl.data.pipeline_value_usd }));
       }
 
-      if (stripe?.success) {
+      // Stripe revenue only overrides if higher (purchases table may be empty)
+      if (stripe?.success && stripe.data?.stripe_revenue_mtd_usd) {
         setMetrics((m) => ({
           ...m,
-          revenueMtd: stripe.data.stripe_revenue_mtd_usd || 0,
+          revenueMtd: Math.max(m.revenueMtd, stripe.data.stripe_revenue_mtd_usd),
         }));
         setProjected((p) => ({ ...p, stripe: stripe.projected }));
       }
     } catch (e) {
-      console.error("Sync error:", e);
+      console.error("Sync error (non-fatal):", e);
     }
   }, [authorId]);
 
