@@ -17,6 +17,15 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
+import SocialGraphicCard from "./SocialGraphicCard";
+import PostEditorSheet from "./PostEditorSheet";
+import {
+  PLATFORM_DIMENSIONS,
+  PLATFORM_TAB_LABELS,
+  extractPullQuote,
+  renderSocialGraphic,
+  type SocialPlatform,
+} from "./socialGraphic";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import {
@@ -138,6 +147,8 @@ export default function BP03Builder({ authorId }: Props) {
   const [isActivating, setIsActivating] = useState(false);
   const [savedCount, setSavedCount] = useState<number>(0);
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
+  const [authorPhotoUrl, setAuthorPhotoUrl] = useState<string | null>(null);
+  const [bookColor, setBookColor] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
@@ -187,6 +198,29 @@ export default function BP03Builder({ authorId }: Props) {
         setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
         setBookTitle(resolvedBookTitle);
         setHasContext(resolvedHasContext);
+
+        // Fetch author photo + book color (best-effort)
+        try {
+          const { data: ap } = await supabase
+            .from("author_profiles")
+            .select("photo_url")
+            .eq("id", authorId)
+            .maybeSingle();
+          if (!cancelled && ap?.photo_url) setAuthorPhotoUrl(ap.photo_url);
+          const { data: book } = await supabase
+            .from("books")
+            .select("cover_image_url")
+            .eq("author_id", authorId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!cancelled && book) {
+            // No brand_color column — leave null so renderer derives from title hash
+            setBookColor(null);
+          }
+        } catch (e) {
+          console.warn("[BP03] photo/book lookup failed", e);
+        }
 
         const status = node?.status;
         const cj: any = node?.content_json || null;
@@ -464,36 +498,12 @@ export default function BP03Builder({ authorId }: Props) {
               </Card>
             )}
 
-            {/* Social-account connection check banner */}
-            {connectedPlatforms.length === 0 ? (
-              <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30">
-                <div className="flex gap-3 items-start">
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                    <Share2 className="h-4 w-4 text-amber-700 dark:text-amber-300" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                      Connect your social accounts to schedule
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                      You haven't connected any social accounts yet. Posts will still save to your Social Calendar, but they won't auto-publish until you connect at least one account.
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 border-amber-400 text-amber-800 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-200 dark:hover:bg-amber-900/40"
-                      onClick={() => navigate("/account-settings?tab=connections")}
-                    >
-                      Connect accounts →
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ) : (
-              <Card className="p-3 border-green-300 dark:border-green-700 bg-green-50/60 dark:bg-green-950/30">
-                <p className="text-xs text-green-800 dark:text-green-200 flex items-center gap-2">
+            {/* Social-account connection note (manual posting model) */}
+            {connectedPlatforms.length > 0 && (
+              <Card className="p-3 border-border bg-muted/40">
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
                   <Check className="h-3.5 w-3.5" />
-                  Connected: <strong>{connectedPlatforms.join(", ")}</strong>. Posts will auto-publish on schedule.
+                  Connected accounts saved for reference: <strong>{connectedPlatforms.join(", ")}</strong>. You'll post manually using your kit.
                 </p>
               </Card>
             )}
@@ -501,8 +511,28 @@ export default function BP03Builder({ authorId }: Props) {
               content={content}
               authorName={authorName}
               bookTitle={bookTitle || detectedBookTitle || "your book"}
+              authorPhotoUrl={authorPhotoUrl}
+              bookColor={bookColor}
               onSave={handleSave}
               onActivate={handleActivate}
+              onSavePost={async (updatedPost) => {
+                const nextPosts = (content.posts || []).map((p: any) =>
+                  p.day === updatedPost.day ? updatedPost : p,
+                );
+                const nextContent = { ...content, posts: nextPosts };
+                setContent(nextContent);
+                try {
+                  await fetchBp03NodeState({
+                    action: "save",
+                    author_id: authorId,
+                    status: content?.publishStatus === "live" ? "live" : "content_ready",
+                    content: nextContent,
+                  });
+                  toast.success("Post updated.");
+                } catch (e: any) {
+                  toast.error(e.message || "We couldn't save your edit.");
+                }
+              }}
               isSaving={isSaving}
             />
           </>
@@ -524,7 +554,7 @@ export default function BP03Builder({ authorId }: Props) {
             authorName={authorName}
             bookTitle={bookTitle || detectedBookTitle || "your book"}
             onEditKit={() => setStep(2)}
-            onDownloadZip={() => downloadKitZip(content, bookTitle, authorName)}
+            onDownloadZip={() => downloadKitZip(content, bookTitle, authorName, authorPhotoUrl, bookColor)}
           />
         )}
         {step === 3 && content?.activated && <BackToReviewLink onClick={() => setStep(2)} />}
@@ -573,31 +603,61 @@ function getWeek(day: number): number {
   return 4;
 }
 
-async function downloadKitZip(content: any, bookTitle: string, authorName: string) {
+async function downloadKitZip(
+  content: any,
+  bookTitle: string,
+  authorName: string,
+  authorPhotoUrl?: string | null,
+  bookColor?: string | null,
+) {
   try {
     const zip = new JSZip();
-    const folder = zip.folder(`${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit`)!;
+    const safeName = bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_") || "Social_Media_Kit";
+    const folder = zip.folder(`${safeName}_Social_Media_Kit`)!;
 
-    // social_media folder
+    const platforms: SocialPlatform[] = ["instagram", "linkedin", "facebook", "twitter"];
     const socialFolder = folder.folder("social_media")!;
-    for (const platform of PLATFORMS) {
-      const posts = content.posts?.map((p: any) => `--- Day ${p.day}: ${p.theme} ---\n${p[platform]?.caption || ""}\nHashtags: ${(p[platform]?.hashtags || []).map((h: string) => `#${h}`).join(" ")}\n`).join("\n");
-      socialFolder.file(`${PLATFORM_LABELS[platform]?.toLowerCase().replace(/[^a-z]/g, "_") || platform}_posts.txt`, posts || "");
+
+    // Generate 80 PNG graphics: 4 platforms × 20 posts
+    for (const platform of platforms) {
+      const platformFolder = socialFolder.folder(platform)!;
+      for (const post of content.posts || []) {
+        const pp = post[platform];
+        if (!pp) continue;
+        const pullQuote = extractPullQuote(pp.caption || "");
+        try {
+          const blob = await renderSocialGraphic({
+            platform,
+            authorName,
+            authorPhotoUrl,
+            bookColor,
+            bookTitle,
+            pullQuote,
+          });
+          const arr = await blob.arrayBuffer();
+          const dayLabel = String(post.day).padStart(2, "0");
+          platformFolder.file(`day_${dayLabel}.png`, arr);
+        } catch (err) {
+          console.warn(`[BP03 zip] graphic failed for ${platform} day ${post.day}`, err);
+        }
+      }
     }
 
-    // posts.csv
-    const csvHeader = "day,platform,caption,hashtags";
+    // captions.csv — day, platform, caption, hashtags, image_filename
+    const csvHeader = "day,platform,caption,hashtags,image_filename";
     const csvRows: string[] = [csvHeader];
     (content.posts || []).forEach((p: any) => {
-      for (const platform of PLATFORMS) {
+      const dayLabel = String(p.day).padStart(2, "0");
+      for (const platform of platforms) {
         const pp = p[platform];
         if (!pp?.caption) continue;
         const caption = `"${(pp.caption || "").replace(/"/g, '""')}"`;
         const tags = `"${(pp.hashtags || []).map((h: string) => `#${h}`).join(" ")}"`;
-        csvRows.push(`${p.day},${platform},${caption},${tags}`);
+        const file = `social_media/${platform}/day_${dayLabel}.png`;
+        csvRows.push(`${p.day},${platform},${caption},${tags},${file}`);
       }
     });
-    folder.file("posts.csv", csvRows.join("\n"));
+    folder.file("captions.csv", csvRows.join("\n"));
 
     // Outreach
     if (content.outreach_kit?.length) {
@@ -608,19 +668,20 @@ async function downloadKitZip(content: any, bookTitle: string, authorName: strin
       }
     }
 
+    // VA-friendly README
     folder.file(
-      "README.txt",
-      `${bookTitle} — Complete Marketing Kit\nGenerated by ABBY for ${authorName}\n\nContents:\n- social_media/ — 20 posts across 4 platforms\n- outreach_kit/ — 3 outreach templates\n- posts.csv — combined manifest with day, platform, caption, hashtags\n\nHow to use:\n1. Open the platform-specific .txt files for ready-to-post copy.\n2. Use posts.csv to import into a spreadsheet or scheduler.\n3. In Authors Bureau → Marketing Hub → Social Calendar you can mark posts as posted as you go.\n`
+      "README.md",
+      `# ${bookTitle} — Social Media Kit\n\nPrepared for ${authorName}.\n\nThis kit contains everything needed to post 20 days of content across 4 platforms.\n\n## Folder structure\n\n- \`social_media/instagram/\` — 20 square graphics (1080×1080), one per day\n- \`social_media/linkedin/\` — 20 landscape graphics (1200×628)\n- \`social_media/facebook/\` — 20 landscape graphics (1200×628)\n- \`social_media/twitter/\` — 20 widescreen graphics (1600×900)\n- \`captions.csv\` — every caption, hashtags, and matching image filename\n- \`outreach_kit/\` — 3 outreach email templates\n\n## How to post (for the VA / social manager)\n\n1. Open the folder for the platform you're posting to today.\n2. Grab the PNG named \`day_NN.png\` (NN = the day number).\n3. Open \`captions.csv\` and find the row with the same day + platform.\n4. Copy the caption and hashtags into the platform's post composer.\n5. Upload the PNG and publish.\n6. Mark the row done in your tracker.\n\n## Schedule suggestion\n\nPost one piece every 1–2 days, rotating platforms. Spread the 20 days across 4 weeks for steady cadence.\n\n— Authors Bureau\n`,
     );
 
     const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${bookTitle.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_")}_Marketing_Kit.zip`;
+    a.download = `${safeName}_Social_Media_Kit.zip`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success("Marketing Kit downloaded!");
+    toast.success("Social Media Kit downloaded!");
   } catch (e: any) {
     toast.error("Download failed: " + e.message);
   }
@@ -630,23 +691,36 @@ function ReviewStep({
   content,
   authorName,
   bookTitle,
+  authorPhotoUrl,
+  bookColor,
   onSave,
   onActivate,
+  onSavePost,
   isSaving,
 }: {
   content: any;
   authorName: string;
   bookTitle: string;
+  authorPhotoUrl?: string | null;
+  bookColor?: string | null;
   onSave: () => void;
   onActivate: () => void;
+  onSavePost: (updatedPost: any) => Promise<void> | void;
   isSaving: boolean;
 }) {
   const [downloading, setDownloading] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingPost, setEditingPost] = useState<any | null>(null);
 
   const handleDownloadZip = async () => {
     setDownloading(true);
-    await downloadKitZip(content, bookTitle, authorName);
+    await downloadKitZip(content, bookTitle, authorName, authorPhotoUrl, bookColor);
     setDownloading(false);
+  };
+
+  const openEditor = (post: any) => {
+    setEditingPost(post);
+    setEditorOpen(true);
   };
 
   return (
@@ -675,7 +749,15 @@ function ReviewStep({
               <div key={week} className="space-y-2">
                 <h3 className="text-sm font-semibold text-muted-foreground mt-4">{WEEK_LABELS[week]}</h3>
                 {weekPosts.map((post: any) => (
-                  <PostCard key={post.day} post={post} />
+                  <PostCard
+                    key={post.day}
+                    post={post}
+                    authorName={authorName}
+                    authorPhotoUrl={authorPhotoUrl}
+                    bookColor={bookColor}
+                    bookTitle={bookTitle}
+                    onClick={() => openEditor(post)}
+                  />
                 ))}
               </div>
             );
@@ -723,10 +805,10 @@ function ReviewStep({
           </div>
           <div className="space-y-1.5">
             <Button variant="outline" className="w-full" onClick={handleDownloadZip} disabled={downloading}>
-              <Download className="h-4 w-4 mr-2" />{downloading ? "Downloading..." : "Download Marketing Kit"}
+              <Download className="h-4 w-4 mr-2" />{downloading ? "Building ZIP…" : "Download Full Kit (.zip)"}
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              ZIP with all 20 posts, captions, hashtags, posts.csv & outreach templates. Use it offline or hand off to your VA.
+              ZIP with all 80 branded graphics (4 platforms × 20 posts), captions.csv & a VA-friendly README.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -742,18 +824,48 @@ function ReviewStep({
           ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Saved to your Social Calendar on Activate
         </p>
       </div>
+
+      <PostEditorSheet
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        post={editingPost}
+        authorName={authorName}
+        authorPhotoUrl={authorPhotoUrl}
+        bookColor={bookColor}
+        bookTitle={bookTitle}
+        onSave={async (updated) => {
+          await onSavePost(updated);
+        }}
+      />
     </div>
   );
 }
 
-function PostCard({ post }: { post: any }) {
-  const [open, setOpen] = useState(false);
-  const [platform, setPlatform] = useState("linkedin");
-  const platformData = post[platform];
+function PostCard({
+  post,
+  authorName,
+  authorPhotoUrl,
+  bookColor,
+  bookTitle,
+  onClick,
+}: {
+  post: any;
+  authorName: string;
+  authorPhotoUrl?: string | null;
+  bookColor?: string | null;
+  bookTitle?: string;
+  onClick: () => void;
+}) {
+  const [platform, setPlatform] = useState<SocialPlatform>("instagram");
+  const platformData = post[platform] || { caption: "", hashtags: [] };
+  const pullQuote = extractPullQuote(platformData.caption || "");
 
   return (
-    <Card className="cursor-pointer" onClick={() => setOpen(!open)}>
-      <CardContent className="pt-4 pb-3">
+    <Card
+      className="cursor-pointer hover:border-primary/50 transition-colors"
+      onClick={onClick}
+    >
+      <CardContent className="pt-4 pb-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -763,27 +875,35 @@ function PostCard({ post }: { post: any }) {
             </div>
             <p className="font-medium text-sm truncate">{post.theme}</p>
           </div>
-          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+          <PencilLine className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
-        {open && (
-          <div className="mt-3 pt-3 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-1">
-              {(["linkedin", "instagram", "facebook", "twitter"] as const).map((p) => (
-                <button key={p} onClick={() => setPlatform(p)} className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${platform === p ? PLATFORM_COLORS[p] : "bg-muted text-muted-foreground"}`}>
-                  {PLATFORM_LABELS[p]}
-                </button>
-              ))}
-            </div>
-            {platformData && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{platformData.caption}</p>
-                {platformData.hashtags?.length > 0 && (
-                  <p className="text-xs text-primary">{platformData.hashtags.map((h: string) => `#${h}`).join(" ")}</p>
-                )}
-              </div>
-            )}
+
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-1 mb-2 flex-wrap">
+            {(["instagram", "linkedin", "facebook", "twitter"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPlatform(p)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                  platform === p ? PLATFORM_COLORS[p] : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {PLATFORM_TAB_LABELS[p]}
+              </button>
+            ))}
           </div>
-        )}
+          <div className="cursor-pointer" onClick={onClick}>
+            <SocialGraphicCard
+              platform={platform}
+              authorName={authorName}
+              authorPhotoUrl={authorPhotoUrl}
+              bookColor={bookColor}
+              bookTitle={bookTitle}
+              pullQuote={pullQuote}
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground line-clamp-2">{platformData.caption}</p>
+        </div>
       </CardContent>
     </Card>
   );
@@ -835,10 +955,7 @@ function SuccessScreen({
   onDownloadZip: () => void;
 }) {
   const navigate = useNavigate();
-  const headline =
-    scheduledCount > 0
-      ? "Your Social Media Kit is Live 🎉"
-      : "Your Social Media Kit is Saved ✓";
+  const headline = "Your Social Media Kit is Ready 🎉";
 
   return (
     <div className="space-y-4">
@@ -846,7 +963,7 @@ function SuccessScreen({
       <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
         <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
         <span className="text-foreground">
-          Your kit lives in <strong>Marketing Hub → Social Calendar</strong>. You can edit, reschedule, copy or mark posts as posted anytime.
+          Your kit lives in <strong>Marketing Hub → Social Calendar</strong>. You'll post manually — copy a caption, grab the matching graphic, and publish.
         </span>
       </div>
 
@@ -860,8 +977,8 @@ function SuccessScreen({
               <h2 className="text-xl font-bold mb-1">{headline}</h2>
               <p className="text-sm text-muted-foreground">
                 {scheduledCount > 0
-                  ? `I've added ${scheduledCount} posts to your Social Calendar for "${bookTitle}". When you're ready, copy each post and publish it on your accounts — then click "Mark as Posted" so we can track your consistency.`
-                  : `I've saved your kit for "${bookTitle}". Open the Social Calendar to start posting whenever you're ready.`}
+                  ? `I've prepared ${scheduledCount} posts for "${bookTitle}" — every post has a branded graphic for Instagram, LinkedIn, Facebook and X. Download the full kit, or open your Social Calendar to copy posts one at a time. Authors Bureau doesn't post for you — you (or your VA) post manually.`
+                  : `I've prepared your kit for "${bookTitle}" — every post has a branded graphic for Instagram, LinkedIn, Facebook and X. Download the full kit, or open your Social Calendar to copy posts one at a time. You'll post manually using your kit.`}
               </p>
             </div>
           </div>
@@ -885,8 +1002,8 @@ function SuccessScreen({
             />
             <DestinationCard
               icon={<Download className="h-5 w-5" />}
-              title="Download Marketing Kit"
-              description="ZIP with .txt files, posts.csv & outreach templates."
+              title="Download Full Kit (.zip)"
+              description="80 branded graphics + captions.csv + VA README."
               cta="Download .zip"
               onClick={onDownloadZip}
             />
