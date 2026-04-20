@@ -19,6 +19,8 @@ import AuthorServicesSection from "./author-site/AuthorServicesSection";
 import AuthorEventsSection from "./author-site/AuthorEventsSection";
 import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
+import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
+import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
 export default function AuthorSite() {
