@@ -31,12 +31,27 @@ export const NODE_SLUG_MAP: Record<string, string> = {
   "YR-28": "sponsors",
 };
 
-/** Reverse lookup: slug → nodeId */
-export const SLUG_TO_NODE: Record<string, string> = Object.fromEntries(
-  Object.entries(NODE_SLUG_MAP)
-    .filter(([, slug]) => slug !== "")
-    .map(([nodeId, slug]) => [slug, nodeId])
-);
+/**
+ * Reverse lookup: slug → nodeId.
+ * Includes alias slugs so multiple public URLs resolve to the same node:
+ *   - "course"            → BP-07 (alias of "home-study")
+ *   - "special-editions"  → BP-08 (plural alias of "special-edition")
+ *   - "order"             → BP-09 (alias of "book")
+ */
+const SLUG_ALIASES: Record<string, string> = {
+  "course": "BP-07",
+  "special-editions": "BP-08",
+  "order": "BP-09",
+};
+
+export const SLUG_TO_NODE: Record<string, string> = {
+  ...Object.fromEntries(
+    Object.entries(NODE_SLUG_MAP)
+      .filter(([, slug]) => slug !== "")
+      .map(([nodeId, slug]) => [slug, nodeId])
+  ),
+  ...SLUG_ALIASES,
+};
 
 /** Nodes that have NO public microsite page */
 export const NO_MICROSITE_NODES = new Set(["BP-01", "BP-03", "BA-15", "BA-18"]);
