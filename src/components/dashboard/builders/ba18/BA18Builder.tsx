@@ -68,7 +68,7 @@ export default function BA18Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba18-revenue-sharing", { body: { author_id: authorId } });
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba18-jv-partnerships", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
     } catch (e: any) { setError(e.message); setStep(0); }

@@ -66,7 +66,7 @@ export default function BA16Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba16-affiliates", { body: { author_id: authorId } });
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba16-affiliate", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
     } catch (e: any) { setError(e.message); setStep(0); }
