@@ -75,19 +75,20 @@ async function fetchBookContext(): Promise<FetchedContext> {
   }
 
   const json = await res.json();
+  console.log("[useBookContext] edge response:", json);
   const book: AuthorBook | null = json.book ?? null;
-  const bookTitle: string =
+  const resolvedTitle: string | null =
     (json.bookTitle && String(json.bookTitle).trim()) ||
-    book?.title ||
-    "your book";
+    (book?.title && String(book.title).trim()) ||
+    null;
 
-  console.log("[useBookContext] resolved title:", bookTitle);
+  console.log("[useBookContext] resolved title:", resolvedTitle);
 
   return {
-    bookTitle,
+    bookTitle: resolvedTitle ?? "your book",
     bookId: book?.id || null,
     book,
-    hasContext: !!json.bookTitle,
+    hasContext: !!resolvedTitle,
     missingFields: json.missingFields ?? [],
     isComplete: !!json.isComplete,
   };
