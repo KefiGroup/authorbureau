@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, FileText, LayoutList, DollarSign, Copy } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import RequireStripeConnected from "@/components/dashboard/RequireStripeConnected";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
@@ -150,18 +151,30 @@ export default function BP06Builder({ authorId }: Props) {
           </AbbyCard>
         )}
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 2 && content && (
-          <ReviewStep
-            content={content}
-            setContent={setContent}
-            authorId={authorId}
-            authorName={authorName}
-            onActivate={handlePublish}
-            onPrevious={() => setStep(0)}
-            priceOverride={priceOverride}
-            setPriceOverride={setPriceOverride}
-          />
-        )}
+        {step === 2 && content && (() => {
+          const isPaid = (priceOverride ?? content?.suggested_price_usd ?? 0) > 0;
+          const review = (
+            <ReviewStep
+              content={content}
+              setContent={setContent}
+              authorId={authorId}
+              authorName={authorName}
+              onActivate={handlePublish}
+              onPrevious={() => setStep(0)}
+              priceOverride={priceOverride}
+              setPriceOverride={setPriceOverride}
+            />
+          );
+          return isPaid ? (
+            <RequireStripeConnected
+              title="Connect Stripe to publish your workbook"
+              description="Your workbook has a price set, so you'll need a connected Stripe account before publishing. Set the price to $0 to publish as a free lead magnet instead."
+              showLockedPreview
+            >
+              {review}
+            </RequireStripeConnected>
+          ) : review;
+        })()}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 3 && content?.activated && (
           <>

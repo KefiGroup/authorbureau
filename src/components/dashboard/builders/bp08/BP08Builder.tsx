@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Gift } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import RequireStripeConnected from "@/components/dashboard/RequireStripeConnected";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
@@ -112,6 +113,11 @@ export default function BP08Builder({ authorId }: Props) {
         )}
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 2 && content && (
+          <RequireStripeConnected
+            title="Connect Stripe to publish your special editions"
+            description="Special editions are sold as paid products, so you'll need a connected Stripe account before publishing."
+            showLockedPreview
+          >
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="editions" className="w-full">
