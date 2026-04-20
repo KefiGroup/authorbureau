@@ -1326,6 +1326,7 @@ export type Database = {
           created_at: string
           id: string
           module_id: string
+          outline: string | null
           position: number
           title: string
           video_url: string | null
@@ -1335,6 +1336,7 @@ export type Database = {
           created_at?: string
           id?: string
           module_id: string
+          outline?: string | null
           position?: number
           title: string
           video_url?: string | null
@@ -1344,6 +1346,7 @@ export type Database = {
           created_at?: string
           id?: string
           module_id?: string
+          outline?: string | null
           position?: number
           title?: string
           video_url?: string | null
@@ -1466,15 +1469,20 @@ export type Database = {
           author_id: string
           book_id: string | null
           course_format: string | null
+          course_slug: string | null
           cover_image_url: string | null
           created_at: string
           currency: string | null
+          delivery_url: string | null
           description: string | null
           id: string
           price: number | null
           source_asset_id: string | null
           status: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
           subtitle: string | null
+          tagline: string | null
           target_student: string | null
           title: string
           transformation_promises: Json | null
@@ -1485,15 +1493,20 @@ export type Database = {
           author_id: string
           book_id?: string | null
           course_format?: string | null
+          course_slug?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
+          delivery_url?: string | null
           description?: string | null
           id?: string
           price?: number | null
           source_asset_id?: string | null
           status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           subtitle?: string | null
+          tagline?: string | null
           target_student?: string | null
           title: string
           transformation_promises?: Json | null
@@ -1504,15 +1517,20 @@ export type Database = {
           author_id?: string
           book_id?: string | null
           course_format?: string | null
+          course_slug?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
+          delivery_url?: string | null
           description?: string | null
           id?: string
           price?: number | null
           source_asset_id?: string | null
           status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           subtitle?: string | null
+          tagline?: string | null
           target_student?: string | null
           title?: string
           transformation_promises?: Json | null
@@ -2915,6 +2933,79 @@ export type Database = {
             columns: ["book_id"]
             isOneToOne: false
             referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      membership_content: {
+        Row: {
+          author_id: string
+          benefits: Json
+          created_at: string
+          currency: string
+          monthly_newsletter_template: Json | null
+          monthly_price: number
+          name: string
+          sales_copy: Json
+          status: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
+          tagline: string | null
+          updated_at: string
+          welcome_emails: Json
+        }
+        Insert: {
+          author_id: string
+          benefits?: Json
+          created_at?: string
+          currency?: string
+          monthly_newsletter_template?: Json | null
+          monthly_price?: number
+          name?: string
+          sales_copy?: Json
+          status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tagline?: string | null
+          updated_at?: string
+          welcome_emails?: Json
+        }
+        Update: {
+          author_id?: string
+          benefits?: Json
+          created_at?: string
+          currency?: string
+          monthly_newsletter_template?: Json | null
+          monthly_price?: number
+          name?: string
+          sales_copy?: Json
+          status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
+          tagline?: string | null
+          updated_at?: string
+          welcome_emails?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
         ]
@@ -4492,6 +4583,85 @@ export type Database = {
             columns: ["source_asset_id"]
             isOneToOne: false
             referencedRelation: "generated_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      subscriptions: {
+        Row: {
+          author_id: string
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          price_usd: number
+          status: string
+          stripe_customer_id: string | null
+          stripe_price_id: string | null
+          stripe_subscription_id: string | null
+          subscriber_email: string
+          subscriber_name: string | null
+          subscriber_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          price_usd?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          subscriber_email: string
+          subscriber_name?: string | null
+          subscriber_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          price_usd?: number
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_price_id?: string | null
+          stripe_subscription_id?: string | null
+          subscriber_email?: string
+          subscriber_name?: string | null
+          subscriber_user_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
         ]
