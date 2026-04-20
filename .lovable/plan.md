@@ -1,97 +1,75 @@
 
+Implement the approved rebuild-forcing change first, then stop and verify the bundle hash before touching anything else.
 
-## Plan: Diagnose and Fix the Stale `shouldGate` State
+### Confirmed current state
+- `src/main.tsx` still imports `App` from `./App.tsx` and only has the old comment cache marker.
+- `src/App.tsx` does not yet import anything from `main.tsx`.
+- `useBookContext` is already on `v3.5-2026-04-20-gate-diagnostic` with the logging and defensive title resolution in place.
+- All four builders already use `shouldGate && !overrideGate` from `useBookContext()`:
+  - `BA10Builder.tsx`
+  - `BA12Builder.tsx`
+  - `BP06Builder.tsx`
+  - `BP07Builder.tsx`
+- `BookProfileGate` already receives `shouldGate` as a prop and returns `null` when `shouldGate === false`.
 
-### Verified gate wiring (all 4 builders + BookProfileGate)
+### Primary implementation
+1. Update `src/main.tsx`
+   - Add:
+     ```ts
+     export const BUILD_TIMESTAMP = "2026-04-20T10:18:00Z";
+     ```
+   - Keep the existing render flow intact.
 
-Confirmed via code inspection — no builder changes needed:
+2. Update `src/App.tsx`
+   - Import:
+     ```ts
+     import { BUILD_TIMESTAMP } from "./main";
+     ```
+   - Change `App` to a block-body component and log:
+     ```ts
+     console.log("Build:", BUILD_TIMESTAMP);
+     ```
+   - Do not change routing or providers.
 
-| File | Gate condition | Passes `shouldGate` to `BookProfileGate`? |
-|---|---|---|
-| `BA10Builder.tsx` | `shouldGate && !overrideGate` ✅ | Yes ✅ |
-| `BA12Builder.tsx` (line 95) | `shouldGate && !overrideGate` ✅ | Yes (line 99) ✅ |
-| `BP06Builder.tsx` | `shouldGate && !overrideGate` ✅ | Yes ✅ |
-| `BP07Builder.tsx` (line 119) | `shouldGate && !overrideGate` ✅ | Yes (line 123) ✅ |
+### Publish verification
+After implementation:
+1. Publish the update.
+2. Hard refresh.
+3. Confirm both:
+   - bundle hash changes from `index-CPacRwTL.js`
+   - console shows `Build: 2026-04-20T10:18:00Z`
 
-`BookProfileGate.tsx` line 41: `if (shouldGate === false) return null;` — returns null based on `shouldGate`, not `hasBook`. ✅
+4. Then verify the existing `useBookContext` logs:
+   - edge response contains `bookTitle: "Be SUCKcessful"`
+   - render log shows `hasContext: true`
+   - render log shows `shouldGate: false`
 
-### Where the bug must be
+5. Confirm BA-10, BA-12, BP-06, and BP-07 no longer show the Add Your Book gate.
 
-The hook flow is:
-1. `fetchBookContext()` calls the edge function, reads `json.bookTitle`, returns `{ ..., hasContext: !!json.bookTitle }`.
-2. `useBookContext()` computes `shouldGate = !isLoading && !hasContext`.
-3. Each builder renders the gate when `shouldGate && !overrideGate`.
+### Required escalation if hash still does not change
+If the publish still serves `index-CPacRwTL.js`, stop normal debugging and perform only the cache-escalation steps below. Do not make unrelated code changes.
 
-Edge function returns `bookTitle: "Be SUCKcessful"` correctly. So one of two things is happening:
+1. Clear build caches if accessible
+   - remove `node_modules/.vite`
+   - remove `.vite`
 
-**A.** Browser is serving a stale React Query result from before the v3.4 key bump.
-**B.** Hook's response parsing is dropping `bookTitle` at runtime.
+2. Force resolver churn on the app entry
+   - rename `src/App.tsx` to `src/AppRoot.tsx`
+   - update `src/main.tsx` import to `./AppRoot.tsx`
+   - then rename it back and restore the import if needed as part of the same forced-refresh sequence
 
-### Fix
+3. Add a second explicit runtime dependency
+   - create `src/build-info.ts` with:
+     ```ts
+     export const BUILD_ID = "v3.5-${Date.now()}";
+     ```
+   - import `BUILD_ID` in both `src/main.tsx` and `src/App.tsx`
+   - log it alongside `BUILD_TIMESTAMP`
 
-**File:** `src/hooks/useBookContext.ts`
-
-1. Add render-time log right after `useQuery`:
-   ```ts
-   console.log("[useBookContext] render", {
-     userId: user?.id, isLoading, data,
-     hasContext: !!data?.hasContext,
-     shouldGate: !isLoading && !data?.hasContext,
-   });
-   ```
-
-2. Inside `fetchBookContext`, log raw edge response:
-   ```ts
-   const json = await res.json();
-   console.log("[useBookContext] edge response:", json);
-   ```
-
-3. Make `hasContext` defensive — fall back to `book.title`:
-   ```ts
-   const resolvedTitle =
-     (json.bookTitle && String(json.bookTitle).trim()) ||
-     book?.title || null;
-   return {
-     bookTitle: resolvedTitle ?? "your book",
-     bookId: book?.id || null,
-     book,
-     hasContext: !!resolvedTitle,   // any usable title clears the gate
-     missingFields: json.missingFields ?? [],
-     isComplete: !!json.isComplete,
-   };
-   ```
-
-4. Bump `HOOK_VERSION` to `v3.5-2026-04-20-gate-diagnostic` and `queryKey` to `["book-context-v3.5", user?.id ?? "anon"]` — discards any persisted v3.4 empty cache on first render of new bundle.
-
-### Why this resolves both possibilities
-
-- New query key invalidates stale cached results from earlier versions (covers A).
-- Defensive `hasContext` lifts the gate even if `bookTitle` is missing but `book.title` is present (covers B).
-- Diagnostic logs give a definitive read of what the hook receives, so any remaining issue can be pinpointed.
-
-### No changes to builders or BookProfileGate
-
-Verified all 4 builders gate on `shouldGate` and pass it to `BookProfileGate`, which returns null when `shouldGate === false`. No edits needed there.
-
-### Pass/fail verification
-
-After Publish + hard refresh on `/node-builder/BA-10`:
-
-1. Console: `[useBookContext] edge response: { bookTitle: "Be SUCKcessful", book: {…} }`
-2. Console: `[useBookContext] render { …, hasContext: true, shouldGate: false }`
-3. Gate is gone; intro reads `based on "Be SUCKcessful"`
-4. Same on BA-12, BP-06, BP-07
-
-If logs show `data: undefined` after settle → React Query not refetching; add `queryClient.clear()` on app boot.
-If logs show `hasContext: true` but gate still renders → stale closure in one builder; patch that builder.
+### Success criteria
+The only success condition for this pass is a new published bundle hash. Once that changes, the already-implemented v3.5 hook diagnostics can be trusted and the gate behavior can be re-validated.
 
 ### Out of scope
-- Edge function changes (returns correct payload)
-- RLS, schema, onboarding changes
-- Other hooks or builders
-
-### What only the user can do
-- Click **Publish → Update**
-- Hard refresh (`Cmd/Ctrl+Shift+R`)
-- Open BA-10 and share new console output if gate still shows
-
+- No builder logic changes unless a rebuilt bundle still proves a specific builder is ignoring `shouldGate`
+- No edge function changes
+- No broader client architecture cleanup
