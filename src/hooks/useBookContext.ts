@@ -177,7 +177,7 @@ export function useBookContext(): BookContextResult {
   console.log("[useBookContext] mount", { hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context-v3.2", user?.id ?? "anon"],
+    queryKey: ["book-context-v3.3", user?.id ?? "anon"],
     queryFn: () => fetchBookContext(user!.id),
     enabled: !!user?.id,
     staleTime: 0,
