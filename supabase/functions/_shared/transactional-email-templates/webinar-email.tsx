@@ -100,7 +100,7 @@ const COPY: Record<WebinarKind, { preview: string; heading: string; body: (p: Re
     ctaLabel: 'Visit my author page',
   },
   followup_day7: {
-    preview: 'A quick check-in — and what's next',
+    preview: 'A quick check-in and what comes next',
     heading: 'One week on',
     body: (p) => (
       <>
