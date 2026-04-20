@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthorBook } from "@/hooks/useAuthorBook";
+import { useBookContext } from "@/hooks/useBookContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -34,7 +34,7 @@ export default function BA10Builder({ authorId }: Props) {
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, isComplete, missingFields, bookId, book } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, missingFields, bookId, book, shouldGate } = useBookContext();
   const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
@@ -43,12 +43,7 @@ export default function BA10Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else if (detectedBookTitle && detectedBookTitle !== "your book") {
-        // Use ownership lookup from get-author-book edge function (no direct books query)
+      if (detectedBookTitle && detectedBookTitle !== "your book") {
         setBookTitle(detectedBookTitle);
         setHasContext(true);
       } else if (!isBookLoading) {
@@ -108,10 +103,11 @@ export default function BA10Builder({ authorId }: Props) {
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
             {isBookLoading ? (
               <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : !isComplete && !overrideGate ? (
+            ) : shouldGate && !overrideGate ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your course, let's make sure your book profile is ready.</p>
                 <BookProfileGate
+                  shouldGate={shouldGate}
                   hasBook={hasBook}
                   bookId={bookId}
                   book={book}
