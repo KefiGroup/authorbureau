@@ -199,6 +199,29 @@ export default function BP03Builder({ authorId }: Props) {
         setBookTitle(resolvedBookTitle);
         setHasContext(resolvedHasContext);
 
+        // Fetch author photo + book color (best-effort)
+        try {
+          const { data: ap } = await supabase
+            .from("author_profiles")
+            .select("photo_url")
+            .eq("id", authorId)
+            .maybeSingle();
+          if (!cancelled && ap?.photo_url) setAuthorPhotoUrl(ap.photo_url);
+          const { data: book } = await supabase
+            .from("books")
+            .select("cover_image_url")
+            .eq("author_id", authorId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (!cancelled && book) {
+            // No brand_color column — leave null so renderer derives from title hash
+            setBookColor(null);
+          }
+        } catch (e) {
+          console.warn("[BP03] photo/book lookup failed", e);
+        }
+
         const status = node?.status;
         const cj: any = node?.content_json || null;
         const savedStep = Number((cj as any)?._currentStep ?? node?.current_step ?? 0);
