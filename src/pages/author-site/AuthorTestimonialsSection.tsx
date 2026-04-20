@@ -100,6 +100,7 @@ export default function AuthorTestimonialsSection({ testimonials, theme, v, isOw
             </motion.div>
           ))}
         </div>
+        )}
       </div>
     </section>
   );
