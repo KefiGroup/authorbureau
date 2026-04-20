@@ -297,20 +297,7 @@ export default function FunnelsHub() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mb-4 text-center">
-                    <div className="bg-muted/50 rounded p-2">
-                      <div className="text-lg font-bold">{f.page_views}</div>
-                      <div className="text-[10px] uppercase text-muted-foreground">Views</div>
-                    </div>
-                    <div className="bg-muted/50 rounded p-2">
-                      <div className="text-lg font-bold">{f.conversions}</div>
-                      <div className="text-[10px] uppercase text-muted-foreground">Opt-ins</div>
-                    </div>
-                    <div className="bg-muted/50 rounded p-2">
-                      <div className="text-lg font-bold">{rate}%</div>
-                      <div className="text-[10px] uppercase text-muted-foreground">Rate</div>
-                    </div>
-                  </div>
+
 
                   <div className="grid grid-cols-4 gap-2 mb-4 text-center">
                     <div className="bg-muted/50 rounded p-2">
