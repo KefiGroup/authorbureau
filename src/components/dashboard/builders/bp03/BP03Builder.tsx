@@ -17,6 +17,15 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
+import SocialGraphicCard from "./SocialGraphicCard";
+import PostEditorSheet from "./PostEditorSheet";
+import {
+  PLATFORM_DIMENSIONS,
+  PLATFORM_TAB_LABELS,
+  extractPullQuote,
+  renderSocialGraphic,
+  type SocialPlatform,
+} from "./socialGraphic";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import {
@@ -138,6 +147,8 @@ export default function BP03Builder({ authorId }: Props) {
   const [isActivating, setIsActivating] = useState(false);
   const [savedCount, setSavedCount] = useState<number>(0);
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
+  const [authorPhotoUrl, setAuthorPhotoUrl] = useState<string | null>(null);
+  const [bookColor, setBookColor] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
