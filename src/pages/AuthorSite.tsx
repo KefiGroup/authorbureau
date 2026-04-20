@@ -125,7 +125,7 @@ export default function AuthorSite() {
       if (!isOwner) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
-    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes] = await Promise.all([
+    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes, testimonialsRes, contextRes] = await Promise.all([
       booksQuery,
       booksByNameQuery ? booksByNameQuery : Promise.resolve({ data: [] as unknown[] }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
@@ -134,6 +134,8 @@ export default function AuthorSite() {
       supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("author_nodes").select("node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url").eq("author_id", profile.id).eq("status", "live"),
+      supabase.from("author_testimonials").select("id, name, role, quote, avatar_url").eq("author_id", profile.user_id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+      supabase.from("author_context").select("key_frameworks, unique_insights").eq("author_id", profile.id).maybeSingle(),
     ]);
 
     const booksPrimary = (booksRes.data || []) as Record<string, unknown>[];
