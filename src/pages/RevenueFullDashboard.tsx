@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X } from "lucide-react";
+import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X, Flame } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
 
@@ -71,6 +72,7 @@ export default function RevenueFullDashboard() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [nodesLive, setNodesLive] = useState(0);
+  const [hotLeads, setHotLeads] = useState<Array<{ id: string; full_name: string; email: string | null; abby_score: number; last_activity_at: string | null }>>([]);
 
   // Connect Stripe modal
   const [showStripeModal, setShowStripeModal] = useState(false);
