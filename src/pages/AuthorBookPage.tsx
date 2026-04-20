@@ -15,6 +15,7 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
+import LeadCaptureForm from "@/components/LeadCaptureForm";
 
 /* ---------- Types ---------- */
 interface Book {
@@ -864,74 +865,19 @@ export default function AuthorBookPage() {
               </div>
             ) : (
               <div className="grid md:grid-cols-2 gap-8 text-left">
-                {/* Left: Lead Capture */}
+                {/* Left: Lead Capture (shared) */}
                 <div>
-                  <Mail className="h-10 w-10 mb-4" style={{ color: v.accent }} />
-                  <h2 className="text-xl font-bold mb-3" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>
-                    Stay Connected with {authorFirstName}
-                  </h2>
-                  <p className="text-sm mb-6" style={{ color: `${v.primaryText}BF` }}>
-                    Get exclusive updates, bonus content, and early access to new resources.
-                  </p>
-                  <form onSubmit={handleSubscribe} className="flex flex-col gap-3">
-                    <input
-                      type="text"
-                      placeholder="Your name *"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="h-11 text-sm w-full outline-none"
-                      style={{
-                        borderRadius: "8px",
-                        border: `1px solid ${v.accent}4D`,
-                        padding: "10px 14px",
-                        background: "rgba(255,255,255,0.08)",
-                        color: v.primaryText,
-                      }}
-                    />
-                    <input
-                      type="email"
-                      placeholder="your@email.com *"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      className="h-11 text-sm w-full outline-none"
-                      style={{
-                        borderRadius: "8px",
-                        border: `1px solid ${v.accent}4D`,
-                        padding: "10px 14px",
-                        background: "rgba(255,255,255,0.08)",
-                        color: v.primaryText,
-                      }}
-                    />
-                    <textarea
-                      placeholder="Message (optional)"
-                      value={subMessage}
-                      onChange={(e) => setSubMessage(e.target.value)}
-                      maxLength={2000}
-                      rows={3}
-                      className="text-sm w-full outline-none resize-none"
-                      style={{
-                        borderRadius: "8px",
-                        border: `1px solid ${v.accent}4D`,
-                        padding: "10px 14px",
-                        background: "rgba(255,255,255,0.08)",
-                        color: v.primaryText,
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      disabled={subscribing}
-                      className="w-full h-11 font-bold text-sm transition-all hover:brightness-110"
-                      style={{
-                        background: v.accent,
-                        color: v.accentText,
-                        borderRadius: "8px",
-                      }}
-                    >
-                      {subscribing ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Subscribe"}
-                    </button>
-                  </form>
+                  <LeadCaptureForm
+                    authorUserId={authorProfile.user_id}
+                    displayName={authorFirstName}
+                    source="author_book"
+                    sourceDetail={`${authorSlug}/${book.slug}`}
+                    headline={`Stay Connected with ${authorFirstName}`}
+                    description="Get exclusive updates, bonus content, and early access to new resources."
+                    accent={v.accent}
+                    accentText={v.accentText}
+                    primaryText={v.primaryText}
+                  />
                 </div>
 
                 {/* Right: CTA Repeat */}

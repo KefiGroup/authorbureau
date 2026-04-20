@@ -24,6 +24,7 @@ import BookProductNav, { getProductTabMeta } from "@/components/public/BookProdu
 import NotFound from "./NotFound";
 import SharedSalesCopyPreview from "@/components/dashboard/builders/shared/SharedSalesCopyPreview";
 import type { SalesCopyData } from "@/components/dashboard/builders/shared/salesCopyTypes";
+import LeadCaptureForm from "@/components/LeadCaptureForm";
 
 /* ---------- Types & Config ---------- */
 type ProductType =
@@ -753,24 +754,18 @@ export default function AuthorProductPage() {
                 <p className="mt-3 text-xs" style={{ color: `${v.primaryText}99` }}>{trustSignal}</p>
               </div>
 
-              {/* Lead Capture */}
+              {/* Lead Capture (shared) */}
               <div>
-                <Mail className="h-8 w-8 mb-3" style={{ color: v.accent }} />
-                <h3 className="text-lg font-bold mb-2" style={{ color: v.primaryText, fontFamily: theme.headingFont }}>Stay Connected with {authorFirstName}</h3>
-                <p className="text-sm mb-5" style={{ color: `${v.primaryText}BF` }}>Get exclusive updates, bonus content, and early access.</p>
-                <form onSubmit={handleSubscribe} className="flex flex-col gap-3">
-                  {[{ placeholder: "Your name *", value: name, onChange: setName, type: "text" },
-                    { placeholder: "your@email.com *", value: email, onChange: setEmail, type: "email" }].map((f, i) => (
-                    <input key={i} type={f.type} placeholder={f.placeholder} value={f.value} onChange={e => f.onChange(e.target.value)} required
-                      className="h-11 text-sm w-full outline-none"
-                      style={{ borderRadius: "8px", border: `1px solid ${v.accent}4D`, padding: "10px 14px", background: "rgba(255,255,255,0.08)", color: v.primaryText }} />
-                  ))}
-                  <button type="submit" disabled={subscribing}
-                    className="w-full h-11 font-bold text-sm transition-all hover:brightness-110"
-                    style={{ background: v.accent, color: v.accentText, borderRadius: "8px" }}>
-                    {subscribing ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : "Subscribe"}
-                  </button>
-                </form>
+                <LeadCaptureForm
+                  authorUserId={author.user_id}
+                  displayName={authorFirstName}
+                  source="author_product"
+                  sourceDetail={`${authorSlug}/${bookSlug}/${productType}`}
+                  showMessage={false}
+                  accent={v.accent}
+                  accentText={v.accentText}
+                  primaryText={v.primaryText}
+                />
               </div>
             </div>
           )}

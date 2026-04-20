@@ -9,6 +9,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { getThemeById } from "@/lib/author-themes";
 import { SLUG_TO_NODE, NODE_NAMES } from "@/lib/node-slug-map";
 import { toast } from "@/hooks/use-toast";
+import LeadCaptureForm from "@/components/LeadCaptureForm";
 
 interface MicrositeData {
   author: any;
@@ -759,22 +760,24 @@ function AuthorWebsitePage({ data, content, v, hFont, bgColor, onSubmit, email, 
         </section>
       )}
 
-      {/* Lead capture */}
+      {/* Lead capture (shared) */}
       <section className="py-12 sm:py-16 px-4">
-        <div className="max-w-lg mx-auto text-center">
-          <h2 className="text-2xl font-bold mb-3" style={{ color: v.headingText, fontFamily: hFont }}>Stay Connected</h2>
-          <p className="text-sm mb-6" style={{ color: v.mutedText }}>Get updates on new books, resources, and events.</p>
-          {!submitted ? (
-            <form onSubmit={onSubmit} className="flex flex-col sm:flex-row gap-2">
-              <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required className="flex-1" />
-              <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required className="flex-1" />
-              <Button type="submit" style={{ background: v.accent, color: v.accentText }} disabled={submitting}>
-                {submitting ? "..." : "Subscribe"}
-              </Button>
-            </form>
-          ) : (
-            <p className="text-sm font-medium" style={{ color: v.accent }}>✓ You're subscribed!</p>
-          )}
+        <div className="max-w-lg mx-auto">
+          <LeadCaptureForm
+            authorUserId={data.author.user_id}
+            displayName={data.author.pen_name || "the author"}
+            source="microsite"
+            sourceDetail={data.author.author_slug || undefined}
+            headline="Stay Connected"
+            description="Get updates on new books, resources, and events."
+            showMessage={false}
+            accent={v.accent}
+            accentText={v.accentText}
+            primaryText={v.headingText}
+            bodyText={v.mutedText}
+            cardBg={v.cardBg}
+            cardBorder={v.cardBorder}
+          />
         </div>
       </section>
 
