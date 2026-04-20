@@ -168,6 +168,7 @@ const AppRoutes = () => (
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/unsubscribe" element={<UnsubscribePage />} />
+      <Route path="/:authorSlug/webinar/:slug" element={<WebinarRegistrationPage />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorSubpageResolver />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
