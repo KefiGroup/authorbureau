@@ -138,6 +138,9 @@ export default function LeadCaptureForm({
       setEmail("");
       setName("");
       setMessage("");
+      if (redirectTo) {
+        navigate(redirectTo);
+      }
     } catch (err) {
       console.error("[LeadCaptureForm] submit failed:", err);
       toast.error("Could not subscribe. Please try again.");
