@@ -248,6 +248,8 @@ export default function AuthorSite() {
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
+      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts[0]} theme={theme} v={v} />
+      <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} />
       <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
       <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} />
       <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
