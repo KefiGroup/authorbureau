@@ -69,13 +69,14 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
   },
   "BP-05": {
     creates: [
-      "A book trailer script + storyboard",
-      "Voice-over narration draft",
-      "Social cut-down captions for promotion",
+      "3 signature webinar topics with public registration pages",
+      "6-email sequence (3 reminders + 3 follow-ups)",
+      "Promotional copy for social media",
+      "A registrant dashboard with live counts",
     ],
-    livesAt: "Saved to your Brand Products library. Trailer assets are downloadable for use on YouTube, Amazon A+, or your site.",
-    editLater: "Re-open Book Trailer to edit script, regenerate sections, or download updated assets.",
-    estimate: "30–60 seconds",
+    livesAt: "Public webinar registration pages at /your-slug/webinar/<topic> — registrants flow into your CRM with +15 ABBY score.",
+    editLater: "Re-open Webinar Engine to edit topics, schedule dates, set Daily.co room URLs, or view registrants.",
+    estimate: "60–90 seconds",
   },
   "BP-06": {
     creates: [
