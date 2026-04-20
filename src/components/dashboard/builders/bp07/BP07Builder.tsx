@@ -105,7 +105,24 @@ export default function BP07Builder({ authorId }: Props) {
         <NodeHowItWorks nodeId="BP-07" />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Home Study Course</h2>
-            {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your home study course, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{detectedBookTitle || bookTitle || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>)}
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : shouldGate && !overrideGate ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your home study course, let's make sure your book profile is ready.</p>
+                <BookProfileGate
+                  shouldGate={shouldGate}
+                  hasBook={hasBook}
+                  bookId={bookId}
+                  book={book}
+                  missingFields={missingFields}
+                  returnTo="/node-builder/BP-07"
+                  onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
+                />
+              </>
+            ) : (
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{detectedBookTitle || bookTitle || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>
+            )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
