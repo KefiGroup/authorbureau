@@ -5,7 +5,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const HOOK_VERSION = "v3.1-2026-04-20-title-trace";
+const HOOK_VERSION = "v3.2-2026-04-20-force-refetch";
 
 const ACTIVE_TIERS = new Set(["brand", "build", "yield"]);
 
