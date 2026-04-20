@@ -251,6 +251,7 @@ Deno.serve(async (req) => {
             id: asset.id,
             title: title || `${draftNodeId} Draft`,
             book_id: asset.book_id,
+            author_id: asset.author_id,
             created_at: asset.created_at,
             status: editedCount >= 3 ? "ready_for_review" : "draft",
             description: "",
