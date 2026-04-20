@@ -30,6 +30,8 @@ export default function AuthorSite() {
   const [coachingServices, setCoachingServices] = useState<CoachingService[]>([]);
   const [relatedAuthors, setRelatedAuthors] = useState<RelatedAuthor[]>([]);
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [whatsInsideHighlights, setWhatsInsideHighlights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
