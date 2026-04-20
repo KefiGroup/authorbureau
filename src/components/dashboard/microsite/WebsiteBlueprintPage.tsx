@@ -430,6 +430,9 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
           {/* Theme Picker — shared component */}
           <SiteThemePicker onThemeChange={handleThemeChange} />
+
+          {/* Reader Testimonials Editor */}
+          <TestimonialsManager />
         </div>
       </div>
     </div>
