@@ -12,7 +12,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2 } from "lucide-react";
+import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 
 interface Funnel {
@@ -57,9 +58,11 @@ const NODE_TO_FUNNEL_TYPE: Record<string, string> = {
 };
 
 export default function FunnelsHub() {
+  const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [authorSlug, setAuthorSlug] = useState<string | null>(null);
   const [funnels, setFunnels] = useState<Funnel[]>([]);
+  const [leadsCount, setLeadsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Funnel | null>(null);
   const [saving, setSaving] = useState(false);
