@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
@@ -172,9 +172,9 @@ async function fetchBookContext(userId: string): Promise<FetchedContext> {
 }
 
 export function useBookContext(): BookContextResult {
-  const { user, isReady } = useAuthReady();
+  const { user } = useAuth();
 
-  console.log("[useBookContext] mount", { isReady, hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
+  console.log("[useBookContext] mount", { hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
 
   const { data, isLoading } = useQuery({
     queryKey: ["book-context-v3.2", user?.id ?? "anon"],
