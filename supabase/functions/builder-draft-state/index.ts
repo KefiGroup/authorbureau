@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
         // 2) Query generated_assets for builder_draft_* entries (covers all 28 nodes)
         const { data: assetDrafts } = await cloudAdmin
           .from("generated_assets")
-          .select("id, book_id, asset_type, content, created_at, updated_at")
+          .select("id, book_id, asset_type, content, created_at, updated_at, author_id")
           .in("author_id", allUserIds)
           .like("asset_type", "builder_draft_%");
 
