@@ -74,6 +74,7 @@ export function useAuthorBook(): AuthorBookResult {
           .limit(1);
 
         if (primaryErr) console.error("[useAuthorBook] primary query error:", primaryErr);
+        console.log("[useAuthorBook] primary query result:", primary?.length ?? 0, "rows for authUserId:", authUserId);
 
         let row = primary?.[0] ?? null;
 
@@ -85,14 +86,17 @@ export function useAuthorBook(): AuthorBookResult {
             .select("id, user_id")
             .eq("user_id", authUserId)
             .maybeSingle();
+          console.log("[useAuthorBook] profile lookup:", profile?.id, "profile.user_id:", profile?.user_id);
 
           if (profile?.id) {
-            const { data: fallback } = await supabase
+            const { data: fallback, error: fbErr } = await supabase
               .from("books")
               .select("id, title, author_name, genre, description, cover_image_url")
               .eq("author_id", profile.id)
               .order("created_at", { ascending: false })
               .limit(1);
+            if (fbErr) console.error("[useAuthorBook] fallback query error:", fbErr);
+            console.log("[useAuthorBook] fallback query result:", fallback?.length ?? 0);
             row = fallback?.[0] ?? null;
             if (row) console.log("[useAuthorBook] resolved via author_profiles.id fallback");
           }
