@@ -5,7 +5,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const HOOK_VERSION = "v3-2026-04-20-context-first";
+const HOOK_VERSION = "v3.1-2026-04-20-title-trace";
 
 const ACTIVE_TIERS = new Set(["brand", "build", "yield"]);
 
@@ -66,7 +66,7 @@ async function fetchBookContext(userId: string): Promise<FetchedContext> {
   }
 
   // 2) Read author_context (primary source for onboarded authors)
-  const { data: ctx } = await supabase
+  const { data: ctx, error: ctxErr } = await supabase
     .from("author_context")
     .select("book_title")
     .eq("author_id", authorId)
@@ -74,9 +74,12 @@ async function fetchBookContext(userId: string): Promise<FetchedContext> {
     .limit(1)
     .maybeSingle();
 
+  console.log("[useBookContext] author_context lookup", { authorId, ctx, ctxErr });
+
   const hasContext = !!ctx;
 
   if (ctx?.book_title) {
+    console.log("[useBookContext] resolved title from author_context:", ctx.book_title);
     return {
       authorId,
       bookTitle: ctx.book_title,
@@ -84,6 +87,37 @@ async function fetchBookContext(userId: string): Promise<FetchedContext> {
       book: { id: "", title: ctx.book_title } as AuthorBook,
       hasSubscription,
       hasContext: true,
+      missingFields: [],
+      isComplete: true,
+    };
+  }
+
+  // 2.5) Tier 2: direct books query by author_profiles.id OR user_id
+  const { data: directBooks } = await supabase
+    .from("books")
+    .select("id, title, author_name, genre, description, cover_image_url")
+    .or(`author_id.eq.${authorId},author_id.eq.${userId}`)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const directBook = directBooks?.[0];
+  console.log("[useBookContext] direct books lookup:", directBook);
+
+  if (directBook?.title) {
+    return {
+      authorId,
+      bookTitle: directBook.title,
+      bookId: directBook.id,
+      book: {
+        id: directBook.id,
+        title: directBook.title,
+        author: directBook.author_name || undefined,
+        genre: directBook.genre || undefined,
+        description: directBook.description || undefined,
+        coverUrl: directBook.cover_image_url || undefined,
+      } as AuthorBook,
+      hasSubscription,
+      hasContext,
       missingFields: [],
       isComplete: true,
     };
@@ -140,7 +174,7 @@ export function useBookContext(): BookContextResult {
   const { user, isReady } = useAuthReady();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context", user?.id ?? "anon"],
+    queryKey: ["book-context", HOOK_VERSION, user?.id ?? "anon"],
     queryFn: () => fetchBookContext(user!.id),
     enabled: isReady && !!user,
     staleTime: 5 * 60 * 1000,
