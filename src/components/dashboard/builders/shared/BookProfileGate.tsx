@@ -4,6 +4,11 @@ import { AlertCircle, BookOpen } from "lucide-react";
 import type { BookMissingField, AuthorBook } from "@/hooks/useAuthorBook";
 
 interface Props {
+  /**
+   * Hard-gate flag from useBookContext. When false, this component renders nothing.
+   * shouldGate=true ONLY when subscription is inactive OR author_context row missing.
+   */
+  shouldGate?: boolean;
   hasBook: boolean;
   bookId: string | null;
   book: AuthorBook | null;
@@ -20,6 +25,7 @@ const FIELD_LABELS: Record<BookMissingField, string> = {
 };
 
 export default function BookProfileGate({
+  shouldGate,
   hasBook,
   bookId,
   book,
@@ -28,6 +34,9 @@ export default function BookProfileGate({
   onProceedAnyway,
 }: Props) {
   const navigate = useNavigate();
+
+  // If caller explicitly passed shouldGate=false, render nothing (subscribed + onboarded).
+  if (shouldGate === false) return null;
 
   // Hard gate — no book row at all
   if (!hasBook) {

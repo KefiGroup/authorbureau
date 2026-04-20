@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthorBook } from "@/hooks/useAuthorBook";
+import { useBookContext } from "@/hooks/useBookContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, FileText, LayoutList, DollarSign, Copy } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
@@ -48,7 +49,8 @@ export default function BP06Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
+  const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
     if (!authorId) return;
@@ -56,24 +58,11 @@ export default function BP06Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
+      if (detectedBookTitle && detectedBookTitle !== "your book") {
+        setBookTitle(detectedBookTitle);
         setHasContext(true);
-      } else {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", profile?.user_id || authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
-        }
+      } else if (!isBookLoading) {
+        setHasContext(false);
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-06").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
@@ -140,8 +129,21 @@ export default function BP06Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Workbook</h2>
-            {!isBookLoading && !hasBook ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button></>
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : shouldGate && !overrideGate ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, let's make sure your book profile is ready.</p>
+                <BookProfileGate
+                  shouldGate={shouldGate}
+                  hasBook={hasBook}
+                  bookId={bookId}
+                  book={book}
+                  missingFields={missingFields}
+                  returnTo="/node-builder/BP-06"
+                  onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
+                />
+              </>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! A companion workbook is the perfect free lead magnet — it builds your email list and gives readers a practical way to apply your ideas. I'm going to design a complete workbook based on '{detectedBookTitle || bookTitle || "your book"}' — with sections, exercises, reflection prompts, and action items. Ready?</p>
                 <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-06"]} /></div>
