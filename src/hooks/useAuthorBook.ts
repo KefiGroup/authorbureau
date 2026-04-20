@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 export interface AuthorBook {
   id: string;
@@ -23,147 +23,76 @@ export interface AuthorBookResult {
   isLoading: boolean;
 }
 
-function computeMissing(row: {
-  title?: string | null;
-  description?: string | null;
-  genre?: string | null;
-  cover_image_url?: string | null;
-}): BookMissingField[] {
-  const missing: BookMissingField[] = [];
-  if (!row.title?.trim()) missing.push("title");
-  if (!row.description?.trim()) missing.push("description");
-  if (!row.genre?.trim()) missing.push("genre");
-  if (!row.cover_image_url?.trim()) missing.push("cover");
-  return missing;
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+async function fetchAuthorBook(): Promise<{
+  book: AuthorBook | null;
+  missingFields: BookMissingField[];
+  isComplete: boolean;
+}> {
+  const token = await getActiveToken();
+  if (!token) {
+    return { book: null, missingFields: [], isComplete: false };
+  }
+
+  const res = await fetchWithTimeout(
+    `${SUPABASE_URL}/functions/v1/get-author-book`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    },
+    20000
+  );
+
+  if (!res.ok) {
+    console.error("[useAuthorBook] edge function error:", res.status);
+    return { book: null, missingFields: [], isComplete: false };
+  }
+
+  const json = await res.json();
+  return {
+    book: json.book ?? null,
+    missingFields: json.missingFields ?? [],
+    isComplete: !!json.isComplete,
+  };
 }
 
 export function useAuthorBook(): AuthorBookResult {
   const { user, isReady } = useAuthReady();
-  const [hasBook, setHasBook] = useState(false);
-  const [bookTitle, setBookTitle] = useState("your book");
-  const [book, setBook] = useState<AuthorBook | null>(null);
-  const [bookId, setBookId] = useState<string | null>(null);
-  const [missingFields, setMissingFields] = useState<BookMissingField[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (!isReady) return;
+  const { data, isLoading } = useQuery({
+    queryKey: ["author-book", user?.id ?? "anon"],
+    queryFn: fetchAuthorBook,
+    enabled: isReady && !!user,
+    staleTime: 5 * 60 * 1000, // 5 min
+    gcTime: 10 * 60 * 1000,
+  });
 
-    if (!user) {
-      setHasBook(false);
-      setBookTitle("your book");
-      setBook(null);
-      setBookId(null);
-      setMissingFields([]);
-      setIsLoading(false);
-      return;
-    }
-
-    const fetchBook = async () => {
-      setIsLoading(true);
-      try {
-        const authUserId = user.id;
-        console.log("[useAuthorBook] auth user ready:", authUserId);
-
-        // Primary lookup: books.author_id = auth.users.id
-        const { data: primary, error: primaryErr } = await supabase
-          .from("books")
-          .select("id, title, author_name, genre, description, cover_image_url")
-          .eq("author_id", authUserId)
-          .order("created_at", { ascending: false })
-          .limit(1);
-
-        if (primaryErr) console.error("[useAuthorBook] primary query error:", primaryErr);
-        console.log("[useAuthorBook] primary query result:", primary?.length ?? 0, "rows for authUserId:", authUserId);
-
-        let row = primary?.[0] ?? null;
-
-        // Sequential fallback ONLY if primary returned zero rows.
-        // Some legacy rows may use a different id reference; verify via author_profiles.user_id.
-        if (!row) {
-          const { data: profile } = await supabase
-            .from("author_profiles")
-            .select("id, user_id")
-            .eq("user_id", authUserId)
-            .maybeSingle();
-          console.log("[useAuthorBook] profile lookup:", profile?.id, "profile.user_id:", profile?.user_id);
-
-          if (profile?.id) {
-            const { data: fallback, error: fbErr } = await supabase
-              .from("books")
-              .select("id, title, author_name, genre, description, cover_image_url")
-              .eq("author_id", profile.id)
-              .order("created_at", { ascending: false })
-              .limit(1);
-            if (fbErr) console.error("[useAuthorBook] fallback query error:", fbErr);
-            console.log("[useAuthorBook] fallback query result:", fallback?.length ?? 0);
-            row = fallback?.[0] ?? null;
-            if (row) console.log("[useAuthorBook] resolved via author_profiles.id fallback");
-          }
-
-          // Final fallback: author_context book_title (no full book row)
-          if (!row && profile?.id) {
-            const { data: ctxRows } = await supabase
-              .from("author_context")
-              .select("book_title")
-              .eq("author_id", profile.id)
-              .order("created_at", { ascending: false })
-              .limit(1);
-            const ctxTitle = ctxRows?.[0]?.book_title;
-            if (ctxTitle) {
-              setHasBook(true);
-              setBookTitle(ctxTitle);
-              setBook({ id: "", title: ctxTitle });
-              setBookId(null);
-              setMissingFields(["description", "genre", "cover"]);
-              return;
-            }
-          }
-        }
-
-        if (row?.title) {
-          const missing = computeMissing(row);
-          console.log("[useAuthorBook] resolved:", row.title, "missing:", missing);
-          setHasBook(true);
-          setBookTitle(row.title);
-          setBookId(row.id);
-          setMissingFields(missing);
-          setBook({
-            id: row.id,
-            title: row.title,
-            author: row.author_name || undefined,
-            genre: row.genre || undefined,
-            description: row.description || undefined,
-            coverUrl: row.cover_image_url || undefined,
-          });
-        } else {
-          console.log("[useAuthorBook] No book found for user:", authUserId);
-          setHasBook(false);
-          setBookTitle("your book");
-          setBook(null);
-          setBookId(null);
-          setMissingFields([]);
-        }
-      } catch (err) {
-        console.error("[useAuthorBook] Unexpected error:", err);
-        setHasBook(false);
-        setBookTitle("your book");
-        setBook(null);
-        setBookId(null);
-        setMissingFields([]);
-      } finally {
-        setIsLoading(false);
-      }
+  if (!isReady || !user) {
+    return {
+      hasBook: false,
+      bookTitle: "your book",
+      book: null,
+      bookId: null,
+      missingFields: [],
+      isComplete: false,
+      isLoading: !isReady,
     };
+  }
 
-    fetchBook();
-  }, [isReady, user]);
+  const book = data?.book ?? null;
+  const missingFields = data?.missingFields ?? [];
 
-  // "Complete enough" for builder generation: title + (description OR genre)
-  const isComplete =
-    hasBook &&
-    !missingFields.includes("title") &&
-    !(missingFields.includes("description") && missingFields.includes("genre"));
-
-  return { hasBook, bookTitle, book, bookId, missingFields, isComplete, isLoading };
+  return {
+    hasBook: !!book,
+    bookTitle: book?.title ?? "your book",
+    book,
+    bookId: book?.id ?? null,
+    missingFields,
+    isComplete: !!data?.isComplete,
+    isLoading,
+  };
 }
