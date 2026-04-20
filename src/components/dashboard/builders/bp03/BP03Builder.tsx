@@ -955,10 +955,7 @@ function SuccessScreen({
   onDownloadZip: () => void;
 }) {
   const navigate = useNavigate();
-  const headline =
-    scheduledCount > 0
-      ? "Your Social Media Kit is Live 🎉"
-      : "Your Social Media Kit is Saved ✓";
+  const headline = "Your Social Media Kit is Ready 🎉";
 
   return (
     <div className="space-y-4">
@@ -966,7 +963,7 @@ function SuccessScreen({
       <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
         <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
         <span className="text-foreground">
-          Your kit lives in <strong>Marketing Hub → Social Calendar</strong>. You can edit, reschedule, copy or mark posts as posted anytime.
+          Your kit lives in <strong>Marketing Hub → Social Calendar</strong>. You'll post manually — copy a caption, grab the matching graphic, and publish.
         </span>
       </div>
 
@@ -980,8 +977,8 @@ function SuccessScreen({
               <h2 className="text-xl font-bold mb-1">{headline}</h2>
               <p className="text-sm text-muted-foreground">
                 {scheduledCount > 0
-                  ? `I've added ${scheduledCount} posts to your Social Calendar for "${bookTitle}". When you're ready, copy each post and publish it on your accounts — then click "Mark as Posted" so we can track your consistency.`
-                  : `I've saved your kit for "${bookTitle}". Open the Social Calendar to start posting whenever you're ready.`}
+                  ? `I've prepared ${scheduledCount} posts for "${bookTitle}" — every post has a branded graphic for Instagram, LinkedIn, Facebook and X. Download the full kit, or open your Social Calendar to copy posts one at a time. Authors Bureau doesn't post for you — you (or your VA) post manually.`
+                  : `I've prepared your kit for "${bookTitle}" — every post has a branded graphic for Instagram, LinkedIn, Facebook and X. Download the full kit, or open your Social Calendar to copy posts one at a time. You'll post manually using your kit.`}
               </p>
             </div>
           </div>
