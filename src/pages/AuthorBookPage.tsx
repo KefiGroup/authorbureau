@@ -15,6 +15,7 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
+import LeadCaptureForm from "@/components/LeadCaptureForm";
 
 /* ---------- Types ---------- */
 interface Book {
@@ -867,7 +868,7 @@ export default function AuthorBookPage() {
                 {/* Left: Lead Capture (shared) */}
                 <div>
                   <LeadCaptureForm
-                    authorUserId={author.user_id}
+                    authorUserId={authorProfile.user_id}
                     displayName={authorFirstName}
                     source="author_book"
                     sourceDetail={`${authorSlug}/${book.slug}`}
