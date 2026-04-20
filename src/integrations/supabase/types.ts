@@ -442,6 +442,7 @@ export type Database = {
         Row: {
           activated_at: string | null
           author_id: string
+          checkout_url: string | null
           content_json: Json | null
           created_at: string
           current_step: number | null
@@ -455,11 +456,15 @@ export type Database = {
           personalised_name: string | null
           revenue_to_date: number
           status: string
+          stripe_price_id: string | null
+          stripe_product_id: string | null
           third_party_url: string | null
+          workbook_pdf_url: string | null
         }
         Insert: {
           activated_at?: string | null
           author_id: string
+          checkout_url?: string | null
           content_json?: Json | null
           created_at?: string
           current_step?: number | null
@@ -473,11 +478,15 @@ export type Database = {
           personalised_name?: string | null
           revenue_to_date?: number
           status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           third_party_url?: string | null
+          workbook_pdf_url?: string | null
         }
         Update: {
           activated_at?: string | null
           author_id?: string
+          checkout_url?: string | null
           content_json?: Json | null
           created_at?: string
           current_step?: number | null
@@ -491,7 +500,10 @@ export type Database = {
           personalised_name?: string | null
           revenue_to_date?: number
           status?: string
+          stripe_price_id?: string | null
+          stripe_product_id?: string | null
           third_party_url?: string | null
+          workbook_pdf_url?: string | null
         }
         Relationships: [
           {
