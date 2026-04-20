@@ -66,7 +66,9 @@ export default function LeadCaptureForm({
   cardBorder,
   layout = "stacked",
   className = "",
+  redirectTo,
 }: LeadCaptureFormProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
