@@ -58,13 +58,6 @@ export type Database = {
             referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "abby_conversations_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
-            referencedColumns: ["id"]
-          },
         ]
       }
       abby_nudges: {
@@ -121,13 +114,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "abby_nudges_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
             referencedColumns: ["id"]
           },
         ]
@@ -405,13 +391,6 @@ export type Database = {
             referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "author_context_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
-            referencedColumns: ["id"]
-          },
         ]
       }
       author_email_settings: {
@@ -534,13 +513,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "author_nodes_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
             referencedColumns: ["id"]
           },
         ]
@@ -866,13 +838,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "author_revenue_snapshots_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
             referencedColumns: ["id"]
           },
         ]
@@ -2030,13 +1995,6 @@ export type Database = {
             referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "email_lists_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
-            referencedColumns: ["id"]
-          },
         ]
       }
       email_send_log: {
@@ -2387,13 +2345,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "funnel_submissions_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "funnel_submissions_funnel_id_fkey"
             columns: ["funnel_id"]
             isOneToOne: false
@@ -2489,13 +2440,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "funnels_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
             referencedColumns: ["id"]
           },
         ]
@@ -2692,13 +2636,6 @@ export type Database = {
             referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "ghl_deployments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
-            referencedColumns: ["id"]
-          },
         ]
       }
       home_study_courses: {
@@ -2825,13 +2762,6 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "lead_activities_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "v_author_profiles_orphans"
             referencedColumns: ["id"]
           },
         ]
@@ -5336,16 +5266,6 @@ export type Database = {
         }
         Relationships: []
       }
-      v_author_profiles_orphans: {
-        Row: {
-          author_slug: string | null
-          created_at: string | null
-          id: string | null
-          pen_name: string | null
-          user_id: string | null
-        }
-        Relationships: []
-      }
     }
     Functions: {
       check_rate_limit: {
@@ -5375,6 +5295,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_author_profile_orphans: {
+        Args: never
+        Returns: {
+          author_slug: string
+          created_at: string
+          id: string
+          pen_name: string
+          user_id: string
+        }[]
       }
       move_to_dlq: {
         Args: {
