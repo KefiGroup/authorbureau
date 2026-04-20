@@ -1,75 +1,63 @@
 
-Implement the approved rebuild-forcing change first, then stop and verify the bundle hash before touching anything else.
+Decision: pursue Lovable support escalation to clear/refresh the published frontend build cache for this project. Do not spend more time on frontend code changes until the published bundle hash changes.
 
-### Confirmed current state
-- `src/main.tsx` still imports `App` from `./App.tsx` and only has the old comment cache marker.
-- `src/App.tsx` does not yet import anything from `main.tsx`.
-- `useBookContext` is already on `v3.5-2026-04-20-gate-diagnostic` with the logging and defensive title resolution in place.
-- All four builders already use `shouldGate && !overrideGate` from `useBookContext()`:
-  - `BA10Builder.tsx`
-  - `BA12Builder.tsx`
-  - `BP06Builder.tsx`
-  - `BP07Builder.tsx`
-- `BookProfileGate` already receives `shouldGate` as a prop and returns `null` when `shouldGate === false`.
+### Root cause confirmation
+The current source already contains the rebuild-forcing changes:
+- `src/main.tsx` exports `BUILD_TIMESTAMP = "2026-04-20T10:18:00Z"`
+- `src/App.tsx` imports `BUILD_TIMESTAMP` and logs `console.log("Build:", BUILD_TIMESTAMP)`
+- `src/hooks/useBookContext.ts` is already on `v3.5-2026-04-20-gate-diagnostic`
+- All 4 builders still gate from `shouldGate && !overrideGate`
+- `BookProfileGate` already returns `null` when `shouldGate === false`
 
-### Primary implementation
-1. Update `src/main.tsx`
-   - Add:
-     ```ts
-     export const BUILD_TIMESTAMP = "2026-04-20T10:18:00Z";
-     ```
-   - Keep the existing render flow intact.
+But the browser snapshot still shows:
+- no `Build:` console log
+- no evidence of a new published JS asset
+- the published bundle hash remains `index-CPacRwTL.js` across repeated publishes
 
-2. Update `src/App.tsx`
-   - Import:
-     ```ts
-     import { BUILD_TIMESTAMP } from "./main";
-     ```
-   - Change `App` to a block-body component and log:
-     ```ts
-     console.log("Build:", BUILD_TIMESTAMP);
-     ```
-   - Do not change routing or providers.
+That combination means the new frontend source is not what the published site is serving.
 
-### Publish verification
-After implementation:
-1. Publish the update.
-2. Hard refresh.
-3. Confirm both:
-   - bundle hash changes from `index-CPacRwTL.js`
-   - console shows `Build: 2026-04-20T10:18:00Z`
+### Chosen action
+Use option 3: contact Lovable support to clear the build cache / trigger a clean frontend rebuild for this project.
 
-4. Then verify the existing `useBookContext` logs:
-   - edge response contains `bookTitle: "Be SUCKcessful"`
-   - render log shows `hasContext: true`
-   - render log shows `shouldGate: false`
+### Why this is the correct path
+- Official Lovable docs do not expose a user-facing “clean build”, “clear build cache”, or “force rebuild” control
+- There is no documented dashboard setting to delete publish cache for frontend artifacts
+- Renaming Vite output filenames is not the right next step for this issue because the current published site is not even picking up already-merged source changes; the blockage is upstream of normal cache-busting logic
 
-5. Confirm BA-10, BA-12, BP-06, and BP-07 no longer show the Add Your Book gate.
+### Implementation plan once back in build mode
+1. Stop all non-essential frontend edits related to this bug.
+2. Preserve the current rebuild-forcing code already in repo:
+   - `BUILD_TIMESTAMP` export/import
+   - `useBookContext` v3.5 diagnostics
+3. Prepare a support escalation packet with:
+   - project URL(s)
+   - project ID
+   - current stuck bundle hash: `index-CPacRwTL.js`
+   - fact that 5 consecutive publishes served the same hash
+   - fact that `Build: 2026-04-20T10:18:00Z` never appears although it exists in source
+4. Ask support to:
+   - clear the frontend build cache for this project, or
+   - trigger a clean rebuild of the published frontend artifact
+5. After support confirms cache clear / rebuild:
+   - publish once more
+   - hard refresh
+   - verify the bundle hash changes
+   - verify console shows `Build: 2026-04-20T10:18:00Z`
+6. Only after the hash changes, re-check the actual bug:
+   - `[useBookContext] edge response` includes `bookTitle: "Be SUCKcessful"`
+   - `[useBookContext] render` shows `hasContext: true`
+   - `shouldGate: false`
+   - BA-10, BA-12, BP-06, BP-07 no longer show the Add Your Book gate
 
-### Required escalation if hash still does not change
-If the publish still serves `index-CPacRwTL.js`, stop normal debugging and perform only the cache-escalation steps below. Do not make unrelated code changes.
+### Support message to send
+“Frontend publishes are stuck on the same artifact hash (`index-CPacRwTL.js`) across 5 consecutive publishes. The current source includes a new runtime dependency (`BUILD_TIMESTAMP` exported in `src/main.tsx` and imported/logged in `src/App.tsx`), but the published site never logs `Build: 2026-04-20T10:18:00Z`, which proves the latest frontend bundle is not being served. Please clear the frontend build cache or trigger a clean rebuild for this project.”
 
-1. Clear build caches if accessible
-   - remove `node_modules/.vite`
-   - remove `.vite`
-
-2. Force resolver churn on the app entry
-   - rename `src/App.tsx` to `src/AppRoot.tsx`
-   - update `src/main.tsx` import to `./AppRoot.tsx`
-   - then rename it back and restore the import if needed as part of the same forced-refresh sequence
-
-3. Add a second explicit runtime dependency
-   - create `src/build-info.ts` with:
-     ```ts
-     export const BUILD_ID = "v3.5-${Date.now()}";
-     ```
-   - import `BUILD_ID` in both `src/main.tsx` and `src/App.tsx`
-   - log it alongside `BUILD_TIMESTAMP`
+### Technical details
+- `vite.config.ts` is currently standard and does not define custom build output naming
+- Since the published site is not reflecting already-committed source changes, changing output naming is lower-value than clearing the underlying build artifact cache
+- Once the publish system serves a new bundle hash, the existing v3.5 diagnostics should be sufficient to confirm whether the gate bug is resolved or still needs a code fix
 
 ### Success criteria
-The only success condition for this pass is a new published bundle hash. Once that changes, the already-implemented v3.5 hook diagnostics can be trusted and the gate behavior can be re-validated.
-
-### Out of scope
-- No builder logic changes unless a rebuilt bundle still proves a specific builder is ignoring `shouldGate`
-- No edge function changes
-- No broader client architecture cleanup
+- Published JS hash changes from `index-CPacRwTL.js`
+- Browser console shows `Build: 2026-04-20T10:18:00Z`
+- Then and only then continue frontend debugging
