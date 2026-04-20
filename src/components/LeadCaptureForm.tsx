@@ -46,6 +46,8 @@ export interface LeadCaptureFormProps {
   layout?: "stacked" | "inline";
   /** className for outer container */
   className?: string;
+  /** Optional path to navigate to after successful submit (replaces inline success state) */
+  redirectTo?: string;
 }
 
 export default function LeadCaptureForm({
