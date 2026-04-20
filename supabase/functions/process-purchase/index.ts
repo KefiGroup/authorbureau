@@ -23,7 +23,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-const PLATFORM_FEE_RATE = 0.05; // 5% — see business/post-consultation-pricing-logic
+const DEFAULT_PLATFORM_FEE_RATE = 0.05; // fallback if platform_config row missing
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -159,7 +159,13 @@ serve(async (req) => {
     const refundDays = payoutSettings?.refund_window_days ?? 14;
     const eligibleAt = new Date(Date.now() + refundDays * 24 * 60 * 60 * 1000);
 
-    const platformFee = +(amount * PLATFORM_FEE_RATE).toFixed(2);
+    const { data: feeCfg } = await admin
+      .from("platform_config")
+      .select("value")
+      .eq("key", "platform_fee_percent")
+      .maybeSingle();
+    const feeRate = Number(feeCfg?.value ?? DEFAULT_PLATFORM_FEE_RATE);
+    const platformFee = +(amount * feeRate).toFixed(2);
     const authorEarnings = +(amount - platformFee).toFixed(2);
 
     const { error: insertErr } = await admin.from("purchases").insert({

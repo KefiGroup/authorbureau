@@ -10,6 +10,7 @@ import { getThemeById } from "@/lib/author-themes";
 import { SLUG_TO_NODE, NODE_NAMES } from "@/lib/node-slug-map";
 import { toast } from "@/hooks/use-toast";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
+import BuyNowButton from "@/components/commerce/BuyNowButton";
 
 interface MicrositeData {
   author: any;
@@ -919,7 +920,16 @@ function SalesPage({ data, content, v, hFont, bgColor, type }: PageProps & { typ
                   Save ${(Number(content.original_price) - Number(content.price)).toFixed(0)}
                 </p>
               )}
-              {hasStripeUrl ? (
+              {data.node.id ? (
+                <BuyNowButton
+                  authorNodeId={data.node.id}
+                  authorId={data.author?.id}
+                  fallbackUrl={buyUrl}
+                  label={cfg.cta}
+                  className="w-full rounded-full text-base py-3"
+                  style={{ background: v.accent, color: v.accentText }}
+                />
+              ) : hasStripeUrl ? (
                 <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
                   <a href={buyUrl} target="_blank" rel="noopener noreferrer">
                     {cfg.cta} <ArrowRight className="ml-2 h-4 w-4" />
@@ -976,14 +986,23 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
                 </a>
               </Button>
             )}
-            {hasStripe && (
+            {data.node.id ? (
+              <BuyNowButton
+                authorNodeId={data.node.id}
+                authorId={data.author?.id}
+                fallbackUrl={stripeUrl}
+                label="Buy Direct"
+                className="flex-1 rounded-full"
+                style={{ background: v.accent, color: v.accentText }}
+              />
+            ) : hasStripe ? (
               <Button className="flex-1 rounded-full" variant="outline" asChild>
                 <a href={stripeUrl} target="_blank" rel="noopener noreferrer">
                   Buy Direct <ArrowRight className="ml-2 h-4 w-4" />
                 </a>
               </Button>
-            )}
-            {!hasAmazon && !hasStripe && (
+            ) : null}
+            {!hasAmazon && !data.node.id && !hasStripe && (
               <Button className="flex-1 rounded-full" disabled>Available Soon</Button>
             )}
           </div>

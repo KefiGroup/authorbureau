@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
-const PLATFORM_FEE_PERCENT = 0.08; // 8% platform fee
+const DEFAULT_PLATFORM_FEE_PERCENT = 0.05; // fallback if platform_config row missing
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -31,14 +31,22 @@ serve(async (req) => {
 
     const metadata = session.metadata || {};
     const amount = (session.amount_total || 0) / 100;
-    const platformFee = Math.round(amount * PLATFORM_FEE_PERCENT * 100) / 100;
-    const authorEarnings = Math.round((amount - platformFee) * 100) / 100;
 
     const cloudAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
       { auth: { persistSession: false } }
     );
+
+    // Read platform fee from platform_config (single source of truth)
+    const { data: feeCfg } = await cloudAdmin
+      .from("platform_config")
+      .select("value")
+      .eq("key", "platform_fee_percent")
+      .maybeSingle();
+    const feePct = Number(feeCfg?.value ?? DEFAULT_PLATFORM_FEE_PERCENT);
+    const platformFee = Math.round(amount * feePct * 100) / 100;
+    const authorEarnings = Math.round((amount - platformFee) * 100) / 100;
 
     // Check if purchase already recorded (idempotency)
     const { data: existing } = await cloudAdmin

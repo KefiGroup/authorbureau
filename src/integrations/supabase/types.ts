@@ -445,7 +445,10 @@ export type Database = {
           checkout_url: string | null
           content_json: Json | null
           created_at: string
+          currency: string
           current_step: number | null
+          delivery_type: string | null
+          delivery_url: string | null
           ghl_resource_id: string | null
           id: string
           marketing_activated_at: string | null
@@ -454,6 +457,7 @@ export type Database = {
           node_name: string
           payment_link: string | null
           personalised_name: string | null
+          price_usd: number | null
           revenue_to_date: number
           status: string
           stripe_price_id: string | null
@@ -467,7 +471,10 @@ export type Database = {
           checkout_url?: string | null
           content_json?: Json | null
           created_at?: string
+          currency?: string
           current_step?: number | null
+          delivery_type?: string | null
+          delivery_url?: string | null
           ghl_resource_id?: string | null
           id?: string
           marketing_activated_at?: string | null
@@ -476,6 +483,7 @@ export type Database = {
           node_name: string
           payment_link?: string | null
           personalised_name?: string | null
+          price_usd?: number | null
           revenue_to_date?: number
           status?: string
           stripe_price_id?: string | null
@@ -489,7 +497,10 @@ export type Database = {
           checkout_url?: string | null
           content_json?: Json | null
           created_at?: string
+          currency?: string
           current_step?: number | null
+          delivery_type?: string | null
+          delivery_url?: string | null
           ghl_resource_id?: string | null
           id?: string
           marketing_activated_at?: string | null
@@ -498,6 +509,7 @@ export type Database = {
           node_name?: string
           payment_link?: string | null
           personalised_name?: string | null
+          price_usd?: number | null
           revenue_to_date?: number
           status?: string
           stripe_price_id?: string | null
@@ -3082,6 +3094,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      platform_config: {
+        Row: {
+          key: string
+          updated_at: string
+          value: string
+        }
+        Insert: {
+          key: string
+          updated_at?: string
+          value: string
+        }
+        Update: {
+          key?: string
+          updated_at?: string
+          value?: string
+        }
+        Relationships: []
       }
       podcast_episodes: {
         Row: {
