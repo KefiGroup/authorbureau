@@ -1,61 +1,76 @@
 
-## Investigation Plan: Why "Be SUCKcessful" Isn't Propagating
+## Plan: Force a Fresh Frontend Rebuild and Verify the Live Bundle
 
-### What I need to verify (read-only checks)
+### What is already confirmed
+- The `v3.2` changes are saved in `src/hooks/useBookContext.ts`:
+  - `HOOK_VERSION = "v3.2-2026-04-20-force-refetch"`
+  - `queryKey: ["book-context-v3.2", user?.id ?? "anon"]`
+  - `staleTime: 0`
+  - `gcTime: 0`
+  - `refetchOnMount: "always"`
+  - mount/query logs are present in source
+- All 4 target builders import `useBookContext` from `@/hooks/useBookContext`
+- There is no service worker / PWA registration in the app source, so this looks like a frontend publish/build-cache issue rather than client-side SW caching
 
-**Check 1 — Author/book data state**
-Query `author_profiles`, `author_context`, and `books` for Pauline (`pl@paulineteo.com`, user_id `ef23c521-9cce-4d86-9128-dc687748b65b`, author_profile id `92326a2f-3ed0-4873-a8cf-7a0b1350995a`):
-- Does `author_context` row exist? Is `book_title` populated or empty/null?
-- Does `books` row exist with title "Be SUCKcessful"? What is its `author_id` value (user UUID vs author_profile UUID)?
+### Important additional issue found
+Even after the new bundle goes live, **BP-06** and **BP-07** still have a title propagation bug:
+- they copy `detectedBookTitle` into local `bookTitle` state inside an effect that only depends on `authorId`
+- if `useBookContext` resolves after first render, those two builders may stay stuck on the initial fallback
 
-**Check 2 — Hook resolution path**
-Re-trace `useBookContext.ts`:
-1. Resolves `author_profiles` → gets `id` (the profile id, NOT user_id) and stores as `authorId`
-2. Queries `author_context` with `.eq("author_id", authorId)` — uses profile id
-3. If empty, calls `get-author-book` edge function
+That needs to be fixed in the same implementation pass.
 
-**Check 3 — Edge function `get-author-book` response**
-Test the live function with Pauline's token to see exactly what it returns. Confirms whether the fallback is producing `book.title = "Be SUCKcessful"` or returning null.
+### Implementation steps
 
-**Check 4 — Schema column mismatch suspicion**
-Verify `author_context` actually has a `book_title` column (not `bookTitle`, `title`, or stored inside a `context` jsonb).
+#### 1) Force the bundler to invalidate the current frontend build
+Make a trivial code change in a guaranteed-entry file so the next publish cannot reuse the same compiled output:
+- safest options: `src/main.tsx` or `src/App.tsx`
+- example: add/remove a harmless comment or whitespace-only formatting change near the root render / QueryClient setup
 
-### Hypotheses (in priority order)
+This is only to force a new frontend bundle hash.
 
-1. **`author_context.book_title` column doesn't exist or is named differently** → select returns row with `book_title = undefined` → falsy check passes → fallback fires → but ID mismatch in fallback below
-2. **`books.author_id` stores `user_id` (ef23c521…) but hook passes `author_profiles.id` (92326a2f…) to the edge function context** → edge function still works because it builds idList from BOTH user_id AND profile.id → should succeed
-3. **Edge function returns title correctly, but hook returns the fallback `"your book"` because of an early-return bug** — looking at the code, when `ctx?.book_title` is falsy and edge fallback succeeds, the hook returns `bookTitle: book?.title ?? "your book"`. If `book` is null (edge returned no book), we get "your book"
-4. **Edge function call silently fails** (token expired, CORS, 500) → caught and returns `"your book"` fallback. The `console.error` would show in browser console — but user reported "your book" in UI, not an error
+#### 2) Keep the existing v3.2 hook changes as the active source of truth
+Do not roll back the current `useBookContext` changes. The saved file already contains the intended debug/cache-bypass logic and should be the version that gets compiled into the new bundle.
 
-### Plan steps (after approval, in default mode)
+#### 3) Fix builder title propagation in BP-06 and BP-07
+Update both builders so the resolved title actually reaches the intro text after the hook finishes loading:
+- either add `detectedBookTitle` and `isBookLoading` to the effect dependencies
+- or remove the unnecessary local mirror state and render directly from `detectedBookTitle`
 
-**Step A — Verify schema and data**
-- Read `author_context` schema and Pauline's row
-- Read `books` row for Pauline (confirm title and `author_id` value)
-- Test `get-author-book` edge function as Pauline → confirm returned `book.title`
+Preferred outcome:
+- intro text should always prefer `detectedBookTitle`
+- local `bookTitle` state should not be allowed to stay stale
 
-**Step B — Identify the propagation break**
-Based on findings, the bug is one of:
-- **(i)** Edge function returns book correctly, but `useBookContext` doesn't actually use `book.title` (current code does — but verify there's no stale-cache issue keeping old data)
-- **(ii)** Edge function returns null because of an ID/email mismatch
-- **(iii)** `author_context` has the title in a different column the hook isn't reading
+#### 4) Re-publish as a frontend update
+After the trivial cache-busting edit and the BP-06/BP-07 propagation fix are saved, publish again so Lovable performs a fresh frontend build.
 
-**Step C — Apply targeted fix**
-- If (i): Add explicit logging + invalidate React Query cache key on hook upgrade (bump cache version)
-- If (ii): Fix edge function ID resolution (add `author_profiles.id` to candidate set — already done per code review, but re-verify)
-- If (iii): Add the correct column to the `author_context` select, or read from `books` table by `author_profiles.id` as a second-tier fallback before calling the edge function
+### Pass/fail verification
+The publish is only successful if all of these are true:
 
-**Step D — Add a third resolution tier inside `useBookContext`**
-Per user's directive: between `author_context` (tier 1) and `get-author-book` edge fallback (tier 3), add **tier 2 = direct `books` query by both `author_profiles.id` AND `user_id`** so the title resolves even if edge function has any issue. This makes the hook self-healing.
+#### Build verification
+- bundle hash changes from `index-C6gjd4yk.js` to a new filename
 
-**Step E — Bump version marker**
-`x-hook-version: v3.1-2026-04-20-title-trace` so user can confirm new bundle live.
+#### Runtime verification
+Open a signed-in builder and confirm:
+- console shows `[useBookContext] mount`
+- console shows `[useBookContext] queryFn START`
+- network shows `author_context` being called
+- if `author_context.book_title` is empty, network then shows `books` and/or `get-author-book` fallback
+- ABBY intro text shows `Be SUCKcessful` instead of `your book`
 
-### What only the user can do
-- Click **Publish → Update** in Lovable IDE
-- Hard refresh (`Cmd/Ctrl+Shift+R`) to invalidate cached bundle
-- Confirm intro reads "based on 'Be SUCKcessful'"
+### Expected builder coverage
+This must be verified across:
+- BA-10
+- BA-12
+- BP-06
+- BP-07
 
-### Out of scope
-- Onboarding flow changes
-- Edge function rewrite (only ID-set adjustment if needed)
+### Technical notes
+- The source code already proves the latest hook changes exist; the current problem is that the live site is not serving a freshly built frontend bundle
+- BP-06 and BP-07 have an additional state-sync bug independent of publishing, so they should be corrected now to avoid a second round of title issues after the bundle finally updates
+- No backend change is required for this step; this is a frontend rebuild + builder state propagation fix
+
+### What the user will need to do after implementation
+- Click **Publish → Update**
+- Hard refresh the live site
+- Confirm the new bundle hash is different
+- Confirm `author_context` appears in the network trace and the intro text uses `Be SUCKcessful`
