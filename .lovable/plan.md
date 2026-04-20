@@ -1,55 +1,53 @@
 
-## Investigation summary
+## Plan: Standardize Book Context + Hard-Gate Only on Subscription/Onboarding
 
-The user reports that after publishing, `authorsbureau.com` still serves the old bundle calling `rest/v1/books?author_id=eq...` directly instead of the new `get-author-book` edge function. They also note "Online Course still says coming soon."
+### Approved gating rule
+`shouldGate = true` ONLY when:
+- Subscription is inactive, OR
+- `author_context` row does not exist (ABBY analysis never run)
 
-## Hard truths about what I can and cannot do
+Missing individual book fields (title, ISBN, cover) are NEVER hard gates for subscribed+onboarded authors. They become optional soft prompts only.
 
-**I cannot force a rebuild or redeploy the frontend bundle.** There is no tool available to me that triggers Lovable's build pipeline or invalidates the published CDN bundle. The Publish action lives exclusively in the Lovable IDE chrome and is user-initiated. No `code--exec`, no edge function deploy, no migration will rebuild the frontend.
+### Step 1 — New hook `src/hooks/useBookContext.ts`
+Single source of truth for all node builders. Returns:
+```
+{ bookTitle, bookId, book, authorId, hasSubscription, hasContext, isLoading, shouldGate, missingFields }
+```
 
-**What "Publish → Update" actually does:** it takes the current repo state, builds it, and ships it to `authorsbureau.com`. If the file `src/hooks/useAuthorBook.ts` is correct in the repo (it is — verified earlier), a successful Publish will ship the new hook. There is no separate "force rebuild" toggle.
+Resolution order:
+1. Resolve `author_profiles` for current user (id + subscription_status)
+2. Read `author_context` row (book_title, book_id) — primary source
+3. If `author_context.book_title` empty AND user is onboarded, fall back to `get-author-book` edge function
+4. Compute `shouldGate = !hasActiveSubscription || !hasContextRow`
+5. React Query cache, 5 min stale time
 
-**Likely real causes for the stale network trace:**
-1. The Publish click didn't actually complete (Publish button was non-clickable per earlier message)
-2. The user is testing on a cached browser tab — service worker or HTTP cache serving the old JS chunk
-3. The user is testing on a custom domain (`authorsbureau.com`) that may have CDN caching ahead of the Lovable origin
-4. There's another component still calling `books` directly that isn't the hook (display-only `bookTitle` lookups in BA-10/BA-12, mentioned in prior turn)
+### Step 2 — Update `BookProfileGate`
+Accept `shouldGate` prop. If `false`, return `null` unconditionally (no soft gate, no missing-field warning, no "Add Your Book" CTA). The component only renders when subscription inactive OR no `author_context` row.
 
-## Plan
+### Step 3 — Migrate the 4 named builders
+Swap `useAuthorBook` → `useBookContext` in:
+- `BA10Builder.tsx`
+- `BA12Builder.tsx`
+- `BP06Builder.tsx`
+- `BP07Builder.tsx`
 
-### Step 1 — Verify repo state is still correct
-Re-read `src/hooks/useAuthorBook.ts` to confirm it has not been reverted since last check.
+Remove all direct `supabase.from("books")` and `supabase.from("author_context")` reads. Pass `shouldGate` to `BookProfileGate`.
 
-### Step 2 — Find the *other* direct `books` queries
-Search for any `from("books")` or `rest/v1/books?author_id` callsite in the frontend. The network trace pattern `books?author_id=eq.ef23c521-...` strongly suggests a component other than `useAuthorBook` is querying the books table directly for display purposes (likely `CourseBuilder`, `BA-10`, `BA-12`, or a sidebar tile). This would persist *even after* a successful publish of the hook fix.
+### Step 4 — Sweep remaining builders
+Grep all other node builders using `useAuthorBook` or direct `books`/`author_context` queries. Swap to `useBookContext` for consistency.
 
-Specifically grep for:
-- `from("books")`
-- `from('books')`
-- `.eq("author_id"` near books
-- `books?author_id`
+### Step 5 — Bundle freshness marker
+Bump fetch header in `useBookContext` to `x-hook-version: v3-2026-04-20-context-first` so network trace proves new bundle is live.
 
-### Step 3 — Investigate "Online Course still says coming soon"
-Search for "coming soon" string in the codebase, particularly around online course / BA-10 / `online-course` node. This is likely a separate gating issue:
-- A `disabled` flag in `BUILDER_NODE_MAP["online-course"]`
-- A status check in the Brand Products Hub that reads `coming_soon` instead of `available`
-- A hardcoded badge in the course tile
+### Step 6 — Memory update
+Update `mem://architecture/book-ownership-lookup-standard.md`:
+> Read `author_context` first; `get-author-book` is fallback only. Hard-gate ONLY on inactive subscription or missing `author_context` row. Never gate on missing book fields.
 
-### Step 4 — Fix the actual root causes
-Based on findings, in default mode I will:
-- **(a)** Route any remaining direct `books` ownership/title lookups through `useAuthorBook` so the network trace is fully clean
-- **(b)** Flip the "coming soon" flag for online course to `available`/built (whichever the codebase uses)
-- **(c)** Bump a version constant in `useAuthorBook.ts` (e.g., add a header `x-hook-version: v2`) so the user can confirm in the network trace that the new bundle is actually live
+### What only the user can do (cannot be automated)
+- Click **Publish → Update** in Lovable IDE (no programmatic trigger exists)
+- Hard refresh `authorsbureau.com` (Cmd/Ctrl+Shift+R) to invalidate `index-BGGoaZWD.js`
+- Verify network trace: `x-hook-version: v3-2026-04-20-context-first` header present, no `rest/v1/books?author_id=eq...` calls
 
-### Step 5 — Tell the user clearly what only they can do
-- Click Publish → Update once more (frontend rebuild requires this — there is no programmatic alternative)
-- Hard refresh `authorsbureau.com` with Cmd/Ctrl+Shift+R, or test in incognito to bypass service worker / CDN cache
-- If the custom domain still serves stale JS after publish + hard refresh, the issue is CDN propagation (usually <5 min)
-
-### What I will NOT do
-- Pretend I can "force a rebuild" — I cannot. Saying so would be dishonest.
-- Re-deploy the edge function or re-run the migration — both are already live and verified.
-- Re-write `useAuthorBook.ts` again — it is already correct.
-
-## Deliverable
-A concrete code change that (1) eliminates remaining direct `books` queries causing the stale network trace, (2) fixes the "coming soon" label on Online Course, and (3) adds a version marker so we can confirm bundle freshness. Plus a clear note that Publish → Update + hard refresh is required to ship and that I cannot trigger it programmatically.
+### Out of scope
+- Changes to onboarding flow, subscription billing, or `get-author-book` edge function (already correct)
+- Re-running owner_email backfill (already 100%)
