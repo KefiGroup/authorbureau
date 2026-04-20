@@ -304,6 +304,7 @@ Deno.serve(async (req) => {
                 id: n.id,
                 title: n.personalised_name || n.node_name || n.node_id,
                 book_id: null,
+                author_id: n.author_id,
                 created_at: n.created_at,
                 status,
                 description: n.microsite_url || "",
