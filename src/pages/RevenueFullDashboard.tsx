@@ -79,49 +79,91 @@ export default function RevenueFullDashboard() {
   const [stripeInput, setStripeInput] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Fetch author profile
+  // Fetch author profile + initial direct-DB data (fast, no edge functions)
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("author_profiles")
-      .select("id, pen_name, stripe_connected_account_id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setAuthorId(data.id);
-          setPenName(data.pen_name || "Author");
-          setStripeAccountId(data.stripe_connected_account_id || null);
-        }
+    let cancelled = false;
+
+    (async () => {
+      // 1. Resolve author profile
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("id, pen_name, stripe_connected_account_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (!profile) {
         setLoading(false);
+        return;
+      }
+
+      setAuthorId(profile.id);
+      setPenName(profile.pen_name || "Author");
+      setStripeAccountId(profile.stripe_connected_account_id || null);
+
+      // 2. Parallel direct DB queries — fast, no edge functions
+      const [contactsRes, hotRes, nodesRes, snapsRes, purchasesRes] = await Promise.all([
+        // Total leads (crm_contacts is keyed by user.id per current resolver)
+        supabase
+          .from("crm_contacts")
+          .select("id", { count: "exact", head: true })
+          .eq("author_id", user.id),
+        // Hot leads (abby_score >= 60)
+        supabase
+          .from("crm_contacts")
+          .select("id, full_name, email, abby_score, last_activity_at")
+          .eq("author_id", user.id)
+          .gte("abby_score", 60)
+          .order("abby_score", { ascending: false })
+          .limit(10),
+        // Active nodes
+        supabase
+          .from("author_nodes")
+          .select("node_id, node_name, personalised_name, status, content_json")
+          .eq("author_id", profile.id)
+          .eq("status", "live"),
+        // Historical snapshots
+        supabase
+          .from("author_revenue_snapshots")
+          .select("*")
+          .eq("author_id", profile.id)
+          .order("snapshot_date", { ascending: true })
+          .limit(180),
+        // Revenue this month from purchases
+        supabase
+          .from("purchases")
+          .select("amount")
+          .eq("author_id", profile.id)
+          .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+      ]);
+
+      if (cancelled) return;
+
+      const contactsCount = contactsRes.count || 0;
+      const liveNodesData = (nodesRes.data as LiveNode[]) || [];
+      const monthRevenue = (purchasesRes.data || []).reduce(
+        (sum: number, p: any) => sum + Number(p.amount || 0),
+        0
+      );
+
+      setLiveNodes(liveNodesData);
+      setNodesLive(liveNodesData.length);
+      setHotLeads((hotRes.data as any) || []);
+      setSnapshots((snapsRes.data as Snapshot[]) || []);
+      setMetrics({
+        contacts: contactsCount,
+        subscribers: contactsCount, // direct count — no GHL dependency
+        pipeline: 0,
+        revenueMtd: monthRevenue,
       });
+      // Real data — not projected
+      setProjected({ ghl: false, stripe: !profile.stripe_connected_account_id });
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
   }, [user]);
-
-  // Fetch live nodes
-  useEffect(() => {
-    if (!authorId) return;
-    supabase
-      .from("author_nodes")
-      .select("node_id, node_name, personalised_name, status, content_json")
-      .eq("author_id", authorId)
-      .eq("status", "live")
-      .then(({ data }) => {
-        setLiveNodes((data as LiveNode[]) || []);
-        setNodesLive(data?.length || 0);
-      });
-  }, [authorId]);
-
-  // Fetch historical snapshots
-  useEffect(() => {
-    if (!authorId) return;
-    supabase
-      .from("author_revenue_snapshots")
-      .select("*")
-      .eq("author_id", authorId)
-      .order("snapshot_date", { ascending: true })
-      .limit(180)
-      .then(({ data }) => setSnapshots((data as Snapshot[]) || []));
-  }, [authorId]);
 
   // Sync metrics (max once per hour — simplified: just call on mount)
   const syncMetrics = useCallback(async () => {
