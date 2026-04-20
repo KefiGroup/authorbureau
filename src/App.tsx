@@ -54,6 +54,10 @@ import SubscriptionSuccess from "./pages/SubscriptionSuccess";
 import UnsubscribePage from "./pages/UnsubscribePage";
 import ConnectSettings from "./pages/ConnectSettings";
 import SocialAuthCallback from "./pages/SocialAuthCallback";
+import CourseSalesPage from "./pages/CourseSalesPage";
+import CourseLearnPage from "./pages/CourseLearnPage";
+import MembershipSalesPage from "./pages/MembershipSalesPage";
+import MemberPortalPage from "./pages/MemberPortalPage";
 
 
 const queryClient = new QueryClient();
@@ -171,6 +175,12 @@ const AppRoutes = () => (
       <Route path="/unsubscribe" element={<UnsubscribePage />} />
       <Route path="/:authorSlug/webinar" element={<WebinarIndexPage />} />
       <Route path="/:authorSlug/webinar/:slug" element={<WebinarRegistrationPage />} />
+      {/* Sprint 40: Online Course + Membership reader pages */}
+      <Route path="/:authorSlug/course/:courseSlug/learn" element={<CourseLearnPage />} />
+      <Route path="/:authorSlug/course/:courseSlug" element={<CourseSalesPage />} />
+      <Route path="/:authorSlug/members/welcome" element={<MemberPortalPage />} />
+      <Route path="/:authorSlug/members/portal" element={<MemberPortalPage />} />
+      <Route path="/:authorSlug/members" element={<MembershipSalesPage />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorSubpageResolver />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
