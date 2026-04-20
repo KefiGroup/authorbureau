@@ -857,6 +857,42 @@ export type Database = {
         }
         Relationships: []
       }
+      author_testimonials: {
+        Row: {
+          author_id: string
+          avatar_url: string | null
+          created_at: string
+          id: string
+          name: string
+          quote: string
+          role: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          quote: string
+          role?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          avatar_url?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          quote?: string
+          role?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       books: {
         Row: {
           ai_enriched: boolean | null
@@ -4684,26 +4720,50 @@ export type Database = {
       webinar_registrations: {
         Row: {
           attended: boolean | null
+          author_id: string | null
+          confirmation_sent_at: string | null
           email: string
+          followup_day3_sent_at: string | null
+          followup_day7_sent_at: string | null
+          followup_sameday_sent_at: string | null
           id: string
           name: string | null
           registered_at: string
+          reminder_15m_sent_at: string | null
+          reminder_1h_sent_at: string | null
+          reminder_24h_sent_at: string | null
           webinar_id: string
         }
         Insert: {
           attended?: boolean | null
+          author_id?: string | null
+          confirmation_sent_at?: string | null
           email: string
+          followup_day3_sent_at?: string | null
+          followup_day7_sent_at?: string | null
+          followup_sameday_sent_at?: string | null
           id?: string
           name?: string | null
           registered_at?: string
+          reminder_15m_sent_at?: string | null
+          reminder_1h_sent_at?: string | null
+          reminder_24h_sent_at?: string | null
           webinar_id: string
         }
         Update: {
           attended?: boolean | null
+          author_id?: string | null
+          confirmation_sent_at?: string | null
           email?: string
+          followup_day3_sent_at?: string | null
+          followup_day7_sent_at?: string | null
+          followup_sameday_sent_at?: string | null
           id?: string
           name?: string | null
           registered_at?: string
+          reminder_15m_sent_at?: string | null
+          reminder_1h_sent_at?: string | null
+          reminder_24h_sent_at?: string | null
           webinar_id?: string
         }
         Relationships: [
@@ -4720,6 +4780,7 @@ export type Database = {
         Row: {
           author_id: string
           book_id: string
+          cover_image_url: string | null
           created_at: string
           currency: string | null
           description: string | null
@@ -4729,9 +4790,11 @@ export type Database = {
           price: number | null
           registration_page_copy: string | null
           replay_url: string | null
+          room_url: string | null
           scheduled_at: string | null
           script_markdown: string
           slide_deck_url: string | null
+          slug: string | null
           source_asset_id: string | null
           status: string
           title: string
@@ -4740,6 +4803,7 @@ export type Database = {
         Insert: {
           author_id: string
           book_id: string
+          cover_image_url?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -4749,9 +4813,11 @@ export type Database = {
           price?: number | null
           registration_page_copy?: string | null
           replay_url?: string | null
+          room_url?: string | null
           scheduled_at?: string | null
           script_markdown?: string
           slide_deck_url?: string | null
+          slug?: string | null
           source_asset_id?: string | null
           status?: string
           title: string
@@ -4760,6 +4826,7 @@ export type Database = {
         Update: {
           author_id?: string
           book_id?: string
+          cover_image_url?: string | null
           created_at?: string
           currency?: string | null
           description?: string | null
@@ -4769,9 +4836,11 @@ export type Database = {
           price?: number | null
           registration_page_copy?: string | null
           replay_url?: string | null
+          room_url?: string | null
           scheduled_at?: string | null
           script_markdown?: string
           slide_deck_url?: string | null
+          slug?: string | null
           source_asset_id?: string | null
           status?: string
           title?: string
