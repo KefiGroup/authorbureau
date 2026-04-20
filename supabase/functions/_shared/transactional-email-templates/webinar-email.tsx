@@ -109,7 +109,7 @@ const COPY: Record<WebinarKind, { preview: string; heading: string; body: (p: Re
         <Text style={text}>If you're ready for the next step, I've put everything in one place for you.</Text>
       </>
     ),
-    ctaLabel: 'See what's next',
+    ctaLabel: 'See what comes next',
   },
 }
 
