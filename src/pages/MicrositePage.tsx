@@ -9,6 +9,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { getThemeById } from "@/lib/author-themes";
 import { SLUG_TO_NODE, NODE_NAMES } from "@/lib/node-slug-map";
 import { toast } from "@/hooks/use-toast";
+import LeadCaptureForm from "@/components/LeadCaptureForm";
 
 interface MicrositeData {
   author: any;
