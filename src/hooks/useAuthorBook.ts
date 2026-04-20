@@ -86,14 +86,15 @@ export function useAuthorBook(): AuthorBookResult {
             .eq("user_id", authUserId)
             .maybeSingle();
 
-          if (profile?.user_id && profile.user_id !== authUserId) {
+          if (profile?.id) {
             const { data: fallback } = await supabase
               .from("books")
               .select("id, title, author_name, genre, description, cover_image_url")
-              .eq("author_id", profile.user_id)
+              .eq("author_id", profile.id)
               .order("created_at", { ascending: false })
               .limit(1);
             row = fallback?.[0] ?? null;
+            if (row) console.log("[useAuthorBook] resolved via author_profiles.id fallback");
           }
 
           // Final fallback: author_context book_title (no full book row)
