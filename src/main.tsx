@@ -1,3 +1,4 @@
+// build-marker: v3.2-2026-04-20-force-refetch (cache-bust)
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
