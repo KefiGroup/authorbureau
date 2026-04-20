@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import ComingSoonScreen from "@/components/public/ComingSoonScreen";
 
 export default function MembershipSalesPage() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
@@ -15,16 +16,19 @@ export default function MembershipSalesPage() {
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [authorMissing, setAuthorMissing] = useState(false);
+  const [authorName, setAuthorName] = useState("");
   const [checkingOut, setCheckingOut] = useState(false);
 
   useDocumentMeta({ title: data ? `${data.name} | Membership` : "Membership" });
 
   useEffect(() => {
     (async () => {
-      if (!authorSlug) { setNotFound(true); setLoading(false); return; }
+      if (!authorSlug) { setAuthorMissing(true); setLoading(false); return; }
       const { data: author } = await supabase
         .from("author_profiles").select("id, pen_name").eq("author_slug", authorSlug).maybeSingle();
-      if (!author) { setNotFound(true); setLoading(false); return; }
+      if (!author) { setAuthorMissing(true); setLoading(false); return; }
+      setAuthorName(author.pen_name || "");
       const { data: m } = await supabase
         .from("membership_content")
         .select("name, tagline, benefits, sales_copy, monthly_price, status")
@@ -63,7 +67,8 @@ export default function MembershipSalesPage() {
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin" /></div>;
-  if (notFound || !data) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Membership not found.</p></div>;
+  if (authorMissing) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Author not found.</p></div>;
+  if (notFound || !data) return <ComingSoonScreen authorSlug={authorSlug || ""} authorName={authorName} pageLabel="The membership" />;
 
   const isLive = data.status === "live";
   const headline = (data.sales_copy.headline as string) || data.name;

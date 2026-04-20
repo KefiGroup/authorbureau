@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, Lock, BookOpen, CheckCircle2 } from "lucide-react";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import ComingSoonScreen from "@/components/public/ComingSoonScreen";
 
 interface CourseData {
   id: string;
@@ -29,6 +30,7 @@ export default function CourseSalesPage() {
   const [modules, setModules] = useState<{ id: string; title: string; description: string | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [authorMissing, setAuthorMissing] = useState(false);
 
   useDocumentMeta({
     title: course ? `${course.title} | Online Course` : "Online Course",
@@ -37,10 +39,10 @@ export default function CourseSalesPage() {
 
   useEffect(() => {
     (async () => {
-      if (!authorSlug || !courseSlug) { setNotFound(true); setLoading(false); return; }
+      if (!authorSlug || !courseSlug) { setAuthorMissing(true); setLoading(false); return; }
       const { data: author } = await supabase
         .from("author_profiles").select("id, pen_name").eq("author_slug", authorSlug).maybeSingle();
-      if (!author) { setNotFound(true); setLoading(false); return; }
+      if (!author) { setAuthorMissing(true); setLoading(false); return; }
       setAuthorName(author.pen_name || "");
 
       const { data: c } = await supabase
@@ -62,8 +64,11 @@ export default function CourseSalesPage() {
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
+  if (authorMissing) {
+    return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Author not found.</p></div>;
+  }
   if (notFound || !course) {
-    return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Course not found.</p></div>;
+    return <ComingSoonScreen authorSlug={authorSlug || ""} authorName={authorName} pageLabel="This course" />;
   }
 
   const promises: string[] = Array.isArray(course.transformation_promises)
