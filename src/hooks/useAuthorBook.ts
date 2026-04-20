@@ -42,6 +42,7 @@ async function fetchAuthorBook(): Promise<{
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
+        "x-hook-version": "v2-2026-04-20",
       },
     },
     20000
