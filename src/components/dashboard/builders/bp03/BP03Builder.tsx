@@ -554,7 +554,7 @@ export default function BP03Builder({ authorId }: Props) {
             authorName={authorName}
             bookTitle={bookTitle || detectedBookTitle || "your book"}
             onEditKit={() => setStep(2)}
-            onDownloadZip={() => downloadKitZip(content, bookTitle, authorName)}
+            onDownloadZip={() => downloadKitZip(content, bookTitle, authorName, authorPhotoUrl, bookColor)}
           />
         )}
         {step === 3 && content?.activated && <BackToReviewLink onClick={() => setStep(2)} />}
@@ -824,18 +824,48 @@ function ReviewStep({
           ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Saved to your Social Calendar on Activate
         </p>
       </div>
+
+      <PostEditorSheet
+        open={editorOpen}
+        onOpenChange={setEditorOpen}
+        post={editingPost}
+        authorName={authorName}
+        authorPhotoUrl={authorPhotoUrl}
+        bookColor={bookColor}
+        bookTitle={bookTitle}
+        onSave={async (updated) => {
+          await onSavePost(updated);
+        }}
+      />
     </div>
   );
 }
 
-function PostCard({ post }: { post: any }) {
-  const [open, setOpen] = useState(false);
-  const [platform, setPlatform] = useState("linkedin");
-  const platformData = post[platform];
+function PostCard({
+  post,
+  authorName,
+  authorPhotoUrl,
+  bookColor,
+  bookTitle,
+  onClick,
+}: {
+  post: any;
+  authorName: string;
+  authorPhotoUrl?: string | null;
+  bookColor?: string | null;
+  bookTitle?: string;
+  onClick: () => void;
+}) {
+  const [platform, setPlatform] = useState<SocialPlatform>("instagram");
+  const platformData = post[platform] || { caption: "", hashtags: [] };
+  const pullQuote = extractPullQuote(platformData.caption || "");
 
   return (
-    <Card className="cursor-pointer" onClick={() => setOpen(!open)}>
-      <CardContent className="pt-4 pb-3">
+    <Card
+      className="cursor-pointer hover:border-primary/50 transition-colors"
+      onClick={onClick}
+    >
+      <CardContent className="pt-4 pb-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
@@ -845,27 +875,35 @@ function PostCard({ post }: { post: any }) {
             </div>
             <p className="font-medium text-sm truncate">{post.theme}</p>
           </div>
-          {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+          <PencilLine className="h-4 w-4 text-muted-foreground shrink-0" />
         </div>
-        {open && (
-          <div className="mt-3 pt-3 border-t border-border space-y-3" onClick={(e) => e.stopPropagation()}>
-            <div className="flex gap-1">
-              {(["linkedin", "instagram", "facebook", "twitter"] as const).map((p) => (
-                <button key={p} onClick={() => setPlatform(p)} className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${platform === p ? PLATFORM_COLORS[p] : "bg-muted text-muted-foreground"}`}>
-                  {PLATFORM_LABELS[p]}
-                </button>
-              ))}
-            </div>
-            {platformData && (
-              <div className="space-y-2">
-                <p className="text-sm text-muted-foreground whitespace-pre-line">{platformData.caption}</p>
-                {platformData.hashtags?.length > 0 && (
-                  <p className="text-xs text-primary">{platformData.hashtags.map((h: string) => `#${h}`).join(" ")}</p>
-                )}
-              </div>
-            )}
+
+        <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-1 mb-2 flex-wrap">
+            {(["instagram", "linkedin", "facebook", "twitter"] as const).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPlatform(p)}
+                className={`px-2 py-1 rounded text-[10px] font-medium transition-colors ${
+                  platform === p ? PLATFORM_COLORS[p] : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {PLATFORM_TAB_LABELS[p]}
+              </button>
+            ))}
           </div>
-        )}
+          <div className="cursor-pointer" onClick={onClick}>
+            <SocialGraphicCard
+              platform={platform}
+              authorName={authorName}
+              authorPhotoUrl={authorPhotoUrl}
+              bookColor={bookColor}
+              bookTitle={bookTitle}
+              pullQuote={pullQuote}
+            />
+          </div>
+          <p className="mt-2 text-[11px] text-muted-foreground line-clamp-2">{platformData.caption}</p>
+        </div>
       </CardContent>
     </Card>
   );
