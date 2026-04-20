@@ -240,7 +240,20 @@ Deno.serve(async (req) => {
       }
     }
 
-    return new Response(JSON.stringify({ success: true, lead_id: leadId, redirect_url: funnel.cta_url || null }), {
+    // Default redirect to thank-you page if no explicit cta_url is set
+    let redirectUrl = funnel.cta_url || null;
+    if (!redirectUrl) {
+      const { data: authorProfile } = await supabase
+        .from('author_profiles')
+        .select('author_slug')
+        .eq('id', funnel.author_id)
+        .maybeSingle();
+      if (authorProfile?.author_slug) {
+        redirectUrl = `/${authorProfile.author_slug}/thank-you`;
+      }
+    }
+
+    return new Response(JSON.stringify({ success: true, lead_id: leadId, redirect_url: redirectUrl }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
