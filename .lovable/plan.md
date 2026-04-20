@@ -1,70 +1,74 @@
 
-## Plan: Use Shared-Backend Client for Book Context Queries
 
-### Root cause (definitive, verified against the live DB)
+## Plan: Make `get-author-book` the Primary Source, Read `author_context` Server-Side
 
-I verified directly against the project DB:
-- The `author_context` row exists: `author_id = 92326a2f-...`, `book_title = "Be SUCKcessful"`
-- `author_profiles` resolves correctly: `user_id ef23c521-... → id 92326a2f-...`
-- The hook code already does the user_id → author_profiles.id → author_context lookup correctly
+### Root cause confirmation (verified against the live DB)
 
-The actual bug is a **client mismatch**, not a missing lookup:
+The user's diagnosis is correct. I queried both projects directly:
 
-| Query in `useBookContext` | Client used | Session it sees |
+| Row | Project | author_id |
 |---|---|---|
-| `useAuth()` | shared-backend (`@/lib/shared-backend`) | Pauline ✅ |
-| `supabase.from("author_profiles")` | project-local (`@/integrations/supabase/client`) | none (anon) — works only because there's an anon SELECT policy for `directory_status IN ('listed','featured','verified')` |
-| `supabase.from("author_context")` | project-local | none (anon) — **RLS blocks the row** because the only policy is `authenticated` + `auth.uid() = author_profiles.user_id` |
-| `supabase.from("books")` | project-local | none (anon) — only sees rows where `published_at IS NOT NULL` |
+| `author_profiles` for Pauline (`user_id = ef23c521-…`) | **project-local `tubpbslfrxyfhldkcyyq`** | id = `92326a2f-…` |
+| `author_context` row (`book_title = "Be SUCKcessful"`) | **project-local `tubpbslfrxyfhldkcyyq`** | author_id = `92326a2f-…` |
+| Both rows in shared backend `wuftdpnekscrsghqtssd` | not present | — |
 
-So the `author_context` query is firing, hitting the right `author_id`, and silently returning `null` because RLS hides it from `anon`. That's why `ctx` is empty and the title falls back to `"your book"`.
+Meanwhile `useAuth().user` comes from the **shared backend** (where the auth session lives). The previous "fix" pointed `useBookContext` queries at the shared backend, where neither row exists, so `author_profiles` returned null and the function exited at `if (!authorId) return` before ever touching `author_context`.
 
-### The fix
+### Fix (clean approach — edge function as primary)
 
-Switch the three table queries inside `fetchBookContext` to use the **shared-backend** client (the one that holds the user's session), the same one `useAuth` uses. The DB schema is identical between the two project clients here — `author_profiles`, `author_context`, and `books` live in the shared backend, which is the actual source of truth (this matches the rest of the app: `author_profiles`, `author_nodes`, profile loads etc. all call the shared backend successfully).
+The `get-author-book` edge function already runs in project-local with service role and dual-token reconciliation. The only thing missing is that it doesn't read `author_context.book_title`. We add that, then use the edge function as the primary (and effectively only) lookup from the hook.
 
-**File:** `src/hooks/useBookContext.ts`
+**1. `supabase/functions/get-author-book/index.ts`**
+After resolving `userId` → `authorIds` (the existing block), read `author_context` first:
 
-1. Replace the import:
-   - Remove: `import { supabase } from "@/integrations/supabase/client";`
-   - Add: `import { supabase } from "@/lib/shared-backend";`
+- `SELECT book_title FROM author_context WHERE author_id IN (idList) ORDER BY created_at DESC LIMIT 1`
+- If a non-empty `book_title` is returned, prefer it over `books.title`
+- Return shape extended with `bookTitle` (the resolved curated title) alongside the existing `book` payload, so the hook has both
+- Keep all existing `books` resolution logic intact (still needed for cover, genre, description, bookId)
 
-2. No other code changes needed inside `fetchBookContext`:
-   - The existing `author_profiles` → `author_context` → `books` → edge fallback chain is correct
-   - The user_id → author_profiles.id resolution is already in place (lines 46–52)
-   - The `author_id` filter on `author_context` is already correct (line 73)
-   - The console logs and `v3.2` cache-bypass settings stay as-is
+**2. `src/hooks/useBookContext.ts`**
+Strip the direct table queries. The hook becomes a thin wrapper around the edge function:
 
-3. Bump `HOOK_VERSION` to `v3.3-2026-04-20-shared-client` and update `queryKey` to `["book-context-v3.3", user?.id ?? "anon"]` so any cached `v3.2` empty-result entry is invalidated on first mount of the new bundle.
+- Remove `import { supabase } from "@/lib/shared-backend"`
+- Remove the `author_profiles` lookup block, the direct `author_context` query, and the direct `books` query
+- Keep `useAuth()` for `user.id` (used only for `enabled` + `queryKey`)
+- `queryFn` calls `get-author-book` via `getActiveToken()` + `fetchWithTimeout()` (already present as the fallback path; promote it to be the only path)
+- Map the response: `bookTitle` → primary, `book.title` → fallback, `"your book"` → final fallback
+- `hasContext` becomes `!!response.bookTitle` (curated ABBY title present)
+- Bump `HOOK_VERSION` to `v3.4-2026-04-20-edge-primary` and `queryKey` to `["book-context-v3.4", user?.id ?? "anon"]` to invalidate the cached empty `v3.3` results
 
-### Why this is the right fix (and not "fetch via edge function")
+**3. Memory update**
+Update `mem://architecture/book-ownership-lookup-standard.md` to make explicit that the edge function also resolves `author_context.book_title` (it already states "must route through `get-author-book`"; we add the curated-title responsibility).
 
-- The shared-backend client has Pauline's authenticated session, so RLS will resolve `auth.uid() = ef23c521-...`, match `author_profiles.user_id`, and return the `author_context` row legitimately.
-- This matches the pattern already used everywhere else in the signed-in UI (profile, nodes, subscription) — `useBookContext` was the outlier.
-- No RLS changes, no edge function changes, no schema changes.
+### Why this is correct and safe
+
+- The edge function runs with `SUPABASE_URL` = project-local, where both `author_profiles` and `author_context` actually live → query will succeed
+- Service role bypasses RLS → no client-session-vs-data-location mismatch is possible going forward
+- Dual-token reconciliation already handles the shared-backend session → project-local user mapping
+- Matches existing platform memory rule: "Book Ownership Lookup must route through `get-author-book`. Never query the `books` table directly from the browser"
+- Eliminates the entire class of "wrong client" bugs for this lookup
 
 ### Pass/fail verification
 
-After Publish → Update + hard refresh on `/node-builder/BA-10`:
+After Publish + hard refresh on `/node-builder/BA-10`:
 
-1. Console: `[useBookContext] queryFn START for user: ef23c521-...`
-2. Network: request to `wuftdpnekscrsghqtssd.supabase.co/rest/v1/author_profiles?user_id=eq.ef23c521-...` returns the row with `id=92326a2f-...`
-3. Network: request to `wuftdpnekscrsghqtssd.supabase.co/rest/v1/author_context?author_id=eq.92326a2f-...` returns `[{ book_title: "Be SUCKcessful" }]`
-4. Console: `[useBookContext] resolved title from author_context: Be SUCKcessful`
+1. Network: single call to `…/functions/v1/get-author-book`
+2. Edge function logs: `[get-author-book] author_context resolved: Be SUCKcessful`
+3. Response JSON: `{ bookTitle: "Be SUCKcessful", book: {…}, … }`
+4. Console: `[useBookContext] resolved title: Be SUCKcessful`
 5. ABBY intro on BA-10, BA-12, BP-06, BP-07 reads `based on "Be SUCKcessful"`
+6. No direct `author_context` or `author_profiles` requests from the browser
 
 ### Out of scope
-- Consolidating the two Supabase clients (tracked separately)
-- RLS, schema, or edge function changes
-- `useAuthorBook` or `useAuthReady`
+
+- Consolidating the two Supabase clients (separate architectural cleanup)
+- Changing `useAuthorBook`, `useAuthReady`, or other consumers
+- RLS, schema, or onboarding changes
+- Migrating data between the two projects
 
 ### What only the user can do
-- Click **Publish → Update**
-- Sign back in (currently on `/auth`)
-- Hard refresh and confirm the title and network trace
 
-<lov-actions>
-<lov-suggestion message="After publishing, verify the four builders (BA-10, BA-12, BP-06, BP-07) show 'Be SUCKcessful' and the network trace shows author_context against the shared backend.">Verify it works end-to-end</lov-suggestion>
-<lov-suggestion message="Audit every hook in src/hooks that imports from @/integrations/supabase/client and decide which should switch to @/lib/shared-backend, so we don't keep hitting this client-mismatch class of bug.">Audit all hooks for client mismatch</lov-suggestion>
-<lov-suggestion message="Add a single unified useSupabase() helper that returns the shared-backend client by default, and update lint rules to flag direct imports of @/integrations/supabase/client from feature code.">Unify Supabase client usage</lov-suggestion>
-</lov-actions>
+- Click **Publish → Update** (frontend bundle + edge function deploy)
+- Sign back in
+- Hard refresh and confirm the four builders show "Be SUCKcessful"
+
