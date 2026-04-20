@@ -19,6 +19,8 @@ import AuthorServicesSection from "./author-site/AuthorServicesSection";
 import AuthorEventsSection from "./author-site/AuthorEventsSection";
 import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
+import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
+import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
 export default function AuthorSite() {
@@ -28,6 +30,8 @@ export default function AuthorSite() {
   const [coachingServices, setCoachingServices] = useState<CoachingService[]>([]);
   const [relatedAuthors, setRelatedAuthors] = useState<RelatedAuthor[]>([]);
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
+  const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [whatsInsideHighlights, setWhatsInsideHighlights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
@@ -121,7 +125,7 @@ export default function AuthorSite() {
       if (!isOwner) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
-    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes] = await Promise.all([
+    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes, testimonialsRes, contextRes] = await Promise.all([
       booksQuery,
       booksByNameQuery ? booksByNameQuery : Promise.resolve({ data: [] as unknown[] }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
@@ -130,6 +134,8 @@ export default function AuthorSite() {
       supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("author_nodes").select("node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url").eq("author_id", profile.id).eq("status", "live"),
+      supabase.from("author_testimonials").select("id, name, role, quote, avatar_url").eq("author_id", profile.user_id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+      supabase.from("author_context").select("key_frameworks, unique_insights").eq("author_id", profile.id).maybeSingle(),
     ]);
 
     const booksPrimary = (booksRes.data || []) as Record<string, unknown>[];
@@ -157,6 +163,26 @@ export default function AuthorSite() {
     setCoachingServices(coaching);
     setBooksWithProducts(enriched);
     setLiveNodes((nodesRes.data || []) as unknown as LiveNode[]);
+    setTestimonials((testimonialsRes.data || []) as unknown as Testimonial[]);
+
+    // Build "What's inside" highlights from author_context (frameworks/insights) with fallback to book description bullets
+    const ctx = (contextRes as any)?.data;
+    let highlights: string[] = [];
+    if (ctx) {
+      const frameworks = Array.isArray(ctx.key_frameworks) ? ctx.key_frameworks : [];
+      const insights = Array.isArray(ctx.unique_insights) ? ctx.unique_insights : [];
+      const fromFrameworks = frameworks.map((f: any) => typeof f === "string" ? f : (f?.name || f?.title || f?.framework || "")).filter(Boolean);
+      const fromInsights = insights.map((i: any) => typeof i === "string" ? i : (i?.insight || i?.text || i?.title || "")).filter(Boolean);
+      highlights = [...fromFrameworks, ...fromInsights];
+    }
+    if (highlights.length === 0 && enriched[0]?.description) {
+      highlights = enriched[0].description
+        .split(/\n+|•|·|✓|\*|—|-{2,}/)
+        .map(s => s.trim())
+        .filter(s => s.length > 18 && s.length < 220)
+        .slice(0, 6);
+    }
+    setWhatsInsideHighlights(highlights.slice(0, 8));
 
     // Related Authors
     const authorGenres = profile.genres || [];
@@ -222,6 +248,8 @@ export default function AuthorSite() {
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
+      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts[0]} theme={theme} v={v} />
+      <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} />
       <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
       <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} />
       <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />

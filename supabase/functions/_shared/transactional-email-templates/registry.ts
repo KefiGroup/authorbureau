@@ -15,6 +15,7 @@ import { template as bookApproved } from './book-approved.tsx'
 import { template as profileCreated } from './profile-created.tsx'
 import { template as quizResult } from './quiz-result.tsx'
 import { template as senderEmailVerification } from './sender-email-verification.tsx'
+import { template as webinarEmail } from './webinar-email.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'profile-synced': profileSynced,
@@ -23,4 +24,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'profile-created': profileCreated,
   'quiz-result': quizResult,
   'sender-email-verification': senderEmailVerification,
+  'webinar-email': webinarEmail,
 }

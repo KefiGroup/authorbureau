@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import SiteThemePicker from "@/components/dashboard/SiteThemePicker";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import AbbyRecommendationCard from "@/components/dashboard/builders/shared/AbbyRecommendationCard";
+import TestimonialsManager from "./TestimonialsManager";
 
 /* ---------- Types ---------- */
 interface BookProduct {
@@ -429,6 +430,9 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
           {/* Theme Picker — shared component */}
           <SiteThemePicker onThemeChange={handleThemeChange} />
+
+          {/* Reader Testimonials Editor */}
+          <TestimonialsManager />
         </div>
       </div>
     </div>
