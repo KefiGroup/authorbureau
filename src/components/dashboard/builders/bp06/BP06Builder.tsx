@@ -58,12 +58,7 @@ export default function BP06Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      if (detectedBookTitle && detectedBookTitle !== "your book") {
-        setBookTitle(detectedBookTitle);
-        setHasContext(true);
-      } else if (!isBookLoading) {
-        setHasContext(false);
-      }
+      // detectedBookTitle/isBookLoading sync handled in separate effect below
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-06").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
@@ -72,6 +67,16 @@ export default function BP06Builder({ authorId }: Props) {
       }
     })();
   }, [authorId]);
+
+  // Propagate late-resolving title from useBookContext into local state
+  useEffect(() => {
+    if (detectedBookTitle && detectedBookTitle !== "your book") {
+      setBookTitle(detectedBookTitle);
+      setHasContext(true);
+    } else if (!isBookLoading) {
+      setHasContext(false);
+    }
+  }, [detectedBookTitle, isBookLoading]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
