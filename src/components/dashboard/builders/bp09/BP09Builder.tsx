@@ -201,6 +201,7 @@ export default function BP09Builder({ authorId }: Props) {
             </div>
             <p className="text-xs text-center text-muted-foreground">Your book sales page and payment link will be set up automatically.</p>
           </div>
+          </RequireStripeConnected>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-09" authorName={authorName} penNameSlug={authorSlug} /><BackToReviewLink onClick={() => setStep(2)} /></>}
