@@ -16,10 +16,12 @@ interface Props {
   testimonials: Testimonial[];
   theme: AuthorTheme;
   v: ThemeVars;
+  isOwner?: boolean;
 }
 
-export default function AuthorTestimonialsSection({ testimonials, theme, v }: Props) {
-  if (!testimonials || testimonials.length === 0) return null;
+export default function AuthorTestimonialsSection({ testimonials, theme, v, isOwner = false }: Props) {
+  const isEmpty = !testimonials || testimonials.length === 0;
+  if (isEmpty && !isOwner) return null;
 
   return (
     <section id="testimonials" className="py-14 md:py-20" style={{ background: v.secondaryBg }}>

@@ -34,6 +34,7 @@ export default function AuthorSite() {
   const [whatsInsideHighlights, setWhatsInsideHighlights] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
 
   const theme = useMemo(() => getThemeById(author?.site_theme || "classic-elegant"), [author?.site_theme]);
@@ -103,12 +104,13 @@ export default function AuthorSite() {
     const { data: { user: currentUser } } = await supabase.auth.getUser();
 
     let profile: AuthorData | null = null;
-    let isOwner = false;
+    let isOwnerLocal = false;
     if (currentUser) {
       const { data } = await supabase.from("author_profiles").select("*").eq("author_slug", authorSlug).eq("user_id", currentUser.id).maybeSingle();
       profile = data as unknown as AuthorData;
-      if (data) isOwner = true;
+      if (data) isOwnerLocal = true;
     }
+    setIsOwner(isOwnerLocal);
     if (!profile) {
       const { data } = await supabase.from("author_profiles_public" as any).select("*").eq("author_slug", authorSlug).in("directory_status", ["listed", "verified", "featured"]).maybeSingle();
       profile = data as unknown as AuthorData;
@@ -249,7 +251,7 @@ export default function AuthorSite() {
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
       <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts[0]} theme={theme} v={v} />
-      <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} />
+      <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} isOwner={isOwner} />
       <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
       <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} />
       <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
