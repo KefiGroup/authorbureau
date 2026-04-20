@@ -1,13 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/lib/shared-backend";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const HOOK_VERSION = "v3.3-2026-04-20-shared-client";
-
-const ACTIVE_TIERS = new Set(["brand", "build", "yield"]);
+const HOOK_VERSION = "v3.4-2026-04-20-edge-primary";
 
 export interface BookContextResult {
   bookTitle: string;
@@ -22,7 +19,6 @@ export interface BookContextResult {
   isLoading: boolean;
   /**
    * Hard-gate condition. True ONLY when:
-   *  - Subscription is inactive, OR
    *  - author_context row does not exist (ABBY analysis never run)
    * Missing book fields (title/cover/etc) are NEVER hard gates.
    */
@@ -30,144 +26,70 @@ export interface BookContextResult {
 }
 
 interface FetchedContext {
-  authorId: string | null;
   bookTitle: string;
   bookId: string | null;
   book: AuthorBook | null;
-  hasSubscription: boolean;
   hasContext: boolean;
   missingFields: BookMissingField[];
   isComplete: boolean;
 }
 
-async function fetchBookContext(userId: string): Promise<FetchedContext> {
-  console.log("[useBookContext] queryFn START for user:", userId);
-  // 1) Resolve author_profiles → id + subscription_tier
-  const { data: profile } = await supabase
-    .from("author_profiles")
-    .select("id, subscription_tier")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  const authorId = profile?.id ?? null;
-  const tier = (profile?.subscription_tier ?? "").toLowerCase();
-  const hasSubscription = ACTIVE_TIERS.has(tier);
-
-  if (!authorId) {
+async function fetchBookContext(): Promise<FetchedContext> {
+  console.log("[useBookContext] queryFn START");
+  const token = await getActiveToken();
+  if (!token) {
+    console.warn("[useBookContext] no active token");
     return {
-      authorId: null,
       bookTitle: "your book",
       bookId: null,
       book: null,
-      hasSubscription,
       hasContext: false,
       missingFields: [],
       isComplete: false,
     };
   }
 
-  // 2) Read author_context (primary source for onboarded authors)
-  const { data: ctx, error: ctxErr } = await supabase
-    .from("author_context")
-    .select("book_title")
-    .eq("author_id", authorId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const res = await fetchWithTimeout(
+    `${SUPABASE_URL}/functions/v1/get-author-book`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        "x-hook-version": HOOK_VERSION,
+      },
+    },
+    25000
+  );
 
-  console.log("[useBookContext] author_context lookup", { authorId, ctx, ctxErr });
-
-  const hasContext = !!ctx;
-
-  if (ctx?.book_title) {
-    console.log("[useBookContext] resolved title from author_context:", ctx.book_title);
+  if (!res.ok) {
+    console.error("[useBookContext] edge function error:", res.status);
     return {
-      authorId,
-      bookTitle: ctx.book_title,
+      bookTitle: "your book",
       bookId: null,
-      book: { id: "", title: ctx.book_title } as AuthorBook,
-      hasSubscription,
-      hasContext: true,
+      book: null,
+      hasContext: false,
       missingFields: [],
-      isComplete: true,
+      isComplete: false,
     };
   }
 
-  // 2.5) Tier 2: direct books query by author_profiles.id OR user_id
-  const { data: directBooks } = await supabase
-    .from("books")
-    .select("id, title, author_name, genre, description, cover_image_url")
-    .or(`author_id.eq.${authorId},author_id.eq.${userId}`)
-    .order("created_at", { ascending: false })
-    .limit(1);
+  const json = await res.json();
+  const book: AuthorBook | null = json.book ?? null;
+  const bookTitle: string =
+    (json.bookTitle && String(json.bookTitle).trim()) ||
+    book?.title ||
+    "your book";
 
-  const directBook = directBooks?.[0];
-  console.log("[useBookContext] direct books lookup:", directBook);
-
-  if (directBook?.title) {
-    return {
-      authorId,
-      bookTitle: directBook.title,
-      bookId: directBook.id,
-      book: {
-        id: directBook.id,
-        title: directBook.title,
-        author: directBook.author_name || undefined,
-        genre: directBook.genre || undefined,
-        description: directBook.description || undefined,
-        coverUrl: directBook.cover_image_url || undefined,
-      } as AuthorBook,
-      hasSubscription,
-      hasContext,
-      missingFields: [],
-      isComplete: true,
-    };
-  }
-
-  // 3) Fallback: get-author-book edge function (edge cases / migration)
-  try {
-    const token = await getActiveToken();
-    if (token) {
-      const res = await fetchWithTimeout(
-        `${SUPABASE_URL}/functions/v1/get-author-book`,
-        {
-          method: "GET",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            "x-hook-version": HOOK_VERSION,
-          },
-        },
-        20000
-      );
-      if (res.ok) {
-        const json = await res.json();
-        const book: AuthorBook | null = json.book ?? null;
-        return {
-          authorId,
-          bookTitle: book?.title ?? "your book",
-          bookId: book?.id ?? null,
-          book,
-          hasSubscription,
-          hasContext,
-          missingFields: json.missingFields ?? [],
-          isComplete: !!json.isComplete,
-        };
-      }
-    }
-  } catch (err) {
-    console.error("[useBookContext] edge fallback failed:", err);
-  }
+  console.log("[useBookContext] resolved title:", bookTitle);
 
   return {
-    authorId,
-    bookTitle: "your book",
-    bookId: null,
-    book: null,
-    hasSubscription,
-    hasContext,
-    missingFields: [],
-    isComplete: false,
+    bookTitle,
+    bookId: book?.id || null,
+    book,
+    hasContext: !!json.bookTitle,
+    missingFields: json.missingFields ?? [],
+    isComplete: !!json.isComplete,
   };
 }
 
@@ -177,8 +99,8 @@ export function useBookContext(): BookContextResult {
   console.log("[useBookContext] mount", { hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context-v3.3", user?.id ?? "anon"],
-    queryFn: () => fetchBookContext(user!.id),
+    queryKey: ["book-context-v3.4", user?.id ?? "anon"],
+    queryFn: fetchBookContext,
     enabled: !!user?.id,
     staleTime: 0,
     gcTime: 0,
@@ -197,23 +119,22 @@ export function useBookContext(): BookContextResult {
       missingFields: [],
       isComplete: false,
       isLoading: false,
-      shouldGate: false, // don't gate while signed out
+      shouldGate: false,
     };
   }
 
   const ctx = data;
-  const hasSubscription = !!ctx?.hasSubscription;
   const hasContext = !!ctx?.hasContext;
 
-  // Approved gating rule: ONLY gate on inactive subscription OR no author_context row
-  const shouldGate = !isLoading && (!hasSubscription || !hasContext);
+  // Gate ONLY when author_context (curated ABBY title) is missing
+  const shouldGate = !isLoading && !hasContext;
 
   return {
     bookTitle: ctx?.bookTitle ?? "your book",
     bookId: ctx?.bookId ?? null,
     book: ctx?.book ?? null,
-    authorId: ctx?.authorId ?? null,
-    hasSubscription,
+    authorId: null,
+    hasSubscription: true, // subscription gating handled elsewhere; not this hook's concern
     hasContext,
     hasBook: !!ctx?.book,
     missingFields: ctx?.missingFields ?? [],

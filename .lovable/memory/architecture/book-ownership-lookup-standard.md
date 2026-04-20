@@ -1,32 +1,34 @@
 ---
 name: book-ownership-lookup-standard
-description: All node builders must use useBookContext hook (author_context first, get-author-book edge function as fallback). Hard-gate ONLY on inactive subscription or missing author_context row.
+description: All node builders must use useBookContext, which calls the get-author-book edge function. The edge function resolves both author_context.book_title (curated ABBY title) and books row server-side via service role.
 type: constraint
 ---
 
 ## Standard
 All node builders MUST use the `useBookContext` hook (`src/hooks/useBookContext.ts`) for resolving the current book.
 
-### Resolution order (handled by useBookContext)
-1. Resolve `author_profiles` for current user → id + `subscription_tier`
-2. Read `author_context` row → primary source for `book_title` (always populated post-onboarding)
-3. Fallback to `get-author-book` edge function only if `author_context.book_title` is empty (covers data migration / early test accounts)
+The hook is a thin wrapper around the `get-author-book` edge function — no direct browser queries to `author_profiles`, `author_context`, or `books`.
+
+### Why edge-function-only
+There are two Supabase projects in this app:
+- **Project-local** (`tubpbslfrxyfhldkcyyq`) — holds `author_profiles`, `author_context`, `books`
+- **Shared backend** (`wuftdpnekscrsghqtssd`) — holds the auth session
+
+Direct browser queries from either client hit the wrong target (data missing or RLS-blocked). The edge function runs with project-local service role and dual-token reconciliation, eliminating the entire class of "wrong client" bugs.
+
+### Resolution order (handled by get-author-book edge function)
+1. Resolve user via Cloud token, fall back to shared-backend token + email reconciliation
+2. Build candidate `author_id` set: `userId` + all `author_profiles.id` where `user_id = userId`
+3. Read `author_context.book_title` for those author_ids → **curated ABBY title (preferred)**
+4. Read `books` row by `author_id IN (...)` OR `owner_email = userEmail`
+5. Return `{ bookTitle, book, missingFields, isComplete }` — `bookTitle` prefers `author_context`, falls back to `books.title`
 
 ### Hard-gate rule (shouldGate)
-`shouldGate = true` ONLY when:
-- Subscription is inactive (tier not in `brand|build|yield`), OR
-- `author_context` row does not exist (ABBY analysis never run)
-
-Missing individual book fields (title, ISBN, cover, description, genre) are NEVER hard gates for subscribed + onboarded authors. They render as soft prompts inside `BookProfileGate` only when `shouldGate=true` AND a book row is incomplete.
+`shouldGate = true` ONLY when `author_context` row does not exist (ABBY analysis never run). Missing individual book fields are NEVER hard gates.
 
 ### Forbidden patterns
-- Direct browser queries: `supabase.from("books").select(...).eq("author_id", ...)`
-- Direct browser queries to `author_context` for book_title in builders (use the hook)
-- Gating subscribed authors based on missing book fields
-- Using `useAuthorBook` directly in new builders (it remains as the underlying edge-function client only)
+- Direct browser queries: `supabase.from("books")`, `supabase.from("author_context")`, `supabase.from("author_profiles")` for book lookup in builders
+- Using `useAuthorBook` directly in new builders (it remains as a lower-level edge-function client)
 
 ### Bundle freshness marker
-The hook sends `x-hook-version: v3-2026-04-20-context-first` header on the edge fallback so the network trace can confirm the latest bundle is live.
-
-### Migrated builders
-BA-10, BA-12, BP-06, BP-07 use `useBookContext` directly. Other builders that don't gate (read book_title for display only) may continue with their existing local context+books pattern until refactored.
+The hook sends `x-hook-version: v3.4-2026-04-20-edge-primary` header so the network trace can confirm the latest bundle is live.

@@ -112,6 +112,25 @@ Deno.serve(async (req) => {
     const idList = Array.from(authorIds);
     console.log("[get-author-book] candidate author_ids:", idList, "email:", userEmail);
 
+    // Resolve curated ABBY title from author_context (preferred over books.title)
+    let curatedTitle: string | null = null;
+    if (idList.length) {
+      const { data: ctxRows, error: ctxErr } = await db
+        .from("author_context")
+        .select("book_title, author_id, created_at")
+        .in("author_id", idList)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (ctxErr) {
+        console.error("[get-author-book] author_context lookup error:", ctxErr.message);
+      }
+      const ctxTitle = ctxRows?.[0]?.book_title?.trim();
+      if (ctxTitle) {
+        curatedTitle = ctxTitle;
+        console.log("[get-author-book] author_context resolved:", curatedTitle);
+      }
+    }
+
     // Query: author_id IN (idList) OR owner_email = userEmail
     let query = db
       .from("books")
@@ -141,7 +160,12 @@ Deno.serve(async (req) => {
 
     if (!row) {
       return new Response(
-        JSON.stringify({ book: null, missingFields: [], isComplete: false }),
+        JSON.stringify({
+          bookTitle: curatedTitle,
+          book: curatedTitle ? { id: "", title: curatedTitle } : null,
+          missingFields: [],
+          isComplete: !!curatedTitle,
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -158,9 +182,10 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
+        bookTitle: curatedTitle ?? row.title ?? null,
         book: {
           id: row.id,
-          title: row.title,
+          title: curatedTitle ?? row.title,
           author: row.author_name || undefined,
           genre: row.genre || undefined,
           description: row.description || undefined,
