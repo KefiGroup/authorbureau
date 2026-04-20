@@ -1,11 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const HOOK_VERSION = "v3.2-2026-04-20-force-refetch";
+const HOOK_VERSION = "v3.3-2026-04-20-shared-client";
 
 const ACTIVE_TIERS = new Set(["brand", "build", "yield"]);
 
@@ -177,7 +177,7 @@ export function useBookContext(): BookContextResult {
   console.log("[useBookContext] mount", { hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context-v3.2", user?.id ?? "anon"],
+    queryKey: ["book-context-v3.3", user?.id ?? "anon"],
     queryFn: () => fetchBookContext(user!.id),
     enabled: !!user?.id,
     staleTime: 0,
