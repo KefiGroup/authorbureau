@@ -805,10 +805,10 @@ function ReviewStep({
           </div>
           <div className="space-y-1.5">
             <Button variant="outline" className="w-full" onClick={handleDownloadZip} disabled={downloading}>
-              <Download className="h-4 w-4 mr-2" />{downloading ? "Downloading..." : "Download Marketing Kit"}
+              <Download className="h-4 w-4 mr-2" />{downloading ? "Building ZIP…" : "Download Full Kit (.zip)"}
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              ZIP with all 20 posts, captions, hashtags, posts.csv & outreach templates. Use it offline or hand off to your VA.
+              ZIP with all 80 branded graphics (4 platforms × 20 posts), captions.csv & a VA-friendly README.
             </p>
           </div>
           <div className="space-y-1.5">
