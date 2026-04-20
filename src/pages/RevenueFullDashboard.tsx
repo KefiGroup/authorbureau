@@ -408,6 +408,47 @@ export default function RevenueFullDashboard() {
           </CardContent>
         </Card>
 
+        {/* SECTION 3.5: Hot Leads */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <h3 className="text-sm font-semibold">Hot Leads Today</h3>
+              <Badge variant="secondary" className="text-xs">{hotLeads.length}</Badge>
+            </div>
+            {hotLeads.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground text-sm mb-3">No hot leads today — keep nurturing your list</p>
+                <Button variant="outline" size="sm" onClick={() => navigate("/dashboard?section=author-crm")} className="gap-2">
+                  <Users className="h-4 w-4" /> View CRM
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {hotLeads.map((lead) => {
+                  const isRed = lead.abby_score >= 80;
+                  return (
+                    <div key={lead.id} className="flex items-center justify-between gap-2 p-3 rounded-lg border border-border">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{lead.full_name}</span>
+                          <Badge className={isRed ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"}>
+                            {lead.abby_score}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{lead.email}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard?section=author-crm")} className="h-7 text-xs gap-1">
+                        <Eye className="h-3 w-3" /> View
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* SECTION 4: Node Performance Table */}
         <Card>
           <CardContent className="pt-6">
