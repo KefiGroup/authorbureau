@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthorBook } from "@/hooks/useAuthorBook";
+import { useBookContext } from "@/hooks/useBookContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -48,7 +48,8 @@ export default function BP06Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
+  const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
     if (!authorId) return;
@@ -56,24 +57,11 @@ export default function BP06Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
+      if (detectedBookTitle && detectedBookTitle !== "your book") {
+        setBookTitle(detectedBookTitle);
         setHasContext(true);
-      } else {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", profile?.user_id || authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
-        }
+      } else if (!isBookLoading) {
+        setHasContext(false);
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-06").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
