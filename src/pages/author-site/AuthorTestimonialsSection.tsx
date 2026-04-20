@@ -38,6 +38,20 @@ export default function AuthorTestimonialsSection({ testimonials, theme, v, isOw
           What readers are saying
         </motion.h2>
 
+        {isEmpty ? (
+          <div
+            className="rounded-2xl p-8 text-center max-w-2xl mx-auto"
+            style={{ background: v.cardBg, border: `1px dashed ${v.cardBorder}` }}
+          >
+            <Quote className="h-8 w-8 mx-auto mb-3 opacity-60" style={{ color: v.accent }} />
+            <p className="text-base font-semibold mb-1" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+              No testimonials yet
+            </p>
+            <p className="text-sm" style={{ color: v.mutedText, fontFamily: theme.bodyFont }}>
+              Add your first testimonial from the dashboard to build trust on your author page. (Only you can see this placeholder.)
+            </p>
+          </div>
+        ) : (
         <div className="grid gap-6 md:grid-cols-3">
           {testimonials.slice(0, 6).map((t, i) => (
             <motion.div
