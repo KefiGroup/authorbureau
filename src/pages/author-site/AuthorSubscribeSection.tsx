@@ -29,6 +29,8 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
               sourceDetail={authorSlug}
               headline={`Stay Connected with ${displayName}`}
               description={`Get exclusive updates, early access to new products, and insights from ${displayName}.`}
+              showMessage={false}
+              redirectTo={`/${authorSlug}/thank-you`}
               accent={v.accent}
               accentText={v.accentText}
               primaryText={v.headingText}

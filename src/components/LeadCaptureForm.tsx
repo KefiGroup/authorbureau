@@ -1,4 +1,5 @@
 import { useState, type CSSProperties } from "react";
+import { useNavigate } from "react-router-dom";
 import { Loader2, Mail, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -45,6 +46,8 @@ export interface LeadCaptureFormProps {
   layout?: "stacked" | "inline";
   /** className for outer container */
   className?: string;
+  /** Optional path to navigate to after successful submit (replaces inline success state) */
+  redirectTo?: string;
 }
 
 export default function LeadCaptureForm({
@@ -63,7 +66,9 @@ export default function LeadCaptureForm({
   cardBorder,
   layout = "stacked",
   className = "",
+  redirectTo,
 }: LeadCaptureFormProps) {
+  const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
@@ -133,6 +138,9 @@ export default function LeadCaptureForm({
       setEmail("");
       setName("");
       setMessage("");
+      if (redirectTo) {
+        navigate(redirectTo);
+      }
     } catch (err) {
       console.error("[LeadCaptureForm] submit failed:", err);
       toast.error("Could not subscribe. Please try again.");

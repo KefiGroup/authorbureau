@@ -226,7 +226,7 @@ Deno.serve(async (req) => {
         // 2) Query generated_assets for builder_draft_* entries (covers all 28 nodes)
         const { data: assetDrafts } = await cloudAdmin
           .from("generated_assets")
-          .select("id, book_id, asset_type, content, created_at, updated_at")
+          .select("id, book_id, asset_type, content, created_at, updated_at, author_id")
           .in("author_id", allUserIds)
           .like("asset_type", "builder_draft_%");
 
@@ -251,6 +251,7 @@ Deno.serve(async (req) => {
             id: asset.id,
             title: title || `${draftNodeId} Draft`,
             book_id: asset.book_id,
+            author_id: asset.author_id,
             created_at: asset.created_at,
             status: editedCount >= 3 ? "ready_for_review" : "draft",
             description: "",
@@ -326,10 +327,29 @@ Deno.serve(async (req) => {
           for (const b of books || []) titleMap[b.id] = b.title;
         }
 
-        const enriched = allDrafts.map(d => ({
-          ...d,
-          bookTitle: titleMap[d.book_id] || (d.table === "author_nodes" ? "" : "Unknown Book"),
-        }));
+        // Per-author primary book fallback (first book per author by created_at)
+        const authorIds = [...new Set(allDrafts.map(d => d.author_id).filter(Boolean))];
+        const authorPrimaryBook: Record<string, { id: string; title: string }> = {};
+        if (authorIds.length > 0) {
+          const { data: authorBooks } = await cloudAdmin
+            .from("books")
+            .select("id, title, author_id, created_at")
+            .in("author_id", authorIds)
+            .order("created_at", { ascending: true });
+          for (const b of authorBooks || []) {
+            if (!authorPrimaryBook[b.author_id]) {
+              authorPrimaryBook[b.author_id] = { id: b.id, title: b.title };
+            }
+          }
+        }
+
+        const enriched = allDrafts.map(d => {
+          let bookTitle = titleMap[d.book_id];
+          if (!bookTitle && d.author_id && authorPrimaryBook[d.author_id]) {
+            bookTitle = authorPrimaryBook[d.author_id].title;
+          }
+          return { ...d, bookTitle: bookTitle || "" };
+        });
 
         console.log("[builder-draft-state] 📋 list-drafts result:", JSON.stringify({
           allUserIds,
