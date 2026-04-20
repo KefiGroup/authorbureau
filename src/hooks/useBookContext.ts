@@ -179,13 +179,13 @@ export function useBookContext(): BookContextResult {
   const { data, isLoading } = useQuery({
     queryKey: ["book-context-v3.2", user?.id ?? "anon"],
     queryFn: () => fetchBookContext(user!.id),
-    enabled: isReady && !!user,
+    enabled: !!user?.id,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
   });
 
-  if (!isReady || !user) {
+  if (!user) {
     return {
       bookTitle: "your book",
       bookId: null,
@@ -196,8 +196,8 @@ export function useBookContext(): BookContextResult {
       hasBook: false,
       missingFields: [],
       isComplete: false,
-      isLoading: !isReady,
-      shouldGate: false, // don't gate while auth resolving
+      isLoading: false,
+      shouldGate: false, // don't gate while signed out
     };
   }
 
