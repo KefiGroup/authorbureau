@@ -1,74 +1,97 @@
 
 
-## Plan: Make `get-author-book` the Primary Source, Read `author_context` Server-Side
+## Plan: Diagnose and Fix the Stale `shouldGate` State
 
-### Root cause confirmation (verified against the live DB)
+### Verified gate wiring (all 4 builders + BookProfileGate)
 
-The user's diagnosis is correct. I queried both projects directly:
+Confirmed via code inspection — no builder changes needed:
 
-| Row | Project | author_id |
+| File | Gate condition | Passes `shouldGate` to `BookProfileGate`? |
 |---|---|---|
-| `author_profiles` for Pauline (`user_id = ef23c521-…`) | **project-local `tubpbslfrxyfhldkcyyq`** | id = `92326a2f-…` |
-| `author_context` row (`book_title = "Be SUCKcessful"`) | **project-local `tubpbslfrxyfhldkcyyq`** | author_id = `92326a2f-…` |
-| Both rows in shared backend `wuftdpnekscrsghqtssd` | not present | — |
+| `BA10Builder.tsx` | `shouldGate && !overrideGate` ✅ | Yes ✅ |
+| `BA12Builder.tsx` (line 95) | `shouldGate && !overrideGate` ✅ | Yes (line 99) ✅ |
+| `BP06Builder.tsx` | `shouldGate && !overrideGate` ✅ | Yes ✅ |
+| `BP07Builder.tsx` (line 119) | `shouldGate && !overrideGate` ✅ | Yes (line 123) ✅ |
 
-Meanwhile `useAuth().user` comes from the **shared backend** (where the auth session lives). The previous "fix" pointed `useBookContext` queries at the shared backend, where neither row exists, so `author_profiles` returned null and the function exited at `if (!authorId) return` before ever touching `author_context`.
+`BookProfileGate.tsx` line 41: `if (shouldGate === false) return null;` — returns null based on `shouldGate`, not `hasBook`. ✅
 
-### Fix (clean approach — edge function as primary)
+### Where the bug must be
 
-The `get-author-book` edge function already runs in project-local with service role and dual-token reconciliation. The only thing missing is that it doesn't read `author_context.book_title`. We add that, then use the edge function as the primary (and effectively only) lookup from the hook.
+The hook flow is:
+1. `fetchBookContext()` calls the edge function, reads `json.bookTitle`, returns `{ ..., hasContext: !!json.bookTitle }`.
+2. `useBookContext()` computes `shouldGate = !isLoading && !hasContext`.
+3. Each builder renders the gate when `shouldGate && !overrideGate`.
 
-**1. `supabase/functions/get-author-book/index.ts`**
-After resolving `userId` → `authorIds` (the existing block), read `author_context` first:
+Edge function returns `bookTitle: "Be SUCKcessful"` correctly. So one of two things is happening:
 
-- `SELECT book_title FROM author_context WHERE author_id IN (idList) ORDER BY created_at DESC LIMIT 1`
-- If a non-empty `book_title` is returned, prefer it over `books.title`
-- Return shape extended with `bookTitle` (the resolved curated title) alongside the existing `book` payload, so the hook has both
-- Keep all existing `books` resolution logic intact (still needed for cover, genre, description, bookId)
+**A.** Browser is serving a stale React Query result from before the v3.4 key bump.
+**B.** Hook's response parsing is dropping `bookTitle` at runtime.
 
-**2. `src/hooks/useBookContext.ts`**
-Strip the direct table queries. The hook becomes a thin wrapper around the edge function:
+### Fix
 
-- Remove `import { supabase } from "@/lib/shared-backend"`
-- Remove the `author_profiles` lookup block, the direct `author_context` query, and the direct `books` query
-- Keep `useAuth()` for `user.id` (used only for `enabled` + `queryKey`)
-- `queryFn` calls `get-author-book` via `getActiveToken()` + `fetchWithTimeout()` (already present as the fallback path; promote it to be the only path)
-- Map the response: `bookTitle` → primary, `book.title` → fallback, `"your book"` → final fallback
-- `hasContext` becomes `!!response.bookTitle` (curated ABBY title present)
-- Bump `HOOK_VERSION` to `v3.4-2026-04-20-edge-primary` and `queryKey` to `["book-context-v3.4", user?.id ?? "anon"]` to invalidate the cached empty `v3.3` results
+**File:** `src/hooks/useBookContext.ts`
 
-**3. Memory update**
-Update `mem://architecture/book-ownership-lookup-standard.md` to make explicit that the edge function also resolves `author_context.book_title` (it already states "must route through `get-author-book`"; we add the curated-title responsibility).
+1. Add render-time log right after `useQuery`:
+   ```ts
+   console.log("[useBookContext] render", {
+     userId: user?.id, isLoading, data,
+     hasContext: !!data?.hasContext,
+     shouldGate: !isLoading && !data?.hasContext,
+   });
+   ```
 
-### Why this is correct and safe
+2. Inside `fetchBookContext`, log raw edge response:
+   ```ts
+   const json = await res.json();
+   console.log("[useBookContext] edge response:", json);
+   ```
 
-- The edge function runs with `SUPABASE_URL` = project-local, where both `author_profiles` and `author_context` actually live → query will succeed
-- Service role bypasses RLS → no client-session-vs-data-location mismatch is possible going forward
-- Dual-token reconciliation already handles the shared-backend session → project-local user mapping
-- Matches existing platform memory rule: "Book Ownership Lookup must route through `get-author-book`. Never query the `books` table directly from the browser"
-- Eliminates the entire class of "wrong client" bugs for this lookup
+3. Make `hasContext` defensive — fall back to `book.title`:
+   ```ts
+   const resolvedTitle =
+     (json.bookTitle && String(json.bookTitle).trim()) ||
+     book?.title || null;
+   return {
+     bookTitle: resolvedTitle ?? "your book",
+     bookId: book?.id || null,
+     book,
+     hasContext: !!resolvedTitle,   // any usable title clears the gate
+     missingFields: json.missingFields ?? [],
+     isComplete: !!json.isComplete,
+   };
+   ```
+
+4. Bump `HOOK_VERSION` to `v3.5-2026-04-20-gate-diagnostic` and `queryKey` to `["book-context-v3.5", user?.id ?? "anon"]` — discards any persisted v3.4 empty cache on first render of new bundle.
+
+### Why this resolves both possibilities
+
+- New query key invalidates stale cached results from earlier versions (covers A).
+- Defensive `hasContext` lifts the gate even if `bookTitle` is missing but `book.title` is present (covers B).
+- Diagnostic logs give a definitive read of what the hook receives, so any remaining issue can be pinpointed.
+
+### No changes to builders or BookProfileGate
+
+Verified all 4 builders gate on `shouldGate` and pass it to `BookProfileGate`, which returns null when `shouldGate === false`. No edits needed there.
 
 ### Pass/fail verification
 
 After Publish + hard refresh on `/node-builder/BA-10`:
 
-1. Network: single call to `…/functions/v1/get-author-book`
-2. Edge function logs: `[get-author-book] author_context resolved: Be SUCKcessful`
-3. Response JSON: `{ bookTitle: "Be SUCKcessful", book: {…}, … }`
-4. Console: `[useBookContext] resolved title: Be SUCKcessful`
-5. ABBY intro on BA-10, BA-12, BP-06, BP-07 reads `based on "Be SUCKcessful"`
-6. No direct `author_context` or `author_profiles` requests from the browser
+1. Console: `[useBookContext] edge response: { bookTitle: "Be SUCKcessful", book: {…} }`
+2. Console: `[useBookContext] render { …, hasContext: true, shouldGate: false }`
+3. Gate is gone; intro reads `based on "Be SUCKcessful"`
+4. Same on BA-12, BP-06, BP-07
+
+If logs show `data: undefined` after settle → React Query not refetching; add `queryClient.clear()` on app boot.
+If logs show `hasContext: true` but gate still renders → stale closure in one builder; patch that builder.
 
 ### Out of scope
-
-- Consolidating the two Supabase clients (separate architectural cleanup)
-- Changing `useAuthorBook`, `useAuthReady`, or other consumers
-- RLS, schema, or onboarding changes
-- Migrating data between the two projects
+- Edge function changes (returns correct payload)
+- RLS, schema, onboarding changes
+- Other hooks or builders
 
 ### What only the user can do
-
-- Click **Publish → Update** (frontend bundle + edge function deploy)
-- Sign back in
-- Hard refresh and confirm the four builders show "Be SUCKcessful"
+- Click **Publish → Update**
+- Hard refresh (`Cmd/Ctrl+Shift+R`)
+- Open BA-10 and share new console output if gate still shows
 
