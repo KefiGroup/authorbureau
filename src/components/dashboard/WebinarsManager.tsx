@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
-import { Video, Loader2, Edit3, Eye, Save, X, CheckCircle2 } from "lucide-react";
+import { Video, Loader2, Edit3, Eye, Save, X, CheckCircle2, Users, ExternalLink, Copy } from "lucide-react";
 import { toast } from "sonner";
 import BookBuilderContextBar from "./BookBuilderContextBar";
 
@@ -24,6 +24,19 @@ interface Webinar {
   scheduled_at: string | null;
   book_id: string;
   created_at: string;
+  slug: string | null;
+  room_url: string | null;
+}
+
+interface Registration {
+  id: string;
+  email: string;
+  name: string | null;
+  registered_at: string;
+}
+
+function slugify(s: string) {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60);
 }
 
 export default function WebinarsManager({ onNavigate }: { onNavigate?: (section: string) => void }) {
@@ -37,7 +50,13 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   const [editTitle, setEditTitle] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editPrice, setEditPrice] = useState("");
+  const [editScheduledAt, setEditScheduledAt] = useState("");
+  const [editDuration, setEditDuration] = useState("");
+  const [editRoomUrl, setEditRoomUrl] = useState("");
+  const [editSlug, setEditSlug] = useState("");
   const [saving, setSaving] = useState(false);
+  const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [authorSlug, setAuthorSlug] = useState<string>("");
 
   const fetchWebinars = useCallback(async () => {
     setLoading(true);
@@ -46,9 +65,7 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
       .select("*")
       .eq("author_id", user!.id)
       .order("created_at", { ascending: false });
-    if (bookFilterId) {
-      query = query.eq("book_id", bookFilterId);
-    }
+    if (bookFilterId) query = query.eq("book_id", bookFilterId);
     const { data, error } = await query;
     if (!error && data) setWebinars(data as any);
     setLoading(false);
@@ -57,27 +74,66 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   useEffect(() => {
     if (!user) return;
     fetchWebinars();
+    supabase.from("author_profiles").select("author_slug").eq("user_id", user.id).maybeSingle()
+      .then(({ data }) => setAuthorSlug((data as any)?.author_slug || ""));
   }, [user, bookFilterId, fetchWebinars]);
 
   const selected = webinars.find(w => w.id === selectedId);
 
+  // Load registrations when a webinar is selected
+  useEffect(() => {
+    if (!selectedId) { setRegistrations([]); return; }
+    supabase.from("webinar_registrations" as any)
+      .select("id, email, name, registered_at")
+      .eq("webinar_id", selectedId)
+      .order("registered_at", { ascending: false })
+      .then(({ data }) => setRegistrations((data as any) || []));
+  }, [selectedId]);
+
+  const beginEdit = (w: Webinar) => {
+    setEditTitle(w.title);
+    setEditDescription(w.description || "");
+    setEditPrice(String(w.price || 0));
+    setEditScheduledAt(w.scheduled_at ? new Date(w.scheduled_at).toISOString().slice(0, 16) : "");
+    setEditDuration(String(w.duration_minutes || 60));
+    setEditRoomUrl(w.room_url || "");
+    setEditSlug(w.slug || slugify(w.title));
+    setEditing(true);
+  };
+
   const handleSave = async () => {
     if (!selected) return;
     setSaving(true);
+    const slug = editSlug ? slugify(editSlug) : slugify(editTitle);
     const { error } = await supabase
       .from("webinars" as any)
-      .update({ title: editTitle, description: editDescription, price: parseFloat(editPrice) || 0, is_free: (parseFloat(editPrice) || 0) === 0 } as any)
+      .update({
+        title: editTitle,
+        description: editDescription,
+        price: parseFloat(editPrice) || 0,
+        is_free: (parseFloat(editPrice) || 0) === 0,
+        scheduled_at: editScheduledAt ? new Date(editScheduledAt).toISOString() : null,
+        duration_minutes: parseInt(editDuration) || 60,
+        room_url: editRoomUrl || null,
+        slug,
+      } as any)
       .eq("id", selected.id);
-    if (error) toast.error("Failed to save");
+    if (error) toast.error("Failed to save: " + error.message);
     else { toast.success("Webinar updated"); setEditing(false); fetchWebinars(); }
     setSaving(false);
   };
 
-  const handlePublish = async (id: string) => {
+  const handlePublish = async (id: string, w: Webinar) => {
+    if (!w.scheduled_at || !w.room_url || !w.slug) {
+      toast.error("Set date, room URL, and slug before publishing");
+      return;
+    }
     const { error } = await supabase.from("webinars" as any).update({ status: "published" } as any).eq("id", id);
     if (error) toast.error("Failed to publish");
     else { toast.success("Webinar published!"); fetchWebinars(); }
   };
+
+  const publicUrl = selected?.slug && authorSlug ? `${window.location.origin}/${authorSlug}/webinar/${selected.slug}` : "";
 
   if (loading) {
     return <div className="flex items-center justify-center py-16 text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" /> Loading webinars…</div>;
@@ -107,11 +163,11 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
           <div className="flex gap-2">
             {!editing && (
               <>
-                <Button variant="outline" size="sm" onClick={() => { setEditTitle(selected.title); setEditDescription(selected.description || ""); setEditPrice(String(selected.price || 0)); setEditing(true); }}>
+                <Button variant="outline" size="sm" onClick={() => beginEdit(selected)}>
                   <Edit3 className="h-3.5 w-3.5 mr-1.5" /> Edit
                 </Button>
                 {selected.status === "draft" && (
-                  <Button size="sm" onClick={() => handlePublish(selected.id)}>
+                  <Button size="sm" onClick={() => handlePublish(selected.id, selected)}>
                     <CheckCircle2 className="h-3.5 w-3.5 mr-1.5" /> Publish
                   </Button>
                 )}
@@ -119,10 +175,30 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
             )}
           </div>
         </div>
+
         {editing ? (
           <Card><CardContent className="p-6 space-y-4">
             <div><label className="text-sm font-medium mb-1 block">Title</label><Input value={editTitle} onChange={e => setEditTitle(e.target.value)} /></div>
             <div><label className="text-sm font-medium mb-1 block">Description</label><Textarea value={editDescription} onChange={e => setEditDescription(e.target.value)} rows={3} /></div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium mb-1 block">Date & Time</label>
+                <Input type="datetime-local" value={editScheduledAt} onChange={e => setEditScheduledAt(e.target.value)} />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-1 block">Duration (min)</label>
+                <Input type="number" value={editDuration} onChange={e => setEditDuration(e.target.value)} />
+              </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Room URL (Daily.co, Zoom, etc.)</label>
+              <Input placeholder="https://example.daily.co/your-room" value={editRoomUrl} onChange={e => setEditRoomUrl(e.target.value)} />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-1 block">Public URL slug</label>
+              <Input placeholder="my-webinar" value={editSlug} onChange={e => setEditSlug(e.target.value)} />
+              <p className="text-xs text-muted-foreground mt-1">Public page: /{authorSlug || "your-slug"}/webinar/{slugify(editSlug || editTitle)}</p>
+            </div>
             <div><label className="text-sm font-medium mb-1 block">Price (USD, 0 = free)</label><Input type="number" value={editPrice} onChange={e => setEditPrice(e.target.value)} /></div>
             <div className="flex gap-2">
               <Button onClick={handleSave} disabled={saving}>{saving ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Save className="h-4 w-4 mr-1.5" />} Save</Button>
@@ -130,19 +206,60 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
             </div>
           </CardContent></Card>
         ) : (
-          <Card><CardContent className="p-0">
-            <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
-              <div>
-                <h3 className="font-heading font-semibold text-lg">{selected.title}</h3>
-                {selected.description && <p className="text-sm text-muted-foreground mt-1">{selected.description}</p>}
-                <p className="text-xs text-muted-foreground mt-1">{selected.duration_minutes} min • {selected.is_free ? "Free" : `$${selected.price}`}</p>
+          <>
+            <Card><CardContent className="p-0">
+              <div className="px-6 py-4 border-b border-border bg-muted/30 flex items-center justify-between">
+                <div>
+                  <h3 className="font-heading font-semibold text-lg">{selected.title}</h3>
+                  {selected.description && <p className="text-sm text-muted-foreground mt-1">{selected.description}</p>}
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {selected.scheduled_at ? new Date(selected.scheduled_at).toLocaleString() : "No date set"} · {selected.duration_minutes} min · {selected.is_free ? "Free" : `$${selected.price}`}
+                  </p>
+                </div>
+                <Badge variant={selected.status === "published" ? "default" : "secondary"}>{selected.status}</Badge>
               </div>
-              <Badge variant={selected.status === "published" ? "default" : "secondary"}>{selected.status}</Badge>
-            </div>
-            <div className="px-6 py-6">
-              {selected.script_markdown ? <MarkdownRenderer content={selected.script_markdown} /> : <p className="text-muted-foreground text-sm">No script generated yet. Run "Build My Business" → Digital Products to generate webinar content.</p>}
-            </div>
-          </CardContent></Card>
+              <div className="px-6 py-6">
+                {selected.script_markdown ? <MarkdownRenderer content={selected.script_markdown} /> : <p className="text-muted-foreground text-sm">No script generated yet. Run "Build My Business" → Digital Products to generate webinar content.</p>}
+              </div>
+            </CardContent></Card>
+
+            {selected.status === "published" && publicUrl && (
+              <Card><CardContent className="p-4 flex items-center justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-muted-foreground mb-1">Public registration page</p>
+                  <p className="text-sm font-mono truncate">{publicUrl}</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => { navigator.clipboard.writeText(publicUrl); toast.success("Copied"); }}>
+                  <Copy className="h-3.5 w-3.5 mr-1.5" /> Copy
+                </Button>
+                <a href={publicUrl} target="_blank" rel="noopener"><Button size="sm" variant="outline"><ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open</Button></a>
+              </CardContent></Card>
+            )}
+
+            <Card><CardContent className="p-0">
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <h4 className="font-medium">Registrants ({registrations.length})</h4>
+                </div>
+              </div>
+              {registrations.length === 0 ? (
+                <p className="px-6 py-6 text-sm text-muted-foreground">No registrations yet.</p>
+              ) : (
+                <div className="divide-y divide-border">
+                  {registrations.map(r => (
+                    <div key={r.id} className="px-6 py-3 flex items-center justify-between text-sm">
+                      <div>
+                        <p className="font-medium">{r.name || "—"}</p>
+                        <p className="text-xs text-muted-foreground">{r.email}</p>
+                      </div>
+                      <p className="text-xs text-muted-foreground">{new Date(r.registered_at).toLocaleDateString()}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent></Card>
+          </>
         )}
       </div>
     );
@@ -160,7 +277,9 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
                 <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center shrink-0"><Video className="h-5 w-5 text-purple-600" /></div>
                 <div>
                   <h3 className="font-medium text-sm">{w.title}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">{w.duration_minutes} min • {w.is_free ? "Free" : `$${w.price}`}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {w.scheduled_at ? new Date(w.scheduled_at).toLocaleDateString() : "No date"} · {w.duration_minutes} min · {w.is_free ? "Free" : `$${w.price}`}
+                  </p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
