@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Users, Crown, CalendarDays, Mail } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 
@@ -31,7 +32,8 @@ export default function BA12Builder({ authorId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, isComplete, missingFields, bookId, book } = useAuthorBook();
+  const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
     if (!authorId) return;
@@ -90,7 +92,23 @@ export default function BA12Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Membership Community</h2>
-            {!isBookLoading && !hasBook ? (<><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your membership, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-12")}>Complete Book Profile</Button></>) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A membership community gives you recurring monthly income from your most engaged readers. I'll design a membership programme based on '{detectedBookTitle || bookTitle || "your book"}' — with tiers, benefits, and a content calendar. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Membership</Button></>)}
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : !isComplete && !overrideGate ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your membership, let's make sure your book profile is ready.</p>
+                <BookProfileGate
+                  hasBook={hasBook}
+                  bookId={bookId}
+                  book={book}
+                  missingFields={missingFields}
+                  returnTo="/node-builder/BA-12"
+                  onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
+                />
+              </>
+            ) : (
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A membership community gives you recurring monthly income from your most engaged readers. I'll design a membership programme based on '{detectedBookTitle || bookTitle || "your book"}' — with tiers, benefits, and a content calendar. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Membership</Button></>
+            )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}

@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowRight, BookOpen, LayoutList, DollarSign, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 
@@ -33,7 +34,8 @@ export default function BA10Builder({ authorId }: Props) {
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, isComplete, missingFields, bookId, book } = useAuthorBook();
+  const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
     if (!authorId) return;
@@ -112,8 +114,20 @@ export default function BA10Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
-            {!isBookLoading && !hasBook ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button></>
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : !isComplete && !overrideGate ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your course, let's make sure your book profile is ready.</p>
+                <BookProfileGate
+                  hasBook={hasBook}
+                  bookId={bookId}
+                  book={book}
+                  missingFields={missingFields}
+                  returnTo="/node-builder/BA-10"
+                  onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
+                />
+              </>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{detectedBookTitle || bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button></>
