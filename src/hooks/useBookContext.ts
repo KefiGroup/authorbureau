@@ -4,7 +4,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const HOOK_VERSION = "v3.4-2026-04-20-edge-primary";
+const HOOK_VERSION = "v3.5-2026-04-20-gate-diagnostic";
 
 export interface BookContextResult {
   bookTitle: string;
@@ -75,19 +75,20 @@ async function fetchBookContext(): Promise<FetchedContext> {
   }
 
   const json = await res.json();
+  console.log("[useBookContext] edge response:", json);
   const book: AuthorBook | null = json.book ?? null;
-  const bookTitle: string =
+  const resolvedTitle: string | null =
     (json.bookTitle && String(json.bookTitle).trim()) ||
-    book?.title ||
-    "your book";
+    (book?.title && String(book.title).trim()) ||
+    null;
 
-  console.log("[useBookContext] resolved title:", bookTitle);
+  console.log("[useBookContext] resolved title:", resolvedTitle);
 
   return {
-    bookTitle,
+    bookTitle: resolvedTitle ?? "your book",
     bookId: book?.id || null,
     book,
-    hasContext: !!json.bookTitle,
+    hasContext: !!resolvedTitle,
     missingFields: json.missingFields ?? [],
     isComplete: !!json.isComplete,
   };
@@ -99,12 +100,20 @@ export function useBookContext(): BookContextResult {
   console.log("[useBookContext] mount", { hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
 
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context-v3.4", user?.id ?? "anon"],
+    queryKey: ["book-context-v3.5", user?.id ?? "anon"],
     queryFn: fetchBookContext,
     enabled: !!user?.id,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
+  });
+
+  console.log("[useBookContext] render", {
+    userId: user?.id,
+    isLoading,
+    data,
+    hasContext: !!data?.hasContext,
+    shouldGate: !isLoading && !data?.hasContext,
   });
 
   if (!user) {
