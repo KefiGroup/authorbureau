@@ -58,6 +58,7 @@ import CourseSalesPage from "./pages/CourseSalesPage";
 import CourseLearnPage from "./pages/CourseLearnPage";
 import MembershipSalesPage from "./pages/MembershipSalesPage";
 import MemberPortalPage from "./pages/MemberPortalPage";
+import { BUILD_TIMESTAMP } from "./main";
 
 
 const queryClient = new QueryClient();
@@ -189,20 +190,23 @@ const AppRoutes = () => (
   </>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <ScrollToTop />
-          <AppRoutes />
-          <AbbyHelpChatbot />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+const App = () => {
+  console.log("Build:", BUILD_TIMESTAMP);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <ScrollToTop />
+            <AppRoutes />
+            <AbbyHelpChatbot />
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
