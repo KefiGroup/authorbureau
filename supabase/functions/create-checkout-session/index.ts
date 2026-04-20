@@ -1,14 +1,22 @@
 /**
  * create-checkout-session
  * -----------------------
- * Reader-facing edge function. Creates a Stripe Checkout Session for a single
- * `author_nodes` row using destination charges so funds flow to the author's
- * connected Stripe account, with a platform application_fee taken from
- * `platform_config.platform_fee_percent`.
+ * Reader-facing edge function. Creates a Stripe Checkout Session.
  *
- * Public (no JWT required) — guest checkout supported.
+ * Sprint 40: now supports BOTH one-off `payment` mode AND recurring
+ * `subscription` mode. Mode is auto-detected:
+ *   - If `mode: "subscription"` is passed, OR
+ *   - If `membership_author_id` is passed, OR
+ *   - If the author_node is BA-12 (membership) → subscription
+ *   - Otherwise → one-off payment
  *
- * Input:  { author_node_id: string, customer_email?: string }
+ * Inputs:
+ *   { author_node_id?: string,
+ *     membership_author_id?: string,   // for /:authorSlug/members
+ *     course_id?: string,              // for /:authorSlug/course/...
+ *     customer_email?: string,
+ *     mode?: "payment" | "subscription" }
+ *
  * Output (success): { url: string }
  * Output (no Stripe Connect): { error: 'AUTHOR_PAYMENTS_NOT_SET_UP', author_id }
  */
@@ -28,55 +36,120 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { author_node_id, customer_email } = await req.json();
-    if (!author_node_id) throw new Error("author_node_id is required");
+    const body = await req.json();
+    const {
+      author_node_id,
+      membership_author_id,
+      course_id,
+      customer_email,
+      mode: explicitMode,
+    } = body ?? {};
+
+    if (!author_node_id && !membership_author_id && !course_id) {
+      throw new Error("author_node_id, membership_author_id, or course_id is required");
+    }
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
+      { auth: { persistSession: false } },
     );
 
-    // Load node
-    const { data: node, error: nodeErr } = await admin
-      .from("author_nodes")
-      .select("id, author_id, node_id, node_name, personalised_name, price_usd, currency, content_json, status")
-      .eq("id", author_node_id)
-      .maybeSingle();
+    // ============ Resolve product + author + price ============
+    let authorId: string;
+    let productTitle = "Product";
+    let amountCents = 0;
+    let currency = "usd";
+    let mode: "payment" | "subscription" =
+      explicitMode === "subscription" ? "subscription" : "payment";
+    const metadata: Record<string, string> = {};
 
-    if (nodeErr || !node) throw new Error("Product not found");
-    if (node.status !== "live") throw new Error("Product is not currently available");
+    if (membership_author_id) {
+      mode = "subscription";
+      authorId = membership_author_id;
+      const { data: m } = await admin
+        .from("membership_content")
+        .select("name, monthly_price, currency, status")
+        .eq("author_id", authorId)
+        .maybeSingle();
+      if (!m) throw new Error("Membership not found");
+      if (m.status !== "live") throw new Error("Membership is not currently available");
+      productTitle = m.name;
+      currency = (m.currency || "usd").toLowerCase();
+      amountCents = Math.round(Number(m.monthly_price) * 100);
+      metadata.product_type = "membership";
+      metadata.product_id = authorId;
+    } else if (course_id) {
+      authorId = ""; // populated below
+      const { data: c } = await admin
+        .from("courses")
+        .select("id, author_id, title, price, currency, status, stripe_price_id")
+        .eq("id", course_id)
+        .maybeSingle();
+      if (!c) throw new Error("Course not found");
+      if (c.status !== "published" && c.status !== "live") {
+        throw new Error("Course is not currently available");
+      }
+      authorId = c.author_id;
+      productTitle = c.title;
+      currency = (c.currency || "usd").toLowerCase();
+      amountCents = Math.round(Number(c.price ?? 0) * 100);
+      metadata.product_type = "online_course";
+      metadata.product_id = c.id;
+      metadata.course_id = c.id;
+    } else {
+      const { data: node } = await admin
+        .from("author_nodes")
+        .select("id, author_id, node_id, node_name, personalised_name, price_usd, currency, status")
+        .eq("id", author_node_id)
+        .maybeSingle();
+      if (!node) throw new Error("Product not found");
+      if (node.status !== "live") throw new Error("Product is not currently available");
+      const price = Number(node.price_usd ?? 0);
+      if (!price || price <= 0) throw new Error("Product price not set");
+      authorId = node.author_id;
+      productTitle = node.personalised_name || node.node_name || "Product";
+      currency = (node.currency || "usd").toLowerCase();
+      amountCents = Math.round(price * 100);
+      metadata.author_node_row_id = node.id;
+      metadata.product_id = node.id;
+      metadata.node_id = node.node_id;
+      metadata.product_type = node.node_id;
+      // BA-12 sold via author_node falls back to subscription too
+      if (node.node_id === "BA-12") mode = "subscription";
+    }
 
-    const price = Number(node.price_usd ?? 0);
-    if (!price || price <= 0) throw new Error("Product price not set");
+    if (!amountCents || amountCents <= 0) throw new Error("Product price not set");
 
-    // Load author + Stripe account
+    // ============ Resolve author + Stripe Connect ============
     const { data: author } = await admin
       .from("author_profiles")
-      .select("id, user_id, pen_name, author_slug, stripe_connected_account_id, stripe_onboarding_complete")
-      .eq("id", node.author_id)
+      .select("id, user_id, pen_name, author_slug, stripe_connected_account_id, stripe_account_id, stripe_onboarding_complete")
+      .eq("id", authorId)
       .maybeSingle();
-
     if (!author) throw new Error("Author not found");
-    if (!author.stripe_connected_account_id || !author.stripe_onboarding_complete) {
+
+    const connectedAccount =
+      author.stripe_connected_account_id || author.stripe_account_id;
+    if (!connectedAccount || !author.stripe_onboarding_complete) {
       return new Response(
         JSON.stringify({ error: "AUTHOR_PAYMENTS_NOT_SET_UP", author_id: author.id }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Platform fee from config
     const { data: cfg } = await admin
       .from("platform_config")
       .select("value")
       .eq("key", "platform_fee_percent")
       .maybeSingle();
     const feePct = Number(cfg?.value ?? DEFAULT_FEE);
-
-    const currency = (node.currency || "usd").toLowerCase();
-    const amountCents = Math.round(price * 100);
     const applicationFeeCents = Math.round(amountCents * feePct);
-    const productTitle = node.personalised_name || node.node_name || "Product";
+
+    metadata.author_id = author.id;
+    metadata.author_user_id = author.user_id;
+    metadata.product_title = productTitle;
+    metadata.author_slug = author.author_slug || "";
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -85,35 +158,50 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://authorsbureau.com";
     const authorSlug = author.author_slug || "";
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
+    // ============ Build the session ============
+    const success_url =
+      mode === "subscription"
+        ? `${origin}/${authorSlug}/members/welcome?session_id={CHECKOUT_SESSION_ID}`
+        : metadata.product_type === "online_course"
+          ? `${origin}/${authorSlug}/course/${metadata.course_id}/learn?session_id={CHECKOUT_SESSION_ID}`
+          : `${origin}/${authorSlug}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
+    const cancel_url = `${origin}/${authorSlug}`;
+
+    const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = {
+      price_data: {
+        currency,
+        unit_amount: amountCents,
+        product_data: { name: productTitle },
+        ...(mode === "subscription" ? { recurring: { interval: "month" } } : {}),
+      },
+      quantity: 1,
+    };
+
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
+      mode,
       payment_method_types: ["card"],
       customer_email: customer_email || undefined,
-      line_items: [{
-        price_data: {
-          currency,
-          unit_amount: amountCents,
-          product_data: { name: productTitle },
-        },
-        quantity: 1,
-      }],
-      payment_intent_data: {
-        application_fee_amount: applicationFeeCents,
-        transfer_data: { destination: author.stripe_connected_account_id },
-      },
-      success_url: `${origin}/${authorSlug}/thank-you?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/${authorSlug}`,
-      metadata: {
-        author_id: author.id,
-        author_user_id: author.user_id,
-        author_node_row_id: node.id,
-        product_id: node.id,
-        node_id: node.node_id,
-        product_type: node.node_id,
-        product_title: productTitle,
-        author_slug: authorSlug,
-      },
-    });
+      line_items: [lineItem],
+      success_url,
+      cancel_url,
+      metadata,
+      ...(mode === "payment"
+        ? {
+            payment_intent_data: {
+              application_fee_amount: applicationFeeCents,
+              transfer_data: { destination: connectedAccount },
+            },
+          }
+        : {
+            subscription_data: {
+              application_fee_percent: feePct * 100,
+              transfer_data: { destination: connectedAccount },
+              metadata,
+            },
+          }),
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(JSON.stringify({ url: session.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,51 +1,138 @@
+/**
+ * generate-ba10-online-course
+ * ---------------------------
+ * Sprint 40 rewrite: generates a complete online course personalised to the
+ * author's book and POPULATES the relational tables that the LMS reads from:
+ *   - courses                (1 row)
+ *   - course_modules         (6–8 rows)
+ *   - course_lessons         (3–5 rows per module, with `outline`)
+ *
+ * Also mirrors a snapshot to author_nodes.content_json for the builder UI and
+ * sets author_nodes.BA-10.status = 'in_progress'.
+ *
+ * Body: { author_id: string }
+ */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
   try {
     const { author_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
 
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
 
-    const { data: author } = await supabase.from("author_profiles").select("pen_name, genres").eq("id", author_id).single();
+    const { data: author } = await supabase
+      .from("author_profiles")
+      .select("pen_name, genres, user_id")
+      .eq("id", author_id)
+      .single();
     if (!author) throw new Error("Author not found");
 
-    const { data: ctx } = await supabase.from("author_context").select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    const { data: ctx } = await supabase
+      .from("author_context")
+      .select("*")
+      .eq("author_id", author_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
     if (!ctx) throw new Error("No author context found. Please complete your book profile first.");
+
+    // Resolve the book row (for cover + book_id link)
+    const { data: book } = await supabase
+      .from("books")
+      .select("id, title, cover_image_url")
+      .eq("author_id", author.user_id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
-      headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+      headers: {
+        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
         model: "openai/gpt-5",
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences." },
-          { role: "user", content: `Create a complete professional online course for ${author.pen_name}'s book '${ctx.book_title}'.
+          {
+            role: "system",
+            content:
+              "You are ABBY, the AI business agent for Authors Bureau. Generate a complete, professional online course personalised to the author's book. Respond with ONLY valid JSON (no markdown, no code fences). Every lesson MUST include a 1-2 sentence `outline`.",
+          },
+          {
+            role: "user",
+            content: `Create a complete online course for ${author.pen_name}'s book '${ctx.book_title}'.
 
-Author details:
-- Author name: ${author.pen_name}
-- Book title: ${ctx.book_title}
-- Book subtitle: ${ctx.book_subtitle || "N/A"}
+Book context:
+- Author: ${author.pen_name}
+- Title: ${ctx.book_title}
+- Subtitle: ${ctx.book_subtitle || "N/A"}
 - Core thesis: ${ctx.core_thesis}
 - Target audience: ${JSON.stringify(ctx.target_audience_persona)}
 - Key frameworks: ${JSON.stringify(ctx.key_frameworks)}
 - Unique insights: ${JSON.stringify(ctx.unique_insights)}
-- Genre/Niche: ${author.genres?.[0] || "General"}
+- Genre: ${author.genres?.[0] || "General"}
 
-Generate the following as a JSON object:
-{"course_title","course_subtitle","tagline","duration","difficulty_level","transformation_promise","modules":[8 items with number/title/description/lessons(array of {number,title,type,duration_minutes})/outcome],"who_its_for","what_youll_get":[4 items],"suggested_price_usd":497,"pricing_rationale","course_description_long":"3-4 paragraph description","abby_summary"}
+Return JSON exactly in this shape:
+{
+  "course_title": "string (compelling, NOT just the book title)",
+  "course_subtitle": "string (one-line promise)",
+  "tagline": "string (memorable hook)",
+  "duration": "string e.g. '6 weeks · 8 modules'",
+  "difficulty_level": "Beginner|Intermediate|Advanced",
+  "transformation_promise": "string (what students achieve)",
+  "who_its_for": "string (specific persona)",
+  "what_youll_get": ["4 bullet items"],
+  "suggested_price_usd": 197,
+  "pricing_rationale": "string (1-2 sentences)",
+  "course_description_long": "3-4 paragraph rich description",
+  "modules": [
+    {
+      "number": 1,
+      "title": "string",
+      "description": "string (2-3 sentences)",
+      "outcome": "string (after this module the student can...)",
+      "lessons": [
+        { "number": 1, "title": "string", "type": "video|reading|exercise|quiz",
+          "duration_minutes": 12,
+          "outline": "1-2 sentence summary of what's taught" }
+      ]
+    }
+  ],
+  "sales_copy": {
+    "headline": "string", "subheadline": "string",
+    "problem": "string", "solution": "string",
+    "outcomes": ["string","string","string"],
+    "cta": "string"
+  },
+  "launch_emails": [
+    { "subject": "string", "body": "string (4-6 sentences, signed by ${author.pen_name})" }
+  ],
+  "abby_summary": "string (1-2 sentences telling the author what was created)"
+}
 
-Make everything specific to this author's book, niche, and audience. Never use generic placeholder text.` }
+Rules:
+- 6 to 8 modules, each with 3 to 5 lessons
+- Every lesson MUST have an outline
+- 3 launch emails (Day 0, Day 2, Day 5)
+- Make everything specific to the book — no generic placeholders`,
+          },
         ],
         temperature: 0.7,
       }),
@@ -57,15 +144,112 @@ Make everything specific to this author's book, niche, and audience. Never use g
     raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     const content = JSON.parse(raw);
 
-    await supabase.from("author_nodes").update({
-      status: "content_ready",
-      content_json: content,
-      personalised_name: content.course_title,
-    }).eq("author_id", author_id).eq("node_id", "BA-10");
+    // ============ Populate relational tables ============
+    // 1. Upsert the courses row (one course per author per book for now)
+    const coursePayload: Record<string, unknown> = {
+      author_id,
+      book_id: book?.id ?? null,
+      title: content.course_title,
+      subtitle: content.course_subtitle ?? null,
+      tagline: content.tagline ?? null,
+      description: content.course_description_long ?? null,
+      target_student: content.who_its_for ?? null,
+      transformation_promises: content.what_youll_get ?? [],
+      cover_image_url: book?.cover_image_url ?? null,
+      price: content.suggested_price_usd ?? 197,
+      currency: "usd",
+      status: "draft",
+      course_format: "self_paced",
+    };
 
-    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    // Look up existing course for this author + book
+    const { data: existingCourse } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("author_id", author_id)
+      .eq("book_id", book?.id ?? null)
+      .maybeSingle();
+
+    let courseId: string;
+    if (existingCourse?.id) {
+      courseId = existingCourse.id;
+      await supabase.from("courses").update(coursePayload).eq("id", courseId);
+      // Wipe old modules/lessons so we rebuild cleanly
+      await supabase.from("course_modules").delete().eq("course_id", courseId);
+    } else {
+      const { data: newCourse, error: courseErr } = await supabase
+        .from("courses")
+        .insert(coursePayload)
+        .select("id")
+        .single();
+      if (courseErr) throw courseErr;
+      courseId = newCourse.id;
+    }
+
+    // 2. Insert modules + lessons
+    const modules: Array<Record<string, unknown>> = Array.isArray(content.modules) ? content.modules : [];
+    for (let mi = 0; mi < modules.length; mi++) {
+      const m = modules[mi] as Record<string, unknown>;
+      const { data: newModule, error: modErr } = await supabase
+        .from("course_modules")
+        .insert({
+          course_id: courseId,
+          module_number: (m as { number?: number }).number ?? mi + 1,
+          title: (m as { title?: string }).title ?? `Module ${mi + 1}`,
+          description: (m as { description?: string }).description ?? null,
+          position: mi,
+          learning_objectives: (m as { outcome?: string }).outcome
+            ? [(m as { outcome: string }).outcome]
+            : [],
+        })
+        .select("id")
+        .single();
+      if (modErr) throw modErr;
+
+      const lessons: Array<Record<string, unknown>> = Array.isArray((m as { lessons?: unknown[] }).lessons)
+        ? ((m as { lessons: unknown[] }).lessons as Record<string, unknown>[])
+        : [];
+      for (let li = 0; li < lessons.length; li++) {
+        const l = lessons[li];
+        await supabase.from("course_lessons").insert({
+          module_id: newModule.id,
+          title: (l as { title?: string }).title ?? `Lesson ${li + 1}`,
+          outline: (l as { outline?: string }).outline ?? null,
+          content: JSON.stringify({
+            type: (l as { type?: string }).type ?? "video",
+            duration_minutes: (l as { duration_minutes?: number }).duration_minutes ?? null,
+            outline: (l as { outline?: string }).outline ?? null,
+          }),
+          position: li,
+          video_url: null,
+        });
+      }
+    }
+
+    // 3. Mirror to author_nodes (status: in_progress until author publishes)
+    await supabase
+      .from("author_nodes")
+      .update({
+        status: "in_progress",
+        content_json: { ...content, course_id: courseId },
+        personalised_name: content.course_title,
+        price_usd: content.suggested_price_usd ?? 197,
+        currency: "usd",
+        delivery_type: "course",
+      })
+      .eq("author_id", author_id)
+      .eq("node_id", "BA-10");
+
+    return new Response(
+      JSON.stringify({ success: true, content: { ...content, course_id: courseId } }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
   } catch (err) {
-    console.error("generate-ba10-online-course error:", err.message);
-    return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("generate-ba10-online-course error:", message);
+    return new Response(JSON.stringify({ success: false, error: message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
