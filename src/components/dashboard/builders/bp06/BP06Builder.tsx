@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, FileText, LayoutList, DollarSign, Copy } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
@@ -128,8 +129,21 @@ export default function BP06Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Workbook</h2>
-            {!isBookLoading && !hasBook ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button></>
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : shouldGate && !overrideGate ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, let's make sure your book profile is ready.</p>
+                <BookProfileGate
+                  shouldGate={shouldGate}
+                  hasBook={hasBook}
+                  bookId={bookId}
+                  book={book}
+                  missingFields={missingFields}
+                  returnTo="/node-builder/BP-06"
+                  onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
+                />
+              </>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! A companion workbook is the perfect free lead magnet — it builds your email list and gives readers a practical way to apply your ideas. I'm going to design a complete workbook based on '{detectedBookTitle || bookTitle || "your book"}' — with sections, exercises, reflection prompts, and action items. Ready?</p>
                 <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-06"]} /></div>
