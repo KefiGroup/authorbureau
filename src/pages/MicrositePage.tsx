@@ -174,6 +174,10 @@ export default function MicrositePage() {
       setSubmitted(true);
       toast({ title: "Success!", description: res.data?.message || "Thank you!" });
       setSubmitting(false);
+      // Redirect to thank-you page for opt-in nodes (BP-02 lead magnet, etc.)
+      if (resolvedNodeId === "BP-02" && authorSlug) {
+        window.location.href = `/${authorSlug}/thank-you`;
+      }
       return true;
     } catch (err) {
       console.error("Submit error:", err);
