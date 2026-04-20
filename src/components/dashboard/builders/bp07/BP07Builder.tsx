@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, GraduationCap, LayoutList, DollarSign, FileText } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import RequireStripeConnected from "@/components/dashboard/RequireStripeConnected";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
@@ -111,6 +112,11 @@ export default function BP07Builder({ authorId }: Props) {
         )}
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 30–60 seconds</p></div></AbbyCard>}
         {step === 2 && content && (
+          <RequireStripeConnected
+            title="Connect Stripe to publish your home study course"
+            description="Your course will be sold as a paid product, so you'll need a connected Stripe account before publishing."
+            showLockedPreview
+          >
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
@@ -174,6 +180,7 @@ export default function BP07Builder({ authorId }: Props) {
             </div>
             <p className="text-xs text-center text-muted-foreground">Your home study course will be set up automatically with a payment link.</p>
           </div>
+          </RequireStripeConnected>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-07" authorName={authorName} penNameSlug={authorSlug} /><BackToReviewLink onClick={() => setStep(2)} /></>}
