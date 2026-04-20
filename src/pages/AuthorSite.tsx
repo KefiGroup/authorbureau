@@ -163,6 +163,26 @@ export default function AuthorSite() {
     setCoachingServices(coaching);
     setBooksWithProducts(enriched);
     setLiveNodes((nodesRes.data || []) as unknown as LiveNode[]);
+    setTestimonials((testimonialsRes.data || []) as unknown as Testimonial[]);
+
+    // Build "What's inside" highlights from author_context (frameworks/insights) with fallback to book description bullets
+    const ctx = (contextRes as any)?.data;
+    let highlights: string[] = [];
+    if (ctx) {
+      const frameworks = Array.isArray(ctx.key_frameworks) ? ctx.key_frameworks : [];
+      const insights = Array.isArray(ctx.unique_insights) ? ctx.unique_insights : [];
+      const fromFrameworks = frameworks.map((f: any) => typeof f === "string" ? f : (f?.name || f?.title || f?.framework || "")).filter(Boolean);
+      const fromInsights = insights.map((i: any) => typeof i === "string" ? i : (i?.insight || i?.text || i?.title || "")).filter(Boolean);
+      highlights = [...fromFrameworks, ...fromInsights];
+    }
+    if (highlights.length === 0 && enriched[0]?.description) {
+      highlights = enriched[0].description
+        .split(/\n+|•|·|✓|\*|—|-{2,}/)
+        .map(s => s.trim())
+        .filter(s => s.length > 18 && s.length < 220)
+        .slice(0, 6);
+    }
+    setWhatsInsideHighlights(highlights.slice(0, 8));
 
     // Related Authors
     const authorGenres = profile.genres || [];
