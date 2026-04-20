@@ -45,9 +45,12 @@ export default function BA12Builder({ authorId }: Props) {
       if (ctx?.book_title) {
         setBookTitle(ctx.book_title);
         setHasContext(true);
-      } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (book?.title) { setBookTitle(book.title); setHasContext(true); } else { setHasContext(false); }
+      } else if (detectedBookTitle && detectedBookTitle !== "your book") {
+        // Use ownership lookup from get-author-book edge function (no direct books query)
+        setBookTitle(detectedBookTitle);
+        setHasContext(true);
+      } else if (!isBookLoading) {
+        setHasContext(false);
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-12").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
@@ -57,7 +60,7 @@ export default function BA12Builder({ authorId }: Props) {
         if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
-  }, [authorId]);
+  }, [authorId, detectedBookTitle, isBookLoading]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
