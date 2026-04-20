@@ -12,7 +12,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2 } from "lucide-react";
+import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 
 interface Funnel {
@@ -57,9 +58,11 @@ const NODE_TO_FUNNEL_TYPE: Record<string, string> = {
 };
 
 export default function FunnelsHub() {
+  const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [authorSlug, setAuthorSlug] = useState<string | null>(null);
   const [funnels, setFunnels] = useState<Funnel[]>([]);
+  const [leadsCount, setLeadsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Funnel | null>(null);
   const [saving, setSaving] = useState(false);
@@ -90,11 +93,19 @@ export default function FunnelsHub() {
       console.log("[FunnelsHub] ✅ Resolved author_profile.id:", profile.id);
       setAuthorId(profile.id);
       setAuthorSlug(profile.author_slug);
-      await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id)]);
+      await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id), loadLeadsCount(user.id)]);
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
   }, [authLoading, user]);
+
+  const loadLeadsCount = async (uid: string) => {
+    const { count } = await supabase
+      .from("crm_contacts")
+      .select("id", { count: "exact", head: true })
+      .eq("author_id", uid);
+    setLeadsCount(count || 0);
+  };
 
   const loadFunnels = async (aid: string) => {
     const { data, error } = await supabase
@@ -286,10 +297,16 @@ export default function FunnelsHub() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-3 gap-2 mb-4 text-center">
+
+
+                  <div className="grid grid-cols-4 gap-2 mb-4 text-center">
                     <div className="bg-muted/50 rounded p-2">
                       <div className="text-lg font-bold">{f.page_views}</div>
                       <div className="text-[10px] uppercase text-muted-foreground">Views</div>
+                    </div>
+                    <div className="bg-muted/50 rounded p-2">
+                      <div className="text-lg font-bold">{leadsCount}</div>
+                      <div className="text-[10px] uppercase text-muted-foreground">Leads</div>
                     </div>
                     <div className="bg-muted/50 rounded p-2">
                       <div className="text-lg font-bold">{f.conversions}</div>
@@ -301,18 +318,27 @@ export default function FunnelsHub() {
                     </div>
                   </div>
 
+                  {authorSlug && (
+                    <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1.5 truncate">
+                      <span className="truncate">{`${window.location.origin}/${authorSlug}/${f.slug}`}</span>
+                    </div>
+                  )}
+
                   <div className="flex flex-wrap gap-2">
                     <Button size="sm" variant="outline" onClick={() => window.open(liveUrl(f.slug), "_blank")}>
-                      <Eye className="h-3.5 w-3.5 mr-1" />Preview
+                      <Eye className="h-3.5 w-3.5 mr-1" />View Funnel
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => copyLink(f.slug)}>
+                      <Copy className="h-3.5 w-3.5 mr-1" />Copy link
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => navigate("/dashboard?section=author-crm")}>
+                      <Users className="h-3.5 w-3.5 mr-1" />View in CRM
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => setEditing({ ...f })}>
                       <Edit className="h-3.5 w-3.5 mr-1" />Edit
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => toggleStatus(f)}>
                       <Power className="h-3.5 w-3.5 mr-1" />{f.status === "live" ? "Pause" : "Go Live"}
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => copyLink(f.slug)}>
-                      <Copy className="h-3.5 w-3.5 mr-1" />Copy Link
                     </Button>
                   </div>
                 </CardContent>

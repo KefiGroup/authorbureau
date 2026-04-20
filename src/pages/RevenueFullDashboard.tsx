@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X } from "lucide-react";
+import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X, Flame } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
 
@@ -71,88 +72,127 @@ export default function RevenueFullDashboard() {
   const [snapshots, setSnapshots] = useState<Snapshot[]>([]);
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [nodesLive, setNodesLive] = useState(0);
+  const [hotLeads, setHotLeads] = useState<Array<{ id: string; full_name: string; email: string | null; abby_score: number; last_activity_at: string | null }>>([]);
 
   // Connect Stripe modal
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [stripeInput, setStripeInput] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Fetch author profile
+  // Fetch author profile + initial direct-DB data (fast, no edge functions)
   useEffect(() => {
     if (!user) return;
-    supabase
-      .from("author_profiles")
-      .select("id, pen_name, stripe_connected_account_id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (data) {
-          setAuthorId(data.id);
-          setPenName(data.pen_name || "Author");
-          setStripeAccountId(data.stripe_connected_account_id || null);
-        }
+    let cancelled = false;
+
+    (async () => {
+      // 1. Resolve author profile
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("id, pen_name, stripe_connected_account_id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (!profile) {
         setLoading(false);
+        return;
+      }
+
+      setAuthorId(profile.id);
+      setPenName(profile.pen_name || "Author");
+      setStripeAccountId(profile.stripe_connected_account_id || null);
+
+      // 2. Parallel direct DB queries — fast, no edge functions
+      const [contactsRes, hotRes, nodesRes, snapsRes, purchasesRes] = await Promise.all([
+        // Total leads (crm_contacts is keyed by user.id per current resolver)
+        supabase
+          .from("crm_contacts")
+          .select("id", { count: "exact", head: true })
+          .eq("author_id", user.id),
+        // Hot leads (abby_score >= 60)
+        supabase
+          .from("crm_contacts")
+          .select("id, full_name, email, abby_score, last_activity_at")
+          .eq("author_id", user.id)
+          .gte("abby_score", 60)
+          .order("abby_score", { ascending: false })
+          .limit(10),
+        // Active nodes
+        supabase
+          .from("author_nodes")
+          .select("node_id, node_name, personalised_name, status, content_json")
+          .eq("author_id", profile.id)
+          .eq("status", "live"),
+        // Historical snapshots
+        supabase
+          .from("author_revenue_snapshots")
+          .select("*")
+          .eq("author_id", profile.id)
+          .order("snapshot_date", { ascending: true })
+          .limit(180),
+        // Revenue this month from purchases
+        supabase
+          .from("purchases")
+          .select("amount")
+          .eq("author_id", profile.id)
+          .gte("created_at", new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+      ]);
+
+      if (cancelled) return;
+
+      const contactsCount = contactsRes.count || 0;
+      const liveNodesData = (nodesRes.data as LiveNode[]) || [];
+      const monthRevenue = (purchasesRes.data || []).reduce(
+        (sum: number, p: any) => sum + Number(p.amount || 0),
+        0
+      );
+
+      setLiveNodes(liveNodesData);
+      setNodesLive(liveNodesData.length);
+      setHotLeads((hotRes.data as any) || []);
+      setSnapshots((snapsRes.data as Snapshot[]) || []);
+      setMetrics({
+        contacts: contactsCount,
+        subscribers: contactsCount, // direct count — no GHL dependency
+        pipeline: 0,
+        revenueMtd: monthRevenue,
       });
+      // Real data — not projected
+      setProjected({ ghl: false, stripe: !profile.stripe_connected_account_id });
+      setLoading(false);
+    })();
+
+    return () => { cancelled = true; };
   }, [user]);
 
-  // Fetch live nodes
-  useEffect(() => {
-    if (!authorId) return;
-    supabase
-      .from("author_nodes")
-      .select("node_id, node_name, personalised_name, status, content_json")
-      .eq("author_id", authorId)
-      .eq("status", "live")
-      .then(({ data }) => {
-        setLiveNodes((data as LiveNode[]) || []);
-        setNodesLive(data?.length || 0);
-      });
-  }, [authorId]);
-
-  // Fetch historical snapshots
-  useEffect(() => {
-    if (!authorId) return;
-    supabase
-      .from("author_revenue_snapshots")
-      .select("*")
-      .eq("author_id", authorId)
-      .order("snapshot_date", { ascending: true })
-      .limit(180)
-      .then(({ data }) => setSnapshots((data as Snapshot[]) || []));
-  }, [authorId]);
-
-  // Sync metrics (max once per hour — simplified: just call on mount)
+  // Background sync — enriches with GHL pipeline + Stripe revenue if connected.
+  // Does NOT block initial render. Direct DB counts already shown.
   const syncMetrics = useCallback(async () => {
     if (!authorId) return;
     try {
       const [ghlRes, stripeRes] = await Promise.all([
-        supabase.functions.invoke("sync-ghl-metrics", { body: { author_id: authorId } }),
-        supabase.functions.invoke("sync-stripe-metrics", { body: { author_id: authorId } }),
+        supabase.functions.invoke("sync-ghl-metrics", { body: { author_id: authorId } }).catch(() => ({ data: null })),
+        supabase.functions.invoke("sync-stripe-metrics", { body: { author_id: authorId } }).catch(() => ({ data: null })),
       ]);
 
-      const ghl = ghlRes.data;
-      const stripe = stripeRes.data;
+      const ghl = (ghlRes as any)?.data;
+      const stripe = (stripeRes as any)?.data;
 
-      if (ghl?.success) {
-        setMetrics((m) => ({
-          ...m,
-          contacts: ghl.data.total_contacts || 0,
-          subscribers: ghl.data.email_subscribers || 0,
-          pipeline: ghl.data.pipeline_value_usd || 0,
-        }));
-        setProjected((p) => ({ ...p, ghl: ghl.projected }));
-        setNodesLive(ghl.nodes_live || 0);
+      // Only enrich pipeline value from GHL — keep direct CRM count for contacts
+      if (ghl?.success && ghl.data?.pipeline_value_usd) {
+        setMetrics((m) => ({ ...m, pipeline: ghl.data.pipeline_value_usd }));
       }
 
-      if (stripe?.success) {
+      // Stripe revenue only overrides if higher (purchases table may be empty)
+      if (stripe?.success && stripe.data?.stripe_revenue_mtd_usd) {
         setMetrics((m) => ({
           ...m,
-          revenueMtd: stripe.data.stripe_revenue_mtd_usd || 0,
+          revenueMtd: Math.max(m.revenueMtd, stripe.data.stripe_revenue_mtd_usd),
         }));
         setProjected((p) => ({ ...p, stripe: stripe.projected }));
       }
     } catch (e) {
-      console.error("Sync error:", e);
+      console.error("Sync error (non-fatal):", e);
     }
   }, [authorId]);
 
@@ -365,6 +405,47 @@ export default function RevenueFullDashboard() {
                 </LineChart>
               </ResponsiveContainer>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* SECTION 3.5: Hot Leads */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Flame className="h-4 w-4 text-orange-500" />
+              <h3 className="text-sm font-semibold">Hot Leads Today</h3>
+              <Badge variant="secondary" className="text-xs">{hotLeads.length}</Badge>
+            </div>
+            {hotLeads.length === 0 ? (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground text-sm mb-3">No hot leads today — keep nurturing your list</p>
+                <Button variant="outline" size="sm" onClick={() => navigate("/dashboard?section=author-crm")} className="gap-2">
+                  <Users className="h-4 w-4" /> View CRM
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {hotLeads.map((lead) => {
+                  const isRed = lead.abby_score >= 80;
+                  return (
+                    <div key={lead.id} className="flex items-center justify-between gap-2 p-3 rounded-lg border border-border">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{lead.full_name}</span>
+                          <Badge className={isRed ? "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300" : "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300"}>
+                            {lead.abby_score}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{lead.email}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard?section=author-crm")} className="h-7 text-xs gap-1">
+                        <Eye className="h-3 w-3" /> View
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
 
