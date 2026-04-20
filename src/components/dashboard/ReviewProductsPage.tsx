@@ -149,7 +149,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           nodeId: item.nodeId || item.table,
           nodeLabel: nodeConfig?.label || item.table,
           category: (nodeConfig?.category || "build") as "build" | "bridge" | "yield",
-          bookTitle: item.bookTitle || "Unknown Book",
+          bookTitle: item.bookTitle || "",
           bookId: item.book_id,
           table: item.table,
           status: item.status,
