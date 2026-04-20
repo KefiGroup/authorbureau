@@ -5,7 +5,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const HOOK_VERSION = "v3.1-2026-04-20-title-trace";
+const HOOK_VERSION = "v3.2-2026-04-20-force-refetch";
 
 const ACTIVE_TIERS = new Set(["brand", "build", "yield"]);
 
@@ -41,6 +41,7 @@ interface FetchedContext {
 }
 
 async function fetchBookContext(userId: string): Promise<FetchedContext> {
+  console.log("[useBookContext] queryFn START for user:", userId);
   // 1) Resolve author_profiles → id + subscription_tier
   const { data: profile } = await supabase
     .from("author_profiles")
@@ -173,12 +174,15 @@ async function fetchBookContext(userId: string): Promise<FetchedContext> {
 export function useBookContext(): BookContextResult {
   const { user, isReady } = useAuthReady();
 
+  console.log("[useBookContext] mount", { isReady, hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
+
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context", HOOK_VERSION, user?.id ?? "anon"],
+    queryKey: ["book-context-v3.2", user?.id ?? "anon"],
     queryFn: () => fetchBookContext(user!.id),
     enabled: isReady && !!user,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 
   if (!isReady || !user) {
