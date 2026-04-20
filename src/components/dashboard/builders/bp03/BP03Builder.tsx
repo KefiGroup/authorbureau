@@ -498,36 +498,12 @@ export default function BP03Builder({ authorId }: Props) {
               </Card>
             )}
 
-            {/* Social-account connection check banner */}
-            {connectedPlatforms.length === 0 ? (
-              <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50/60 dark:bg-amber-950/30">
-                <div className="flex gap-3 items-start">
-                  <div className="shrink-0 w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
-                    <Share2 className="h-4 w-4 text-amber-700 dark:text-amber-300" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
-                      Connect your social accounts to schedule
-                    </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                      You haven't connected any social accounts yet. Posts will still save to your Social Calendar, but they won't auto-publish until you connect at least one account.
-                    </p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 border-amber-400 text-amber-800 hover:bg-amber-100 dark:border-amber-600 dark:text-amber-200 dark:hover:bg-amber-900/40"
-                      onClick={() => navigate("/account-settings?tab=connections")}
-                    >
-                      Connect accounts →
-                    </Button>
-                  </div>
-                </div>
-              </Card>
-            ) : (
-              <Card className="p-3 border-green-300 dark:border-green-700 bg-green-50/60 dark:bg-green-950/30">
-                <p className="text-xs text-green-800 dark:text-green-200 flex items-center gap-2">
+            {/* Social-account connection note (manual posting model) */}
+            {connectedPlatforms.length > 0 && (
+              <Card className="p-3 border-border bg-muted/40">
+                <p className="text-xs text-muted-foreground flex items-center gap-2">
                   <Check className="h-3.5 w-3.5" />
-                  Connected: <strong>{connectedPlatforms.join(", ")}</strong>. Posts will auto-publish on schedule.
+                  Connected accounts saved for reference: <strong>{connectedPlatforms.join(", ")}</strong>. You'll post manually using your kit.
                 </p>
               </Card>
             )}
@@ -535,8 +511,28 @@ export default function BP03Builder({ authorId }: Props) {
               content={content}
               authorName={authorName}
               bookTitle={bookTitle || detectedBookTitle || "your book"}
+              authorPhotoUrl={authorPhotoUrl}
+              bookColor={bookColor}
               onSave={handleSave}
               onActivate={handleActivate}
+              onSavePost={async (updatedPost) => {
+                const nextPosts = (content.posts || []).map((p: any) =>
+                  p.day === updatedPost.day ? updatedPost : p,
+                );
+                const nextContent = { ...content, posts: nextPosts };
+                setContent(nextContent);
+                try {
+                  await fetchBp03NodeState({
+                    action: "save",
+                    author_id: authorId,
+                    status: content?.publishStatus === "live" ? "live" : "content_ready",
+                    content: nextContent,
+                  });
+                  toast.success("Post updated.");
+                } catch (e: any) {
+                  toast.error(e.message || "We couldn't save your edit.");
+                }
+              }}
               isSaving={isSaving}
             />
           </>
