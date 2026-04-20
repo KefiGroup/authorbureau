@@ -1,74 +1,57 @@
 
-## Sprint 39 — 3-Phase Build Plan
+## Sprint 39 Phase 3 Commerce — Reconciled Build Plan
 
-### Phase 1 — Sprint 38 Carry-Over Fixes ✅ DONE
-- **A1** Webinar index page (`/[slug]/webinar`) — public render with cards or empty state
-- **A2** Lead capture form on `/[slug]` — Name + Email only, redirect to `/[slug]/thank-you` ✅
-- **A3** Review & Publish "Unknown Book" — author-primary-book fallback ✅
+### 1. DB Migration
+- New table `platform_config` (key text PK, value text, updated_at). Seed `('platform_fee_percent','0.05')`. RLS: read = authenticated; write = admin only.
+- Alter `author_nodes`: add `price_usd numeric(10,2)`, `delivery_type text`, `delivery_url text`, `currency text default 'usd'`.
 
-A1 status: needs verification — confirm `/pauline-teo/webinar` renders (not blank spinner). If still blank, fix `AuthorSubpageResolver` route mapping for `bookSlug === "webinar"` and create `WebinarIndexPage` querying `webinars` table by `author_id` + `status='active'`.
+### 2. Revert Publish-time Stripe gate
+Remove `RequireStripeConnected` wrapper from BP-06 → BP-09 builders (4 files). Authors publish freely; gating moves to reader Buy Now.
 
----
+### 3. Edge function: `create-checkout-session` (NEW)
+- Reader-facing (no auth required, guest checkout supported).
+- Input: `{ author_node_id, customer_email? }`.
+- Loads `author_nodes` row → resolves connected Stripe account, `price_usd`, `currency`, `product_title`, `author_slug`, `book_slug`.
+- Reads platform fee from `platform_config`.
+- Creates Stripe Checkout Session with destination charges (`payment_intent_data.application_fee_amount`, `transfer_data.destination = author_stripe_account_id`).
+- Metadata: author_id, product_id (= author_node_id), product_type, product_title, author_slug, book_slug.
+- Success URL: `/[author_slug]/thank-you?session_id={CHECKOUT_SESSION_ID}`.
+- If author has no Stripe Connect → return `{ error: 'AUTHOR_PAYMENTS_NOT_SET_UP' }` (UI shows graceful modal).
 
-### Phase 2 — Commerce Engine Foundation ✅ DONE
-- DB migration: `purchases`, `courses`, `course_modules`, `course_lessons`, `course_enrolments`, `course_progress` + `author_nodes` columns (`stripe_product_id`, `stripe_price_id`, `payment_link`)
-- Stripe Connect UI in Account Settings (connect/disconnect, connected badge)
-- `RequireStripeConnected` guard modal
-- `setup-stripe-product` edge function
-- `process-purchase` Stripe webhook edge function
-- `STRIPE_WEBHOOK_SECRET` configured
+### 4. Edge function: `verify-purchase` (PATCH)
+- Replace hardcoded `0.08` with read from `platform_config.platform_fee_percent`.
+- Keep all other logic (synchronous, idempotent insert, confirmation email).
 
----
+### 5. Edge function: `process-purchase` (NEW — Stripe webhook)
+- `verify_jwt = false`. Verifies `stripe-signature` header against `STRIPE_WEBHOOK_SECRET`.
+- Handles `checkout.session.completed`, `payment_intent.succeeded`, `charge.refunded`.
+- Idempotent insert/update on `purchases` keyed by `stripe_checkout_session_id`.
+- Reads platform fee from `platform_config`.
+- Fulfilment dispatch by `product_type`: workbook (grant access), home_study (insert `course_enrolments`), special_editions (notify author for shipping), event_book_sales (mark fulfilled).
+- ABBY notify: triggers nudge for first-sale, 5-sale milestone, fulfilment failure (reuse existing nudge engine).
+- CRM update: push lead/customer to GHL via existing connector pattern.
+- Always returns 200.
 
-### Phase 3 — Brand Products Nodes BP-06 → BP-09 (THIS PASS)
+### 6. Reader Buy Now component
+- New `<BuyNowButton authorNodeId>` invoking `create-checkout-session`.
+- Wire into the 4 microsite pages: `Workbook.tsx`, `HomeStudy.tsx`, `SpecialEditions.tsx`, `OrderBook.tsx`.
+- On `AUTHOR_PAYMENTS_NOT_SET_UP` → show "This author hasn't set up payments yet" modal + capture lead email + trigger ABBY nudge to author.
 
-Build the four final Brand Products node builders. Each uses the standard 4-step Universal Builder pattern (Setup → Generate → Review → Publish), Lovable AI Gateway for content, Stripe payment links via `setup-stripe-product`, microsite pages via `AuthorSubpageResolver`, and writes to `author_nodes` for status tracking.
+### 7. AuthorSubpageResolver routes (verify only)
+Confirm `/[slug]/workbook/[bookSlug]`, `/home-study/[bookSlug]`, `/special-editions/[bookSlug]`, `/order/[bookSlug]` resolve. Add any missing mappings in `node-slug-map.ts` and resolver.
 
-**BP-06 — Workbook**
-- Builder route: `/dashboard?section=node-builder&node=BP-06`
-- AI generates 40-80 page workbook (exercises, templates, action plans) from manuscript
-- Stored in `workbooks` table (existing) + `generated_assets`
-- Stripe product (one-time purchase, author-set price)
-- Public microsite: `/[slug]/workbook/[bookSlug]`
-- Edge fns: `generate-bp06-workbook`, `publish-bp06-workbook`
+### 8. Stripe webhook URL
+After `process-purchase` deploys, surface its URL in Account Settings → Connections → Stripe panel for the user to paste into Stripe dashboard (events: `checkout.session.completed`, `payment_intent.succeeded`, `charge.refunded`).
 
-**BP-07 — Home Study Course** *(gated: requires Workbook for same book — see product-development-sequence memory)*
-- Builder route: `/dashboard?section=node-builder&node=BP-07`
-- AI generates self-paced curriculum (modules, daily schedule, reflection exercises) referencing the existing workbook
-- Writes to `home_study_courses` + `course_modules` + `course_lessons` (Phase 2 schema)
-- Stripe product + enrolment via `course_enrolments` on purchase webhook
-- Public microsite: `/[slug]/home-study/[bookSlug]` + gated learner area `/learn/[courseId]` (uses `course_progress`)
-- Edge fns: `generate-bp07-home-study`, `publish-bp07-home-study`
+### 9. Audit & docs
+- Connect Stripe page copy: confirm "publish first, connect later" messaging.
+- Revenue Dashboard empty state: confirm renders cleanly with 0 sales.
+- Update `.lovable/sprint-tracker.md` → Sprint 39 Phase 3 COMPLETE.
+- Save memory: `mem://architecture/commerce-engine-v1` (platform_fee from config, author_nodes as product registry, dual-webhook pattern).
 
-**BP-08 — Special Editions**
-- Builder route: `/dashboard?section=node-builder&node=BP-08`
-- AI generates special-edition proposals, bundle descriptions, pre-order copy (signed/collector/bundle variants)
-- Stored in `special_editions` table (create if missing) + `generated_assets`
-- Stripe product per edition (one-time)
-- Public microsite: `/[slug]/special-editions/[bookSlug]`
-- Edge fns: `generate-bp08-special-editions`, `publish-bp08-special-editions`
-
-**BP-09 — Book Sales at Events**
-- Builder route: `/dashboard?section=node-builder&node=BP-09`
-- AI generates QR landing copy, event pricing, bundle offers, follow-up email sequence
-- Stored in `event_book_sales` table (create if missing) + `generated_assets`
-- Stripe payment link + QR code generation (use `qrcode` npm)
-- Public microsite: `/[slug]/order/[bookSlug]` (mobile-first, single-tap checkout)
-- Edge fns: `generate-bp09-book-sales`, `publish-bp09-book-sales`
-
-**Cross-cutting**
-- Each builder: Methodology panel (5 tabs), category-aware UI (Brand = Teal), `RequireStripeConnected` guard before publish
-- Sidebar Brand Products counter → 9/9 once all four are built
-- Brand Products Hub status cards updated to recognise BP-06→09 published states
-- Update `to-do.md` and `sprint-tracker.md` (Sprint 13B → COMPLETE)
-
-### Files (Phase 3 only, ~16 new + 6 edits)
-- `src/pages/node-builders/BP06WorkbookBuilder.tsx`, `BP07HomeStudyBuilder.tsx`, `BP08SpecialEditionsBuilder.tsx`, `BP09BookSalesBuilder.tsx`
-- `src/pages/microsites/Workbook.tsx`, `HomeStudy.tsx`, `SpecialEditions.tsx`, `OrderBook.tsx`
-- `src/pages/learn/CoursePlayer.tsx` (BP-07 gated learner)
-- 8 edge functions (`generate-bp0X-*`, `publish-bp0X-*`)
-- Migration: `special_editions`, `event_book_sales` tables (if not present) with RLS
-- Edits: `AuthorSubpageResolver.tsx` (4 new routes), `BrandProductsHub.tsx` (4 new cards/states), sidebar counter, `node-slug-map.ts`, `to-do.md`, `.lovable/sprint-tracker.md`
+### Files
+**New (3 edge fns + 1 component + 1 migration):** `create-checkout-session/index.ts`, `process-purchase/index.ts`, migration SQL, `src/components/commerce/BuyNowButton.tsx`.
+**Edited (~10):** `verify-purchase/index.ts`, BP-06/07/08/09 builders (revert gate), 4 microsite pages (wire BuyNow), `AuthorSubpageResolver.tsx` (if gaps), Account Settings Stripe panel (webhook URL).
 
 ### Verification
-- Build all four nodes end-to-end as Pauline → publish → public URLs render → Stripe test purchase fires `process-purchase` → `author_nodes.status = 'live'` → Brand Products Hub shows 9/9 → Review & Publish lists all 9 with URLs.
+Test as Pauline: publish a workbook with price $19 → reader visits `/pauline-teo/workbook/[book]` → Buy Now → Stripe test checkout → webhook fires → `purchases` row created with 5% fee → `verify-purchase` confirms on thank-you page → confirmation email sent → ABBY first-sale nudge appears → Revenue Dashboard updates.
