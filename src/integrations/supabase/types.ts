@@ -263,6 +263,30 @@ export type Database = {
           },
         ]
       }
+      auth_uid_warnings: {
+        Row: {
+          author_profile_id: string | null
+          created_at: string
+          id: string
+          note: string | null
+          user_id: string
+        }
+        Insert: {
+          author_profile_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id: string
+        }
+        Update: {
+          author_profile_id?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       author_applications: {
         Row: {
           amazon_book_url: string
@@ -5271,6 +5295,16 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_author_profile_orphans: {
+        Args: never
+        Returns: {
+          author_slug: string
+          created_at: string
+          id: string
+          pen_name: string
+          user_id: string
+        }[]
       }
       move_to_dlq: {
         Args: {
