@@ -260,8 +260,8 @@ export default function AuthorSite() {
         authorContactEmail={null}
         isOwnerViewing={isOwner}
         stripeReady={
-          !!(author as unknown as { stripe_connected_account_id?: string | null; stripe_account_id?: string | null }).stripe_connected_account_id
-          || !!(author as unknown as { stripe_account_id?: string | null }).stripe_account_id
+          !!author.stripe_connected_account_id &&
+          author.stripe_onboarding_complete === true
         }
         liveNodes={liveNodes as unknown as StorefrontNode[]}
         theme={theme}
