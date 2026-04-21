@@ -23,6 +23,9 @@ export interface AuthorData {
   site_theme: string | null;
   location_city: string | null;
   location_country: string | null;
+  stripe_connected_account_id?: string | null;
+  stripe_account_id?: string | null;
+  stripe_onboarding_complete?: boolean | null;
 }
 
 export interface BookWithProducts {
