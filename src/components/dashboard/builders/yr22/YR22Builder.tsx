@@ -12,6 +12,7 @@ import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const GEN_MSGS = ["Designing your corporate training programme...", "Building training format options...", "Crafting your proposal template...", "Finalising your corporate offer..."];
 const ACT_MSGS = ["Creating your enquiry pipeline...", "Setting up payment pages...", "Almost ready..."];
@@ -38,13 +39,16 @@ export default function YR22Builder({ authorId }: Props) {
       const { data: book } = await supabase.from("books").select("title").eq("author_id", p?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (book?.title) setBookTitle(book.title);
     }
-    const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-22").maybeSingle();
-    if (node?.content_json && (node.status === "content_ready" || node.status === "live")) { setContent(node.content_json); setStep(node.status === "live" ? 3 : 2); if (node.status === "live") setContent((p: any) => ({ ...p, activated: true })); }
-  })(); }, [authorId]);
+    const __draft = await loadBuilderDraft(authorId, "YR-22");
+      if (__draft.content) {
+        setContent(__draft.content);
+        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+      }
+    })(); }, [authorId]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
 
-  const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr22-corporate", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); } catch (e: any) { setError(e.message); setStep(0); } };
+  const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr22-corporate", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-22", nodeName: "Training Programs", content: data.content, currentStep: 2 }); } catch (e: any) { setError(e.message); setStep(0); } };
   const handlePublish = async () => { setStep(3); setError(null); try { await publishNodeToSite(authorId!, "YR-22", authorSlug); setContent((p: any) => ({ ...p, activated: true })); } catch (e: any) { setError(e.message); setStep(2); } };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;

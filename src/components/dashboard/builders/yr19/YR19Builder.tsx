@@ -13,6 +13,7 @@ import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const GEN_MSGS = ["Analysing your book's coaching potential...", "Designing your coaching packages...", "Creating your discovery call script...", "Outlining your client agreement...", "Finalising your coaching practice..."];
 const ACT_MSGS = ["Setting up your coaching calendar...", "Creating your payment pages...", "Generating your booking links...", "Almost ready..."];
@@ -44,11 +45,10 @@ export default function YR19Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", p?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setBookTitle(book.title);
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "YR-19").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+      const __draft = await loadBuilderDraft(authorId, "YR-19");
+      if (__draft.content) {
+        setContent(__draft.content);
+        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
       }
     })();
   }, [authorId]);
@@ -68,6 +68,7 @@ export default function YR19Builder({ authorId }: Props) {
       const { data, error: e } = await supabase.functions.invoke("generate-yr19-coaching", { body: { author_id: authorId } });
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Generation failed");
       setContent(data.content); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-19", nodeName: "Coaching", content: data.content, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

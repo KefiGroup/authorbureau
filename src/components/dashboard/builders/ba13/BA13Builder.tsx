@@ -12,6 +12,7 @@ import PublishSuccessScreen from "@/components/dashboard/builders/shared/Publish
 import { publishNodeToSite } from "@/lib/publish-node";
 import { Progress } from "@/components/ui/progress";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your group coaching programme...", "Creating your 8-week curriculum...", "Writing your sales page...", "Finalising your programme blueprint..."];
@@ -58,12 +59,10 @@ export default function BA13Builder({ authorId }: Props) {
           setHasContext(false);
         }
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-13").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setPriceOverride((node.content_json as any)?.suggested_price_usd || null);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+      const __draft = await loadBuilderDraft(authorId, "BA-13");
+      if (__draft.content) {
+        setContent(__draft.content);
+        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
       }
     })();
   }, [authorId]);
@@ -85,6 +84,7 @@ export default function BA13Builder({ authorId }: Props) {
       setContent(data.content);
       setPriceOverride(data.content?.suggested_price_usd || null);
       setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: data.content, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

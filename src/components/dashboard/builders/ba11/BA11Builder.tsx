@@ -12,6 +12,7 @@ import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const GEN_MSGS = ["Analysing your book's structure for audio...", "Writing your narrator brief...", "Creating chapter-by-chapter recording guides...", "Researching distribution platforms...", "Finalising your audiobook package..."];
 const ACT_MSGS = ["Preparing your audiobook production package...", "Setting up your distribution strategy...", "Creating your production checklist...", "Almost ready..."];
@@ -57,10 +58,10 @@ export default function BA11Builder({ authorId }: Props) {
           setHasContext(false);
         }
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-11").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json); setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+      const __draft = await loadBuilderDraft(authorId, "BA-11");
+      if (__draft.content) {
+        setContent(__draft.content);
+        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
       }
     })();
   }, [authorId]);
@@ -80,6 +81,7 @@ export default function BA11Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba11-audiobook", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setPriceOverride(data.content?.suggested_retail_price_usd || null); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-11", nodeName: "Audiobook", content: data.content, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

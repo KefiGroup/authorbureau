@@ -12,6 +12,7 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, Handshake, Users, Mail, ListChe
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your JV partnership strategy...", "Creating ideal partner profiles...", "Writing your partnership pitch...", "Building your outreach checklist...", "Finalising your strategy..."];
@@ -47,11 +48,10 @@ export default function BA18Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) { setBookTitle(book.title); setHasContext(true); } else { setHasContext(false); }
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-18").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+      const __draft = await loadBuilderDraft(authorId, "BA-18");
+      if (__draft.content) {
+        setContent(__draft.content);
+        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
       }
     })();
   }, [authorId]);
@@ -71,6 +71,7 @@ export default function BA18Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba18-jv-partnerships", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: data.content, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
