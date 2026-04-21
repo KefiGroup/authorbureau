@@ -83,6 +83,10 @@ export default function BA12Builder({ authorId }: Props) {
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
+  const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
+  const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
+  const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border bg-card px-4 py-3"><div className="max-w-3xl mx-auto flex items-center gap-3"><Button variant="ghost" size="icon" onClick={() => navigate("/build-authority")}><ArrowLeft className="h-4 w-4" /></Button><div className="flex-1"><h1 className="text-lg font-semibold">Memberships</h1></div></div></div>
