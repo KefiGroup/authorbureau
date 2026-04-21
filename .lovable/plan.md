@@ -1,58 +1,51 @@
 
 
-## Issue confirmed
+## Two fixes — diagnosed
 
-The BA-11 → BA-18 generator edge functions throw on the catch path with `status: 500`. The browser's fetch then surfaces a generic `Edge Function returned a non-2xx status code` and the response body (which contains the real `{success:false, error}` payload) is discarded. The user sees an opaque HTTP 500 immediately even though the underlying error could be anything (stale auth user, AI gateway 429, missing book, malformed AI JSON…).
+### Issue 1 — Voice preview fails (real cause is NOT a missing API key)
 
-BA-10 was already fixed to return `status: 200` with a `{success:false, error, diagnostics}` body plus an auth-user preflight. BA-11 → BA-18 still use the old shape via `_shared/builder-helpers.ts`.
+`ELEVENLABS_API_KEY` **is** set in Cloud secrets (managed by the ElevenLabs connector — confirmed in the secret list). The real bug is a **contract mismatch** between the client and the edge function:
 
-## Fix — apply BA-10's resilience pattern to all 8 BA generators
+| Layer | What it sends / expects |
+|---|---|
+| `VoiceSelectionStep.tsx` (line 67-70) | `action: "preview"`, `voiceId: <elevenLabsId>`, `text: <sampleText>` — and reads the response as a **binary blob** |
+| `elevenlabs-tts-audiobook/index.ts` | Only accepts `action: "preview-voice"` with `voiceKey` (a short key like `"sarah"`), and returns **JSON** with base64 audio |
 
-### 1. Add a shared `failResponse()` helper
-Update `supabase/functions/_shared/builder-helpers.ts`:
-- Export `failResponse(error, diagnostics?)` returning `status: 200` with `{success:false, error, diagnostics}` and CORS headers (mirrors BA-10).
-- Export `verifyAuthUser(supabase, userId)` that calls `supabase.auth.admin.getUserById` and returns `{ok:true}` or `{ok:false, code, message}` so each generator can short-circuit before spending AI tokens.
+Result: every preview call falls through to `"Unknown action"` → 400 → toast "Could not play voice preview". No API call to ElevenLabs is ever attempted.
 
-### 2. Update each generator (BA-11, BA-12, BA-13, BA-14, BA-15, BA-16, BA-17, BA-18)
-For each `supabase/functions/generate-ba{N}-*/index.ts`:
-- Wrap `req.json()` in try/catch — return `failResponse("Invalid request body")` instead of throwing.
-- After loading `author_profiles`, run `verifyAuthUser(supabase, author.user_id)`. If missing, return:
-  ```
-  failResponse("Your author account needs to be re-linked before Abby can save this. Please contact support.",
-    { code: "AUTH_USER_MISSING", author_profile_id, stale_user_id })
-  ```
-- Replace **all** `throw new Error(...)` paths inside the try block with `return failResponse(message, diagnostics?)`.
-- In the AI-gateway response check, branch on `429` → friendly rate-limit message, `402` → friendly credits message, else generic.
-- In the catch block, **return `failResponse(message)` with `status: 200`** (not `status: 500`). The prior-state restore logic stays unchanged.
+**Fix**: align the client with the existing edge-function contract (no edge changes needed, no redeploy):
+- In `VoiceSelectionStep.handlePreview`, send `{ action: "preview-voice", voiceKey: voice.id }` (the local `VoiceOption.id` already matches the keys in the edge function's `VOICES` map: `roger`, `sarah`, `laura`, `george`, `river`, `alice`, `matilda`, `brian`, `lily`, `daniel`).
+- Parse the JSON response (`audioBase64`) and play via a `data:audio/mpeg;base64,...` URI (avoids the `atob`/binary corruption pitfall called out in the elevenlabs-tts skill).
+- Drop the per-book sample text — the edge function's built-in sample is short and fast (~2 s response), which is what users expect from a preview button.
 
-### 3. No frontend change required
-The existing call sites already read `data.success` and `data.error` from the body. Once the function returns `status: 200`, the frontend will surface the real ABBY-voiced error via the existing `toAbbyError()` flow.
+### Issue 2 — Manuscript step must gate Production
 
-### 4. Deploy + smoke-test
-- Deploy all 8 functions in one batch.
-- Pull `generate-ba11-audiobook` logs immediately after the user retries from the UI to capture the real underlying cause (likely AI-gateway timeout or AI returning non-JSON for that specific prompt — visible only once we stop swallowing it behind 500).
-- If the real cause turns out to be the audiobook prompt itself (gpt-5 occasionally returns markdown-wrapped JSON), add `response_format: { type: "json_object" }` to the BA-11 AI call to match BA-10.
+Today `BA11Builder.handleNext` in `ba11/BA11Builder.tsx` allows the user to advance from **Manuscript** → **Voice** → **Production** without ever clicking "Optimize for Audio", so they hit `chapters.length === 0` and see "No chapters found."
+
+**Fix**: gate progression in `BA11Builder` (single source of truth, no changes needed to the step components):
+
+1. Compute `canAdvance` per step:
+   - `setup` → always true once narration type chosen
+   - `optimize` → `(stepData.chapters?.length ?? 0) > 0` — i.e. user has clicked Optimize and chapters exist
+   - `voice` → `stepData.selectedVoiceId` is set
+   - `production` → at least one chapter has `status === "audio-generated"` or `"reviewed"`
+2. Disable the **Next** button when `!canAdvance`, with a small helper line under it explaining what's missing (e.g. "Click *Optimize for Audio* to continue").
+3. Also disable the click-to-jump on the stepper for any step the user hasn't unlocked yet (they can still click *back* to completed steps).
+
+This makes "Optimize for Audio" structurally required without auto-running it — the author keeps explicit control of when AI fires (and spends ElevenLabs credits in step 4).
 
 ## Files touched
 
-- `supabase/functions/_shared/builder-helpers.ts` — add `failResponse` + `verifyAuthUser`
-- `supabase/functions/generate-ba11-audiobook/index.ts`
-- `supabase/functions/generate-ba12-membership/index.ts`
-- `supabase/functions/generate-ba13-group-coaching/index.ts`
-- `supabase/functions/generate-ba14-podcast/index.ts`
-- `supabase/functions/generate-ba15-media-pr/index.ts`
-- `supabase/functions/generate-ba16-affiliate/index.ts`
-- `supabase/functions/generate-ba17-upsells/index.ts`
-- `supabase/functions/generate-ba18-jv-partnerships/index.ts`
+- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx` — rewrite `handlePreview` to use the correct action / payload / response decoding
+- `src/components/dashboard/builders/ba11/BA11Builder.tsx` — add `canAdvance(stepIdx)` gate on the Next button + the stepper buttons, with a helper hint when blocked
 
-No DB migrations. No new dependencies. No changes to publish flow, BuyNowButton, or commerce edge functions.
+No edge function changes. No DB migrations. No new secrets. No redeploys.
 
 ## Verification
 
-1. From `/node-builder/BA-11`, click "Prepare My Audiobook"
-   - If auth user is healthy → AI runs to completion or surfaces a specific error like "ABBY took too long" / "rate-limited" — never bare HTTP 500
-   - If auth user is stale → see the same friendly "needs to be re-linked" message BA-10 produces
-2. Repeat for BA-12 → BA-18 — same behaviour
-3. Check `generate-ba11-audiobook` logs after the retry to confirm the real cause is now captured (and apply prompt-level fix if AI-side)
-4. Confirm successful path still writes `author_nodes.content_json` and (for BA-12) `membership_content`
+1. Step 3 → click ▶ on **Sarah** → ~2 s later you hear the sample; the spinner clears via `audio.onended`. Repeat with Brian, Lily, etc.
+2. Step 2 with no chapters → click **Next: Voice** → button is disabled, hint reads "Click *Optimize for Audio* to continue."
+3. Click **Optimize for Audio** → chapters appear → **Next: Voice** unlocks.
+4. Step 3 with no voice selected → **Next: Production** disabled with hint "Select a voice to continue."
+5. Step 4 reachable only after a voice is picked, so it never shows "No chapters found" again.
 
