@@ -5,7 +5,6 @@ import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader"
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import { useBookContext } from "@/hooks/useBookContext";
-import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -20,7 +19,6 @@ import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSect
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
-import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's unique qualities...", "Designing special edition concepts...", "Creating 3 premium edition tiers...", "Writing your exclusivity sales page...", "Finalising your special editions blueprint..."];
@@ -40,8 +38,7 @@ export default function BP08Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
-  const [overrideGate, setOverrideGate] = useState(false);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useBookContext();
 
   useEffect(() => {
     if (!authorId) return;
@@ -111,17 +108,12 @@ export default function BP08Builder({ authorId }: Props) {
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's create your Special Editions</h2>
             {isBookLoading ? (
               <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : shouldGate && !overrideGate ? (
-              <BookProfileGate
-                shouldGate={shouldGate}
-                hasBook={hasBook}
-                bookId={bookId}
-                book={book}
-                missingFields={missingFields}
-                returnTo="/node-builder/BP-08"
-                onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
-              />
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '{detectedBookTitle || bookTitle || "your book"}' — from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Special Editions</Button></>)}
+            ) : hasContext !== null && !hasBook && !hasContext ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button>
+              </>
+            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '{detectedBookTitle || bookTitle || "your book"}' — from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Special Editions</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}

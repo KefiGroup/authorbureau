@@ -440,14 +440,11 @@ export default function BP03Builder({ authorId }: Props) {
         ) : step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
-            {isBookLoading || hasContext === null ? (
-              <p className="text-muted-foreground">Loading your book details…</p>
-            ) : !hasBook && hasContext === false && !bookTitle ? (
-              <BookProfileQuickForm
-                authorId={authorId}
-                authorName={authorName}
-                onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }}
-              />
+            {!isBookLoading && hasContext !== null && !hasBook && !hasContext && !bookTitle ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your social media kit, I need to know about your book. Please complete your book profile first.</p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-03")}>Complete Book Profile</Button>
+              </>
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
@@ -456,7 +453,7 @@ export default function BP03Builder({ authorId }: Props) {
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-03"]} />
                 </div>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}>
                   <Sparkles className="h-4 w-4 mr-2" /> Generate My Starter Kit
                 </Button>
               </>
