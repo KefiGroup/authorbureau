@@ -1,63 +1,33 @@
 
-Decision: pursue Lovable support escalation to clear/refresh the published frontend build cache for this project. Do not spend more time on frontend code changes until the published bundle hash changes.
 
-### Root cause confirmation
-The current source already contains the rebuild-forcing changes:
-- `src/main.tsx` exports `BUILD_TIMESTAMP = "2026-04-20T10:18:00Z"`
-- `src/App.tsx` imports `BUILD_TIMESTAMP` and logs `console.log("Build:", BUILD_TIMESTAMP)`
-- `src/hooks/useBookContext.ts` is already on `v3.5-2026-04-20-gate-diagnostic`
-- All 4 builders still gate from `shouldGate && !overrideGate`
-- `BookProfileGate` already returns `null` when `shouldGate === false`
+## Fix premature gate rendering during loading
 
-But the browser snapshot still shows:
-- no `Build:` console log
-- no evidence of a new published JS asset
-- the published bundle hash remains `index-CPacRwTL.js` across repeated publishes
+The v3.5 bundle is live, but `BookProfileGate` flashes/persists while `useBookContext` is still loading because `hasContext` defaults to `false` and `shouldGate` is evaluated before the edge function resolves.
 
-That combination means the new frontend source is not what the published site is serving.
+### Root cause
+In `src/hooks/useBookContext.ts`, the returned `shouldGate` is `!isLoading && !hasContext`. The math is correct, but every consumer (the 18 builders) renders `<BookProfileGate shouldGate={shouldGate} ... />` without checking `isLoading` first. On first mount `isLoading` flips false very briefly between query states, and even when correct, the builders gate visually on `shouldGate` alone — so any transient `hasContext: false` shows the gate.
 
-### Chosen action
-Use option 3: contact Lovable support to clear the build cache / trigger a clean frontend rebuild for this project.
+### Changes
 
-### Why this is the correct path
-- Official Lovable docs do not expose a user-facing “clean build”, “clear build cache”, or “force rebuild” control
-- There is no documented dashboard setting to delete publish cache for frontend artifacts
-- Renaming Vite output filenames is not the right next step for this issue because the current published site is not even picking up already-merged source changes; the blockage is upstream of normal cache-busting logic
+1. **`src/hooks/useBookContext.ts`** — make `shouldGate` strictly false while loading and explicitly return a loading-safe shape.
+   - In the unauthenticated early-return: keep `shouldGate: false, isLoading: false` (already correct).
+   - Add an explicit loading branch: when `isLoading` is true, return `shouldGate: false, isLoading: true` with safe defaults (no `hasContext`-derived flags leaking through).
+   - Final return (after data resolves) keeps `shouldGate = !hasContext`.
 
-### Implementation plan once back in build mode
-1. Stop all non-essential frontend edits related to this bug.
-2. Preserve the current rebuild-forcing code already in repo:
-   - `BUILD_TIMESTAMP` export/import
-   - `useBookContext` v3.5 diagnostics
-3. Prepare a support escalation packet with:
-   - project URL(s)
-   - project ID
-   - current stuck bundle hash: `index-CPacRwTL.js`
-   - fact that 5 consecutive publishes served the same hash
-   - fact that `Build: 2026-04-20T10:18:00Z` never appears although it exists in source
-4. Ask support to:
-   - clear the frontend build cache for this project, or
-   - trigger a clean rebuild of the published frontend artifact
-5. After support confirms cache clear / rebuild:
-   - publish once more
-   - hard refresh
-   - verify the bundle hash changes
-   - verify console shows `Build: 2026-04-20T10:18:00Z`
-6. Only after the hash changes, re-check the actual bug:
-   - `[useBookContext] edge response` includes `bookTitle: "Be SUCKcessful"`
-   - `[useBookContext] render` shows `hasContext: true`
-   - `shouldGate: false`
-   - BA-10, BA-12, BP-06, BP-07 no longer show the Add Your Book gate
+2. **All 18 builders that consume `useBookContext` + `BookProfileGate`** — add an `isLoading` guard so the gate only renders after data resolves.
+   - Builders to update (BP-01..BP-09, BA-10..BA-18):
+     `src/components/dashboard/builders/bp01/BP01Builder.tsx` … `bp09/BP09Builder.tsx`
+     `src/components/dashboard/builders/ba10/BA10Builder.tsx` … `ba18/BA18Builder.tsx`
+   - Pattern in each: destructure `isLoading` from `useBookContext()`, then render gate as `{!isLoading && shouldGate && <BookProfileGate ... />}`. While loading, show nothing (or existing skeleton if one already exists) instead of the gate.
 
-### Support message to send
-“Frontend publishes are stuck on the same artifact hash (`index-CPacRwTL.js`) across 5 consecutive publishes. The current source includes a new runtime dependency (`BUILD_TIMESTAMP` exported in `src/main.tsx` and imported/logged in `src/App.tsx`), but the published site never logs `Build: 2026-04-20T10:18:00Z`, which proves the latest frontend bundle is not being served. Please clear the frontend build cache or trigger a clean rebuild for this project.”
+3. **No changes** to `BookProfileGate.tsx`, edge functions, or routing. The component already returns `null` when `shouldGate === false`; the bug is upstream consumer logic.
 
-### Technical details
-- `vite.config.ts` is currently standard and does not define custom build output naming
-- Since the published site is not reflecting already-committed source changes, changing output naming is lower-value than clearing the underlying build artifact cache
-- Once the publish system serves a new bundle hash, the existing v3.5 diagnostics should be sufficient to confirm whether the gate bug is resolved or still needs a code fix
+### Verification (after publish)
+- Hard refresh on a builder route (e.g. BA-10) for Pauline's account.
+- Console should show `[useBookContext] render` with `isLoading: true` first (no gate visible), then `isLoading: false, hasContext: true, shouldGate: false` (no gate, builder renders).
+- Bundle hash should advance past `index-CI1iIzPP.js`.
 
-### Success criteria
-- Published JS hash changes from `index-CPacRwTL.js`
-- Browser console shows `Build: 2026-04-20T10:18:00Z`
-- Then and only then continue frontend debugging
+### Out of scope
+- Edge function logic, query keys, or further HOOK_VERSION bumps.
+- Visual redesign of the loading state (uses existing skeletons where present, otherwise renders nothing during load).
+
