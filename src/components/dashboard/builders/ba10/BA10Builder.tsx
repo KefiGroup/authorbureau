@@ -61,17 +61,8 @@ export default function BA10Builder({ authorId }: Props) {
         setBookTitle(ctx.book_title);
         setHasContext(true);
       } else {
-        const userId = profile?.user_id || authorId;
-        const { data: bookRow } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (bookRow?.title) {
-          setBookTitle(bookRow.title);
+        if (detectedBookTitle && detectedBookTitle !== "your book") {
+          setBookTitle(detectedBookTitle);
           setHasContext(true);
         } else {
           setHasContext(false);
@@ -91,7 +82,7 @@ export default function BA10Builder({ authorId }: Props) {
         if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
-  }, [authorId, isAuthReady]);
+  }, [authorId, detectedBookTitle, isAuthReady]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
