@@ -1,76 +1,44 @@
 
 
-## Status: Code is already identical — no fix required at the source level
+## Diagnosis
 
-I diffed the 4 "failing" builders (BA-11, BA-14, BA-17, BA-18) against the 5 "passing" ones (BA-10, BA-12, BA-13, BA-15, BA-16). The relevant code is **byte-identical**:
+BA-18's title interpolation on line 98 is already correct and identical to BA-17. The reason the user still sees "your book" on BA-18 is different from the earlier BA bug:
 
-**State declaration** — present in all 9:
-```tsx
-const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
-const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
-```
+- BA-18 has an extra **book-gate branch** (lines 93–97) that BA-17 does not have.
+- That gate branch contains the literal hard-coded sentence: *"Hi {authorName}! Before I design your revenue sharing strategy, I need to know about your book. Please complete your book profile first."*
+- When `useAuthorBook()` returns `hasBook = false` for this author at mount, BA-18 renders that gate copy — which **statically contains the words "your book"** — instead of the dynamic title sentence on line 98.
+- `resolvedBookTitle` is not the issue here; the title sentence is simply never reached.
 
-**Fallback lookup in useEffect** — present in all 9:
-```tsx
-const { data: ctx } = await supabase.from("author_context").select("book_title")
-  .eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-if (ctx?.book_title) setResolvedBookTitle(ctx.book_title);
-else { /* books fallback */ }
-```
+In other words, the prior fix is fully wired in BA-18. What's showing is a different sentence entirely, controlled by `hasBook`, not by `detectedBookTitle`.
 
-**Render expression** (verified character-for-character) — identical in all 9:
-```tsx
-{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}
-```
+## Fix
 
-There is nothing structurally different between the failing 4 and the passing 5 to copy across.
+Make BA-18's gate behave the same way as the working sibling builders by:
 
-## Why the user is still seeing 'your book' on those 4
+1. **Removing the literal phrase "your book"** from the gate copy so it is not mistaken for the placeholder bug. New copy: *"Hi {authorName}! Before I design your revenue sharing strategy, I need to confirm your book details. Please complete your book profile first."*
+2. **Tightening the gate condition** so it only blocks when there is genuinely no book detected by *either* source. Change:
+   ```tsx
+   {!isBookLoading && !hasBook ? (
+   ```
+   to:
+   ```tsx
+   {!isBookLoading && !hasBook && !resolvedBookTitle ? (
+   ```
+   This way, if `useAuthorBook` says no book but the local `author_context` / `books` fallback found one (which is exactly the scenario the prior fix was built for), BA-18 proceeds to render the dynamic title sentence on line 98 just like BA-10 / BA-12 / BA-15 do.
 
-Since the code is identical and 5 sibling builders work for the same user, the cause is runtime/data, not code:
+No other changes. No touch to BA-17 or any other builder.
 
-1. **Stale browser bundle on those specific routes.** `/node-builder/BA-11`, `/BA-14`, `/BA-17`, `/BA-18` may be serving cached JS from before the fix. The other BA routes were visited later and pulled the new bundle.
-2. **`useAuthorBook` returning the literal `"your book"` placeholder AND the local `author_context`/`books` fallback returning nothing** for the `authorId` resolved at the moment those 4 pages mount. If `authorId` is `null` on first mount and these 4 pages don't re-trigger the effect after it arrives, `resolvedBookTitle` stays `""` → expression yields `"your book"`. (BA-10/12/13/15/16 share the same `useEffect` dependency `[authorId]`, so this would affect them equally — but only if mount timing differs per route.)
+## Files to update
 
-## Plan
-
-Since there is no code asymmetry to "copy from BA-10," the only safe, useful action is to **add a runtime diagnostic** to the 4 failing builders so we can see at runtime whether:
-- `detectedBookTitle` came back as `"your book"` (hook miss), and
-- `resolvedBookTitle` came back as `""` (local query miss for that `authorId`)
-
-### Step 1 — Add a one-shot console log to BA-11, BA-14, BA-17, BA-18
-
-In each of the 4 builders, inside the existing `useEffect` after the local fallback query, log:
-```tsx
-console.log(`[BA-XX] book resolution`, {
-  authorId,
-  detectedBookTitle,
-  ctxTitle: ctx?.book_title ?? null,
-  bookTitle: book?.title ?? null,
-});
-```
-
-This is non-functional, single-line, low-risk. It will tell us conclusively which side is missing.
-
-### Step 2 — User performs a hard refresh on each failing route
-
-`Cmd/Ctrl + Shift + R` on `/node-builder/BA-11`, `/BA-14`, `/BA-17`, `/BA-18` to evict any cached bundle, then open DevTools console.
-
-### Step 3 — Read back the diagnostic
-
-- If logs show `ctxTitle: "Be SUCKcessful"` but UI still shows `"your book"` → React state/render issue, will inspect React tree.
-- If logs show `ctxTitle: null` and `bookTitle: null` → data scope issue. The `authorId` reaching these 4 pages is different from the one used for the working pages (likely a Book Hub passing a per-book `author_profiles.id` while the working ones get the user's primary `author_profiles.id`). Fix would be to also check `author_context` by `user_id` or to use `useBookContext`/`get-author-book` edge function (per memory `book-ownership-lookup-standard`) which already handles dual-token + multi-author resolution.
-- If logs show `detectedBookTitle: "Be SUCKcessful"` but UI shows `"your book"` → bundle is genuinely stale, no code action.
-
-### Step 4 — Apply the targeted fix based on diagnostic
-
-If Step 3 reveals data scope mismatch, the proper canonical fix is to **route these 4 builders through the same `get-author-book` edge function the standard mandates**, instead of trying to expand direct browser queries. That guarantees parity with whatever `useAuthorBook` finds because it's the same source of truth, and removes the project-local vs shared-backend client risk noted in memory.
-
-## Files touched in Step 1 (diagnostic only, no behavior change)
-- `src/components/dashboard/builders/ba11/BA11Builder.tsx`
-- `src/components/dashboard/builders/ba14/BA14Builder.tsx`
-- `src/components/dashboard/builders/ba17/BA17Builder.tsx`
 - `src/components/dashboard/builders/ba18/BA18Builder.tsx`
+  - Line 93: gate condition change
+  - Line 95: gate copy wording change
 
-Once the user pastes the console output (or confirms the hard refresh fixed it), we proceed to Step 4 only if needed. No speculative code rewrites — the existing code is already correct.
+## Verification
+
+1. Project compiles clean.
+2. For an author whose book is detected by `useAuthorBook` → BA-18 renders the title-bearing sentence with `Be SUCKcessful`. (Already worked, still works.)
+3. For an author where `useAuthorBook` returns `hasBook = false` but `author_context` / `books` resolves a title → BA-18 now bypasses the gate and renders the title-bearing sentence with the resolved title (this is the failing case being reported).
+4. For an author with truly no book in either source → BA-18 still shows the gate, but the gate no longer contains the misleading phrase "your book".
+5. The diagnostic `[BA-18] book resolution` log added previously will confirm in DevTools which path was taken.
 
