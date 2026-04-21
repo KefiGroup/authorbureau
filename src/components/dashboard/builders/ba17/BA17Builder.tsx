@@ -79,12 +79,12 @@ export default function BA17Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Upsell System</h2>
-            {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your upsell system, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-17")}>Complete Book Profile</Button>
               </>
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Upsells and downsells maximise the value of every customer. I'll design a product ladder based on '{detectedBookTitle || bookTitle || "your book"}' — with bundles, upsell sequences, and pricing strategy. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Upsell System</Button></>)}
+            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Upsells and downsells maximise the value of every customer. I'll design a product ladder based on '{detectedBookTitle || "your book"}' — with bundles, upsell sequences, and pricing strategy. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Upsell System</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
