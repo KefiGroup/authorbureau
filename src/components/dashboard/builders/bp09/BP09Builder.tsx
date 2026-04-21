@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useBookContext } from "@/hooks/useBookContext";
-import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -20,7 +19,6 @@ import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWork
 import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
-import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's target audience and events...", "Designing your event sales strategy...", "Creating pricing tiers and materials list...", "Building your post-event follow-up sequence...", "Finalising your Book Sales Kit..."];
@@ -40,8 +38,7 @@ export default function BP09Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
-  const [overrideGate, setOverrideGate] = useState(false);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useBookContext();
 
   useEffect(() => {
     if (!authorId) return;
@@ -117,17 +114,12 @@ export default function BP09Builder({ authorId }: Props) {
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's set up your Book Sales</h2>
             {isBookLoading ? (
               <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : shouldGate && !overrideGate ? (
-              <BookProfileGate
-                shouldGate={shouldGate}
-                hasBook={hasBook}
-                bookId={bookId}
-                book={book}
-                missingFields={missingFields}
-                returnTo="/node-builder/BP-09"
-                onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
-              />
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || bookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
+            ) : hasContext !== null && !hasBook && !hasContext ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your sales kit, I need to know about your book. Please complete your book profile first.</p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-09")}>Complete Book Profile</Button>
+              </>
+            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{detectedBookTitle || bookTitle || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}

@@ -17,7 +17,7 @@ import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSect
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { toAbbyError } from "@/lib/abby-error";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
-import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
+
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -195,12 +195,13 @@ export default function BP04Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Author Website</h2>
-            {!isBookLoading && hasContext === false && !hasBook ? (
-              <BookProfileQuickForm
-                authorId={authorId}
-                authorName={authorName}
-                onComplete={(t) => { setBookTitle(t); setHasContext(true); setTimeout(() => handleGenerate(), 300); }}
-              />
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : hasContext !== null && !hasBook && !hasContext ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your author website, I need to know about your book. Please complete your book profile first.</p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-04")}>Complete Book Profile</Button>
+              </>
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
@@ -209,7 +210,7 @@ export default function BP04Builder({ authorId }: Props) {
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-04"]} />
                 </div>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}>
                   <Sparkles className="h-4 w-4 mr-2" /> Build My Website
                 </Button>
               </>

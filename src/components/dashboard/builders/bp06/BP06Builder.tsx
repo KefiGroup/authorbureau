@@ -49,8 +49,7 @@ export default function BP06Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
-  const [overrideGate, setOverrideGate] = useState(false);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useBookContext();
 
   useEffect(() => {
     if (!authorId) return;
@@ -136,23 +135,15 @@ export default function BP06Builder({ authorId }: Props) {
             <h2 className="text-xl font-bold mb-3">Let's build your Workbook</h2>
             {isBookLoading ? (
               <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : shouldGate && !overrideGate ? (
+            ) : hasContext !== null && !hasBook && !hasContext ? (
               <>
-                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, let's make sure your book profile is ready.</p>
-                <BookProfileGate
-                  shouldGate={shouldGate}
-                  hasBook={hasBook}
-                  bookId={bookId}
-                  book={book}
-                  missingFields={missingFields}
-                  returnTo="/node-builder/BP-06"
-                  onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
-                />
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, I need to know about your book. Please complete your book profile first.</p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button>
               </>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! A companion workbook is the perfect free lead magnet — it builds your email list and gives readers a practical way to apply your ideas. I'm going to design a complete workbook based on '{detectedBookTitle || bookTitle || "your book"}' — with sections, exercises, reflection prompts, and action items. Ready?</p>
                 <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-06"]} /></div>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Workbook</Button></>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Build My Workbook</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
