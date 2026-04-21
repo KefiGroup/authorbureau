@@ -24,8 +24,6 @@ export default function BA12Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
-  const [bookTitle, setBookTitle] = useState("");
-  const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
@@ -40,19 +38,13 @@ export default function BA12Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      if (detectedBookTitle && detectedBookTitle !== "your book") {
-        setBookTitle(detectedBookTitle);
-        setHasContext(true);
-      } else if (!isBookLoading) {
-        setHasContext(false);
-      }
       const __draft = await loadBuilderDraft(authorId, "BA-12");
       if (__draft.content) {
         setContent(__draft.content);
         setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
       }
     })();
-  }, [authorId, detectedBookTitle, isBookLoading]);
+  }, [authorId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -88,13 +80,13 @@ export default function BA12Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Membership Community</h2>
-            {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your membership, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-12")}>Complete Book Profile</Button>
               </>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! A membership community gives you recurring monthly income from your most engaged readers. I'll design a membership programme based on '{detectedBookTitle || bookTitle || "your book"}' — with tiers, benefits, and a content calendar. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Membership</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A membership community gives you recurring monthly income from your most engaged readers. I'll design a membership programme based on '{detectedBookTitle || "your book"}' — with tiers, benefits, and a content calendar. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Membership</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>

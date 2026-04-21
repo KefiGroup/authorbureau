@@ -31,8 +31,6 @@ export default function BP07Builder({ authorId }: Props) {
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
-  const [bookTitle, setBookTitle] = useState("");
-  const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
@@ -56,16 +54,6 @@ export default function BP07Builder({ authorId }: Props) {
       }
     })();
   }, [authorId]);
-
-  // Propagate late-resolving title from useBookContext into local state
-  useEffect(() => {
-    if (detectedBookTitle && detectedBookTitle !== "your book") {
-      setBookTitle(detectedBookTitle);
-      setHasContext(true);
-    } else if (!isBookLoading) {
-      setHasContext(false);
-    }
-  }, [detectedBookTitle, isBookLoading]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -120,7 +108,7 @@ export default function BP07Builder({ authorId }: Props) {
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button>
               </>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{detectedBookTitle || bookTitle || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{detectedBookTitle || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>

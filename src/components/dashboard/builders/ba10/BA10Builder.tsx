@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -26,8 +25,6 @@ export default function BA10Builder({ authorId }: Props) {
   const devUnlock = searchParams.get("unlock") === "true";
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
-  const [bookTitle, setBookTitle] = useState("");
-  const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
@@ -35,11 +32,10 @@ export default function BA10Builder({ authorId }: Props) {
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { isReady: isAuthReady } = useAuthReady();
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
-    if (!isAuthReady || !authorId) return;
+    if (!authorId) return;
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
@@ -50,33 +46,13 @@ export default function BA10Builder({ authorId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
-      const { data: ctx } = await supabase
-        .from("author_context")
-        .select("book_title")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else {
-        if (detectedBookTitle && detectedBookTitle !== "your book") {
-          setBookTitle(detectedBookTitle);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
-        }
-      }
-
       const draft = await loadBuilderDraft(authorId, "BA-10");
       if (draft.content) {
         setContent(draft.content);
         setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
       }
     })();
-  }, [authorId, detectedBookTitle, isAuthReady]);
+  }, [authorId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -123,14 +99,14 @@ export default function BA10Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
-            {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button>
               </>
             ) : (
               <>
-                <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{detectedBookTitle || bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{detectedBookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button>
               </>
             )}

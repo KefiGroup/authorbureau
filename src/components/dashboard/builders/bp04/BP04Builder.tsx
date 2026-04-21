@@ -46,8 +46,6 @@ export default function BP04Builder({ authorId }: Props) {
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
-  const [bookTitle, setBookTitle] = useState("");
-  const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
@@ -65,31 +63,6 @@ export default function BP04Builder({ authorId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
-      const { data: ctx } = await supabase
-        .from("author_context")
-        .select("book_title")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", profile?.user_id || authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
-        }
-      }
 
       const { data: node } = await supabase
         .from("author_nodes")
@@ -195,9 +168,7 @@ export default function BP04Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Author Website</h2>
-            {isBookLoading ? (
-              <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your author website, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-04")}>Complete Book Profile</Button>
@@ -205,7 +176,7 @@ export default function BP04Builder({ authorId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Every author needs a professional online home — a place where readers discover you, learn about your book, and join your community. I'm going to build your complete author website for '{detectedBookTitle || bookTitle || "your book"}' — with a homepage, about page, book page, and contact form — all written and structured around your book and your brand. Ready?
+                  Hi {authorName}! Every author needs a professional online home — a place where readers discover you, learn about your book, and join your community. I'm going to build your complete author website for '{detectedBookTitle || "your book"}' — with a homepage, about page, book page, and contact form — all written and structured around your book and your brand. Ready?
                 </p>
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-04"]} />

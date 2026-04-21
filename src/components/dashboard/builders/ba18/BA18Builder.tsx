@@ -24,8 +24,6 @@ export default function BA18Builder({ authorId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
-  const [bookTitle, setBookTitle] = useState("");
-  const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
@@ -40,14 +38,6 @@ export default function BA18Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
-        setHasContext(true);
-      } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (book?.title) { setBookTitle(book.title); setHasContext(true); } else { setHasContext(false); }
-      }
       const __draft = await loadBuilderDraft(authorId, "BA-18");
       if (__draft.content) {
         setContent(__draft.content);
@@ -90,12 +80,12 @@ export default function BA18Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Revenue Sharing Strategy</h2>
-            {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your revenue sharing strategy, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-18")}>Complete Book Profile</Button>
               </>
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Revenue sharing is the ultimate partnership model. I'll design a JV strategy based on '{detectedBookTitle || bookTitle || "your book"}' — with ideal partner profiles, a pitch template, and an outreach checklist. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Strategy</Button></>)}
+            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Revenue sharing is the ultimate partnership model. I'll design a JV strategy based on '{detectedBookTitle || "your book"}' — with ideal partner profiles, a pitch template, and an outreach checklist. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Strategy</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}

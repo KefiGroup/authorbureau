@@ -440,7 +440,7 @@ export default function BP03Builder({ authorId }: Props) {
         ) : step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
-            {!isBookLoading && hasContext !== null && !hasBook && !hasContext && !bookTitle ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your social media kit, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-03")}>Complete Book Profile</Button>
@@ -448,7 +448,7 @@ export default function BP03Builder({ authorId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  I'm going to create your social media starter kit for '{detectedBookTitle || bookTitle || "your book"}' — 20 ready-to-post pieces across LinkedIn, Instagram, Facebook, and X, plus 3 outreach email templates. Ready?
+                  I'm going to create your social media starter kit for '{detectedBookTitle || "your book"}' — 20 ready-to-post pieces across LinkedIn, Instagram, Facebook, and X, plus 3 outreach email templates. Ready?
                 </p>
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-03"]} />
