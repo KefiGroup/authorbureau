@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Newspaper, FileText, Mail, Target } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
+import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -119,6 +120,13 @@ export default function BA15Builder({ authorId }: Props) {
                 <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground whitespace-pre-wrap">{content.pitch_template}</p></CardContent></Card>
               </TabsContent>
             </Tabs>
+            <ExportPackageCard
+              content={content}
+              nodeName="Media Kit"
+              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
+              authorName={authorName}
+              guidance="Export your full media kit — bio, press release, pitch templates. Send to journalists, podcast hosts, and event organisers."
+            />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>

@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Users, Crown, CalendarDays, Mail } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
+import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -131,6 +132,13 @@ export default function BA12Builder({ authorId }: Props) {
                 <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">{content.content_calendar || "Content calendar details will appear here."}</p></CardContent></Card>
               </TabsContent>
             </Tabs>
+            <ExportPackageCard
+              content={content}
+              nodeName="Membership"
+              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
+              authorName={authorName}
+              guidance="Export your full membership package — tiers, benefits, content calendar. Upload to Circle, Mighty Networks, Kajabi, or any community platform."
+            />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>

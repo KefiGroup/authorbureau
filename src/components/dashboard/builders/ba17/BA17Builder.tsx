@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Layers, Package, TrendingUp } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
+import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -126,6 +127,13 @@ export default function BA17Builder({ authorId }: Props) {
                 ))}
               </TabsContent>
             </Tabs>
+            <ExportPackageCard
+              content={content}
+              nodeName="Upsell System"
+              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
+              authorName={authorName}
+              guidance="Export your full upsell system — bundles, scripts, follow-ups. Upload to Teachable, Kajabi, Thinkific, ThriveCart, or any platform."
+            />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>

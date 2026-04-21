@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Handshake, Users, Mail, ListChecks } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
+import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -133,6 +134,13 @@ export default function BA18Builder({ authorId }: Props) {
                 </CardContent></Card>
               </TabsContent>
             </Tabs>
+            <ExportPackageCard
+              content={content}
+              nodeName="Revenue Sharing Strategy"
+              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
+              authorName={authorName}
+              guidance="Export your full revenue sharing package — partner profiles, pitch templates, contract templates. Send to JV partners, agencies, and affiliates."
+            />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>

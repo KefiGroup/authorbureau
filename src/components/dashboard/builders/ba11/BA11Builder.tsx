@@ -11,6 +11,7 @@ import { Sparkles, ArrowRight, Mic, BookOpen, DollarSign, Globe } from "lucide-r
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
+import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -159,6 +160,13 @@ export default function BA11Builder({ authorId }: Props) {
                 </CardContent></Card>
               </TabsContent>
             </Tabs>
+            <ExportPackageCard
+              content={content}
+              nodeName="Audiobook"
+              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
+              authorName={authorName}
+              guidance="Export your full audiobook package — script, chapter notes, distribution plan. Send to your narrator or upload to ACX, Findaway, etc."
+            />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
