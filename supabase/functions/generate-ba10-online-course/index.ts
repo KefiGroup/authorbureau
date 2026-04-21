@@ -175,7 +175,7 @@ serve(async (req) => {
           {
             role: "system",
             content:
-              "You are ABBY, the AI business agent for Authors Bureau. Generate a complete, professional online course personalised to the author's book. Respond with ONLY valid JSON (no markdown, no code fences). Every lesson MUST include a 1-2 sentence `outline`.",
+              "You are ABBY, the AI business agent for Authors Bureau. Generate a complete, professional online course personalised to the author's book. You design courses using sound pedagogical frameworks: Bloom's Taxonomy (Remember → Understand → Apply → Analyze → Evaluate → Create) for cognitive progression, Kolb's Experiential Learning Cycle (Concrete Experience → Reflective Observation → Abstract Conceptualisation → Active Experimentation), and Gagné's 9 Events of Instruction. Modules MUST progress from lower-order to higher-order thinking skills. Each module specifies its primary Bloom's level and Kolb's stage. Respond with ONLY valid JSON (no markdown, no code fences). Every lesson MUST include a 1-2 sentence `outline`.",
           },
           {
             role: "user",
@@ -204,11 +204,15 @@ Return JSON exactly in this shape:
   "suggested_price_usd": 197,
   "pricing_rationale": "string (1-2 sentences)",
   "course_description_long": "3-4 paragraph rich description",
+  "pedagogical_approach": "1-2 sentence summary of how Bloom's Taxonomy and Kolb's cycle structure this course",
   "modules": [
     {
       "number": 1,
       "title": "string",
       "description": "string (2-3 sentences)",
+      "blooms_level": "Remember|Understand|Apply|Analyze|Evaluate|Create",
+      "kolbs_stage": "Concrete Experience|Reflective Observation|Abstract Conceptualisation|Active Experimentation",
+      "learning_objectives": ["By the end of this module, students will be able to <verb aligned to Bloom's level> ..."],
       "outcome": "string (after this module the student can...)",
       "lessons": [
         { "number": 1, "title": "string", "type": "video|reading|exercise|quiz",
@@ -226,11 +230,13 @@ Return JSON exactly in this shape:
   "launch_emails": [
     { "subject": "string", "body": "string (4-6 sentences, signed by ${author.pen_name})" }
   ],
-  "abby_summary": "string (1-2 sentences telling the author what was created)"
+  "abby_summary": "string (1-2 sentences telling the author what was created and the pedagogical approach used)"
 }
 
 Rules:
 - 6 to 8 modules, each with 3 to 5 lessons
+- Modules MUST progress through Bloom's levels: early modules at Remember/Understand, middle at Apply/Analyze, final modules at Evaluate/Create
+- Each module's learning_objectives MUST start with measurable Bloom-aligned verbs (e.g., "Identify...", "Explain...", "Apply...", "Analyze...", "Evaluate...", "Design...")
 - Every lesson MUST have an outline
 - 3 launch emails (Day 0, Day 2, Day 5)
 - Make everything specific to the book — no generic placeholders`,
@@ -319,9 +325,11 @@ Rules:
           title: (m as { title?: string }).title ?? `Module ${mi + 1}`,
           description: (m as { description?: string }).description ?? null,
           position: mi,
-          learning_objectives: (m as { outcome?: string }).outcome
-            ? [(m as { outcome: string }).outcome]
-            : [],
+          blooms_level: (m as { blooms_level?: string }).blooms_level ?? null,
+          kolbs_stage: (m as { kolbs_stage?: string }).kolbs_stage ?? null,
+          learning_objectives: Array.isArray((m as { learning_objectives?: unknown }).learning_objectives)
+            ? (m as { learning_objectives: unknown[] }).learning_objectives
+            : ((m as { outcome?: string }).outcome ? [(m as { outcome: string }).outcome] : []),
         })
         .select("id")
         .single();
