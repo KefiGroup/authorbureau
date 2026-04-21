@@ -1,54 +1,45 @@
 
-Resolve this as a deployment/publishing incident, not a frontend code task.
 
-### What is already confirmed
-- The repo already contains rebuild-forcing diagnostics:
-  - `src/main.tsx` has `BUILD_TIMESTAMP = "2026-04-20T10:18:00Z"` and a build marker comment.
-  - `src/App.tsx` logs `Build: ${BUILD_TIMESTAMP}`.
-  - `src/hooks/useBookContext.ts` is already on `HOOK_VERSION = "v3.5-2026-04-20-gate-diagnostic"` and now returns `shouldGate: false` while loading.
-- If the browser still serves `index-CI1iIzPP.js` and never shows `Build: 2026-04-20T10:18:00Z`, the published frontend artifact is stale.
+## No code change — diagnosis is inverted
 
-### Recommended path
-1. **Treat this as a Lovable publishing/cache issue**
-   - Do not spend more time changing React/Vite app code until the published bundle hash changes.
-   - Use the editor/product controls first, then escalate platform-side if unavailable.
+### What the user reported
+> "Live bundle calls `wuftdpnekscrsghqtssd.supabase.co/functions/v1/get-author-book`. Change the URL to `tubpbslfrxyfhldkcyyq.supabase.co`."
 
-2. **Attempt Option A only if the UI exposes it**
-   - Open project settings and deployment/publishing controls.
-   - Look specifically for any of:
-     - Force rebuild
-     - Clear build cache
-     - Retry deployment from scratch
-     - Rebuild latest publish
-   - If present, use that and then publish/update again.
+### What the source actually shows
+- `src/hooks/useBookContext.ts` line 6 + 53:
+  ```ts
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  ...
+  fetchWithTimeout(`${SUPABASE_URL}/functions/v1/get-author-book`, ...)
+  ```
+- `.env`:
+  ```
+  VITE_SUPABASE_URL="https://tubpbslfrxyfhldkcyyq.supabase.co"
+  ```
+- The edge function `supabase/functions/get-author-book/index.ts` is deployed to **this** project (`tubpbslfrxyfhldkcyyq`), not the shared backend.
+- Grep confirms only `src/lib/shared-backend.ts` references `wuftdpnekscrsghqtssd`, and `useBookContext` does **not** import from it.
 
-3. **If no rebuild/cache control exists, escalate to Lovable support**
-   - Report that the published site is pinned to `index-CI1iIzPP.js` across multiple publishes.
-   - Include these facts:
-     - `src/main.tsx` contains `BUILD_TIMESTAMP = "2026-04-20T10:18:00Z"`
-     - `src/App.tsx` logs `Build: ${BUILD_TIMESTAMP}`
-     - the console log never appears on the published site
-     - the bundle hash does not change across publishes
-   - Ask support to clear/reset the project’s published frontend build artifact/cache and trigger a clean rebuild.
+The two project URLs in the user's message are reversed:
+- `tubpbslfrxyfhldkcyyq` = project-local (this Lovable project, where `get-author-book` is deployed — already what the code calls)
+- `wuftdpnekscrsghqtssd` = shared backend (auth only, no `get-author-book` there)
 
-4. **Do not use repo-touch workarounds as the primary fix**
-   - **Option B** (`vite.config.ts` rename dance) is lower confidence because the source has already changed materially and the published artifact still did not update.
-   - **Option C** (deleting `.lovable` or similar local directories) is also low value because those files are project-local and do not prove control over the hosted publish cache.
-   - Only attempt these after support confirms they affect the publish pipeline.
+So the source is already correct. Making the requested "fix" would actually break the call by pointing it at a project where the function does not exist.
 
-5. **After the artifact is reset**
-   - Publish/update once.
-   - Verify three things in order:
-     1. JS bundle hash changes from `index-CI1iIzPP.js`
-     2. browser console shows `Build: 2026-04-20T10:18:00Z`
-     3. builder routes no longer show `BookProfileGate` during loading for Pauline, because `get-author-book` should resolve to `"Be SUCKcessful"` and `shouldGate` should remain false
+### Why the live bundle still calls the wrong host
+This is the same root cause as the previous turn: **the published bundle is pinned to `index-CI1iIzPP.js`** and the new `useBookContext` code never reached the browser. The live JS calling `wuftdpnekscrsghqtssd` is the symptom of stale bundle, not a wrong constant in source.
 
-### Technical notes
-- `vite.config.ts` is minimal and has no custom output naming or asset pipeline logic that explains a frozen hash.
-- The hook-level loading safeguard is already present in `src/hooks/useBookContext.ts`.
-- The remaining issue is therefore upstream of app logic: publishing state, stale artifact reuse, or a blocked/partial rebuild in Lovable’s deployment layer.
+### Plan
+1. **Do not edit `useBookContext.ts`.** Source is correct; flipping the URL would break the call.
+2. **Resolve the deploy/cache block first** (per the previously approved plan):
+   - Click **Publish → Update** again.
+   - If the bundle hash stays `index-CI1iIzPP.js`, escalate to Lovable support with the project ID and the stuck hash to force-clear the build cache.
+3. **After bundle hash advances**, hard-refresh and verify in DevTools Network:
+   - Request goes to `https://tubpbslfrxyfhldkcyyq.supabase.co/functions/v1/get-author-book`
+   - Response contains `bookTitle: "Be SUCKcessful"`
+   - Console shows `Build: 2026-04-20T10:18:00Z` and `[useBookContext] render` with `shouldGate: false`
+4. **If after a confirmed fresh bundle the call still goes to `wuftdpnekscrsghqtssd`**, then (and only then) re-investigate — but that scenario is not possible given the current source.
 
-### Success criteria
-- Published asset hash changes from `index-CI1iIzPP.js`
-- `Build: 2026-04-20T10:18:00Z` appears in the browser console
-- The live site reflects the current `useBookContext` behavior without premature gating
+### Out of scope
+- Any URL change in `useBookContext.ts` or `get-active-token.ts`.
+- Any change to `shared-backend.ts` (it is correctly pointed at the shared auth backend and is unrelated to this edge function call).
+
