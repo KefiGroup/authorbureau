@@ -109,6 +109,12 @@ export default function BA10Builder({ authorId }: Props) {
 
   const toggleModule = (i: number) => setExpandedModules(prev => ({ ...prev, [i]: !prev[i] }));
 
+  const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book")
+    ? detectedBookTitle
+    : resolvedBookTitle;
+  const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
+  const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
+
   return (
     <div className="min-h-screen bg-background">
       <StepHeader nodeId="BA-10" nodeName="Online Course" step={step} />
