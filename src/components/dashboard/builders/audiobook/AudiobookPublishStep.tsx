@@ -167,13 +167,21 @@ export default function AudiobookPublishStep({ stepData, bookTitle, bookId }: Au
 
       {/* Actions */}
       <div className="flex gap-3">
-        <Button variant="outline">
+        <Button variant="outline" disabled={publishing}>
           <Download className="h-4 w-4 mr-2" /> Export Audio Files
         </Button>
-        <Button disabled={readyChapters < chapters.length}>
-          <ExternalLink className="h-4 w-4 mr-2" /> Publish Audiobook
+        <Button disabled={readyChapters < chapters.length || publishing || published} onClick={handlePublish}>
+          {publishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
+          {published ? "Published ✓" : publishing ? "Publishing…" : "Publish & Distribute Audiobook"}
         </Button>
       </div>
+      {published && (
+        <Card className="p-4 bg-accent/5 border-accent/30">
+          <p className="text-sm">
+            🎉 Your audiobook is live on your storefront and a submission package has been emailed to you with re-encode instructions for ACX, Spotify, Apple Books, and other channels.
+          </p>
+        </Card>
+      )}
     </div>
   );
 }
