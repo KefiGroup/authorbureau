@@ -1,24 +1,32 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import {
+  corsHeaders, makeServiceClient, parseAiJson, errorMessage,
+  buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
+} from "../_shared/builder-helpers.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const NODE_ID = "BA-18";
+const NODE_NAME = "JV Partnerships";
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  let priorNodeState: Record<string, unknown> | null = null;
+  let parsedAuthorId: string | null = null;
+  const supabase = makeServiceClient();
+
   try {
     const { author_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
+    parsedAuthorId = author_id;
 
-    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
-    const { data: author } = await supabase.from("author_profiles").select("pen_name, genres").eq("id", author_id).single();
+    const { data: author } = await supabase
+      .from("author_profiles").select("pen_name, genres, user_id").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
 
-    const { data: ctx } = await supabase.from("author_context").select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    if (!ctx) throw new Error("No author context found. Please complete your book profile first.");
+    priorNodeState = await snapshotAuthorNode(supabase, author_id, NODE_ID);
+    const { ctx, book, bookTitle, bookSubtitle, coreThesis } =
+      await buildAuthorContext(supabase, author_id, author.user_id ?? null);
+    if (!bookTitle) throw new Error("No book found. Please add a book first.");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
@@ -29,43 +37,47 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "openai/gpt-5",
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences." },
-          { role: "user", content: `Create a complete JV partnership strategy for ${author.pen_name}'s book '${ctx.book_title}'.
+          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences)." },
+          { role: "user", content: `Create a complete JV partnership strategy for ${author.pen_name}'s book '${bookTitle}'.
 
-Author details:
-- Author name: ${author.pen_name}
-- Book title: ${ctx.book_title}
-- Book subtitle: ${ctx.book_subtitle || "N/A"}
-- Core thesis: ${ctx.core_thesis}
-- Target audience: ${JSON.stringify(ctx.target_audience_persona)}
-- Key frameworks: ${JSON.stringify(ctx.key_frameworks)}
-- Unique insights: ${JSON.stringify(ctx.unique_insights)}
-- Genre/Niche: ${author.genres?.[0] || "General"}
+Book context:
+- Author: ${author.pen_name}
+- Title: ${bookTitle}
+- Subtitle: ${bookSubtitle || "N/A"}
+- Core thesis: ${coreThesis || "Use book description and context to infer."}
+- Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}
+- Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
+- Unique insights: ${JSON.stringify(ctx?.unique_insights ?? [])}
+- Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
 
-Generate the following as a JSON object:
-{"jv_strategy_title","ideal_partner_profiles":[3 items with profile_type/description/examples(2 items)/why_good_fit],"partnership_pitch":{subject_line/opening/value_proposition/revenue_share/call_to_action},"partnership_types":[3 items with type/description/revenue_model],"outreach_checklist":[5 items],"abby_summary"}
+Generate JSON: {"jv_strategy_title","ideal_partner_profiles":[3 items with profile_type/description/examples(2 items)/why_good_fit],"partnership_pitch":{subject_line/opening/value_proposition/revenue_share/call_to_action},"partnership_types":[3 items with type/description/revenue_model],"outreach_checklist":[5 items],"abby_summary"}
 
-Make everything specific to this author's book, niche, and audience. Never use generic placeholder text.` }
+Make everything specific to this book. No placeholders.` },
         ],
         temperature: 0.7,
       }),
     });
-
-    if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status}`);
+    if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status} ${(await aiRes.text()).slice(0,300)}`);
     const aiData = await aiRes.json();
-    let raw = aiData.choices?.[0]?.message?.content || "";
-    raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    const content = JSON.parse(raw);
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
 
-    await supabase.from("author_nodes").update({
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",
-      content_json: content,
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
       personalised_name: content.jv_strategy_title,
-    }).eq("author_id", author_id).eq("node_id", "BA-18");
+      currency: "usd",
+      delivery_type: "jv_partnerships",
+    });
 
     return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    console.error("generate-ba18-jv-partnerships error:", err.message);
-    return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return new Response(JSON.stringify({ success: false, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
