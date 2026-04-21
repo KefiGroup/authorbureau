@@ -596,7 +596,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
           buildAuthorityCategoryOpen={true}
-          yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
+          yieldCategoryOpen={true}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0 h-[100dvh] overflow-hidden">
