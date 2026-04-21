@@ -125,21 +125,15 @@ export default function BA10Builder({ authorId }: Props) {
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
             {isBookLoading ? (
               <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : shouldGate && !overrideGate ? (
+            ) : hasContext === false ? (
               <>
-                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your course, let's make sure your book profile is ready.</p>
-                <BookProfileGate
-                  shouldGate={shouldGate}
-                  hasBook={hasBook}
-                  bookId={bookId}
-                  book={book}
-                  missingFields={missingFields}
-                  returnTo="/node-builder/BA-10"
-                  onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
-                />
+                <p className="text-muted-foreground mb-4">
+                  Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.
+                </p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button>
               </>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{detectedBookTitle || bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
