@@ -2,7 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useAuthorBook } from "@/hooks/useAuthorBook";
+import { useBookContext } from "@/hooks/useBookContext";
+import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -36,7 +37,8 @@ export default function BA10Builder({ authorId }: Props) {
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { isReady: isAuthReady } = useAuthReady();
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
+  const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
@@ -123,13 +125,18 @@ export default function BA10Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
-            {!isBookLoading && !hasBook && hasContext === false ? (
-              <>
-                <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.
-                </p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button>
-              </>
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : shouldGate && !overrideGate ? (
+              <BookProfileGate
+                shouldGate={shouldGate}
+                hasBook={hasBook}
+                bookId={bookId}
+                book={book}
+                missingFields={missingFields}
+                returnTo="/node-builder/BA-10"
+                onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
+              />
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{detectedBookTitle || bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
