@@ -1,33 +1,54 @@
 
+Resolve this as a deployment/publishing incident, not a frontend code task.
 
-## Fix premature gate rendering during loading
+### What is already confirmed
+- The repo already contains rebuild-forcing diagnostics:
+  - `src/main.tsx` has `BUILD_TIMESTAMP = "2026-04-20T10:18:00Z"` and a build marker comment.
+  - `src/App.tsx` logs `Build: ${BUILD_TIMESTAMP}`.
+  - `src/hooks/useBookContext.ts` is already on `HOOK_VERSION = "v3.5-2026-04-20-gate-diagnostic"` and now returns `shouldGate: false` while loading.
+- If the browser still serves `index-CI1iIzPP.js` and never shows `Build: 2026-04-20T10:18:00Z`, the published frontend artifact is stale.
 
-The v3.5 bundle is live, but `BookProfileGate` flashes/persists while `useBookContext` is still loading because `hasContext` defaults to `false` and `shouldGate` is evaluated before the edge function resolves.
+### Recommended path
+1. **Treat this as a Lovable publishing/cache issue**
+   - Do not spend more time changing React/Vite app code until the published bundle hash changes.
+   - Use the editor/product controls first, then escalate platform-side if unavailable.
 
-### Root cause
-In `src/hooks/useBookContext.ts`, the returned `shouldGate` is `!isLoading && !hasContext`. The math is correct, but every consumer (the 18 builders) renders `<BookProfileGate shouldGate={shouldGate} ... />` without checking `isLoading` first. On first mount `isLoading` flips false very briefly between query states, and even when correct, the builders gate visually on `shouldGate` alone — so any transient `hasContext: false` shows the gate.
+2. **Attempt Option A only if the UI exposes it**
+   - Open project settings and deployment/publishing controls.
+   - Look specifically for any of:
+     - Force rebuild
+     - Clear build cache
+     - Retry deployment from scratch
+     - Rebuild latest publish
+   - If present, use that and then publish/update again.
 
-### Changes
+3. **If no rebuild/cache control exists, escalate to Lovable support**
+   - Report that the published site is pinned to `index-CI1iIzPP.js` across multiple publishes.
+   - Include these facts:
+     - `src/main.tsx` contains `BUILD_TIMESTAMP = "2026-04-20T10:18:00Z"`
+     - `src/App.tsx` logs `Build: ${BUILD_TIMESTAMP}`
+     - the console log never appears on the published site
+     - the bundle hash does not change across publishes
+   - Ask support to clear/reset the project’s published frontend build artifact/cache and trigger a clean rebuild.
 
-1. **`src/hooks/useBookContext.ts`** — make `shouldGate` strictly false while loading and explicitly return a loading-safe shape.
-   - In the unauthenticated early-return: keep `shouldGate: false, isLoading: false` (already correct).
-   - Add an explicit loading branch: when `isLoading` is true, return `shouldGate: false, isLoading: true` with safe defaults (no `hasContext`-derived flags leaking through).
-   - Final return (after data resolves) keeps `shouldGate = !hasContext`.
+4. **Do not use repo-touch workarounds as the primary fix**
+   - **Option B** (`vite.config.ts` rename dance) is lower confidence because the source has already changed materially and the published artifact still did not update.
+   - **Option C** (deleting `.lovable` or similar local directories) is also low value because those files are project-local and do not prove control over the hosted publish cache.
+   - Only attempt these after support confirms they affect the publish pipeline.
 
-2. **All 18 builders that consume `useBookContext` + `BookProfileGate`** — add an `isLoading` guard so the gate only renders after data resolves.
-   - Builders to update (BP-01..BP-09, BA-10..BA-18):
-     `src/components/dashboard/builders/bp01/BP01Builder.tsx` … `bp09/BP09Builder.tsx`
-     `src/components/dashboard/builders/ba10/BA10Builder.tsx` … `ba18/BA18Builder.tsx`
-   - Pattern in each: destructure `isLoading` from `useBookContext()`, then render gate as `{!isLoading && shouldGate && <BookProfileGate ... />}`. While loading, show nothing (or existing skeleton if one already exists) instead of the gate.
+5. **After the artifact is reset**
+   - Publish/update once.
+   - Verify three things in order:
+     1. JS bundle hash changes from `index-CI1iIzPP.js`
+     2. browser console shows `Build: 2026-04-20T10:18:00Z`
+     3. builder routes no longer show `BookProfileGate` during loading for Pauline, because `get-author-book` should resolve to `"Be SUCKcessful"` and `shouldGate` should remain false
 
-3. **No changes** to `BookProfileGate.tsx`, edge functions, or routing. The component already returns `null` when `shouldGate === false`; the bug is upstream consumer logic.
+### Technical notes
+- `vite.config.ts` is minimal and has no custom output naming or asset pipeline logic that explains a frozen hash.
+- The hook-level loading safeguard is already present in `src/hooks/useBookContext.ts`.
+- The remaining issue is therefore upstream of app logic: publishing state, stale artifact reuse, or a blocked/partial rebuild in Lovable’s deployment layer.
 
-### Verification (after publish)
-- Hard refresh on a builder route (e.g. BA-10) for Pauline's account.
-- Console should show `[useBookContext] render` with `isLoading: true` first (no gate visible), then `isLoading: false, hasContext: true, shouldGate: false` (no gate, builder renders).
-- Bundle hash should advance past `index-CI1iIzPP.js`.
-
-### Out of scope
-- Edge function logic, query keys, or further HOOK_VERSION bumps.
-- Visual redesign of the loading state (uses existing skeletons where present, otherwise renders nothing during load).
-
+### Success criteria
+- Published asset hash changes from `index-CI1iIzPP.js`
+- `Build: 2026-04-20T10:18:00Z` appears in the browser console
+- The live site reflects the current `useBookContext` behavior without premature gating
