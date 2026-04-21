@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuthorBook } from "@/hooks/useAuthorBook";
+import { useBookContext } from "@/hooks/useBookContext";
+import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -31,7 +32,8 @@ export default function BA11Builder({ authorId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
+  const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
     if (!authorId) return;
@@ -106,8 +108,18 @@ export default function BA11Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's prepare your Audiobook</h2>
-            {!isBookLoading && !hasBook ? (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Before I can prepare your audiobook, I need to know about your book. Please complete your book profile first.</p><Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-11")}>Complete Book Profile</Button></>
+            {isBookLoading ? (
+              <p className="text-muted-foreground">Checking your book profile…</p>
+            ) : shouldGate && !overrideGate ? (
+              <BookProfileGate
+                shouldGate={shouldGate}
+                hasBook={hasBook}
+                bookId={bookId}
+                book={book}
+                missingFields={missingFields}
+                returnTo="/node-builder/BA-11"
+                onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
+              />
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! Audiobooks are one of the fastest-growing formats in publishing. I'm going to prepare your complete audiobook production package — with a narrator brief, chapter-by-chapter recording guide, and distribution strategy for Audible, Spotify, and Apple Books. Ready to go audio?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Prepare My Audiobook</Button></>

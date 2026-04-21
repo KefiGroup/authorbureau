@@ -111,13 +111,13 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
   },
   "BP-09": {
     creates: [
-      "An audiobook script broken into chapters",
-      "A narration plan (AI voice or human-narrator-ready)",
-      "Distribution checklist for ACX / Findaway / Spotify",
+      "An event sales strategy with pricing tiers",
+      "Back-of-room sales scripts + a QR-code order page",
+      "A post-event follow-up email sequence",
     ],
-    livesAt: "Audiobook detail in your Brand Products library, with download-ready scripts and a public sales page.",
-    editLater: "Re-open Audiobook to edit chapters, regenerate narration, or update distribution status.",
-    estimate: "90–120 seconds",
+    livesAt: "Sales kit in your Brand Products library + a QR-code order page at /your-slug/buy/...",
+    editLater: "Re-open Book Sales to edit pricing, scripts, or your follow-up emails.",
+    estimate: "45–75 seconds",
   },
 };
 
