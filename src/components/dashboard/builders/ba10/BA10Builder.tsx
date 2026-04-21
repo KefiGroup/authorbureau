@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuthReady } from "@/hooks/useAuthReady";
+import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -31,18 +33,22 @@ export default function BA10Builder({ authorId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
-  const [isBookLoading, setIsBookLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const { isReady: isAuthReady } = useAuthReady();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!isAuthReady || !authorId) return;
     (async () => {
-      setIsBookLoading(true);
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("pen_name, author_slug, user_id")
+        .eq("id", authorId)
+        .maybeSingle();
+
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
-      // Same pattern as BP-01: check author_context first, fall back to books table
       const { data: ctx } = await supabase
         .from("author_context")
         .select("book_title")
@@ -55,13 +61,15 @@ export default function BA10Builder({ authorId }: Props) {
         setBookTitle(ctx.book_title);
         setHasContext(true);
       } else {
+        const userId = profile?.user_id || authorId;
         const { data: bookRow } = await supabase
           .from("books")
           .select("title")
-          .eq("author_id", profile?.user_id || authorId)
+          .eq("author_id", userId)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
+
         if (bookRow?.title) {
           setBookTitle(bookRow.title);
           setHasContext(true);
@@ -69,16 +77,21 @@ export default function BA10Builder({ authorId }: Props) {
           setHasContext(false);
         }
       }
-      setIsBookLoading(false);
 
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-10").maybeSingle();
+      const { data: node } = await supabase
+        .from("author_nodes")
+        .select("content_json, status")
+        .eq("author_id", authorId)
+        .eq("node_id", "BA-10")
+        .maybeSingle();
+
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
         setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
-  }, [authorId]);
+  }, [authorId, isAuthReady]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -87,7 +100,7 @@ export default function BA10Builder({ authorId }: Props) {
       intervalRef.current = setInterval(() => setMsgIndex((i) => (i + 1) % msgs.length), 3000);
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
-  }, [step]);
+  }, [step, content?.activated]);
 
   const handleGenerate = async () => {
     setStep(1); setError(null);
@@ -123,9 +136,7 @@ export default function BA10Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
-            {isBookLoading ? (
-              <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : hasContext === false ? (
+            {!isBookLoading && !hasBook && hasContext === false ? (
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.
@@ -133,8 +144,10 @@ export default function BA10Builder({ authorId }: Props) {
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button>
               </>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button></>
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{detectedBookTitle || bookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button>
+              </>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
