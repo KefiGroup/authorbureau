@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowRight, BookOpen, LayoutList, DollarSign, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -208,11 +209,20 @@ export default function BA10Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
+          <>
+            <PublishSuccessScreen
               nodeId="BA-10"
               authorName={authorName}
               penNameSlug={authorSlug}
             />
+            <BANodeDownloadCard
+              content={content}
+              nodeName="Online Course"
+              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
+              authorName={authorName}
+              guidance="Your course package is ready. Download it and upload it to Teachable, Kajabi, Thinkific, or any online course platform of your choice to start earning revenue from your expertise."
+            />
+          </>
         )}
       </div>
     </div>
