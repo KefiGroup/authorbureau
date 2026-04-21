@@ -51,6 +51,7 @@ export default function BP04Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
     if (!authorId) return;
@@ -62,6 +63,26 @@ export default function BP04Builder({ authorId }: Props) {
         .single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
+
+      const { data: ctx } = await supabase
+        .from("author_context")
+        .select("book_title")
+        .eq("author_id", authorId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (ctx?.book_title) {
+        setResolvedBookTitle(ctx.book_title);
+      } else {
+        const { data: book } = await supabase
+          .from("books")
+          .select("title")
+          .eq("author_id", profile?.user_id || authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (book?.title) setResolvedBookTitle(book.title);
+      }
 
 
       const { data: node } = await supabase
@@ -176,7 +197,7 @@ export default function BP04Builder({ authorId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  Hi {authorName}! Every author needs a professional online home — a place where readers discover you, learn about your book, and join your community. I'm going to build your complete author website for '{detectedBookTitle || "your book"}' — with a homepage, about page, book page, and contact form — all written and structured around your book and your brand. Ready?
+                  Hi {authorName}! Every author needs a professional online home — a place where readers discover you, learn about your book, and join your community. I'm going to build your complete author website for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with a homepage, about page, book page, and contact form — all written and structured around your book and your brand. Ready?
                 </p>
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-04"]} />

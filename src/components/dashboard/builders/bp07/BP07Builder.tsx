@@ -37,6 +37,7 @@ export default function BP07Builder({ authorId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
     if (!authorId) return;
@@ -44,7 +45,13 @@ export default function BP07Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      // detectedBookTitle/isBookLoading sync handled in separate effect below
+      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (ctx?.book_title) {
+        setResolvedBookTitle(ctx.book_title);
+      } else {
+        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (book?.title) setResolvedBookTitle(book.title);
+      }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-07").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
@@ -100,15 +107,13 @@ export default function BP07Builder({ authorId }: Props) {
         <NodeHowItWorks nodeId="BP-07" />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Home Study Course</h2>
-            {isBookLoading ? (
-              <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your home study course, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button>
               </>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{detectedBookTitle || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
