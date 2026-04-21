@@ -1,16 +1,19 @@
 /**
  * generate-ba10-online-course
  * ---------------------------
- * Sprint 40 rewrite: generates a complete online course personalised to the
- * author's book and POPULATES the relational tables that the LMS reads from:
+ * Sprint 40 (stabilization): generates a complete online course personalised
+ * to the author's book and POPULATES the relational tables that the LMS reads:
  *   - courses                (1 row)
- *   - course_modules         (6–8 rows)
- *   - course_lessons         (3–5 rows per module, with `outline`)
+ *   - course_modules         (exactly 6 rows)
+ *   - course_lessons         (exactly 3 rows per module, with `outline`)
  *
- * Also mirrors a snapshot to author_nodes.content_json for the builder UI and
- * sets author_nodes.BA-10.status = 'in_progress'.
+ * Pedagogical framework (Bloom's Taxonomy + Kolb's cycle) is preserved.
+ * Mirrors a snapshot to author_nodes.content_json for the builder UI.
  *
  * Body: { author_id: string }
+ *
+ * Failure mode: returns HTTP 200 with { success: false, error } so the
+ * frontend can render a real, actionable error.
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -21,7 +24,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-function compactJson(value: unknown, fallback: string, maxLength = 1600) {
+const AI_TIMEOUT_MS = 55_000;
+
+function compactJson(value: unknown, fallback: string, maxLength = 800) {
   try {
     const serialized = JSON.stringify(value ?? fallback);
     return serialized.length > maxLength
@@ -33,20 +38,54 @@ function compactJson(value: unknown, fallback: string, maxLength = 1600) {
 }
 
 function parseAiJson(raw: string) {
-  const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-  const exactMatch = cleaned.match(/\{[\s\S]*\}/);
-  if (!exactMatch) throw new Error("No valid JSON in AI response");
-  return JSON.parse(exactMatch[0]);
+  if (!raw) throw new Error("Empty AI response");
+  let cleaned = raw.replace(/```json\s*/gi, "").replace(/```\s*/g, "").trim();
+
+  // Try direct parse first
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // fall through
+  }
+
+  // Extract first {...} block
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error("No JSON object found in AI response");
+  cleaned = match[0];
+
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    // One repair pass: balance braces/brackets, strip trailing commas, control chars
+    let repaired = cleaned
+      .replace(/,\s*}/g, "}")
+      .replace(/,\s*]/g, "]")
+      .replace(/[\x00-\x1F\x7F]/g, " ");
+    let braces = 0, brackets = 0;
+    for (const ch of repaired) {
+      if (ch === "{") braces++;
+      else if (ch === "}") braces--;
+      else if (ch === "[") brackets++;
+      else if (ch === "]") brackets--;
+    }
+    while (brackets-- > 0) repaired += "]";
+    while (braces-- > 0) repaired += "}";
+    return JSON.parse(repaired);
+  }
 }
 
 function errorMessage(err: unknown) {
   if (err instanceof Error) return err.message;
   if (typeof err === "string") return err;
-  try {
-    return JSON.stringify(err);
-  } catch {
-    return String(err);
-  }
+  try { return JSON.stringify(err); } catch { return String(err); }
+}
+
+function failResponse(error: string, diagnostics?: unknown) {
+  console.error("generate-ba10-online-course failure:", error, diagnostics ?? "");
+  return new Response(
+    JSON.stringify({ success: false, error, diagnostics }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
 }
 
 async function upsertAuthorNode(
@@ -84,7 +123,6 @@ async function resolveAuthorBook(
   cloudUserId: string | null,
 ) {
   let userEmail: string | null = null;
-
   if (cloudUserId) {
     const { data: userResult } = await supabase.auth.admin.getUserById(cloudUserId);
     userEmail = userResult.user?.email ?? null;
@@ -112,11 +150,13 @@ async function resolveAuthorBook(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let authorIdForRestore: string | null = null;
   let priorNodeState: Record<string, unknown> | null = null;
 
   try {
     const { author_id } = await req.json();
-    if (!author_id) throw new Error("author_id is required");
+    if (!author_id) return failResponse("author_id is required");
+    authorIdForRestore = author_id;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -128,11 +168,11 @@ serve(async (req) => {
       .select("pen_name, genres, user_id")
       .eq("id", author_id)
       .single();
-    if (!author) throw new Error("Author not found");
+    if (!author) return failResponse("Author profile not found");
 
     const courseOwnerId = author.user_id?.trim();
     if (!courseOwnerId) {
-      throw new Error("Author account mapping is missing. Please contact support.");
+      return failResponse("Author account mapping is missing. Please contact support.");
     }
 
     const { data: existingNodeSnapshot } = await supabase
@@ -153,109 +193,142 @@ serve(async (req) => {
 
     const book = await resolveAuthorBook(supabase, author_id, courseOwnerId);
     const resolvedBookTitle = ctx?.book_title?.trim() || book?.title?.trim() || "";
-    if (!resolvedBookTitle) throw new Error("No book found. Please add a book first.");
+    if (!resolvedBookTitle) return failResponse("No book found. Please add a book first.");
     const coreThesis = ctx?.core_thesis?.trim() || book?.description?.trim() || "";
-    const targetAudience = compactJson(ctx?.target_audience_persona, "{}", 1200);
-    const keyFrameworks = compactJson(ctx?.key_frameworks, "[]", 1400);
-    const uniqueInsights = compactJson(ctx?.unique_insights, "[]", 1400);
+    const targetAudience = compactJson(ctx?.target_audience_persona, "{}", 600);
+    const keyFrameworks = compactJson(ctx?.key_frameworks, "[]", 700);
+    const uniqueInsights = compactJson(ctx?.unique_insights, "[]", 700);
     const genre = ctx?.genre || book?.genre || author.genres?.[0] || "General";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
+    if (!LOVABLE_API_KEY) return failResponse("AI service not configured");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5.2",
-        messages: [
-          {
-            role: "system",
-            content:
-              "You are ABBY, the AI business agent for Authors Bureau. Generate a complete, professional online course personalised to the author's book. You design courses using sound pedagogical frameworks: Bloom's Taxonomy (Remember → Understand → Apply → Analyze → Evaluate → Create) for cognitive progression, Kolb's Experiential Learning Cycle (Concrete Experience → Reflective Observation → Abstract Conceptualisation → Active Experimentation), and Gagné's 9 Events of Instruction. Modules MUST progress from lower-order to higher-order thinking skills. Each module specifies its primary Bloom's level and Kolb's stage. Respond with ONLY valid JSON (no markdown, no code fences). Every lesson MUST include a 1-2 sentence `outline`.",
-          },
-          {
-            role: "user",
-            content: `Create a complete online course for ${author.pen_name}'s book '${resolvedBookTitle}'.
+    // ============ AI call (timeout-guarded, JSON-mode) ============
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
+    let aiRes: Response;
+    try {
+      aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        signal: controller.signal,
+        headers: {
+          "Authorization": `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          temperature: 0.25,
+          response_format: { type: "json_object" },
+          max_completion_tokens: 6000,
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are ABBY, the AI business agent for Authors Bureau. You design online courses using Bloom's Taxonomy (Remember → Understand → Apply → Analyze → Evaluate → Create) and Kolb's Experiential Learning Cycle (Concrete Experience → Reflective Observation → Abstract Conceptualisation → Active Experimentation). Modules MUST progress from lower-order to higher-order thinking. Each module specifies its primary Bloom's level and Kolb's stage with measurable, Bloom-aligned learning objectives. Respond with ONLY valid JSON. Every lesson MUST include a 1-sentence `outline`.",
+            },
+            {
+              role: "user",
+              content: `Create a complete online course for ${author.pen_name}'s book '${resolvedBookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
 - Title: ${resolvedBookTitle}
 - Subtitle: ${ctx?.book_subtitle || "N/A"}
-- Core thesis: ${coreThesis || "Use the book description and context to infer the main promise."}
+- Core thesis: ${coreThesis || "Use the description and context to infer the main promise."}
 - Target audience: ${targetAudience}
 - Key frameworks: ${keyFrameworks}
 - Unique insights: ${uniqueInsights}
 - Genre: ${genre}
 
-Return JSON exactly in this shape:
+Return JSON exactly in this shape (concise — keep prose short to fit token budget):
 {
   "course_title": "string (compelling, NOT just the book title)",
   "course_subtitle": "string (one-line promise)",
   "tagline": "string (memorable hook)",
-  "duration": "string e.g. '6 weeks · 8 modules'",
+  "duration": "string e.g. '6 weeks · 6 modules'",
   "difficulty_level": "Beginner|Intermediate|Advanced",
-  "transformation_promise": "string (what students achieve)",
+  "transformation_promise": "string",
   "who_its_for": "string (specific persona)",
-  "what_youll_get": ["4 bullet items"],
+  "what_youll_get": ["4 short bullets"],
   "suggested_price_usd": 197,
-  "pricing_rationale": "string (1-2 sentences)",
-  "course_description_long": "3-4 paragraph rich description",
-  "pedagogical_approach": "1-2 sentence summary of how Bloom's Taxonomy and Kolb's cycle structure this course",
+  "pricing_rationale": "1 sentence",
+  "course_description_long": "2 short paragraphs",
+  "pedagogical_approach": "1 sentence summarising how Bloom's + Kolb's structure this course",
   "modules": [
     {
       "number": 1,
       "title": "string",
-      "description": "string (2-3 sentences)",
+      "description": "1-2 sentences",
       "blooms_level": "Remember|Understand|Apply|Analyze|Evaluate|Create",
       "kolbs_stage": "Concrete Experience|Reflective Observation|Abstract Conceptualisation|Active Experimentation",
-      "learning_objectives": ["By the end of this module, students will be able to <verb aligned to Bloom's level> ..."],
-      "outcome": "string (after this module the student can...)",
+      "learning_objectives": ["By the end, students will <Bloom-aligned verb> ...", "..."],
+      "outcome": "1 sentence",
       "lessons": [
-        { "number": 1, "title": "string", "type": "video|reading|exercise|quiz",
-          "duration_minutes": 12,
-          "outline": "1-2 sentence summary of what's taught" }
+        { "number": 1, "title": "string", "type": "video|reading|exercise|quiz", "duration_minutes": 12, "outline": "1 sentence" }
       ]
     }
   ],
   "sales_copy": {
     "headline": "string", "subheadline": "string",
-    "problem": "string", "solution": "string",
+    "problem": "1-2 sentences", "solution": "1-2 sentences",
     "outcomes": ["string","string","string"],
     "cta": "string"
   },
-  "launch_emails": [
-    { "subject": "string", "body": "string (4-6 sentences, signed by ${author.pen_name})" }
-  ],
-  "abby_summary": "string (1-2 sentences telling the author what was created and the pedagogical approach used)"
+  "abby_summary": "1-2 sentences summarising what was built and the pedagogical approach"
 }
 
-Rules:
-- 6 to 8 modules, each with 3 to 5 lessons
-- Modules MUST progress through Bloom's levels: early modules at Remember/Understand, middle at Apply/Analyze, final modules at Evaluate/Create
-- Each module's learning_objectives MUST start with measurable Bloom-aligned verbs (e.g., "Identify...", "Explain...", "Apply...", "Analyze...", "Evaluate...", "Design...")
-- Every lesson MUST have an outline
-- 3 launch emails (Day 0, Day 2, Day 5)
-- Make everything specific to the book — no generic placeholders`,
-          },
-        ],
-        max_completion_tokens: 8000,
-      }),
-    });
+Strict rules:
+- EXACTLY 6 modules
+- EXACTLY 3 lessons per module
+- Bloom progression: M1 Remember, M2 Understand, M3 Apply, M4 Analyze, M5 Evaluate, M6 Create
+- Each module has 2 measurable Bloom-aligned learning_objectives
+- Every lesson has an outline
+- Specific to '${resolvedBookTitle}' — no generic placeholders
+- Keep all prose short to stay within token limit`,
+            },
+          ],
+        }),
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      const msg = (fetchErr as Error)?.name === "AbortError"
+        ? "ABBY took too long to respond. Please click Try Again."
+        : `AI gateway request failed: ${errorMessage(fetchErr)}`;
+      return failResponse(msg);
+    }
+    clearTimeout(timeoutId);
 
     if (!aiRes.ok) {
       const details = await aiRes.text();
-      throw new Error(`AI gateway error: ${aiRes.status} ${details.slice(0, 300)}`);
+      if (aiRes.status === 429) return failResponse("ABBY is rate-limited right now. Please wait a few seconds and try again.", details.slice(0, 300));
+      if (aiRes.status === 402) return failResponse("ABBY's AI credits need topping up. Please add credits in Settings → Workspace → Usage.", details.slice(0, 300));
+      return failResponse(`AI gateway error (${aiRes.status}). Please try again.`, details.slice(0, 300));
     }
+
     const aiData = await aiRes.json();
     const raw = aiData.choices?.[0]?.message?.content || "";
-    const content = parseAiJson(raw);
+    let content: any;
+    try {
+      content = parseAiJson(raw);
+    } catch (parseErr) {
+      return failResponse(
+        "ABBY returned malformed content. Please click Try Again.",
+        { parseErr: errorMessage(parseErr), preview: raw.slice(0, 400) },
+      );
+    }
+
+    // Validate required top-level fields
+    const required = ["course_title", "modules", "suggested_price_usd"];
+    const missing = required.filter((k) => content[k] === undefined || content[k] === null);
+    if (missing.length || !Array.isArray(content.modules) || content.modules.length === 0) {
+      return failResponse(
+        "ABBY's response was incomplete. Please click Try Again.",
+        { missing, hasModules: Array.isArray(content.modules), moduleCount: content.modules?.length },
+      );
+    }
 
     // ============ Populate relational tables ============
-    // 1. Upsert the courses row (one course per author per book for now)
     const coursePayload: Record<string, unknown> = {
       author_id: courseOwnerId,
       book_id: book?.id ?? null,
@@ -272,7 +345,6 @@ Rules:
       course_format: "self_paced",
     };
 
-    // Look up existing course for this author + book
     const { data: existingCourse } = await supabase
       .from("courses")
       .select("id")
@@ -286,23 +358,16 @@ Rules:
       const { error: updateCourseError } = await supabase.from("courses").update(coursePayload).eq("id", courseId);
       if (updateCourseError) throw updateCourseError;
 
-      const { data: existingModules, error: existingModulesError } = await supabase
+      const { data: existingModules } = await supabase
         .from("course_modules")
         .select("id")
         .eq("course_id", courseId);
-      if (existingModulesError) throw existingModulesError;
 
-      const moduleIds = (existingModules ?? []).map((module) => module.id);
+      const moduleIds = (existingModules ?? []).map((m) => m.id);
       if (moduleIds.length > 0) {
-        const { error: deleteLessonsError } = await supabase
-          .from("course_lessons")
-          .delete()
-          .in("module_id", moduleIds);
-        if (deleteLessonsError) throw deleteLessonsError;
+        await supabase.from("course_lessons").delete().in("module_id", moduleIds);
       }
-
-      const { error: deleteModulesError } = await supabase.from("course_modules").delete().eq("course_id", courseId);
-      if (deleteModulesError) throw deleteModulesError;
+      await supabase.from("course_modules").delete().eq("course_id", courseId);
     } else {
       const { data: newCourse, error: courseErr } = await supabase
         .from("courses")
@@ -313,7 +378,6 @@ Rules:
       courseId = newCourse.id;
     }
 
-    // 2. Insert modules + lessons
     const modules: Array<Record<string, unknown>> = Array.isArray(content.modules) ? content.modules : [];
     for (let mi = 0; mi < modules.length; mi++) {
       const m = modules[mi] as Record<string, unknown>;
@@ -355,7 +419,6 @@ Rules:
       }
     }
 
-    // 3. Mirror to author_nodes (status: in_progress until author publishes)
     await upsertAuthorNode(supabase, author_id, {
       status: "content_ready",
       current_step: 2,
@@ -371,22 +434,17 @@ Rules:
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    if (priorNodeState) {
+    if (priorNodeState && authorIdForRestore) {
       try {
         await upsertAuthorNode(
           createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
-          (await req.clone().json()).author_id,
+          authorIdForRestore,
           priorNodeState,
         );
       } catch (restoreErr) {
         console.error("generate-ba10-online-course restore error:", errorMessage(restoreErr));
       }
     }
-    const message = errorMessage(err);
-    console.error("generate-ba10-online-course error:", message);
-    return new Response(JSON.stringify({ success: false, error: message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return failResponse(errorMessage(err));
   }
 });

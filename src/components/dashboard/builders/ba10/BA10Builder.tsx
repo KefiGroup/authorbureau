@@ -109,6 +109,12 @@ export default function BA10Builder({ authorId }: Props) {
 
   const toggleModule = (i: number) => setExpandedModules(prev => ({ ...prev, [i]: !prev[i] }));
 
+  const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book")
+    ? detectedBookTitle
+    : resolvedBookTitle;
+  const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
+  const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
+
   return (
     <div className="min-h-screen bg-background">
       <StepHeader nodeId="BA-10" nodeName="Online Course" step={step} />
@@ -116,15 +122,17 @@ export default function BA10Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
-            {!isBookLoading && !hasBook && !resolvedBookTitle ? (
+            {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button>
               </>
+            ) : !isIntroReady ? (
+              <p className="text-muted-foreground mb-4">Loading your book details…</p>
             ) : (
               <>
-                <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !resolvedBookTitle && !detectedBookTitle}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{displayBookTitle}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button>
               </>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
