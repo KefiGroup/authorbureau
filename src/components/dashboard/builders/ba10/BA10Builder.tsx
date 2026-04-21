@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useBookContext } from "@/hooks/useBookContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -10,7 +9,6 @@ import { toast } from "sonner";
 import { Sparkles, ArrowRight, BookOpen, LayoutList, DollarSign, FileText, ChevronDown, ChevronUp } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
-import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 
@@ -33,22 +31,46 @@ export default function BA10Builder({ authorId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [expandedModules, setExpandedModules] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
+  const [isBookLoading, setIsBookLoading] = useState(true);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, missingFields, bookId, book, shouldGate } = useBookContext();
-  const [overrideGate, setOverrideGate] = useState(false);
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
+      setIsBookLoading(true);
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      if (detectedBookTitle && detectedBookTitle !== "your book") {
-        setBookTitle(detectedBookTitle);
+
+      // Same pattern as BP-01: check author_context first, fall back to books table
+      const { data: ctx } = await supabase
+        .from("author_context")
+        .select("book_title")
+        .eq("author_id", authorId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (ctx?.book_title) {
+        setBookTitle(ctx.book_title);
         setHasContext(true);
-      } else if (!isBookLoading) {
-        setHasContext(false);
+      } else {
+        const { data: bookRow } = await supabase
+          .from("books")
+          .select("title")
+          .eq("author_id", profile?.user_id || authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (bookRow?.title) {
+          setBookTitle(bookRow.title);
+          setHasContext(true);
+        } else {
+          setHasContext(false);
+        }
       }
+      setIsBookLoading(false);
+
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-10").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
@@ -56,7 +78,7 @@ export default function BA10Builder({ authorId }: Props) {
         if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
-  }, [authorId, detectedBookTitle, isBookLoading]);
+  }, [authorId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
