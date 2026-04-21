@@ -15,48 +15,131 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
   const [activeIdx, setActiveIdx] = useState(0);
   const chapter = chapters[activeIdx];
 
+  const splitIntoChapters = (text: string): { title: string; body: string }[] => {
+    const cleaned = text.replace(/\r\n/g, "\n").trim();
+    // Try common chapter markers first
+    const chapterRegex = /^\s*(chapter\s+\w+|part\s+\w+|\d+\.)\s*[:\-—]?\s*(.*)$/gim;
+    const matches = [...cleaned.matchAll(chapterRegex)];
+
+    if (matches.length >= 2) {
+      const result: { title: string; body: string }[] = [];
+      for (let i = 0; i < matches.length; i++) {
+        const m = matches[i];
+        const start = (m.index ?? 0) + m[0].length;
+        const end = i + 1 < matches.length ? (matches[i + 1].index ?? cleaned.length) : cleaned.length;
+        const title = (m[2]?.trim() || m[1].trim()).slice(0, 80);
+        const body = cleaned.slice(start, end).trim();
+        if (body.length > 100) result.push({ title: title || `Chapter ${i + 1}`, body });
+      }
+      if (result.length >= 2) return result;
+    }
+
+    // Fallback: split by length (~3000 words per chapter)
+    const words = cleaned.split(/\s+/);
+    const chunkSize = 3000;
+    const chunks: { title: string; body: string }[] = [];
+    for (let i = 0; i < words.length; i += chunkSize) {
+      const body = words.slice(i, i + chunkSize).join(" ");
+      if (body.length > 100) {
+        chunks.push({ title: `Chapter ${chunks.length + 1}`, body });
+      }
+    }
+    return chunks;
+  };
+
+  const buildAutoSuggestions = (text: string, chapterIdx: number): AudioSuggestion[] => {
+    const sugs: AudioSuggestion[] = [];
+    const patterns: { regex: RegExp; reason: string; replace: (m: string) => string }[] = [
+      { regex: /\bas shown in (figure|fig\.?|table|chart|diagram)\s*\d*/gi, reason: "Visual reference", replace: () => "as we just discussed" },
+      { regex: /\bsee (figure|fig\.?|table|chart|diagram|page)\s*\d+/gi, reason: "Visual reference", replace: () => "as you'll hear next" },
+      { regex: /\([^)]{40,}\)/g, reason: "Long parenthetical", replace: (m) => `, ${m.slice(1, -1)},` },
+      { regex: /\be\.g\./gi, reason: "Abbreviation", replace: () => "for example" },
+      { regex: /\bi\.e\./gi, reason: "Abbreviation", replace: () => "that is" },
+      { regex: /\betc\./gi, reason: "Abbreviation", replace: () => "and so on" },
+    ];
+    let id = 0;
+    patterns.forEach(({ regex, reason, replace }) => {
+      const matches = [...text.matchAll(regex)].slice(0, 3);
+      matches.forEach((m) => {
+        sugs.push({
+          id: `s-${chapterIdx}-${id++}`,
+          original: m[0],
+          replacement: replace(m[0]),
+          reason,
+          accepted: null,
+        });
+      });
+    });
+    return sugs.slice(0, 6);
+  };
+
   const handleGenerate = async () => {
     setGenerationState("queued");
     try {
-      const { data: session } = await supabase.auth.getSession();
       setGenerationState("analyzing");
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.session?.access_token}` },
-          body: JSON.stringify({
-            prompt: `You are an audiobook production expert. For the book "${bookTitle}" (book_id: ${bookId}), generate a JSON array of 10-12 chapters, each with: id, title, originalText (200-word excerpt), optimizedText (audio-optimized version), suggestions (array of {id, original, replacement, reason, accepted: null}), status: "script-ready". Focus on removing visual references, simplifying parentheticals, and adding pronunciation guides. Return ONLY the JSON array.`,
-            stream: false,
-          }),
-        }
-      );
+      // 1. Fetch the actual uploaded manuscript from generated_assets
+      const { data: book } = await supabase
+        .from("books")
+        .select("author_id")
+        .eq("id", bookId)
+        .maybeSingle();
+
+      if (!book?.author_id) {
+        toast.error("Book not found. Please add your book first.");
+        setGenerationState("error");
+        return;
+      }
+
+      const { data: asset } = await supabase
+        .from("generated_assets")
+        .select("content")
+        .eq("book_id", bookId)
+        .eq("author_id", book.author_id)
+        .eq("asset_type", "source_material")
+        .maybeSingle();
+
+      const manuscript = asset?.content?.trim();
+      if (!manuscript || manuscript.length < 500) {
+        toast.error("No manuscript found. Please upload your manuscript in the Book Hub first.");
+        setGenerationState("error");
+        return;
+      }
 
       setGenerationState("generating");
-      const result = await res.json();
-      let parsed: AudioChapter[] = [];
-      try {
-        const text = result.response || result.content || JSON.stringify(result);
-        const match = text.match(/\[[\s\S]*\]/);
-        if (match) parsed = JSON.parse(match[0]);
-      } catch (error) {
-        parsed = Array.from({ length: 10 }, (_, i) => ({
+
+      // 2. Split locally into chapters (deterministic — never returns 0)
+      const rawChapters = splitIntoChapters(manuscript);
+
+      // 3. Build chapter records with auto-detected audio-optimization suggestions
+      const parsed: AudioChapter[] = rawChapters.slice(0, 20).map((c, i) => {
+        const suggestions = buildAutoSuggestions(c.body, i);
+        let optimized = c.body;
+        suggestions.forEach((s) => {
+          optimized = optimized.replace(s.original, s.replacement);
+        });
+        return {
           id: `ch-${i + 1}`,
-          title: `Chapter ${i + 1}`,
-          originalText: "Original manuscript text...",
-          optimizedText: "Audio-optimized text...",
-          suggestions: [
-            { id: `s-${i}-1`, original: "as shown in Figure 3", replacement: "as we discussed earlier", reason: "Visual reference", accepted: null },
-          ],
+          title: c.title,
+          originalText: c.body,
+          optimizedText: optimized,
+          suggestions,
           status: "script-ready" as const,
-        }));
+        };
+      });
+
+      if (parsed.length === 0) {
+        toast.error("Couldn't split manuscript into chapters. Please check your file.");
+        setGenerationState("error");
+        return;
       }
+
       setStepData(prev => ({ ...prev, chapters: parsed }));
       onMarkEdited("optimize");
       setGenerationState("complete");
       toast.success(`Optimized ${parsed.length} chapters for audio!`);
     } catch (error) {
+      console.error("[optimize] failed:", error);
       setGenerationState("error");
       toast.error("Failed to optimize manuscript");
     }
