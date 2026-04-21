@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { useAuthorBook } from "@/hooks/useAuthorBook";
+import { useBookContext } from "@/hooks/useBookContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -153,7 +153,7 @@ export default function BP03Builder({ authorId }: Props) {
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
   const { isReady: isAuthReady } = useAuthReady();
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useBookContext();
 
   // Check which social accounts the author has connected. Re-checks every time we land on Review.
   useEffect(() => {
