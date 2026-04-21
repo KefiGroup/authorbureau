@@ -73,16 +73,23 @@ export default function BA10Builder({ authorId }: Props) {
   }, [step, content?.activated]);
 
   const handleGenerate = async () => {
+    console.log("[BA-10] Build My Course clicked", { authorId });
     setStep(1); setError(null);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba10-online-course", { body: { author_id: authorId } });
+      console.log("[BA-10] generate response", { data, fnErr });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);
       setPriceOverride(data.content?.suggested_price_usd || null);
       setStep(2);
       // Auto-save draft so a refresh won't bump the author back to step 0
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2 });
-    } catch (e: any) { setError(e.message); setStep(0); }
+    } catch (e: any) {
+      console.error("[BA-10] generate error", e);
+      setError(e.message);
+      setStep(0);
+      toast.error(`Generation failed: ${toAbbyError(e.message)}`);
+    }
   };
 
   const handlePublish = async () => {
