@@ -393,7 +393,25 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
             onSubscribe={() => onNavigate?.("build-business")}
           />
 
-          {/* 3. Contextual Action Banner */}
+          {/* Intent banner: user came in via Brand/Build/Yield sidebar — make them pick a book */}
+          {intentTab && books.length > 1 && (
+            <Card className="p-5 border-2 border-secondary/40 bg-secondary/5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15 shrink-0">
+                  <Sparkles className="h-5 w-5 text-secondary" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-heading text-base font-semibold mb-0.5">
+                    Pick a book to start building your {intentLabel}
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Choose which book this {intentLabel?.toLowerCase()} should be built around — every product is tied to a specific book.
+                  </p>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {banner && (
             <ContextualBanner
               priority={banner.priority}
