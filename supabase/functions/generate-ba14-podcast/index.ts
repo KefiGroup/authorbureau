@@ -67,7 +67,6 @@ Generate JSON: {"show_title","show_subtitle","tagline","show_description":"2-3 p
 
 Make everything specific to this book. No placeholders.` },
         ],
-        temperature: 0.7,
       }),
     });
     if (!aiRes.ok) {

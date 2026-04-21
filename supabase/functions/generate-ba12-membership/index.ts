@@ -83,7 +83,6 @@ Return JSON exactly in this shape:
 
 Single tier only. No generic placeholders.` },
         ],
-        temperature: 0.7,
       }),
     });
     if (!aiRes.ok) {

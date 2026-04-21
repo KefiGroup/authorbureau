@@ -67,7 +67,6 @@ Generate JSON: {"programme_title","tagline","commission_structure":[2 items with
 
 Make everything specific to this book. No placeholders.` },
         ],
-        temperature: 0.7,
       }),
     });
     if (!aiRes.ok) {
