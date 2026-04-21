@@ -42,8 +42,6 @@ export default function BP06Builder({ authorId }: Props) {
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
-  const [bookTitle, setBookTitle] = useState("");
-  const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
@@ -66,16 +64,6 @@ export default function BP06Builder({ authorId }: Props) {
       }
     })();
   }, [authorId]);
-
-  // Propagate late-resolving title from useBookContext into local state
-  useEffect(() => {
-    if (detectedBookTitle && detectedBookTitle !== "your book") {
-      setBookTitle(detectedBookTitle);
-      setHasContext(true);
-    } else if (!isBookLoading) {
-      setHasContext(false);
-    }
-  }, [detectedBookTitle, isBookLoading]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -141,7 +129,7 @@ export default function BP06Builder({ authorId }: Props) {
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button>
               </>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! A companion workbook is the perfect free lead magnet — it builds your email list and gives readers a practical way to apply your ideas. I'm going to design a complete workbook based on '{detectedBookTitle || bookTitle || "your book"}' — with sections, exercises, reflection prompts, and action items. Ready?</p>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A companion workbook is the perfect free lead magnet — it builds your email list and gives readers a practical way to apply your ideas. I'm going to design a complete workbook based on '{detectedBookTitle || "your book"}' — with sections, exercises, reflection prompts, and action items. Ready?</p>
                 <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-06"]} /></div>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Build My Workbook</Button></>
             )}
