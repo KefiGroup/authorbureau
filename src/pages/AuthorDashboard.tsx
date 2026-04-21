@@ -466,41 +466,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
-        return gate("Book Sales", 
-          BUILDER_NODE_MAP["book-sales"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["book-sales"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="book-sales" />
-        );
+        return <Navigate to="/node-builder/BP-05" replace />;
       case "special-editions":
-        return gate("Special Editions", 
-          BUILDER_NODE_MAP["special-editions"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["special-editions"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="special-editions" />
-        );
+        return <Navigate to="/node-builder/BP-08" replace />;
       case "lead-magnet":
-        return gate("Lead Magnet Funnel", 
-          BUILDER_NODE_MAP["lead-magnet"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["lead-magnet"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="lead-magnet" />
-        );
+        return <Navigate to="/node-builder/BP-02" replace />;
       case "big-ticket":
-        return gate("Big Ticket Consulting", 
-          BUILDER_NODE_MAP["big-ticket"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["big-ticket"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="big-ticket" />
-        , "build");
+        return <Navigate to="/node-builder/YR-20" replace />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "payout-settings":
