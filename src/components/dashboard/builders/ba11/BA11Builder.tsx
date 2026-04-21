@@ -30,6 +30,7 @@ export default function BA11Builder({ authorId }: Props) {
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
     if (!authorId) return;
@@ -37,6 +38,13 @@ export default function BA11Builder({ authorId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
+      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (ctx?.book_title) {
+        setResolvedBookTitle(ctx.book_title);
+      } else {
+        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (book?.title) setResolvedBookTitle(book.title);
+      }
       const __draft = await loadBuilderDraft(authorId, "BA-11");
       if (__draft.content) {
         setContent(__draft.content);
@@ -91,7 +99,7 @@ export default function BA11Builder({ authorId }: Props) {
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-11")}>Complete Book Profile</Button>
               </>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Audiobooks are one of the fastest-growing formats in publishing. I'm going to prepare your complete audiobook production package — with a narrator brief, chapter-by-chapter recording guide, and distribution strategy for Audible, Spotify, and Apple Books. Ready to go audio?</p>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! Audiobooks are one of the fastest-growing formats in publishing. I'm going to prepare your complete audiobook production package for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with a narrator brief, chapter-by-chapter recording guide, and distribution strategy for Audible, Spotify, and Apple Books. Ready to go audio?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Prepare My Audiobook</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}

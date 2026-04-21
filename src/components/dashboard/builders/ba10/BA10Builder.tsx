@@ -33,6 +33,7 @@ export default function BA10Builder({ authorId }: Props) {
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
     if (!authorId) return;
@@ -45,6 +46,14 @@ export default function BA10Builder({ authorId }: Props) {
 
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
+
+      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (ctx?.book_title) {
+        setResolvedBookTitle(ctx.book_title);
+      } else {
+        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (book?.title) setResolvedBookTitle(book.title);
+      }
 
       const draft = await loadBuilderDraft(authorId, "BA-10");
       if (draft.content) {
@@ -106,7 +115,7 @@ export default function BA10Builder({ authorId }: Props) {
               </>
             ) : (
               <>
-                <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{detectedBookTitle || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! You've already built your brand products — now it's time to scale your expertise with a professional online course. I'm going to design a complete course based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with a course structure, module content outlines, and a course description. Your students will get a world-class learning experience. Ready to build your course?</p>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Build My Course</Button>
               </>
             )}
