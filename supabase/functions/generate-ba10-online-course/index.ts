@@ -130,6 +130,11 @@ serve(async (req) => {
       .single();
     if (!author) throw new Error("Author not found");
 
+    const courseOwnerId = author.user_id?.trim();
+    if (!courseOwnerId) {
+      throw new Error("Author account mapping is missing. Please contact support.");
+    }
+
     const { data: existingNodeSnapshot } = await supabase
       .from("author_nodes")
       .select("status, content_json, personalised_name, price_usd, currency, delivery_type, current_step")
@@ -146,7 +151,7 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    const book = await resolveAuthorBook(supabase, author_id, author.user_id ?? null);
+    const book = await resolveAuthorBook(supabase, author_id, courseOwnerId);
     const resolvedBookTitle = ctx?.book_title?.trim() || book?.title?.trim() || "";
     if (!resolvedBookTitle) throw new Error("No book found. Please add a book first.");
     const coreThesis = ctx?.core_thesis?.trim() || book?.description?.trim() || "";
@@ -246,7 +251,7 @@ Rules:
     // ============ Populate relational tables ============
     // 1. Upsert the courses row (one course per author per book for now)
     const coursePayload: Record<string, unknown> = {
-      author_id,
+      author_id: courseOwnerId,
       book_id: book?.id ?? null,
       title: content.course_title,
       subtitle: content.course_subtitle ?? null,
@@ -265,7 +270,7 @@ Rules:
     const { data: existingCourse } = await supabase
       .from("courses")
       .select("id")
-      .eq("author_id", author_id)
+      .eq("author_id", courseOwnerId)
       .eq("book_id", book?.id ?? null)
       .maybeSingle();
 
