@@ -80,7 +80,7 @@ export function useAuthorBook(): AuthorBookResult {
       bookId: null,
       missingFields: [],
       isComplete: false,
-      isLoading: !isReady,
+      isLoading: true,
     };
   }
 
