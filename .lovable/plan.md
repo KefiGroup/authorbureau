@@ -1,127 +1,72 @@
 
 
-## Goal
+## Confirmation: AuthorProductCard CTA logic
 
-1. **Part 1 (approved)** — Add 4-option Export Course Package (Copy / TXT / DOCX / PDF) to BA-10…BA-18 Step 3, above "Publish to My Site".
-2. **Part 2 (revised)** — Build a "Work With Me" storefront on the public author page that shows live BA nodes, always displays price prominently, and never shows a dead Enroll button to readers when Stripe isn't connected.
+I audited `AuthorProductCard.tsx` (lines 145-205) and confirm the CTA branching is correct:
 
----
+- **`canSell = stripeReady && hasPrice`** — only then does `<BuyNowButton>` render
+- **`!canSell` + reader (not owner)** → renders an outline **"Contact"** button → `mailto:` (or `/{slug}#contact` fallback). **Never** a dead Enroll button.
+- **`!canSell` + owner viewing own page** → greyed "Payments not set up" / "Price not set" chip + inline link to `/account-settings?tab=connections` or `/build-authority`
 
-## Part 1 — Export Course Package (BA-10 → BA-18)
+Price is **always** rendered prominently (large `text-2xl` accent badge), or "Pricing on request" if null. Confirmed.
 
-### New shared module: `src/lib/builder-export.ts`
-Single source of truth for all four formats. Exports:
-- `buildExportText(content, opts)` → plain text (Copy + TXT)
-- `downloadAsTxt(content, opts)`
-- `downloadAsDocx(content, opts)` — uses `docx`
-- `downloadAsPdf(content, opts)` — wraps existing `downloadBuilderPackage`
-- `copyToClipboard(content, opts)` — `navigator.clipboard` + sonner toast
+## One gap found in `stripeReady` calculation
 
-Walks `content` via a small shared `walkContent` helper extracted from `builder-pdf.ts` so all formats produce identical structure: title, subtitle, tagline, transformation promise, who it's for, what you'll get, all 6 modules (with Bloom level, Kolb stage, objectives, lessons), pricing + rationale, sales copy, author/book attribution.
+In `AuthorSite.tsx` (lines 262-265), `stripeReady` is currently:
 
-### New shared component: `src/components/dashboard/builders/shared/ExportPackageCard.tsx`
-Renders a single card titled "Export Course Package" with four buttons (Copy, TXT, DOCX, PDF) and short guidance text. Replaces the lone download button on Step 3.
+```ts
+!!stripe_connected_account_id || !!stripe_account_id
+```
 
-### Wire-in
-- Edit BA10Builder → BA18Builder (Step 3 review only): replace `<BANodeDownloadCard />` with `<ExportPackageCard />`, positioned **below** the review tabs and **above** the "Publish to My Site" button. Pass `nodeName` per node.
-- `BANodeDownloadCard.tsx` becomes a thin re-export of `ExportPackageCard` for backward compat.
+This is **too permissive** — an author can have a connected account that hasn't completed onboarding (can't actually receive payments). The plan required AND-ing with `stripe_onboarding_complete`. Readers could then see "Enroll Now" → checkout would fail at Stripe.
 
-### Deps
-Add `docx`. `jspdf` already present.
+## Fixes to ship
 
----
+### 1. Tighten `stripeReady` in `AuthorSite.tsx`
+Change to:
+```ts
+stripeReady={
+  !!profile.stripe_connected_account_id &&
+  profile.stripe_onboarding_complete === true
+}
+```
+Pass `stripe_onboarding_complete` through from the author profile fetch (already in `select` per types). Drop the `as unknown` cast — add the two fields to the local `AuthorData` type instead.
 
-## Part 2 — "Work With Me" storefront (revised per feedback)
+### 2. Pass real `authorContactEmail`
+Currently hardcoded to `null` (line 260). Pull from `author_profiles.contact_email` (or `email` / `public_email`, whichever the schema exposes) so the reader "Contact" mailto resolves to the author's real inbox instead of falling back to `/{slug}#contact`.
 
-### Data
-Query `author_nodes` where `author_id = author.id` AND `status = 'live'`, ordered by category (BA → YR → BP) then `node_id`. Section is hidden entirely if zero live nodes.
+### 3. Verify `author_nodes` public read RLS for `status='live'`
+Quick check — if missing, add a read-only policy:
+```sql
+create policy "public read of live author_nodes"
+on public.author_nodes for select
+using (status = 'live');
+```
+No PII in `author_nodes`. Skip if policy already exists.
 
-For each card, derive:
-- **Title** — from `content_json` (course title, package name, etc.) or `personalised_name`
-- **Tagline / one-line description** — from `content_json` subtitle/tagline
-- **Price** — from `author_nodes.price_usd` + `currency`
-- **Category badge** — derived from `node_id` (Course, Coaching, Workshop, Membership…)
-- **Author Stripe state** — read once for the page from `author_profiles.stripe_connected_account_id` (or `stripe_account_id`) AND `stripe_onboarding_complete`
-- **Owner-viewing flag** — true if logged-in user matches `author.user_id`
+### 4. Smoke-test BA-10 → BA-18 export buttons
+Confirm `ExportPackageCard` mounts on Step 3 of all 9 builders, all 4 buttons fire (Copy, TXT, DOCX, PDF), no console errors. Fix any builder where the wire-in regressed.
 
-### Price display rule (mandatory)
-Price is **always shown prominently** on every card, regardless of Stripe state.
-- If `price_usd > 0` → render formatted price (e.g. "$197 USD") in a large, high-contrast badge at the top of the card body
-- If `price_usd` is null/0 → render "Pricing on request" in the same slot (still prominent — never hidden)
+## Files touched
 
-### CTA logic (per card)
-Three branches, evaluated in this exact order:
+- `src/pages/AuthorSite.tsx` — tighten `stripeReady`, wire real contact email, type cleanup
+- `src/components/public/AuthorWorkWithMe.tsx` — no change (already consumes `stripeReady` correctly)
+- `src/components/public/AuthorProductCard.tsx` — no change (CTA logic verified correct)
+- New migration (only if RLS missing): public-read policy on `author_nodes` where `status='live'`
 
-1. **Stripe connected** (`stripe_connected_account_id` present AND `stripe_onboarding_complete = true`) AND `price_usd > 0`
-   → Render `<BuyNowButton authorNodeId={node.id} authorId={author.id} label="Enroll Now" />`
-   → Existing commerce engine handles checkout via `create-checkout-session`
+## Verification checklist
 
-2. **Stripe NOT connected** (or onboarding incomplete)
-   - **Reader view** (not the owner): Render greyed-out, disabled-looking **"Contact"** button → `mailto:` author's public email if available, otherwise opens existing contact form / hides if no contact path
-   - **Owner view** (logged-in author viewing own page): Render greyed-out **"Payments not set up"** label (non-clickable visual chip) with a small inline link "Set up payments" → `/account-settings?tab=connections`
-   - Readers must NEVER see a dead "Enroll Now" button
+**CTA correctness (the non-negotiable):**
+1. Author with no Stripe → reader on `/pauline-teo` sees "Contact" outline button, never "Enroll Now"
+2. Author with Stripe account ID but `onboarding_complete=false` → reader sees "Contact", NOT "Enroll Now" (this is what the fix addresses)
+3. Author with Stripe fully onboarded + `price_usd > 0` → reader sees "Enroll Now" → Stripe Checkout opens
+4. Owner viewing own page in any non-ready state → greyed status chip + "Set up payments →" link
 
-3. **Stripe connected but `price_usd` missing/0**
-   → Render "Contact" button (mailto) for readers, "Set price" inline link for owner
+**Exports:**
+5. Each of BA-10 → BA-18 Step 3 shows the 4-button Export Package card above "Publish to My Site"
+6. All four formats produce identical content in identical order
 
-### Component structure
-- New: `src/components/public/AuthorWorkWithMe.tsx`
-  - Fetches `author_nodes` (live) + reads author Stripe fields already loaded by parent
-  - Determines `isOwnerViewing` via `useAuth` + `author.user_id`
-  - Hides section if zero live nodes
-  - Renders heading "Work With Me" + subhead "Programs and resources from {AuthorName}"
-  - Responsive grid: 1 / 2 / 3 cols (mobile / tablet / desktop)
-  - Reader-side teal accent (per audience-split rule)
-
-- New: `src/components/public/AuthorProductCard.tsx`
-  - Props: `node`, `author`, `stripeReady: boolean`, `isOwnerViewing: boolean`
-  - Always renders: category badge, title, tagline, **prominent price**, CTA per branch above
-  - Imports existing `<BuyNowButton>` for branch 1
-  - Greyed states use `disabled` + muted styling, never call checkout
-
-### Mount point
-Edit the public author page renderer (located during implementation — likely `src/pages/AuthorPublicPage.tsx` or `/:authorSlug` route) to mount `<AuthorWorkWithMe author={author} />` **after** the book + book highlights block and **before** reader testimonials.
-
-### Data / RLS
-- `author_nodes` already has the public-read policy for `status = 'live'` under Commerce Engine v1. If absent, add a small read-only migration. No PII exposed.
-- `author_profiles.stripe_connected_account_id` and `stripe_onboarding_complete` are already publicly readable via the existing public author profile fetch — no schema change.
-
-### What NOT to change
-- No change to `publishNodeToSite`
-- No change to `BuyNowButton`, `create-checkout-session`, or webhooks
-- No change to microsite URLs or slug map
-- No change to `paulinet77@gmail.com` or any auth records
-
----
-
-## Verification
-
-**Part 1 (each builder BA-10 → BA-18):**
-1. Reach Step 3, see "Export Course Package" with 4 buttons above "Publish to My Site"
-2. Copy → toast confirms; pasted text contains all sections
-3. TXT downloads `[Title]-Course-Package.txt`
-4. DOCX opens cleanly with headings + modules + lessons
-5. PDF matches existing branded export
-6. All 4 formats contain identical content in identical order
-
-**Part 2:**
-1. Pauline publishes BA-10 → status `live`
-2. Visit `/pauline-teo` (incognito reader)
-   - "Work With Me" section appears
-   - Price "$XXX USD" shown prominently on the card
-   - If Stripe connected → "Enroll Now" button → Stripe Checkout
-   - If Stripe NOT connected → greyed "Contact" button → mailto (NOT a dead Enroll button)
-3. Pauline visits `/pauline-teo` while logged in as the author
-   - Same card, same prominent price
-   - If Stripe NOT connected → "Payments not set up" greyed chip + "Set up payments" link to `/account-settings?tab=connections`
-4. Author with zero live nodes → section hidden entirely
-5. Publish additional BA/YR nodes → cards appear automatically with no code change
-
----
-
-## Out of scope (for later)
-- Per-card analytics
-- Reordering / featuring nodes from the dashboard
-- Reader-facing category filters
-- Inline Stripe Connect onboarding from the storefront card
+**Storefront:**
+7. Zero live nodes → "Work With Me" section hidden entirely
+8. Price always visible in prominent badge regardless of CTA branch
 
