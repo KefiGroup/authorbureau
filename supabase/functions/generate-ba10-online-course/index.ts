@@ -325,9 +325,11 @@ Rules:
           title: (m as { title?: string }).title ?? `Module ${mi + 1}`,
           description: (m as { description?: string }).description ?? null,
           position: mi,
-          learning_objectives: (m as { outcome?: string }).outcome
-            ? [(m as { outcome: string }).outcome]
-            : [],
+          blooms_level: (m as { blooms_level?: string }).blooms_level ?? null,
+          kolbs_stage: (m as { kolbs_stage?: string }).kolbs_stage ?? null,
+          learning_objectives: Array.isArray((m as { learning_objectives?: unknown }).learning_objectives)
+            ? (m as { learning_objectives: unknown[] }).learning_objectives
+            : ((m as { outcome?: string }).outcome ? [(m as { outcome: string }).outcome] : []),
         })
         .select("id")
         .single();
