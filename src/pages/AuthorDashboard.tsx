@@ -115,12 +115,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
 
-  // Sections that redirect to standalone pages — handle on URL load too
+  // Sections that redirect to standalone pages — handle on URL load too.
+  // Brand/Build/Yield now funnel through /my-books so user picks a book first.
   const REDIRECT_SECTIONS: Record<string, string> = {
-    "brand-products-hub": "/brand-products",
-    "revenue-streams": "/brand-products",
-    "marketing-channels": "/build-authority",
-    "authority-builders": "/yield-revenue",
+    "brand-products-hub": "/my-books?intent=brand",
+    "revenue-streams": "/my-books?intent=brand",
+    "marketing-channels": "/my-books?intent=build",
+    "authority-builders": "/my-books?intent=yield",
     "analytics": "/revenue-dashboard",
     "revenue-dashboard": "/revenue-dashboard",
     "revenue": "/revenue-dashboard",
@@ -157,19 +158,19 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const setActiveSection = (section: DashboardSection) => {
     // Intercept standalone page navigations
     if (section === ("brand-products-hub" as DashboardSection)) {
-      dashboardNavigate("/brand-products");
+      dashboardNavigate("/my-books?intent=brand");
       return;
     }
     if (section === ("revenue-streams" as DashboardSection)) {
-      dashboardNavigate("/brand-products");
+      dashboardNavigate("/my-books?intent=brand");
       return;
     }
     if (section === ("marketing-channels" as DashboardSection)) {
-      dashboardNavigate("/build-authority");
+      dashboardNavigate("/my-books?intent=build");
       return;
     }
     if (section === ("authority-builders" as DashboardSection)) {
-      dashboardNavigate("/yield-revenue");
+      dashboardNavigate("/my-books?intent=yield");
       return;
     }
     if (section === ("analytics" as DashboardSection)) {
