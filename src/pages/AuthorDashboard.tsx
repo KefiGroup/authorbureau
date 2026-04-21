@@ -24,8 +24,7 @@ import PremiumGate from "@/components/dashboard/PremiumGate";
 import EmailMarketing from "@/components/dashboard/EmailMarketing";
 import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
 import MicrositeManager from "@/components/dashboard/MicrositeManager";
-import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
-import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
+import { resolveLegacyBuilderRoute } from "@/components/dashboard/builders/legacyBuilderRedirect";
 import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
 import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
 import PayoutSettingsPage from "@/components/dashboard/PayoutSettingsPage";
@@ -46,8 +45,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { useNodeGating } from "@/hooks/useNodeGating";
 
-// All builder node IDs for the type union
-const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
+// Legacy builder ?builder=<id> values still supported via legacyBuilderRedirect.
 
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
@@ -371,16 +369,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       );
     }
 
-    // Check if this is a universal builder node
-    const builderNodeId = searchParams.get("builder");
-    if (builderNodeId && BUILDER_NODE_MAP[builderNodeId]) {
-      return gate(
-        BUILDER_NODE_MAP[builderNodeId].label,
-        <UniversalBuilderStudio
-          nodeConfig={BUILDER_NODE_MAP[builderNodeId]}
-          onNavigate={handleNavigate}
-        />
-      );
+    // Legacy ?builder=<id> → redirect to dedicated /node-builder/<NODE_ID>
+    const legacyBuilderId = searchParams.get("builder");
+    const legacyRedirect = resolveLegacyBuilderRoute(legacyBuilderId);
+    if (legacyRedirect) {
+      return <Navigate to={legacyRedirect} replace />;
     }
 
     switch (activeSection) {
@@ -399,11 +392,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "courses":
         return gate("Course Builder", <CourseBuilder />, "build");
       case "home-study":
-        return gate("Home Study Course", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["home-study-course"]} 
-            onNavigate={handleNavigate} 
-          />, "brand");
+        return <Navigate to="/node-builder/BA-11" replace />;
       case "workbooks":
         return gate("Workbooks", <WorkbooksManager onNavigate={handleNavigate} />);
       case "webinars":
@@ -422,23 +411,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />, "build");
       case "group-coaching":
-        return gate("Group Coaching", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["group-coaching"]} 
-            onNavigate={handleNavigate} 
-          />, "build");
+        return <Navigate to="/node-builder/BA-13" replace />;
       case "memberships":
-        return gate("Monthly Membership", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["membership"]} 
-            onNavigate={handleNavigate} 
-          />, "build");
+        return <Navigate to="/node-builder/BA-12" replace />;
       case "email-marketing":
-        return gate("Email Marketing", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["email-flows"]} 
-            onNavigate={handleNavigate} 
-          />, "brand");
+        return <Navigate to="/node-builder/BP-01" replace />;
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
@@ -489,41 +466,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
-        return gate("Book Sales", 
-          BUILDER_NODE_MAP["book-sales"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["book-sales"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="book-sales" />
-        );
+        return <Navigate to="/node-builder/BP-05" replace />;
       case "special-editions":
-        return gate("Special Editions", 
-          BUILDER_NODE_MAP["special-editions"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["special-editions"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="special-editions" />
-        );
+        return <Navigate to="/node-builder/BP-08" replace />;
       case "lead-magnet":
-        return gate("Lead Magnet Funnel", 
-          BUILDER_NODE_MAP["lead-magnet"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["lead-magnet"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="lead-magnet" />
-        );
+        return <Navigate to="/node-builder/BP-02" replace />;
       case "big-ticket":
-        return gate("Big Ticket Consulting", 
-          BUILDER_NODE_MAP["big-ticket"] ? (
-            <UniversalBuilderStudio 
-              nodeConfig={BUILDER_NODE_MAP["big-ticket"]} 
-              onNavigate={handleNavigate} 
-            />
-          ) : <ComingSoonPlaceholder sectionId="big-ticket" />
-        , "build");
+        return <Navigate to="/node-builder/YR-20" replace />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "payout-settings":
