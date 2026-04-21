@@ -87,9 +87,14 @@ export default function BA10Builder({ authorId }: Props) {
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2 });
     } catch (e: any) {
       console.error("[BA-10] generate error", e);
-      setError(e.message);
+      const raw = String(e?.message || "");
+      const isMappingError = /re-linked|account mapping|AUTH_USER_MISSING/i.test(raw);
+      const friendly = isMappingError
+        ? "Your author account needs to be re-linked before Abby can save this course. Please contact support."
+        : toAbbyError(raw);
+      setError(friendly);
       setStep(0);
-      toast.error(`Generation failed: ${toAbbyError(e.message)}`);
+      toast.error(friendly);
     }
   };
 
