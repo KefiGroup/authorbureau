@@ -67,7 +67,6 @@ Generate JSON: {"programme_title","tagline","cohort_size","duration","session_fo
 
 Make everything specific to this book. No placeholders.` },
         ],
-        temperature: 0.7,
       }),
     });
     if (!aiRes.ok) {

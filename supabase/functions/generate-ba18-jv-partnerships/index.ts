@@ -67,7 +67,6 @@ Generate JSON: {"jv_strategy_title","ideal_partner_profiles":[3 items with profi
 
 Make everything specific to this book. No placeholders.` },
         ],
-        temperature: 0.7,
       }),
     });
     if (!aiRes.ok) {

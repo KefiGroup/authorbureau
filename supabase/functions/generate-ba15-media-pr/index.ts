@@ -67,7 +67,6 @@ Generate JSON: {"media_kit_title","speaker_headline","press_release":{headline/s
 
 Make everything specific to this book. No placeholders.` },
         ],
-        temperature: 0.7,
       }),
     });
     if (!aiRes.ok) {
