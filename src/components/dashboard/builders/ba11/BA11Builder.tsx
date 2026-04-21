@@ -1,195 +1,202 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
-import { Sparkles, ArrowRight, Mic, BookOpen, DollarSign, Globe } from "lucide-react";
-import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
-import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
-import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
-import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
-import { publishNodeToSite } from "@/lib/publish-node";
+import { Card } from "@/components/ui/card";
+import { Sparkles, ArrowRight, ArrowLeft, Headphones, FileAudio, Mic, Wand2, Rocket } from "lucide-react";
+import { StepHeader, AbbyCard } from "../ba-shared/BABuilderShared";
+import AudiobookStepRenderer from "../audiobook/AudiobookStepRenderer";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
-const GEN_MSGS = ["Analysing your book's structure for audio...", "Writing your narrator brief...", "Creating chapter-by-chapter recording guides...", "Researching distribution platforms...", "Finalising your audiobook package..."];
-const ACT_MSGS = ["Preparing your audiobook production package...", "Setting up your distribution strategy...", "Creating your production checklist...", "Almost ready..."];
-
 interface Props { authorId: string | null; }
+
+const STUDIO_STEPS = [
+  { id: "setup", label: "Setup", icon: Headphones },
+  { id: "optimize", label: "Manuscript", icon: FileAudio },
+  { id: "voice", label: "Voice", icon: Mic },
+  { id: "production", label: "Production", icon: Wand2 },
+  { id: "publish", label: "Publish & Distribute", icon: Rocket },
+];
 
 export default function BA11Builder({ authorId }: Props) {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const { hasBook, bookTitle: detectedBookTitle, bookId, isLoading: isBookLoading } = useAuthorBook();
   const [authorName, setAuthorName] = useState("");
-  const [content, setContent] = useState<any>(null);
+  const [userId, setUserId] = useState("");
+  const [resolvedBookTitle, setResolvedBookTitle] = useState("");
+  const [resolvedBookId, setResolvedBookId] = useState<string>("");
+  const [intro, setIntro] = useState(true);
+  const [stepIdx, setStepIdx] = useState(0);
+  const [stepData, setStepData] = useState<Record<string, any>>({});
+  const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [msgIndex, setMsgIndex] = useState(0);
-  const [priceOverride, setPriceOverride] = useState<number | null>(null);
-  const [authorSlug, setAuthorSlug] = useState("");
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
-  const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
     if (!authorId) return;
     (async () => {
-      const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
+      const { data: profile } = await supabase
+        .from("author_profiles")
+        .select("pen_name, user_id")
+        .eq("id", authorId)
+        .single();
       setAuthorName(profile?.pen_name || "there");
-      setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setResolvedBookTitle(ctx.book_title);
-        console.log(`[BA-11] book resolution`, { authorId, detectedBookTitle, ctxTitle: ctx?.book_title ?? null, bookTitle: null });
-      } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (book?.title) setResolvedBookTitle(book.title);
-        console.log(`[BA-11] book resolution`, { authorId, detectedBookTitle, ctxTitle: null, bookTitle: book?.title ?? null });
+      setUserId(profile?.user_id || "");
+      if (!detectedBookTitle || detectedBookTitle === "your book") {
+        const { data: book } = await supabase
+          .from("books")
+          .select("id, title")
+          .eq("author_id", profile?.user_id || authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (book) {
+          setResolvedBookTitle(book.title);
+          setResolvedBookId(book.id);
+        }
       }
-      const __draft = await loadBuilderDraft(authorId, "BA-11");
-      if (__draft.content) {
-        setContent(__draft.content);
-        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+      const draft = await loadBuilderDraft(authorId, "BA-11");
+      if (draft.content?.studio) {
+        setStepData(draft.content.studio);
+        setStepIdx(Math.min(draft.currentStep || 0, STUDIO_STEPS.length - 1));
+        setIntro(false);
       }
     })();
-  }, [authorId]);
-
-  useEffect(() => {
-    if (step === 1 || (step === 3 && !content?.activated)) {
-      const msgs = step === 1 ? GEN_MSGS : ACT_MSGS;
-      setMsgIndex(0);
-      intervalRef.current = setInterval(() => setMsgIndex((i) => (i + 1) % msgs.length), 3000);
-      return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-    }
-  }, [step]);
-
-  const handleGenerate = async () => {
-    setStep(1); setError(null);
-    try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba11-audiobook", { body: { author_id: authorId } });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-      setContent(data.content); setPriceOverride(data.content?.suggested_retail_price_usd || null); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-11", nodeName: "Audiobook", content: data.content, currentStep: 2 });
-    } catch (e: any) { setError(e.message); setStep(0); }
-  };
-
-  const handlePublish = async () => {
-    setStep(3);
-    setError(null);
-    try {
-      await publishNodeToSite(authorId!, "BA-11", authorSlug);
-      setContent((prev: any) => ({ ...prev, activated: true }));
-    } catch (e: any) {
-      setError(e.message);
-      setStep(2);
-    }
-  };
+  }, [authorId, detectedBookTitle]);
 
   const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
+  const effectiveBookId = bookId || resolvedBookId;
   const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
-  const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
+  const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle;
 
-  if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
+  const persistDraft = (data: Record<string, any>, currentStep: number) => {
+    if (!authorId) return;
+    void autosaveBuilderDraft({
+      authorId,
+      nodeId: "BA-11",
+      nodeName: "Audiobook",
+      content: { studio: data },
+      currentStep,
+    });
+  };
+
+  const onMarkEdited = (_stepId: string) => {
+    persistDraft(stepData, stepIdx);
+  };
+
+  const handleNext = () => {
+    if (stepIdx < STUDIO_STEPS.length - 1) {
+      const next = stepIdx + 1;
+      setStepIdx(next);
+      persistDraft(stepData, next);
+    }
+  };
+  const handleBack = () => setStepIdx(Math.max(0, stepIdx - 1));
+
+  if (!authorId) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Please set up your author profile first.</p>
+      </div>
+    );
+  }
+
+  const currentStep = STUDIO_STEPS[stepIdx];
 
   return (
     <div className="min-h-screen bg-background">
-      <StepHeader nodeId="BA-11" nodeName="Audiobook" step={step} />
-      <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
-        {step === 0 && (
+      <StepHeader nodeId="BA-11" nodeName="Audiobook" step={intro ? 0 : 2} />
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        {intro && (
           <AbbyCard>
-            <h2 className="text-xl font-bold mb-3">Let's prepare your Audiobook</h2>
+            <h2 className="text-xl font-bold mb-3">Let's produce your real audiobook</h2>
             {noBookFound ? (
               <>
-                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can prepare your audiobook, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-11")}>Complete Book Profile</Button>
+                <p className="text-muted-foreground mb-4">
+                  Hi {authorName}! Before we record, I need to know about your book. Please complete your book profile first.
+                </p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-11")}>
+                  Complete Book Profile
+                </Button>
               </>
             ) : !isIntroReady ? (
               <p className="text-muted-foreground mb-4">Loading your book details…</p>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! Audiobooks are one of the fastest-growing formats in publishing. I'm going to prepare your complete audiobook production package for '{displayBookTitle}' — with a narrator brief, chapter-by-chapter recording guide, and distribution strategy for Audible, Spotify, and Apple Books. Ready to go audio?</p>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Prepare My Audiobook</Button></>
+              <>
+                <p className="text-muted-foreground mb-4">
+                  Hi {authorName}! I'll walk you through turning <strong>{displayBookTitle}</strong> into a real audiobook — splitting your manuscript into chapters, picking an ElevenLabs voice (or your own), generating MP3s, and packaging it for ACX, Spotify, Apple Books, and your own storefront. Ready?
+                </p>
+                <Button className="w-full sm:w-auto" size="lg" onClick={() => setIntro(false)}>
+                  <Sparkles className="h-4 w-4 mr-2" /> Start Audiobook Production
+                </Button>
+              </>
             )}
-            {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
+            {error && (
+              <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+                {toAbbyError(error)}
+              </div>
+            )}
           </AbbyCard>
         )}
-        {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
-        {step === 2 && content && (
-          <div className="space-y-4">
-            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
-            <Tabs defaultValue="brief" className="w-full">
-              <TabsList className="w-full grid grid-cols-4 h-auto">
-                <TabsTrigger value="brief" className="text-xs py-2"><Mic className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Brief</TabsTrigger>
-                <TabsTrigger value="chapters" className="text-xs py-2"><BookOpen className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Chapters</TabsTrigger>
-                <TabsTrigger value="distribution" className="text-xs py-2"><Globe className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Distribution</TabsTrigger>
-                <TabsTrigger value="pricing" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Pricing</TabsTrigger>
-              </TabsList>
-              <TabsContent value="brief" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-3">
-                  <h3 className="text-xl font-bold">{content.audiobook_title}</h3>
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.narrator_style}</span>
-                    <span className="text-xs bg-muted px-2.5 py-1 rounded-full">~{content.estimated_duration_hours}h</span>
-                  </div>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Narrator Brief</p><p className="text-sm">{content.narrator_brief}</p></div>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-2">Production Checklist</p>
-                    <ul className="space-y-1">{content.production_checklist?.map((c: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{c}</li>)}</ul>
-                  </div>
-                </CardContent></Card>
-              </TabsContent>
-              <TabsContent value="chapters" className="space-y-3 mt-4">
-                {content.chapter_guides?.map((ch: any, i: number) => (
-                  <Card key={i}><CardContent className="pt-4 pb-4 space-y-2">
-                    <div className="flex items-center gap-2"><span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">{ch.chapter_number}</span><h4 className="font-bold text-sm">{ch.chapter_title}</h4></div>
-                    <div className="pl-9 space-y-1">
-                      <div><p className="text-xs font-semibold text-muted-foreground">Key Emphasis Points</p><ul className="space-y-0.5">{ch.key_emphasis_points?.map((p: string, j: number) => <li key={j} className="text-sm">• {p}</li>)}</ul></div>
-                      <p className="text-xs"><span className="font-semibold text-muted-foreground">Pacing:</span> {ch.pacing_note}</p>
-                      {ch.pronunciation_notes && <p className="text-xs"><span className="font-semibold text-muted-foreground">Pronunciation:</span> {ch.pronunciation_notes}</p>}
-                    </div>
-                  </CardContent></Card>
-                ))}
-              </TabsContent>
-              <TabsContent value="distribution" className="space-y-3 mt-4">
-                {content.distribution_platforms?.map((p: any, i: number) => (
-                  <Card key={i}><CardContent className="pt-4 pb-4 space-y-1">
-                    <h4 className="font-bold text-sm">{p.platform}</h4>
-                    <div className="flex gap-2 flex-wrap"><span className="text-xs bg-muted px-2 py-0.5 rounded">Royalty: {p.royalty_rate}</span><span className="text-xs bg-muted px-2 py-0.5 rounded">Timeline: {p.timeline}</span></div>
-                  </CardContent></Card>
-                ))}
-              </TabsContent>
-              <TabsContent value="pricing" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-4 text-center">
-                  <p className="text-xs font-semibold text-muted-foreground">Suggested retail price (USD)</p>
-                  <div className="flex items-center justify-center gap-2"><span className="text-3xl font-bold">$</span><Input type="number" className="w-32 text-3xl font-bold text-center" value={priceOverride ?? content.suggested_retail_price_usd ?? 19.99} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div>
-                </CardContent></Card>
-              </TabsContent>
-            </Tabs>
-            <ExportPackageCard
-              content={content}
-              nodeName="Audiobook"
-              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
-              authorName={authorName}
-              guidance="Export your full audiobook package — script, chapter notes, distribution plan. Send to your narrator or upload to ACX, Findaway, etc."
-            />
-            <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
-            </div>
-          </div>
-        )}
-        {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
-        {step === 3 && content?.activated && (
+
+        {!intro && (
           <>
-            <PublishSuccessScreen nodeId="BA-11" authorName={authorName} penNameSlug={authorSlug} />
-            <BANodeDownloadCard
-              content={content}
-              nodeName="Audiobook"
-              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
-              authorName={authorName}
-              guidance="Your audiobook package is ready. Download it and use it with Audible, Spotify, Apple Books, or any audiobook platform of your choice to start earning revenue from your expertise."
-            />
+            {/* Studio progress */}
+            <Card className="p-4">
+              <div className="flex items-center justify-between gap-2 overflow-x-auto">
+                {STUDIO_STEPS.map((s, i) => {
+                  const Icon = s.icon;
+                  const active = i === stepIdx;
+                  const done = i < stepIdx;
+                  return (
+                    <button
+                      key={s.id}
+                      onClick={() => setStepIdx(i)}
+                      className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-md transition-colors min-w-[80px] ${
+                        active ? "bg-secondary/10 text-secondary" : done ? "text-foreground" : "text-muted-foreground"
+                      }`}
+                    >
+                      <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                        active ? "bg-secondary text-secondary-foreground" : done ? "bg-accent/20 text-accent" : "bg-muted"
+                      }`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <span className="text-[10px] font-medium text-center leading-tight">{s.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Card>
+
+            <Card className="p-5">
+              <h3 className="text-lg font-bold mb-4">{currentStep.label}</h3>
+              <AudiobookStepRenderer
+                stepId={currentStep.id}
+                stepData={stepData}
+                setStepData={setStepData}
+                onMarkEdited={onMarkEdited}
+                bookId={effectiveBookId || ""}
+                bookTitle={displayBookTitle}
+                plan={null}
+                generationState={generationState}
+                setGenerationState={setGenerationState}
+                userId={userId}
+              />
+            </Card>
+
+            <div className="flex justify-between gap-3">
+              <Button variant="outline" onClick={handleBack} disabled={stepIdx === 0}>
+                <ArrowLeft className="h-4 w-4 mr-2" /> Back
+              </Button>
+              {stepIdx < STUDIO_STEPS.length - 1 ? (
+                <Button onClick={handleNext}>
+                  Next: {STUDIO_STEPS[stepIdx + 1].label} <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              ) : (
+                <div />
+              )}
+            </div>
           </>
         )}
       </div>
