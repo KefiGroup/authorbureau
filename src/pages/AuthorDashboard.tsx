@@ -45,8 +45,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { useNodeGating } from "@/hooks/useNodeGating";
 
-// All builder node IDs for the type union
-const BUILDER_NODE_IDS = Object.keys(BUILDER_NODE_MAP) as Array<keyof typeof BUILDER_NODE_MAP>;
+// Legacy builder ?builder=<id> values still supported via legacyBuilderRedirect.
 
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
@@ -370,16 +369,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       );
     }
 
-    // Check if this is a universal builder node
-    const builderNodeId = searchParams.get("builder");
-    if (builderNodeId && BUILDER_NODE_MAP[builderNodeId]) {
-      return gate(
-        BUILDER_NODE_MAP[builderNodeId].label,
-        <UniversalBuilderStudio
-          nodeConfig={BUILDER_NODE_MAP[builderNodeId]}
-          onNavigate={handleNavigate}
-        />
-      );
+    // Legacy ?builder=<id> → redirect to dedicated /node-builder/<NODE_ID>
+    const legacyBuilderId = searchParams.get("builder");
+    const legacyRedirect = resolveLegacyBuilderRoute(legacyBuilderId);
+    if (legacyRedirect) {
+      return <Navigate to={legacyRedirect} replace />;
     }
 
     switch (activeSection) {
@@ -398,11 +392,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "courses":
         return gate("Course Builder", <CourseBuilder />, "build");
       case "home-study":
-        return gate("Home Study Course", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["home-study-course"]} 
-            onNavigate={handleNavigate} 
-          />, "brand");
+        return <Navigate to="/node-builder/BA-11" replace />;
       case "workbooks":
         return gate("Workbooks", <WorkbooksManager onNavigate={handleNavigate} />);
       case "webinars":
@@ -421,23 +411,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />, "build");
       case "group-coaching":
-        return gate("Group Coaching", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["group-coaching"]} 
-            onNavigate={handleNavigate} 
-          />, "build");
+        return <Navigate to="/node-builder/BA-13" replace />;
       case "memberships":
-        return gate("Monthly Membership", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["membership"]} 
-            onNavigate={handleNavigate} 
-          />, "build");
+        return <Navigate to="/node-builder/BA-12" replace />;
       case "email-marketing":
-        return gate("Email Marketing", 
-          <UniversalBuilderStudio 
-            nodeConfig={BUILDER_NODE_MAP["email-flows"]} 
-            onNavigate={handleNavigate} 
-          />, "brand");
+        return <Navigate to="/node-builder/BP-01" replace />;
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
