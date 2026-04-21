@@ -1,84 +1,113 @@
 
+## Goal
+Stabilize BA-10 so:
+1. Abby no longer flashes `Hi !` / `your book` on first load
+2. `generate-ba10-online-course` stops timing out and failing with HTTP 500
+3. The course output still follows a clear instructional-design framework using Bloom’s Taxonomy and related pedagogy, but stays within the edge runtime limits
 
-## Diagnosis
+## What will be fixed
 
-The `BA10Builder.tsx` "Build My Course" button is **already correctly wired**:
+### 1) BA-10 intro/loading regression
+Update `src/components/dashboard/builders/ba10/BA10Builder.tsx` so the introduction does not render placeholder text before book data resolves.
 
-```tsx
-<Button onClick={handleGenerate} disabled={isBookLoading}>
-  <Sparkles /> Build My Course
-</Button>
-```
+Planned changes:
+- Add a single derived `displayBookTitle`:
+  - prefer `detectedBookTitle` when it is not `"your book"`
+  - otherwise use `resolvedBookTitle`
+- Add a small intro-ready/loading guard so the full Abby sentence only renders once `authorName` and a real title are available
+- Replace the current first-paint placeholder state with a neutral loading message instead of rendering `Hi !` / `'your book'`
+- Keep the CTA enabled/disabled logic tied to whether a real title is available, not just the hook loading state
 
-`handleGenerate()` calls `setStep(1)` and invokes the `generate-ba10-online-course` edge function. There is **no `navigate()` call** anywhere in this button's handler.
+Result:
+- No more placeholder flash
+- BA-10 shows either a neutral “loading your book details” state or the fully personalised intro
 
-The only navigations to `/build-authority` in the visible page come from two unrelated UI elements:
-1. The `<Link to="/build-authority">Back to Build Authority</Link>` rendered by `NodeBuilder.tsx` (line 131) above the builder.
-2. The back-arrow `<Button>` inside `StepHeader` (`BABuilderShared.tsx` line 19) which uses the default `backTo = "/build-authority"`.
+### 2) Edge function timeout / 500 failure
+Refactor `supabase/functions/generate-ba10-online-course/index.ts` to reduce payload size, harden JSON generation, and return structured failures without raw HTTP 500s for normal generation errors.
 
-So the perceived "navigates to /build-authority" is almost certainly **one of these other controls being clicked**, OR `handleGenerate()` throws so fast that the user sees step 0 again and assumes the click did nothing / went elsewhere.
+Planned changes:
+- Keep the pedagogical framework, but simplify the prompt shape:
+  - target exactly 6 modules
+  - target exactly 3 lessons per module
+  - shorten module descriptions and lesson outlines
+  - keep sales copy + pricing + course overview
+  - remove non-essential high-token sections that BA-10 does not need for rendering
+- Preserve pedagogy by explicitly requiring:
+  - Bloom progression across modules
+  - one Bloom level per module
+  - one Kolb stage per module
+  - measurable learning objectives
+  - concise pedagogical summary
+- Add `response_format: { type: "json_object" }` to reduce parse failures
+- Lower randomness for structural reliability (`temperature` around 0.2–0.25)
+- Reduce output budget to a safer range for this workload
+- Add a request timeout guard on the AI call so the function fails fast instead of hanging near the platform limit
+- Improve parse handling:
+  - accept direct JSON
+  - repair JSON once if the model returns malformed output
+  - validate required top-level fields before saving
+- Return standardized structured responses in the existing frontend-compatible shape:
+  - success: true/false
+  - error/message
+  - optional diagnostics for logs
+- Change normal failure responses from HTTP 500 to HTTP 200 with `success: false` so the UI can show the real error instead of generic “ABBY hit a snag”
+- Keep relational table population (`courses`, `course_modules`, `course_lessons`) and `author_nodes` mirroring intact
 
-The pattern in BP-01 / BP-02 is the same as BA-10: `onClick={handleGenerate}` calling an internal generator. There is no different working pattern to copy.
+Result:
+- Faster generation
+- Fewer parse failures
+- Frontend receives usable error messages
+- Builder should complete within the runtime window
 
-## Plan
+### 3) Keep the Stratira-style course package intact
+The BA-10 output will still include the sections the builder and export flow need:
 
-**Step 1 — Add a one-shot diagnostic to `handleGenerate` in `BA10Builder.tsx`** so we can see in DevTools exactly what happens on click:
+- course title
+- course tagline/subtitle
+- who this course is for
+- transformation outcomes / what students will achieve
+- module structure with lesson titles
+- suggested price + rationale
+- sales page copy
+- Abby summary
+- pedagogical metadata (Bloom/Kolb/objectives)
 
-```tsx
-const handleGenerate = async () => {
-  console.log("[BA-10] Build My Course clicked", { authorId });
-  setStep(1); setError(null);
-  try {
-    const { data, error: fnErr } = await supabase.functions.invoke(
-      "generate-ba10-online-course", { body: { author_id: authorId } }
-    );
-    console.log("[BA-10] generate response", { data, fnErr });
-    if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-    setContent(data.content);
-    setPriceOverride(data.content?.suggested_price_usd || null);
-    setStep(2);
-    void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2 });
-  } catch (e: any) {
-    console.error("[BA-10] generate error", e);
-    setError(e.message);
-    setStep(0);
-  }
-};
-```
+This preserves the professional course-design requirement without overloading the model.
 
-This is purely additive logging — no behavioral change.
+## Files to update
+- `src/components/dashboard/builders/ba10/BA10Builder.tsx`
+- `supabase/functions/generate-ba10-online-course/index.ts`
 
-**Step 2 — Make the failure visible to the user** so silent reverts to step 0 stop being mistaken for a navigation. Add an immediate `toast.error(...)` in the catch block:
+## Technical details
+- Frontend:
+  - introduce `displayBookTitle` and `isIntroReady`
+  - avoid rendering personalised prose until title/name are resolved
+  - continue using the existing `handleGenerate` diagnostics and toast path
+- Edge function:
+  - keep service-role book/context lookup
+  - simplify prompt while retaining Bloom/Kolb requirements
+  - add `response_format: { type: "json_object" }`
+  - add AI timeout guard
+  - add schema/required-field validation before DB writes
+  - return `{ success: false, error, diagnostics? }` with HTTP 200 for expected failures
+- No database schema change is required
 
-```tsx
-} catch (e: any) {
-  console.error("[BA-10] generate error", e);
-  setError(e.message);
-  setStep(0);
-  toast.error(`Generation failed: ${toAbbyError(e.message)}`);
-}
-```
+## Verification
+After implementation:
+1. Load `/node-builder/BA-10`
+   - no flash of `Hi !`
+   - no flash of `'your book'`
+   - intro resolves cleanly to `Be SUCKcessful`
+2. Click **Build My Course**
+   - request completes without navigating away
+   - generation finishes within the runtime window
+3. Confirm the returned course includes:
+   - Bloom progression across modules
+   - module learning objectives
+   - module/lesson structure
+   - pricing + sales copy
+4. Confirm BA-10 review step still renders correctly
+5. Confirm failures now surface a specific message instead of a generic HTTP 500
 
-**Step 3 — Verification (user action)**
-
-1. Hard-refresh `/node-builder/BA-10`.
-2. Open DevTools console.
-3. Click **Build My Course**.
-4. Report back what the console shows:
-   - If `[BA-10] Build My Course clicked` appears followed by `[BA-10] generate error` → the button works, the edge function is failing. We then fix the edge function (likely `author_id`, `author_context`, or AI gateway issue).
-   - If `[BA-10] Build My Course clicked` appears with no error and `setStep(2)` runs but the URL changes to `/build-authority` → there is a parent-level navigation guard, and we'll inspect it.
-   - If no `[BA-10] Build My Course clicked` log appears at all → the user is clicking a different element (the `Back to Build Authority` link or `StepHeader` back arrow). We then visually distinguish those controls so they are not mistaken for the primary CTA.
-
-**Step 4 — Targeted fix based on Step 3 output.** No speculative rewrites until we see the actual failure mode.
-
-## Files touched (Step 1 + Step 2 only — diagnostic + UX safety)
-
-- `src/components/dashboard/builders/ba10/BA10Builder.tsx` — add 3 console logs and 1 `toast.error` inside the existing `handleGenerate`. No structural changes, no navigation changes, no removal of existing logic.
-
-## Not touched
-
-- Any other BA / BP / YR builder.
-- `StepHeader` / `BABuilderShared`.
-- `NodeBuilder.tsx`.
-- The `generate-ba10-online-course` edge function (only after Step 3 confirms it as the failure point).
-
+## Expected outcome
+BA-10 becomes reliable again: the intro loads cleanly, the generator returns within the time limit, Abby still follows a professional course-design framework, and the UI shows actionable errors if generation ever fails.
