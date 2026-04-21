@@ -13,6 +13,7 @@ import PublishSuccessScreen from "@/components/dashboard/builders/shared/Publish
 import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your membership community...", "Creating membership tiers and benefits...", "Building your content calendar...", "Writing your welcome sequence...", "Finalising your membership blueprint..."];
@@ -47,14 +48,11 @@ export default function BA12Builder({ authorId }: Props) {
       } else if (!isBookLoading) {
         setHasContext(false);
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-12").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setPriceOverride((node.content_json as any)?.suggested_price_usd || null);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
-      }
-    })();
+      const __draft = await loadBuilderDraft(authorId, "BA-12");
+      if (__draft.content) {
+        setContent(__draft.content);
+        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+      })();
   }, [authorId, detectedBookTitle, isBookLoading]);
 
   useEffect(() => {
@@ -72,6 +70,7 @@ export default function BA12Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba12-membership", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setPriceOverride(data.content?.suggested_price_usd || null); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: data.content, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

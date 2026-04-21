@@ -11,6 +11,7 @@ import { Sparkles, ArrowLeft, ArrowRight, Check, Newspaper, FileText, Mail, Targ
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Building your media kit...", "Writing your press release...", "Creating your media pitch template...", "Identifying target media outlets...", "Finalising your PR strategy..."];
@@ -45,13 +46,11 @@ export default function BA15Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) { setBookTitle(book.title); setHasContext(true); } else { setHasContext(false); }
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BA-15").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
-      }
-    })();
+      const __draft = await loadBuilderDraft(authorId, "BA-15");
+      if (__draft.content) {
+        setContent(__draft.content);
+        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+      })();
   }, [authorId]);
 
   useEffect(() => {
@@ -69,6 +68,7 @@ export default function BA15Builder({ authorId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba15-media-pr", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-15", nodeName: "Media Outreach", content: data.content, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
