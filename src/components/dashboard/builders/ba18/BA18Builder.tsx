@@ -42,9 +42,11 @@ export default function BA18Builder({ authorId }: Props) {
       const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
       if (ctx?.book_title) {
         setResolvedBookTitle(ctx.book_title);
+        console.log(`[BA-18] book resolution`, { authorId, detectedBookTitle, ctxTitle: ctx?.book_title ?? null, bookTitle: null });
       } else {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
+        console.log(`[BA-18] book resolution`, { authorId, detectedBookTitle, ctxTitle: null, bookTitle: book?.title ?? null });
       }
       const __draft = await loadBuilderDraft(authorId, "BA-18");
       if (__draft.content) {
