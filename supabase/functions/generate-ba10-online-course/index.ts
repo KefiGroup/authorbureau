@@ -32,6 +32,52 @@ function compactJson(value: unknown, fallback: string, maxLength = 1600) {
   }
 }
 
+function parseAiJson(raw: string) {
+  const cleaned = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+  const exactMatch = cleaned.match(/\{[\s\S]*\}/);
+  if (!exactMatch) throw new Error("No valid JSON in AI response");
+  return JSON.parse(exactMatch[0]);
+}
+
+function errorMessage(err: unknown) {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
+async function upsertAuthorNode(
+  supabase: ReturnType<typeof createClient>,
+  authorId: string,
+  payload: Record<string, unknown>,
+) {
+  const { data: existingNode, error: existingNodeError } = await supabase
+    .from("author_nodes")
+    .select("id")
+    .eq("author_id", authorId)
+    .eq("node_id", "BA-10")
+    .maybeSingle();
+
+  if (existingNodeError) throw existingNodeError;
+
+  if (existingNode?.id) {
+    const { error } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await supabase.from("author_nodes").insert({
+    author_id: authorId,
+    node_id: "BA-10",
+    node_name: "Online Course",
+    ...payload,
+  });
+  if (error) throw error;
+}
+
 async function resolveAuthorBook(
   supabase: ReturnType<typeof createClient>,
   authorId: string,
@@ -66,6 +112,8 @@ async function resolveAuthorBook(
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  let priorNodeState: Record<string, unknown> | null = null;
+
   try {
     const { author_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
@@ -81,6 +129,14 @@ serve(async (req) => {
       .eq("id", author_id)
       .single();
     if (!author) throw new Error("Author not found");
+
+    const { data: existingNodeSnapshot } = await supabase
+      .from("author_nodes")
+      .select("status, content_json, personalised_name, price_usd, currency, delivery_type, current_step")
+      .eq("author_id", author_id)
+      .eq("node_id", "BA-10")
+      .maybeSingle();
+    priorNodeState = (existingNodeSnapshot as Record<string, unknown>) ?? null;
 
     const { data: ctx } = await supabase
       .from("author_context")
@@ -184,9 +240,8 @@ Rules:
       throw new Error(`AI gateway error: ${aiRes.status} ${details.slice(0, 300)}`);
     }
     const aiData = await aiRes.json();
-    let raw = aiData.choices?.[0]?.message?.content || "";
-    raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-    const content = JSON.parse(raw);
+    const raw = aiData.choices?.[0]?.message?.content || "";
+    const content = parseAiJson(raw);
 
     // ============ Populate relational tables ============
     // 1. Upsert the courses row (one course per author per book for now)
@@ -217,9 +272,26 @@ Rules:
     let courseId: string;
     if (existingCourse?.id) {
       courseId = existingCourse.id;
-      await supabase.from("courses").update(coursePayload).eq("id", courseId);
-      // Wipe old modules/lessons so we rebuild cleanly
-      await supabase.from("course_modules").delete().eq("course_id", courseId);
+      const { error: updateCourseError } = await supabase.from("courses").update(coursePayload).eq("id", courseId);
+      if (updateCourseError) throw updateCourseError;
+
+      const { data: existingModules, error: existingModulesError } = await supabase
+        .from("course_modules")
+        .select("id")
+        .eq("course_id", courseId);
+      if (existingModulesError) throw existingModulesError;
+
+      const moduleIds = (existingModules ?? []).map((module) => module.id);
+      if (moduleIds.length > 0) {
+        const { error: deleteLessonsError } = await supabase
+          .from("course_lessons")
+          .delete()
+          .in("module_id", moduleIds);
+        if (deleteLessonsError) throw deleteLessonsError;
+      }
+
+      const { error: deleteModulesError } = await supabase.from("course_modules").delete().eq("course_id", courseId);
+      if (deleteModulesError) throw deleteModulesError;
     } else {
       const { data: newCourse, error: courseErr } = await supabase
         .from("courses")
@@ -271,25 +343,33 @@ Rules:
     }
 
     // 3. Mirror to author_nodes (status: in_progress until author publishes)
-    await supabase
-      .from("author_nodes")
-      .update({
-        status: "in_progress",
-        content_json: { ...content, course_id: courseId },
-        personalised_name: content.course_title,
-        price_usd: content.suggested_price_usd ?? 197,
-        currency: "usd",
-        delivery_type: "course",
-      })
-      .eq("author_id", author_id)
-      .eq("node_id", "BA-10");
+    await upsertAuthorNode(supabase, author_id, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, course_id: courseId, _currentStep: 2 },
+      personalised_name: content.course_title,
+      price_usd: content.suggested_price_usd ?? 197,
+      currency: "usd",
+      delivery_type: "course",
+    });
 
     return new Response(
       JSON.stringify({ success: true, content: { ...content, course_id: courseId } }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    if (priorNodeState) {
+      try {
+        await upsertAuthorNode(
+          createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
+          (await req.clone().json()).author_id,
+          priorNodeState,
+        );
+      } catch (restoreErr) {
+        console.error("generate-ba10-online-course restore error:", errorMessage(restoreErr));
+      }
+    }
+    const message = errorMessage(err);
     console.error("generate-ba10-online-course error:", message);
     return new Response(JSON.stringify({ success: false, error: message }), {
       status: 500,
