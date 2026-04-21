@@ -116,7 +116,7 @@ export default function BA10Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Online Course</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasBook && !resolvedBookTitle ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button>
