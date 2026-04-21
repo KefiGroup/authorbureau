@@ -13,6 +13,7 @@ import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, Succes
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const GEN_MSGS = ["Studying your book's key insights and frameworks...", "Designing your professional course structure...", "Creating 8 detailed course modules with lessons...", "Writing your course description...", "Finalising your course blueprint..."];
 const ACT_MSGS = ["Creating your course on the platform...", "Setting up your payment page...", "Generating your checkout link...", "Your course is almost ready..."];
@@ -69,17 +70,10 @@ export default function BA10Builder({ authorId }: Props) {
         }
       }
 
-      const { data: node } = await supabase
-        .from("author_nodes")
-        .select("content_json, status")
-        .eq("author_id", authorId)
-        .eq("node_id", "BA-10")
-        .maybeSingle();
-
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+      const draft = await loadBuilderDraft(authorId, "BA-10");
+      if (draft.content) {
+        setContent(draft.content);
+        setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
       }
     })();
   }, [authorId, detectedBookTitle, isAuthReady]);
@@ -101,6 +95,8 @@ export default function BA10Builder({ authorId }: Props) {
       setContent(data.content);
       setPriceOverride(data.content?.suggested_price_usd || null);
       setStep(2);
+      // Auto-save draft so a refresh won't bump the author back to step 0
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
