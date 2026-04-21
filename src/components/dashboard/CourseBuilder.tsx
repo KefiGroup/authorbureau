@@ -86,18 +86,9 @@ export default function CourseBuilder() {
     setSearchParams(params);
   };
 
-  // ─── AI WIZARD MODE ─────────────────────────────────────────────
-  if (showAIWizard && BUILDER_NODE_MAP["online-course"]) {
-    return (
-      <UniversalBuilderStudio
-        nodeConfig={BUILDER_NODE_MAP["online-course"]}
-        onNavigate={() => {
-          const params = new URLSearchParams(searchParams);
-          params.delete("wizard");
-          setSearchParams(params);
-        }}
-      />
-    );
+  // ─── AI WIZARD MODE — redirect to dedicated BA-10 builder ───────
+  if (showAIWizard) {
+    return <Navigate to="/node-builder/BA-10" replace />;
   }
 
   if (loading) {
