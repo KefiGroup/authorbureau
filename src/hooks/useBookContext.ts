@@ -132,11 +132,27 @@ export function useBookContext(): BookContextResult {
     };
   }
 
+  if (isLoading) {
+    return {
+      bookTitle: "your book",
+      bookId: null,
+      book: null,
+      authorId: null,
+      hasSubscription: true,
+      hasContext: false,
+      hasBook: false,
+      missingFields: [],
+      isComplete: false,
+      isLoading: true,
+      shouldGate: false,
+    };
+  }
+
   const ctx = data;
   const hasContext = !!ctx?.hasContext;
 
   // Gate ONLY when author_context (curated ABBY title) is missing
-  const shouldGate = !isLoading && !hasContext;
+  const shouldGate = !hasContext;
 
   return {
     bookTitle: ctx?.bookTitle ?? "your book",
