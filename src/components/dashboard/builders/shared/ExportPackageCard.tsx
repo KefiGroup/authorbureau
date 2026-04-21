@@ -133,7 +133,7 @@ export default function ExportPackageCard({
 
         {/* Belt-and-braces: surface a hint if the export looks empty */}
         {hasContent && buildExportText(opts).length < 200 && (
-          <p className="text-xs text-amber-600">
+          <p className="text-xs text-destructive">
             Heads up: the package looks short — your generated content may be
             incomplete. Re-generate if anything looks missing.
           </p>
