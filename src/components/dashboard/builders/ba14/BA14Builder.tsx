@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mic, LayoutList, Globe, ChevronDown, ChevronUp } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -137,7 +138,12 @@ export default function BA14Builder({ authorId }: Props) {
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <PublishSuccessScreen nodeId="BA-14" authorName={authorName} penNameSlug={authorSlug} />}
+        {step === 3 && content?.activated && (
+          <>
+            <PublishSuccessScreen nodeId="BA-14" authorName={authorName} penNameSlug={authorSlug} />
+            <BANodeDownloadCard content={content} nodeName="Podcast" bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"} authorName={authorName} guidance="Your podcast package is ready. Download it and use it with Spotify for Podcasters, Apple Podcasts, or any podcast platform of your choice to start growing your audience." />
+          </>
+        )}
       </div>
     </div>
   );

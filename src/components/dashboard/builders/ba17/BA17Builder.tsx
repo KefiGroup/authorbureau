@@ -10,6 +10,7 @@ import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Layers, Package, TrendingUp } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -132,7 +133,12 @@ export default function BA17Builder({ authorId }: Props) {
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <PublishSuccessScreen nodeId="BA-17" authorName={authorName} penNameSlug={authorSlug} />}
+        {step === 3 && content?.activated && (
+          <>
+            <PublishSuccessScreen nodeId="BA-17" authorName={authorName} penNameSlug={authorSlug} />
+            <BANodeDownloadCard content={content} nodeName="Upsell System" bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"} authorName={authorName} guidance="Your upsell system package is ready. Download it and use it with Teachable, Kajabi, Thinkific, ThriveCart, or any platform of your choice to maximise revenue from every customer." />
+          </>
+        )}
       </div>
     </div>
   );
