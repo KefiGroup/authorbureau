@@ -85,9 +85,31 @@ function getTagline(node: StorefrontNode): string | null {
 function formatPrice(price: number | null | undefined, currency?: string | null): string | null {
   if (price == null || price <= 0) return null;
   const code = (currency || "USD").toUpperCase();
-  // Whole-number formatting for clean display
   const formatted = Number.isInteger(price) ? `${price}` : price.toFixed(2);
   return `$${formatted} ${code}`;
+}
+
+/**
+ * Resolve effective price — falls back through Abby-generated fields in
+ * `content_json` so cards never show "Pricing on request" when a price
+ * exists somewhere in the payload.
+ */
+function getEffectivePrice(node: StorefrontNode): number | null {
+  if (node.price_usd != null && node.price_usd > 0) return node.price_usd;
+  const c = node.content_json || {};
+  const candidates: unknown[] = [
+    c.suggested_price_usd,
+    c.monthly_price_usd,
+    c.programme_price_usd,
+    c.package_price_usd,
+    c.price_usd,
+    (c.pricing as Record<string, unknown> | undefined)?.price_usd,
+  ];
+  for (const v of candidates) {
+    const n = typeof v === "string" ? Number(v) : (v as number | null | undefined);
+    if (typeof n === "number" && Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
 }
 
 export default function AuthorProductCard({
@@ -103,8 +125,9 @@ export default function AuthorProductCard({
   const title = getTitle(node);
   const tagline = getTagline(node);
   const category = getCategoryLabel(node.node_id);
-  const priceDisplay = formatPrice(node.price_usd, node.currency);
-  const hasPrice = node.price_usd != null && node.price_usd > 0;
+  const effectivePrice = getEffectivePrice(node);
+  const priceDisplay = formatPrice(effectivePrice, node.currency);
+  const hasPrice = effectivePrice != null && effectivePrice > 0;
 
   // Determine which CTA branch to render
   // 1. Stripe connected AND price set → BuyNowButton
