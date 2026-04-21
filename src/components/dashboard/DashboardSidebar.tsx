@@ -179,10 +179,9 @@ export default function DashboardSidebar({
   ];
 
   // ── BUILD YOUR BUSINESS ──
-  // TESTING OVERRIDE: Build Authority and Yield Revenue temporarily unlocked for all users
   const brandAccessible = hasAnalysis || bypassLocks;
-  const buildAccessible = true;
-  const yieldAccessible = true;
+  const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("build"));
+  const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("yield"));
 
   const businessItems: NavItem[] = [
     {

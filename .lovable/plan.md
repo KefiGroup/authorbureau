@@ -1,47 +1,55 @@
 
 
 ## Goal
-Lock the canonical flow end-to-end and unlock every node for testing:
+Collapse the multiple paths into ONE canonical flow:
 
-**Sidebar → My Books → pick book (or auto-pick) → Brand/Build/Yield tab → click any node card → Builder**
+**Sidebar (any item) → My Books Hub → Pick Book → Brand/Build/Yield tab → Node card → Builder (Introduction → Generation → Review → Publish/CTA)**
 
-## What's Already Working
-- Sidebar items navigate to `/my-books?intent=brand|build|yield` ✅
-- `/brand-products`, `/build-authority`, `/yield-revenue` redirect to `/my-books?intent=…` ✅
-- `MyBooks.tsx` reads `?intent=`, auto-jumps to the book if only one is analyzed, shows a "pick a book" banner if multiple ✅
-- BookHub renders the three category tabs ✅
+## Current Confusion
+Today there are 3 parallel ways to reach a node builder:
+1. **Book Hub path** (the path you want): `/my-books` → book → Brand/Build/Yield tab → node
+2. **Standalone hub path**: Sidebar "Brand Products / Build Authority / Yield Revenue" → `/brand-products` (no book context, picks the latest book silently)
+3. **Direct builder routes**: e.g. back-buttons inside builders go to `/brand-products` instead of back to the book
 
-## What's Broken (Why You See "Coming Soon")
-1. **`abbyFrameworkConfig.ts`** marks ~14 of the 28 nodes with `status: "coming-soon"` (e.g. Lead Magnets, Webinars, Audiobook, Memberships, Group Coaching, Podcast, etc.).
-2. **`PortfolioStepView.tsx`** at line 148 forces those into `"coming-soon"` state regardless of anything else.
-3. **`SmartProductCard.tsx`** then renders a disabled "Coming Soon" button (line 275-278), so the card can't be clicked.
-4. **Tier gating** on `tierRequired: "Build"|"Yield"` nodes shows a "Lock — Upgrade to X" button instead of opening the builder.
+## Proposed Changes
 
-## Changes (Minimal, Surgical)
+### 1. Sidebar — funnel everything through Book Hub
+In `AuthorSidebar` (and any nav that links to `/brand-products`, `/build-authority`, `/yield-revenue`):
+- Keep the labels **Brand Products / Build Authority / Yield Revenue** (they're useful signposts and tier indicators)
+- Change their click target to **`/my-books?intent=brand`** (or `intent=build` / `intent=yield`)
+- "My Books Hub" sidebar item stays as `/my-books`
 
-### 1. Flip every node to `available` — `src/config/abbyFrameworkConfig.ts`
-Search/replace `status: "coming-soon"` → `status: "available"` and `status: "planned"` → `status: "available"` across all 28 node definitions in the brand/build/yield arrays. (~14 edits.)
+### 2. Book Hub — handle the `intent` param
+In `src/pages/BookHub.tsx`:
+- Read `?intent=brand|build|yield` from the URL
+- If user has only **one book**: auto-select it and jump straight to that tab on the book page
+- If user has **multiple books**: show the book picker with a banner: *"Select a book to start building your Brand Products"*
+- If user has **no books**: show "Add your first book" CTA (existing empty state)
 
-### 2. Bypass tier-lock for testing — `src/components/dashboard/PortfolioStepView.tsx`
-In `getNodeState` (line 164), comment out the locked branch so every accessible node falls through to `"available"` / `"recommended"`:
-```ts
-// if (node.tierRequired && !hasTierAccess(node.tierRequired)) return "locked";
+### 3. Retire standalone hub routes
+In `src/App.tsx`:
+- `/brand-products`, `/build-authority`, `/yield-revenue` become redirects to `/my-books?intent=…`
+- Delete the standalone `BrandProductsHub.tsx`, `BuildAuthorityHub.tsx`, `YieldRevenueHub.tsx` pages (or keep as thin redirect components for back-compat)
+
+### 4. Builder back-buttons — return to the book, not the hub
+Every builder currently does `navigate("/brand-products")` etc. on Back/Close. Change all 28 builders to:
 ```
-This makes BA and YR nodes clickable even on the Brand tier (matches your "all three must be testable" answer).
+navigate(`/book/${bookId}?tab=brand`)   // or build / yield
+```
+The `bookId` is already available in the builder context (`author_nodes.book_id` or the active book).
 
-### 3. Belt-and-braces in `SmartProductCard.tsx`
-Confirm that `state: "available"` cards render the primary "Build Now" button that calls `onBuild` → which already routes to `/node-builder/{nodeId}` via `PortfolioStepView`'s click handler. No change expected; included only if testing reveals a stuck state.
+### 5. Lock down the canonical flow
+- After "Publish" in any builder → navigate to **Marketing Hub** (`/marketing-hub?node=BP-02`) which is the existing CTA target — no change needed, just make sure every builder uses it consistently.
+- Remove any "Build Now" buttons on the dashboard cards that bypass the book picker.
 
-### 4. Sanity check the click handler in `PortfolioStepView.tsx`
-Verify `onBuild` for every card navigates to `/node-builder/${node.id}` (e.g. `BP-02`, `BA-12`, `YR-19`) so the Universal Builder loads. If a card uses `navigateTo: "section-name"` and routes to `/dashboard?section=…` instead, normalize it to the `/node-builder/{ID}` path so all 28 nodes share one entry point.
-
-## Files Touched
-- `src/config/abbyFrameworkConfig.ts` — flip statuses to `available`
-- `src/components/dashboard/PortfolioStepView.tsx` — disable tier-lock branch, normalize click handler to `/node-builder/{ID}`
+## Files Touched (≈20)
+- `src/App.tsx` — 3 route redirects
+- `src/components/dashboard/AuthorSidebar.tsx` — change 3 link targets
+- `src/pages/BookHub.tsx` — handle `?intent=` param + auto-select single book
+- `src/pages/AuthorDashboard.tsx` — update the 3 `dashboardNavigate("/brand-products")` calls
+- All 28 builder files (`bp01`–`bp09`, `ba10`–`ba18`, `yr19`–`yr28`) — replace `navigate("/brand-products|build-authority|yield-revenue")` with `navigate(\`/book/\${bookId}?tab=…\`)`
+- Optional: delete `BrandProductsHub.tsx`, `BuildAuthorityHub.tsx`, `YieldRevenueHub.tsx`
 
 ## Result
-- Sidebar Brand/Build/Yield → My Books (auto-jumps if 1 book, picker if many)
-- Inside the book, every BP, BA, YR card is clickable
-- Clicking opens the Universal Builder for that node
-- One mental model, one path, no dead ends
+One mental model for the author. Sidebar items are signposts; every road leads through the Book Hub so the user always knows **which book** they're building for before they hit a builder. Inside a builder the flow stays exactly as you described: Introduction → Generation → Review → Publish.
 
