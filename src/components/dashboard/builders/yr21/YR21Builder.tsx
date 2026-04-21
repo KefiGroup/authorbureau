@@ -47,7 +47,8 @@ export default function YR21Builder({ authorId }: Props) {
       if (__draft.content) {
         setContent(__draft.content);
         setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
-      })();
+      }
+    })();
   }, [authorId]);
 
   useEffect(() => {

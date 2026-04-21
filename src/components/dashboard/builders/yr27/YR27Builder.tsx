@@ -40,7 +40,8 @@ export default function YR27Builder({ authorId }: Props) {
       if (__draft.content) {
         setContent(__draft.content);
         setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
-      })(); }, [authorId, detectedBookTitle]);
+      }
+    })(); }, [authorId, detectedBookTitle]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
 
