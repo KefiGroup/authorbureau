@@ -144,9 +144,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   };
 
   const getNodeState = (node: Node): ProductCardState => {
-    // Planned or coming-soon nodes are always "coming-soon" regardless of other state
-    if (node.status === "planned" || node.status === "coming-soon") return "coming-soon";
-
+    // Testing mode: every node is clickable; tier-lock and coming-soon bypassed
     const nodeIdMap: Record<string, string> = {
       "courses": "courses",
       "home-study": "home_study_courses",
@@ -161,7 +159,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
     };
     if (publishedProducts.has(nodeIdMap[node.id] || "")) return "published";
     if (builtProducts.has(node.id) || builtProducts.has(nodeIdMap[node.id] || "")) return "in-progress";
-    if (node.tierRequired && !hasTierAccess(node.tierRequired)) return "locked";
+    // if (node.tierRequired && !hasTierAccess(node.tierRequired)) return "locked";
     const isRecommended = recommendations.some(r => r.nodeId === node.id || r.nodeId.includes(node.id.split("-")[0]));
     if (isRecommended) return "recommended";
     return "available";
