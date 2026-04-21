@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useBookContext } from "@/hooks/useBookContext";
-import BookProfileGate from "@/components/dashboard/builders/shared/BookProfileGate";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -32,8 +31,7 @@ export default function BA17Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [authorSlug, setAuthorSlug] = useState("");
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, shouldGate, missingFields, bookId, book } = useBookContext();
-  const [overrideGate, setOverrideGate] = useState(false);
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useBookContext();
 
   useEffect(() => {
     if (!authorId) return;
@@ -91,19 +89,12 @@ export default function BA17Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Upsell System</h2>
-            {isBookLoading ? (
-              <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : shouldGate && !overrideGate ? (
-              <BookProfileGate
-                shouldGate={shouldGate}
-                hasBook={hasBook}
-                bookId={bookId}
-                book={book}
-                missingFields={missingFields}
-                returnTo="/node-builder/BA-17"
-                onProceedAnyway={hasBook ? () => setOverrideGate(true) : undefined}
-              />
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Upsells and downsells maximise the value of every customer. I'll design a product ladder based on '{detectedBookTitle || bookTitle || "your book"}' — with bundles, upsell sequences, and pricing strategy. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Upsell System</Button></>)}
+            {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
+              <>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your upsell system, I need to know about your book. Please complete your book profile first.</p>
+                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-17")}>Complete Book Profile</Button>
+              </>
+            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Upsells and downsells maximise the value of every customer. I'll design a product ladder based on '{detectedBookTitle || bookTitle || "your book"}' — with bundles, upsell sequences, and pricing strategy. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Upsell System</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
