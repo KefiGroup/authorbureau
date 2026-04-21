@@ -85,7 +85,40 @@ export default function BA11Builder({ authorId }: Props) {
     persistDraft(stepData, stepIdx);
   };
 
+  const canAdvance = (idx: number): { ok: boolean; hint?: string } => {
+    const step = STUDIO_STEPS[idx];
+    if (!step) return { ok: true };
+    switch (step.id) {
+      case "setup":
+        return stepData.setup?.narration
+          ? { ok: true }
+          : { ok: false, hint: "Choose a narrator style to continue." };
+      case "optimize": {
+        const chapters = stepData.chapters ?? [];
+        return chapters.length > 0
+          ? { ok: true }
+          : { ok: false, hint: "Click Optimize for Audio to continue." };
+      }
+      case "voice":
+        return stepData.selectedVoiceId
+          ? { ok: true }
+          : { ok: false, hint: "Select a voice to continue." };
+      case "production": {
+        const chapters = stepData.chapters ?? [];
+        const anyDone = chapters.some((c: any) => c?.status === "audio-generated" || c?.status === "reviewed");
+        return anyDone
+          ? { ok: true }
+          : { ok: false, hint: "Generate at least one chapter before publishing." };
+      }
+      default:
+        return { ok: true };
+    }
+  };
+
+  const advanceGate = canAdvance(stepIdx);
+
   const handleNext = () => {
+    if (!advanceGate.ok) return;
     if (stepIdx < STUDIO_STEPS.length - 1) {
       const next = stepIdx + 1;
       setStepIdx(next);
@@ -93,6 +126,14 @@ export default function BA11Builder({ authorId }: Props) {
     }
   };
   const handleBack = () => setStepIdx(Math.max(0, stepIdx - 1));
+
+  const canJumpTo = (target: number) => {
+    if (target <= stepIdx) return true;
+    for (let i = stepIdx; i < target; i++) {
+      if (!canAdvance(i).ok) return false;
+    }
+    return true;
+  };
 
   if (!authorId) {
     return (
