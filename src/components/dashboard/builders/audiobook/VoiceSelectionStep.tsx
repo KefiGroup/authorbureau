@@ -53,30 +53,17 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   const handlePreview = async (voice: VoiceOption) => {
     setPlayingId(voice.id);
     try {
-      const sampleText = `From ${bookTitle || "your book"}: Welcome to the journey ahead. In the pages that follow, you'll discover insights that can transform the way you think, act, and live.`;
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
-          body: JSON.stringify({
-            action: "preview",
-            text: sampleText,
-            voiceId: voice.elevenLabsId,
-          }),
-        }
-      );
-      if (!response.ok) throw new Error("Preview failed");
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
+      const { data, error } = await supabase.functions.invoke("elevenlabs-tts-audiobook", {
+        body: { action: "preview-voice", voiceKey: voice.id },
+      });
+      if (error) throw error;
+      if (!data?.audioBase64) throw new Error("No audio returned");
+      const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
       audio.onended = () => setPlayingId(null);
+      audio.onerror = () => { setPlayingId(null); toast.error("Could not play voice preview"); };
       await audio.play();
     } catch (error) {
+      console.error("Voice preview error:", error);
       toast.error("Could not play voice preview");
       setPlayingId(null);
     }
