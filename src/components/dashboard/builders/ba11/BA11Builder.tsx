@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Sparkles, ArrowRight, Mic, BookOpen, DollarSign, Globe } from "lucide-react";
 import { StepHeader, AbbyCard, LoadingStep, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
+import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
@@ -166,11 +167,16 @@ export default function BA11Builder({ authorId }: Props) {
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
-          <PublishSuccessScreen
-              nodeId="BA-11"
+          <>
+            <PublishSuccessScreen nodeId="BA-11" authorName={authorName} penNameSlug={authorSlug} />
+            <BANodeDownloadCard
+              content={content}
+              nodeName="Audiobook"
+              bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"}
               authorName={authorName}
-              penNameSlug={authorSlug}
+              guidance="Your audiobook package is ready. Download it and use it with Audible, Spotify, Apple Books, or any audiobook platform of your choice to start earning revenue from your expertise."
             />
+          </>
         )}
       </div>
     </div>
