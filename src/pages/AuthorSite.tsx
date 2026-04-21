@@ -21,6 +21,8 @@ import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
 import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
+import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
+import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
 export default function AuthorSite() {
@@ -135,7 +137,7 @@ export default function AuthorSite() {
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
       supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
-      supabase.from("author_nodes").select("node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url").eq("author_id", profile.id).eq("status", "live"),
+      supabase.from("author_nodes").select("id, node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url, delivery_url, price_usd, currency").eq("author_id", profile.id).eq("status", "live"),
       supabase.from("author_testimonials").select("id, name, role, quote, avatar_url").eq("author_id", profile.user_id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
       supabase.from("author_context").select("key_frameworks, unique_insights").eq("author_id", profile.id).maybeSingle(),
     ]);
@@ -251,6 +253,20 @@ export default function AuthorSite() {
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
       <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts[0]} theme={theme} v={v} />
+      <AuthorWorkWithMe
+        authorId={author.id}
+        authorSlug={authorSlug!}
+        authorName={displayName}
+        authorContactEmail={null}
+        isOwnerViewing={isOwner}
+        stripeReady={
+          !!(author as unknown as { stripe_connected_account_id?: string | null; stripe_account_id?: string | null }).stripe_connected_account_id
+          || !!(author as unknown as { stripe_account_id?: string | null }).stripe_account_id
+        }
+        liveNodes={liveNodes as unknown as StorefrontNode[]}
+        theme={theme}
+        v={v}
+      />
       <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} isOwner={isOwner} />
       <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
       <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} />
