@@ -104,6 +104,7 @@ export default function BP04Builder({ authorId }: Props) {
         if (node.status === "live") {
           setContent((prev: any) => ({ ...prev, activated: true }));
         }
+      }
       // (Removed legacy auto-redirect to microsite-manager — authors must stay on
       // /node-builder/BP-04 so they can run the unified Introduction → Live flow.)
     })();
