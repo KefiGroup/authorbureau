@@ -1,51 +1,52 @@
 
 
-## Two fixes — diagnosed
+## Plan — fix manuscript 401 + verify voice preview
 
-### Issue 1 — Voice preview fails (real cause is NOT a missing API key)
+### Phase 1 — New edge function `get-manuscript-source`
 
-`ELEVENLABS_API_KEY` **is** set in Cloud secrets (managed by the ElevenLabs connector — confirmed in the secret list). The real bug is a **contract mismatch** between the client and the edge function:
+Create `supabase/functions/get-manuscript-source/index.ts` that:
+- Accepts `{ bookId }` in the body.
+- Resolves the user via Cloud token first, then shared-backend token + email reconciliation (mirrors `parse-manuscript`/`get-author-book`).
+- Uses the **service-role client** to query `generated_assets` with `book_id = bookId`, `asset_type = 'source_material'`, trying `author_id` candidates: `userId` plus all `author_profiles.id where user_id = userId`.
+- Verifies ownership via `books.author_id IN (candidates) OR books.owner_email = userEmail`.
+- Returns `{ success: true, content, characterCount }` on hit, or `{ success: false, error: "No manuscript found. Please upload it in the Book Hub." }` (HTTP 200 envelope so the SDK doesn't swallow the message).
+- Standard CORS headers + `OPTIONS` handler. No `verify_jwt` override needed (defaults to false for this project).
 
-| Layer | What it sends / expects |
-|---|---|
-| `VoiceSelectionStep.tsx` (line 67-70) | `action: "preview"`, `voiceId: <elevenLabsId>`, `text: <sampleText>` — and reads the response as a **binary blob** |
-| `elevenlabs-tts-audiobook/index.ts` | Only accepts `action: "preview-voice"` with `voiceKey` (a short key like `"sarah"`), and returns **JSON** with base64 audio |
+### Phase 2 — Rewrite `handleGenerate` in `ManuscriptOptimizationStep.tsx`
 
-Result: every preview call falls through to `"Unknown action"` → 400 → toast "Could not play voice preview". No API call to ElevenLabs is ever attempted.
+Replace both direct browser queries (`books` + `generated_assets`) with a single:
+```ts
+supabase.functions.invoke("get-manuscript-source", { body: { bookId } })
+```
+Keep `splitIntoChapters` and `buildAutoSuggestions` as-is — they work fine, they just never received text.
 
-**Fix**: align the client with the existing edge-function contract (no edge changes needed, no redeploy):
-- In `VoiceSelectionStep.handlePreview`, send `{ action: "preview-voice", voiceKey: voice.id }` (the local `VoiceOption.id` already matches the keys in the edge function's `VOICES` map: `roger`, `sarah`, `laura`, `george`, `river`, `alice`, `matilda`, `brian`, `lily`, `daniel`).
-- Parse the JSON response (`audioBase64`) and play via a `data:audio/mpeg;base64,...` URI (avoids the `atob`/binary corruption pitfall called out in the elevenlabs-tts skill).
-- Drop the per-book sample text — the edge function's built-in sample is short and fast (~2 s response), which is what users expect from a preview button.
+Friendly error mapping:
+- `error` includes "No manuscript" → "Upload your manuscript in the Book Hub first." (toast with action hint)
+- Network/timeout → "Couldn't reach Abby. Try again in a moment."
+- Content < 500 chars → "Your manuscript looks too short — please re-upload."
 
-### Issue 2 — Manuscript step must gate Production
+### Phase 3 — Verify voice preview fix is actually live (your concern)
 
-Today `BA11Builder.handleNext` in `ba11/BA11Builder.tsx` allows the user to advance from **Manuscript** → **Voice** → **Production** without ever clicking "Optimize for Audio", so they hit `chapters.length === 0` and see "No chapters found."
+Before declaring Phase 1 complete, I will:
+1. Re-read the deployed `VoiceSelectionStep.tsx` to confirm the prior fix (action `preview-voice`, `voiceKey: voice.id`, base64 data URI playback) is still on disk and not reverted.
+2. Read the deployed `elevenlabs-tts-audiobook/index.ts` to confirm it accepts `action: "preview-voice"` with `voiceKey` and returns `{ audioBase64 }`.
+3. Tail recent logs for `elevenlabs-tts-audiobook` for the `preview-voice` action to confirm a real ElevenLabs call succeeded the last time it ran (or, if no recent attempts, call the function directly with a test payload via `curl_edge_functions` and confirm a non-empty `audioBase64` response).
+4. Only after that confirmation do we proceed to Phase 4.
 
-**Fix**: gate progression in `BA11Builder` (single source of truth, no changes needed to the step components):
+If step 1-3 reveals the client/edge contract is **still** mismatched, I'll re-apply the contract fix in the same turn (no extra round-trip).
 
-1. Compute `canAdvance` per step:
-   - `setup` → always true once narration type chosen
-   - `optimize` → `(stepData.chapters?.length ?? 0) > 0` — i.e. user has clicked Optimize and chapters exist
-   - `voice` → `stepData.selectedVoiceId` is set
-   - `production` → at least one chapter has `status === "audio-generated"` or `"reviewed"`
-2. Disable the **Next** button when `!canAdvance`, with a small helper line under it explaining what's missing (e.g. "Click *Optimize for Audio* to continue").
-3. Also disable the click-to-jump on the stepper for any step the user hasn't unlocked yet (they can still click *back* to completed steps).
+### Phase 4 — End-to-end verification on Be SUCKcessful
 
-This makes "Optimize for Audio" structurally required without auto-running it — the author keeps explicit control of when AI fires (and spends ElevenLabs credits in step 4).
+1. Click **Optimize for Audio** → expect ~20 chapters parsed from the 100,589-char manuscript (no more 401, no more "0 chapters").
+2. **Next: Voice** unlocks (gating already in place).
+3. Click ▶ on Sarah / Brian / Lily → audio plays within ~2 s.
+4. Pick a voice → **Next: Production** unlocks → generate Chapter 1 audio → MP3 plays inline.
 
 ## Files touched
 
-- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx` — rewrite `handlePreview` to use the correct action / payload / response decoding
-- `src/components/dashboard/builders/ba11/BA11Builder.tsx` — add `canAdvance(stepIdx)` gate on the Next button + the stepper buttons, with a helper hint when blocked
+- **New**: `supabase/functions/get-manuscript-source/index.ts`
+- **Updated**: `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`
+- **Read-only audit (no changes unless drift detected)**: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`, `supabase/functions/elevenlabs-tts-audiobook/index.ts`
 
-No edge function changes. No DB migrations. No new secrets. No redeploys.
-
-## Verification
-
-1. Step 3 → click ▶ on **Sarah** → ~2 s later you hear the sample; the spinner clears via `audio.onended`. Repeat with Brian, Lily, etc.
-2. Step 2 with no chapters → click **Next: Voice** → button is disabled, hint reads "Click *Optimize for Audio* to continue."
-3. Click **Optimize for Audio** → chapters appear → **Next: Voice** unlocks.
-4. Step 3 with no voice selected → **Next: Production** disabled with hint "Select a voice to continue."
-5. Step 4 reachable only after a voice is picked, so it never shows "No chapters found" again.
+No DB migrations. No RLS changes. No new secrets. Edge function deploys automatically.
 
