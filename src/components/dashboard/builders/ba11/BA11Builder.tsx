@@ -85,7 +85,40 @@ export default function BA11Builder({ authorId }: Props) {
     persistDraft(stepData, stepIdx);
   };
 
+  const canAdvance = (idx: number): { ok: boolean; hint?: string } => {
+    const step = STUDIO_STEPS[idx];
+    if (!step) return { ok: true };
+    switch (step.id) {
+      case "setup":
+        return stepData.setup?.narration
+          ? { ok: true }
+          : { ok: false, hint: "Choose a narrator style to continue." };
+      case "optimize": {
+        const chapters = stepData.chapters ?? [];
+        return chapters.length > 0
+          ? { ok: true }
+          : { ok: false, hint: "Click Optimize for Audio to continue." };
+      }
+      case "voice":
+        return stepData.selectedVoiceId
+          ? { ok: true }
+          : { ok: false, hint: "Select a voice to continue." };
+      case "production": {
+        const chapters = stepData.chapters ?? [];
+        const anyDone = chapters.some((c: any) => c?.status === "audio-generated" || c?.status === "reviewed");
+        return anyDone
+          ? { ok: true }
+          : { ok: false, hint: "Generate at least one chapter before publishing." };
+      }
+      default:
+        return { ok: true };
+    }
+  };
+
+  const advanceGate = canAdvance(stepIdx);
+
   const handleNext = () => {
+    if (!advanceGate.ok) return;
     if (stepIdx < STUDIO_STEPS.length - 1) {
       const next = stepIdx + 1;
       setStepIdx(next);
@@ -93,6 +126,14 @@ export default function BA11Builder({ authorId }: Props) {
     }
   };
   const handleBack = () => setStepIdx(Math.max(0, stepIdx - 1));
+
+  const canJumpTo = (target: number) => {
+    if (target <= stepIdx) return true;
+    for (let i = stepIdx; i < target; i++) {
+      if (!canAdvance(i).ok) return false;
+    }
+    return true;
+  };
 
   if (!authorId) {
     return (
@@ -149,13 +190,15 @@ export default function BA11Builder({ authorId }: Props) {
                   const Icon = s.icon;
                   const active = i === stepIdx;
                   const done = i < stepIdx;
+                  const allowed = canJumpTo(i);
                   return (
                     <button
                       key={s.id}
-                      onClick={() => setStepIdx(i)}
+                      onClick={() => allowed && setStepIdx(i)}
+                      disabled={!allowed}
                       className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-md transition-colors min-w-[80px] ${
                         active ? "bg-secondary/10 text-secondary" : done ? "text-foreground" : "text-muted-foreground"
-                      }`}
+                      } ${!allowed ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
                         active ? "bg-secondary text-secondary-foreground" : done ? "bg-accent/20 text-accent" : "bg-muted"
@@ -185,16 +228,21 @@ export default function BA11Builder({ authorId }: Props) {
               />
             </Card>
 
-            <div className="flex justify-between gap-3">
-              <Button variant="outline" onClick={handleBack} disabled={stepIdx === 0}>
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back
-              </Button>
-              {stepIdx < STUDIO_STEPS.length - 1 ? (
-                <Button onClick={handleNext}>
-                  Next: {STUDIO_STEPS[stepIdx + 1].label} <ArrowRight className="h-4 w-4 ml-2" />
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between gap-3">
+                <Button variant="outline" onClick={handleBack} disabled={stepIdx === 0}>
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Back
                 </Button>
-              ) : (
-                <div />
+                {stepIdx < STUDIO_STEPS.length - 1 ? (
+                  <Button onClick={handleNext} disabled={!advanceGate.ok}>
+                    Next: {STUDIO_STEPS[stepIdx + 1].label} <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <div />
+                )}
+              </div>
+              {!advanceGate.ok && advanceGate.hint && stepIdx < STUDIO_STEPS.length - 1 && (
+                <p className="text-xs text-muted-foreground text-right">{advanceGate.hint}</p>
               )}
             </div>
           </>
