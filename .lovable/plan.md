@@ -1,86 +1,98 @@
 
 
 ## Goal
-Stop the false "Complete Book Profile" gate from showing on BA-10 through BA-18, BP-03, BP-04, BP-06, BP-07, BP-08, BP-09 for users like Pauline whose book IS in the system.
+Fix two distinct issues:
+1. **Build error**: BP-07 still references undeclared `hasContext` → blocks compile.
+2. **Runtime "your book" fallback** in BP-04, BP-06, BP-08, BP-09: `useAuthorBook` returns `"your book"` placeholder when its edge-function resolution misses, but BP-01's local `author_context` query DOES find the title for the same user.
 
-## Root cause found
-Even after switching the broken builders to `useAuthorBook`, they still have a **second, divergent gating path** that BP-01 / BP-02 do not have:
+## Root cause
 
-1. They call `useAuthReady()` AND gate the local effect on `if (!isAuthReady || !authorId) return`. BP-01/02 only gate on `authorId`.
-2. They run a local `author_context` query through the **Cloud** Supabase client. Pauline's session is on the **shared** backend (the platform's standard auth), so the Cloud client has no `auth.uid()`, RLS blocks the query, no row returns, and `setHasContext(false)` fires.
-3. They then check `detectedBookTitle !== "your book"` — but `useAuthorBook` returns the literal string `"your book"` when its query is still in flight or when the user has no Cloud session (`useAuthReady` returns `isReady=false` → hook short-circuits to `"your book"`). That string-equality guard fails, `hasContext` stays false, gate renders.
+**Issue 1 — BP-07 stale code.** When `useBookContext` was swapped to `useAuthorBook`, BP-07's intro JSX still has `hasContext !== null && !hasBook && !hasContext` on line 105. `hasContext` was never declared → TS2304. (This is the only real build error; the BA13–BA18 errors in the report are from a stale build cache and don't exist in the actual source.)
 
-BP-01 / BP-02 happen to work because their `setBookTitle` from local `author_context` may also fail, but their flow tolerates `bookTitle` being an empty string and still shows the intro because their gate condition is reached differently — and crucially, BP-01 was the original reference and its book lookup hits `books` via `profile.user_id` which lines up with shared-backend `auth.uid()` patterns in some paths the BA builders no longer use.
+**Issue 2 — BP-04/06/08/09 fallback gap.** They rely solely on `useAuthorBook`. For Pauline (`'Be SUCKcessful'`), the `get-author-book` edge function path doesn't always resolve cleanly, and the hook returns the literal default `"your book"`. BP-01 / BP-02 work because they ALSO run a local `author_context` → `books` lookup that succeeds where the hook misses. We need to add that same dual-source fallback to BP-04/06/08/09.
 
-## Fix — make `useAuthorBook` the single source of truth
+## Fix
 
-In all 15 broken builders, do exactly this:
+### A. BP-07 — match BA-13 pattern (gate driven by hook only)
 
-1. **Delete the local `author_context` lookup and the `hasContext` state.** Remove the entire local supabase query block that sets `bookTitle` / `hasContext`.
-2. **Remove the `useAuthReady` import and `isAuthReady` guard** from the effect. Match BP-01: only guard on `if (!authorId) return`.
-3. **Keep the local effect ONLY for things that aren't book-resolution** (loading author profile name/slug, loading the saved draft, etc.).
-4. **Drive the intro from `useAuthorBook` directly:**
-   ```ts
-   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
-   ```
-5. **Replace the gate condition** with the same shape BP-01 uses, but driven entirely by `useAuthorBook`:
-   ```tsx
-   {!isBookLoading && !hasBook ? (
-     <>
-       <p>Hi {authorName}! Before I can build this, I need to know about your book…</p>
-       <Button onClick={() => navigate("/my-books?returnTo=/node-builder/<NODE_ID>")}>
-         Complete Book Profile
-       </Button>
-     </>
-   ) : (
-     <>
-       <p>… personalised for '{detectedBookTitle || "your book"}' …</p>
-       <Button onClick={handleGenerate} disabled={isBookLoading}>Generate</Button>
-     </>
-   )}
-   ```
-6. **Drop the `bookTitle` local state** entirely — every reference to `bookTitle` in the JSX becomes `detectedBookTitle`.
+Replace the broken intro condition (line 103-112):
 
-This removes:
-- the divergent local RLS-blocked `author_context` query
-- the `useAuthReady` race that gates the effect entirely
-- the `setHasContext(false)` path that forces the gate
+```tsx
+{!isBookLoading && !hasBook ? (
+  <>
+    <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your home study course, I need to know about your book. Please complete your book profile first.</p>
+    <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button>
+  </>
+) : (
+  <><p className="text-muted-foreground mb-4">Hi {authorName}! …based on '{detectedBookTitle || resolvedBookTitle || "your book"}' …</p>
+  <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div>
+  <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>
+)}
+```
 
-…and replaces them with the **same single hook** BP-01/02 already trust.
+Also add the same local lookup as B below so `detectedBookTitle` reliably reads `'Be SUCKcessful'`.
 
-## Backstop fix to `useAuthorBook` (one-line safety)
-While the hook is short-circuiting on `!isReady || !user`, return `isLoading: true` (not `false`) so consumers' "loading branch" stays active until the auth handshake completes. This prevents the gate from ever rendering during the brief Cloud-session-restoration window.
+### B. BP-04, BP-06, BP-07, BP-08, BP-09 — add BP-01's dual-source fallback
 
-```ts
-if (!isReady || !user) {
-  return { hasBook: false, bookTitle: "your book", book: null, bookId: null,
-           missingFields: [], isComplete: false, isLoading: true }; // was: !isReady
+In each builder, add one new state and inline the lookup inside the existing profile-loading effect (the one already running), then use it as a fallback in the JSX.
+
+```tsx
+// new state alongside existing ones:
+const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
+
+// inside the existing useEffect, after setAuthorName(...):
+const { data: ctx } = await supabase
+  .from("author_context")
+  .select("book_title")
+  .eq("author_id", authorId)
+  .order("created_at", { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+if (ctx?.book_title) {
+  setResolvedBookTitle(ctx.book_title);
+} else {
+  const { data: book } = await supabase
+    .from("books")
+    .select("title")
+    .eq("author_id", profile?.user_id || authorId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (book?.title) setResolvedBookTitle(book.title);
 }
 ```
 
+Then in each builder's intro JSX, change:
+
+```tsx
+'{detectedBookTitle || "your book"}'
+```
+
+to:
+
+```tsx
+'{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}'
+```
+
+This makes `useAuthorBook` the primary source (cached, fast) but falls back to the same local query BP-01 uses when the hook returns its placeholder.
+
 ## Files to update
-Builders (all 15):
-- `src/components/dashboard/builders/ba10/BA10Builder.tsx` … `ba18/BA18Builder.tsx`
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx`, `bp04/BP04Builder.tsx`, `bp06/BP06Builder.tsx`, `bp07/BP07Builder.tsx`, `bp08/BP08Builder.tsx`, `bp09/BP09Builder.tsx`
+- `src/components/dashboard/builders/bp07/BP07Builder.tsx` — fix `hasContext` reference + add fallback (both fixes)
+- `src/components/dashboard/builders/bp04/BP04Builder.tsx` — add fallback
+- `src/components/dashboard/builders/bp06/BP06Builder.tsx` — add fallback
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — add fallback
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — add fallback
 
-Hook:
-- `src/hooks/useAuthorBook.ts` (one-line `isLoading` change)
+## Untouched
+- BP-01, BP-02, BP-03, BP-05 (working gold standards)
+- All BA-10 through BA-18 (their source is already clean — the reported TS errors will clear on next clean build)
+- All YR builders
 
-**Untouched:** `BP01Builder.tsx`, `BP02Builder.tsx`, `BP05Builder.tsx`, all YR builders.
-
-## Why this will actually work this time
-Previous attempts kept the local `author_context` query as a "fast path" alongside the hook. That query is the source of the false gate — it returns `false` when the Cloud session isn't present, and that `false` overrides whatever `useAuthorBook` later resolves. Removing it leaves `useAuthorBook` as the only signal, and `useAuthorBook` already has the proven dual-token + `owner_email` resolution path that returns `Be SUCKcessful` for Pauline.
-
-## Verification
-1. `/node-builder/BA-10` for Pauline → intro reads `'Be SUCKcessful'`, no gate.
-2. `/node-builder/BA-11` … `BA-18`, `BP-03`, `BP-04`, `BP-06`–`BP-09` → same.
-3. BP-01, BP-02, BP-05 unchanged.
-4. A genuinely new user with no book → still sees the "Complete Book Profile" CTA correctly (because `useAuthorBook` returns `hasBook=false` legitimately).
-
-## Rollback option (if you'd rather)
-You also asked about rolling back. If you'd prefer, we can revert to the version where BP-03 and BP-04 were last green — but that would also undo every other improvement made since. The fix above is smaller and surgical. Click below if you want to compare versions:
-
-<lov-actions>
-<lov-open-history>View History</lov-open-history>
-</lov-actions>
+## Verification (Pauline, `paulinet77@gmail.com`)
+1. Build compiles (BP-07 `hasContext` error gone).
+2. `/node-builder/BP-07` → Abby intro shows `'Be SUCKcessful'`, no infinite "Checking your book profile…".
+3. `/node-builder/BP-04`, `/BP-06`, `/BP-08`, `/BP-09` → Abby intro shows `'Be SUCKcessful'` instead of `'your book'`.
+4. BP-01, BP-02, BP-03, BP-05 unchanged.
+5. New user with no book → still correctly sees "Complete Book Profile" gate (`hasBook=false` and local lookup also returns nothing).
 
