@@ -270,12 +270,12 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       action: () => onNavigate?.("build-business"),
     };
     if (getBookProductCount(book.id) === 0) return {
-      label: "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
-      action: () => navigate(`/dashboard/book/${book.id}`),
+      label: intentTab ? `Start ${intentLabel}` : "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
+      action: () => navigate(`/dashboard/book/${book.id}${intentTab ? `?tab=${intentTab}` : ""}`),
     };
     return {
-      label: "Continue Building", icon: Hammer, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
-      action: () => navigate(`/dashboard/book/${book.id}`),
+      label: intentTab ? `Continue ${intentLabel}` : "Continue Building", icon: Hammer, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
+      action: () => navigate(`/dashboard/book/${book.id}${intentTab ? `?tab=${intentTab}` : ""}`),
     };
   };
 
