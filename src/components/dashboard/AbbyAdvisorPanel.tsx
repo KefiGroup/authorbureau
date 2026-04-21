@@ -9,7 +9,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import type { AbbyPlan } from "@/components/dashboard/BusinessPlanCard";
-import BuilderFirstVisitWelcome, { hasSeenBuilderFirstVisit, markBuilderFirstVisitSeen } from "@/components/dashboard/builders/BuilderFirstVisitWelcome";
+// Builder first-visit welcome retired with the legacy UniversalBuilderStudio flow.
+const FIRST_VISIT_KEY = (id: string) => `ab_builder_welcome_seen_${id}`;
+const hasSeenBuilderFirstVisit = (id: string) => {
+  try { return typeof window !== "undefined" && localStorage.getItem(FIRST_VISIT_KEY(id)) === "1"; }
+  catch { return true; }
+};
+const markBuilderFirstVisitSeen = (id: string) => {
+  try { localStorage.setItem(FIRST_VISIT_KEY(id), "1"); } catch { /* ignore */ }
+};
 
 interface Props {
   bookId: string;
@@ -207,16 +215,24 @@ export default function AbbyAdvisorPanel({ bookId, bookTitle, productNode, produ
             </div>
           ) : (
             <>
-              {/* First Visit Welcome */}
+              {/* First Visit Welcome — replaced by inline tip card */}
               {showFirstVisit && (
-                <BuilderFirstVisitWelcome
-                  builderId={productNode}
-                  builderLabel={productLabel}
-                  onDismiss={() => {
-                    setShowFirstVisit(false);
-                    markBuilderFirstVisitSeen(productNode);
-                  }}
-                />
+                <Card className="p-3 border-primary/20 bg-primary/5">
+                  <p className="text-sm font-medium mb-1">Welcome to {productLabel}</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Ask Abby anything about creating, designing, pricing, or publishing this product.
+                  </p>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      setShowFirstVisit(false);
+                      markBuilderFirstVisitSeen(productNode);
+                    }}
+                  >
+                    Got it
+                  </Button>
+                </Card>
               )}
 
               {/* Plan Context */}
