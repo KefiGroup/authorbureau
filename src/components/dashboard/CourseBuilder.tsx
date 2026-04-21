@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Navigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/shared-backend";
 import { Button } from "@/components/ui/button";
@@ -7,9 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Plus, GraduationCap, Sparkles, Trash2, Edit, Wand2, ArrowRight } from "lucide-react";
-import UniversalBuilderStudio from "@/components/dashboard/builders/UniversalBuilderStudio";
-import { BUILDER_NODE_MAP } from "@/components/dashboard/builders/builderNodeConfig";
+import { Loader2, GraduationCap, Sparkles, Trash2, Edit, ArrowRight } from "lucide-react";
 
 interface Course {
   id: string;
