@@ -98,12 +98,14 @@ export default function BA13Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Group Coaching Programme</h2>
-            {!isBookLoading && !hasBook ? (
+            {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your programme, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-13")}>Complete Book Profile</Button>
               </>
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Group coaching is one of the most powerful ways to monetise your expertise. I'm going to design an 8-week group coaching programme based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with a curriculum, pricing strategy, and sales page. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>)}
+            ) : !isIntroReady ? (
+              <p className="text-muted-foreground mb-4">Loading your book details…</p>
+            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Group coaching is one of the most powerful ways to monetise your expertise. I'm going to design an 8-week group coaching programme based on '{displayBookTitle}' — with a curriculum, pricing strategy, and sales page. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
