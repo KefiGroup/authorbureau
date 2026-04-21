@@ -90,9 +90,9 @@ export default function BA18Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Revenue Sharing Strategy</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasBook && !resolvedBookTitle ? (
               <>
-                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your revenue sharing strategy, I need to know about your book. Please complete your book profile first.</p>
+                <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your revenue sharing strategy, I need to confirm your book details. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-18")}>Complete Book Profile</Button>
               </>
             ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Revenue sharing is the ultimate partnership model. I'll design a JV strategy based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with ideal partner profiles, a pitch template, and an outreach checklist. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Strategy</Button></>)}
