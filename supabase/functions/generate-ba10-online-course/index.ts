@@ -21,6 +21,48 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function compactJson(value: unknown, fallback: string, maxLength = 1600) {
+  try {
+    const serialized = JSON.stringify(value ?? fallback);
+    return serialized.length > maxLength
+      ? `${serialized.slice(0, maxLength)}…`
+      : serialized;
+  } catch {
+    return fallback;
+  }
+}
+
+async function resolveAuthorBook(
+  supabase: ReturnType<typeof createClient>,
+  authorId: string,
+  cloudUserId: string | null,
+) {
+  let userEmail: string | null = null;
+
+  if (cloudUserId) {
+    const { data: userResult } = await supabase.auth.admin.getUserById(cloudUserId);
+    userEmail = userResult.user?.email ?? null;
+  }
+
+  const candidateAuthorIds = Array.from(new Set([authorId, cloudUserId].filter(Boolean) as string[]));
+  const bookQuery = supabase
+    .from("books")
+    .select("id, title, cover_image_url, description, genre, owner_email, author_id")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const orParts: string[] = [];
+  if (candidateAuthorIds.length) orParts.push(`author_id.in.(${candidateAuthorIds.join(",")})`);
+  if (userEmail) orParts.push(`owner_email.eq.${userEmail}`);
+
+  const { data: books, error } = orParts.length
+    ? await bookQuery.or(orParts.join(","))
+    : await bookQuery;
+
+  if (error) throw error;
+  return books?.[0] ?? null;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -47,16 +89,15 @@ serve(async (req) => {
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (!ctx) throw new Error("No author context found. Please complete your book profile first.");
 
-    // Resolve the book row (for cover + book_id link)
-    const { data: book } = await supabase
-      .from("books")
-      .select("id, title, cover_image_url")
-      .eq("author_id", author.user_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const book = await resolveAuthorBook(supabase, author_id, author.user_id ?? null);
+    const resolvedBookTitle = ctx?.book_title?.trim() || book?.title?.trim() || "";
+    if (!resolvedBookTitle) throw new Error("No book found. Please add a book first.");
+    const coreThesis = ctx?.core_thesis?.trim() || book?.description?.trim() || "";
+    const targetAudience = compactJson(ctx?.target_audience_persona, "{}", 1200);
+    const keyFrameworks = compactJson(ctx?.key_frameworks, "[]", 1400);
+    const uniqueInsights = compactJson(ctx?.unique_insights, "[]", 1400);
+    const genre = ctx?.genre || book?.genre || author.genres?.[0] || "General";
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
@@ -68,7 +109,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5.2",
         messages: [
           {
             role: "system",
@@ -77,17 +118,17 @@ serve(async (req) => {
           },
           {
             role: "user",
-            content: `Create a complete online course for ${author.pen_name}'s book '${ctx.book_title}'.
+            content: `Create a complete online course for ${author.pen_name}'s book '${resolvedBookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
-- Title: ${ctx.book_title}
-- Subtitle: ${ctx.book_subtitle || "N/A"}
-- Core thesis: ${ctx.core_thesis}
-- Target audience: ${JSON.stringify(ctx.target_audience_persona)}
-- Key frameworks: ${JSON.stringify(ctx.key_frameworks)}
-- Unique insights: ${JSON.stringify(ctx.unique_insights)}
-- Genre: ${author.genres?.[0] || "General"}
+- Title: ${resolvedBookTitle}
+- Subtitle: ${ctx?.book_subtitle || "N/A"}
+- Core thesis: ${coreThesis || "Use the book description and context to infer the main promise."}
+- Target audience: ${targetAudience}
+- Key frameworks: ${keyFrameworks}
+- Unique insights: ${uniqueInsights}
+- Genre: ${genre}
 
 Return JSON exactly in this shape:
 {
@@ -134,11 +175,14 @@ Rules:
 - Make everything specific to the book — no generic placeholders`,
           },
         ],
-        temperature: 0.7,
+        max_completion_tokens: 8000,
       }),
     });
 
-    if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status}`);
+    if (!aiRes.ok) {
+      const details = await aiRes.text();
+      throw new Error(`AI gateway error: ${aiRes.status} ${details.slice(0, 300)}`);
+    }
     const aiData = await aiRes.json();
     let raw = aiData.choices?.[0]?.message?.content || "";
     raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
