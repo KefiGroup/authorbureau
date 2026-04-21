@@ -1,55 +1,45 @@
 
 
-## Goal
-Collapse the multiple paths into ONE canonical flow:
+## No code change — diagnosis is inverted
 
-**Sidebar (any item) → My Books Hub → Pick Book → Brand/Build/Yield tab → Node card → Builder (Introduction → Generation → Review → Publish/CTA)**
+### What the user reported
+> "Live bundle calls `wuftdpnekscrsghqtssd.supabase.co/functions/v1/get-author-book`. Change the URL to `tubpbslfrxyfhldkcyyq.supabase.co`."
 
-## Current Confusion
-Today there are 3 parallel ways to reach a node builder:
-1. **Book Hub path** (the path you want): `/my-books` → book → Brand/Build/Yield tab → node
-2. **Standalone hub path**: Sidebar "Brand Products / Build Authority / Yield Revenue" → `/brand-products` (no book context, picks the latest book silently)
-3. **Direct builder routes**: e.g. back-buttons inside builders go to `/brand-products` instead of back to the book
+### What the source actually shows
+- `src/hooks/useBookContext.ts` line 6 + 53:
+  ```ts
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  ...
+  fetchWithTimeout(`${SUPABASE_URL}/functions/v1/get-author-book`, ...)
+  ```
+- `.env`:
+  ```
+  VITE_SUPABASE_URL="https://tubpbslfrxyfhldkcyyq.supabase.co"
+  ```
+- The edge function `supabase/functions/get-author-book/index.ts` is deployed to **this** project (`tubpbslfrxyfhldkcyyq`), not the shared backend.
+- Grep confirms only `src/lib/shared-backend.ts` references `wuftdpnekscrsghqtssd`, and `useBookContext` does **not** import from it.
 
-## Proposed Changes
+The two project URLs in the user's message are reversed:
+- `tubpbslfrxyfhldkcyyq` = project-local (this Lovable project, where `get-author-book` is deployed — already what the code calls)
+- `wuftdpnekscrsghqtssd` = shared backend (auth only, no `get-author-book` there)
 
-### 1. Sidebar — funnel everything through Book Hub
-In `AuthorSidebar` (and any nav that links to `/brand-products`, `/build-authority`, `/yield-revenue`):
-- Keep the labels **Brand Products / Build Authority / Yield Revenue** (they're useful signposts and tier indicators)
-- Change their click target to **`/my-books?intent=brand`** (or `intent=build` / `intent=yield`)
-- "My Books Hub" sidebar item stays as `/my-books`
+So the source is already correct. Making the requested "fix" would actually break the call by pointing it at a project where the function does not exist.
 
-### 2. Book Hub — handle the `intent` param
-In `src/pages/BookHub.tsx`:
-- Read `?intent=brand|build|yield` from the URL
-- If user has only **one book**: auto-select it and jump straight to that tab on the book page
-- If user has **multiple books**: show the book picker with a banner: *"Select a book to start building your Brand Products"*
-- If user has **no books**: show "Add your first book" CTA (existing empty state)
+### Why the live bundle still calls the wrong host
+This is the same root cause as the previous turn: **the published bundle is pinned to `index-CI1iIzPP.js`** and the new `useBookContext` code never reached the browser. The live JS calling `wuftdpnekscrsghqtssd` is the symptom of stale bundle, not a wrong constant in source.
 
-### 3. Retire standalone hub routes
-In `src/App.tsx`:
-- `/brand-products`, `/build-authority`, `/yield-revenue` become redirects to `/my-books?intent=…`
-- Delete the standalone `BrandProductsHub.tsx`, `BuildAuthorityHub.tsx`, `YieldRevenueHub.tsx` pages (or keep as thin redirect components for back-compat)
+### Plan
+1. **Do not edit `useBookContext.ts`.** Source is correct; flipping the URL would break the call.
+2. **Resolve the deploy/cache block first** (per the previously approved plan):
+   - Click **Publish → Update** again.
+   - If the bundle hash stays `index-CI1iIzPP.js`, escalate to Lovable support with the project ID and the stuck hash to force-clear the build cache.
+3. **After bundle hash advances**, hard-refresh and verify in DevTools Network:
+   - Request goes to `https://tubpbslfrxyfhldkcyyq.supabase.co/functions/v1/get-author-book`
+   - Response contains `bookTitle: "Be SUCKcessful"`
+   - Console shows `Build: 2026-04-20T10:18:00Z` and `[useBookContext] render` with `shouldGate: false`
+4. **If after a confirmed fresh bundle the call still goes to `wuftdpnekscrsghqtssd`**, then (and only then) re-investigate — but that scenario is not possible given the current source.
 
-### 4. Builder back-buttons — return to the book, not the hub
-Every builder currently does `navigate("/brand-products")` etc. on Back/Close. Change all 28 builders to:
-```
-navigate(`/book/${bookId}?tab=brand`)   // or build / yield
-```
-The `bookId` is already available in the builder context (`author_nodes.book_id` or the active book).
-
-### 5. Lock down the canonical flow
-- After "Publish" in any builder → navigate to **Marketing Hub** (`/marketing-hub?node=BP-02`) which is the existing CTA target — no change needed, just make sure every builder uses it consistently.
-- Remove any "Build Now" buttons on the dashboard cards that bypass the book picker.
-
-## Files Touched (≈20)
-- `src/App.tsx` — 3 route redirects
-- `src/components/dashboard/AuthorSidebar.tsx` — change 3 link targets
-- `src/pages/BookHub.tsx` — handle `?intent=` param + auto-select single book
-- `src/pages/AuthorDashboard.tsx` — update the 3 `dashboardNavigate("/brand-products")` calls
-- All 28 builder files (`bp01`–`bp09`, `ba10`–`ba18`, `yr19`–`yr28`) — replace `navigate("/brand-products|build-authority|yield-revenue")` with `navigate(\`/book/\${bookId}?tab=…\`)`
-- Optional: delete `BrandProductsHub.tsx`, `BuildAuthorityHub.tsx`, `YieldRevenueHub.tsx`
-
-## Result
-One mental model for the author. Sidebar items are signposts; every road leads through the Book Hub so the user always knows **which book** they're building for before they hit a builder. Inside a builder the flow stays exactly as you described: Introduction → Generation → Review → Publish.
+### Out of scope
+- Any URL change in `useBookContext.ts` or `get-active-token.ts`.
+- Any change to `shared-backend.ts` (it is correctly pointed at the shared auth backend and is unrelated to this edge function call).
 

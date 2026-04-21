@@ -43,7 +43,9 @@ import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
 import TermsOfService from "./pages/TermsOfService";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
-import IntentRedirect from "./pages/IntentRedirect";
+import BrandProductsHub from "./pages/BrandProductsHub";
+import BuildAuthorityHub from "./pages/BuildAuthorityHub";
+import YieldRevenueHub from "./pages/YieldRevenueHub";
 import RevenueFullDashboard from "./pages/RevenueFullDashboard";
 import NodeBuilder from "./pages/NodeBuilder";
 import AbbyCoachPage from "./pages/AbbyCoachPage";
@@ -138,10 +140,9 @@ const AppRoutes = () => (
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/my-contacts" element={<AuthorDashboard initialSection={"author-crm" as any} />} />
-      {/* Canonical flow: all roads pass through My Books Hub so author picks a book first */}
-      <Route path="/brand-products" element={<IntentRedirect intent="brand" />} />
-      <Route path="/build-authority" element={<IntentRedirect intent="build" />} />
-      <Route path="/yield-revenue" element={<IntentRedirect intent="yield" />} />
+      <Route path="/brand-products" element={<ProtectedRoute><BrandProductsHub /></ProtectedRoute>} />
+      <Route path="/build-authority" element={<ProtectedRoute><BuildAuthorityHub /></ProtectedRoute>} />
+      <Route path="/yield-revenue" element={<ProtectedRoute><YieldRevenueHub /></ProtectedRoute>} />
       <Route path="/revenue-dashboard" element={<ProtectedRoute><RevenueFullDashboard /></ProtectedRoute>} />
       <Route path="/abby-coach" element={<ProtectedRoute><AbbyCoachPage /></ProtectedRoute>} />
       <Route path="/node-builder/:nodeId" element={<ProtectedRoute><NodeBuilder /></ProtectedRoute>} />

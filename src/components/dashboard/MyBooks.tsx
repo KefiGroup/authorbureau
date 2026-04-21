@@ -118,29 +118,8 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
   useEffect(() => { fetchBooks(); }, [user, fetchBooks]);
 
-  // Deep-link support: ?bookId=&focus= and ?intent=brand|build|yield
+  // Deep-link support: ?bookId=&focus=
   const [searchParams] = useSearchParams();
-
-  // Map "intent" → BookHub tab id, used by the canonical Sidebar→My Books→Book flow.
-  const intent = searchParams.get("intent") as "brand" | "build" | "yield" | null;
-  const intentTab = intent === "brand" ? "revenue-streams"
-    : intent === "build" ? "marketing-channels"
-    : intent === "yield" ? "authority-builders"
-    : null;
-  const intentLabel = intent === "brand" ? "Brand Products"
-    : intent === "build" ? "Build Authority"
-    : intent === "yield" ? "Yield Revenue"
-    : null;
-
-  // If exactly one analyzed book exists and an intent was passed, auto-jump to it.
-  useEffect(() => {
-    if (!intentTab || loading || books.length === 0) return;
-    const analyzed = books.filter(b => analyzedBooks.has(b.id));
-    if (analyzed.length === 1) {
-      navigate(`/dashboard/book/${analyzed[0].id}?tab=${intentTab}`, { replace: true });
-    }
-  }, [intentTab, loading, books, analyzedBooks, navigate]);
-
   useEffect(() => {
     const focusBookId = searchParams.get("bookId");
     const focusField = searchParams.get("focus");
@@ -270,12 +249,12 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       action: () => onNavigate?.("build-business"),
     };
     if (getBookProductCount(book.id) === 0) return {
-      label: intentTab ? `Start ${intentLabel}` : "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
-      action: () => navigate(`/dashboard/book/${book.id}${intentTab ? `?tab=${intentTab}` : ""}`),
+      label: "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
+      action: () => navigate(`/dashboard/book/${book.id}`),
     };
     return {
-      label: intentTab ? `Continue ${intentLabel}` : "Continue Building", icon: Hammer, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
-      action: () => navigate(`/dashboard/book/${book.id}${intentTab ? `?tab=${intentTab}` : ""}`),
+      label: "Continue Building", icon: Hammer, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
+      action: () => navigate(`/dashboard/book/${book.id}`),
     };
   };
 
@@ -393,25 +372,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
             onSubscribe={() => onNavigate?.("build-business")}
           />
 
-          {/* Intent banner: user came in via Brand/Build/Yield sidebar — make them pick a book */}
-          {intentTab && books.length > 1 && (
-            <Card className="p-5 border-2 border-secondary/40 bg-secondary/5">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-secondary/15 shrink-0">
-                  <Sparkles className="h-5 w-5 text-secondary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-heading text-base font-semibold mb-0.5">
-                    Pick a book to start building your {intentLabel}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    Choose which book this {intentLabel?.toLowerCase()} should be built around — every product is tied to a specific book.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          )}
-
+          {/* 3. Contextual Action Banner */}
           {banner && (
             <ContextualBanner
               priority={banner.priority}

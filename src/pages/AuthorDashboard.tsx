@@ -115,13 +115,12 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     sectionParam || initialSection || (location.pathname === "/my-books" ? "my-books" : "overview")
   );
 
-  // Sections that redirect to standalone pages — handle on URL load too.
-  // Brand/Build/Yield now funnel through /my-books so user picks a book first.
+  // Sections that redirect to standalone pages — handle on URL load too
   const REDIRECT_SECTIONS: Record<string, string> = {
-    "brand-products-hub": "/my-books?intent=brand",
-    "revenue-streams": "/my-books?intent=brand",
-    "marketing-channels": "/my-books?intent=build",
-    "authority-builders": "/my-books?intent=yield",
+    "brand-products-hub": "/brand-products",
+    "revenue-streams": "/brand-products",
+    "marketing-channels": "/build-authority",
+    "authority-builders": "/yield-revenue",
     "analytics": "/revenue-dashboard",
     "revenue-dashboard": "/revenue-dashboard",
     "revenue": "/revenue-dashboard",
@@ -158,19 +157,19 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const setActiveSection = (section: DashboardSection) => {
     // Intercept standalone page navigations
     if (section === ("brand-products-hub" as DashboardSection)) {
-      dashboardNavigate("/my-books?intent=brand");
+      dashboardNavigate("/brand-products");
       return;
     }
     if (section === ("revenue-streams" as DashboardSection)) {
-      dashboardNavigate("/my-books?intent=brand");
+      dashboardNavigate("/brand-products");
       return;
     }
     if (section === ("marketing-channels" as DashboardSection)) {
-      dashboardNavigate("/my-books?intent=build");
+      dashboardNavigate("/build-authority");
       return;
     }
     if (section === ("authority-builders" as DashboardSection)) {
-      dashboardNavigate("/my-books?intent=yield");
+      dashboardNavigate("/yield-revenue");
       return;
     }
     if (section === ("analytics" as DashboardSection)) {
@@ -595,8 +594,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             (stats.nodesBuilt?.yield || 0) +
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
-          buildAuthorityCategoryOpen={true}
-          yieldCategoryOpen={true}
+          buildAuthorityCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
+          yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0 h-[100dvh] overflow-hidden">
