@@ -595,7 +595,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             (stats.nodesBuilt?.yield || 0) +
             (stats.products.perTable["coaching_packages"]?.total || 0)
           }
-          buildAuthorityCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
+          buildAuthorityCategoryOpen={true}
           yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
         />
       </div>
