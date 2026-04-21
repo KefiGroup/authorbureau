@@ -1,69 +1,127 @@
 
 
-## Correction
+## Goal
 
-I was wrong in the previous step. Re-checked the database directly:
+1. **Part 1 (approved)** — Add 4-option Export Course Package (Copy / TXT / DOCX / PDF) to BA-10…BA-18 Step 3, above "Publish to My Site".
+2. **Part 2 (revised)** — Build a "Work With Me" storefront on the public author page that shows live BA nodes, always displays price prominently, and never shows a dead Enroll button to readers when Stripe isn't connected.
 
-- `pl@paulineteo.com` = the real Pauline Teo account (this is who is logged in)
-- `paulinet77@gmail.com` = the developer/admin account (NOT Pauline)
-- All of Pauline's data — `author_profiles`, `books` ("Be SUCKcessful"), Stripe customer `cus_UJUky0qgRpdVKc`, active `yield` subscription — is correctly attached to user_id `ef23c521-9cce-4d86-9128-dc687748b65b`
+---
 
-The problem is **not** mis-mapping. The problem is that the auth user record for `pl@paulineteo.com` (id `ef23c521…`) is **missing from `auth.users`**, even though Pauline's JWT still decodes to that email and that exact ID. Everything downstream still points to her correctly — only the root auth row is gone. That is why `courses_author_id_fkey` fails.
+## Part 1 — Export Course Package (BA-10 → BA-18)
 
-So the previous proposed "re-link to paulinet77" fix would have been **destructive** — it would have transferred Pauline's book, course, profile, and subscription to the developer account. We must NOT do that.
+### New shared module: `src/lib/builder-export.ts`
+Single source of truth for all four formats. Exports:
+- `buildExportText(content, opts)` → plain text (Copy + TXT)
+- `downloadAsTxt(content, opts)`
+- `downloadAsDocx(content, opts)` — uses `docx`
+- `downloadAsPdf(content, opts)` — wraps existing `downloadBuilderPackage`
+- `copyToClipboard(content, opts)` — `navigator.clipboard` + sonner toast
 
-## Correct fix
+Walks `content` via a small shared `walkContent` helper extracted from `builder-pdf.ts` so all formats produce identical structure: title, subtitle, tagline, transformation promise, who it's for, what you'll get, all 6 modules (with Bloom level, Kolb stage, objectives, lessons), pricing + rationale, sales copy, author/book attribution.
 
-### 1) Restore the missing auth user for `pl@paulineteo.com`
-Re-create the auth user record with the **same ID** Pauline already has everywhere else: `ef23c521-9cce-4d86-9128-dc687748b65b`.
+### New shared component: `src/components/dashboard/builders/shared/ExportPackageCard.tsx`
+Renders a single card titled "Export Course Package" with four buttons (Copy, TXT, DOCX, PDF) and short guidance text. Replaces the lone download button on Step 3.
 
-This:
-- preserves her `author_profiles` row
-- preserves her book "Be SUCKcessful"
-- preserves her Stripe customer + active yield subscription
-- immediately unblocks the `courses_author_id_fkey` insert in BA-10
-- leaves `paulinet77@gmail.com` (developer account) untouched
+### Wire-in
+- Edit BA10Builder → BA18Builder (Step 3 review only): replace `<BANodeDownloadCard />` with `<ExportPackageCard />`, positioned **below** the review tabs and **above** the "Publish to My Site" button. Pass `nodeName` per node.
+- `BANodeDownloadCard.tsx` becomes a thin re-export of `ExportPackageCard` for backward compat.
 
-If the auth user cannot be re-inserted with the original UUID directly, the alternative is to create a new auth user for `pl@paulineteo.com` and then re-point `author_profiles.user_id`, `books.author_id`, `stripe_customers.user_id`, and any other owner FKs from `ef23c521…` to the new ID — in a single migration so nothing is orphaned. Restoring the original UUID is preferred because it requires zero downstream rewrites.
+### Deps
+Add `docx`. `jspdf` already present.
 
-Pauline will need to use "Forgot password" to set a new password after restore, since the auth secret cannot be recovered.
+---
 
-### 2) Keep the BA-10 edge function preflight
-The preflight check added previously (verify `auth.users` row exists before calling the AI) is still correct and should stay. It prevents wasted AI tokens if this ever happens again to any author. No change needed.
+## Part 2 — "Work With Me" storefront (revised per feedback)
 
-### 3) Keep BA-10 frontend error message
-The "account needs to be re-linked, contact support" message stays as the user-facing fallback when the preflight fails. No change needed.
+### Data
+Query `author_nodes` where `author_id = author.id` AND `status = 'live'`, ordered by category (BA → YR → BP) then `node_id`. Section is hidden entirely if zero live nodes.
 
-### 4) Add a safety guard so this cannot silently happen again
-Add a one-time backend check + ongoing trigger:
-- Backend audit query that lists every `author_profiles.user_id` that has no matching row in `auth.users`
-- A lightweight trigger on `author_profiles` insert/update that logs a warning row into an `auth_uid_warnings` table when `user_id` does not exist in `auth.users` (warn-only, never blocks the write — to avoid breaking legitimate flows)
+For each card, derive:
+- **Title** — from `content_json` (course title, package name, etc.) or `personalised_name`
+- **Tagline / one-line description** — from `content_json` subtitle/tagline
+- **Price** — from `author_nodes.price_usd` + `currency`
+- **Category badge** — derived from `node_id` (Course, Coaching, Workshop, Membership…)
+- **Author Stripe state** — read once for the page from `author_profiles.stripe_connected_account_id` (or `stripe_account_id`) AND `stripe_onboarding_complete`
+- **Owner-viewing flag** — true if logged-in user matches `author.user_id`
 
-This gives early visibility into ghost-UID drift without touching the auth schema.
+### Price display rule (mandatory)
+Price is **always shown prominently** on every card, regardless of Stripe state.
+- If `price_usd > 0` → render formatted price (e.g. "$197 USD") in a large, high-contrast badge at the top of the card body
+- If `price_usd` is null/0 → render "Pricing on request" in the same slot (still prominent — never hidden)
 
-## Files / actions
+### CTA logic (per card)
+Three branches, evaluated in this exact order:
 
-- Backend migration / data repair (schema-safe)
-  - Restore `auth.users` row for `pl@paulineteo.com` with id `ef23c521-9cce-4d86-9128-dc687748b65b`
-  - If exact-UUID restore is not possible, perform a coordinated re-point migration across `author_profiles`, `books`, `stripe_customers`, `subscriptions`, `author_nodes`, `courses`, `course_modules`, `course_lessons` — all in one transaction
-- New table: `auth_uid_warnings` (id, user_id, author_profile_id, detected_at, note)
-- New trigger on `public.author_profiles` to populate `auth_uid_warnings` when user_id is orphaned
-- No change to `supabase/functions/generate-ba10-online-course/index.ts` (preflight already correct)
-- No change to `BA10Builder.tsx` (error mapping already correct)
+1. **Stripe connected** (`stripe_connected_account_id` present AND `stripe_onboarding_complete = true`) AND `price_usd > 0`
+   → Render `<BuyNowButton authorNodeId={node.id} authorId={author.id} label="Enroll Now" />`
+   → Existing commerce engine handles checkout via `create-checkout-session`
 
-## What will NOT happen
-- We will NOT re-link Pauline's data to `paulinet77@gmail.com`
-- We will NOT modify `paulinet77@gmail.com` in any way
-- We will NOT delete or alter Pauline's `author_profiles`, `books`, Stripe customer, or subscription
+2. **Stripe NOT connected** (or onboarding incomplete)
+   - **Reader view** (not the owner): Render greyed-out, disabled-looking **"Contact"** button → `mailto:` author's public email if available, otherwise opens existing contact form / hides if no contact path
+   - **Owner view** (logged-in author viewing own page): Render greyed-out **"Payments not set up"** label (non-clickable visual chip) with a small inline link "Set up payments" → `/account-settings?tab=connections`
+   - Readers must NEVER see a dead "Enroll Now" button
+
+3. **Stripe connected but `price_usd` missing/0**
+   → Render "Contact" button (mailto) for readers, "Set price" inline link for owner
+
+### Component structure
+- New: `src/components/public/AuthorWorkWithMe.tsx`
+  - Fetches `author_nodes` (live) + reads author Stripe fields already loaded by parent
+  - Determines `isOwnerViewing` via `useAuth` + `author.user_id`
+  - Hides section if zero live nodes
+  - Renders heading "Work With Me" + subhead "Programs and resources from {AuthorName}"
+  - Responsive grid: 1 / 2 / 3 cols (mobile / tablet / desktop)
+  - Reader-side teal accent (per audience-split rule)
+
+- New: `src/components/public/AuthorProductCard.tsx`
+  - Props: `node`, `author`, `stripeReady: boolean`, `isOwnerViewing: boolean`
+  - Always renders: category badge, title, tagline, **prominent price**, CTA per branch above
+  - Imports existing `<BuyNowButton>` for branch 1
+  - Greyed states use `disabled` + muted styling, never call checkout
+
+### Mount point
+Edit the public author page renderer (located during implementation — likely `src/pages/AuthorPublicPage.tsx` or `/:authorSlug` route) to mount `<AuthorWorkWithMe author={author} />` **after** the book + book highlights block and **before** reader testimonials.
+
+### Data / RLS
+- `author_nodes` already has the public-read policy for `status = 'live'` under Commerce Engine v1. If absent, add a small read-only migration. No PII exposed.
+- `author_profiles.stripe_connected_account_id` and `stripe_onboarding_complete` are already publicly readable via the existing public author profile fetch — no schema change.
+
+### What NOT to change
+- No change to `publishNodeToSite`
+- No change to `BuyNowButton`, `create-checkout-session`, or webhooks
+- No change to microsite URLs or slug map
+- No change to `paulinet77@gmail.com` or any auth records
+
+---
 
 ## Verification
 
-After the auth user is restored:
-1. Pauline logs in at `pl@paulineteo.com` (password reset if needed)
-2. Open `/node-builder/BA-10`
-3. Click **Build My Course**
-4. Expected: AI generation completes and writes to `courses`, `course_modules`, `course_lessons` without FK violation
-5. Confirm her active yield subscription still resolves
-6. Confirm her book "Be SUCKcessful" still loads in BA-10 intro
-7. Run audit query — confirm no orphaned `author_profiles.user_id` remain
+**Part 1 (each builder BA-10 → BA-18):**
+1. Reach Step 3, see "Export Course Package" with 4 buttons above "Publish to My Site"
+2. Copy → toast confirms; pasted text contains all sections
+3. TXT downloads `[Title]-Course-Package.txt`
+4. DOCX opens cleanly with headings + modules + lessons
+5. PDF matches existing branded export
+6. All 4 formats contain identical content in identical order
+
+**Part 2:**
+1. Pauline publishes BA-10 → status `live`
+2. Visit `/pauline-teo` (incognito reader)
+   - "Work With Me" section appears
+   - Price "$XXX USD" shown prominently on the card
+   - If Stripe connected → "Enroll Now" button → Stripe Checkout
+   - If Stripe NOT connected → greyed "Contact" button → mailto (NOT a dead Enroll button)
+3. Pauline visits `/pauline-teo` while logged in as the author
+   - Same card, same prominent price
+   - If Stripe NOT connected → "Payments not set up" greyed chip + "Set up payments" link to `/account-settings?tab=connections`
+4. Author with zero live nodes → section hidden entirely
+5. Publish additional BA/YR nodes → cards appear automatically with no code change
+
+---
+
+## Out of scope (for later)
+- Per-card analytics
+- Reordering / featuring nodes from the dashboard
+- Reader-facing category filters
+- Inline Stripe Connect onboarding from the storefront card
 
