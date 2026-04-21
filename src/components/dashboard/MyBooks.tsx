@@ -118,8 +118,29 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
   useEffect(() => { fetchBooks(); }, [user, fetchBooks]);
 
-  // Deep-link support: ?bookId=&focus=
+  // Deep-link support: ?bookId=&focus= and ?intent=brand|build|yield
   const [searchParams] = useSearchParams();
+
+  // Map "intent" → BookHub tab id, used by the canonical Sidebar→My Books→Book flow.
+  const intent = searchParams.get("intent") as "brand" | "build" | "yield" | null;
+  const intentTab = intent === "brand" ? "revenue-streams"
+    : intent === "build" ? "marketing-channels"
+    : intent === "yield" ? "authority-builders"
+    : null;
+  const intentLabel = intent === "brand" ? "Brand Products"
+    : intent === "build" ? "Build Authority"
+    : intent === "yield" ? "Yield Revenue"
+    : null;
+
+  // If exactly one analyzed book exists and an intent was passed, auto-jump to it.
+  useEffect(() => {
+    if (!intentTab || loading || books.length === 0) return;
+    const analyzed = books.filter(b => analyzedBooks.has(b.id));
+    if (analyzed.length === 1) {
+      navigate(`/dashboard/book/${analyzed[0].id}?tab=${intentTab}`, { replace: true });
+    }
+  }, [intentTab, loading, books, analyzedBooks, navigate]);
+
   useEffect(() => {
     const focusBookId = searchParams.get("bookId");
     const focusField = searchParams.get("focus");
