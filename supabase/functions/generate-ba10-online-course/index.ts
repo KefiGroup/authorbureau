@@ -175,6 +175,23 @@ serve(async (req) => {
       return failResponse("Author account mapping is missing. Please contact support.");
     }
 
+    // Preflight: verify the auth user actually exists BEFORE wasting AI tokens.
+    // This prevents the long FK-violation crash on courses.author_id.
+    try {
+      const { data: authCheck, error: authCheckErr } = await supabase.auth.admin.getUserById(courseOwnerId);
+      if (authCheckErr || !authCheck?.user?.id) {
+        return failResponse(
+          "Your author account needs to be re-linked before Abby can save this course. Please contact support.",
+          { code: "AUTH_USER_MISSING", author_profile_id: author_id, stale_user_id: courseOwnerId },
+        );
+      }
+    } catch (preflightErr) {
+      return failResponse(
+        "Your author account needs to be re-linked before Abby can save this course. Please contact support.",
+        { code: "AUTH_USER_LOOKUP_FAILED", error: errorMessage(preflightErr) },
+      );
+    }
+
     const { data: existingNodeSnapshot } = await supabase
       .from("author_nodes")
       .select("status, content_json, personalised_name, price_usd, currency, delivery_type, current_step")
