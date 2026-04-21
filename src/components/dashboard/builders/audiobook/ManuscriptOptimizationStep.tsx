@@ -78,30 +78,32 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
     try {
       setGenerationState("analyzing");
 
-      // 1. Fetch the actual uploaded manuscript from generated_assets
-      const { data: book } = await supabase
-        .from("books")
-        .select("author_id")
-        .eq("id", bookId)
-        .maybeSingle();
+      // 1. Fetch the manuscript via edge function (avoids cross-backend 401s)
+      const { data, error } = await supabase.functions.invoke("get-manuscript-source", {
+        body: { bookId },
+      });
 
-      if (!book?.author_id) {
-        toast.error("Book not found. Please add your book first.");
+      if (error) {
+        console.error("[optimize] invoke error:", error);
+        toast.error("Couldn't reach Abby. Try again in a moment.");
         setGenerationState("error");
         return;
       }
 
-      const { data: asset } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("book_id", bookId)
-        .eq("author_id", book.author_id)
-        .eq("asset_type", "source_material")
-        .maybeSingle();
+      if (!data?.success) {
+        const msg = String(data?.error || "");
+        if (msg.toLowerCase().includes("no manuscript")) {
+          toast.error("Upload your manuscript in the Book Hub first.");
+        } else {
+          toast.error(msg || "Couldn't load your manuscript.");
+        }
+        setGenerationState("error");
+        return;
+      }
 
-      const manuscript = asset?.content?.trim();
+      const manuscript: string = (data.content || "").trim();
       if (!manuscript || manuscript.length < 500) {
-        toast.error("No manuscript found. Please upload your manuscript in the Book Hub first.");
+        toast.error("Your manuscript looks too short — please re-upload.");
         setGenerationState("error");
         return;
       }
