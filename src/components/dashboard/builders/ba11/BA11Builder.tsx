@@ -85,7 +85,7 @@ export default function BA11Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's prepare your Audiobook</h2>
-            {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can prepare your audiobook, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-11")}>Complete Book Profile</Button>
