@@ -1,45 +1,69 @@
 
 
-## No code change — diagnosis is inverted
+## Goal
+Eliminate the duplicate "Configure → Let Abby Build → Edit Content → Design → Preview & Publish" path so every node uses ONE flow:
 
-### What the user reported
-> "Live bundle calls `wuftdpnekscrsghqtssd.supabase.co/functions/v1/get-author-book`. Change the URL to `tubpbslfrxyfhldkcyyq.supabase.co`."
+**Introduction → Generating → Review → Publish → Live**
 
-### What the source actually shows
-- `src/hooks/useBookContext.ts` line 6 + 53:
-  ```ts
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  ...
-  fetchWithTimeout(`${SUPABASE_URL}/functions/v1/get-author-book`, ...)
-  ```
-- `.env`:
-  ```
-  VITE_SUPABASE_URL="https://tubpbslfrxyfhldkcyyq.supabase.co"
-  ```
-- The edge function `supabase/functions/get-author-book/index.ts` is deployed to **this** project (`tubpbslfrxyfhldkcyyq`), not the shared backend.
-- Grep confirms only `src/lib/shared-backend.ts` references `wuftdpnekscrsghqtssd`, and `useBookContext` does **not** import from it.
+This is the path used by the 30 dedicated builders (`BP01Builder` … `YR28Builder`) reached via `/node-builder/:nodeId`. The legacy `UniversalBuilderStudio` flow is what's breaking BA/YR nodes after generation.
 
-The two project URLs in the user's message are reversed:
-- `tubpbslfrxyfhldkcyyq` = project-local (this Lovable project, where `get-author-book` is deployed — already what the code calls)
-- `wuftdpnekscrsghqtssd` = shared backend (auth only, no `get-author-book` there)
+## Audit: where the two paths exist
 
-So the source is already correct. Making the requested "fix" would actually break the call by pointing it at a project where the function does not exist.
+**Path B — KEEP** (dedicated builders, 5 steps with "Live"):
+- 30 builders in `src/components/dashboard/builders/{bp01..yr28}/`
+- Routed through `src/pages/NodeBuilder.tsx` at `/node-builder/:nodeId`
+- Each owns its own generate edge function (already hardened in last sprint)
 
-### Why the live bundle still calls the wrong host
-This is the same root cause as the previous turn: **the published bundle is pinned to `index-CI1iIzPP.js`** and the new `useBookContext` code never reached the browser. The live JS calling `wuftdpnekscrsghqtssd` is the symptom of stale bundle, not a wrong constant in source.
+**Path A — REMOVE** (`UniversalBuilderStudio`, 5 steps ending in "Preview & Publish"):
+- `src/components/dashboard/builders/UniversalBuilderStudio.tsx`
+- `src/components/dashboard/builders/builderNodeConfig.ts` (defines the 5-step `Configure / Let Abby Build / Edit Content / Design / Preview & Publish` schema)
+- `src/components/dashboard/builders/builderUtils.ts`, `builderSystemPrompts.ts`
+- Mounted in `AuthorDashboard.tsx` for these sections:
+  - `?builder=<id>` generic mount (line 376–384)
+  - `home-study`, `group-coaching`, `memberships`, `email-marketing`, `book-sales`, `special-editions`, `lead-magnet`, `big-ticket`
+- Mounted in `CourseBuilder.tsx` for `online-course`
 
-### Plan
-1. **Do not edit `useBookContext.ts`.** Source is correct; flipping the URL would break the call.
-2. **Resolve the deploy/cache block first** (per the previously approved plan):
-   - Click **Publish → Update** again.
-   - If the bundle hash stays `index-CI1iIzPP.js`, escalate to Lovable support with the project ID and the stuck hash to force-clear the build cache.
-3. **After bundle hash advances**, hard-refresh and verify in DevTools Network:
-   - Request goes to `https://tubpbslfrxyfhldkcyyq.supabase.co/functions/v1/get-author-book`
-   - Response contains `bookTitle: "Be SUCKcessful"`
-   - Console shows `Build: 2026-04-20T10:18:00Z` and `[useBookContext] render` with `shouldGate: false`
-4. **If after a confirmed fresh bundle the call still goes to `wuftdpnekscrsghqtssd`**, then (and only then) re-investigate — but that scenario is not possible given the current source.
+## Plan — 3 steps
 
-### Out of scope
-- Any URL change in `useBookContext.ts` or `get-active-token.ts`.
-- Any change to `shared-backend.ts` (it is correctly pointed at the shared auth backend and is unrelated to this edge function call).
+### 1. Redirect every legacy entry point to the dedicated builder
+Replace each `<UniversalBuilderStudio nodeConfig={…} />` mount with a `<Navigate to={`/node-builder/${NODE_ID}`} replace />` using this map:
+
+| Dashboard section / `?builder=` value | Redirect target |
+|---|---|
+| `lead-magnet` / `?builder=lead-magnet` | `/node-builder/BP-02` |
+| `social-media` related universal mounts | `/node-builder/BP-03` |
+| `book-sales` | `/node-builder/BP-05` |
+| `special-editions` | `/node-builder/BP-08` |
+| `email-marketing` / `email-flows` | `/node-builder/BP-01` |
+| `home-study` | `/node-builder/BA-?` (home study) |
+| `online-course` (CourseBuilder) | `/node-builder/BA-10` |
+| `memberships` | `/node-builder/BA-12` |
+| `group-coaching` | `/node-builder/BA-13` |
+| `big-ticket` | `/node-builder/YR-20` |
+
+(Exact node IDs verified against `BUILDER_NODE_MAP` keys before writing the redirect.)
+
+Also handle the generic `?builder=<id>` case in `AuthorDashboard.tsx` (lines 374–384) by mapping the legacy id → dedicated `NodeBuilder` route.
+
+### 2. Delete the legacy code
+Once nothing imports them, remove:
+- `src/components/dashboard/builders/UniversalBuilderStudio.tsx`
+- `src/components/dashboard/builders/builderNodeConfig.ts`
+- `src/components/dashboard/builders/builderUtils.ts`
+- `src/components/dashboard/builders/builderSystemPrompts.ts`
+- `BUILDER_NODE_MAP` import in `AuthorDashboard.tsx` and `CourseBuilder.tsx`
+
+`CourseBuilder.tsx` becomes a thin redirect to `/node-builder/BA-10`.
+
+### 3. Verify nothing else imports the old path
+Search-and-clean any remaining `UniversalBuilderStudio` / `BUILDER_NODE_MAP` / `builderNodeConfig` references; remove dead component folders that were only consumed by `UniversalBuilderStudio` (e.g. orphaned helper components inside `lead-magnet/`, `home-study/`, etc. that aren't imported by the dedicated `BPxxBuilder.tsx` files).
+
+## Result
+- One single visual flow everywhere: **Introduction → Generating → Review → Publish → Live**
+- All BA/YR generators (already hardened with snapshot-restore + `parseAiJson`) become the only path users can reach, eliminating the post-generation breakage you've been seeing
+- ~1,500 LOC of legacy duplicate logic removed
+
+## Risk / verification
+- Old links/bookmarks like `/dashboard?builder=lead-magnet` keep working via redirect
+- After deploy, click each BP/BA/YR card from the hub and confirm the 5-step "Live" stepper renders and Save Draft auto-resumes (matches the second screenshot)
 
