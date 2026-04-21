@@ -99,9 +99,7 @@ export default function BP08Builder({ authorId }: Props) {
         <NodeHowItWorks nodeId="BP-08" />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's create your Special Editions</h2>
-            {isBookLoading ? (
-              <p className="text-muted-foreground">Checking your book profile…</p>
-            ) : hasContext !== null && !hasBook && !hasContext ? (
+            {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button>
