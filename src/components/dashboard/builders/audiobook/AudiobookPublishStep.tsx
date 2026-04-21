@@ -2,22 +2,55 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, SkipBack, SkipForward, Download, ExternalLink, Headphones, Clock, BarChart3, BookOpen, Rocket, CheckCircle2 } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Download, ExternalLink, Headphones, Clock, BarChart3, BookOpen, Rocket, CheckCircle2, Loader2 } from "lucide-react";
 import type { AudiobookStepProps, AudioChapter } from "./types";
-import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
-
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { toAbbyError } from "@/lib/abby-error";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
-export default function AudiobookPublishStep({ stepData, bookTitle }: AudiobookStepProps) {
+export default function AudiobookPublishStep({ stepData, bookTitle, bookId }: AudiobookStepProps) {
   const chapters: AudioChapter[] = stepData.chapters || [];
   const setup = stepData.setup || {};
   const [playing, setPlaying] = useState(false);
   const [activeChapter, setActiveChapter] = useState(0);
+  const [publishing, setPublishing] = useState(false);
+  const [published, setPublished] = useState(false);
 
   const totalMinutes = chapters.reduce((sum, ch) => sum + (ch.estimatedMinutes || 5), 0);
   const totalHours = Math.round(totalMinutes / 60 * 10) / 10;
   const readyChapters = chapters.filter(ch => ch.status === "audio-generated" || ch.status === "reviewed").length;
   const distribution = (setup.distribution || ["platform"]) as string[];
+
+  const handlePublish = async () => {
+    if (!bookId) { toast.error("Missing book id"); return; }
+    setPublishing(true);
+    try {
+      const channelMap: Record<string, string> = {
+        platform: "platform", acx: "acx", "google-play": "google",
+        spotify: "spotify", apple: "apple", findaway: "findaway",
+      };
+      const channels = distribution.map((d) => channelMap[d] || d);
+      const { data, error } = await supabase.functions.invoke("distribute-audiobook", {
+        body: {
+          bookId,
+          narratorCredit: setup.narratorCredit || "",
+          previewChapterIndex: 0,
+          description: setup.description || "",
+          coverImageUrl: setup.coverImageUrl || "",
+          retailPriceUsd: Number(setup.price) || 14.99,
+          channels,
+        },
+      });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || "Distribution failed");
+      setPublished(true);
+      toast.success("Audiobook published! Check your email for submission packages.");
+    } catch (e: any) {
+      toast.error(toAbbyError(e?.message || String(e)));
+    } finally {
+      setPublishing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
