@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
-  corsHeaders, makeServiceClient, parseAiJson, errorMessage,
+  corsHeaders, makeServiceClient, parseAiJson, errorMessage, failResponse,
+  verifyAuthUser, aiGatewayErrorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
 } from "../_shared/builder-helpers.ts";
 
@@ -15,27 +16,39 @@ serve(async (req) => {
   const supabase = makeServiceClient();
 
   try {
-    const { author_id } = await req.json();
-    if (!author_id) throw new Error("author_id is required");
+    let body: any;
+    try { body = await req.json(); }
+    catch { return failResponse("Invalid request body"); }
+    const { author_id } = body ?? {};
+    if (!author_id) return failResponse("author_id is required");
     parsedAuthorId = author_id;
 
     const { data: author } = await supabase
       .from("author_profiles").select("pen_name, genres, user_id").eq("id", author_id).single();
-    if (!author) throw new Error("Author not found");
+    if (!author) return failResponse("Author not found");
+
+    const authCheck = await verifyAuthUser(supabase, author.user_id);
+    if (!authCheck.ok) {
+      return failResponse(
+        "Your author account needs to be re-linked before Abby can save this. Please contact support.",
+        { code: authCheck.code, author_profile_id: author_id, stale_user_id: author.user_id },
+      );
+    }
 
     priorNodeState = await snapshotAuthorNode(supabase, author_id, NODE_ID);
     const { ctx, book, bookTitle, bookSubtitle, coreThesis } =
       await buildAuthorContext(supabase, author_id, author.user_id ?? null);
-    if (!bookTitle) throw new Error("No book found. Please add a book first.");
+    if (!bookTitle) return failResponse("No book found. Please add a book first.");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
+    if (!LOVABLE_API_KEY) return failResponse("AI service not configured");
 
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "openai/gpt-5",
+        response_format: { type: "json_object" },
         messages: [
           { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences)." },
           { role: "user", content: `Create a complete affiliate programme for ${author.pen_name}'s book '${bookTitle}'.
@@ -57,7 +70,11 @@ Make everything specific to this book. No placeholders.` },
         temperature: 0.7,
       }),
     });
-    if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status} ${(await aiRes.text()).slice(0,300)}`);
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
 
@@ -78,6 +95,6 @@ Make everything specific to this book. No placeholders.` },
     }
     const message = errorMessage(err);
     console.error(`generate-${NODE_ID} error:`, message);
-    return new Response(JSON.stringify({ success: false, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return failResponse(message);
   }
 });

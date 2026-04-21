@@ -24,6 +24,50 @@ export function errorMessage(err: unknown): string {
   try { return JSON.stringify(err); } catch { return String(err); }
 }
 
+/**
+ * Always-200 failure envelope so the frontend (supabase.functions.invoke)
+ * can read `data.success === false` and `data.error` without the SDK
+ * swallowing the body behind a non-2xx error.
+ */
+export function failResponse(error: string, diagnostics?: Record<string, unknown>) {
+  return new Response(
+    JSON.stringify({ success: false, error, diagnostics: diagnostics ?? null }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
+/**
+ * Confirm the auth user row still exists before spending AI tokens or
+ * triggering FK violations on author_nodes.
+ */
+export async function verifyAuthUser(
+  supabase: ReturnType<typeof createClient>,
+  userId: string | null | undefined,
+): Promise<{ ok: true } | { ok: false; code: string; message: string }> {
+  if (!userId) {
+    return { ok: false, code: "AUTH_USER_MISSING", message: "Author profile has no linked user_id." };
+  }
+  try {
+    const { data, error } = await supabase.auth.admin.getUserById(userId);
+    if (error || !data?.user) {
+      return { ok: false, code: "AUTH_USER_MISSING", message: "Linked auth user not found." };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, code: "AUTH_USER_LOOKUP_FAILED", message: errorMessage(e) };
+  }
+}
+
+/**
+ * Map AI gateway non-2xx responses to ABBY-voiced friendly messages.
+ */
+export function aiGatewayErrorMessage(status: number, bodyText: string): string {
+  if (status === 429) return "ABBY is a bit overwhelmed right now. Please wait a few seconds and try again.";
+  if (status === 402) return "ABBY's AI credits need topping up. Please head to Settings → Workspace → Usage to add credits, then try again.";
+  if (status >= 500) return "ABBY's AI service is having a moment. Please try again in a few seconds.";
+  return `AI gateway error (${status}): ${bodyText.slice(0, 200)}`;
+}
+
 export function parseAiJson(raw: string): any {
   const cleaned = (raw || "").replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
