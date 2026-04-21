@@ -190,13 +190,15 @@ export default function BA11Builder({ authorId }: Props) {
                   const Icon = s.icon;
                   const active = i === stepIdx;
                   const done = i < stepIdx;
+                  const allowed = canJumpTo(i);
                   return (
                     <button
                       key={s.id}
-                      onClick={() => setStepIdx(i)}
+                      onClick={() => allowed && setStepIdx(i)}
+                      disabled={!allowed}
                       className={`flex flex-col items-center gap-1.5 px-3 py-2 rounded-md transition-colors min-w-[80px] ${
                         active ? "bg-secondary/10 text-secondary" : done ? "text-foreground" : "text-muted-foreground"
-                      }`}
+                      } ${!allowed ? "opacity-40 cursor-not-allowed" : ""}`}
                     >
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
                         active ? "bg-secondary text-secondary-foreground" : done ? "bg-accent/20 text-accent" : "bg-muted"
@@ -226,16 +228,21 @@ export default function BA11Builder({ authorId }: Props) {
               />
             </Card>
 
-            <div className="flex justify-between gap-3">
-              <Button variant="outline" onClick={handleBack} disabled={stepIdx === 0}>
-                <ArrowLeft className="h-4 w-4 mr-2" /> Back
-              </Button>
-              {stepIdx < STUDIO_STEPS.length - 1 ? (
-                <Button onClick={handleNext}>
-                  Next: {STUDIO_STEPS[stepIdx + 1].label} <ArrowRight className="h-4 w-4 ml-2" />
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-between gap-3">
+                <Button variant="outline" onClick={handleBack} disabled={stepIdx === 0}>
+                  <ArrowLeft className="h-4 w-4 mr-2" /> Back
                 </Button>
-              ) : (
-                <div />
+                {stepIdx < STUDIO_STEPS.length - 1 ? (
+                  <Button onClick={handleNext} disabled={!advanceGate.ok}>
+                    Next: {STUDIO_STEPS[stepIdx + 1].label} <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <div />
+                )}
+              </div>
+              {!advanceGate.ok && advanceGate.hint && stepIdx < STUDIO_STEPS.length - 1 && (
+                <p className="text-xs text-muted-foreground text-right">{advanceGate.hint}</p>
               )}
             </div>
           </>
