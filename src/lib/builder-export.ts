@@ -314,7 +314,13 @@ export async function downloadAsDocx(opts: ExportOptions): Promise<void> {
     ],
   });
 
-  const blob = await Packer.toBlob(doc);
+  // Use base64 path to avoid Node `Buffer` polyfill dependency in Vite —
+  // `Packer.toBlob()` returns a 0-byte Blob without it.
+  const base64 = await Packer.toBase64String(doc);
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], {
+    type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  });
   const filename = `${safeFilename(opts.bookTitle || "Authors-Bureau")}-${safeFilename(opts.nodeName)}-Package.docx`;
   triggerDownload(blob, filename);
 }

@@ -82,6 +82,10 @@ export default function BA14Builder({ authorId }: Props) {
     catch (e: any) { setError(e.message); setStep(2); }
   };
 
+  const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
+  const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
+  const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
+
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
   return (
@@ -91,12 +95,14 @@ export default function BA14Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's launch your Podcast</h2>
-            {!isBookLoading && !hasBook ? (
+            {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your podcast, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-14")}>Complete Book Profile</Button>
               </>
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A podcast is a powerful discovery engine for your book and brand. I'll design a podcast concept based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with episode ideas, a format, and a launch plan. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Podcast</Button></>)}
+            ) : !isIntroReady ? (
+              <p className="text-muted-foreground mb-4">Loading your book details…</p>
+            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! A podcast is a powerful discovery engine for your book and brand. I'll design a podcast concept based on '{displayBookTitle}' — with episode ideas, a format, and a launch plan. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Podcast</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
