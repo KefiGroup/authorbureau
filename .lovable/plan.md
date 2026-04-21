@@ -2,43 +2,83 @@
 
 ## Diagnosis
 
-BA-18's title interpolation on line 98 is already correct and identical to BA-17. The reason the user still sees "your book" on BA-18 is different from the earlier BA bug:
+The `BA10Builder.tsx` "Build My Course" button is **already correctly wired**:
 
-- BA-18 has an extra **book-gate branch** (lines 93–97) that BA-17 does not have.
-- That gate branch contains the literal hard-coded sentence: *"Hi {authorName}! Before I design your revenue sharing strategy, I need to know about your book. Please complete your book profile first."*
-- When `useAuthorBook()` returns `hasBook = false` for this author at mount, BA-18 renders that gate copy — which **statically contains the words "your book"** — instead of the dynamic title sentence on line 98.
-- `resolvedBookTitle` is not the issue here; the title sentence is simply never reached.
+```tsx
+<Button onClick={handleGenerate} disabled={isBookLoading}>
+  <Sparkles /> Build My Course
+</Button>
+```
 
-In other words, the prior fix is fully wired in BA-18. What's showing is a different sentence entirely, controlled by `hasBook`, not by `detectedBookTitle`.
+`handleGenerate()` calls `setStep(1)` and invokes the `generate-ba10-online-course` edge function. There is **no `navigate()` call** anywhere in this button's handler.
 
-## Fix
+The only navigations to `/build-authority` in the visible page come from two unrelated UI elements:
+1. The `<Link to="/build-authority">Back to Build Authority</Link>` rendered by `NodeBuilder.tsx` (line 131) above the builder.
+2. The back-arrow `<Button>` inside `StepHeader` (`BABuilderShared.tsx` line 19) which uses the default `backTo = "/build-authority"`.
 
-Make BA-18's gate behave the same way as the working sibling builders by:
+So the perceived "navigates to /build-authority" is almost certainly **one of these other controls being clicked**, OR `handleGenerate()` throws so fast that the user sees step 0 again and assumes the click did nothing / went elsewhere.
 
-1. **Removing the literal phrase "your book"** from the gate copy so it is not mistaken for the placeholder bug. New copy: *"Hi {authorName}! Before I design your revenue sharing strategy, I need to confirm your book details. Please complete your book profile first."*
-2. **Tightening the gate condition** so it only blocks when there is genuinely no book detected by *either* source. Change:
-   ```tsx
-   {!isBookLoading && !hasBook ? (
-   ```
-   to:
-   ```tsx
-   {!isBookLoading && !hasBook && !resolvedBookTitle ? (
-   ```
-   This way, if `useAuthorBook` says no book but the local `author_context` / `books` fallback found one (which is exactly the scenario the prior fix was built for), BA-18 proceeds to render the dynamic title sentence on line 98 just like BA-10 / BA-12 / BA-15 do.
+The pattern in BP-01 / BP-02 is the same as BA-10: `onClick={handleGenerate}` calling an internal generator. There is no different working pattern to copy.
 
-No other changes. No touch to BA-17 or any other builder.
+## Plan
 
-## Files to update
+**Step 1 — Add a one-shot diagnostic to `handleGenerate` in `BA10Builder.tsx`** so we can see in DevTools exactly what happens on click:
 
-- `src/components/dashboard/builders/ba18/BA18Builder.tsx`
-  - Line 93: gate condition change
-  - Line 95: gate copy wording change
+```tsx
+const handleGenerate = async () => {
+  console.log("[BA-10] Build My Course clicked", { authorId });
+  setStep(1); setError(null);
+  try {
+    const { data, error: fnErr } = await supabase.functions.invoke(
+      "generate-ba10-online-course", { body: { author_id: authorId } }
+    );
+    console.log("[BA-10] generate response", { data, fnErr });
+    if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
+    setContent(data.content);
+    setPriceOverride(data.content?.suggested_price_usd || null);
+    setStep(2);
+    void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2 });
+  } catch (e: any) {
+    console.error("[BA-10] generate error", e);
+    setError(e.message);
+    setStep(0);
+  }
+};
+```
 
-## Verification
+This is purely additive logging — no behavioral change.
 
-1. Project compiles clean.
-2. For an author whose book is detected by `useAuthorBook` → BA-18 renders the title-bearing sentence with `Be SUCKcessful`. (Already worked, still works.)
-3. For an author where `useAuthorBook` returns `hasBook = false` but `author_context` / `books` resolves a title → BA-18 now bypasses the gate and renders the title-bearing sentence with the resolved title (this is the failing case being reported).
-4. For an author with truly no book in either source → BA-18 still shows the gate, but the gate no longer contains the misleading phrase "your book".
-5. The diagnostic `[BA-18] book resolution` log added previously will confirm in DevTools which path was taken.
+**Step 2 — Make the failure visible to the user** so silent reverts to step 0 stop being mistaken for a navigation. Add an immediate `toast.error(...)` in the catch block:
+
+```tsx
+} catch (e: any) {
+  console.error("[BA-10] generate error", e);
+  setError(e.message);
+  setStep(0);
+  toast.error(`Generation failed: ${toAbbyError(e.message)}`);
+}
+```
+
+**Step 3 — Verification (user action)**
+
+1. Hard-refresh `/node-builder/BA-10`.
+2. Open DevTools console.
+3. Click **Build My Course**.
+4. Report back what the console shows:
+   - If `[BA-10] Build My Course clicked` appears followed by `[BA-10] generate error` → the button works, the edge function is failing. We then fix the edge function (likely `author_id`, `author_context`, or AI gateway issue).
+   - If `[BA-10] Build My Course clicked` appears with no error and `setStep(2)` runs but the URL changes to `/build-authority` → there is a parent-level navigation guard, and we'll inspect it.
+   - If no `[BA-10] Build My Course clicked` log appears at all → the user is clicking a different element (the `Back to Build Authority` link or `StepHeader` back arrow). We then visually distinguish those controls so they are not mistaken for the primary CTA.
+
+**Step 4 — Targeted fix based on Step 3 output.** No speculative rewrites until we see the actual failure mode.
+
+## Files touched (Step 1 + Step 2 only — diagnostic + UX safety)
+
+- `src/components/dashboard/builders/ba10/BA10Builder.tsx` — add 3 console logs and 1 `toast.error` inside the existing `handleGenerate`. No structural changes, no navigation changes, no removal of existing logic.
+
+## Not touched
+
+- Any other BA / BP / YR builder.
+- `StepHeader` / `BABuilderShared`.
+- `NodeBuilder.tsx`.
+- The `generate-ba10-online-course` edge function (only after Step 3 confirms it as the failure point).
 
