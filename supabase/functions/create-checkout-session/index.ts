@@ -20,7 +20,6 @@
  * Output (success): { url: string }
  * Output (no Stripe Connect): { error: 'AUTHOR_PAYMENTS_NOT_SET_UP', author_id }
  */
-import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "npm:stripe@17.7.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
