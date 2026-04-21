@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Play, Loader2, Volume2, Mic, CheckCircle2 } from "lucide-react";
 import { VOICE_OPTIONS, type AudiobookStepProps, type NarrationType, type VoiceOption } from "./types";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
 
 
