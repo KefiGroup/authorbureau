@@ -47,10 +47,10 @@ serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5-mini",
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences)." },
+          { role: "system", content: "You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences)." },
           { role: "user", content: `Create a complete affiliate programme for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
@@ -60,12 +60,31 @@ Book context:
 - Core thesis: ${coreThesis || "Use book description and context to infer."}
 - Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}
 - Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
-- Unique insights: ${JSON.stringify(ctx?.unique_insights ?? [])}
 - Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
 
-Generate JSON: {"programme_title","tagline","commission_structure":[2 items with tier/commission_rate/requirements/benefits(2-3 items)],"affiliate_resources":[4 items with resource/description],"recruitment_strategy":{target_affiliates/outreach_message/recruitment_channels:[3 items]},"cookie_duration_days":60,"payout_schedule","abby_summary"}
+Return JSON in this EXACT shape (field names matter):
+{
+  "programme_title": "string",
+  "tagline": "string",
+  "overview": "string (2-3 sentences explaining the programme)",
+  "commission_structure": [
+    { "tier": "Standard", "commission_rate": "30%", "requirements": "string", "benefits": ["benefit 1", "benefit 2"] },
+    { "tier": "VIP",      "commission_rate": "50%", "requirements": "string", "benefits": ["benefit 1", "benefit 2", "benefit 3"] }
+  ],
+  "affiliate_resources": [
+    { "resource": "string", "description": "string" }
+  ],
+  "recruitment_strategy": {
+    "target_affiliates": "string",
+    "outreach_message": "string (full email-ready outreach)",
+    "recruitment_channels": ["channel 1", "channel 2", "channel 3"]
+  },
+  "cookie_duration_days": 60,
+  "payout_schedule": "string",
+  "abby_summary": "string"
+}
 
-Make everything specific to this book. No placeholders.` },
+4 resources. No placeholders.` },
         ],
       }),
     });

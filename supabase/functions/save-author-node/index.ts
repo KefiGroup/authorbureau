@@ -61,13 +61,14 @@ Deno.serve(async (req: Request) => {
   const userId = claims.sub;
 
   let body: {
-    action?: "save" | "load" | "list-audio";
+    action?: "save" | "load" | "list-audio" | "publish";
     authorId?: string;
     nodeId?: string;
     nodeName?: string;
     bookId?: string;
     content?: Record<string, unknown>;
     currentStep?: number;
+    micrositeUrl?: string | null;
   };
   try {
     body = await req.json();
@@ -76,7 +77,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = body.action ?? "save";
-  const { authorId, nodeId, nodeName, content, currentStep, bookId } = body;
+  const { authorId, nodeId, nodeName, content, currentStep, bookId, micrositeUrl } = body;
 
   // list-audio uses authorId + bookId only — nodeId is not required.
   if (action === "list-audio") {
@@ -95,6 +96,9 @@ Deno.serve(async (req: Request) => {
   });
 
   // Server-side ownership check — confirm the JWT sub owns this author profile.
+  // Tolerant match: project-local auth.uid() may differ from shared-backend
+  // user_id. Accept either: matching user_id OR matching JWT email vs the
+  // owning auth.users.email.
   const { data: profile, error: profileErr } = await admin
     .from("author_profiles")
     .select("id, user_id")
@@ -104,11 +108,26 @@ Deno.serve(async (req: Request) => {
     console.error("[save-author-node] profile lookup failed:", profileErr.message);
     return json(500, { error: "Profile lookup failed" });
   }
-  if (!profile || profile.user_id !== userId) {
+  if (!profile) {
+    return json(404, { error: "Author profile not found" });
+  }
+  let ownerOk = profile.user_id === userId;
+  if (!ownerOk && claims?.email && profile.user_id) {
+    try {
+      const { data: ownerUser } = await admin.auth.admin.getUserById(profile.user_id);
+      const ownerEmail = ownerUser?.user?.email?.toLowerCase();
+      if (ownerEmail && ownerEmail === claims.email.toLowerCase()) {
+        ownerOk = true;
+      }
+    } catch (e) {
+      console.warn("[save-author-node] auth.users lookup failed", (e as Error).message);
+    }
+  }
+  if (!ownerOk) {
     console.warn("[save-author-node] ownership mismatch", {
       authorId,
       sub: userId,
-      profileUser: profile?.user_id,
+      profileUser: profile.user_id,
     });
     return json(403, { error: "Not authorized for this author profile" });
   }
@@ -204,6 +223,47 @@ Deno.serve(async (req: Request) => {
     }));
     console.log("[save-author-node:list-audio] returning", chapters.length, "chapters");
     return json(200, { chapters });
+  }
+
+  // ---- PUBLISH ----
+  // Flips an existing author_nodes row to status='live', sets microsite_url,
+  // activated_at, current_step=3, and merges {activated:true} into content_json.
+  // Bypasses the RLS/uid mismatch that breaks direct PostgREST updates.
+  if (action === "publish") {
+    const { data: node, error: nodeErr } = await admin
+      .from("author_nodes")
+      .select("id, content_json")
+      .eq("author_id", authorId)
+      .eq("node_id", nodeId)
+      .maybeSingle();
+    if (nodeErr) {
+      console.error("[save-author-node:publish] lookup failed:", nodeErr.message);
+      return json(500, { error: nodeErr.message });
+    }
+    if (!node) {
+      return json(404, { error: "Node has no draft to publish. Generate content first." });
+    }
+    const mergedContent = {
+      ...((node.content_json ?? {}) as Record<string, unknown>),
+      activated: true,
+      _currentStep: 3,
+    };
+    const { error: updErr } = await admin
+      .from("author_nodes")
+      .update({
+        status: "live",
+        activated_at: new Date().toISOString(),
+        microsite_url: micrositeUrl ?? null,
+        current_step: 3,
+        content_json: mergedContent,
+      })
+      .eq("id", node.id);
+    if (updErr) {
+      console.error("[save-author-node:publish] update failed:", updErr.message);
+      return json(500, { error: updErr.message });
+    }
+    console.log("[save-author-node:publish] published", { nodeId, authorId, micrositeUrl });
+    return json(200, { ok: true, status: "live", micrositeUrl: micrositeUrl ?? null });
   }
 
   // ---- SAVE (default) ----

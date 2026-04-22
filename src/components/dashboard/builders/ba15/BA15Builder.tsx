@@ -66,7 +66,8 @@ export default function BA15Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba15-media-pr", { body: { author_id: authorId } });
+      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba15-media-pr", { author_id: authorId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-15", nodeName: "Media Outreach", content: data.content, currentStep: 2 });
@@ -120,10 +121,37 @@ export default function BA15Builder({ authorId }: Props) {
                 </CardContent></Card>
               </TabsContent>
               <TabsContent value="press" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground whitespace-pre-wrap">{content.press_release}</p></CardContent></Card>
+                <Card><CardContent className="pt-6">
+                  {typeof content.press_release === "string" ? (
+                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">{content.press_release}</p>
+                  ) : content.press_release ? (
+                    <div className="space-y-3">
+                      {content.press_release.headline && <h3 className="font-bold">{content.press_release.headline}</h3>}
+                      {content.press_release.subheadline && <p className="italic text-sm">{content.press_release.subheadline}</p>}
+                      {content.press_release.body && <p className="text-sm text-muted-foreground whitespace-pre-wrap">{content.press_release.body}</p>}
+                      {content.press_release.boilerplate && <p className="text-xs text-muted-foreground">{content.press_release.boilerplate}</p>}
+                    </div>
+                  ) : <p className="text-sm text-muted-foreground italic">No press release generated.</p>}
+                </CardContent></Card>
               </TabsContent>
               <TabsContent value="pitch" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground whitespace-pre-wrap">{content.pitch_template}</p></CardContent></Card>
+                <Card><CardContent className="pt-6">
+                  {(() => {
+                    const pitch = content.pitch_template ?? content.media_pitch_template;
+                    if (typeof pitch === "string") return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{pitch}</p>;
+                    if (pitch && typeof pitch === "object") {
+                      const lines = [
+                        pitch.subject_line && `Subject: ${pitch.subject_line}`,
+                        pitch.opening,
+                        pitch.hook,
+                        pitch.credentials,
+                        pitch.call_to_action,
+                      ].filter(Boolean).join("\n\n");
+                      return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{lines}</p>;
+                    }
+                    return <p className="text-sm text-muted-foreground italic">No pitch template generated.</p>;
+                  })()}
+                </CardContent></Card>
               </TabsContent>
             </Tabs>
             <ExportPackageCard

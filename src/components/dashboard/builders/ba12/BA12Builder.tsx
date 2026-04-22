@@ -70,8 +70,20 @@ export default function BA12Builder({ authorId }: Props) {
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba12-membership", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-      setContent(data.content); setPriceOverride(data.content?.suggested_price_usd || null); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: data.content, currentStep: 2 });
+      // Back-compat: legacy single-tier shape → tiers[]
+      const raw = data.content || {};
+      const normalised = {
+        ...raw,
+        membership_title: raw.membership_title || raw.membership_name || "",
+        tiers: Array.isArray(raw.tiers) && raw.tiers.length ? raw.tiers : [{
+          name: "Member",
+          price: Number(raw.monthly_price_usd ?? 27),
+          description: raw.transformation_promise || "",
+          benefits: Array.isArray(raw.benefits) ? raw.benefits : [],
+        }],
+      };
+      setContent(normalised); setPriceOverride(Number(normalised.tiers?.[0]?.price ?? 27)); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

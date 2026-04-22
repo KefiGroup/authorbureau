@@ -47,11 +47,11 @@ serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5-mini",
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "You are ABBY for Authors Bureau. Design a SINGLE-TIER monthly membership community. Respond with ONLY valid JSON (no markdown, no code fences)." },
-          { role: "user", content: `Design a monthly membership for ${author.pen_name}'s book '${bookTitle}'.
+          { role: "system", content: "You are ABBY for Authors Bureau. Design a 3-tier monthly membership community personalised to the author's book. Respond with ONLY valid JSON (no markdown, no code fences)." },
+          { role: "user", content: `Design a 3-tier monthly membership for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -61,27 +61,27 @@ Book context:
 - Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
 - Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
 
-Return JSON exactly in this shape:
+Return JSON in this EXACT shape (field names matter):
 {
-  "membership_name": "string (memorable, branded)",
-  "tagline": "string", "who_its_for": "string", "transformation_promise": "string",
-  "benefits": ["5 specific member-facing benefits"],
-  "monthly_price_usd": 27, "pricing_rationale": "string",
-  "sales_copy": { "headline": "string", "subheadline": "string", "problem": "string",
-    "promise": "string", "what_you_get": ["string","string","string","string","string"], "cta": "string" },
+  "membership_title": "string (memorable, branded)",
+  "tagline": "string",
+  "who_its_for": "string",
+  "transformation_promise": "string",
+  "tiers": [
+    { "name": "Insider",   "price": 17,  "description": "string", "benefits": ["3-4 specific benefits"] },
+    { "name": "Member",    "price": 47,  "description": "string", "benefits": ["4-5 specific benefits"] },
+    { "name": "VIP",       "price": 97,  "description": "string", "benefits": ["5-6 specific benefits"] }
+  ],
+  "content_calendar": "string (3-5 sentences describing what members get monthly: live calls, Q&As, workshops, content drops)",
   "welcome_emails": [
     { "day": 0, "subject": "string", "body": "4-6 sentences signed by ${author.pen_name}" },
     { "day": 2, "subject": "string", "body": "string" },
     { "day": 5, "subject": "string", "body": "string" }
   ],
-  "monthly_newsletter_template": {
-    "subject_pattern": "${author.pen_name} Insider — {month} {year}",
-    "sections": ["Coach's note","Featured framework","Member spotlight","This month's challenge"]
-  },
   "abby_summary": "string"
 }
 
-Single tier only. No generic placeholders.` },
+3 tiers exactly. Prices ascending. No generic placeholders.` },
         ],
       }),
     });
@@ -92,27 +92,15 @@ Single tier only. No generic placeholders.` },
     }
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
-    const monthlyPrice = Number(content.monthly_price_usd ?? 27);
-
-    await supabase.from("membership_content").upsert({
-      author_id,
-      name: content.membership_name,
-      tagline: content.tagline ?? null,
-      benefits: content.benefits ?? [],
-      sales_copy: content.sales_copy ?? {},
-      welcome_emails: content.welcome_emails ?? [],
-      monthly_newsletter_template: content.monthly_newsletter_template ?? null,
-      monthly_price: monthlyPrice,
-      currency: "usd",
-      status: "draft",
-    }, { onConflict: "author_id" });
+    const tiers = Array.isArray(content.tiers) ? content.tiers : [];
+    const entryPrice = Number(tiers[0]?.price ?? content.monthly_price_usd ?? 27);
 
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",
       current_step: 2,
       content_json: { ...content, _currentStep: 2 },
-      personalised_name: content.membership_name,
-      price_usd: monthlyPrice,
+      personalised_name: content.membership_title || content.membership_name,
+      price_usd: entryPrice,
       currency: "usd",
       delivery_type: "membership",
     });

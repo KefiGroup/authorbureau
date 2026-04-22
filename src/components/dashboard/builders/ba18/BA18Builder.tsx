@@ -70,10 +70,24 @@ export default function BA18Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba18-jv-partnerships", { body: { author_id: authorId } });
+      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba18-jv-partnerships", { author_id: authorId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-      setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: data.content, currentStep: 2 });
+      // Normalise legacy field names so the UI tabs render
+      const raw = data.content || {};
+      const normalised = {
+        ...raw,
+        ideal_partners: Array.isArray(raw.ideal_partners) ? raw.ideal_partners
+          : Array.isArray(raw.ideal_partner_profiles)
+            ? raw.ideal_partner_profiles.map((p: any) => ({
+                type: p.profile_type || p.type,
+                description: p.description,
+                revenue_model: p.why_good_fit || p.revenue_model || "",
+              }))
+            : [],
+      };
+      setContent(normalised); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: normalised, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
@@ -127,7 +141,23 @@ export default function BA18Builder({ authorId }: Props) {
                 ))}
               </TabsContent>
               <TabsContent value="pitch" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground whitespace-pre-wrap">{content.pitch_template}</p></CardContent></Card>
+                <Card><CardContent className="pt-6">
+                  {(() => {
+                    const pitch = content.pitch_template ?? content.partnership_pitch;
+                    if (typeof pitch === "string") return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{pitch}</p>;
+                    if (pitch && typeof pitch === "object") {
+                      const lines = [
+                        pitch.subject_line && `Subject: ${pitch.subject_line}`,
+                        pitch.opening,
+                        pitch.value_proposition,
+                        pitch.revenue_share,
+                        pitch.call_to_action,
+                      ].filter(Boolean).join("\n\n");
+                      return <p className="text-sm text-muted-foreground whitespace-pre-wrap">{lines}</p>;
+                    }
+                    return <p className="text-sm text-muted-foreground italic">No pitch template generated.</p>;
+                  })()}
+                </CardContent></Card>
               </TabsContent>
               <TabsContent value="checklist" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-3">
