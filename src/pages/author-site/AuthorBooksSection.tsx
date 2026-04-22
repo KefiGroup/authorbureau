@@ -115,12 +115,22 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                   </div>
                   <div className="shrink-0 p-6 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 md:border-l" style={{ borderColor: v.cardBorder }}>
                     {lowestPrice && <span className="text-lg font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{lowestPrice}</span>}
-                    <Link to={`/${authorSlug}/${book.slug}`}>
-                      <button className="inline-flex items-center gap-1.5 font-bold text-sm rounded-lg transition-all px-5 py-2.5"
-                        style={{ background: v.primary, color: v.primaryText }}>
-                        View Book <ArrowRight className="h-3.5 w-3.5" />
-                      </button>
-                    </Link>
+                    <div className="flex flex-col gap-2 items-stretch w-full md:w-auto">
+                      <Link to={`/${authorSlug}/${book.slug}`}>
+                        <button className="w-full inline-flex items-center justify-center gap-1.5 font-bold text-sm rounded-lg transition-all px-5 py-2.5"
+                          style={{ background: v.primary, color: v.primaryText }}>
+                          View Book <ArrowRight className="h-3.5 w-3.5" />
+                        </button>
+                      </Link>
+                      {(bookFormatBadges.get(book.id) || []).some(fb => fb.label === "Audiobook") && (
+                        <Link to={`/${authorSlug}/audiobook`}>
+                          <button className="w-full inline-flex items-center justify-center gap-1.5 font-semibold text-xs rounded-lg transition-all px-4 py-2 border"
+                            style={{ borderColor: v.primary, color: v.primary, background: "transparent" }}>
+                            <Headphones className="h-3.5 w-3.5" /> Listen to Audiobook
+                          </button>
+                        </Link>
+                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>

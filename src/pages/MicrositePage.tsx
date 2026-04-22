@@ -11,6 +11,7 @@ import { SLUG_TO_NODE, NODE_NAMES } from "@/lib/node-slug-map";
 import { toast } from "@/hooks/use-toast";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
+import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlayer";
 
 interface MicrositeData {
   author: any;
@@ -1038,6 +1039,21 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
                 </li>
               ))}
             </ul>
+          )}
+
+          {nodeId === "BA-11" && (
+            <AudiobookPreviewPlayer
+              chapters={Array.isArray(content.chapters) ? content.chapters : undefined}
+              chapterUrls={Array.isArray(content.chapter_urls) ? content.chapter_urls : undefined}
+              previewUrl={content.preview_url || data.node.delivery_url || null}
+              freeChapterCount={1}
+              accent={v.accent}
+              cardBg={v.cardBg}
+              cardBorder={v.cardBorder}
+              headingText={v.headingText}
+              bodyText={v.bodyText}
+              mutedText={v.mutedText}
+            />
           )}
 
           {content.price && (
