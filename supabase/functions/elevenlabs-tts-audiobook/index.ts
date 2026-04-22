@@ -86,11 +86,11 @@ serve(async (req) => {
 
     // === PREVIEW VOICE ===
     if (action === "preview-voice") {
-      const voice = VOICES[body.voiceKey];
-      if (!voice) throw new Error("Unknown voice key");
+      const resolvedVoiceId = body.voiceId || VOICES[body.voiceKey]?.id;
+      if (!resolvedVoiceId) throw new Error("Missing voiceId or unknown voiceKey");
 
       const sampleText = "Hello! This is a preview of how I would narrate your audiobook. I hope you enjoy the sound of my voice.";
-      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, voice.id, sampleText);
+      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, resolvedVoiceId, sampleText);
       const audioBase64 = base64Encode(audioBuffer);
 
       return new Response(JSON.stringify({ audioBase64, format: "mp3" }), {
