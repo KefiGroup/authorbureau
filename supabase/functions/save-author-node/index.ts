@@ -225,6 +225,47 @@ Deno.serve(async (req: Request) => {
     return json(200, { chapters });
   }
 
+  // ---- PUBLISH ----
+  // Flips an existing author_nodes row to status='live', sets microsite_url,
+  // activated_at, current_step=3, and merges {activated:true} into content_json.
+  // Bypasses the RLS/uid mismatch that breaks direct PostgREST updates.
+  if (action === "publish") {
+    const { data: node, error: nodeErr } = await admin
+      .from("author_nodes")
+      .select("id, content_json")
+      .eq("author_id", authorId)
+      .eq("node_id", nodeId)
+      .maybeSingle();
+    if (nodeErr) {
+      console.error("[save-author-node:publish] lookup failed:", nodeErr.message);
+      return json(500, { error: nodeErr.message });
+    }
+    if (!node) {
+      return json(404, { error: "Node has no draft to publish. Generate content first." });
+    }
+    const mergedContent = {
+      ...((node.content_json ?? {}) as Record<string, unknown>),
+      activated: true,
+      _currentStep: 3,
+    };
+    const { error: updErr } = await admin
+      .from("author_nodes")
+      .update({
+        status: "live",
+        activated_at: new Date().toISOString(),
+        microsite_url: micrositeUrl ?? null,
+        current_step: 3,
+        content_json: mergedContent,
+      })
+      .eq("id", node.id);
+    if (updErr) {
+      console.error("[save-author-node:publish] update failed:", updErr.message);
+      return json(500, { error: updErr.message });
+    }
+    console.log("[save-author-node:publish] published", { nodeId, authorId, micrositeUrl });
+    return json(200, { ok: true, status: "live", micrositeUrl: micrositeUrl ?? null });
+  }
+
   // ---- SAVE (default) ----
   if (!content || typeof content !== "object") {
     return json(400, { error: "content is required for save" });
