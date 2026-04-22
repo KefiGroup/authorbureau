@@ -335,6 +335,40 @@ Deno.serve(async (req: Request) => {
     audiobookId = inserted?.id;
   }
 
+  // Create Stripe product + price + payment link so the microsite has a working Buy button.
+  // Reuse the previously-created Stripe product if we already have one on the audiobook row.
+  let paymentLinkUrl: string | null = null;
+  let stripeProductId: string | null = null;
+  let stripePriceId: string | null = null;
+  const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
+  if (STRIPE_SECRET_KEY) {
+    try {
+      const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
+      const product = await stripe.products.create({
+        name: `${bookTitle} (Audiobook)`,
+        description: (description || book?.description || "").slice(0, 500),
+        metadata: { author_id: authorProfileId, node_id: "BA-11", book_id: bookId },
+      });
+      const stripePrice = await stripe.prices.create({
+        product: product.id,
+        unit_amount: Math.round(retailPriceUsd * 100),
+        currency: "usd",
+      });
+      const paymentLink = await stripe.paymentLinks.create({
+        line_items: [{ price: stripePrice.id, quantity: 1 }],
+        metadata: { author_id: authorProfileId, node_id: "BA-11", audiobook_id: audiobookId || "" },
+      });
+      paymentLinkUrl = paymentLink.url;
+      stripeProductId = product.id;
+      stripePriceId = stripePrice.id;
+      console.log("[ba11-publish-audiobook] stripe payment link created", paymentLinkUrl);
+    } catch (e) {
+      console.error("[ba11-publish-audiobook] stripe payment link failed:", e);
+    }
+  } else {
+    console.warn("[ba11-publish-audiobook] STRIPE_SECRET_KEY not configured — buy button will fall back to Coming Soon");
+  }
+
   // Upsert author_nodes row
   const micrositeUrl = authorSlug ? `/${authorSlug}/audiobook` : null;
   const publicAuthorPageUrl = authorSlug ? `/${authorSlug}` : null;
@@ -350,14 +384,27 @@ Deno.serve(async (req: Request) => {
       price_usd: retailPriceUsd,
       currency: "USD",
       activated_at: new Date().toISOString(),
+      payment_link: paymentLinkUrl,
+      stripe_product_id: stripeProductId,
+      stripe_price_id: stripePriceId,
       content_json: {
         audiobook_id: audiobookId,
+        book_id: bookId,
         book_title: bookTitle,
         chapter_count: chapters.length,
         preview_url: samplePreviewUrl,
         chapter_urls: chapters.map((c) => c.audio_url),
+        chapters: chapters.map((c) => ({ index: c.index, title: `Chapter ${c.index + 1}`, audio_url: c.audio_url })),
         channels: channelPackages.map((c) => c.channel),
         zip_url: zipUrl,
+        cover_image_url: coverImageUrl || book?.cover_image_url || "",
+        description: (description || book?.description || "").slice(0, 4000),
+        narrator_credit: narratorCredit.slice(0, 200),
+        price: retailPriceUsd,
+        stripe_checkout_url: paymentLinkUrl,
+        headline: `${bookTitle} — Audiobook Edition`,
+        subheadline: narratorCredit ? narratorCredit.slice(0, 200) : `Listen to ${bookTitle}, narrated chapter by chapter.`,
+        cta_text: "Buy Audiobook",
       },
     } as never,
     { onConflict: "author_id,node_id" },
