@@ -77,9 +77,17 @@ export default function BA17Builder({ authorId }: Props) {
   };
 
   const handlePublish = async () => {
-    setStep(3); setError(null);
-    try { await publishNodeToSite(authorId!, "BA-17", authorSlug); setContent((prev: any) => ({ ...prev, activated: true })); }
-    catch (e: any) { setError(e.message); setStep(2); }
+    setError(null);
+    setStep(3);
+    try {
+      await publishNodeToSite(authorId!, "BA-17", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
+      toast.success("Your Bundles page is live on your site.");
+    } catch (e: any) {
+      setError(e.message);
+      setStep(2);
+      toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    }
   };
 
   const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
