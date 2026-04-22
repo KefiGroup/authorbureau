@@ -1,104 +1,106 @@
 
-## Root cause
 
-The BA-11 voice preview failure is still a gateway-level auth rejection, not an ElevenLabs or playback bug.
+## Diagnosis
 
-Evidence from the current code and logs:
-- `VoiceSelectionStep.tsx` is sending the request correctly to `.../functions/v1/elevenlabs-tts-audiobook-v2` with `Authorization: Bearer ${token}` and `voiceId`.
-- `supabase/config.toml` already contains `[functions.elevenlabs-tts-audiobook-v2] verify_jwt = false`.
-- `elevenlabs-tts-audiobook-v2/index.ts` has top-of-handler logs (`[tts-v2] request started`, auth logs, action logs).
-- But `edge_function_logs("elevenlabs-tts-audiobook-v2")` returns **no logs at all**.
+Two independent bugs remaining in BA-11.
 
-That combination means the request is being rejected **before the function body runs**. The local backend cannot verify the shared Manus auth token (`unrecognized JWT kid ... ES256` in auth logs), so any path where the gateway still tries to verify JWT will produce the raw 401 the user sees.
+### Bug A — Generate Audio: HTTP 0 (client abort), not CORS
+
+The v2 function logs prove the request **does** reach runtime and is processed:
+
+```
+[tts-v2] request started
+[tts-v2] auth: jwt-decode SUCCESS
+[tts-v2] action generate-chapter
+[tts-v2] user resolved { via: "jwt-decode" }
+```
+
+There is no completion log. ElevenLabs chapter synthesis for a real chapter can take 30-90s, but `fetchWithTimeout` defaults to 25s — the browser aborts, which surfaces as `HTTP 0` and looks like CORS. The function keeps running and eventually shuts down with no observable result.
+
+Plus, per the architecture decision we already made, BA-11 should not depend on the poisoned `elevenlabs-tts-audiobook-v2` route at all. We need a fresh production endpoint, mirroring `ba11-voice-preview`.
+
+### Bug B — author_nodes 401: PostgREST rejects shared-backend JWT
+
+`builder-autosave.ts` uses the Cloud Supabase client to write to `author_nodes`. The browser session is signed by the **shared Manus backend** (kid `10e65b79-...` ES256). Cloud auth logs confirm:
+
+```
+GET /user → 403 bad_jwt: unrecognized JWT kid 10e65b79-... for algorithm ES256
+```
+
+PostgREST in Cloud verifies every incoming JWT and cannot be told `verify_jwt = false`. Therefore **direct browser writes to `author_nodes` will always return 401** for shared-backend-authenticated users. Only edge functions (which we set `verify_jwt = false` and decode the JWT in code, exactly like `check-subscription` already does) can persist to this table on behalf of the user.
+
+RLS on `author_nodes` is `(author_id IN (SELECT id FROM author_profiles WHERE user_id = auth.uid()))`, which is unreachable from the browser session.
 
 ## Plan
 
-### 1) Stop using the poisoned `elevenlabs-tts-audiobook-v2` route
-Create a brand-new minimal endpoint for BA-11 voice preview, with a fresh function name such as:
-- `supabase/functions/ba11-voice-preview/index.ts`
+### Phase 1 — Fresh chapter generation endpoint with long timeout
 
-Why:
-- `get-manuscript-source` already proves the token transport works in this app.
-- `elevenlabs-tts-audiobook-v2` is still not reaching runtime despite correct config, so it is not a reliable endpoint to keep iterating on.
+**New**: `supabase/functions/ba11-audiobook-generate/index.ts`
+- Same shape as `ba11-voice-preview`: in-code JWT decode, no DB ownership check needed, CORS on every response.
+- Action `generate-chapter`: accepts `{ voiceId, chapterText, chapterIndex, bookId }`, calls ElevenLabs, returns `{ audioBase64, format: "mp3" }`. Server-side has no client timeout — the function will run as long as ElevenLabs needs.
+- Optionally upload the resulting MP3 into `audiobook-audio` storage bucket and return a public `audioUrl`. Phase 1 returns base64; client converts to a blob URL for inline playback. (Storage upload can be Phase 1.5 if needed.)
+- Add explicit log lines at every branch.
 
-### 2) Make the new preview function minimal and modern
-Implement only the preview use case first:
-- Accept `{ voiceId }`
-- Require `Authorization`
-- Validate identity in-code using the simplest working path:
-  - JWT decode first
-  - optionally `auth.getClaims(token)` if needed
-  - avoid depending on local `/user` validation as the primary path
-- Call ElevenLabs and return `{ audioBase64, format: "mp3" }`
-
-Important implementation details:
-- Use current stable imports (`npm:@supabase/supabase-js` or the project’s modern function pattern), not the older `esm.sh` pattern.
-- Keep CORS on every response.
-- Return clear JSON errors with HTTP status and message.
-- Add unmistakable logs at the very top: request started, auth header present, action/voiceId.
-
-### 3) Give the new function its own explicit config and deploy it cleanly
-Add:
+**Config**: add to `supabase/config.toml`:
 ```toml
-[functions.ba11-voice-preview]
+[functions.ba11-audiobook-generate]
   verify_jwt = false
 ```
 
-Then explicitly deploy **only** this new function so the gateway gets a fresh manifest path.
+### Phase 2 — Switch ChapterProductionStep to the new endpoint with longer timeout
 
-### 4) Point BA-11 voice preview to the new function
-Update:
-- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
+**Update**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+- Change URL from `elevenlabs-tts-audiobook-v2` → `ba11-audiobook-generate`.
+- Pass `fetchWithTimeout(url, opts, 120_000)` so the browser waits up to 2 minutes for chapter synthesis.
+- On success, decode `audioBase64` → `Blob` → `URL.createObjectURL` → assign to `audioUrl` so the existing `<audio>` element plays it inline.
+- Surface the actual backend error message in the toast (currently swallows everything as "Audio generation failed").
 
-Change the preview URL from:
-- `elevenlabs-tts-audiobook-v2`
+### Phase 3 — Move `author_nodes` autosave behind an edge function
 
-to:
-- `ba11-voice-preview`
+**New**: `supabase/functions/save-author-node/index.ts`
+- `verify_jwt = false`, in-code JWT decode (same pattern as `check-subscription` and `ba11-voice-preview`).
+- Body: `{ authorId, nodeId, nodeName, content, currentStep }`.
+- Resolves the user via JWT, validates that the resolved `sub` matches `author_profiles.user_id` for the supplied `authorId` (server-side ownership check, since RLS is bypassed via service role).
+- Performs the same upsert logic that `autosaveBuilderDraft` does today: select existing row, never downgrade `live`, then update or insert.
+- Uses `SUPABASE_SERVICE_ROLE_KEY`.
 
-Keep:
-- `getActiveToken()`
-- `fetchWithTimeout()`
-- `Authorization: Bearer ${token}`
-- `voiceId: voice.elevenLabsId`
+**Config**: add to `supabase/config.toml`:
+```toml
+[functions.save-author-node]
+  verify_jwt = false
+```
 
-### 5) Improve client-side error reporting for preview
-The UI currently falls back to a generic “Could not play voice preview.” Update preview handling so it:
-- reads the JSON error body when status is not OK
-- shows the actual backend message in the toast
-- always resets the loading state
-- guards against duplicate clicks while one preview request is in flight
+**Update**: `src/lib/builder-autosave.ts`
+- Replace direct `supabase.from("author_nodes")` calls with a `fetch` to `save-author-node` using `getActiveToken()` + `fetchWithTimeout()`.
+- Keep the function signature identical so all 28 builders that already call `autosaveBuilderDraft` keep working transparently.
+- `loadBuilderDraft` similarly needs an edge function or a public-readable view; for now, route reads through a new `get-author-node` action on the same `save-author-node` function (action-routed), or a sibling `get-author-node` function. Recommend: action-routed inside `save-author-node` so we ship one function.
 
-This will prevent another silent failure loop.
+This fixes the 401 not just for BA-11 but for every BA/YR builder that autosaves — they are all currently broken for shared-backend users in the same way.
 
-### 6) Verify the fresh endpoint before retesting the UI
-After deployment:
-1. Call the new function directly with the logged-in session token.
-2. Confirm `edge_function_logs("ba11-voice-preview")` shows runtime entries.
-3. Confirm the response is HTTP 200 with `audioBase64`.
-4. Retry Sarah/Lily/Brian in BA-11 and confirm audio plays.
+### Phase 4 — Verification order
 
-### 7) Only after preview works, migrate chapter generation off the broken route too
-`ChapterProductionStep.tsx` still points to `elevenlabs-tts-audiobook-v2`. Once the fresh preview endpoint is proven:
-- either create a second fresh production endpoint (recommended), or
-- migrate chapter generation onto a fresh shared BA-11 TTS endpoint
+1. Click **Generate Audio** on Chapter 1. Confirm `ba11-audiobook-generate` logs show request + ElevenLabs success, browser plays the resulting MP3 inline.
+2. Watch network tab while clicking through any builder step — `save-author-node` returns HTTP 200 instead of `author_nodes` 401.
+3. Refresh the page — BA-11 resumes on the same step (proves load path also works).
+4. Re-test BA-11 end-to-end: setup → manuscript → voice → production → publish.
 
-This avoids hitting the same gateway 401 one step later.
+## Files touched
 
-## Files to update
+- **New**: `supabase/functions/ba11-audiobook-generate/index.ts`
+- **New**: `supabase/functions/save-author-node/index.ts` (handles both save and load via `action`)
+- **Update**: `supabase/config.toml` (two new function blocks)
+- **Update**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx` (new URL, 120s timeout, base64→blob playback, real error toast)
+- **Update**: `src/lib/builder-autosave.ts` (route both save and load through `save-author-node`)
 
-- New: `supabase/functions/ba11-voice-preview/index.ts`
-- Update: `supabase/config.toml`
-- Update: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
+## Scope
 
-Likely next pass after preview succeeds:
-- Update: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
-- Possibly new: `supabase/functions/ba11-audiobook-generate/index.ts`
+- No DB migration.
+- No RLS changes (RLS on `author_nodes` stays as-is; service-role edge function bypasses it after server-side ownership check).
+- No new secrets (`ELEVENLABS_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` already configured).
+- Backend auth transport + endpoint hygiene only.
 
-## Expected result
+## Why this is the right next move
 
-After this change, clicking any BA-11 play button should:
-- hit a fresh function route that actually reaches runtime
-- bypass gateway JWT verification
-- resolve the logged-in user from the shared-session token
-- return preview audio successfully instead of raw HTTP 401
+- Bug A is a timeout, not CORS. The fix is a fresh long-running endpoint plus a longer client timeout.
+- Bug B is structural: shared-backend JWTs cannot pass Cloud PostgREST. The platform-wide fix is to gate every write to Cloud tables behind `verify_jwt = false` edge functions that decode the JWT in code — which `check-subscription` and `ba11-voice-preview` have already proven works reliably.
+
