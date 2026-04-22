@@ -230,9 +230,15 @@ Deno.serve(async (req: Request) => {
   // activated_at, current_step=3, and merges {activated:true} into content_json.
   // Bypasses the RLS/uid mismatch that breaks direct PostgREST updates.
   if (action === "publish") {
+    console.log("[save-author-node:publish] request received", {
+      authorId,
+      nodeId,
+      micrositeUrl: micrositeUrl ?? null,
+      sub: userId,
+    });
     const { data: node, error: nodeErr } = await admin
       .from("author_nodes")
-      .select("id, content_json")
+      .select("id, content_json, status")
       .eq("author_id", authorId)
       .eq("node_id", nodeId)
       .maybeSingle();
@@ -241,8 +247,14 @@ Deno.serve(async (req: Request) => {
       return json(500, { error: nodeErr.message });
     }
     if (!node) {
+      console.warn("[save-author-node:publish] no draft row found", { authorId, nodeId });
       return json(404, { error: "Node has no draft to publish. Generate content first." });
     }
+    console.log("[save-author-node:publish] matched row, updating", {
+      rowId: node.id,
+      previousStatus: node.status,
+      micrositeUrl: micrositeUrl ?? null,
+    });
     const mergedContent = {
       ...((node.content_json ?? {}) as Record<string, unknown>),
       activated: true,
@@ -262,7 +274,7 @@ Deno.serve(async (req: Request) => {
       console.error("[save-author-node:publish] update failed:", updErr.message);
       return json(500, { error: updErr.message });
     }
-    console.log("[save-author-node:publish] published", { nodeId, authorId, micrositeUrl });
+    console.log("[save-author-node:publish] published successfully", { rowId: node.id, nodeId, authorId, micrositeUrl });
     return json(200, { ok: true, status: "live", micrositeUrl: micrositeUrl ?? null });
   }
 
