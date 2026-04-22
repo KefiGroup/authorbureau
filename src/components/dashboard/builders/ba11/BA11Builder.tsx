@@ -58,12 +58,65 @@ export default function BA11Builder({ authorId }: Props) {
       }
       const draft = await loadBuilderDraft(authorId, "BA-11");
       if (draft.content?.studio) {
-        setStepData(draft.content.studio);
+        // Sanitize: strip any blob: URLs that died with the previous session.
+        // They will be re-attached from storage in a follow-up effect once bookId is known.
+        const studio = draft.content.studio as Record<string, unknown>;
+        const rawChapters = Array.isArray(studio.chapters) ? (studio.chapters as Array<Record<string, unknown>>) : [];
+        const sanitized = rawChapters.map((c) => {
+          const url = typeof c?.audioUrl === "string" ? c.audioUrl : "";
+          if (url.startsWith("blob:")) {
+            return { ...c, audioUrl: "", status: "script-ready" };
+          }
+          return c;
+        });
+        setStepData({ ...studio, chapters: sanitized });
         setStepIdx(Math.min(draft.currentStep || 0, STUDIO_STEPS.length - 1));
         setIntro(false);
       }
     })();
   }, [authorId, detectedBookTitle]);
+
+  // Re-attach permanent storage URLs to chapters once we know the bookId.
+  // This heals existing rows that were saved with stale blob: URLs and
+  // restores "Audio Ready" status for chapters whose MP3s exist in the bucket.
+  useEffect(() => {
+    const targetBookId = bookId || resolvedBookId;
+    if (!authorId || !targetBookId) return;
+    const chapters = (stepData.chapters as Array<Record<string, unknown>> | undefined) ?? [];
+    if (chapters.length === 0) return;
+    // Only run when at least one chapter is missing audioUrl (i.e. needs healing).
+    const needsHealing = chapters.some((c) => !c?.audioUrl || c.audioUrl === "");
+    if (!needsHealing) return;
+
+    let cancelled = false;
+    (async () => {
+      const files = await listAudiobookChapters(authorId, targetBookId);
+      if (cancelled || files.length === 0) return;
+      const byIndex = new Map(files.map((f) => [f.index, f.publicUrl]));
+      let changed = false;
+      const healed = chapters.map((c, i) => {
+        const url = typeof c?.audioUrl === "string" ? c.audioUrl : "";
+        if (!url && byIndex.has(i)) {
+          changed = true;
+          return { ...c, audioUrl: byIndex.get(i), status: "audio-generated" };
+        }
+        return c;
+      });
+      if (!changed) return;
+      const nextStudio = { ...stepData, chapters: healed };
+      setStepData(nextStudio);
+      // Persist the cleaned-up draft so the bad blob row is overwritten.
+      void autosaveBuilderDraft({
+        authorId,
+        nodeId: "BA-11",
+        nodeName: "Audiobook",
+        content: { studio: nextStudio },
+        currentStep: stepIdx,
+      });
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorId, bookId, resolvedBookId, stepData.chapters?.length]);
 
   const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
   const effectiveBookId = bookId || resolvedBookId;
