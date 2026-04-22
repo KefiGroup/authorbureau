@@ -1,107 +1,54 @@
 
-## Diagnosis from the direct backend check
 
-The direct backend log check already points to a gateway/auth transport problem, not a bug inside `resolveUser`:
+## Diagnosis
 
-- `get-manuscript-source` has **no edge function logs at all**.
-- The browser is seeing a **raw HTTP 401**, not the function’s `{ success: false, error: "Unauthorized" }` envelope.
-- `supabase/config.toml` does **not** include `[functions.get-manuscript-source] verify_jwt = false`.
-- `ManuscriptOptimizationStep.tsx` is calling the function with `supabase.functions.invoke(...)`, not the project-standard `getActiveToken()` + `fetchWithTimeout()` pattern.
+The setup is correct on paper:
+- `supabase/config.toml` line 144-145: `[functions.get-manuscript-source]  verify_jwt = false` ✓
+- Client uses `getActiveToken()` + explicit `Authorization: Bearer <token>` ✓
+- Function has 3 fallbacks in `resolveUser` with logs at every step ✓
+- Identical JWT-decode pattern works in `check-subscription` (logs confirm `Resolved via JWT decode` for Pauline's exact token, same browser, same minute)
 
-Taken together, that means the request is most likely being rejected **before the function body runs**, so none of the `console.log` lines inside `resolveUser` can fire. The two likely causes are:
+**Yet `get-manuscript-source` has zero logs** — not even a "booted" entry. Combined with the user still seeing 401, this means the request is **not reaching the function runtime at all**. The two realistic causes:
 
-1. **Gateway rejection**: `get-manuscript-source` is missing the `verify_jwt = false` config used by the other shared-session functions.
-2. **Missing/wrong Authorization header from the client**: `supabase.functions.invoke()` uses the project-local client session, but this BA-11 flow must use the **shared-session token** from `getActiveToken()`.
+1. **The function was not redeployed after `config.toml` was updated.** `verify_jwt` is read by the gateway at deploy time, not at request time. Updating `config.toml` without redeploying leaves the gateway still enforcing JWT verification with the local project's signing key — which rejects the shared-backend token at the edge with a raw 401, before `serve()` runs.
+2. **The function was deployed but the gateway cache hasn't picked up the new config.** Same fix: an explicit redeploy forces the gateway to re-read the function manifest.
 
-## Implementation plan
+The fact that `check-subscription` works under the exact same conditions (and has been deployed for a long time) confirms it's not the code, the secrets, or the token — it's the deploy state of this one function.
 
-### Phase 1 — Fix gateway-level auth for `get-manuscript-source`
+## Plan
 
-Update `supabase/config.toml` to add:
+### Phase 1 — Force redeploy `get-manuscript-source`
 
-```toml
-[functions.get-manuscript-source]
-  verify_jwt = false
-```
+Use `supabase--deploy_edge_functions` to explicitly redeploy `get-manuscript-source`. This re-reads `supabase/config.toml`, applies `verify_jwt = false` at the gateway, and bumps the function manifest.
 
-Then explicitly deploy `get-manuscript-source`.
+### Phase 2 — Direct test via `curl_edge_functions` BEFORE asking the user to click
 
-Why: this lets the function receive requests even when the browser token comes from the shared auth backend, so auth can be validated in code instead of being blocked at the gateway.
+Call the function directly with the user's browser session token (auto-attached by `curl_edge_functions`) and a known book id. Three possible outcomes:
 
-### Phase 2 — Fix client token transport in Manuscript step
+- **`{ success: true, characterCount: ~100589 }`** → fix confirmed; tell the user to retry.
+- **`{ success: false, error: "..." }` with HTTP 200** → function runtime reached, auth worked, ownership/lookup failed → patch the specific failure.
+- **HTTP 401 still** → gateway still rejecting; pull `edge_function_logs("get-manuscript-source")` (which should now have boot entries even on rejection) and inspect; if still empty, the function manifest is broken — recreate by deleting `deno.lock`-style stale state or renaming the function entry.
 
-Refactor `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx` to stop using:
+### Phase 3 — If runtime is reached but `resolveUser` still returns null
 
-```ts
-supabase.functions.invoke("get-manuscript-source", ...)
-```
+Read the `console.log` lines from the now-populated logs and pinpoint which path failed:
+- JWT decode failed → token format issue (check first 20 chars of token in a temporary log)
+- Local + shared both errored → log the actual error messages
 
-and instead use the project-standard pattern already used by `useAuthorBook`:
+Apply the targeted fix in the same turn (no extra round-trip).
 
-- `getActiveToken()`
-- `fetchWithTimeout()`
-- explicit `Authorization: Bearer <token>` header
-- explicit `res.json()` handling
+### Phase 4 — End-to-end on Be SUCKcessful
 
-Target shape:
+After the curl test succeeds:
+1. Click **Optimize for Audio** → ~20 chapters parsed from the 100,589-char manuscript.
+2. **Next: Voice** unlocks.
+3. Voice preview plays.
+4. Chapter 1 generates audio.
 
-```ts
-const token = await getActiveToken();
-const res = await fetchWithTimeout(
-  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-manuscript-source`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({ bookId }),
-  }
-);
-const data = await res.json();
-```
+## Files touched
 
-Why: this guarantees the shared-session token is actually sent to the backend.
+- **No new code changes expected in Phase 1** — just a redeploy.
+- Only if Phase 3 reveals a runtime bug will `supabase/functions/get-manuscript-source/index.ts` be patched.
 
-### Phase 3 — Keep `resolveUser` simple, but verify it only after the request reaches runtime
+No DB migrations. No RLS changes. No new secrets.
 
-Once Phases 1 and 2 are in place, test again and inspect logs for `get-manuscript-source`.
-
-Expected log sequence after the fix:
-- a boot/request entry appears for `get-manuscript-source`
-- then one of:
-  - `Resolved via JWT decode`
-  - `Resolved via local auth`
-  - `Resolved via shared backend`
-
-If it still fails after the request is entering runtime, then patch `resolveUser`. But first priority is to make sure the request actually reaches the function.
-
-### Phase 4 — Re-verify BA-11 auth path consistency
-
-After Manuscript is fixed, audit the rest of BA-11 for the same shared-token transport issue:
-
-- `VoiceSelectionStep.tsx` currently also uses `supabase.functions.invoke("elevenlabs-tts-audiobook", ...)`
-- `ChapterProductionStep.tsx` currently sends an invalid `Authorization` header using the publishable key instead of the active user token
-
-These should be switched to the same explicit token pattern in the same pass, or at minimum verified immediately after Manuscript is unblocked so the user doesn’t hit the next auth failure one step later.
-
-## Files to update
-
-- `supabase/config.toml`
-- `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`
-
-Likely follow-up hardening in same BA-11 auth pass:
-- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
-- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
-
-## Verification checklist
-
-1. Call `get-manuscript-source` again and confirm it no longer returns raw gateway 401.
-2. Confirm `edge_function_logs("get-manuscript-source")` now shows runtime entries.
-3. Click **Optimize for Audio** and confirm manuscript content is returned.
-4. Confirm chapters are generated and **Next: Voice** unlocks.
-5. Immediately test voice preview and first chapter generation to catch the same token-transport bug in later BA-11 steps.
-
-## Scope
-
-No database migration required. No RLS changes required. This is an auth transport + function config fix.
