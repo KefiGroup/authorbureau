@@ -1,121 +1,104 @@
 
-## Plan — unblock BA-11 voice preview by bypassing the stale gateway path
+## Root cause
 
-### What the code audit shows
+The BA-11 voice preview failure is still a gateway-level auth rejection, not an ElevenLabs or playback bug.
 
-- The failing UI is the **new BA-11 builder flow**, not the legacy audiobook studio:
-  - `src/components/dashboard/builders/ba11/BA11Builder.tsx` renders `AudiobookStepRenderer`
-  - `AudiobookStepRenderer` renders `VoiceSelectionStep`
-- `VoiceSelectionStep.tsx` is already using the correct shared-session transport:
-  - `getActiveToken()`
-  - `fetchWithTimeout()`
-  - explicit `Authorization: Bearer <token>`
-  - `voiceId: voice.elevenLabsId`
-- `ChapterProductionStep.tsx` is also already sending `voiceId` with the active token.
-- `supabase/functions/elevenlabs-tts-audiobook/index.ts` does accept `voiceId` directly.
-- `supabase/config.toml` already contains:
-  - `[functions.elevenlabs-tts-audiobook]`
-  - `verify_jwt = false`
+Evidence from the current code and logs:
+- `VoiceSelectionStep.tsx` is sending the request correctly to `.../functions/v1/elevenlabs-tts-audiobook-v2` with `Authorization: Bearer ${token}` and `voiceId`.
+- `supabase/config.toml` already contains `[functions.elevenlabs-tts-audiobook-v2] verify_jwt = false`.
+- `elevenlabs-tts-audiobook-v2/index.ts` has top-of-handler logs (`[tts-v2] request started`, auth logs, action logs).
+- But `edge_function_logs("elevenlabs-tts-audiobook-v2")` returns **no logs at all**.
 
-### Key diagnosis
+That combination means the request is being rejected **before the function body runs**. The local backend cannot verify the shared Manus auth token (`unrecognized JWT kid ... ES256` in auth logs), so any path where the gateway still tries to verify JWT will produce the raw 401 the user sees.
 
-The remaining failure is still **before the function body runs**:
+## Plan
 
-- The user sees raw HTTP 401s.
-- The function log snapshot for `elevenlabs-tts-audiobook` shows only **boot/shutdown**, with **no runtime request logs at all**.
-- By contrast, `get-manuscript-source` shows normal runtime logs once its gateway issue was cleared.
+### 1) Stop using the poisoned `elevenlabs-tts-audiobook-v2` route
+Create a brand-new minimal endpoint for BA-11 voice preview, with a fresh function name such as:
+- `supabase/functions/ba11-voice-preview/index.ts`
 
-That means the current `elevenlabs-tts-audiobook` deployment path is still being rejected at the gateway, even though the code and config now look correct.
+Why:
+- `get-manuscript-source` already proves the token transport works in this app.
+- `elevenlabs-tts-audiobook-v2` is still not reaching runtime despite correct config, so it is not a reliable endpoint to keep iterating on.
 
-## Implementation plan
+### 2) Make the new preview function minimal and modern
+Implement only the preview use case first:
+- Accept `{ voiceId }`
+- Require `Authorization`
+- Validate identity in-code using the simplest working path:
+  - JWT decode first
+  - optionally `auth.getClaims(token)` if needed
+  - avoid depending on local `/user` validation as the primary path
+- Call ElevenLabs and return `{ audioBase64, format: "mp3" }`
 
-### Phase 1 — Stop fighting the stale deployment; create a fresh function endpoint
+Important implementation details:
+- Use current stable imports (`npm:@supabase/supabase-js` or the project’s modern function pattern), not the older `esm.sh` pattern.
+- Keep CORS on every response.
+- Return clear JSON errors with HTTP status and message.
+- Add unmistakable logs at the very top: request started, auth header present, action/voiceId.
 
-Create a new edge function name, for example:
-
-- `supabase/functions/elevenlabs-tts-audiobook-v2/index.ts`
-
-Copy the current audiobook TTS implementation into it and add a dedicated config entry:
-
+### 3) Give the new function its own explicit config and deploy it cleanly
+Add:
 ```toml
-[functions.elevenlabs-tts-audiobook-v2]
+[functions.ba11-voice-preview]
   verify_jwt = false
 ```
 
-Why: the old function name appears to have a stale gateway/deployment state. A fresh function name forces a fresh manifest path instead of reusing the poisoned one.
+Then explicitly deploy **only** this new function so the gateway gets a fresh manifest path.
 
-### Phase 2 — Add unmistakable runtime diagnostics at the top of the new function
-
-At the very top of the handler, before auth resolution:
-
-- log `"[tts-v2] request started"`
-- log whether `Authorization` exists
-- log the requested `action`
-
-Inside auth resolution, log every branch:
-
-- JWT decode success/failure
-- local auth success/failure
-- shared-backend success/failure
-
-This will make it immediately obvious whether requests are reaching runtime.
-
-### Phase 3 — Simplify auth for preview requests
-
-For `action === "preview-voice"`:
-
-- validate the bearer token in code
-- do **not** require book lookup or ownership logic
-- proceed once user identity is resolved from claims/token
-
-Why: preview only needs authenticated usage control for the paid TTS API. It does not need database ownership checks, so its auth path should be the simplest and least brittle.
-
-### Phase 4 — Keep ownership checks only for chapter generation actions
-
-For:
-
-- `generate-chunk`
-- `generate-chapter`
-- `finalize-chapter`
-
-keep the existing authenticated ownership checks against the book record, but after the new function’s auth resolution is confirmed working.
-
-This preserves security while separating “preview auth” from “book ownership auth.”
-
-### Phase 5 — Switch BA-11 callers to the fresh endpoint
-
-Update both builder components to call the new function URL:
-
+### 4) Point BA-11 voice preview to the new function
+Update:
 - `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
-- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
 
-Only the endpoint path changes; keep the current token transport and `voiceId` payload shape.
+Change the preview URL from:
+- `elevenlabs-tts-audiobook-v2`
 
-### Phase 6 — Verify in order
+to:
+- `ba11-voice-preview`
 
-1. Click Sarah preview in BA-11.
-2. Confirm the new function logs show:
-   - request started
-   - auth branch logs
-   - preview action log
+Keep:
+- `getActiveToken()`
+- `fetchWithTimeout()`
+- `Authorization: Bearer ${token}`
+- `voiceId: voice.elevenLabsId`
+
+### 5) Improve client-side error reporting for preview
+The UI currently falls back to a generic “Could not play voice preview.” Update preview handling so it:
+- reads the JSON error body when status is not OK
+- shows the actual backend message in the toast
+- always resets the loading state
+- guards against duplicate clicks while one preview request is in flight
+
+This will prevent another silent failure loop.
+
+### 6) Verify the fresh endpoint before retesting the UI
+After deployment:
+1. Call the new function directly with the logged-in session token.
+2. Confirm `edge_function_logs("ba11-voice-preview")` shows runtime entries.
 3. Confirm the response is HTTP 200 with `audioBase64`.
-4. Confirm the browser plays the preview.
-5. Generate Chapter 1 to verify the same endpoint also works for production.
+4. Retry Sarah/Lily/Brian in BA-11 and confirm audio plays.
+
+### 7) Only after preview works, migrate chapter generation off the broken route too
+`ChapterProductionStep.tsx` still points to `elevenlabs-tts-audiobook-v2`. Once the fresh preview endpoint is proven:
+- either create a second fresh production endpoint (recommended), or
+- migrate chapter generation onto a fresh shared BA-11 TTS endpoint
+
+This avoids hitting the same gateway 401 one step later.
 
 ## Files to update
 
-- **New**: `supabase/functions/elevenlabs-tts-audiobook-v2/index.ts`
-- **Update**: `supabase/config.toml`
-- **Update**: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
-- **Update**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+- New: `supabase/functions/ba11-voice-preview/index.ts`
+- Update: `supabase/config.toml`
+- Update: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
 
-## Why this is the right next move
+Likely next pass after preview succeeds:
+- Update: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+- Possibly new: `supabase/functions/ba11-audiobook-generate/index.ts`
 
-The current builder code is already sending the correct token and the correct `voiceId`. Since the function still returns raw 401 with no runtime logs, continuing to tweak client payloads or `resolveUser()` inside the existing function is unlikely to help. The cleanest fix is to move BA-11 onto a fresh function deployment path and instrument it heavily so the next test gives definitive backend evidence.
+## Expected result
 
-## Scope
-
-- No database migration
-- No RLS changes
-- No frontend design changes
-- Backend/auth transport hardening only
+After this change, clicking any BA-11 play button should:
+- hit a fresh function route that actually reaches runtime
+- bypass gateway JWT verification
+- resolve the logged-in user from the shared-session token
+- return preview audio successfully instead of raw HTTP 401
