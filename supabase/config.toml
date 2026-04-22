@@ -61,8 +61,6 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.get-author-profile]
     verify_jwt = false
-  [functions.dashboard-state]
-    verify_jwt = false
   [functions.business-consultant]
     verify_jwt = false
   [functions.consultation-session]
