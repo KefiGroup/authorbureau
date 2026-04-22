@@ -11,6 +11,7 @@ import { SLUG_TO_NODE, NODE_NAMES } from "@/lib/node-slug-map";
 import { toast } from "@/hooks/use-toast";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
+import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlayer";
 
 interface MicrositeData {
   author: any;
