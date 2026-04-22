@@ -100,7 +100,7 @@ serve(async (req) => {
 
     // === GENERATE SINGLE CHUNK (new: one chunk at a time) ===
     if (action === "generate-chunk") {
-      const { bookId, voiceKey, chunkText, chapterIndex, chunkIndex, previousContext, nextContext } = body;
+      const { bookId, voiceKey, voiceId, chunkText, chapterIndex, chunkIndex, previousContext, nextContext } = body;
       if (!bookId || !chunkText || chapterIndex === undefined || chunkIndex === undefined) {
         throw new Error("Missing required fields for generate-chunk");
       }
@@ -113,11 +113,11 @@ serve(async (req) => {
         });
       }
 
-      const voice = VOICES[voiceKey || "sarah"];
-      if (!voice) throw new Error("Unknown voice key");
+      const resolvedVoiceId = voiceId || VOICES[voiceKey || "sarah"]?.id;
+      if (!resolvedVoiceId) throw new Error("Missing voiceId or unknown voiceKey");
 
       console.log(`Generating chunk ${chunkIndex} for chapter ${chapterIndex} (${chunkText.length} chars)`);
-      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, voice.id, chunkText, previousContext, nextContext);
+      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, resolvedVoiceId, chunkText, previousContext, nextContext);
 
       // Upload chunk to storage
       const filePath = `${user.id}/${bookId}/chapter-${String(chapterIndex).padStart(3, "0")}-chunk-${String(chunkIndex).padStart(3, "0")}.mp3`;
@@ -170,7 +170,7 @@ serve(async (req) => {
 
     // === LEGACY: generate-chapter (kept for backward compat, but warns) ===
     if (action === "generate-chapter") {
-      const { bookId, voiceKey, chapterText, chapterIndex, audiobookId } = body;
+      const { bookId, voiceKey, voiceId, chapterText, chapterIndex, audiobookId } = body;
       if (!bookId || !chapterText || chapterIndex === undefined) {
         throw new Error("Missing bookId, chapterText, or chapterIndex");
       }
@@ -183,13 +183,13 @@ serve(async (req) => {
         });
       }
 
-      const voice = VOICES[voiceKey || "sarah"];
-      if (!voice) throw new Error("Unknown voice key");
+      const resolvedVoiceId = voiceId || VOICES[voiceKey || "sarah"]?.id;
+      if (!resolvedVoiceId) throw new Error("Missing voiceId or unknown voiceKey");
 
       // For legacy, just do a single TTS call with truncated text to avoid timeout
       const truncatedText = chapterText.slice(0, 4500);
       console.log(`Legacy generate-chapter: truncating ${chapterText.length} to ${truncatedText.length} chars`);
-      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, voice.id, truncatedText);
+      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, resolvedVoiceId, truncatedText);
 
       const filePath = `${user.id}/${bookId}/chapter-${String(chapterIndex).padStart(3, "0")}.mp3`;
       const { error: uploadError } = await supabase.storage
