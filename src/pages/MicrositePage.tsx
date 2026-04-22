@@ -1868,7 +1868,7 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
 
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
-  const optinNodes = ["BP-02", "BP-05", "BA-16"];
+  const optinNodes = ["BP-02", "BP-05", "BA-14", "BA-16"];
   const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-15", "BA-18"];
   const applicationNodes = ["YR-20", "YR-23", "BA-13"];
   if (optinNodes.includes(nodeId)) return "optin";
