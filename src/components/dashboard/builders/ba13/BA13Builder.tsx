@@ -15,6 +15,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { Progress } from "@/components/ui/progress";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { normaliseGroupCoaching, isLegacyGroupCoaching } from "./normalise";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your group coaching programme...", "Creating your 8-week curriculum...", "Writing your sales page...", "Finalising your programme blueprint..."];
@@ -50,8 +51,14 @@ export default function BA13Builder({ authorId }: Props) {
       }
       const __draft = await loadBuilderDraft(authorId, "BA-13");
       if (__draft.content) {
-        setContent(__draft.content);
+        const wasLegacy = isLegacyGroupCoaching(__draft.content);
+        const normalised = normaliseGroupCoaching(__draft.content);
+        setContent(normalised);
+        setPriceOverride(normalised?.suggested_price_usd || null);
         setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+        if (wasLegacy) {
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: __draft.currentStep ?? 2 });
+        }
       }
     })();
   }, [authorId]);
@@ -71,18 +78,7 @@ export default function BA13Builder({ authorId }: Props) {
       const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
       const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba13-group-coaching", { author_id: authorId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-      // Back-compat: legacy `curriculum` array → `weeks`
-      const raw = data.content || {};
-      const normalised = {
-        ...raw,
-        weeks: Array.isArray(raw.weeks) ? raw.weeks
-          : Array.isArray(raw.curriculum) ? raw.curriculum.map((c: any, i: number) => ({
-              week_number: c.week ?? i + 1,
-              title: c.title,
-              description: c.focus || c.description || "",
-              activity: c.homework || c.activity || "",
-            })) : [],
-      };
+      const normalised = normaliseGroupCoaching(data.content || {});
       setContent(normalised);
       setPriceOverride(normalised?.suggested_price_usd || null);
       setStep(2);
@@ -92,14 +88,13 @@ export default function BA13Builder({ authorId }: Props) {
 
   const handlePublish = async () => {
     setError(null);
-    setStep(3);
     try {
       await publishNodeToSite(authorId!, "BA-13", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
+      setStep(3);
       toast.success("Your Group Coaching programme is live on your site.");
     } catch (e: any) {
       setError(e.message);
-      setStep(2);
       toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
     }
   };

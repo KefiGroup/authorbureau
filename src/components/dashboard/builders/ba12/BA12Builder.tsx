@@ -15,6 +15,7 @@ import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPack
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { normaliseMembership, isLegacyMembership } from "./normalise";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your membership community...", "Creating membership tiers and benefits...", "Building your content calendar...", "Writing your welcome sequence...", "Finalising your membership blueprint..."];
@@ -50,8 +51,14 @@ export default function BA12Builder({ authorId }: Props) {
       }
       const __draft = await loadBuilderDraft(authorId, "BA-12");
       if (__draft.content) {
-        setContent(__draft.content);
+        const wasLegacy = isLegacyMembership(__draft.content);
+        const normalised = normaliseMembership(__draft.content);
+        setContent(normalised);
+        setPriceOverride(Number(normalised?.tiers?.[0]?.price ?? 27));
         setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+        if (wasLegacy) {
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: __draft.currentStep ?? 2 });
+        }
       }
     })();
   }, [authorId]);
@@ -70,18 +77,7 @@ export default function BA12Builder({ authorId }: Props) {
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba12-membership", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-      // Back-compat: legacy single-tier shape → tiers[]
-      const raw = data.content || {};
-      const normalised = {
-        ...raw,
-        membership_title: raw.membership_title || raw.membership_name || "",
-        tiers: Array.isArray(raw.tiers) && raw.tiers.length ? raw.tiers : [{
-          name: "Member",
-          price: Number(raw.monthly_price_usd ?? 27),
-          description: raw.transformation_promise || "",
-          benefits: Array.isArray(raw.benefits) ? raw.benefits : [],
-        }],
-      };
+      const normalised = normaliseMembership(data.content || {});
       setContent(normalised); setPriceOverride(Number(normalised.tiers?.[0]?.price ?? 27)); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
@@ -89,14 +85,13 @@ export default function BA12Builder({ authorId }: Props) {
 
   const handlePublish = async () => {
     setError(null);
-    setStep(3);
     try {
       await publishNodeToSite(authorId!, "BA-12", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
+      setStep(3);
       toast.success("Your Membership is live on your site.");
     } catch (e: any) {
       setError(e.message);
-      setStep(2);
       toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
     }
   };
