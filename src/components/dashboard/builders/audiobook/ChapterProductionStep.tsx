@@ -8,6 +8,7 @@ import { Play, Loader2, Upload, Clock, CheckCircle2, Circle, Wand2, Mic } from "
 import type { AudiobookStepProps, AudioChapter, NarrationType } from "./types";
 import { VOICE_OPTIONS } from "./types";
 import { toast } from "sonner";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
@@ -32,14 +33,15 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
     if (!ch || !selectedVoice) { toast.error("Select a voice first"); return; }
     setGenerating(ch.id);
     try {
-      const response = await fetch(
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+      const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
             action: "generate",
@@ -50,8 +52,8 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
           }),
         }
       );
-      if (!response.ok) throw new Error("Generation failed");
       const data = await response.json();
+      if (!response.ok) throw new Error(data?.error || "Generation failed");
       updateChapter(idx, { status: "audio-generated", audioUrl: data.audioUrl || "" });
       toast.success(`Audio generated for ${ch.title}!`);
     } catch (error) {
