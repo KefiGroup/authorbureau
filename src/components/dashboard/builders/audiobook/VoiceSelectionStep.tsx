@@ -57,7 +57,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
       const res = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook-v2`,
         {
           method: "POST",
           headers: {
