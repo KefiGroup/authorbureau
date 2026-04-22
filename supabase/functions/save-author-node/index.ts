@@ -144,6 +144,37 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // ---- LIST-AUDIO ----
+  // Lists audiobook chapter MP3s for (authorId, bookId) and returns ordered
+  // [{ index, publicUrl }] so BA-11 resume can re-attach permanent storage URLs
+  // when content_json contains stale blob: URLs.
+  if (action === "list-audio") {
+    if (!bookId) {
+      return json(400, { error: "bookId is required for list-audio" });
+    }
+    const prefix = `${authorId}/${bookId}`;
+    const { data: files, error: listErr } = await admin.storage
+      .from("audiobook-audio")
+      .list(prefix, { limit: 200, sortBy: { column: "name", order: "asc" } });
+    if (listErr) {
+      console.error("[save-author-node:list-audio] list failed:", listErr.message);
+      return json(500, { error: listErr.message });
+    }
+    const chapters = (files ?? [])
+      .filter((f) => /^chapter-(\d+)\.mp3$/i.test(f.name))
+      .map((f) => {
+        const m = f.name.match(/^chapter-(\d+)\.mp3$/i);
+        const num = m ? parseInt(m[1], 10) : 0;
+        const path = `${prefix}/${f.name}`;
+        const { data: pub } = admin.storage
+          .from("audiobook-audio")
+          .getPublicUrl(path);
+        return { index: num - 1, name: f.name, publicUrl: pub.publicUrl };
+      })
+      .sort((a, b) => a.index - b.index);
+    return json(200, { chapters });
+  }
+
   // ---- SAVE (default) ----
   if (!content || typeof content !== "object") {
     return json(400, { error: "content is required for save" });
