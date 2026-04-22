@@ -1867,6 +1867,202 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
   );
 }
 
+/* ═══ BA-10 — ONLINE COURSE ═══ */
+function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted }: FormPageProps) {
+  const title = (typeof content.course_title === "string" && content.course_title) || data.node.personalised_name || "Online Course";
+  const subtitle = typeof content.course_subtitle === "string" ? content.course_subtitle : "";
+  const tagline = typeof content.tagline === "string" ? content.tagline : "";
+  const transformation = typeof content.transformation_promise === "string" ? content.transformation_promise : "";
+  const longDesc = typeof content.course_description_long === "string" ? content.course_description_long : "";
+  const duration = typeof content.duration === "string" ? content.duration : "";
+  const difficulty = typeof content.difficulty_level === "string" ? content.difficulty_level : "";
+  const pedagogical = typeof content.pedagogical_approach === "string" ? content.pedagogical_approach : "";
+  const salesCopy = typeof content.sales_copy === "string" ? content.sales_copy : "";
+  const pricingRationale = typeof content.pricing_rationale === "string" ? content.pricing_rationale : "";
+  const price = typeof content.suggested_price_usd === "number" ? content.suggested_price_usd : (typeof content.suggested_price_usd === "string" ? content.suggested_price_usd : null);
+  const paymentLink = (typeof data.node.payment_link === "string" && data.node.payment_link) || (typeof (content as any).stripe_checkout_url === "string" ? (content as any).stripe_checkout_url : "");
+
+  const toLines = (val: any): string[] => {
+    if (Array.isArray(val)) return val.map(x => typeof x === "string" ? x : (x?.title || x?.label || x?.text || "")).filter(Boolean);
+    if (typeof val === "string") return val.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+  const whoFor = toLines(content.who_its_for);
+  const whatGet = toLines(content.what_youll_get);
+
+  const rawModules = Array.isArray(content.modules) ? content.modules : (Array.isArray((content as any).curriculum) ? (content as any).curriculum : []);
+  const modules = rawModules.map((m: any, i: number) => ({
+    number: m.module_number ?? m.number ?? i + 1,
+    title: typeof m.title === "string" ? m.title : `Module ${i + 1}`,
+    description: typeof m.description === "string" ? m.description : (typeof m.summary === "string" ? m.summary : ""),
+    items: toLines(m.lessons ?? m.learning_outcomes ?? m.outcomes ?? m.topics),
+  }));
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-12 sm:py-20">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="md:col-span-2 space-y-10">
+          <header className="space-y-4">
+            <h1 className="text-3xl sm:text-5xl font-bold leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>{title}</h1>
+            {subtitle && <p className="text-xl italic" style={{ color: v.bodyText }}>{subtitle}</p>}
+            {tagline && <p className="text-lg" style={{ color: v.accent }}>{tagline}</p>}
+            {transformation && <p className="text-base leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{transformation}</p>}
+          </header>
+
+          {(duration || difficulty || modules.length > 0 || price != null) && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {duration && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Duration</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{duration}</p>
+                </Card>
+              )}
+              {difficulty && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Level</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{difficulty}</p>
+                </Card>
+              )}
+              {modules.length > 0 && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Modules</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{modules.length} modules</p>
+                </Card>
+              )}
+              {price != null && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Investment</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {whoFor.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Who it's for</h2>
+              <ul className="space-y-2">
+                {whoFor.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                    <span className="text-sm" style={{ color: v.bodyText }}>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {whatGet.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>What you'll get</h2>
+              <ul className="space-y-2">
+                {whatGet.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                    <span className="text-sm" style={{ color: v.bodyText }}>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {modules.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Curriculum</h2>
+              <div className="space-y-3">
+                {modules.map((m, i) => (
+                  <details key={i} className="group rounded-lg border p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                    <summary className="cursor-pointer flex items-baseline gap-3">
+                      <span className="text-xs uppercase tracking-widest shrink-0" style={{ color: v.accent }}>Module {m.number}</span>
+                      <span className="text-base font-semibold" style={{ color: v.headingText }}>{m.title}</span>
+                    </summary>
+                    {(m.description || m.items.length > 0) && (
+                      <div className="mt-3 pt-3 border-t space-y-3" style={{ borderColor: v.cardBorder }}>
+                        {m.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{m.description}</p>}
+                        {m.items.length > 0 && (
+                          <ul className="space-y-1.5">
+                            {m.items.map((a, j) => (
+                              <li key={j} className="flex items-start gap-2">
+                                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                                <span className="text-sm" style={{ color: v.bodyText }}>{a}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {pedagogical && (
+            <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: v.mutedText }}>Teaching approach</p>
+              <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{pedagogical}</p>
+            </Card>
+          )}
+
+          {salesCopy ? (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>About this course</h2>
+              <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{salesCopy}</p>
+            </section>
+          ) : longDesc ? (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>About this course</h2>
+              <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{longDesc}</p>
+            </section>
+          ) : null}
+
+          {pricingRationale && (
+            <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: v.mutedText }}>Why this price</p>
+              <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{pricingRationale}</p>
+            </Card>
+          )}
+        </div>
+
+        <div className="md:sticky md:top-6">
+          {paymentLink ? (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enroll Now</h3>
+              {price != null && (
+                <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
+              )}
+              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
+              <a href={paymentLink} target="_blank" rel="noopener noreferrer">
+                <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
+                  Enroll Now <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </a>
+            </Card>
+          ) : !submitted ? (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Notify Me When Enrollment Opens</h3>
+              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Be the first to know when doors open.</p>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                  {submitting ? "Submitting..." : "Notify Me"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </Card>
+          ) : (
+            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>You're on the list</h3>
+              <p className="text-sm" style={{ color: v.mutedText }}>We'll email you the moment enrollment opens.</p>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
   const optinNodes = ["BP-02", "BP-05", "BA-14", "BA-16"];
