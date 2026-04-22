@@ -152,6 +152,7 @@ Deno.serve(async (req: Request) => {
 
     // Upload MP3 to audiobook-audio bucket so the publish step can package it.
     let audioUrl = "";
+    let audioUrlError = "";
     try {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -175,6 +176,7 @@ Deno.serve(async (req: Request) => {
             .upload(path, buf, { contentType: "audio/mpeg", upsert: true });
           if (upErr) {
             console.error("[ba11-audiobook-generate] storage upload failed:", upErr.message);
+            audioUrlError = `storage upload failed: ${upErr.message}`;
           } else {
             const { data: pub } = admin.storage.from("audiobook-audio").getPublicUrl(path);
             audioUrl = pub.publicUrl;
@@ -182,15 +184,21 @@ Deno.serve(async (req: Request) => {
           }
         } else {
           console.warn("[ba11-audiobook-generate] no author_profile for sub", claims.sub);
+          audioUrlError = "no author profile resolved for current user";
         }
+      } else if (!bookId) {
+        audioUrlError = "bookId missing from request";
       }
     } catch (storageErr) {
-      console.error("[ba11-audiobook-generate] storage exception:", storageErr);
+      const m = storageErr instanceof Error ? storageErr.message : String(storageErr);
+      console.error("[ba11-audiobook-generate] storage exception:", m);
+      audioUrlError = `storage exception: ${m}`;
     }
 
     return json(200, {
       audioBase64,
       audioUrl,
+      audioUrlError: audioUrl ? "" : audioUrlError,
       format: "mp3",
       bytes: buf.length,
       chapterIndex,

@@ -115,3 +115,47 @@ export async function loadBuilderDraft(
     return empty;
   }
 }
+
+export interface AudiobookChapterFile {
+  index: number;
+  name: string;
+  publicUrl: string;
+}
+
+/**
+ * Lists permanent audiobook chapter MP3 URLs for a given (authorId, bookId).
+ * Used by BA-11 resume to re-attach storage URLs when content_json contains
+ * stale `blob:` URLs from a previous session.
+ */
+export async function listAudiobookChapters(
+  authorId: string,
+  bookId: string,
+): Promise<AudiobookChapterFile[]> {
+  if (!authorId || !bookId) return [];
+  try {
+    const token = await getActiveToken();
+    if (!token) return [];
+    const res = await fetchWithTimeout(
+      SAVE_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: "list-audio", authorId, bookId }),
+      },
+      20000,
+    );
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error("[listAudiobookChapters] failed:", res.status, errBody.slice(0, 300));
+      return [];
+    }
+    const data = (await res.json()) as { chapters?: AudiobookChapterFile[] };
+    return Array.isArray(data?.chapters) ? data.chapters : [];
+  } catch (err) {
+    console.error("[listAudiobookChapters] exception:", err);
+    return [];
+  }
+}

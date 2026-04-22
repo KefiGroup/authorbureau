@@ -52,25 +52,43 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
         },
         120000,
       );
-      let data: { audioBase64?: string; audioUrl?: string; error?: string; details?: string } = {};
+      let data: { audioBase64?: string; audioUrl?: string; audioUrlError?: string; error?: string; details?: string } = {};
       try { data = await response.json(); } catch { /* non-JSON */ }
       if (!response.ok) {
         const msg = data?.error || `Generation failed (HTTP ${response.status})`;
         throw new Error(data?.details ? `${msg}: ${data.details}` : msg);
       }
 
-      // Convert base64 → Blob → object URL for inline playback.
-      let audioUrl = data.audioUrl || "";
-      if (!audioUrl && data.audioBase64) {
+      // Only the permanent https storage URL is persisted to author_nodes.
+      // Blob URLs die on reload, so they stay in component state only via previewBlobUrl.
+      const permanentUrl = data.audioUrl || "";
+      let previewBlobUrl = "";
+      if (data.audioBase64) {
         const bin = atob(data.audioBase64);
         const bytes = new Uint8Array(bin.length);
         for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
         const blob = new Blob([bytes], { type: "audio/mpeg" });
-        audioUrl = URL.createObjectURL(blob);
+        previewBlobUrl = URL.createObjectURL(blob);
       }
 
-      updateChapter(idx, { status: "audio-generated", audioUrl });
-      toast.success(`Audio generated for ${ch.title}!`);
+      if (permanentUrl) {
+        // Use permanent URL for both persistence and playback (it's already a real URL).
+        updateChapter(idx, { status: "audio-generated", audioUrl: permanentUrl });
+        toast.success(`Audio generated for ${ch.title}!`);
+      } else {
+        // Storage upload failed — keep blob in transient field so user can preview now,
+        // but DO NOT mark as audio-generated, so resume won't think it has real audio.
+        updateChapter(idx, {
+          status: "script-ready",
+          audioUrl: "",
+          // @ts-expect-error transient field, intentionally not in AudioChapter type
+          previewBlobUrl,
+        });
+        const detail = data.audioUrlError ? ` (${data.audioUrlError})` : "";
+        toast.warning(
+          `Audio playable in this session, but saving to permanent storage failed${detail}. Please regenerate before publishing.`,
+        );
+      }
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Audio generation failed";
       toast.error(msg);
@@ -159,10 +177,14 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
         <Card className="p-5 space-y-4">
           <h3 className="font-heading text-sm font-semibold">{active.title}</h3>
 
-          {/* Audio player */}
-          {active.audioUrl && (
+          {/* Audio player — prefer permanent URL, fall back to in-session blob preview */}
+          {(active.audioUrl || (active as AudioChapter & { previewBlobUrl?: string }).previewBlobUrl) && (
             <div className="rounded-lg bg-muted/30 p-3">
-              <audio controls src={active.audioUrl} className="w-full h-8" />
+              <audio
+                controls
+                src={active.audioUrl || (active as AudioChapter & { previewBlobUrl?: string }).previewBlobUrl}
+                className="w-full h-8"
+              />
             </div>
           )}
 

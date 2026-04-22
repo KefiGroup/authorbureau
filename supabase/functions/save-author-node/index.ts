@@ -61,10 +61,11 @@ Deno.serve(async (req: Request) => {
   const userId = claims.sub;
 
   let body: {
-    action?: "save" | "load";
+    action?: "save" | "load" | "list-audio";
     authorId?: string;
     nodeId?: string;
     nodeName?: string;
+    bookId?: string;
     content?: Record<string, unknown>;
     currentStep?: number;
   };
@@ -75,9 +76,12 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = body.action ?? "save";
-  const { authorId, nodeId, nodeName, content, currentStep } = body;
+  const { authorId, nodeId, nodeName, content, currentStep, bookId } = body;
 
-  if (!authorId || !nodeId) {
+  // list-audio uses authorId + bookId only — nodeId is not required.
+  if (action === "list-audio") {
+    if (!authorId) return json(400, { error: "authorId is required" });
+  } else if (!authorId || !nodeId) {
     return json(400, { error: "authorId and nodeId are required" });
   }
 
@@ -138,6 +142,37 @@ Deno.serve(async (req: Request) => {
       currentStep: savedStep,
       isLive,
     });
+  }
+
+  // ---- LIST-AUDIO ----
+  // Lists audiobook chapter MP3s for (authorId, bookId) and returns ordered
+  // [{ index, publicUrl }] so BA-11 resume can re-attach permanent storage URLs
+  // when content_json contains stale blob: URLs.
+  if (action === "list-audio") {
+    if (!bookId) {
+      return json(400, { error: "bookId is required for list-audio" });
+    }
+    const prefix = `${authorId}/${bookId}`;
+    const { data: files, error: listErr } = await admin.storage
+      .from("audiobook-audio")
+      .list(prefix, { limit: 200, sortBy: { column: "name", order: "asc" } });
+    if (listErr) {
+      console.error("[save-author-node:list-audio] list failed:", listErr.message);
+      return json(500, { error: listErr.message });
+    }
+    const chapters = (files ?? [])
+      .filter((f) => /^chapter-(\d+)\.mp3$/i.test(f.name))
+      .map((f) => {
+        const m = f.name.match(/^chapter-(\d+)\.mp3$/i);
+        const num = m ? parseInt(m[1], 10) : 0;
+        const path = `${prefix}/${f.name}`;
+        const { data: pub } = admin.storage
+          .from("audiobook-audio")
+          .getPublicUrl(path);
+        return { index: num - 1, name: f.name, publicUrl: pub.publicUrl };
+      })
+      .sort((a, b) => a.index - b.index);
+    return json(200, { chapters });
   }
 
   // ---- SAVE (default) ----
