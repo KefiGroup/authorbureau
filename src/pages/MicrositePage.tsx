@@ -214,9 +214,11 @@ export default function MicrositePage() {
       {resolvedNodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
       {resolvedNodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {resolvedNodeId === "BA-15" && <PressKitPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BA-16" && <AffiliatesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BA-17" && <BundlesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {resolvedNodeId === "BA-18" && <JVPartnersPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-15", "BA-18"].includes(resolvedNodeId!) && (
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-15", "BA-16", "BA-17", "BA-18"].includes(resolvedNodeId!) && (
         <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
@@ -1183,6 +1185,260 @@ function JVPartnersPage({ data, content, v, hFont, bgColor, onSubmit, email, set
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ═══ AFFILIATES PAGE (BA-16) ═══ */
+function AffiliatesPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted }: FormPageProps) {
+  const tiers: any[] = content.commission_tiers ?? content.commission_structure ?? [];
+  const resources = (content.affiliate_resources ?? []).map((r: any) =>
+    typeof r === "string" ? { resource: r, description: "" } : r
+  );
+  const cookieDays = content.cookie_duration_days;
+  const payoutSchedule = content.payout_schedule;
+  const programmeTitle = content.programme_title || data.node.personalised_name || "Affiliate Programme";
+  const tagline = content.tagline;
+  const summary = content.abby_summary || content.overview;
+  const headlineRates = tiers.slice(0, 2).map((t: any) => t?.commission_rate).filter(Boolean);
+  const coreThesis = data.context?.core_thesis || "";
+  const firstThesisSentence = coreThesis ? (coreThesis.split(/(?<=[.!?])\s+/)[0] || coreThesis) : "";
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-12 sm:py-20 space-y-12">
+      <header className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="md:col-span-2 space-y-4">
+          <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Affiliate Programme</p>
+          <h1 className="text-3xl sm:text-5xl font-bold" style={{ color: v.headingText, fontFamily: hFont }}>
+            {programmeTitle}
+          </h1>
+          {tagline && <p className="text-lg" style={{ color: v.mutedText }}>{tagline}</p>}
+          {summary && <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>{summary}</p>}
+          {headlineRates.length > 0 && (
+            <div className="flex flex-wrap gap-2 pt-2">
+              {headlineRates.map((rate: string, i: number) => (
+                <span key={i} className="px-3 py-1 rounded-full text-sm font-semibold border" style={{ background: v.cardBg, color: v.headingText, borderColor: v.accent }}>
+                  {rate}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="md:col-span-1" id="apply-form">
+          {!submitted ? (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>Apply to Promote</h3>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                  {submitting ? "Sending..." : "Apply"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </Card>
+          ) : (
+            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>Application received</h3>
+              <p className="text-sm" style={{ color: v.mutedText }}>We'll review and reach out with your affiliate link.</p>
+            </Card>
+          )}
+        </div>
+      </header>
+
+      {tiers.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>What you'll earn</h2>
+          <div className="grid sm:grid-cols-2 gap-4">
+            {tiers.map((t: any, i: number) => (
+              <Card key={i} className="p-6 space-y-3" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{t.tier || `Tier ${i + 1}`}</h3>
+                  {t.commission_rate && <span className="text-xl font-bold" style={{ color: v.accent }}>{t.commission_rate}</span>}
+                </div>
+                {t.requirements && <p className="text-xs" style={{ color: v.mutedText }}>Requirements: {typeof t.requirements === "string" ? t.requirements : (Array.isArray(t.requirements) ? t.requirements.join(", ") : "")}</p>}
+                {Array.isArray(t.benefits) && t.benefits.length > 0 && (
+                  <ul className="space-y-1.5">
+                    {t.benefits.map((b: string, j: number) => (
+                      <li key={j} className="flex items-start gap-2">
+                        <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                        <span className="text-sm" style={{ color: v.bodyText }}>{b}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {(cookieDays || payoutSchedule) && (
+        <section className="text-center text-sm" style={{ color: v.mutedText }}>
+          {cookieDays && <span>{cookieDays}-day cookie</span>}
+          {cookieDays && payoutSchedule && <span> · </span>}
+          {payoutSchedule && <span>{payoutSchedule}</span>}
+        </section>
+      )}
+
+      {(data.book?.title || firstThesisSentence) && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>What you'll promote</h2>
+          <Card className="p-6 flex flex-col sm:flex-row gap-4 items-start" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            {data.book?.cover_image_url && (
+              <img src={data.book.cover_image_url} alt={data.book.title} className="w-24 rounded shadow-md shrink-0" />
+            )}
+            <div className="space-y-2">
+              <p className="font-semibold" style={{ color: v.headingText }}>
+                {data.book?.title} {data.author?.pen_name && <span className="font-normal" style={{ color: v.mutedText }}>by {data.author.pen_name}</span>}
+              </p>
+              {firstThesisSentence && <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{firstThesisSentence}</p>}
+            </div>
+          </Card>
+        </section>
+      )}
+
+      {resources.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Your affiliate toolkit</h2>
+          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <ul className="space-y-3">
+              {resources.map((r: any, i: number) => (
+                <li key={i} className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: v.headingText }}>{r.resource}</p>
+                    {r.description && <p className="text-sm" style={{ color: v.bodyText }}>{r.description}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        </section>
+      )}
+
+      <div className="text-center">
+        <Button className="rounded-full px-8" style={{ background: v.accent, color: v.accentText }} asChild>
+          <a href="#apply-form">Apply to Promote <ArrowRight className="ml-2 h-4 w-4" /></a>
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ BUNDLES PAGE (BA-17) ═══ */
+function BundlesPage({ data, content, v, hFont, bgColor }: PageProps) {
+  const bundles: any[] = Array.isArray(content.bundles) ? content.bundles : [];
+  const upsells: any[] = Array.isArray(content.upsell_sequences) ? content.upsell_sequences : [];
+  const downsell = content.downsell;
+  const ladderTitle = content.product_ladder_title || data.node.personalised_name || "Bundles & Offers";
+  const summary = content.abby_summary;
+  const paymentUrl = data.node.payment_link || content.stripe_checkout_url;
+  const contactEmail = data.author?.contact_email || content.media_contact_email;
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-12 sm:py-20 space-y-12">
+      <header className="text-center space-y-4">
+        <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Bundles & Offers</p>
+        <h1 className="text-3xl sm:text-5xl font-bold" style={{ color: v.headingText, fontFamily: hFont }}>
+          {ladderTitle}
+        </h1>
+        {summary && <p className="text-base max-w-2xl mx-auto" style={{ color: v.mutedText }}>{summary}</p>}
+      </header>
+
+      {bundles.length > 0 && (
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {bundles.map((b: any, i: number) => (
+            <Card key={i} className="p-6 flex flex-col gap-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <div className="space-y-1">
+                <h3 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>{b.bundle_name}</h3>
+                {b.tagline && <p className="text-sm" style={{ color: v.mutedText }}>{b.tagline}</p>}
+              </div>
+              {Array.isArray(b.products_included) && b.products_included.length > 0 && (
+                <ul className="space-y-1.5 flex-1">
+                  {b.products_included.map((p: string, j: number) => (
+                    <li key={j} className="flex items-start gap-2">
+                      <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                      <span className="text-sm" style={{ color: v.bodyText }}>{p}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="space-y-2 pt-2 border-t" style={{ borderColor: v.cardBorder }}>
+                {b.individual_value_usd != null && (
+                  <p className="text-sm line-through" style={{ color: v.mutedText }}>${b.individual_value_usd}</p>
+                )}
+                <div className="flex items-baseline gap-2">
+                  {b.bundle_price_usd != null && (
+                    <span className="text-3xl font-bold" style={{ color: v.headingText }}>${b.bundle_price_usd}</span>
+                  )}
+                  {b.savings_usd != null && (
+                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: v.accent, color: v.accentText }}>
+                      Save ${b.savings_usd}
+                    </span>
+                  )}
+                </div>
+              </div>
+              {paymentUrl ? (
+                <Button asChild className="w-full rounded-full" style={{ background: v.accent, color: v.accentText }}>
+                  <a href={paymentUrl} target="_blank" rel="noopener noreferrer">Get Bundle <ArrowRight className="ml-2 h-4 w-4" /></a>
+                </Button>
+              ) : contactEmail ? (
+                <Button asChild variant="outline" className="w-full rounded-full">
+                  <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("Notify me: " + (b.bundle_name || "Bundle"))}`}>Notify Me</a>
+                </Button>
+              ) : (
+                <Button asChild variant="outline" className="w-full rounded-full">
+                  <Link to={`/${data.author.author_slug || ""}`}>Contact Author</Link>
+                </Button>
+              )}
+            </Card>
+          ))}
+        </section>
+      )}
+
+      {upsells.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Upsell Sequences</h2>
+          <div className="space-y-3">
+            {upsells.map((u: any, i: number) => (
+              <details key={i} className="group rounded-lg border p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                <summary className="cursor-pointer flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold" style={{ color: v.headingText }}>{u.upsell_product || u.upsell_headline}</p>
+                    {u.trigger && <p className="text-xs" style={{ color: v.mutedText }}>After: {u.trigger}</p>}
+                  </div>
+                  {u.upsell_price_usd != null && (
+                    <span className="text-lg font-bold shrink-0" style={{ color: v.accent }}>${u.upsell_price_usd}</span>
+                  )}
+                </summary>
+                <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: v.cardBorder }}>
+                  {u.upsell_headline && <p className="text-sm font-semibold" style={{ color: v.headingText }}>{u.upsell_headline}</p>}
+                  {u.upsell_copy && <p className="text-sm" style={{ color: v.bodyText }}>{u.upsell_copy}</p>}
+                </div>
+              </details>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {downsell && typeof downsell === "object" && (
+        <section>
+          <Card className="p-6 space-y-2" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Alternative Offer</p>
+            <h3 className="text-lg font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>
+              {downsell.downsell_product || downsell.downsell_headline}
+            </h3>
+            {downsell.trigger && <p className="text-xs" style={{ color: v.mutedText }}>Trigger: {downsell.trigger}</p>}
+            {downsell.downsell_headline && downsell.downsell_product && (
+              <p className="text-sm" style={{ color: v.bodyText }}>{downsell.downsell_headline}</p>
+            )}
+            {downsell.downsell_price_usd != null && (
+              <p className="text-2xl font-bold" style={{ color: v.headingText }}>${downsell.downsell_price_usd}</p>
+            )}
+          </Card>
+        </section>
+      )}
     </div>
   );
 }
