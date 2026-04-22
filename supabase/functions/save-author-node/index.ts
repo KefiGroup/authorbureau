@@ -61,10 +61,11 @@ Deno.serve(async (req: Request) => {
   const userId = claims.sub;
 
   let body: {
-    action?: "save" | "load";
+    action?: "save" | "load" | "list-audio";
     authorId?: string;
     nodeId?: string;
     nodeName?: string;
+    bookId?: string;
     content?: Record<string, unknown>;
     currentStep?: number;
   };
@@ -75,9 +76,12 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = body.action ?? "save";
-  const { authorId, nodeId, nodeName, content, currentStep } = body;
+  const { authorId, nodeId, nodeName, content, currentStep, bookId } = body;
 
-  if (!authorId || !nodeId) {
+  // list-audio uses authorId + bookId only — nodeId is not required.
+  if (action === "list-audio") {
+    if (!authorId) return json(400, { error: "authorId is required" });
+  } else if (!authorId || !nodeId) {
     return json(400, { error: "authorId and nodeId are required" });
   }
 
