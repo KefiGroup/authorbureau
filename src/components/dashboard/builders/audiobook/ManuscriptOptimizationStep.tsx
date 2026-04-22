@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Wand2, Check, X, ChevronLeft, ChevronRight, AlertTriangle, BookOpen } from "lucide-react";
 import type { AudiobookStepProps, AudioChapter, AudioSuggestion } from "./types";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { toast } from "sonner";
 
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
@@ -79,12 +80,30 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
       setGenerationState("analyzing");
 
       // 1. Fetch the manuscript via edge function (avoids cross-backend 401s)
-      const { data, error } = await supabase.functions.invoke("get-manuscript-source", {
-        body: { bookId },
-      });
+      const token = await getActiveToken();
+      if (!token) {
+        toast.error("Please sign in again.");
+        setGenerationState("error");
+        return;
+      }
 
-      if (error) {
-        console.error("[optimize] invoke error:", error);
+      let data: any = null;
+      try {
+        const res = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-manuscript-source`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ bookId }),
+          },
+          30000
+        );
+        data = await res.json().catch(() => null);
+      } catch (e) {
+        console.error("[optimize] fetch error:", e);
         toast.error("Couldn't reach Abby. Try again in a moment.");
         setGenerationState("error");
         return;
