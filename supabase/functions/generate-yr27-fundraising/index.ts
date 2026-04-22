@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   corsHeaders, makeServiceClient, parseAiJson, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
+  failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
 
 const NODE_ID = "YR-27";
@@ -29,9 +30,9 @@ serve(async (req) => {
         { role: "system", content: "You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown)." },
         { role: "user", content: `Design a fundraising campaign for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
 Generate JSON: {"campaign_title","tagline","cause_alignment","campaign_goal_usd":25000,"campaign_duration_days":30,"donation_tiers":[4: Supporter($25)/Champion($100)/Patron($500)/Benefactor($2500), each with tier_name/amount_usd/benefit],"donor_communication_plan":[5 emails at days 0/7/14/28/31, each with day/type/subject/summary],"impact_statement","abby_summary"}` }
-      ], temperature: 0.7 }),
+      ], temperature: 0.3, max_completion_tokens: 16000 }),
     });
-    if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status} ${(await aiRes.text()).slice(0,300)}`);
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
@@ -48,6 +49,6 @@ Generate JSON: {"campaign_title","tagline","cause_alignment","campaign_goal_usd"
     }
     const message = errorMessage(err);
     console.error(`generate-${NODE_ID} error:`, message);
-    return new Response(JSON.stringify({ success: false, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return failResponse(message);
   }
 });
