@@ -72,13 +72,14 @@ export interface LoadDraftResult {
   status: string | null;
   currentStep: number;
   isLive: boolean;
+  micrositeUrl: string | null;
 }
 
 export async function loadBuilderDraft(
   authorId: string,
   nodeId: string,
 ): Promise<LoadDraftResult> {
-  const empty: LoadDraftResult = { content: null, status: null, currentStep: 0, isLive: false };
+  const empty: LoadDraftResult = { content: null, status: null, currentStep: 0, isLive: false, micrositeUrl: null };
   if (!authorId) return empty;
   try {
     const token = await getActiveToken();
@@ -109,6 +110,7 @@ export async function loadBuilderDraft(
       status: data.status ?? null,
       currentStep: Number(data.currentStep ?? 0),
       isLive: !!data.isLive,
+      micrositeUrl: data.micrositeUrl ?? null,
     };
   } catch (err) {
     console.error(`[loadBuilderDraft ${nodeId}] exception:`, err);

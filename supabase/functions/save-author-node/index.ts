@@ -160,6 +160,7 @@ Deno.serve(async (req: Request) => {
       status: node.status ?? null,
       currentStep: savedStep,
       isLive,
+      micrositeUrl: node.microsite_url ?? null,
     });
   }
 
