@@ -47,10 +47,10 @@ serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5-mini",
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences)." },
+          { role: "system", content: "You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences)." },
           { role: "user", content: `Create a complete podcast for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
@@ -60,12 +60,31 @@ Book context:
 - Core thesis: ${coreThesis || "Use book description and context to infer."}
 - Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}
 - Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
-- Unique insights: ${JSON.stringify(ctx?.unique_insights ?? [])}
 - Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
 
-Generate JSON: {"show_title","show_subtitle","tagline","show_description":"2-3 paragraphs","episode_format","episode_length_minutes":30,"release_cadence","target_listener","first_10_episodes":[10 items with number/title/description/key_points(3 items)/hook],"distribution_platforms":["Apple Podcasts","Spotify","Google Podcasts","Amazon Music","Pocket Casts","Overcast"],"monetisation_strategy","abby_summary"}
+Return JSON in this EXACT shape (field names matter):
+{
+  "podcast_title": "string",
+  "tagline": "string",
+  "format": "Solo, interview, or hybrid — be specific",
+  "target_listener": "string",
+  "episodes": [
+    { "title": "string", "description": "2-3 sentences" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" },
+    { "title": "string", "description": "string" }
+  ],
+  "launch_plan": "string (3-5 sentences covering distribution platforms, promotion, and cadence)",
+  "abby_summary": "string"
+}
 
-Make everything specific to this book. No placeholders.` },
+Exactly 10 episodes. No placeholders.` },
         ],
       }),
     });
@@ -81,7 +100,7 @@ Make everything specific to this book. No placeholders.` },
       status: "content_ready",
       current_step: 2,
       content_json: { ...content, _currentStep: 2 },
-      personalised_name: content.show_title,
+      personalised_name: content.podcast_title || content.show_title,
       currency: "usd",
       delivery_type: "podcast",
     });

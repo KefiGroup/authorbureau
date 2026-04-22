@@ -47,10 +47,10 @@ serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5-mini",
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences)." },
+          { role: "system", content: "You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences)." },
           { role: "user", content: `Create a complete upsell and bundle system for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
@@ -59,13 +59,22 @@ Book context:
 - Subtitle: ${bookSubtitle || "N/A"}
 - Core thesis: ${coreThesis || "Use book description and context to infer."}
 - Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}
-- Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
-- Unique insights: ${JSON.stringify(ctx?.unique_insights ?? [])}
 - Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
 
-Generate JSON: {"product_ladder_title","bundles":[3 items with bundle_name/products_included(3 items)/individual_value_usd/bundle_price_usd/savings_usd/tagline],"upsell_sequences":[3 items with trigger/upsell_product/upsell_price_usd/upsell_headline/upsell_copy],"downsell":{trigger/downsell_product/downsell_price_usd/downsell_headline},"abby_summary"}
+Return JSON in this EXACT shape (field names matter):
+{
+  "product_ladder_title": "string",
+  "bundles": [
+    { "bundle_name": "string", "products_included": ["product 1","product 2","product 3"], "individual_value_usd": 297, "bundle_price_usd": 197, "savings_usd": 100, "tagline": "string" }
+  ],
+  "upsell_sequences": [
+    { "trigger": "string (what purchase triggers this)", "upsell_product": "string", "upsell_price_usd": 47, "upsell_headline": "string", "upsell_copy": "2-3 sentences" }
+  ],
+  "downsell": { "trigger": "string", "downsell_product": "string", "downsell_price_usd": 17, "downsell_headline": "string" },
+  "abby_summary": "string"
+}
 
-Make everything specific to this book. No placeholders.` },
+3 bundles, 3 upsell_sequences. No placeholders.` },
         ],
       }),
     });

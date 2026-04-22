@@ -47,10 +47,10 @@ serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5-mini",
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences)." },
+          { role: "system", content: "You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences). All listed fields must be PLAIN STRINGS unless explicitly an object/array." },
           { role: "user", content: `Create a complete media kit and PR strategy for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
@@ -60,12 +60,23 @@ Book context:
 - Core thesis: ${coreThesis || "Use book description and context to infer."}
 - Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}
 - Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
-- Unique insights: ${JSON.stringify(ctx?.unique_insights ?? [])}
 - Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
 
-Generate JSON: {"media_kit_title","speaker_headline","press_release":{headline/subheadline/body:"3 paragraphs"/boilerplate},"media_pitch_template":{subject_line/opening/hook/credentials/call_to_action},"target_media_outlets":[5 items with outlet/type/audience/pitch_angle],"talking_points":[5 items],"abby_summary"}
+Return JSON in this EXACT shape (note: press_release and pitch_template are STRINGS, not objects):
+{
+  "media_kit_title": "string",
+  "speaker_headline": "string (one-line credentials)",
+  "media_kit_content": "string (3-5 sentences: bio, expertise, signature topics)",
+  "press_release": "string (full press release: headline + 3-4 paragraphs + boilerplate, plain text with newlines)",
+  "pitch_template": "string (full media pitch email: subject line + opening + hook + credentials + CTA, plain text with newlines)",
+  "target_media_outlets": [
+    { "outlet": "string", "type": "string", "audience": "string", "pitch_angle": "string" }
+  ],
+  "talking_points": ["5 specific talking points"],
+  "abby_summary": "string"
+}
 
-Make everything specific to this book. No placeholders.` },
+5 outlets. press_release and pitch_template MUST be strings. No placeholders.` },
         ],
       }),
     });

@@ -47,10 +47,10 @@ serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        model: "openai/gpt-5-mini",
         response_format: { type: "json_object" },
         messages: [
-          { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences)." },
+          { role: "system", content: "You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences)." },
           { role: "user", content: `Create a complete group coaching programme for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
@@ -60,12 +60,35 @@ Book context:
 - Core thesis: ${coreThesis || "Use book description and context to infer."}
 - Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}
 - Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
-- Unique insights: ${JSON.stringify(ctx?.unique_insights ?? [])}
 - Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
 
-Generate JSON: {"programme_title","tagline","cohort_size","duration","session_format","transformation_promise","curriculum":[8 items with week/title/focus/homework],"who_its_for","what_youll_get":[3 items],"suggested_price_usd":1997,"pricing_rationale","sales_page":{headline/subheadline/pain_point/solution_statement/cta_button_text},"abby_summary"}
+Return JSON in this EXACT shape (field names matter):
+{
+  "programme_title": "string",
+  "programme_subtitle": "string",
+  "tagline": "string",
+  "duration": "8 weeks",
+  "group_size": "8-12 participants",
+  "session_frequency": "Weekly 90-min Zoom call",
+  "transformation_promise": "string",
+  "who_its_for": "string",
+  "weeks": [
+    { "week_number": 1, "title": "string", "description": "2-3 sentences", "activity": "string" },
+    { "week_number": 2, "title": "string", "description": "string", "activity": "string" },
+    { "week_number": 3, "title": "string", "description": "string", "activity": "string" },
+    { "week_number": 4, "title": "string", "description": "string", "activity": "string" },
+    { "week_number": 5, "title": "string", "description": "string", "activity": "string" },
+    { "week_number": 6, "title": "string", "description": "string", "activity": "string" },
+    { "week_number": 7, "title": "string", "description": "string", "activity": "string" },
+    { "week_number": 8, "title": "string", "description": "string", "activity": "string" }
+  ],
+  "suggested_price_usd": 1997,
+  "pricing_rationale": "string",
+  "sales_page": { "headline": "string", "subheadline": "string", "cta_button_text": "Apply Now" },
+  "abby_summary": "string"
+}
 
-Make everything specific to this book. No placeholders.` },
+8 weeks exactly. No placeholders.` },
         ],
       }),
     });
