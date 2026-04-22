@@ -1,5 +1,8 @@
 // BA-11 Audiobook chapter generation - fresh endpoint, no client-side gateway issues.
 // Mirrors ba11-voice-preview pattern: in-code JWT decode, ElevenLabs TTS, returns base64 MP3.
+// Also uploads the MP3 to the audiobook-audio storage bucket so the publish step can package it.
+
+import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -147,8 +150,47 @@ Deno.serve(async (req: Request) => {
     const audioBase64 = bytesToBase64(buf);
     console.log("[ba11-audiobook-generate] success, bytes:", buf.length);
 
+    // Upload MP3 to audiobook-audio bucket so the publish step can package it.
+    let audioUrl = "";
+    try {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL");
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (supabaseUrl && serviceKey && bookId) {
+        const admin = createClient(supabaseUrl, serviceKey, {
+          auth: { persistSession: false, autoRefreshToken: false },
+        });
+        // Resolve author_profiles.id from JWT sub
+        const { data: profile } = await admin
+          .from("author_profiles")
+          .select("id")
+          .eq("user_id", claims.sub)
+          .maybeSingle();
+        const authorProfileId = profile?.id;
+        if (authorProfileId) {
+          const idx = typeof chapterIndex === "number" ? chapterIndex : 0;
+          const padded = String(idx + 1).padStart(2, "0");
+          const path = `${authorProfileId}/${bookId}/chapter-${padded}.mp3`;
+          const { error: upErr } = await admin.storage
+            .from("audiobook-audio")
+            .upload(path, buf, { contentType: "audio/mpeg", upsert: true });
+          if (upErr) {
+            console.error("[ba11-audiobook-generate] storage upload failed:", upErr.message);
+          } else {
+            const { data: pub } = admin.storage.from("audiobook-audio").getPublicUrl(path);
+            audioUrl = pub.publicUrl;
+            console.log("[ba11-audiobook-generate] uploaded to", path);
+          }
+        } else {
+          console.warn("[ba11-audiobook-generate] no author_profile for sub", claims.sub);
+        }
+      }
+    } catch (storageErr) {
+      console.error("[ba11-audiobook-generate] storage exception:", storageErr);
+    }
+
     return json(200, {
       audioBase64,
+      audioUrl,
       format: "mp3",
       bytes: buf.length,
       chapterIndex,
