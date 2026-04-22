@@ -8,7 +8,7 @@ import { Sparkles, ArrowRight, ArrowLeft, Headphones, FileAudio, Mic, Wand2, Roc
 import { StepHeader, AbbyCard } from "../ba-shared/BABuilderShared";
 import AudiobookStepRenderer from "../audiobook/AudiobookStepRenderer";
 import { toAbbyError } from "@/lib/abby-error";
-import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { autosaveBuilderDraft, loadBuilderDraft, listAudiobookChapters } from "@/lib/builder-autosave";
 
 interface Props { authorId: string | null; }
 
