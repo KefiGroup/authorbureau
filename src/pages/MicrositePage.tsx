@@ -217,8 +217,10 @@ export default function MicrositePage() {
       {resolvedNodeId === "BA-16" && <AffiliatesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-17" && <BundlesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {resolvedNodeId === "BA-18" && <JVPartnersPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BA-13" && <GroupCoachingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BA-14" && <PodcastPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-15", "BA-16", "BA-17", "BA-18"].includes(resolvedNodeId!) && (
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18"].includes(resolvedNodeId!) && (
         <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
@@ -1443,6 +1445,333 @@ function BundlesPage({ data, content, v, hFont, bgColor }: PageProps) {
   );
 }
 
+/* ═══ BA-13 — GROUP COACHING ═══ */
+function GroupCoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
+  const title = (typeof content.programme_title === "string" && content.programme_title) || data.node.personalised_name || "Group Coaching Programme";
+  const tagline = typeof content.tagline === "string" ? content.tagline : "";
+  const transformation = typeof content.transformation_promise === "string" ? content.transformation_promise : "";
+  const duration = typeof content.duration === "string" ? content.duration : "";
+  const cohortSize = typeof content.cohort_size === "string" ? content.cohort_size : (typeof content.cohort_size === "number" ? `${content.cohort_size} seats` : "");
+  const sessionFormat = typeof content.session_format === "string" ? content.session_format : "";
+  const price = typeof content.suggested_price_usd === "number" ? content.suggested_price_usd : (typeof content.suggested_price_usd === "string" ? content.suggested_price_usd : null);
+  const pricingRationale = typeof content.pricing_rationale === "string" ? content.pricing_rationale : "";
+  const salesPage = typeof content.sales_page === "string" ? content.sales_page : "";
+
+  const toLines = (val: any): string[] => {
+    if (Array.isArray(val)) return val.map(x => typeof x === "string" ? x : (x?.title || x?.label || JSON.stringify(x))).filter(Boolean);
+    if (typeof val === "string") return val.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    return [];
+  };
+  const whoFor = toLines(content.who_its_for);
+  const whatGet = toLines(content.what_youll_get);
+
+  const rawWeeks = Array.isArray(content.weeks) && content.weeks.length > 0 ? content.weeks : (Array.isArray(content.curriculum) ? content.curriculum : []);
+  const weeks = rawWeeks.map((w: any, i: number) => ({
+    number: w.week_number ?? w.week ?? i + 1,
+    title: typeof w.title === "string" ? w.title : "",
+    description: typeof w.description === "string" ? w.description : (typeof w.focus === "string" ? w.focus : ""),
+    activities: toLines(w.activity ?? w.activities ?? w.homework),
+  }));
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-12 sm:py-20">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="md:col-span-2 space-y-10">
+          <header className="space-y-4">
+            <h1 className="text-3xl sm:text-5xl font-bold leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>{title}</h1>
+            {tagline && <p className="text-lg" style={{ color: v.accent }}>{tagline}</p>}
+            {transformation && <p className="text-base leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{transformation}</p>}
+          </header>
+
+          {(duration || cohortSize || sessionFormat || price != null) && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {duration && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Duration</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{duration}</p>
+                </Card>
+              )}
+              {cohortSize && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Cohort</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{cohortSize}</p>
+                </Card>
+              )}
+              {sessionFormat && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Format</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{sessionFormat}</p>
+                </Card>
+              )}
+              {price != null && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Investment</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {whoFor.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Who it's for</h2>
+              <ul className="space-y-2">
+                {whoFor.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                    <span className="text-sm" style={{ color: v.bodyText }}>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {whatGet.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>What you'll get</h2>
+              <ul className="space-y-2">
+                {whatGet.map((line, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                    <span className="text-sm" style={{ color: v.bodyText }}>{line}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {weeks.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Curriculum</h2>
+              <div className="space-y-3">
+                {weeks.map((w, i) => (
+                  <details key={i} className="group rounded-lg border p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                    <summary className="cursor-pointer flex items-baseline gap-3">
+                      <span className="text-xs uppercase tracking-widest shrink-0" style={{ color: v.accent }}>Week {w.number}</span>
+                      <span className="text-base font-semibold" style={{ color: v.headingText }}>{w.title}</span>
+                    </summary>
+                    {(w.description || w.activities.length > 0) && (
+                      <div className="mt-3 pt-3 border-t space-y-3" style={{ borderColor: v.cardBorder }}>
+                        {w.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{w.description}</p>}
+                        {w.activities.length > 0 && (
+                          <ul className="space-y-1.5">
+                            {w.activities.map((a, j) => (
+                              <li key={j} className="flex items-start gap-2">
+                                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                                <span className="text-sm" style={{ color: v.bodyText }}>{a}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {pricingRationale && (
+            <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <p className="text-xs uppercase tracking-wider mb-1" style={{ color: v.mutedText }}>Why this price</p>
+              <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{pricingRationale}</p>
+            </Card>
+          )}
+
+          {salesPage && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>About this programme</h2>
+              <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{salesPage}</p>
+            </section>
+          )}
+        </div>
+
+        <div className="md:sticky md:top-6">
+          {!submitted ? (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Apply Now</h3>
+              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Limited seats. Tell us a bit about yourself.</p>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                <Input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} />
+                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <textarea className="w-full border rounded-md p-2 text-sm min-h-[80px]" placeholder="Why do you want to join?" value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
+                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                  {submitting ? "Submitting..." : "Apply Now"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </Card>
+          ) : (
+            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>Application received</h3>
+              <p className="text-sm" style={{ color: v.mutedText }}>We'll review and reach out shortly.</p>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ BA-14 — PODCAST ═══ */
+function PodcastPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, submitting, submitted }: FormPageProps) {
+  const showTitle = (typeof content.podcast_title === "string" && content.podcast_title) || (typeof content.show_title === "string" && content.show_title) || data.node.personalised_name || "Podcast";
+  const showSubtitle = typeof content.show_subtitle === "string" ? content.show_subtitle : "";
+  const tagline = typeof content.tagline === "string" ? content.tagline : "";
+  const showDescription = typeof content.show_description === "string" ? content.show_description : "";
+  const episodeFormat = typeof content.episode_format === "string" ? content.episode_format : "";
+  const releaseCadence = typeof content.release_cadence === "string" ? content.release_cadence : "";
+  const targetListener = typeof content.target_listener === "string" ? content.target_listener : "";
+  const episodeLength = typeof content.episode_length_minutes === "number" ? `${content.episode_length_minutes} min` : (typeof content.episode_length_minutes === "string" ? content.episode_length_minutes : "");
+
+  const platforms: Array<{ label: string; url?: string }> = Array.isArray(content.distribution_platforms)
+    ? content.distribution_platforms.map((p: any) => {
+        if (typeof p === "string") return { label: p };
+        if (p && typeof p === "object") return { label: typeof p.platform === "string" ? p.platform : (typeof p.name === "string" ? p.name : "Platform"), url: typeof p.url === "string" ? p.url : undefined };
+        return { label: "Platform" };
+      })
+    : [];
+
+  const richEps = Array.isArray(content.first_10_episodes) ? content.first_10_episodes : [];
+  const simpleEps = Array.isArray(content.episodes) ? content.episodes : [];
+  const useRich = richEps.length > 0;
+  const episodes = (useRich ? richEps : simpleEps).map((e: any, i: number) => ({
+    number: e.number ?? e.episode_number ?? i + 1,
+    title: typeof e.title === "string" ? e.title : `Episode ${i + 1}`,
+    hook: typeof e.hook === "string" ? e.hook : "",
+    description: typeof e.description === "string" ? e.description : "",
+    keyPoints: Array.isArray(e.key_points) ? e.key_points.filter((k: any) => typeof k === "string") : [],
+  }));
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-12 sm:py-20">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="md:col-span-2 space-y-10">
+          <header className="flex flex-col sm:flex-row gap-6 items-start">
+            {data.book?.cover_image_url ? (
+              <img src={data.book.cover_image_url} alt={data.book.title} className="w-32 h-32 rounded-xl shadow-lg object-cover shrink-0" />
+            ) : (
+              <div className="w-32 h-32 rounded-xl shrink-0 flex items-center justify-center" style={{ background: v.cardBg, borderColor: v.cardBorder, borderWidth: 1 }}>
+                <Mail className="h-10 w-10" style={{ color: v.accent }} />
+              </div>
+            )}
+            <div className="space-y-2">
+              <h1 className="text-3xl sm:text-5xl font-bold leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>{showTitle}</h1>
+              {showSubtitle && <p className="text-lg italic" style={{ color: v.mutedText }}>{showSubtitle}</p>}
+              {tagline && <p className="text-base" style={{ color: v.accent }}>{tagline}</p>}
+            </div>
+          </header>
+
+          {showDescription && (
+            <p className="text-base leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{showDescription}</p>
+          )}
+
+          {platforms.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-sm uppercase tracking-widest" style={{ color: v.mutedText }}>Where to listen</h2>
+              <div className="flex flex-wrap gap-2">
+                {platforms.map((p, i) => p.url ? (
+                  <a key={i} href={p.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium border hover:opacity-80" style={{ background: v.cardBg, borderColor: v.cardBorder, color: v.headingText }}>
+                    {p.label} <ExternalLink className="h-3 w-3" />
+                  </a>
+                ) : (
+                  <span key={i} className="inline-flex items-center rounded-full px-4 py-1.5 text-sm border" style={{ background: v.cardBg, borderColor: v.cardBorder, color: v.mutedText }}>
+                    Coming to {p.label}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {episodes.length > 0 && (
+            <section className="space-y-3">
+              <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Episodes</h2>
+              <div className="space-y-3">
+                {episodes.map((e, i) => (
+                  <details key={i} className="group rounded-lg border p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                    <summary className="cursor-pointer flex items-baseline gap-3">
+                      <span className="text-xs uppercase tracking-widest shrink-0" style={{ color: v.accent }}>Ep {e.number}</span>
+                      <span className="text-base font-semibold" style={{ color: v.headingText }}>{e.title}</span>
+                    </summary>
+                    <div className="mt-3 pt-3 border-t space-y-3" style={{ borderColor: v.cardBorder }}>
+                      {e.hook && (
+                        <blockquote className="border-l-2 pl-3 italic text-sm" style={{ borderColor: v.accent, color: v.bodyText }}>{e.hook}</blockquote>
+                      )}
+                      {e.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{e.description}</p>}
+                      {e.keyPoints.length > 0 && (
+                        <ul className="space-y-1.5">
+                          {e.keyPoints.map((k, j) => (
+                            <li key={j} className="flex items-start gap-2">
+                              <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                              <span className="text-sm" style={{ color: v.bodyText }}>{k}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {(episodeFormat || releaseCadence || targetListener || episodeLength) && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {episodeFormat && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Format</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{episodeFormat}</p>
+                </Card>
+              )}
+              {releaseCadence && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Cadence</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{releaseCadence}</p>
+                </Card>
+              )}
+              {episodeLength && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Length</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{episodeLength}</p>
+                </Card>
+              )}
+              {targetListener && (
+                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>For</p>
+                  <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{targetListener}</p>
+                </Card>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="md:sticky md:top-6">
+          {!submitted ? (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Notify Me on Launch</h3>
+              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Be the first to know when episode 1 drops.</p>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                  {submitting ? "Submitting..." : "Notify Me"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </Card>
+          ) : (
+            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>You're on the list</h3>
+              <p className="text-sm" style={{ color: v.mutedText }}>We'll let you know when episode 1 drops.</p>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ GENERIC PAGE (BA-10 through YR-28) ═══ */
 function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { nodeId: string; lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
   const actionType = getActionType(nodeId);
@@ -1539,7 +1868,7 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
 
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
-  const optinNodes = ["BP-02", "BP-05", "BA-16"];
+  const optinNodes = ["BP-02", "BP-05", "BA-14", "BA-16"];
   const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-15", "BA-18"];
   const applicationNodes = ["YR-20", "YR-23", "BA-13"];
   if (optinNodes.includes(nodeId)) return "optin";
