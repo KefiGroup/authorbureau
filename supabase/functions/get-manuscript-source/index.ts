@@ -17,29 +17,52 @@ function ok(body: unknown) {
 }
 
 async function resolveUser(token: string): Promise<{ id: string; email: string } | null> {
-  const local = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    { auth: { persistSession: false } },
-  );
-  const { data: localUser } = await local.auth.getUser(token);
-  if (localUser?.user?.id && localUser?.user?.email) {
-    return { id: localUser.user.id, email: localUser.user.email };
-  }
-  const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-  if (sharedKey) {
-    const shared = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
-    const { data: sharedUser } = await shared.auth.getUser(token);
-    if (sharedUser?.user?.id && sharedUser?.user?.email) {
-      return { id: sharedUser.user.id, email: sharedUser.user.email };
-    }
-  }
+  // 1. Try JWT decode FIRST — fastest, works for both backends since both issue Supabase JWTs
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.sub && payload.email) return { id: payload.sub, email: payload.email };
-  } catch {
-    /* ignore */
+    if (payload.sub) {
+      const email = payload.email || payload.user_metadata?.email || "";
+      console.log("[get-manuscript-source] Resolved via JWT decode:", { sub: payload.sub, email });
+      if (email) return { id: payload.sub, email };
+    }
+  } catch (e) {
+    console.log("[get-manuscript-source] JWT decode failed:", e);
   }
+
+  // 2. Try project-local auth
+  try {
+    const local = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+      { auth: { persistSession: false } },
+    );
+    const { data: localUser, error } = await local.auth.getUser(token);
+    if (localUser?.user?.id) {
+      console.log("[get-manuscript-source] Resolved via local auth:", localUser.user.id);
+      return { id: localUser.user.id, email: localUser.user.email ?? "" };
+    }
+    if (error) console.log("[get-manuscript-source] Local auth error:", error.message);
+  } catch (e) {
+    console.log("[get-manuscript-source] Local auth threw:", e);
+  }
+
+  // 3. Try shared backend with anon key (NOT service role — anon is correct for getUser)
+  try {
+    const sharedAnon = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY") || Deno.env.get("SUPABASE_ANON_KEY");
+    if (sharedAnon) {
+      const shared = createClient(SHARED_BACKEND_URL, sharedAnon, { auth: { persistSession: false } });
+      const { data: sharedUser, error } = await shared.auth.getUser(token);
+      if (sharedUser?.user?.id) {
+        console.log("[get-manuscript-source] Resolved via shared backend:", sharedUser.user.id);
+        return { id: sharedUser.user.id, email: sharedUser.user.email ?? "" };
+      }
+      if (error) console.log("[get-manuscript-source] Shared auth error:", error.message);
+    }
+  } catch (e) {
+    console.log("[get-manuscript-source] Shared auth threw:", e);
+  }
+
+  console.log("[get-manuscript-source] All resolution methods failed");
   return null;
 }
 
@@ -81,7 +104,8 @@ serve(async (req) => {
     if (!book) return ok({ success: false, error: "Book not found." });
 
     const ownsByAuthor = book.author_id && candidateArr.includes(book.author_id);
-    const ownsByEmail = book.owner_email && book.owner_email.toLowerCase() === user.email.toLowerCase();
+    const ownsByEmail = !!user.email && !!book.owner_email && book.owner_email.toLowerCase() === user.email.toLowerCase();
+    console.log("[get-manuscript-source] Ownership check:", { bookId, userId: user.id, candidates: candidateArr, bookAuthorId: book.author_id, ownsByAuthor, ownsByEmail });
     if (!ownsByAuthor && !ownsByEmail) {
       return ok({ success: false, error: "Not authorized for this book." });
     }
