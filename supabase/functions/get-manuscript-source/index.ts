@@ -104,7 +104,8 @@ serve(async (req) => {
     if (!book) return ok({ success: false, error: "Book not found." });
 
     const ownsByAuthor = book.author_id && candidateArr.includes(book.author_id);
-    const ownsByEmail = book.owner_email && book.owner_email.toLowerCase() === user.email.toLowerCase();
+    const ownsByEmail = !!user.email && !!book.owner_email && book.owner_email.toLowerCase() === user.email.toLowerCase();
+    console.log("[get-manuscript-source] Ownership check:", { bookId, userId: user.id, candidates: candidateArr, bookAuthorId: book.author_id, ownsByAuthor, ownsByEmail });
     if (!ownsByAuthor && !ownsByEmail) {
       return ok({ success: false, error: "Not authorized for this book." });
     }
