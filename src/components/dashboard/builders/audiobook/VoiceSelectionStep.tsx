@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Play, Loader2, Volume2, Mic, CheckCircle2 } from "lucide-react";
 import { VOICE_OPTIONS, type AudiobookStepProps, type NarrationType, type VoiceOption } from "./types";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import AbbyCoachingTip from "@/components/dashboard/social-media/AbbyCoachingTip";
 
 
@@ -54,11 +54,21 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
   const handlePreview = async (voice: VoiceOption) => {
     setPlayingId(voice.id);
     try {
-      const { data, error } = await supabase.functions.invoke("elevenlabs-tts-audiobook", {
-        body: { action: "preview-voice", voiceKey: voice.id },
-      });
-      if (error) throw error;
-      if (!data?.audioBase64) throw new Error("No audio returned");
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not authenticated");
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ action: "preview-voice", voiceKey: voice.id }),
+        }
+      );
+      const data = await res.json();
+      if (!res.ok || !data?.audioBase64) throw new Error(data?.error || "No audio returned");
       const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
       audio.onended = () => setPlayingId(null);
       audio.onerror = () => { setPlayingId(null); toast.error("Could not play voice preview"); };
