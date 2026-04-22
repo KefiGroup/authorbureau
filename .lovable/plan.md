@@ -1,60 +1,121 @@
 
+## Plan — unblock BA-11 voice preview by bypassing the stale gateway path
 
-## Plan — fix BA-11 voice preview (two bugs stacked)
+### What the code audit shows
 
-### Diagnosis
+- The failing UI is the **new BA-11 builder flow**, not the legacy audiobook studio:
+  - `src/components/dashboard/builders/ba11/BA11Builder.tsx` renders `AudiobookStepRenderer`
+  - `AudiobookStepRenderer` renders `VoiceSelectionStep`
+- `VoiceSelectionStep.tsx` is already using the correct shared-session transport:
+  - `getActiveToken()`
+  - `fetchWithTimeout()`
+  - explicit `Authorization: Bearer <token>`
+  - `voiceId: voice.elevenLabsId`
+- `ChapterProductionStep.tsx` is also already sending `voiceId` with the active token.
+- `supabase/functions/elevenlabs-tts-audiobook/index.ts` does accept `voiceId` directly.
+- `supabase/config.toml` already contains:
+  - `[functions.elevenlabs-tts-audiobook]`
+  - `verify_jwt = false`
 
-Two independent bugs are both blocking voice preview:
+### Key diagnosis
 
-**Bug 1 — Gateway not honouring `verify_jwt = false` for `elevenlabs-tts-audiobook`.**
-Same symptom we just fixed for `get-manuscript-source`: zero edge function logs after the user clicks preview, despite the client sending a valid token. `supabase/config.toml` line 54-55 already has the right config — it just hasn't been picked up by the gateway because the function hasn't been redeployed since.
+The remaining failure is still **before the function body runs**:
 
-**Bug 2 — Voice ID contract mismatch between client and edge function.**
-- `src/components/dashboard/builders/audiobook/types.ts` defines `VOICE_OPTIONS` with `id: "v1"`, `"v2"`, … `"v10"`.
-- `VoiceSelectionStep.tsx` line 67 sends `voiceKey: voice.id` → so it sends `"v1"`, `"v2"`, etc.
-- `supabase/functions/elevenlabs-tts-audiobook/index.ts` `VOICES` map is keyed by `"sarah"`, `"george"`, `"laura"`, …
-- Result: `VOICES[body.voiceKey]` is always `undefined` → function throws `"Unknown voice key"` → client shows generic "Could not play voice preview" toast.
-- Bonus issue: `Liam` (v8) and `Chris` (v10) don't exist in the edge function's `VOICES` map at all.
+- The user sees raw HTTP 401s.
+- The function log snapshot for `elevenlabs-tts-audiobook` shows only **boot/shutdown**, with **no runtime request logs at all**.
+- By contrast, `get-manuscript-source` shows normal runtime logs once its gateway issue was cleared.
 
-Both bugs must be fixed together — fixing only the gateway would still result in "Unknown voice key", and fixing only the contract would still hit a gateway 401.
+That means the current `elevenlabs-tts-audiobook` deployment path is still being rejected at the gateway, even though the code and config now look correct.
 
-### Phase 1 — Force-redeploy `elevenlabs-tts-audiobook`
+## Implementation plan
 
-Use `supabase--deploy_edge_functions` to redeploy `elevenlabs-tts-audiobook`. Re-reads `config.toml`, applies `verify_jwt = false` at the gateway, and bumps the function manifest. No code change needed for this.
+### Phase 1 — Stop fighting the stale deployment; create a fresh function endpoint
 
-### Phase 2 — Fix the voice-id contract
+Create a new edge function name, for example:
 
-Send the actual ElevenLabs voice ID from the client and have the edge function accept it directly, removing the brittle nickname lookup.
+- `supabase/functions/elevenlabs-tts-audiobook-v2/index.ts`
 
-**File: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`**
-- Change `body: JSON.stringify({ action: "preview-voice", voiceKey: voice.id })` to `voiceId: voice.elevenLabsId`. Use the same field for the chapter generation call later in BA-11.
+Copy the current audiobook TTS implementation into it and add a dedicated config entry:
 
-**File: `supabase/functions/elevenlabs-tts-audiobook/index.ts`**
-- In `preview-voice`, `generate-chunk`, `generate-chapter`: accept either `voiceId` (preferred — already an ElevenLabs ID) or fall back to the legacy `voiceKey` nickname lookup for any other callers. Pass the resolved ID straight to `generateTTS`.
-- Keeps backward compatibility with anything still sending `voiceKey: "sarah"`.
+```toml
+[functions.elevenlabs-tts-audiobook-v2]
+  verify_jwt = false
+```
 
-### Phase 3 — Direct test before user retest
+Why: the old function name appears to have a stale gateway/deployment state. A fresh function name forces a fresh manifest path instead of reusing the poisoned one.
 
-Use `supabase--curl_edge_functions` to call `elevenlabs-tts-audiobook` with `{ action: "preview-voice", voiceId: "EXAVITQu4vr4xnSDxMaL" }` (Sarah). Expect a JSON response with `audioBase64` populated. If it fails, inspect the now-populated logs and patch immediately in the same turn.
+### Phase 2 — Add unmistakable runtime diagnostics at the top of the new function
 
-### Phase 4 — End-to-end on Be SUCKcessful
+At the very top of the handler, before auth resolution:
 
-1. Re-open Voice step.
-2. Click ▶ on Sarah, Brian, Lily — audio plays within ~2s.
-3. Pick a voice → **Next: Production** unlocks.
-4. Generate Chapter 1 audio → MP3 plays inline. (Chapter generation uses the same `voiceKey` path today, so the same fix unblocks it.)
+- log `"[tts-v2] request started"`
+- log whether `Authorization` exists
+- log the requested `action`
 
-### Phase 5 — Audit chapter generation call (same bug, downstream)
+Inside auth resolution, log every branch:
 
-`ChapterProductionStep.tsx` also passes a voice nickname into the same edge function. Once the contract is `voiceId`, update that call too so we don't trip the exact same trap one step later. Will do this in the same pass.
+- JWT decode success/failure
+- local auth success/failure
+- shared-backend success/failure
 
-### Files touched
+This will make it immediately obvious whether requests are reaching runtime.
 
-- **No new files.**
-- **Updated**: `supabase/functions/elevenlabs-tts-audiobook/index.ts` — accept `voiceId` directly.
-- **Updated**: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx` — send `voiceId: voice.elevenLabsId`.
-- **Updated**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx` — send `voiceId: voice.elevenLabsId` for `generate-chunk` / `generate-chapter`.
-- **Redeploy**: `elevenlabs-tts-audiobook` to refresh gateway manifest.
+### Phase 3 — Simplify auth for preview requests
 
-No DB migrations. No RLS changes. No new secrets.
+For `action === "preview-voice"`:
 
+- validate the bearer token in code
+- do **not** require book lookup or ownership logic
+- proceed once user identity is resolved from claims/token
+
+Why: preview only needs authenticated usage control for the paid TTS API. It does not need database ownership checks, so its auth path should be the simplest and least brittle.
+
+### Phase 4 — Keep ownership checks only for chapter generation actions
+
+For:
+
+- `generate-chunk`
+- `generate-chapter`
+- `finalize-chapter`
+
+keep the existing authenticated ownership checks against the book record, but after the new function’s auth resolution is confirmed working.
+
+This preserves security while separating “preview auth” from “book ownership auth.”
+
+### Phase 5 — Switch BA-11 callers to the fresh endpoint
+
+Update both builder components to call the new function URL:
+
+- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
+- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+
+Only the endpoint path changes; keep the current token transport and `voiceId` payload shape.
+
+### Phase 6 — Verify in order
+
+1. Click Sarah preview in BA-11.
+2. Confirm the new function logs show:
+   - request started
+   - auth branch logs
+   - preview action log
+3. Confirm the response is HTTP 200 with `audioBase64`.
+4. Confirm the browser plays the preview.
+5. Generate Chapter 1 to verify the same endpoint also works for production.
+
+## Files to update
+
+- **New**: `supabase/functions/elevenlabs-tts-audiobook-v2/index.ts`
+- **Update**: `supabase/config.toml`
+- **Update**: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
+- **Update**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+
+## Why this is the right next move
+
+The current builder code is already sending the correct token and the correct `voiceId`. Since the function still returns raw 401 with no runtime logs, continuing to tweak client payloads or `resolveUser()` inside the existing function is unlikely to help. The cleanest fix is to move BA-11 onto a fresh function deployment path and instrument it heavily so the next test gives definitive backend evidence.
+
+## Scope
+
+- No database migration
+- No RLS changes
+- No frontend design changes
+- Backend/auth transport hardening only
