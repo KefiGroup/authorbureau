@@ -54,8 +54,9 @@ export default function BA14Builder({ authorId }: Props) {
       if (__draft.content) {
         const wasLegacy = isLegacyPodcast(__draft.content);
         const normalised = normalisePodcast(__draft.content);
-        setContent(normalised);
-        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+        const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
+        setContent({ ...normalised, activated: isActuallyLive });
+        setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
         if (wasLegacy) {
           void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: normalised, currentStep: __draft.currentStep ?? 2 });
         }
@@ -123,6 +124,10 @@ export default function BA14Builder({ authorId }: Props) {
         {step === 1 && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{GEN_MSGS[msgIndex]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
         {step === 2 && content && (
           <div className="space-y-4">
+            <AbbyCard>
+              <p className="text-sm">Your content is ready, but it isn't live on your site yet. Click below to publish your Podcast page.</p>
+              <Button onClick={handlePublish} className="mt-3">Re-publish to My Site <ArrowRight className="h-4 w-4 ml-2" /></Button>
+            </AbbyCard>
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="concept" className="w-full">
               <TabsList className="w-full grid grid-cols-3 h-auto">
