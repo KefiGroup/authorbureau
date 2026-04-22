@@ -150,32 +150,52 @@ export default function BA12Builder({ authorId }: Props) {
                 ))}
               </TabsContent>
               <TabsContent value="calendar" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-2">
-                  <p className="text-xs font-semibold text-muted-foreground">Monthly Rhythm</p>
-                  <p className="text-sm whitespace-pre-line">{content.content_calendar || "Content calendar details will appear here."}</p>
-                </CardContent></Card>
-                {content.monthly_newsletter_template && (
-                  <Card><CardContent className="pt-6 space-y-2">
-                    <p className="text-xs font-semibold text-muted-foreground">Monthly Newsletter Template</p>
-                    <p className="text-sm whitespace-pre-line">{content.monthly_newsletter_template}</p>
-                  </CardContent></Card>
-                )}
-                {Array.isArray(content.welcome_emails) && content.welcome_emails.length > 0 && (
-                  <Card><CardContent className="pt-6 space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground">Welcome Sequence</p>
-                    <ul className="space-y-3">
-                      {content.welcome_emails.map((e: any, i: number) => (
-                        <li key={i} className="flex items-start gap-2 text-sm">
-                          <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
-                          <div className="min-w-0">
-                            <p className="font-semibold">{e.day != null ? `Day ${e.day}` : `Email ${i + 1}`}{e.subject ? ` — ${e.subject}` : ""}</p>
-                            {e.body && <p className="text-muted-foreground whitespace-pre-line">{e.body}</p>}
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent></Card>
-                )}
+                {(() => {
+                  const asText = (v: unknown): string =>
+                    typeof v === "string"
+                      ? v
+                      : v == null
+                      ? ""
+                      : (() => { try { return JSON.stringify(v, null, 2); } catch { return String(v); } })();
+                  const calendarText = asText(content.content_calendar);
+                  const newsletterText = asText(content.monthly_newsletter_template).trim();
+                  const emails = Array.isArray(content.welcome_emails) ? content.welcome_emails : [];
+                  return (
+                    <>
+                      <Card><CardContent className="pt-6 space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground">Monthly Rhythm</p>
+                        <p className="text-sm whitespace-pre-line">{calendarText || "Content calendar details will appear here."}</p>
+                      </CardContent></Card>
+                      {newsletterText && (
+                        <Card><CardContent className="pt-6 space-y-2">
+                          <p className="text-xs font-semibold text-muted-foreground">Monthly Newsletter Template</p>
+                          <p className="text-sm whitespace-pre-line">{newsletterText}</p>
+                        </CardContent></Card>
+                      )}
+                      {emails.length > 0 && (
+                        <Card><CardContent className="pt-6 space-y-3">
+                          <p className="text-xs font-semibold text-muted-foreground">Welcome Sequence</p>
+                          <ul className="space-y-3">
+                            {emails.map((e: any, i: number) => {
+                              const subject = asText(e?.subject).trim();
+                              const body = asText(e?.body).trim();
+                              const day = e?.day;
+                              return (
+                                <li key={i} className="flex items-start gap-2 text-sm">
+                                  <Mail className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                                  <div className="min-w-0">
+                                    <p className="font-semibold">{day != null ? `Day ${day}` : `Email ${i + 1}`}{subject ? ` — ${subject}` : ""}</p>
+                                    {body && <p className="text-muted-foreground whitespace-pre-line">{body}</p>}
+                                  </div>
+                                </li>
+                              );
+                            })}
+                          </ul>
+                        </CardContent></Card>
+                      )}
+                    </>
+                  );
+                })()}
               </TabsContent>
             </Tabs>
             <ExportPackageCard

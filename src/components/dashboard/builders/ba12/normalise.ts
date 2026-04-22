@@ -24,6 +24,49 @@ function buildDefaultCalendar(raw: any): string {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toPlainString(value: any): string {
+  if (value == null) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item == null) return "";
+        if (typeof item === "string") return item;
+        if (typeof item === "number" || typeof item === "boolean") return String(item);
+        if (typeof item === "object") {
+          const o = item as Record<string, unknown>;
+          const label = o.week ?? o.title ?? o.name ?? o.day;
+          const body = o.focus ?? o.description ?? o.content ?? o.body ?? o.summary;
+          if (label || body) {
+            return `${label ? `${label}: ` : ""}${body ? toPlainString(body) : ""}`.trim();
+          }
+          try { return JSON.stringify(item); } catch { return String(item); }
+        }
+        return String(item);
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  if (typeof value === "object") {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([k, v]) => {
+        const label = k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        return `${label}: ${toPlainString(v)}`;
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  try { return JSON.stringify(value); } catch { return String(value); }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toCalendarString(value: any, raw: any): string {
+  const text = toPlainString(value).trim();
+  return text || buildDefaultCalendar(raw);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function normaliseMembership(raw: any): any {
   if (!raw || typeof raw !== "object") return raw;
   const normalised = {
@@ -41,23 +84,19 @@ export function normaliseMembership(raw: any): any {
             },
           ],
   };
-  const hasCalendar =
-    typeof raw.content_calendar === "string" && raw.content_calendar.trim();
+  const newsletterText = toPlainString(raw.monthly_newsletter_template).trim();
   return {
     ...normalised,
-    content_calendar: hasCalendar
-      ? raw.content_calendar
-      : buildDefaultCalendar(normalised),
+    content_calendar: toCalendarString(raw.content_calendar, normalised),
+    monthly_newsletter_template: newsletterText || undefined,
   };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function isLegacyMembership(raw: any): boolean {
-  return (
-    !raw ||
-    !Array.isArray(raw.tiers) ||
-    raw.tiers.length === 0 ||
-    typeof raw.content_calendar !== "string" ||
-    !raw.content_calendar.trim()
-  );
+  if (!raw) return true;
+  if (!Array.isArray(raw.tiers) || raw.tiers.length === 0) return true;
+  if (typeof raw.content_calendar !== "string" || !raw.content_calendar.trim()) return true;
+  if (raw.monthly_newsletter_template != null && typeof raw.monthly_newsletter_template !== "string") return true;
+  return false;
 }
