@@ -213,8 +213,10 @@ export default function MicrositePage() {
       {resolvedNodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
       {resolvedNodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
       {resolvedNodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
+      {resolvedNodeId === "BA-15" && <PressKitPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BA-18" && <JVPartnersPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"].includes(resolvedNodeId!) && (
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-15", "BA-18"].includes(resolvedNodeId!) && (
         <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
@@ -1013,6 +1015,178 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
   );
 }
 
+/* ═══ PRESS KIT PAGE (BA-15) ═══ */
+function PressKitPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
+  const pr = content.press_release;
+  const prObj = pr && typeof pr === "object" ? pr : null;
+  const prString = typeof pr === "string" ? pr : null;
+  const speakerHeadline = content.speaker_headline || content.speaker_one_liner;
+  const mediaKit = content.media_kit_url || data.node.delivery_url;
+  const topics = Array.isArray(content.interview_topics) ? content.interview_topics : Array.isArray(content.speaking_topics) ? content.speaking_topics : [];
+  const bookingMail = content.media_contact_email;
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-12 sm:py-20 space-y-12">
+      <header className="text-center space-y-4">
+        <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Press & Media</p>
+        <h1 className="text-3xl sm:text-5xl font-bold" style={{ color: v.headingText, fontFamily: hFont }}>
+          {content.headline || `${data.author.pen_name} — Media Kit`}
+        </h1>
+        {speakerHeadline && <p className="text-lg max-w-2xl mx-auto" style={{ color: v.mutedText }}>{speakerHeadline}</p>}
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-8">
+          {(prObj || prString) && (
+            <Card className="p-6 space-y-3" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h2 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Press Release</h2>
+              {prObj ? (
+                <div className="space-y-3">
+                  {prObj.headline && <h3 className="font-bold text-lg" style={{ color: v.headingText }}>{prObj.headline}</h3>}
+                  {prObj.subheadline && <p className="italic" style={{ color: v.mutedText }}>{prObj.subheadline}</p>}
+                  {prObj.body && <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: v.bodyText }}>{prObj.body}</p>}
+                  {prObj.boilerplate && <p className="text-xs pt-2 border-t" style={{ color: v.mutedText, borderColor: v.cardBorder }}>{prObj.boilerplate}</p>}
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: v.bodyText }}>{prString}</p>
+              )}
+            </Card>
+          )}
+
+          {topics.length > 0 && (
+            <Card className="p-6 space-y-3" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h2 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Interview Topics</h2>
+              <ul className="space-y-2">
+                {topics.map((t: any, i: number) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                    <span className="text-sm" style={{ color: v.bodyText }}>{typeof t === "string" ? t : t.title || t.topic}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+
+          {mediaKit && (
+            <Button asChild className="rounded-full" style={{ background: v.accent, color: v.accentText }}>
+              <a href={mediaKit} target="_blank" rel="noopener noreferrer">Download Media Kit <ArrowRight className="ml-2 h-4 w-4" /></a>
+            </Button>
+          )}
+        </div>
+
+        <div className="md:col-span-1">
+          {!submitted ? (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>Pitch a Story</h3>
+              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Journalists, podcasters, producers — get in touch.</p>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                <Input placeholder="Last name / Outlet" value={lastName} onChange={e => setLastName(e.target.value)} />
+                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <textarea className="w-full border rounded-md p-2 text-sm min-h-[100px]" placeholder="Briefly: what's the story angle?" value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
+                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                  {submitting ? "Sending..." : "Send Pitch"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+              {bookingMail && <p className="text-xs mt-3 text-center" style={{ color: v.mutedText }}>or email <a href={`mailto:${bookingMail}`} className="underline">{bookingMail}</a></p>}
+            </Card>
+          ) : (
+            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>Pitch received</h3>
+              <p className="text-sm" style={{ color: v.mutedText }}>We'll be in touch shortly.</p>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ═══ JV PARTNERS PAGE (BA-18) ═══ */
+function JVPartnersPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
+  const partners = Array.isArray(content.ideal_partners) ? content.ideal_partners : Array.isArray(content.ideal_partner_profiles) ? content.ideal_partner_profiles : [];
+  const pitch = content.pitch_template;
+  const pitchObj = pitch && typeof pitch === "object" ? pitch : null;
+  const pitchString = typeof pitch === "string" ? pitch : null;
+  const commission = content.commission_structure || content.revenue_share;
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-12 sm:py-20 space-y-12">
+      <header className="text-center space-y-4">
+        <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Joint Venture Partnerships</p>
+        <h1 className="text-3xl sm:text-5xl font-bold" style={{ color: v.headingText, fontFamily: hFont }}>
+          {content.headline || `Partner with ${data.author.pen_name}`}
+        </h1>
+        {content.subheadline && <p className="text-lg max-w-2xl mx-auto" style={{ color: v.mutedText }}>{content.subheadline}</p>}
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="md:col-span-2 space-y-8">
+          {partners.length > 0 && (
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Ideal Partners</h2>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {partners.map((p: any, i: number) => (
+                  <Card key={i} className="p-4 space-y-2" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                    <h3 className="font-semibold" style={{ color: v.headingText }}>{typeof p === "string" ? p : p.name || p.title || p.type}</h3>
+                    {typeof p === "object" && p.description && <p className="text-sm" style={{ color: v.bodyText }}>{p.description}</p>}
+                    {typeof p === "object" && p.audience && <p className="text-xs" style={{ color: v.mutedText }}>Audience: {p.audience}</p>}
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(pitchObj || pitchString) && (
+            <Card className="p-6 space-y-3" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h2 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>The Pitch</h2>
+              {pitchObj ? (
+                <div className="space-y-3">
+                  {pitchObj.subject && <p className="text-sm font-semibold" style={{ color: v.headingText }}>Subject: {pitchObj.subject}</p>}
+                  {pitchObj.body && <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: v.bodyText }}>{pitchObj.body}</p>}
+                </div>
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed" style={{ color: v.bodyText }}>{pitchString}</p>
+              )}
+            </Card>
+          )}
+
+          {commission && (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h2 className="text-xl font-semibold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>Revenue Share</h2>
+              <p className="text-sm whitespace-pre-wrap" style={{ color: v.bodyText }}>{typeof commission === "string" ? commission : JSON.stringify(commission, null, 2)}</p>
+            </Card>
+          )}
+        </div>
+
+        <div className="md:col-span-1">
+          {!submitted ? (
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>Apply to Partner</h3>
+              <form onSubmit={onSubmit} className="space-y-3">
+                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                <Input placeholder="Last name / Company" value={lastName} onChange={e => setLastName(e.target.value)} />
+                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                <textarea className="w-full border rounded-md p-2 text-sm min-h-[100px]" placeholder="Audience size, list, what you'd promote..." value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
+                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                  {submitting ? "Sending..." : "Submit Application"} <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </form>
+            </Card>
+          ) : (
+            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>Application received</h3>
+              <p className="text-sm" style={{ color: v.mutedText }}>We'll review and reach out soon.</p>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ GENERIC PAGE (BA-10 through YR-28) ═══ */
 function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { nodeId: string; lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
   const actionType = getActionType(nodeId);
@@ -1110,7 +1284,7 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
   const optinNodes = ["BP-02", "BP-05", "BA-16"];
-  const enquiryNodes = ["YR-21", "YR-22", "YR-28"];
+  const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-15", "BA-18"];
   const applicationNodes = ["YR-20", "YR-23", "BA-13"];
   if (optinNodes.includes(nodeId)) return "optin";
   if (enquiryNodes.includes(nodeId)) return "enquiry";
