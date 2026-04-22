@@ -213,8 +213,10 @@ export default function MicrositePage() {
       {resolvedNodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
       {resolvedNodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
       {resolvedNodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
+      {resolvedNodeId === "BA-15" && <PressKitPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BA-18" && <JVPartnersPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09"].includes(resolvedNodeId!) && (
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-15", "BA-18"].includes(resolvedNodeId!) && (
         <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
@@ -1110,7 +1112,7 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
   const optinNodes = ["BP-02", "BP-05", "BA-16"];
-  const enquiryNodes = ["YR-21", "YR-22", "YR-28"];
+  const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-15", "BA-18"];
   const applicationNodes = ["YR-20", "YR-23", "BA-13"];
   if (optinNodes.includes(nodeId)) return "optin";
   if (enquiryNodes.includes(nodeId)) return "enquiry";
