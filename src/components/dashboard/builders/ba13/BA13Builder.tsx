@@ -68,12 +68,25 @@ export default function BA13Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba13-group-coaching", { body: { author_id: authorId } });
+      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba13-group-coaching", { author_id: authorId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-      setContent(data.content);
-      setPriceOverride(data.content?.suggested_price_usd || null);
+      // Back-compat: legacy `curriculum` array → `weeks`
+      const raw = data.content || {};
+      const normalised = {
+        ...raw,
+        weeks: Array.isArray(raw.weeks) ? raw.weeks
+          : Array.isArray(raw.curriculum) ? raw.curriculum.map((c: any, i: number) => ({
+              week_number: c.week ?? i + 1,
+              title: c.title,
+              description: c.focus || c.description || "",
+              activity: c.homework || c.activity || "",
+            })) : [],
+      };
+      setContent(normalised);
+      setPriceOverride(normalised?.suggested_price_usd || null);
       setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: data.content, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

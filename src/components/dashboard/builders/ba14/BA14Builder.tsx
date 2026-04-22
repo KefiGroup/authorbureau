@@ -71,8 +71,19 @@ export default function BA14Builder({ authorId }: Props) {
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba14-podcast", { body: { author_id: authorId } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
-      setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast Tour", content: data.content, currentStep: 2 });
+      // Back-compat: legacy field names → UI field names
+      const raw = data.content || {};
+      const normalised = {
+        ...raw,
+        podcast_title: raw.podcast_title || raw.show_title || "",
+        episodes: Array.isArray(raw.episodes) ? raw.episodes
+          : Array.isArray(raw.first_10_episodes)
+            ? raw.first_10_episodes.map((e: any) => ({ title: e.title, description: e.description || e.hook || "" }))
+            : [],
+        launch_plan: raw.launch_plan || raw.monetisation_strategy || "",
+      };
+      setContent(normalised); setStep(2);
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast Tour", content: normalised, currentStep: 2 });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
