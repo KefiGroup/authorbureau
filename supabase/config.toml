@@ -143,3 +143,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.get-manuscript-source]
     verify_jwt = false
+  [functions.ba11-voice-preview]
+    verify_jwt = false
