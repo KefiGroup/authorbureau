@@ -160,31 +160,21 @@ Deno.serve(async (req: Request) => {
         const admin = createClient(supabaseUrl, serviceKey, {
           auth: { persistSession: false, autoRefreshToken: false },
         });
-        // Resolve author_profiles.id from JWT sub
-        const { data: profile } = await admin
-          .from("author_profiles")
-          .select("id")
-          .eq("user_id", claims.sub)
-          .maybeSingle();
-        const authorProfileId = profile?.id;
-        if (authorProfileId) {
-          const idx = typeof chapterIndex === "number" ? chapterIndex : 0;
-          const padded = String(idx + 1).padStart(2, "0");
-          const path = `${authorProfileId}/${bookId}/chapter-${padded}.mp3`;
-          const { error: upErr } = await admin.storage
-            .from("audiobook-audio")
-            .upload(path, buf, { contentType: "audio/mpeg", upsert: true });
-          if (upErr) {
-            console.error("[ba11-audiobook-generate] storage upload failed:", upErr.message);
-            audioUrlError = `storage upload failed: ${upErr.message}`;
-          } else {
-            const { data: pub } = admin.storage.from("audiobook-audio").getPublicUrl(path);
-            audioUrl = pub.publicUrl;
-            console.log("[ba11-audiobook-generate] uploaded to", path);
-          }
+        // Canonical path: {user_id}/{book_id}/chapter-NNN.mp3 (3-digit, 0-indexed).
+        // Matches legacy elevenlabs-tts-audiobook-v2 + distribute-audiobook readers.
+        const idx = typeof chapterIndex === "number" ? chapterIndex : 0;
+        const padded = String(idx).padStart(3, "0");
+        const path = `${claims.sub}/${bookId}/chapter-${padded}.mp3`;
+        const { error: upErr } = await admin.storage
+          .from("audiobook-audio")
+          .upload(path, buf, { contentType: "audio/mpeg", upsert: true });
+        if (upErr) {
+          console.error("[ba11-audiobook-generate] storage upload failed:", upErr.message);
+          audioUrlError = `storage upload failed: ${upErr.message}`;
         } else {
-          console.warn("[ba11-audiobook-generate] no author_profile for sub", claims.sub);
-          audioUrlError = "no author profile resolved for current user";
+          const { data: pub } = admin.storage.from("audiobook-audio").getPublicUrl(path);
+          audioUrl = pub.publicUrl;
+          console.log("[ba11-audiobook-generate] uploaded to", path);
         }
       } else if (!bookId) {
         audioUrlError = "bookId missing from request";

@@ -152,26 +152,57 @@ Deno.serve(async (req: Request) => {
     if (!bookId) {
       return json(400, { error: "bookId is required for list-audio" });
     }
-    const prefix = `${authorId}/${bookId}`;
-    const { data: files, error: listErr } = await admin.storage
-      .from("audiobook-audio")
-      .list(prefix, { limit: 200, sortBy: { column: "name", order: "asc" } });
-    if (listErr) {
-      console.error("[save-author-node:list-audio] list failed:", listErr.message);
-      return json(500, { error: listErr.message });
-    }
-    const chapters = (files ?? [])
-      .filter((f) => /^chapter-(\d+)\.mp3$/i.test(f.name))
-      .map((f) => {
-        const m = f.name.match(/^chapter-(\d+)\.mp3$/i);
-        const num = m ? parseInt(m[1], 10) : 0;
+    // Read both prefixes (canonical user_id-keyed AND legacy author_profile_id-keyed)
+    // to support files written by all generations of the BA-11 pipeline.
+    const userPrefix = `${userId}/${bookId}`;
+    const profilePrefix = `${authorId}/${bookId}`;
+    const fileRegex = /^chapter-0*(\d+)\.mp3$/i;
+
+    const collected: { rawNum: number; name: string; publicUrl: string }[] = [];
+    for (const prefix of [userPrefix, profilePrefix]) {
+      const { data: files, error: listErr } = await admin.storage
+        .from("audiobook-audio")
+        .list(prefix, { limit: 200, sortBy: { column: "name", order: "asc" } });
+      if (listErr) {
+        console.warn(
+          "[save-author-node:list-audio] list failed for",
+          prefix,
+          listErr.message,
+        );
+        continue;
+      }
+      for (const f of files ?? []) {
+        if (f.name === "submission-package.zip") continue;
+        if (/-chunk-/i.test(f.name)) continue;
+        const m = f.name.match(fileRegex);
+        if (!m) continue;
         const path = `${prefix}/${f.name}`;
         const { data: pub } = admin.storage
           .from("audiobook-audio")
           .getPublicUrl(path);
-        return { index: num - 1, name: f.name, publicUrl: pub.publicUrl };
-      })
-      .sort((a, b) => a.index - b.index);
+        collected.push({
+          rawNum: parseInt(m[1], 10),
+          name: f.name,
+          publicUrl: pub.publicUrl,
+        });
+      }
+    }
+    // De-duplicate by publicUrl in case both prefixes return the same file.
+    const seen = new Set<string>();
+    const deduped = collected.filter((c) => {
+      if (seen.has(c.publicUrl)) return false;
+      seen.add(c.publicUrl);
+      return true;
+    });
+    // Sort by raw filename number then re-index sequentially from 0 so we don't
+    // have to guess which padding/indexing convention wrote the file.
+    deduped.sort((a, b) => a.rawNum - b.rawNum);
+    const chapters = deduped.map((c, i) => ({
+      index: i,
+      name: c.name,
+      publicUrl: c.publicUrl,
+    }));
+    console.log("[save-author-node:list-audio] returning", chapters.length, "chapters");
     return json(200, { chapters });
   }
 
