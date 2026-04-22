@@ -88,9 +88,17 @@ export default function BA12Builder({ authorId }: Props) {
   };
 
   const handlePublish = async () => {
-    setStep(3); setError(null);
-    try { await publishNodeToSite(authorId!, "BA-12", authorSlug); setContent((prev: any) => ({ ...prev, activated: true })); }
-    catch (e: any) { setError(e.message); setStep(2); }
+    setError(null);
+    setStep(3);
+    try {
+      await publishNodeToSite(authorId!, "BA-12", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
+      toast.success("Your Membership is live on your site.");
+    } catch (e: any) {
+      setError(e.message);
+      setStep(2);
+      toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;

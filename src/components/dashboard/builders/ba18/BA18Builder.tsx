@@ -92,9 +92,17 @@ export default function BA18Builder({ authorId }: Props) {
   };
 
   const handlePublish = async () => {
-    setStep(3); setError(null);
-    try { await publishNodeToSite(authorId!, "BA-18", authorSlug); setContent((prev: any) => ({ ...prev, activated: true })); }
-    catch (e: any) { setError(e.message); setStep(2); }
+    setError(null);
+    setStep(3);
+    try {
+      await publishNodeToSite(authorId!, "BA-18", authorSlug);
+      setContent((prev: any) => ({ ...prev, activated: true }));
+      toast.success("Your JV Partners page is live on your site.");
+    } catch (e: any) {
+      setError(e.message);
+      setStep(2);
+      toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    }
   };
 
   const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;

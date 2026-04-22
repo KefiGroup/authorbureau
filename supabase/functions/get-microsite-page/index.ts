@@ -81,7 +81,20 @@ serve(async (req) => {
       .eq("node_id", nodeId!)
       .maybeSingle();
 
-    if (!node || (node.status !== "live" && node.status !== "published_pending_ghl")) {
+    // Treat as live if explicitly live OR if the row is content_ready but the
+    // content_json carries `activated: true` (forward-compat self-heal for cases
+    // where the React state flipped to "activated" but the DB write to status
+    // didn't land).
+    const cj = (node?.content_json ?? {}) as Record<string, unknown>;
+    const isLive =
+      !!node &&
+      (
+        node.status === "live" ||
+        node.status === "published_pending_ghl" ||
+        (node.status === "content_ready" && cj.activated === true)
+      );
+
+    if (!node || !isLive) {
       return new Response(
         JSON.stringify({ error: "Node not live" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
