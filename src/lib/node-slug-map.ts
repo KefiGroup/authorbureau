@@ -1,7 +1,7 @@
 /**
  * Maps node IDs to their public microsite URL slugs.
  * Used by the microsite router and success screens.
- * Nodes without a slug (e.g. BP-01, BP-03, BA-15, BA-18) have no public page.
+ * Nodes without a slug (e.g. BP-01, BP-03) have no public page.
  */
 
 export const NODE_SLUG_MAP: Record<string, string> = {
@@ -17,8 +17,10 @@ export const NODE_SLUG_MAP: Record<string, string> = {
   "BA-12": "membership",
   "BA-13": "group-coaching",
   "BA-14": "podcast",
+  "BA-15": "press",
   "BA-16": "affiliates",
   "BA-17": "bundles",
+  "BA-18": "partners",
   "YR-19": "coaching",
   "YR-20": "vip",
   "YR-21": "speaking",
@@ -54,7 +56,7 @@ export const SLUG_TO_NODE: Record<string, string> = {
 };
 
 /** Nodes that have NO public microsite page */
-export const NO_MICROSITE_NODES = new Set(["BP-01", "BP-03", "BA-15", "BA-18"]);
+export const NO_MICROSITE_NODES = new Set(["BP-01", "BP-03"]);
 
 /** Node names for display */
 export const NODE_NAMES: Record<string, string> = {
@@ -72,10 +74,10 @@ export const NODE_NAMES: Record<string, string> = {
   "BA-12": "Membership Site",
   "BA-13": "Group Coaching",
   "BA-14": "Podcast",
-  "BA-15": "Media & PR",
+  "BA-15": "Press & Media",
   "BA-16": "Affiliate Programme",
   "BA-17": "Upsells & Bundles",
-  "BA-18": "JV Partnerships",
+  "BA-18": "JV Partners",
   "YR-19": "1-on-1 Coaching",
   "YR-20": "Big Ticket Offers",
   "YR-21": "Keynote Speaking",
