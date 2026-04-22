@@ -36,7 +36,7 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
       const response = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook-v2`,
         {
           method: "POST",
           headers: {
