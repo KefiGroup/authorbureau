@@ -1,64 +1,62 @@
 
 
-## Plan — fix BA-11 chapter audio session resume
+## Root cause confirmed
 
-### Root cause
+Three storage path conventions are colliding for BA-11:
 
-The persisted `author_nodes.content_json.studio.chapters[0].audioUrl` is a **`blob:` URL** (verified in DB: `blob:https://authorsbureau.com/3f3bad24-...`). Blob URLs are in-memory references created by `URL.createObjectURL()` and die the moment the page reloads. So when the user returns:
+| Function | Folder key | Filename |
+|---|---|---|
+| `elevenlabs-tts-audiobook-v2` (older, wrote Pauline's file) | `{user_id}` | `chapter-000.mp3` (3-digit, 0-indexed) |
+| `ba11-audiobook-generate` (current generator) | `{author_profile_id}` | `chapter-01.mp3` (2-digit, 1-indexed) |
+| `ba11-publish-audiobook` + `save-author-node` list-audio (heal/zip) | `{author_profile_id}` (caller passes profile id) | any |
 
-- The chapter row still says `status: "audio-generated"`
-- The `<audio src="blob:...">` element is pointing at a dead URL
-- And in this case the user reported it reverted to "Script Ready" — which means somewhere the load path is also treating an unplayable URL as no-audio, OR the row was overwritten by a later autosave that lost the status
+Verified in DB: Pauline's only audio file is `ef23c521-…(user_id)/e5b857ac-…(book_id)/chapter-000.mp3`, but the heal call sends `authorId = 92326a2f-…` (the `author_profiles.id`). The list returns 0 files. Same mismatch will break the publish ZIP. Future generations via `ba11-audiobook-generate` would write to a **different** folder again, so existing and new chapters can never coexist.
 
-The chapter's permanent storage URL (`https://.../storage/v1/object/public/audiobook-audio/{authorProfileId}/{bookId}/chapter-01.mp3`) was never saved into `author_nodes`, even though `ba11-audiobook-generate` does upload to that bucket.
+## Plan — pick one canonical path, then teach all functions to read both
 
-### Fix
+**Canonical going forward:** `audiobook-audio/{user_id}/{book_id}/chapter-NNN.mp3` (3-digit, 0-indexed). Reasons: matches the only files actually in storage today (no migration of Pauline's file needed), matches `elevenlabs-tts-audiobook-v2` and `distribute-audiobook` legacy code, and `user_id` is the simplest key the browser already has.
 
-**1. `ChapterProductionStep.tsx` — never persist blob URLs**
+### 1. `ba11-audiobook-generate` — write to canonical path
 
-In `handleGenerateAudio` (lines 62-72):
-- Always prefer `data.audioUrl` (permanent https storage URL) when present.
-- If only `data.audioBase64` came back, create the blob URL **for immediate inline playback in this session only** but keep a separate `permanentUrl` field set to `""`.
-- Save the chapter as:
-  - `audioUrl: permanentUrl` (only the https URL, never `blob:`)
-  - `previewBlobUrl: blobUrl` (transient, in-memory only — explicitly excluded from autosave)
-  - `status: "audio-generated"` only when `permanentUrl` is set; otherwise `"script-ready"` with a toast warning that storage upload failed.
+- Replace `${authorProfileId}/${bookId}/chapter-${(idx+1).padStart(2)}.mp3` with `${claims.sub}/${bookId}/chapter-${idx.padStart(3)}.mp3`.
+- Drop the `author_profiles` lookup (no longer needed for the upload).
+- Keep returning `audioUrl` and `audioUrlError` as today.
 
-This stops bad data from ever entering `author_nodes` again.
+### 2. `save-author-node` `list-audio` — accept user_id-keyed folder, with profile-id fallback
 
-**2. `BA11Builder.tsx` — sanitize on load**
+- Resolve `user_id` from JWT (already done) and from `author_profiles.id = authorId` (already done in ownership check).
+- List **two** prefixes: `{user_id}/{bookId}/` and `{author_profile_id}/{bookId}/`. Merge results.
+- Filename regex must accept both `chapter-001.mp3` and `chapter-01.mp3` — use `^chapter-0*(\d+)(?:-chunk-\d+)?\.mp3$` and parse the captured number as 0-indexed (subtract 1 only if the number is ≥ 1 and we detect 2-digit padding; simpler: treat the file as belonging to chapter index `n` where `n = parsed`, then sort and re-index sequentially). Re-indexing sequentially after sort is the safest — avoids guessing which convention wrote it.
+- Filter out the chunk variants (`-chunk-NNN`) for now, since the BA-11 builder produces single-file chapters. Chunked legacy files are out of scope.
 
-Right after `setStepData(draft.content.studio)` (line 61), run a sweep over `draft.content.studio.chapters` and, for any chapter where `audioUrl` starts with `blob:`:
-- Clear `audioUrl`
-- Reset `status` to `"script-ready"`
+### 3. `ba11-publish-audiobook` — same dual-prefix listing
 
-Then attempt to re-attach permanent URLs by listing the bucket for that author + book:
-- Call a tiny new edge action `list-audiobook-chapters` (or extend `save-author-node` with an `action: "list-audio"`) that, given `{ authorId, bookId }`, lists files under `audiobook-audio/{authorProfileId}/{bookId}/chapter-*.mp3` and returns `[{ index, publicUrl }]`.
-- Map matches into `chapters[i].audioUrl` and bump `status` back to `"audio-generated"`.
-- Persist the cleaned-up state immediately so the row in `author_nodes` is fixed for next time.
+Apply the same dual-prefix list + filename regex changes. The ZIP already enumerates whatever it finds in the folder, so this just needs the two-folder merge plus a filter that excludes `submission-package.zip` itself and `*-chunk-*.mp3`.
 
-This fully heals the existing broken row in DB and any future generations made before the forward fix.
+### 4. `BA11Builder.tsx` heal effect — re-index by position, not by filename number
 
-**3. One-line server confirmation in `ba11-audiobook-generate`**
+After `listAudiobookChapters` returns, the response is already sorted. The current builder code maps `byIndex.set(f.index, f.publicUrl)` and matches against the **chapter array index**. Pauline's file is `chapter-000.mp3` → index 0 → first chapter. That works. Just confirm the response order is positional — done by sorting in the function before returning.
 
-Currently when storage upload fails the function silently returns `audioUrl: ""`. Add: if upload fails, also include `audioUrlError: "<message>"` in the response so the frontend can show a clear toast rather than silently falling back to a blob.
+Also tighten the heal trigger: change the effect dependency from `stepData.chapters?.length` to `[authorId, bookId, resolvedBookId]` so a successful list still heals when chapters are present but their URLs are blob/empty (current condition `needsHealing` already covers this — keep it).
 
-### Files touched
+### 5. One-time silent cleanup
 
-- **Update**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx` — never save `blob:` URLs; warn when only base64 came back.
-- **Update**: `src/components/dashboard/builders/ba11/BA11Builder.tsx` — sanitize on `loadBuilderDraft`, re-attach storage URLs, persist cleaned data.
-- **Update**: `supabase/functions/save-author-node/index.ts` — add `action: "list-audio"` that lists `audiobook-audio/{authorProfileId}/{bookId}/` and returns chapter URLs (uses service role; in-code JWT decode, same pattern as existing actions).
-- **Update**: `supabase/functions/ba11-audiobook-generate/index.ts` — surface storage upload errors in the response.
+After heal succeeds for Pauline, the autosave in the builder will rewrite `content_json` with the permanent URL — replacing the blob URL — so the next reload doesn't even need to re-list. No DB migration required.
 
-### Verification
+## Verification
 
-1. Reload the BA-11 builder — the resume sweep finds the blob URL, lists storage, re-attaches `chapter-01.mp3`'s public URL, restores `status: "audio-generated"`, and autosaves the cleaned row.
-2. Click play on Chapter 1 — audio plays from the permanent https URL.
-3. Click **Publish & Distribute Audiobook** — passes the gate and runs the existing publish flow.
-4. Generate Chapter 2 fresh — confirm `data.audioUrl` is the https storage URL and the autosaved row contains the https URL (not `blob:`).
+1. Reload `/node-builder/BA-11` as Pauline → console shows `[save-author-node:list-audio]` returning 1 chapter, builder switches Chapter 1 to "Audio Ready", counter shows 1/6, autosave overwrites the blob URL with the permanent URL.
+2. Generate Chapter 2 → file lands at `ef23c521…/e5b857ac…/chapter-001.mp3` (canonical path, 3-digit, 0-indexed). Reload → both chapters resume.
+3. Click **Publish & Distribute** → ZIP includes both MP3s, `author_nodes.status = live`, audiobook appears at `/pauline-teo`.
 
-### Scope
+## Files touched
 
-- No DB migration. No RLS changes. No new secrets.
-- Pure frontend resume hardening + one new read-only action on an existing edge function.
+- **Update** `supabase/functions/ba11-audiobook-generate/index.ts` — write to `{user_id}/{book_id}/chapter-NNN.mp3` (3-digit, 0-indexed).
+- **Update** `supabase/functions/save-author-node/index.ts` — `list-audio` reads both `{user_id}/…` and `{author_profile_id}/…` prefixes, accepts both 2- and 3-digit filenames, excludes `-chunk-` and `submission-package.zip`.
+- **Update** `supabase/functions/ba11-publish-audiobook/index.ts` — same dual-prefix list + filename filter for ZIP packaging.
+- **No DB migration. No RLS changes. No new secrets. No frontend changes** beyond what's already shipped.
+
+## Why this fixes it for good
+
+One canonical write path going forward (`{user_id}/…`), plus tolerant readers that accept either historical convention, means: existing files heal immediately, new files round-trip through resume + publish, and the legacy `elevenlabs-tts-audiobook-v2` files are still discoverable until the customer regenerates.
 
