@@ -64,7 +64,7 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ action: "preview-voice", voiceKey: voice.id }),
+          body: JSON.stringify({ action: "preview-voice", voiceId: voice.elevenLabsId }),
         }
       );
       const data = await res.json();

@@ -12,7 +12,7 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
 
-export default function ChapterProductionStep({ stepData, setStepData, onMarkEdited, bookTitle }: AudiobookStepProps) {
+export default function ChapterProductionStep({ stepData, setStepData, onMarkEdited, bookId, bookTitle }: AudiobookStepProps) {
   const chapters: AudioChapter[] = stepData.chapters || [];
   const setup = stepData.setup || {};
   const narration: NarrationType = setup.narration || "ai-voice";
@@ -44,11 +44,11 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            action: "generate",
-            text: ch.optimizedText || ch.originalText,
+            action: "generate-chapter",
+            bookId,
             voiceId: selectedVoice.elevenLabsId,
-            chapterId: ch.id,
-            bookTitle,
+            chapterText: ch.optimizedText || ch.originalText,
+            chapterIndex: idx,
           }),
         }
       );
