@@ -30,7 +30,7 @@ serve(async (req) => {
         { role: "system", content: "You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown)." },
         { role: "user", content: `Design a certification programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
 Generate JSON: {"certification_title","tagline","certification_promise","programme_structure":{"duration","format","assessment_method","pass_mark"},"modules":[6 items with number/title/description/assessment],"certification_levels":[3: Associate($2000)/Certified($3500)/Master($5000), each with level/price_usd/requirements],"badge_concept":{"badge_name","badge_description","display_guidance"},"abby_summary"}` }
-      ], temperature: 0.3, max_completion_tokens: 16000 }),
+      ], max_completion_tokens: 16000 }),
     });
     if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
