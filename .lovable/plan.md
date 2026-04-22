@@ -1,52 +1,107 @@
 
+## Diagnosis from the direct backend check
 
-## Plan — fix manuscript 401 + verify voice preview
+The direct backend log check already points to a gateway/auth transport problem, not a bug inside `resolveUser`:
 
-### Phase 1 — New edge function `get-manuscript-source`
+- `get-manuscript-source` has **no edge function logs at all**.
+- The browser is seeing a **raw HTTP 401**, not the function’s `{ success: false, error: "Unauthorized" }` envelope.
+- `supabase/config.toml` does **not** include `[functions.get-manuscript-source] verify_jwt = false`.
+- `ManuscriptOptimizationStep.tsx` is calling the function with `supabase.functions.invoke(...)`, not the project-standard `getActiveToken()` + `fetchWithTimeout()` pattern.
 
-Create `supabase/functions/get-manuscript-source/index.ts` that:
-- Accepts `{ bookId }` in the body.
-- Resolves the user via Cloud token first, then shared-backend token + email reconciliation (mirrors `parse-manuscript`/`get-author-book`).
-- Uses the **service-role client** to query `generated_assets` with `book_id = bookId`, `asset_type = 'source_material'`, trying `author_id` candidates: `userId` plus all `author_profiles.id where user_id = userId`.
-- Verifies ownership via `books.author_id IN (candidates) OR books.owner_email = userEmail`.
-- Returns `{ success: true, content, characterCount }` on hit, or `{ success: false, error: "No manuscript found. Please upload it in the Book Hub." }` (HTTP 200 envelope so the SDK doesn't swallow the message).
-- Standard CORS headers + `OPTIONS` handler. No `verify_jwt` override needed (defaults to false for this project).
+Taken together, that means the request is most likely being rejected **before the function body runs**, so none of the `console.log` lines inside `resolveUser` can fire. The two likely causes are:
 
-### Phase 2 — Rewrite `handleGenerate` in `ManuscriptOptimizationStep.tsx`
+1. **Gateway rejection**: `get-manuscript-source` is missing the `verify_jwt = false` config used by the other shared-session functions.
+2. **Missing/wrong Authorization header from the client**: `supabase.functions.invoke()` uses the project-local client session, but this BA-11 flow must use the **shared-session token** from `getActiveToken()`.
 
-Replace both direct browser queries (`books` + `generated_assets`) with a single:
-```ts
-supabase.functions.invoke("get-manuscript-source", { body: { bookId } })
+## Implementation plan
+
+### Phase 1 — Fix gateway-level auth for `get-manuscript-source`
+
+Update `supabase/config.toml` to add:
+
+```toml
+[functions.get-manuscript-source]
+  verify_jwt = false
 ```
-Keep `splitIntoChapters` and `buildAutoSuggestions` as-is — they work fine, they just never received text.
 
-Friendly error mapping:
-- `error` includes "No manuscript" → "Upload your manuscript in the Book Hub first." (toast with action hint)
-- Network/timeout → "Couldn't reach Abby. Try again in a moment."
-- Content < 500 chars → "Your manuscript looks too short — please re-upload."
+Then explicitly deploy `get-manuscript-source`.
 
-### Phase 3 — Verify voice preview fix is actually live (your concern)
+Why: this lets the function receive requests even when the browser token comes from the shared auth backend, so auth can be validated in code instead of being blocked at the gateway.
 
-Before declaring Phase 1 complete, I will:
-1. Re-read the deployed `VoiceSelectionStep.tsx` to confirm the prior fix (action `preview-voice`, `voiceKey: voice.id`, base64 data URI playback) is still on disk and not reverted.
-2. Read the deployed `elevenlabs-tts-audiobook/index.ts` to confirm it accepts `action: "preview-voice"` with `voiceKey` and returns `{ audioBase64 }`.
-3. Tail recent logs for `elevenlabs-tts-audiobook` for the `preview-voice` action to confirm a real ElevenLabs call succeeded the last time it ran (or, if no recent attempts, call the function directly with a test payload via `curl_edge_functions` and confirm a non-empty `audioBase64` response).
-4. Only after that confirmation do we proceed to Phase 4.
+### Phase 2 — Fix client token transport in Manuscript step
 
-If step 1-3 reveals the client/edge contract is **still** mismatched, I'll re-apply the contract fix in the same turn (no extra round-trip).
+Refactor `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx` to stop using:
 
-### Phase 4 — End-to-end verification on Be SUCKcessful
+```ts
+supabase.functions.invoke("get-manuscript-source", ...)
+```
 
-1. Click **Optimize for Audio** → expect ~20 chapters parsed from the 100,589-char manuscript (no more 401, no more "0 chapters").
-2. **Next: Voice** unlocks (gating already in place).
-3. Click ▶ on Sarah / Brian / Lily → audio plays within ~2 s.
-4. Pick a voice → **Next: Production** unlocks → generate Chapter 1 audio → MP3 plays inline.
+and instead use the project-standard pattern already used by `useAuthorBook`:
 
-## Files touched
+- `getActiveToken()`
+- `fetchWithTimeout()`
+- explicit `Authorization: Bearer <token>` header
+- explicit `res.json()` handling
 
-- **New**: `supabase/functions/get-manuscript-source/index.ts`
-- **Updated**: `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`
-- **Read-only audit (no changes unless drift detected)**: `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`, `supabase/functions/elevenlabs-tts-audiobook/index.ts`
+Target shape:
 
-No DB migrations. No RLS changes. No new secrets. Edge function deploys automatically.
+```ts
+const token = await getActiveToken();
+const res = await fetchWithTimeout(
+  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-manuscript-source`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ bookId }),
+  }
+);
+const data = await res.json();
+```
 
+Why: this guarantees the shared-session token is actually sent to the backend.
+
+### Phase 3 — Keep `resolveUser` simple, but verify it only after the request reaches runtime
+
+Once Phases 1 and 2 are in place, test again and inspect logs for `get-manuscript-source`.
+
+Expected log sequence after the fix:
+- a boot/request entry appears for `get-manuscript-source`
+- then one of:
+  - `Resolved via JWT decode`
+  - `Resolved via local auth`
+  - `Resolved via shared backend`
+
+If it still fails after the request is entering runtime, then patch `resolveUser`. But first priority is to make sure the request actually reaches the function.
+
+### Phase 4 — Re-verify BA-11 auth path consistency
+
+After Manuscript is fixed, audit the rest of BA-11 for the same shared-token transport issue:
+
+- `VoiceSelectionStep.tsx` currently also uses `supabase.functions.invoke("elevenlabs-tts-audiobook", ...)`
+- `ChapterProductionStep.tsx` currently sends an invalid `Authorization` header using the publishable key instead of the active user token
+
+These should be switched to the same explicit token pattern in the same pass, or at minimum verified immediately after Manuscript is unblocked so the user doesn’t hit the next auth failure one step later.
+
+## Files to update
+
+- `supabase/config.toml`
+- `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`
+
+Likely follow-up hardening in same BA-11 auth pass:
+- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
+- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+
+## Verification checklist
+
+1. Call `get-manuscript-source` again and confirm it no longer returns raw gateway 401.
+2. Confirm `edge_function_logs("get-manuscript-source")` now shows runtime entries.
+3. Click **Optimize for Audio** and confirm manuscript content is returned.
+4. Confirm chapters are generated and **Next: Voice** unlocks.
+5. Immediately test voice preview and first chapter generation to catch the same token-transport bug in later BA-11 steps.
+
+## Scope
+
+No database migration required. No RLS changes required. This is an auth transport + function config fix.
