@@ -2,60 +2,52 @@
 
 ## Diagnosis
 
-Pauline's BA-12 row in DB has no `content_calendar` field — the AI generator omitted it that run. The Calendar tab reads only `content.content_calendar` and falls back to placeholder text. The normaliser doesn't synthesize a calendar from related fields.
+The Calendar tab crashes with "Objects are not valid as a React child" when `content.content_calendar` (or `monthly_newsletter_template`, or a welcome-email's `subject`/`body`) is an object/array instead of a string. React throws inside the Tabs render, which unmounts the whole tree → blank white screen.
 
-Available related fields in the stored content: `monthly_newsletter_template`, `welcome_emails`, `tiers[].benefits`, `transformation_promise`.
+Two failure paths:
+1. **Normaliser blind spot** — `normaliseMembership` only synthesizes `content_calendar` when missing/empty-string. If the generator returned an object (e.g. `{ week_1: "...", week_2: "..." }`) or an array of week objects, the normaliser passes it through untouched and the JSX renders the object directly.
+2. **Same risk** for `monthly_newsletter_template` and individual `welcome_emails[i].subject` / `.body` — never type-checked before render.
 
-## Plan — two fixes
+## Plan — two-layer defence
 
-### Fix 1 — Synthesize `content_calendar` in the normaliser when missing
+### Fix 1 — Coerce non-string shapes in `ba12/normalise.ts`
 
-Update `src/components/dashboard/builders/ba12/normalise.ts` so `normaliseMembership` adds a sensible default `content_calendar` string when the field is missing/empty. Build it from existing data:
+Add a small `toCalendarString(value)` helper used by `normaliseMembership`:
 
-```ts
-content_calendar: raw.content_calendar?.trim()
-  ? raw.content_calendar
-  : buildDefaultCalendar(raw),
+- string → trim, return as-is (or default if empty)
+- array → join entries (each stringified) with newlines; objects in array become `Week N: …` lines using their `week`/`title`/`focus`/`description` fields, falling back to `JSON.stringify`
+- object → iterate entries, render each as `Key: value` lines (handles `{week_1, week_2…}` shape)
+- anything else → fall back to `buildDefaultCalendar(raw)`
+
+Apply the same coercion to `monthly_newsletter_template` (string-only field — coerce object/array to readable text or drop).
+
+Broaden `isLegacyMembership` so it also flags non-string `content_calendar` values, ensuring Pauline's row is healed in DB on next load.
+
+### Fix 2 — Defensive render in `BA12Builder.tsx` Calendar tab
+
+Even with the normaliser fixed, wrap each render with a tiny inline guard so a future schema drift never blanks the page again:
+
+```tsx
+const asText = (v: unknown) =>
+  typeof v === "string" ? v : v == null ? "" : JSON.stringify(v, null, 2);
 ```
 
-Where `buildDefaultCalendar` produces a 4-week month template referencing the membership name and pulling cues from `tiers[0].benefits` and `monthly_newsletter_template` if present:
-
-> Week 1: Welcome + monthly theme kickoff (live Q&A). Week 2: Deep-dive workshop or training drop. Week 3: Community discussion + member spotlight. Week 4: Office hours / accountability call + preview of next month's theme.
-
-Deterministic, no AI call required.
-
-### Fix 2 — Richer Calendar tab rendering
-
-Update `BA12Builder.tsx` Calendar tab (line 152-154) to render not just `content_calendar` but also, when present:
-
-- `monthly_newsletter_template` in a labelled card ("Monthly Newsletter Template")
-- `welcome_emails[]` as a small list ("Welcome Sequence: Day 0 / Day 2 / Day 5")
-
-This way the tab is meaningful for any author whose generation produced one of these fields, even before re-generation.
-
-### Fix 3 — Heal Pauline's row on next load
-
-The existing one-time autosave-on-load pattern in BA12Builder already fires when legacy shape detected (`isLegacyMembership`). Extend the legacy detector to also return `true` when `content_calendar` is missing, so Pauline's row gets healed with the synthesized calendar on her next builder visit.
-
-```ts
-export function isLegacyMembership(raw: any): boolean {
-  return !raw || !Array.isArray(raw.tiers) || raw.tiers.length === 0
-    || !raw.content_calendar;
-}
-```
+- Line 155: `{asText(content.content_calendar) || "Content calendar details will appear here."}`
+- Line 160: `{asText(content.monthly_newsletter_template)}` (and gate the whole card on `asText(...).trim()`)
+- Lines 171-172: coerce `e.subject` and `e.body` via `asText` before interpolation/render.
 
 ## Files touched
 
-- **Update** `src/components/dashboard/builders/ba12/normalise.ts` — add `buildDefaultCalendar` helper, set `content_calendar` if missing, broaden `isLegacyMembership`.
-- **Update** `src/components/dashboard/builders/ba12/BA12Builder.tsx` — Calendar tab renders `content_calendar` + optional `monthly_newsletter_template` card + optional welcome-emails list.
+- **Update** `src/components/dashboard/builders/ba12/normalise.ts` — add `toCalendarString` + `toPlainString` helpers; coerce `content_calendar` and `monthly_newsletter_template`; broaden `isLegacyMembership` to flag non-string calendars.
+- **Update** `src/components/dashboard/builders/ba12/BA12Builder.tsx` — add `asText` helper at top of Calendar tab; apply to the three render points (lines 155, 160, 171-172).
 
 ## Verification
 
-1. Reload BA-12 builder → Calendar tab shows a 4-week template referencing the membership, plus the monthly newsletter template card and 3-email welcome sequence list.
-2. Background autosave heals Pauline's DB row with the synthesized calendar.
-3. Future fresh generations that DO include `content_calendar` render the AI-authored version unchanged (normaliser is a no-op for non-empty strings).
+1. Click Calendar tab on Pauline's BA-12 builder → renders without blank screen, shows readable calendar text (coerced from whatever shape was stored).
+2. Background autosave heals her DB row to a plain-string `content_calendar`.
+3. Future generations returning either string OR object shapes both render safely.
 
 ## Scope
 
-- Pure frontend. No DB migration. No edge function changes. No regeneration required.
+Pure frontend. No DB migration, no edge function changes, no regeneration.
 
