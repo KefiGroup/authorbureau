@@ -149,3 +149,5 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.save-author-node]
     verify_jwt = false
+  [functions.ba11-publish-audiobook]
+    verify_jwt = false
