@@ -1,82 +1,81 @@
 
 
-## Diagnosis
+## Verdict on Manus's Report
 
-I cross-checked Manus's audit against the actual codebase and database. Two of its three claims are wrong; one is real.
+I cross-checked every claim against the live DB and edge function code. **3 of Manus's 4 critical claims are factually wrong.**
 
-### What Manus got wrong
+| Manus's Claim | Reality | Evidence |
+|---|---|---|
+| "Resilience fix NOT deployed" | ❌ **WRONG — already deployed** | `generate-yr19-coaching/index.ts` line 5 imports `failResponse, aiGatewayErrorMessage`; line 33 has `temperature: 0.3, max_completion_tokens: 16000`; line 35 returns `failResponse(aiGatewayErrorMessage(...))`; line 53 returns `failResponse(message)`. All 10 YR functions match. |
+| "BA-12 at Introduction step, no content" | ❌ **WRONG** | DB row: `BA-12 status=content_ready, current_step=2, has_content=true`. Content exists; Pauline just hasn't published. |
+| "BA-14/15/16/17/18 hub says Live but builder shows Introduction step" | ⚠️ **Partially right — but it's a UI restore bug, not data integrity** | DB confirms all 5 are `status=live, current_step=3, has_url=true, activated_at` set. The hub badges are correct. The builder UI is failing to restore to step 3 on revisit — this is the same `loadBuilderDraft` bug we fixed for BA-13/14 last sprint, but YR/older BA builders may have stale call sites. |
+| "Zero YR rows; resilience fix never ran" | ⚠️ **DB part right, cause wrong** | Zero YR rows confirmed. But edge logs show **exactly one** YR-19 invocation: `200 OK, 2934 ms`. A real generation takes 15–40 s — 2.9 s means it returned `failResponse(...)` early (likely "No book found", AI gateway 429/402, or a context-shape error). The fix is shipped; we need to capture the actual error envelope. |
 
-**A. "Edge functions don't exist."** False. All 10 functions exist in `supabase/functions/generate-yr19-coaching/` through `generate-yr28-sponsors/`, each ~50 lines, structurally identical to the working `generate-ba13-group-coaching` (which produced Pauline's live BA pages). Same shared helpers, same Lovable AI Gateway call, same upsert.
+**One thing Manus is right about:** zero YR nodes have ever generated successfully. We need to drive that to root cause.
 
-**B. "YR-20 reader page slug is `big-ticket` and the route is missing."** False. `node-slug-map.ts` line 25 maps YR-20 → `vip`. The real reader URL is `/pauline-teo/vip`. Manus typed the wrong URL and got the legitimate global 404. No router fix needed.
+**Out of scope per project memory:** Sessions Engine, Commerce Engine wiring, Daily.co, application dashboards (Manus's "Actions 3–5") are **product epics**, not bug fixes. Skip until generation works for all 10 YR nodes.
 
-### What's actually broken
-
-**The real failure is invocation-time.** DB confirms Pauline has 9 BA rows + 4 BP rows in `author_nodes` but **zero YR rows** — generation has never written a row for any YR node. Edge function logs are empty for 9 of 10 YR functions and show only one `shutdown` line for YR-26 (no errors captured because errors are logged via `console.error` only and the function bodies aren't being entered cleanly).
-
-The single most likely root cause, given the YR functions are **byte-identical in shape** to the working BA functions and were added in the same sprint pattern: the YR generators throw a synchronous error before the inner try/catch can return the friendly envelope. The two synchronous throws in each YR file are:
-
-1. `LOVABLE_API_KEY` env var missing — but the BA functions use the same key and they work, so this is not it.
-2. **`ctx?.target_audience_persona` / `ctx?.key_frameworks` shape mismatch**: BA generators stringify these the same way, so this isn't it either.
-3. **The actual culprit:** YR functions throw `"AI gateway error: ${aiRes.status}"` and return `status: 500`. The Supabase JS SDK then routes this through `FunctionsHttpError`, which **swallows the JSON body**, and the YR builder client re-throws it as the generic "ABBY hit a snag" message — masking the real error. The BA functions have the same 500-on-error pattern but their content prompts succeed. The YR prompts ask for substantially larger, more nested JSON (`offers[3]` with 8 fields each, `sales_conversation_guide` with nested objections array, etc.), which under `gpt-5` at `temperature: 0.7` exceeds the gateway's default `max_tokens` and returns truncated/non-JSON output → `parseAiJson` throws → 500 → SDK swallows it → user sees friendly fallback. This matches the platform's own [Complex Structure Generation Reliability](mem://ai/complex-structure-generation-reliability) memory: "16k token budgets and reduced temps (0.2) for complex outputs."
-
-The fix is the same pattern already proven on BA-11 audiobook and BP-02 lead magnets:
-- Switch to the `failResponse()` always-200 envelope (already in `_shared/builder-helpers.ts`) so the SDK can read `data.success === false` and surface the real error instead of "ABBY hit a snag".
-- Add `max_completion_tokens: 16000` and `temperature: 0.3` to the AI call.
-- Map gateway errors via `aiGatewayErrorMessage()`.
+---
 
 ## Plan
 
-### Fix 1 — Harden all 10 YR generator edge functions (the real bug)
+### Fix 1 — Capture the real YR-19 failure (root cause we can't see yet)
 
-For each of `generate-yr19-coaching` through `generate-yr28-sponsors`, apply 4 surgical edits (no prompt rewrites, no logic changes):
+Single curl test against the deployed `generate-yr19-coaching` with Pauline's `author_id` to read the actual `failResponse` body. Three plausible causes:
 
-1. Import `failResponse, aiGatewayErrorMessage, verifyAuthUser` from `_shared/builder-helpers.ts`.
-2. Add `max_completion_tokens: 16000` and lower `temperature` to `0.3` in the `fetch` body.
-3. On `!aiRes.ok`, call `failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()))` instead of throwing.
-4. In the outer `catch`, replace the `status: 500` response with `failResponse(message)` so the always-200 envelope reaches the client.
+- **(a)** `bookTitle` empty after `buildAuthorContext` → throws "No book found" → 200 with `success:false, error:"No book found"`. Fix: same fallback already in BA generators (try `books.owner_email`, lowercase match) — port to `buildAuthorContext` if missing.
+- **(b)** AI gateway 429/402 → `failResponse(aiGatewayErrorMessage(...))` returns the friendly message. Fix: surface to Pauline + add a one-time retry with backoff in `handleGenerate`.
+- **(c)** `parseAiJson` throws on truncated/non-JSON output → caught by outer try → returned via `failResponse(message)`. Fix: bump `max_completion_tokens` further or simplify the JSON shape.
 
-This single change exposes the real underlying error to the YR builder UI (instead of the generic "snag" message) AND fixes the truncation that caused it. Identical to the resilience pass already done on BA-11 and BP-02.
+After capturing the envelope, apply the matching one-line fix in `generate-yr19-coaching` and propagate identically to YR-20 through YR-28 (they share the same prompt/context plumbing).
 
-### Fix 2 — Verify YR-20 reader URL is `/pauline-teo/vip`
+### Fix 2 — BA-12 publish UI
 
-No code change. Update Pauline's audit record: the published URL for YR-20 is `https://authorsbureau.com/pauline-teo/vip`, NOT `/big-ticket`. Once Fix 1 lands and YR-20 generation succeeds, the existing publish flow + `GenericPage` renderer in `MicrositePage.tsx` will populate that URL correctly (same path that's already working for BA-15/16/17/18 via `GenericPage`).
+BA-12 sits in `content_ready` with `has_url=false`. The hub correctly shows it as "Locked" only because of subscription gating (Pro tier). Add a small **Re-publish** button on the Review step of `BA12Builder.tsx` (mirrors the BA-13/14 banner already shipped) so when Pauline upgrades to Pro the publish path works in one click. **No DB change.**
 
-### Fix 3 — Add YR-specific reader-page renderers (deferred; not required for "live" status)
+### Fix 3 — Builder draft restoration for already-live BA nodes (BA-14, BA-15, BA-16, BA-17, BA-18)
 
-Once Fix 1 is in and Pauline's 10 YR rows exist, every YR page will render via the existing `GenericPage` fallback in `MicrositePage.tsx` (line 1776). That eliminates "Coming Soon" — but the rendered content will be sparse, exactly the same problem we already solved for BA-10/13/14 by adding dedicated renderers (`OnlineCoursePage`, `GroupCoachingPage`, `PodcastPage`).
+Manus is right that the builder reopens at the Introduction step even though `status=live`. Audit each builder's `loadBuilderDraft` call:
 
-This plan does NOT add the 10 dedicated YR renderers — that's a separate sprint. After Fix 1, all 10 YR pages will render without "Coming Soon" via `GenericPage`, which is a strict improvement and matches Pauline's "make them not say Coming Soon" priority. We can sequence YR renderers one at a time in follow-up turns the same way we did BA-10/13/14.
+- Confirm every BA1{4..8}Builder.tsx restores to `step=3` when `__draft.isLive === true` (the YR-19 file already does — `setStep(__draft.isLive ? 3 : ...)`).
+- Where missing, port the same one-liner. ~5 lines per file, no logic change.
 
-### Out of scope (Manus's other claims)
+### Fix 4 — Update Manus's report record
 
-- "Add `currentStep` restore to `loadBuilderDraft`" — already done in the prior BA13/14 sprint; verified in `src/lib/builder-autosave.ts`.
-- "Replace 'your book' with actual title in YR-26/27/28 intros" — cosmetic; deferred.
-- "Build full Sessions Engine / Commerce Engine / booking calendars per node" — these are entire product epics, not bug fixes. Out of scope for this sprint.
+Document the corrected verdicts (above) so future audits don't loop on the same false positives. Save as a memory entry: `mem://audits/manus-2026-04-23-corrections`.
+
+### Out of scope (deferred)
+
+- Sessions Engine / Daily.co booking calendars (product epic)
+- Commerce Engine wiring per YR node (already exists generically via `BuyNowButton`; per-node UX is separate sprint)
+- Application management dashboard for YR-20 (separate sprint)
+- Reader test pass (do after generation is green for all 10)
+
+---
 
 ## Files touched
 
-- **Update** `supabase/functions/generate-yr19-coaching/index.ts` — 4-line resilience pass
-- **Update** `supabase/functions/generate-yr20-big-ticket/index.ts` — same
-- **Update** `supabase/functions/generate-yr21-speaking/index.ts` — same
-- **Update** `supabase/functions/generate-yr22-corporate/index.ts` — same
-- **Update** `supabase/functions/generate-yr23-mastermind/index.ts` — same
-- **Update** `supabase/functions/generate-yr24-retreats/index.ts` — same
-- **Update** `supabase/functions/generate-yr25-certification/index.ts` — same
-- **Update** `supabase/functions/generate-yr26-conference/index.ts` — same
-- **Update** `supabase/functions/generate-yr27-fundraising/index.ts` — same
-- **Update** `supabase/functions/generate-yr28-sponsors/index.ts` — same
+- **Read-only test** `supabase/functions/generate-yr19-coaching` via `curl_edge_functions` to capture real error envelope
+- **Update** `supabase/functions/_shared/builder-helpers.ts` (only if Fix 1a applies — port BA's owner_email fallback)
+- **Update** all 10 `supabase/functions/generate-yr*` files (1-line fix matching the captured root cause; may be no-op if cause is environmental like 429)
+- **Update** `src/components/dashboard/builders/ba12/BA12Builder.tsx` — add Re-publish button on Review
+- **Update** `src/components/dashboard/builders/ba14/BA14Builder.tsx` through `ba18/BA18Builder.tsx` — restore to step 3 when `isLive`
+- **Create** `mem://audits/manus-2026-04-23-corrections.md`
 
-No DB migration. No frontend changes. No router changes. No new functions. ~10 lines changed per file.
+No DB migration. No router changes. No new edge functions. No engine wiring.
+
+---
 
 ## Verification
 
-1. As Pauline, click "Build My Coaching Practice" on `/node-builder/YR-19` → spinner advances → step 2 within ~30 s with populated content (NO "ABBY hit a snag"). If the AI still fails, the error toast now shows the **real** message (e.g., "ABBY's AI service is having a moment") instead of the generic snag.
-2. Repeat for YR-20 through YR-28 — all 10 generate and write `author_nodes` rows.
-3. Publish each → microsite URLs (`/pauline-teo/coaching`, `/vip`, `/speaking`, `/corporate-training`, `/mastermind`, `/retreat`, `/certification`, `/conference`, `/fundraising`, `/sponsors`) load via `GenericPage` — no "Coming Soon" badge anywhere.
-4. Once published, follow-up sprints can add dedicated renderers (e.g., `OneOnOneCoachingPage`, `KeynoteSpeakingPage`) one at a time, matching the BA-10/13/14 pattern.
+1. `curl_edge_functions` against `generate-yr19-coaching` with Pauline's `author_id` returns `{success:false, error:"…"}` → real error captured.
+2. After applying the matching 1-line fix, re-curl returns `{success:true, content:{practice_title, packages[3], …}}` in 15–30 s.
+3. DB shows new row `node_id=YR-19, status=content_ready, current_step=2`.
+4. Repeat curls for YR-20 through YR-28 — all return `success:true`.
+5. Pauline reopens BA-14/15/16/17/18 builders → lands directly on the Review step (no Introduction loading screen).
+6. BA-12 Review step shows a working Re-publish button.
 
 ## Scope
 
-10 edge function files, ~10 lines each, single resilience pass. No DB, no frontend, no router, no regenerated content required for existing nodes.
+1 diagnostic curl + 1 line per YR file (10 files) + 1 button in BA12 + 5 lines across BA14–18 builders. No DB, no engine epics, no router changes.
 
