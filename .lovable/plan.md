@@ -1,106 +1,86 @@
 
 
-## Diagnosis
+## Diagnosis — why the publish button "opens Abby chat"
 
-Two independent bugs remaining in BA-11.
+The button isn't really opening Abby. It's silently failing, and the floating Abby help widget is what the user notices on the page. Three stacked bugs in `distribute-audiobook`:
 
-### Bug A — Generate Audio: HTTP 0 (client abort), not CORS
+1. **Auth rejects shared-backend JWTs.** The function uses `supabase.auth.getUser(token)` which returns `bad_jwt: unrecognized JWT kid ... ES256` for the shared Manus session — same gateway issue we already fixed in `ba11-voice-preview`, `ba11-audiobook-generate`, and `save-author-node`. Result: HTTP 401 before anything runs.
+2. **Ownership check uses wrong id.** `book.author_id !== user.id` compares an `author_profiles.id` (or `author_profiles.user_id`) against an auth `sub`. Even after fixing auth, this would 403.
+3. **No audio files in storage.** `ba11-audiobook-generate` returns chapter MP3s as base64 to the browser; nothing is uploaded to the `audiobook-audio` bucket. So even with auth fixed, `distribute-audiobook` would error "No audio files found."
 
-The v2 function logs prove the request **does** reach runtime and is processed:
-
-```
-[tts-v2] request started
-[tts-v2] auth: jwt-decode SUCCESS
-[tts-v2] action generate-chapter
-[tts-v2] user resolved { via: "jwt-decode" }
-```
-
-There is no completion log. ElevenLabs chapter synthesis for a real chapter can take 30-90s, but `fetchWithTimeout` defaults to 25s — the browser aborts, which surfaces as `HTTP 0` and looks like CORS. The function keeps running and eventually shuts down with no observable result.
-
-Plus, per the architecture decision we already made, BA-11 should not depend on the poisoned `elevenlabs-tts-audiobook-v2` route at all. We need a fresh production endpoint, mirroring `ba11-voice-preview`.
-
-### Bug B — author_nodes 401: PostgREST rejects shared-backend JWT
-
-`builder-autosave.ts` uses the Cloud Supabase client to write to `author_nodes`. The browser session is signed by the **shared Manus backend** (kid `10e65b79-...` ES256). Cloud auth logs confirm:
-
-```
-GET /user → 403 bad_jwt: unrecognized JWT kid 10e65b79-... for algorithm ES256
-```
-
-PostgREST in Cloud verifies every incoming JWT and cannot be told `verify_jwt = false`. Therefore **direct browser writes to `author_nodes` will always return 401** for shared-backend-authenticated users. Only edge functions (which we set `verify_jwt = false` and decode the JWT in code, exactly like `check-subscription` already does) can persist to this table on behalf of the user.
-
-RLS on `author_nodes` is `(author_id IN (SELECT id FROM author_profiles WHERE user_id = auth.uid()))`, which is unreachable from the browser session.
+There is no ZIP download anywhere. There is no confirmation screen with ACX / Google Play links — only an email + a one-line toast. The public page filter `n.node_id.startsWith("BA-11")` already exists, so once `author_nodes` is upserted `status=live` the audiobook will appear at `/pauline-teo`.
 
 ## Plan
 
-### Phase 1 — Fresh chapter generation endpoint with long timeout
+### Phase 1 — Persist chapter MP3s to storage during generation
 
-**New**: `supabase/functions/ba11-audiobook-generate/index.ts`
-- Same shape as `ba11-voice-preview`: in-code JWT decode, no DB ownership check needed, CORS on every response.
-- Action `generate-chapter`: accepts `{ voiceId, chapterText, chapterIndex, bookId }`, calls ElevenLabs, returns `{ audioBase64, format: "mp3" }`. Server-side has no client timeout — the function will run as long as ElevenLabs needs.
-- Optionally upload the resulting MP3 into `audiobook-audio` storage bucket and return a public `audioUrl`. Phase 1 returns base64; client converts to a blob URL for inline playback. (Storage upload can be Phase 1.5 if needed.)
-- Add explicit log lines at every branch.
+Update `supabase/functions/ba11-audiobook-generate/index.ts`:
 
-**Config**: add to `supabase/config.toml`:
-```toml
-[functions.ba11-audiobook-generate]
-  verify_jwt = false
-```
+- After ElevenLabs returns the MP3 bytes, upload to `audiobook-audio/{authorProfileId}/{bookId}/chapter-{NN}.mp3` using the service role client.
+- Return both `audioBase64` (for immediate inline preview) AND `audioUrl` (the public URL of the uploaded file).
+- Use `chapter-01.mp3`, `chapter-02.mp3` … so a `localeCompare` sort yields chapter order.
 
-### Phase 2 — Switch ChapterProductionStep to the new endpoint with longer timeout
+Update `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`:
 
-**Update**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
-- Change URL from `elevenlabs-tts-audiobook-v2` → `ba11-audiobook-generate`.
-- Pass `fetchWithTimeout(url, opts, 120_000)` so the browser waits up to 2 minutes for chapter synthesis.
-- On success, decode `audioBase64` → `Blob` → `URL.createObjectURL` → assign to `audioUrl` so the existing `<audio>` element plays it inline.
-- Surface the actual backend error message in the toast (currently swallows everything as "Audio generation failed").
+- Already prefers `data.audioUrl` over base64 (line 63) — no change needed beyond confirming it persists `audioUrl` into the chapter via `updateChapter` (already does).
 
-### Phase 3 — Move `author_nodes` autosave behind an edge function
+### Phase 2 — Replace `distribute-audiobook` with a fresh, working publish endpoint
 
-**New**: `supabase/functions/save-author-node/index.ts`
-- `verify_jwt = false`, in-code JWT decode (same pattern as `check-subscription` and `ba11-voice-preview`).
-- Body: `{ authorId, nodeId, nodeName, content, currentStep }`.
-- Resolves the user via JWT, validates that the resolved `sub` matches `author_profiles.user_id` for the supplied `authorId` (server-side ownership check, since RLS is bypassed via service role).
-- Performs the same upsert logic that `autosaveBuilderDraft` does today: select existing row, never downgrade `live`, then update or insert.
-- Uses `SUPABASE_SERVICE_ROLE_KEY`.
+**New**: `supabase/functions/ba11-publish-audiobook/index.ts`
 
-**Config**: add to `supabase/config.toml`:
-```toml
-[functions.save-author-node]
-  verify_jwt = false
-```
+Same proven pattern as `ba11-audiobook-generate` and `save-author-node`:
 
-**Update**: `src/lib/builder-autosave.ts`
-- Replace direct `supabase.from("author_nodes")` calls with a `fetch` to `save-author-node` using `getActiveToken()` + `fetchWithTimeout()`.
-- Keep the function signature identical so all 28 builders that already call `autosaveBuilderDraft` keep working transparently.
-- `loadBuilderDraft` similarly needs an edge function or a public-readable view; for now, route reads through a new `get-author-node` action on the same `save-author-node` function (action-routed), or a sibling `get-author-node` function. Recommend: action-routed inside `save-author-node` so we ship one function.
+- `verify_jwt = false` in `supabase/config.toml`.
+- In-code JWT decode (`decodeJwtSub`) — accepts shared-backend tokens.
+- Resolve `author_profiles` by `user_id = sub`, derive `authorProfileId` and `authorSlug`.
+- List MP3 files from `audiobook-audio/{authorProfileId}/{bookId}/`.
+- Build per-channel manifests reusing the existing `CHANNEL_SPECS` map (Audible/ACX, Google Play Books, Apple, Spotify/Findaway, Authors Bureau platform).
+- Upsert `author_nodes` row:
+  - `node_id = "BA-11"`, `node_name = "Audiobook"`, `status = "live"`
+  - `delivery_type = "digital_audio"`, `delivery_url = preview chapter URL`
+  - `microsite_url = "/" + authorSlug + "/audiobook"`
+  - `price_usd`, `currency = "USD"`, `activated_at = now()`
+  - `content_json` includes audiobook id, all chapter URLs, channel list
+- Generate a downloadable ZIP server-side (use `jszip` from npm) containing:
+  - Each chapter MP3 (fetched from the bucket)
+  - `manifest.json` (full per-channel spec)
+  - `README.txt` (re-encode notes for ACX, Google Play upload steps)
+- Upload the ZIP to `audiobook-audio/{authorProfileId}/{bookId}/submission-package.zip` and return its public URL.
+- Send the existing `audiobook-distribution-ready` email (non-blocking).
+- Return `{ success, audiobookId, chapterCount, channels, zipUrl, micrositeUrl, publicAuthorPageUrl }`.
 
-This fixes the 401 not just for BA-11 but for every BA/YR builder that autosaves — they are all currently broken for shared-backend users in the same way.
+### Phase 3 — Confirmation screen in the publish step
 
-### Phase 4 — Verification order
+Update `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`:
 
-1. Click **Generate Audio** on Chapter 1. Confirm `ba11-audiobook-generate` logs show request + ElevenLabs success, browser plays the resulting MP3 inline.
-2. Watch network tab while clicking through any builder step — `save-author-node` returns HTTP 200 instead of `author_nodes` 401.
-3. Refresh the page — BA-11 resumes on the same step (proves load path also works).
-4. Re-test BA-11 end-to-end: setup → manuscript → voice → production → publish.
+- Replace `handlePublish` to call `/functions/v1/ba11-publish-audiobook` via `getActiveToken()` + `fetchWithTimeout(url, opts, 120_000)` (ZIP build can take a while). Keep the call body the same shape.
+- Wire the existing `Export Audio Files` button to download `zipUrl` once available (and to call the publish endpoint with `mode: "package_only"` if pressed before publishing).
+- After success, store the response in state and replace the existing one-line success card with a full **Confirmation panel**:
+  - "🎉 Audiobook is now live on your author page" with a button linking to `publicAuthorPageUrl` (e.g. `/pauline-teo`).
+  - Big **Download Submission ZIP** button → `zipUrl`.
+  - Two prominent action cards:
+    - **Submit to Audible / ACX** → opens `https://www.acx.com/help/narrators/200484550` in a new tab, with the file checklist (192 kbps mono 44.1 kHz, retail sample, opening/closing credits).
+    - **Submit to Google Play Books** → opens `https://play.google.com/books/publish/`, with a 4-step quick-start.
+  - Smaller links for Apple Books / Spotify (Findaway) / Findaway Voices when those channels were selected.
+- Surface real backend error messages in the toast (currently swallowed by `toAbbyError`).
+
+### Phase 4 — Verification
+
+1. Generate one chapter → confirm a row appears in `audiobook-audio/{authorProfileId}/{bookId}/chapter-01.mp3`.
+2. Click **Publish & Distribute Audiobook** → confirm `ba11-publish-audiobook` logs run end-to-end, ZIP is uploaded, response includes `zipUrl`.
+3. Confirmation screen renders with working **Download ZIP**, **Open ACX**, **Open Google Play Books**, and **View on `/pauline-teo`** buttons.
+4. Visit `/pauline-teo` → audiobook card appears (already supported via `formatNodes` filter).
 
 ## Files touched
 
-- **New**: `supabase/functions/ba11-audiobook-generate/index.ts`
-- **New**: `supabase/functions/save-author-node/index.ts` (handles both save and load via `action`)
-- **Update**: `supabase/config.toml` (two new function blocks)
-- **Update**: `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx` (new URL, 120s timeout, base64→blob playback, real error toast)
-- **Update**: `src/lib/builder-autosave.ts` (route both save and load through `save-author-node`)
+- **Update**: `supabase/functions/ba11-audiobook-generate/index.ts` — upload MP3 to `audiobook-audio`, return `audioUrl`.
+- **New**: `supabase/functions/ba11-publish-audiobook/index.ts` — JWT-decode auth, list chapter files, build ZIP, upsert `author_nodes`, send email.
+- **Update**: `supabase/config.toml` — add `[functions.ba11-publish-audiobook] verify_jwt = false`.
+- **Update**: `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx` — call new endpoint via `getActiveToken()`, render confirmation screen with ZIP download + ACX/Google Play links + author-page link, wire `Export Audio Files`.
 
 ## Scope
 
-- No DB migration.
-- No RLS changes (RLS on `author_nodes` stays as-is; service-role edge function bypasses it after server-side ownership check).
-- No new secrets (`ELEVENLABS_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY` already configured).
-- Backend auth transport + endpoint hygiene only.
-
-## Why this is the right next move
-
-- Bug A is a timeout, not CORS. The fix is a fresh long-running endpoint plus a longer client timeout.
-- Bug B is structural: shared-backend JWTs cannot pass Cloud PostgREST. The platform-wide fix is to gate every write to Cloud tables behind `verify_jwt = false` edge functions that decode the JWT in code — which `check-subscription` and `ba11-voice-preview` have already proven works reliably.
+- No DB migration. No RLS changes. No new secrets (uses existing `ELEVENLABS_API_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`).
+- Old `distribute-audiobook` function remains for the legacy `DistributeAudiobookModal` until it's migrated separately.
+- Public `/pauline-teo` page already renders BA-11 nodes — no UI work needed there.
 
