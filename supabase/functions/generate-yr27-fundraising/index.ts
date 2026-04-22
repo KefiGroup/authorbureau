@@ -30,7 +30,7 @@ serve(async (req) => {
         { role: "system", content: "You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown)." },
         { role: "user", content: `Design a fundraising campaign for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
 Generate JSON: {"campaign_title","tagline","cause_alignment","campaign_goal_usd":25000,"campaign_duration_days":30,"donation_tiers":[4: Supporter($25)/Champion($100)/Patron($500)/Benefactor($2500), each with tier_name/amount_usd/benefit],"donor_communication_plan":[5 emails at days 0/7/14/28/31, each with day/type/subject/summary],"impact_statement","abby_summary"}` }
-      ], temperature: 0.3, max_completion_tokens: 16000 }),
+      ], max_completion_tokens: 16000 }),
     });
     if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();

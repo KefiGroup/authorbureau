@@ -52,7 +52,8 @@ export default function BA17Builder({ authorId }: Props) {
       const __draft = await loadBuilderDraft(authorId, "BA-17");
       if (__draft.content) {
         setContent(__draft.content);
-        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+        const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
+        setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
       }
     })();
   }, [authorId]);
