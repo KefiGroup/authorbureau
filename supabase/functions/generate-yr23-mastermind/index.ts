@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   corsHeaders, makeServiceClient, parseAiJson, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
+  failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
 
 const NODE_ID = "YR-23";
@@ -29,9 +30,9 @@ serve(async (req) => {
         { role: "system", content: "You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown)." },
         { role: "user", content: `Design an exclusive mastermind programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
 Generate JSON: {"mastermind_title","tagline","programme_promise","membership_tiers":[2 items: Inner Circle($5000/yr, 12 members) and Elite Circle($15000/yr, 6 members), each with tier_name/price_annual_usd/group_size/meeting_cadence/benefits[4-5]],"curriculum_pillars":[4],"application_questions":[5],"sales_page":{"headline","subheadline","who_its_for","what_youll_get":[4],"cta_button_text"},"abby_summary"}` }
-      ], temperature: 0.7 }),
+      ], temperature: 0.3, max_completion_tokens: 16000 }),
     });
-    if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status} ${(await aiRes.text()).slice(0,300)}`);
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
@@ -49,6 +50,6 @@ Generate JSON: {"mastermind_title","tagline","programme_promise","membership_tie
     }
     const message = errorMessage(err);
     console.error(`generate-${NODE_ID} error:`, message);
-    return new Response(JSON.stringify({ success: false, error: message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return failResponse(message);
   }
 });
