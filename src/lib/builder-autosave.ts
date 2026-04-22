@@ -1,19 +1,19 @@
-import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 /**
  * Shared auto-save / resume helper used by all BA-/YR- builders.
  *
- * Mirrors the BP-02 pattern:
- *  - autosaveBuilderDraft: called right after generation to persist
- *    content_json + _currentStep + status="content_ready" (idempotent
- *    upsert; never downgrades a "live" node).
- *  - loadBuilderDraft: returns the saved content + step so the builder
- *    can resume the author exactly where they left off.
+ * Routes through the `save-author-node` edge function (verify_jwt = false,
+ * in-code JWT decode + service-role write) because Cloud PostgREST rejects
+ * shared-backend JWTs at the gateway. This is the platform-wide fix for the
+ * 401 errors all 28 builder autosaves were hitting.
  *
  * Errors are logged and swallowed — autosave must never break the UI.
  */
 
 export type BuilderStatus = "content_ready" | "live";
+
+const SAVE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-node`;
 
 export interface AutosaveOptions {
   authorId: string;
@@ -33,40 +33,33 @@ export async function autosaveBuilderDraft({
 }: AutosaveOptions): Promise<void> {
   if (!authorId || !content) return;
   try {
-    const { data: existing } = await supabase
-      .from("author_nodes")
-      .select("id, status, activated_at, microsite_url")
-      .eq("author_id", authorId)
-      .eq("node_id", nodeId)
-      .maybeSingle();
-
-    const isAlreadyLive =
-      existing?.status === "live" ||
-      !!existing?.activated_at ||
-      !!existing?.microsite_url;
-
-    const status: BuilderStatus = isAlreadyLive ? "live" : "content_ready";
-
-    const payload = {
-      content_json: { ...content, _currentStep: currentStep },
-      current_step: currentStep,
-      status,
-    };
-
-    if (existing) {
-      const { error } = await supabase
-        .from("author_nodes")
-        .update(payload)
-        .eq("id", existing.id);
-      if (error) console.error(`[autosave ${nodeId}] update failed:`, error.message);
-    } else {
-      const { error } = await supabase.from("author_nodes").insert({
-        author_id: authorId,
-        node_id: nodeId,
-        node_name: nodeName,
-        ...payload,
-      });
-      if (error) console.error(`[autosave ${nodeId}] insert failed:`, error.message);
+    const token = await getActiveToken();
+    if (!token) {
+      console.warn(`[autosave ${nodeId}] no active token, skipping`);
+      return;
+    }
+    const res = await fetchWithTimeout(
+      SAVE_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: "save",
+          authorId,
+          nodeId,
+          nodeName,
+          content,
+          currentStep,
+        }),
+      },
+      20000,
+    );
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(`[autosave ${nodeId}] save failed:`, res.status, errBody.slice(0, 300));
     }
   } catch (err) {
     console.error(`[autosave ${nodeId}] exception:`, err);
@@ -88,26 +81,34 @@ export async function loadBuilderDraft(
   const empty: LoadDraftResult = { content: null, status: null, currentStep: 0, isLive: false };
   if (!authorId) return empty;
   try {
-    const { data: node } = await supabase
-      .from("author_nodes")
-      .select("content_json, status, microsite_url, activated_at, current_step")
-      .eq("author_id", authorId)
-      .eq("node_id", nodeId)
-      .maybeSingle();
-
-    if (!node?.content_json) return empty;
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const cj = node.content_json as any;
-    const isLive =
-      node.status === "live" || !!node.activated_at || !!node.microsite_url;
-    const savedStep = Number(cj?._currentStep ?? node.current_step ?? 0);
-
+    const token = await getActiveToken();
+    if (!token) return empty;
+    const res = await fetchWithTimeout(
+      SAVE_URL,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action: "load", authorId, nodeId }),
+      },
+      20000,
+    );
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error(`[loadBuilderDraft ${nodeId}] load failed:`, res.status, errBody.slice(0, 300));
+      return empty;
+    }
+    const data = (await res.json()) as LoadDraftResult;
+    if (!data?.content) return empty;
+    // Re-apply the activated flag for live nodes so the UI shows them as live.
+    const content = data.isLive ? { ...data.content, activated: true } : data.content;
     return {
-      content: isLive ? { ...cj, activated: true } : cj,
-      status: node.status ?? null,
-      currentStep: savedStep,
-      isLive,
+      content,
+      status: data.status ?? null,
+      currentStep: Number(data.currentStep ?? 0),
+      isLive: !!data.isLive,
     };
   } catch (err) {
     console.error(`[loadBuilderDraft ${nodeId}] exception:`, err);
