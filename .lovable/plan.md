@@ -1,62 +1,111 @@
 
 
-## Root cause confirmed
+## Diagnosis
 
-Three storage path conventions are colliding for BA-11:
+All six issues trace to four root causes, three of which share a single fix.
 
-| Function | Folder key | Filename |
+| # | Symptom | Real root cause |
 |---|---|---|
-| `elevenlabs-tts-audiobook-v2` (older, wrote Pauline's file) | `{user_id}` | `chapter-000.mp3` (3-digit, 0-indexed) |
-| `ba11-audiobook-generate` (current generator) | `{author_profile_id}` | `chapter-01.mp3` (2-digit, 1-indexed) |
-| `ba11-publish-audiobook` + `save-author-node` list-audio (heal/zip) | `{author_profile_id}` (caller passes profile id) | any |
+| 1 | "Coming Soon" after publish (BA-15/16/17/18) | `publishNodeToSite` uses project-local Supabase → RLS update silently matches **zero rows** because `auth.uid() (5fd8…)` ≠ `author_profile.user_id (ef23…)`. The DB row stays `content_ready` with `microsite_url = null`. |
+| 2 | Blank tabs (BA-12/13/14) | AI generates a different JSON shape than the React component expects. E.g. BA-12 emits `monthly_price_usd` + flat `benefits[]`, UI reads `tiers[].name/price/benefits`. BA-14 emits `first_10_episodes`, UI reads `episodes[]`. BA-13 emits `curriculum`, UI reads `weeks[]`. |
+| 3 | Press Release tab crashes (BA-15) | AI returns `press_release` as an **object** `{headline, subheadline, body, boilerplate}` but UI does `<p>{content.press_release}</p>` → React "Objects are not valid as a React child" → blank page. |
+| 4 | BA-18 first-attempt fails | AI gateway logs show `Http: connection closed before message completed`. The single 9KB JSON call to `openai/gpt-5` exceeds the gateway's first-try budget. |
+| 5 | BA-15 / BA-18 redirect to Marketing Hub | They're in `NO_MICROSITE_NODES`. No `/press` or `/partners` route exists yet. |
+| 6 | Resume always lands on step 0 | Same as #1 — saves go through the edge function (`save-author-node`) and work, **load** also works, BUT the autosave on `setStep(2)` writes `current_step: 2` only if the autosave call fires. Several builders set `setStep(2)` and then call autosave with `currentStep: 2`, which IS correct. Real issue: when publish silently fails (#1), `setContent({...prev, activated:true})` runs in memory only — there is no autosave call. On reload, the DB row still has `_currentStep: 2` and `status='content_ready'` so resume goes back to step 2 (Review), not step 3 — confusing the user into thinking it reset. After fixing #1 the resume position will be correct. (Step 0 reports specifically about BA-11 trace to the heal effect — already fixed last sprint.)
 
-Verified in DB: Pauline's only audio file is `ef23c521-…(user_id)/e5b857ac-…(book_id)/chapter-000.mp3`, but the heal call sends `authorId = 92326a2f-…` (the `author_profiles.id`). The list returns 0 files. Same mismatch will break the publish ZIP. Future generations via `ba11-audiobook-generate` would write to a **different** folder again, so existing and new chapters can never coexist.
+## Plan
 
-## Plan — pick one canonical path, then teach all functions to read both
+### Phase 1 — Fix the silent publish failure (Issues 1 + 5 + 6)
 
-**Canonical going forward:** `audiobook-audio/{user_id}/{book_id}/chapter-NNN.mp3` (3-digit, 0-indexed). Reasons: matches the only files actually in storage today (no migration of Pauline's file needed), matches `elevenlabs-tts-audiobook-v2` and `distribute-audiobook` legacy code, and `user_id` is the simplest key the browser already has.
+**New action in `save-author-node`**: `action: "publish"`.
 
-### 1. `ba11-audiobook-generate` — write to canonical path
+- Same JWT-decode auth + ownership check (project-local `auth.uid()` matched to `author_profiles.user_id` is too strict — instead match on `author_profiles.id = authorId` AND `author_profiles.user_id = sub` OR the resolved profile's email matches the JWT email — covering both shared-backend and project-local users).
+- Sets `status='live'`, `activated_at=now()`, `microsite_url`, `current_step=3`, and merges `{ activated: true }` into `content_json`.
+- Returns the resolved `microsite_url` so the UI can display the live link confidently.
 
-- Replace `${authorProfileId}/${bookId}/chapter-${(idx+1).padStart(2)}.mp3` with `${claims.sub}/${bookId}/chapter-${idx.padStart(3)}.mp3`.
-- Drop the `author_profiles` lookup (no longer needed for the upload).
-- Keep returning `audioUrl` and `audioUrlError` as today.
+**Update `src/lib/publish-node.ts`** to call this new action via `getActiveToken()` + `fetchWithTimeout()` instead of the project-local PostgREST update.
 
-### 2. `save-author-node` `list-audio` — accept user_id-keyed folder, with profile-id fallback
+**Fix Issue 5** in the same pass:
+- Add `BA-15 → "press"` and `BA-18 → "partners"` to `NODE_SLUG_MAP` and `NODE_NAMES` (so `/pauline-teo/press` and `/pauline-teo/partners` resolve via the existing `AuthorSubpageResolver` → `MicrositePage` flow).
+- Remove `BA-15` and `BA-18` from `NO_MICROSITE_NODES`.
+- Add reader-facing renderers for them in `MicrositePage.tsx` (Press = press release + speaker headline + media kit + pitch contact form; Partners = partner profiles + pitch CTA + outreach contact form).
+- The existing `GenericPage` fallback covers the other BA nodes, so nothing else needs a new template.
 
-- Resolve `user_id` from JWT (already done) and from `author_profiles.id = authorId` (already done in ownership check).
-- List **two** prefixes: `{user_id}/{bookId}/` and `{author_profile_id}/{bookId}/`. Merge results.
-- Filename regex must accept both `chapter-001.mp3` and `chapter-01.mp3` — use `^chapter-0*(\d+)(?:-chunk-\d+)?\.mp3$` and parse the captured number as 0-indexed (subtract 1 only if the number is ≥ 1 and we detect 2-digit padding; simpler: treat the file as belonging to chapter index `n` where `n = parsed`, then sort and re-index sequentially). Re-indexing sequentially after sort is the safest — avoids guessing which convention wrote it.
-- Filter out the chunk variants (`-chunk-NNN`) for now, since the BA-11 builder produces single-file chapters. Chunked legacy files are out of scope.
+**Fix Issue 6** by ensuring autosave runs on every meaningful state change — already correct after Phase 1 fixes the publish action (which triggers a real DB write that records `current_step=3`). No extra builder changes needed.
 
-### 3. `ba11-publish-audiobook` — same dual-prefix listing
+### Phase 2 — Make the Review tabs render (Issue 2)
 
-Apply the same dual-prefix list + filename regex changes. The ZIP already enumerates whatever it finds in the folder, so this just needs the two-folder merge plus a filter that excludes `submission-package.zip` itself and `*-chunk-*.mp3`.
+Strategy: **fix the AI prompts to emit the shape the UI already expects** (smaller blast radius than rewriting 7 React components, and keeps existing exports working).
 
-### 4. `BA11Builder.tsx` heal effect — re-index by position, not by filename number
+- **`generate-ba12-membership`**: change schema to require `membership_title`, `tagline`, `who_its_for`, `transformation_promise`, `tiers: [3 items: {name, price, description, benefits[]}]`, `content_calendar`, `welcome_emails`, `abby_summary`. Keep prompt under 4KB; use `openai/gpt-5-mini`.
+- **`generate-ba13-group-coaching`**: schema → `programme_title`, `programme_subtitle`, `tagline`, `duration`, `group_size`, `session_frequency`, `transformation_promise`, `who_its_for`, `weeks: [8 items {week_number, title, description, activity}]`, `suggested_price_usd`, `pricing_rationale`, `sales_page: {headline, subheadline, cta_button_text}`, `abby_summary`.
+- **`generate-ba14-podcast`**: schema → `podcast_title`, `tagline`, `format`, `target_listener`, `episodes: [10 items {title, description}]`, `launch_plan`, `abby_summary`.
+- **`generate-ba16-affiliate`**: schema → `programme_title`, `overview`, `commission_tiers: [{name, description, commission}]`, `affiliate_resources` (string), `abby_summary`. (UI is already mostly in sync — only minor.)
+- **`generate-ba17-upsells`**: confirm `bundles[]` and `upsell_sequences[]` shape match the BA17 builder; align prompt accordingly.
 
-After `listAudiobookChapters` returns, the response is already sorted. The current builder code maps `byIndex.set(f.index, f.publicUrl)` and matches against the **chapter array index**. Pauline's file is `chapter-000.mp3` → index 0 → first chapter. That works. Just confirm the response order is positional — done by sorting in the function before returning.
+Bonus: store the renamed fields, and add a small **back-compat shim** in each builder's `setContent` step so the still-saved old shape (Pauline's current data) is mapped to the new shape on load (e.g. `tiers ?? [{name:'Member', price: monthly_price_usd, benefits}]`). This means existing authors don't have to re-generate.
 
-Also tighten the heal trigger: change the effect dependency from `stepData.chapters?.length` to `[authorId, bookId, resolvedBookId]` so a successful list still heals when chapters are present but their URLs are blob/empty (current condition `needsHealing` already covers this — keep it).
+### Phase 3 — Stop Press Release from crashing (Issue 3)
 
-### 5. One-time silent cleanup
+In `BA15Builder.tsx` Press Release tab, replace `<p>{content.press_release}</p>` with a structured renderer that handles both string and object shapes:
 
-After heal succeeds for Pauline, the autosave in the builder will rewrite `content_json` with the permanent URL — replacing the blob URL — so the next reload doesn't even need to re-list. No DB migration required.
+```tsx
+{typeof content.press_release === "string" ? (
+  <p className="whitespace-pre-wrap">{content.press_release}</p>
+) : (
+  <div className="space-y-3">
+    <h3 className="font-bold">{content.press_release?.headline}</h3>
+    <p className="italic">{content.press_release?.subheadline}</p>
+    <p className="whitespace-pre-wrap">{content.press_release?.body}</p>
+    <p className="text-xs text-muted-foreground">{content.press_release?.boilerplate}</p>
+  </div>
+)}
+```
 
-## Verification
+Apply the same defensive pattern to `pitch_template` (mismatched name → `media_pitch_template` object) and the BA-18 `partnership_pitch` object. Then update the BA-15 prompt schema to match the React component (string fields where the UI expects strings).
 
-1. Reload `/node-builder/BA-11` as Pauline → console shows `[save-author-node:list-audio]` returning 1 chapter, builder switches Chapter 1 to "Audio Ready", counter shows 1/6, autosave overwrites the blob URL with the permanent URL.
-2. Generate Chapter 2 → file lands at `ef23c521…/e5b857ac…/chapter-001.mp3` (canonical path, 3-digit, 0-indexed). Reload → both chapters resume.
-3. Click **Publish & Distribute** → ZIP includes both MP3s, `author_nodes.status = live`, audiobook appears at `/pauline-teo`.
+### Phase 4 — Make BA-18 generation reliable (Issue 4)
+
+Two-part fix:
+1. **Switch model** from `openai/gpt-5` to `openai/gpt-5-mini` (5–10× faster, plenty of headroom for the ~9KB JSON we need; matches the "fast preview" pattern used by BP-02).
+2. **Increase client timeout** for builder generate calls. `supabase.functions.invoke` has no timeout knob, so introduce a small wrapper `invokeWithTimeout(name, body, ms)` (default 90s) using `AbortController` + the project URL. Apply to all `handleGenerate` calls in BA-13, BA-15, BA-18 (the three heaviest prompts).
+3. Align BA-18 prompt schema with the React component (already does `ideal_partners[]` and `pitch_template` — adjust prompt from `ideal_partner_profiles` → `ideal_partners` and from `partnership_pitch` object → `pitch_template` string).
+
+### Phase 5 — Verification
+
+1. Click **Publish to My Site** on BA-16/17/15/18 → DB row flips to `status='live'` with `microsite_url` set; success screen shows the live link.
+2. Visit `/pauline-teo/affiliates`, `/pauline-teo/bundles`, `/pauline-teo/press`, `/pauline-teo/partners` → each renders content, no "Coming Soon".
+3. Re-generate BA-12/13/14 → all tabs render; existing pre-fix data still renders via the back-compat shim.
+4. Click Press Release tab on BA-15 → page stays alive, structured render appears.
+5. Click "Design My Strategy" on BA-18 → completes on first attempt within ~30s.
+6. Refresh any builder mid-flow → resumes at the saved step.
 
 ## Files touched
 
-- **Update** `supabase/functions/ba11-audiobook-generate/index.ts` — write to `{user_id}/{book_id}/chapter-NNN.mp3` (3-digit, 0-indexed).
-- **Update** `supabase/functions/save-author-node/index.ts` — `list-audio` reads both `{user_id}/…` and `{author_profile_id}/…` prefixes, accepts both 2- and 3-digit filenames, excludes `-chunk-` and `submission-package.zip`.
-- **Update** `supabase/functions/ba11-publish-audiobook/index.ts` — same dual-prefix list + filename filter for ZIP packaging.
-- **No DB migration. No RLS changes. No new secrets. No frontend changes** beyond what's already shipped.
+**Backend**
+- **Update** `supabase/functions/save-author-node/index.ts` — add `action: "publish"`.
+- **Update** `supabase/functions/generate-ba12-membership/index.ts` — schema to match UI.
+- **Update** `supabase/functions/generate-ba13-group-coaching/index.ts` — schema to match UI.
+- **Update** `supabase/functions/generate-ba14-podcast/index.ts` — schema to match UI.
+- **Update** `supabase/functions/generate-ba15-media-pr/index.ts` — strings where UI expects strings.
+- **Update** `supabase/functions/generate-ba16-affiliate/index.ts` — schema alignment.
+- **Update** `supabase/functions/generate-ba17-upsells/index.ts` — schema alignment.
+- **Update** `supabase/functions/generate-ba18-jv-partnerships/index.ts` — switch to `gpt-5-mini`, schema alignment.
 
-## Why this fixes it for good
+**Frontend**
+- **Update** `src/lib/publish-node.ts` — call `save-author-node` `publish` action via `getActiveToken()`.
+- **New** `src/lib/invoke-with-timeout.ts` — 90s wrapper around edge function POST.
+- **Update** `src/lib/node-slug-map.ts` — add `BA-15 → "press"`, `BA-18 → "partners"`; remove from `NO_MICROSITE_NODES`.
+- **Update** `src/pages/MicrositePage.tsx` — add `PressKitPage` and `JVPartnersPage` renderers, plus contact form wiring through existing `microsite-action`.
+- **Update** `src/components/dashboard/builders/ba12/BA12Builder.tsx` — back-compat shim for legacy `monthly_price_usd` shape.
+- **Update** `src/components/dashboard/builders/ba13/BA13Builder.tsx` — shim for legacy `curriculum` → `weeks`.
+- **Update** `src/components/dashboard/builders/ba14/BA14Builder.tsx` — shim for legacy `first_10_episodes` → `episodes`, `show_title` → `podcast_title`.
+- **Update** `src/components/dashboard/builders/ba15/BA15Builder.tsx` — defensive Press Release/Pitch renderer.
+- **Update** `src/components/dashboard/builders/ba18/BA18Builder.tsx` — defensive Pitch renderer + map `ideal_partner_profiles` → `ideal_partners`.
 
-One canonical write path going forward (`{user_id}/…`), plus tolerant readers that accept either historical convention, means: existing files heal immediately, new files round-trip through resume + publish, and the legacy `elevenlabs-tts-audiobook-v2` files are still discoverable until the customer regenerates.
+## Scope
+
+- No DB migration. No RLS changes. No new secrets.
+- Existing `content_ready` rows in DB will be re-published correctly on the next "Publish to My Site" click — no data backfill required.
+- Old generations of Pauline's BA-12/13/14 keep rendering via the back-compat shim; she does NOT need to re-generate.
 
