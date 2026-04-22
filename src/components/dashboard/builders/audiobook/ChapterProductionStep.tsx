@@ -36,7 +36,7 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
       const response = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook-v2`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ba11-audiobook-generate`,
         {
           method: "POST",
           headers: {
@@ -44,20 +44,36 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            action: "generate-chapter",
             bookId,
             voiceId: selectedVoice.elevenLabsId,
             chapterText: ch.optimizedText || ch.originalText,
             chapterIndex: idx,
           }),
-        }
+        },
+        120000,
       );
-      const data = await response.json();
-      if (!response.ok) throw new Error(data?.error || "Generation failed");
-      updateChapter(idx, { status: "audio-generated", audioUrl: data.audioUrl || "" });
+      let data: { audioBase64?: string; audioUrl?: string; error?: string; details?: string } = {};
+      try { data = await response.json(); } catch { /* non-JSON */ }
+      if (!response.ok) {
+        const msg = data?.error || `Generation failed (HTTP ${response.status})`;
+        throw new Error(data?.details ? `${msg}: ${data.details}` : msg);
+      }
+
+      // Convert base64 → Blob → object URL for inline playback.
+      let audioUrl = data.audioUrl || "";
+      if (!audioUrl && data.audioBase64) {
+        const bin = atob(data.audioBase64);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        const blob = new Blob([bytes], { type: "audio/mpeg" });
+        audioUrl = URL.createObjectURL(blob);
+      }
+
+      updateChapter(idx, { status: "audio-generated", audioUrl });
       toast.success(`Audio generated for ${ch.title}!`);
     } catch (error) {
-      toast.error("Audio generation failed");
+      const msg = error instanceof Error ? error.message : "Audio generation failed";
+      toast.error(msg);
     }
     setGenerating(null);
   };

@@ -145,3 +145,7 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.ba11-voice-preview]
     verify_jwt = false
+  [functions.ba11-audiobook-generate]
+    verify_jwt = false
+  [functions.save-author-node]
+    verify_jwt = false
