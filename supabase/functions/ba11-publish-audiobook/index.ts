@@ -169,33 +169,58 @@ Deno.serve(async (req: Request) => {
 
   const bookTitle = book?.title || "Audiobook";
 
-  // List MP3 files
-  const folderPath = `${authorProfileId}/${bookId}`;
-  const { data: files, error: listErr } = await admin.storage
-    .from("audiobook-audio")
-    .list(folderPath, { limit: 200 });
-  if (listErr) {
-    console.error("[ba11-publish-audiobook] list failed:", listErr.message);
-    return json(500, { error: `Storage list failed: ${listErr.message}` });
-  }
-  const audioFiles = (files || [])
-    .filter((f) => f.name.endsWith(".mp3") && f.name.startsWith("chapter-"))
-    .sort((a, b) => a.name.localeCompare(b.name));
+  // List MP3 files from BOTH possible prefixes (canonical user_id and legacy author_profile_id).
+  const userFolder = `${profile.user_id}/${bookId}`;
+  const profileFolder = `${authorProfileId}/${bookId}`;
+  const folderPath = userFolder; // canonical path used for ZIP upload
+  const fileRegex = /^chapter-0*(\d+)\.mp3$/i;
 
-  if (audioFiles.length === 0) {
+  const collected: { rawNum: number; filename: string; audio_url: string }[] = [];
+  for (const prefix of [userFolder, profileFolder]) {
+    const { data: files, error: listErr } = await admin.storage
+      .from("audiobook-audio")
+      .list(prefix, { limit: 200 });
+    if (listErr) {
+      console.warn("[ba11-publish-audiobook] list failed for", prefix, listErr.message);
+      continue;
+    }
+    for (const f of files || []) {
+      if (f.name === "submission-package.zip") continue;
+      if (/-chunk-/i.test(f.name)) continue;
+      const m = f.name.match(fileRegex);
+      if (!m) continue;
+      const { data: pub } = admin.storage
+        .from("audiobook-audio")
+        .getPublicUrl(`${prefix}/${f.name}`);
+      collected.push({
+        rawNum: parseInt(m[1], 10),
+        filename: f.name,
+        audio_url: pub.publicUrl,
+      });
+    }
+  }
+  // De-duplicate by URL (in case the same file is listed under both prefixes).
+  const seenUrls = new Set<string>();
+  const dedup = collected.filter((c) => {
+    if (seenUrls.has(c.audio_url)) return false;
+    seenUrls.add(c.audio_url);
+    return true;
+  });
+  dedup.sort((a, b) => a.rawNum - b.rawNum);
+
+  if (dedup.length === 0) {
     return json(400, {
       error:
         "No chapter audio found yet. Generate audio for at least one chapter before publishing.",
     });
   }
-  console.log("[ba11-publish-audiobook] found", audioFiles.length, "chapters");
+  console.log("[ba11-publish-audiobook] found", dedup.length, "chapters across both prefixes");
 
-  const chapters = audioFiles.map((f, i) => {
-    const { data: pub } = admin.storage
-      .from("audiobook-audio")
-      .getPublicUrl(`${folderPath}/${f.name}`);
-    return { index: i, filename: f.name, audio_url: pub.publicUrl };
-  });
+  const chapters = dedup.map((c, i) => ({
+    index: i,
+    filename: c.filename,
+    audio_url: c.audio_url,
+  }));
 
   const baseManifest = {
     source_platform: "authorsbureau",
