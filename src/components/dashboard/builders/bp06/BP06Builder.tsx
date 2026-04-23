@@ -21,12 +21,15 @@ import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSect
 import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
-import { publishNodeToSite } from "@/lib/publish-node";
+import { publishNodeToSite, StripeRequiredError } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { downloadWorkbookPdf, estimateWorkbookPageCount, normalizeOutcome } from "@/lib/workbook-pdf";
 import { downloadWorkbookDocx } from "@/lib/workbook-docx";
 import { parseWorkbookDocx } from "@/lib/workbook-docx-import";
+import { useStripeConnect } from "@/components/dashboard/StripeConnectBanner";
+import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
+import { isPaidNode } from "@/lib/is-paid-node";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
