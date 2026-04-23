@@ -1,107 +1,94 @@
 
 
-# Plan — Fix BP-06/07/08/09 Silent Generation Failures
+# Plan — Diagnose Why "Design My Programme" Doesn't Respond on BP-06 → BP-09
 
-## Real diagnosis
+## What I verified is NOT the bug
 
-The user reports "button click not registering." That's incorrect — the click handler runs every time. The actual failure chain (verified in edge logs + code):
+I read all four builders and their edge functions. The previous fix is in place:
 
-1. `handleGenerate` calls `supabase.functions.invoke(...)`.
-2. The Supabase JS SDK's `invoke()` uses an unconfigurable ~60s fetch timeout.
-3. After the temperature fix, `openai/gpt-5` for BP-06/07/08/09 succeeds — but takes 60–90+ seconds because none of these four functions cap `max_completion_tokens`, so gpt-5 burns enormous reasoning-token budgets on a complex JSON spec.
-4. The SDK's fetch aborts before the function returns. The `catch` runs, `setStep(0)` flips back to Introduction, `setError(...)` is set — but the resulting message is generic ("Failed to fetch" / "Failed to send a request to the Edge Function") and easy to miss in the small destructive panel.
-5. Edge logs confirm: BP-05 returned **200 in 81,042 ms** on the most recent attempt; BP-06 has zero invocations recorded recently because the user gave up before any reached completion.
+- BP-06/07/08/09 all use `fetchWithTimeout(..., 180_000)` with `getActiveToken()` (no SDK 60s timeout).
+- The button: `<Button onClick={handleGenerate} disabled={isBookLoading}>` — wired correctly, only disabled while the book check is loading.
+- The four edge functions all have `max_completion_tokens: 8000` and no `temperature` override.
+- Error handling sets the destructive panel + raises a `toast.error`.
 
-This is the same SDK-timeout pattern already solved elsewhere in the codebase via `fetchWithTimeout` + `getActiveToken` (see `src/lib/marketing-hub-state.ts`, `src/lib/publish-node.ts`, `src/lib/builder-autosave.ts`).
+So the previous round of fixes did land. The screenshot shows the Introduction step rendered with the button visible and not in a spinner state, meaning either (a) the click isn't producing any visible state change at all, or (b) it does run, fails fast, and resets — but you don't see the toast.
 
-## Fix — two layers
+## What I cannot confirm from this side
 
-### Layer 1: server-side, cap the AI budget
+- Your screenshot is from `authorsbureau.com` in **Safari**, not the Lovable preview. Browser console logs and network requests from that production tab are not visible to me.
+- The session-replay shows you on the preview's home page (`/`), not the BP-07 builder route — so I can't see a real click event for the failing case.
+- Edge-function logs for `generate-bp06/07/08/09` show **zero invocations** in the recent window. That is the smoking gun: **the click is firing but the request never leaves the browser** (or it's firing but never reaching `fetchWithTimeout`). That rules out a server-side bug and points squarely at the client.
 
-In **all four** edge functions, add `max_completion_tokens: 8000` to the Lovable AI Gateway request body (matching the working BP-05/BP-07 pattern). Also adopt the proven `failResponse` helper used by the YR generators so failures return a typed JSON error the client can surface:
+## Most likely root causes (to fix in this sprint)
 
-- `supabase/functions/generate-bp06-online-course/index.ts`
-- `supabase/functions/generate-bp08-mastermind/index.ts`
-- `supabase/functions/generate-bp09-speaking/index.ts`
-- `supabase/functions/generate-bp05-webinars/index.ts` (already has it, leave alone)
+1. **Production hasn't been republished since the prior client-side patch.** `authorsbureau.com` may still be running the older bundle that used `supabase.functions.invoke`, where a slow first-load token resolution can throw before the request goes out — and the toast gets swallowed because `sonner`'s `<Toaster>` may not be mounted on every route.
+2. **`getActiveToken()` returning null on Safari/production.** Safari's stricter cookie/storage model can leave the cloud session unreadable on a hard refresh; the function then throws "Your session has expired", `setStep(0)` runs immediately, and the user perceives "nothing happened" because the toast slides in and out in 4 s.
+3. **No instrumentation today.** When `handleGenerate` fails before the network call, we have no console breadcrumb to confirm what happened — so every failure looks identical.
 
-This typically halves wall-clock time for gpt-5 — bringing BP-06/07/08/09 from 70–110s down to 30–55s.
+## Fix — three small, surgical changes
 
-### Layer 2: client-side, replace the SDK call with an explicit 180s fetch
+### 1. Add a diagnostic breadcrumb to all four builders (BP-06/07/08/09)
 
-In each of the four builders, swap:
-
-```ts
-const { data, error: fnErr } = await supabase.functions.invoke("generate-bp06-online-course", { body: { author_id: authorId } });
-```
-
-for an explicit `fetchWithTimeout` call to the function URL with a 180-second budget and the active JWT, matching `src/lib/marketing-hub-state.ts`:
+At the top of each `handleGenerate`, before any await, add:
 
 ```ts
-import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
-
-const token = await getActiveToken();
-const res = await fetchWithTimeout(
-  `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp06-online-course`,
-  {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-    },
-    body: JSON.stringify({ author_id: authorId }),
-  },
-  180_000,
-);
-const data = await res.json();
-if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
+console.info("[BP-0X] generate clicked", { authorId, hasBook, bookTitle: detectedBookTitle });
 ```
 
-Builders to update:
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx` (line 88)
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx`
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+After the `getActiveToken()` line, log whether a token came back. After `fetchWithTimeout`, log the HTTP status. This way, the next click on the live site immediately tells us whether it's a token problem, a network problem, or an AI-gateway problem — without guessing.
 
-### Layer 3: make the error visible (small UX fix)
+### 2. Make the failure path impossible to miss
 
-Today, when the catch runs, the error panel only renders inside the Introduction step. That's fine for visibility — but `toAbbyError("Failed to fetch")` returns a generic "ABBY hit a snag" line. Add a slightly louder toast on failure so users don't miss it after a 90s wait:
+Today, on failure we set an inline error panel and a `toast.error(...)` — but the toast auto-dismisses in 4 s and on production the `<Toaster>` may unmount during route transitions. Change the catch block in all four builders to:
 
 ```ts
 } catch (e: any) {
   const msg = toAbbyError(e?.message || "Generation failed");
+  console.error("[BP-0X] generate failed", e);
   setError(msg);
   setStep(0);
-  toast.error(msg);
+  toast.error(msg, { duration: 12000, important: true });
 }
 ```
 
-(`sonner` toast is already imported in BP06; same import exists in BP07/08/09.)
+12-second sticky toast + console.error means the user sees the failure for long enough to read it, and we can debug from any future screenshot.
 
-## Files touched
+### 3. Harden the token check
 
-- `supabase/functions/generate-bp06-online-course/index.ts` — add `max_completion_tokens: 8000`.
-- `supabase/functions/generate-bp08-mastermind/index.ts` — add `max_completion_tokens: 8000`.
-- `supabase/functions/generate-bp09-speaking/index.ts` — add `max_completion_tokens: 8000`.
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx` — swap `supabase.functions.invoke` for `fetchWithTimeout` (180s) + add toast on catch.
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx` — same swap + toast.
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — same swap + toast.
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — same swap + toast.
+Replace the silent `getActiveToken() → throw "session expired"` path with an explicit re-fetch attempt:
+
+```ts
+let token = await getActiveToken();
+if (!token) {
+  // Try one refresh before giving up — Safari often needs this
+  await supabase.auth.refreshSession().catch(() => null);
+  token = await getActiveToken();
+}
+if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
+```
+
+This eliminates the most common Safari failure mode (stale cloud session on hard reload) without touching the rest of the flow.
+
+## Files touched (4 client files, no schema, no edge function changes)
+
+- `src/components/dashboard/builders/bp06/BP06Builder.tsx`
+- `src/components/dashboard/builders/bp07/BP07Builder.tsx`
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+
+Each file: 3 small edits to `handleGenerate` (breadcrumb log, hardened token check, sticky toast in catch). No prompt changes, no DB changes, no edge function changes.
 
 ## Out of scope
 
-- Switching to a polling/job-queue architecture (overkill — 8k token cap brings runtimes well inside a 180s explicit fetch).
-- Builder UI redesign, schema, RLS, prompt content, BP-05 (already working).
-- Memory update — `mem://architecture/shared-backend-token-standard` already mandates `fetchWithTimeout`; this just brings the four builders into compliance.
+- Edge function rewrites — they're already correct.
+- BP-01 → BP-05 — confirmed working in your last test.
+- MiroFish integration — paused until this is confirmed fixed.
 
 ## Verification
 
-1. Open BP-06 → click **Build My Workbook** → spinner runs 30–60s → lands on Review step with a populated workbook.
-2. Open BP-07 → click Generate → lands on Review with home-study course content.
-3. Open BP-08 → click Generate → lands on Review with 3 special editions.
-4. Open BP-09 → click Generate → lands on Review with speaking kit.
-5. If the AI gateway ever fails, the user sees both the inline destructive panel **and** a red toast — no more silent return to Introduction.
-6. Sidebar Brand Products counter advances to 9 of 9 once Pauline finishes all four.
-7. `function_edge_logs` shows POST 200 with `execution_time_ms` < 90,000 for all four functions.
+1. Republish so production runs the new bundle.
+2. Open BP-07 on `authorsbureau.com` → click **Design My Programme**.
+3. **If it works**: lands on the spinner step within 1 s, then on Review in 30–90 s.
+4. **If it still fails**: the 12-second red toast tells you exactly which stage failed (no token / 401 / 500 / timeout), and the Safari console will show the breadcrumb chain — share that with me and I'll pinpoint the next fix in one round instead of guessing.
+5. Repeat on BP-06, BP-08, BP-09.
 
