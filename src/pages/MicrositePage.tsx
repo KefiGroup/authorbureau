@@ -1081,87 +1081,382 @@ function WorkbookSalesPage({
   );
 }
 
-/* ═══ BP-06, BP-07, BP-08 — SALES PAGES ═══ */
+/* ═══ BP-06, BP-07, BP-08 — SALES PAGES (long-form 11-section) ═══ */
 function SalesPage({ data, content, v, hFont, bgColor, type }: PageProps & { type: "workbook" | "home-study" | "special-edition" }) {
   const labels = {
-    "workbook": { title: "Workbook", cta: "Buy Now", icon: BookOpen },
-    "home-study": { title: "Home Study Course", cta: "Enrol Now", icon: Users },
-    "special-edition": { title: "Special Edition", cta: "Claim My Copy", icon: Star },
+    "workbook": { title: "Workbook", cta: "Buy Now", icon: BookOpen, badge: "Companion Workbook" },
+    "home-study": { title: "Home Study Course", cta: "Enrol Now", icon: Users, badge: "Self-Paced Programme" },
+    "special-edition": { title: "Special Edition", cta: "Claim My Copy", icon: Star, badge: "Limited Edition" },
   };
   const cfg = labels[type];
-  const hasStripeUrl = !!content.stripe_checkout_url || !!data.node.payment_link;
-  const buyUrl = content.stripe_checkout_url || data.node.payment_link;
 
+  // Workbook keeps its existing rich layout
   if (type === "workbook") {
+    const hasStripeUrl = !!content.stripe_checkout_url || !!data.node.payment_link;
+    const buyUrl = content.stripe_checkout_url || data.node.payment_link;
     return <WorkbookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} cfg={cfg} buyUrl={buyUrl} hasStripeUrl={hasStripeUrl} />;
   }
 
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-12 sm:py-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-3" style={{ color: v.headingText, fontFamily: hFont }}>
-            {content.title || content.headline || cfg.title}
-          </h1>
-          {content.subtitle && <p className="text-lg mb-4" style={{ color: v.mutedText }}>{content.subtitle}</p>}
-          <p className="text-base leading-relaxed mb-6" style={{ color: v.bodyText }}>
-            {content.description || ""}
-          </p>
+  return <LongFormSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} cfg={cfg} type={type} />;
+}
 
-          {/* Bullet points or modules list */}
-          {(content.exercises || content.modules || content.bullets || content.bundle_contents) && (
-            <ul className="space-y-2 mb-6">
-              {(content.exercises || content.modules || content.bullets || content.bundle_contents || []).map((item: any, i: number) => (
-                <li key={i} className="flex items-start gap-2">
-                  <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
-                  <span className="text-sm" style={{ color: v.bodyText }}>
-                    {typeof item === "string" ? item : item.title || item.name || JSON.stringify(item)}
-                  </span>
+/* ═══ Long-form sales page used by BP-07, BP-08 ═══ */
+function LongFormSalesPage({
+  data, content, v, hFont, bgColor, cfg, type,
+}: PageProps & {
+  cfg: { title: string; cta: string; icon: any; badge: string };
+  type: "home-study" | "special-edition";
+}) {
+  const sp = (content.sales_page && typeof content.sales_page === "object") ? content.sales_page : {};
+  const pr = (content.pricing_recommendation && typeof content.pricing_recommendation === "object") ? content.pricing_recommendation : {};
+
+  // Field unification with fallbacks
+  const headline =
+    sp.headline ||
+    content.headline ||
+    content.programme_title ||
+    content.workbook_title ||
+    content.edition_title ||
+    content.title ||
+    data.node.personalised_name ||
+    cfg.title;
+  const subheadline =
+    sp.subheadline ||
+    content.subheadline ||
+    content.subtitle ||
+    content.tagline ||
+    content.transformation_promise ||
+    "";
+  const intro = sp.intro_paragraph || content.intro_paragraph || content.description || content.transformation_promise || "";
+  const pain = sp.pain_point || content.pain_point || "";
+  const solution = sp.solution_statement || content.solution_statement || content.transformation_promise || "";
+  const ctaLabel = sp.cta_button_text || content.cta_button_text || cfg.cta;
+  const whoFor = content.who_its_for || sp.who_its_for || "";
+  const format = content.format || (type === "home-study" ? "Self-paced online programme" : "Special edition bundle");
+  const duration = content.duration || "";
+
+  // Pain bullets — try several shapes
+  const painBullets: string[] = (
+    Array.isArray(sp.pain_bullets) ? sp.pain_bullets :
+    Array.isArray(content.pain_bullets) ? content.pain_bullets :
+    Array.isArray(sp.pain_points) ? sp.pain_points : []
+  ).filter(Boolean);
+
+  // Transformation
+  const tr = sp.transformation || content.transformation || {};
+  const before: string[] = Array.isArray(tr.before) ? tr.before.filter(Boolean) : [];
+  const after: string[] = Array.isArray(tr.after) ? tr.after.filter(Boolean) : [];
+
+  // What's inside — derive from study_weeks / modules / editions / what_youll_get
+  const youGetRaw: any[] =
+    (Array.isArray(content.what_youll_get) && content.what_youll_get) ||
+    (Array.isArray(sp.what_youll_get) && sp.what_youll_get) ||
+    (Array.isArray(content.study_weeks) && content.study_weeks.map((w: any, i: number) =>
+      `Week ${w.week ?? w.number ?? i + 1}: ${w.title || w.theme || w.name || ""}`.trim()
+    )) ||
+    (Array.isArray(content.modules) && content.modules.map((m: any, i: number) =>
+      `Module ${m.number ?? i + 1}: ${m.title || m.name || ""}`.trim()
+    )) ||
+    (Array.isArray(content.editions) && content.editions.map((e: any) =>
+      `${e.name || e.title}${e.description ? ` — ${e.description}` : ""}`
+    )) ||
+    [];
+  const youGet: string[] = youGetRaw
+    .map((it: any) => (typeof it === "string" ? it : (it && (it.name || it.title)) || ""))
+    .filter(Boolean);
+
+  // Pricing
+  const priceNumRaw =
+    content.price ??
+    content.suggested_price_usd ??
+    pr.suggested_price ??
+    sp.price;
+  const priceNum = Number(priceNumRaw) || 0;
+  const isFree = priceNum === 0 && (content.pricing_recommendation === "free" || priceNumRaw === 0);
+  const compareAt = Number(content.original_price ?? content.compare_at_price ?? pr.compare_at) || 0;
+  const currency = (data.node.currency || content.currency || "USD").toUpperCase();
+  const currencySymbol = currency === "USD" ? "$" : currency + " ";
+  const priceDisplay = isFree ? "Free" : (priceNum > 0 ? `${currencySymbol}${priceNum}` : "Pricing coming soon");
+
+  // FAQ — default 4 items if none provided
+  const faqItems: { q: string; a: string }[] = (
+    Array.isArray(sp.faq) ? sp.faq :
+    Array.isArray(content.faq) ? content.faq : []
+  ).filter((f: any) => f && f.q && f.a);
+  const faq = faqItems.length > 0 ? faqItems : [
+    {
+      q: "Is there a money-back guarantee?",
+      a: "Yes — we offer a 30-day money-back guarantee. If this isn't the right fit for you, just email us within 30 days of purchase for a full refund.",
+    },
+    {
+      q: "How long do I have access?",
+      a: `You get lifetime access to all materials${type === "home-study" ? ", including any future updates" : ""}. Work through it at your own pace, on your own schedule.`,
+    },
+    {
+      q: "Who is this for?",
+      a: whoFor || "Anyone ready to take action and apply what they learn. No prior experience required — just a willingness to do the work.",
+    },
+    {
+      q: "What format is the content delivered in?",
+      a: `${format}${duration ? ` (${duration})` : ""}. You'll receive instant access immediately after purchase.`,
+    },
+  ];
+
+  // Final CTA
+  const finalCta = sp.final_cta || content.final_cta || {};
+  const finalHeadline = finalCta.headline || "Ready to take the next step?";
+  const finalUrgency = finalCta.urgency || "Limited spots available — secure yours today.";
+  const finalCtaLabel = finalCta.button_text || ctaLabel;
+
+  // Buy URL
+  const buyUrl = content.stripe_checkout_url || data.node.payment_link;
+  const hasStripeUrl = !!content.stripe_checkout_url || !!data.node.payment_link;
+
+  const renderCta = (label: string) => {
+    if (data.node.id) {
+      return (
+        <BuyNowButton
+          authorNodeId={data.node.id}
+          authorId={data.author?.id}
+          fallbackUrl={buyUrl}
+          label={isFree ? "Get Instant Access" : label}
+          className="w-full rounded-full text-base py-3"
+          style={{ background: v.accent, color: v.accentText }}
+        />
+      );
+    }
+    if (hasStripeUrl) {
+      return (
+        <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
+          <a href={buyUrl!} target="_blank" rel="noopener noreferrer">
+            {label} <ArrowRight className="ml-2 h-4 w-4" />
+          </a>
+        </Button>
+      );
+    }
+    return <Button className="w-full rounded-full" disabled>Coming Soon</Button>;
+  };
+
+  const Icon = cfg.icon;
+  const author = data.author || {};
+  const authorBio = author.bio || author.bio_long || "";
+
+  // Author included items for pricing card
+  const includedItems: string[] = [
+    duration ? `${duration} of ${type === "home-study" ? "training" : "content"}` : `Full ${cfg.title.toLowerCase()} access`,
+    youGet.length > 0 ? `${youGet.length}+ structured ${type === "home-study" ? "lessons" : "modules"}` : "All core content",
+    "Instant digital delivery",
+    "30-day money-back guarantee",
+  ];
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-12 sm:py-16 pb-32 md:pb-16">
+      {/* ── Hero ── */}
+      <header className="text-center mb-16">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-5" style={{ background: v.accent + "20", color: v.accent }}>
+          <Icon className="h-3.5 w-3.5" /> {cfg.badge}
+        </div>
+        <h1 className="text-3xl sm:text-5xl font-bold mb-4 max-w-3xl mx-auto leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>
+          {headline}
+        </h1>
+        {subheadline && (
+          <p className="text-lg sm:text-xl mb-8 max-w-2xl mx-auto leading-relaxed" style={{ color: v.mutedText }}>
+            {subheadline}
+          </p>
+        )}
+        {data.book?.cover_image_url && (
+          <img src={data.book.cover_image_url} alt={data.book.title} className="w-full max-w-[200px] mx-auto rounded-lg shadow-xl mb-8" />
+        )}
+        <div className="max-w-sm mx-auto">{renderCta(ctaLabel)}</div>
+        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · 30-day guarantee</p>
+      </header>
+
+      {/* ── Problem / Pain ── */}
+      {(pain || painBullets.length > 0) && (
+        <section className="mb-16">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-5 text-center" style={{ color: v.headingText, fontFamily: hFont }}>
+            Sound familiar?
+          </h2>
+          {pain && (
+            <p className="text-base leading-relaxed text-center max-w-2xl mx-auto mb-6" style={{ color: v.bodyText }}>
+              {pain}
+            </p>
+          )}
+          {painBullets.length > 0 && (
+            <ul className="max-w-xl mx-auto space-y-3">
+              {painBullets.map((p, i) => (
+                <li key={i} className="flex items-start gap-3 text-base" style={{ color: v.bodyText }}>
+                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full shrink-0" style={{ background: v.accent }} /> {p}
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </section>
+      )}
 
-        <div>
-          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-            {data.book?.cover_image_url && (
-              <img src={data.book.cover_image_url} alt={data.book.title} className="w-full max-w-[200px] mx-auto rounded-lg mb-4" />
+      {/* ── Transformation Before/After ── */}
+      {(before.length > 0 || after.length > 0) && (
+        <section className="mb-16">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center" style={{ color: v.headingText, fontFamily: hFont }}>
+            Your transformation
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <p className="text-xs uppercase tracking-widest font-bold mb-3" style={{ color: v.mutedText }}>Before</p>
+              <ul className="space-y-2">
+                {before.map((b, i) => (
+                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: v.bodyText }}>
+                    <span style={{ color: v.mutedText }}>✕</span> {b}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+            <Card className="p-6 border-2" style={{ background: v.cardBg, borderColor: v.accent }}>
+              <p className="text-xs uppercase tracking-widest font-bold mb-3" style={{ color: v.accent }}>After</p>
+              <ul className="space-y-2">
+                {after.map((a, i) => (
+                  <li key={i} className="text-sm flex items-start gap-2" style={{ color: v.bodyText }}>
+                    <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> {a}
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </div>
+        </section>
+      )}
+
+      {/* ── Introduction ── */}
+      {(intro || solution) && (
+        <section className="mb-16 max-w-3xl mx-auto text-center">
+          <p className="text-lg leading-relaxed" style={{ color: v.bodyText }}>
+            {intro || solution}
+          </p>
+        </section>
+      )}
+
+      {/* ── What's Inside ── */}
+      {youGet.length > 0 && (
+        <section className="mb-16">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center" style={{ color: v.headingText, fontFamily: hFont }}>
+            What's inside
+          </h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
+            {youGet.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm p-3 rounded-md" style={{ color: v.bodyText, background: v.cardBg }}>
+                <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} /> {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* ── How It Works ── */}
+      <section className="mb-16">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-8 text-center" style={{ color: v.headingText, fontFamily: hFont }}>
+          How it works
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            { n: "1", t: type === "home-study" ? "Enrol" : "Order", d: "Get instant access immediately after secure checkout." },
+            { n: "2", t: type === "home-study" ? "Learn" : "Open", d: "Work through the material at your own pace, on your schedule." },
+            { n: "3", t: "Transform", d: "Apply what you learn and see real results." },
+          ].map((s, i) => (
+            <div key={i} className="text-center p-6 rounded-lg" style={{ background: v.cardBg, borderColor: v.cardBorder, borderWidth: 1 }}>
+              <div className="w-10 h-10 rounded-full mx-auto mb-3 flex items-center justify-center font-bold text-lg" style={{ background: v.accent, color: v.accentText }}>
+                {s.n}
+              </div>
+              <h3 className="font-bold mb-2" style={{ color: v.headingText }}>{s.t}</h3>
+              <p className="text-sm" style={{ color: v.mutedText }}>{s.d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Who It's For ── */}
+      {whoFor && (
+        <section className="mb-16 max-w-3xl mx-auto">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-4 text-center" style={{ color: v.headingText, fontFamily: hFont }}>
+            Who this is for
+          </h2>
+          <p className="text-base leading-relaxed text-center" style={{ color: v.bodyText }}>{whoFor}</p>
+        </section>
+      )}
+
+      {/* ── Author bio ── */}
+      {(authorBio || author.photo_url) && (
+        <section className="mb-16 max-w-3xl mx-auto">
+          <Card className="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            {author.photo_url && (
+              <img src={author.photo_url} alt={author.pen_name} className="w-24 h-24 rounded-full object-cover shrink-0" />
             )}
-            <div className="text-center">
-              {content.original_price && (
-                <p className="text-sm line-through" style={{ color: v.mutedText }}>${content.original_price}</p>
-              )}
-              <p className="text-3xl font-bold mb-1" style={{ color: v.headingText }}>
-                ${content.price || "TBA"}
-              </p>
-              {content.price && content.original_price && (
-                <p className="text-sm font-medium mb-4" style={{ color: v.accent }}>
-                  Save ${(Number(content.original_price) - Number(content.price)).toFixed(0)}
-                </p>
-              )}
-              {data.node.id ? (
-                <BuyNowButton
-                  authorNodeId={data.node.id}
-                  authorId={data.author?.id}
-                  fallbackUrl={buyUrl}
-                  label={cfg.cta}
-                  className="w-full rounded-full text-base py-3"
-                  style={{ background: v.accent, color: v.accentText }}
-                />
-              ) : hasStripeUrl ? (
-                <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
-                  <a href={buyUrl} target="_blank" rel="noopener noreferrer">
-                    {cfg.cta} <ArrowRight className="ml-2 h-4 w-4" />
-                  </a>
-                </Button>
-              ) : (
-                <Button className="w-full rounded-full" disabled>
-                  Coming Soon
-                </Button>
-              )}
+            <div>
+              <p className="text-xs uppercase tracking-widest font-bold mb-1" style={{ color: v.accent }}>About the author</p>
+              <h3 className="text-xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>{author.pen_name}</h3>
+              {author.tagline && <p className="text-sm italic mb-2" style={{ color: v.mutedText }}>{author.tagline}</p>}
+              {authorBio && <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{authorBio}</p>}
             </div>
           </Card>
+        </section>
+      )}
+
+      {/* ── Pricing card ── */}
+      <section className="mb-16">
+        <Card className="p-8 max-w-md mx-auto text-center" style={{ background: v.cardBg, borderColor: v.accent, borderWidth: 2 }}>
+          <p className="text-xs uppercase tracking-widest font-bold mb-3" style={{ color: v.accent }}>Get started today</p>
+          {compareAt > 0 && priceNum > 0 && compareAt > priceNum && (
+            <p className="text-base line-through mb-1" style={{ color: v.mutedText }}>{currencySymbol}{compareAt}</p>
+          )}
+          <p className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: v.headingText }}>{priceDisplay}</p>
+          {!isFree && priceNum > 0 && <p className="text-xs mb-5" style={{ color: v.mutedText }}>One-time payment · Instant access</p>}
+          {compareAt > 0 && priceNum > 0 && compareAt > priceNum && (
+            <p className="text-sm font-medium mb-5" style={{ color: v.accent }}>
+              Save {currencySymbol}{(compareAt - priceNum).toFixed(0)}
+            </p>
+          )}
+          <div className="mb-5">{renderCta(ctaLabel)}</div>
+          <ul className="space-y-2 text-sm text-left" style={{ color: v.bodyText }}>
+            {includedItems.map((item, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> {item}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="mb-16 max-w-3xl mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-6 text-center" style={{ color: v.headingText, fontFamily: hFont }}>
+          Frequently asked questions
+        </h2>
+        <div className="space-y-4">
+          {faq.map((f, i) => (
+            <div key={i} className="p-5 rounded-lg" style={{ background: v.cardBg, borderColor: v.cardBorder, borderWidth: 1 }}>
+              <h3 className="font-semibold mb-2" style={{ color: v.headingText }}>{f.q}</h3>
+              <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{f.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Final CTA ── */}
+      <section className="text-center max-w-2xl mx-auto py-10 px-6 rounded-xl" style={{ background: v.cardBg, borderColor: v.accent, borderWidth: 1 }}>
+        <h2 className="text-2xl sm:text-3xl font-bold mb-3" style={{ color: v.headingText, fontFamily: hFont }}>
+          {finalHeadline}
+        </h2>
+        <p className="text-base mb-6" style={{ color: v.mutedText }}>{finalUrgency}</p>
+        <div className="max-w-xs mx-auto">{renderCta(finalCtaLabel)}</div>
+        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · 30-day money-back guarantee</p>
+      </section>
+
+      {/* Sticky mobile CTA */}
+      <div className="md:hidden fixed inset-x-0 bottom-0 z-50 p-3 border-t shadow-lg" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <p className="text-lg font-bold leading-none" style={{ color: v.headingText }}>{priceDisplay}</p>
+            <p className="text-[10px]" style={{ color: v.mutedText }}>{format}</p>
+          </div>
+          <div className="flex-1">{renderCta(ctaLabel)}</div>
         </div>
       </div>
     </div>
@@ -1170,33 +1465,52 @@ function SalesPage({ data, content, v, hFont, bgColor, type }: PageProps & { typ
 
 /* ═══ BP-09 — BOOK SALES PAGE ═══ */
 function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
+  const sp = (content.sales_page && typeof content.sales_page === "object") ? content.sales_page : {};
   const hasAmazon = !!content.amazon_paperback_url || !!content.amazon_url || !!data.book?.amazon_url;
   const hasStripe = !!content.stripe_checkout_url || !!data.node.payment_link;
   const amazonUrl = content.amazon_paperback_url || content.amazon_url || data.book?.amazon_url;
   const stripeUrl = content.stripe_checkout_url || data.node.payment_link;
 
+  const headline = sp.headline || content.headline || data.book?.title || content.title || "Book";
+  const subheadline = sp.subheadline || content.subheadline || data.book?.subtitle || content.subtitle || "";
+  const description = sp.intro_paragraph || content.book_description || content.description || data.book?.description || "";
+  const pain = sp.pain_point || content.pain_point || "";
+  const solution = sp.solution_statement || content.solution_statement || "";
+  const whoFor = content.who_its_for || sp.who_its_for || "";
+  const youGet: string[] = (
+    Array.isArray(content.what_youll_get) ? content.what_youll_get :
+    Array.isArray(sp.what_youll_get) ? sp.what_youll_get : []
+  ).map((it: any) => typeof it === "string" ? it : (it?.name || it?.title || "")).filter(Boolean);
+
+  const priceNum = Number(content.price ?? content.suggested_price_usd) || 0;
+  const currency = (data.node.currency || content.currency || "USD").toUpperCase();
+  const currencySymbol = currency === "USD" ? "$" : currency + " ";
+  const author = data.author || {};
+  const authorBio = author.bio || author.bio_long || "";
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12 sm:py-20">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+    <div className="max-w-5xl mx-auto px-4 py-12 sm:py-20">
+      {/* Hero */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center mb-16">
         <div className="flex justify-center">
           {(data.book?.cover_image_url || content.cover_image_url) && (
             <img
               src={data.book?.cover_image_url || content.cover_image_url}
-              alt={data.book?.title || content.title}
+              alt={data.book?.title || headline}
               className="w-full max-w-[300px] rounded-xl shadow-xl"
             />
           )}
         </div>
         <div>
           <h1 className="text-3xl sm:text-4xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>
-            {data.book?.title || content.title || "Book"}
+            {headline}
           </h1>
-          {(data.book?.subtitle || content.subtitle) && (
-            <p className="text-lg mb-4" style={{ color: v.mutedText }}>{data.book?.subtitle || content.subtitle}</p>
+          {subheadline && (
+            <p className="text-lg mb-4" style={{ color: v.mutedText }}>{subheadline}</p>
           )}
-          <p className="text-base leading-relaxed mb-6" style={{ color: v.bodyText }}>
-            {content.book_description || data.book?.description || ""}
-          </p>
+          {description && (
+            <p className="text-base leading-relaxed mb-6" style={{ color: v.bodyText }}>{description}</p>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3">
             {hasAmazon && (
@@ -1218,7 +1532,7 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
                 authorNodeId={data.node.id}
                 authorId={data.author?.id}
                 fallbackUrl={stripeUrl}
-                label="Buy Direct"
+                label={priceNum > 0 ? `Buy Direct — ${currencySymbol}${priceNum}` : "Buy Direct"}
                 className="flex-1 rounded-full"
                 style={{ background: v.accent, color: v.accentText }}
               />
@@ -1235,6 +1549,59 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
           </div>
         </div>
       </div>
+
+      {/* Pain */}
+      {pain && (
+        <section className="mb-12 max-w-2xl mx-auto text-center">
+          <h2 className="text-2xl font-bold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>Sound familiar?</h2>
+          <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>{pain}</p>
+        </section>
+      )}
+
+      {/* Solution */}
+      {solution && (
+        <section className="mb-12 max-w-2xl mx-auto text-center">
+          <p className="text-lg leading-relaxed" style={{ color: v.bodyText }}>{solution}</p>
+        </section>
+      )}
+
+      {/* What's inside */}
+      {youGet.length > 0 && (
+        <section className="mb-12">
+          <h2 className="text-2xl font-bold mb-6 text-center" style={{ color: v.headingText, fontFamily: hFont }}>What you'll learn</h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl mx-auto">
+            {youGet.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm p-3 rounded-md" style={{ color: v.bodyText, background: v.cardBg }}>
+                <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} /> {item}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {/* Who for */}
+      {whoFor && (
+        <section className="mb-12 max-w-3xl mx-auto p-6 rounded-lg" style={{ background: v.cardBg, borderColor: v.cardBorder, borderWidth: 1 }}>
+          <h2 className="text-xl font-bold mb-3 text-center" style={{ color: v.headingText, fontFamily: hFont }}>Who this book is for</h2>
+          <p className="text-base leading-relaxed text-center" style={{ color: v.bodyText }}>{whoFor}</p>
+        </section>
+      )}
+
+      {/* Author */}
+      {(authorBio || author.photo_url) && (
+        <section className="mb-12 max-w-3xl mx-auto">
+          <Card className="p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            {author.photo_url && (
+              <img src={author.photo_url} alt={author.pen_name} className="w-24 h-24 rounded-full object-cover shrink-0" />
+            )}
+            <div>
+              <p className="text-xs uppercase tracking-widest font-bold mb-1" style={{ color: v.accent }}>About the author</p>
+              <h3 className="text-xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>{author.pen_name}</h3>
+              {authorBio && <p className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{authorBio}</p>}
+            </div>
+          </Card>
+        </section>
+      )}
     </div>
   );
 }
