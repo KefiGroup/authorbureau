@@ -2735,7 +2735,23 @@ function CertificationPage({ data, content, v, hFont, bgColor, onSubmit, email, 
               <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                 <h3 className="text-base font-semibold mb-1" style={{ color: v.accent }}>{yrStr(l?.name || l?.level || l?.title, `Level ${i + 1}`)}</h3>
                 {l?.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{yrStr(l?.description)}</p>}
-                {l?.requirements && <p className="text-xs italic mt-2" style={{ color: v.mutedText }}>{yrInline(l?.requirements)}</p>}
+                {(() => {
+                  const reqs = yrLines(l?.requirements);
+                  if (reqs.length === 0) return null;
+                  return (
+                    <div className="mt-3">
+                      <p className="text-xs uppercase tracking-wider mb-1" style={{ color: v.mutedText }}>Requirements</p>
+                      <ul className="space-y-1">
+                        {reqs.map((r, j) => (
+                          <li key={j} className="flex items-start gap-2">
+                            <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                            <span className="text-sm" style={{ color: v.bodyText }}>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
               </Card>
             ))}
           </div>
@@ -2934,7 +2950,14 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
   const outreach = yrStr(content.outreach_strategy);
   const packages = yrArr(content.sponsorship_packages);
   const deck = content.pitch_deck_outline;
-  const deckText = typeof deck === "string" ? deck : Array.isArray(deck) ? deck.map(yrInline).join("\n") : (deck ? yrInline(deck) : "");
+  const deckSlides = Array.isArray(deck)
+    ? deck.map((s: any, i: number) => ({
+        n: typeof s?.slide === "number" ? s.slide : i + 1,
+        title: yrStr(s?.title || s?.heading, `Slide ${i + 1}`),
+        summary: yrStr(s?.content_summary || s?.summary || s?.description),
+      }))
+    : [];
+  const deckString = typeof deck === "string" ? deck : "";
 
   return (
     <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
@@ -2987,10 +3010,23 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
           <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{outreach}</p>
         </Card>
       )}
-      {deckText && (
+      {(deckSlides.length > 0 || deckString) && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Pitch Deck Outline</p>
-          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{deckText}</p>
+          <p className="text-xs uppercase tracking-wider mb-3" style={{ color: v.mutedText }}>Pitch Deck Outline</p>
+          {deckString && <p className="text-sm whitespace-pre-line mb-3" style={{ color: v.bodyText }}>{deckString}</p>}
+          {deckSlides.length > 0 && (
+            <ol className="space-y-3">
+              {deckSlides.map((s, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="text-xs font-bold shrink-0 w-14 pt-0.5" style={{ color: v.accent }}>SLIDE {s.n}</span>
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold" style={{ color: v.headingText }}>{s.title}</p>
+                    {s.summary && <p className="text-sm" style={{ color: v.bodyText }}>{s.summary}</p>}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
         </Card>
       )}
     </YRLayout>
