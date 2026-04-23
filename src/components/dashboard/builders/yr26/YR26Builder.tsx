@@ -13,6 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your conference concept...", "Building the programme...", "Creating sponsorship packages...", "Finalising your event plan..."];
 const ACT_MSGS = ["Setting up ticket sales...", "Creating sponsorship pipeline...", "Almost ready..."];
@@ -60,6 +61,7 @@ export default function YR26Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's plan your Conference</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Running your own conference positions you as the definitive authority in your field. I'm going to design your complete conference concept based on '{detectedBookTitle || bookTitle || "your book"}' — with an event concept, speaker programme, and ticket pricing. Ready to host your own event?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Conference</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
+          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="concept" className="w-full">
@@ -75,13 +77,13 @@ export default function YR26Builder({ authorId }: Props) {
                   <Card key={i}><CardContent className="pt-6 space-y-2">
                     <div className="flex items-center justify-between flex-wrap gap-2"><h4 className="font-bold">{f.format}</h4><HighTicketPrice price={f.ticket_price_usd} /></div>
                     <div className="flex gap-2 flex-wrap"><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{f.duration}</span><span className="text-xs bg-muted px-2.5 py-1 rounded-full">{f.capacity}</span></div>
-                    <p className="text-sm text-muted-foreground">{f.description}</p>
+                    <SafeText value={f.description} className="text-muted-foreground" />
                   </CardContent></Card>
                 ))}
               </TabsContent>
               <TabsContent value="programme" className="space-y-3 mt-4">
                 {content.programme_outline?.map((s: any, i: number) => (
-                  <Card key={i}><CardContent className="pt-4 pb-4"><div className="flex items-center gap-2"><span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{s.session_type}</span><h4 className="font-bold text-sm">{s.title}</h4></div><p className="text-sm text-muted-foreground mt-1">{s.description}</p></CardContent></Card>
+                  <Card key={i}><CardContent className="pt-4 pb-4"><div className="flex items-center gap-2"><span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{s.session_type}</span><h4 className="font-bold text-sm">{s.title}</h4></div><div className="mt-1"><SafeText value={s.description} className="text-muted-foreground" /></div></CardContent></Card>
                 ))}
               </TabsContent>
               <TabsContent value="sponsors" className="space-y-3 mt-4">
@@ -100,6 +102,7 @@ export default function YR26Builder({ authorId }: Props) {
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
+          </YRSafeBoundary>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
