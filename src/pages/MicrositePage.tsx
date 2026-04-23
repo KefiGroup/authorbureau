@@ -883,6 +883,176 @@ function WebinarPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
   );
 }
 
+/* ═══ BP-06 — WORKBOOK SALES PAGE (rich layout) ═══ */
+function WorkbookSalesPage({
+  data, content, v, hFont, bgColor, cfg, buyUrl, hasStripeUrl,
+}: PageProps & { cfg: { title: string; cta: string; icon: any }; buyUrl: string | null | undefined; hasStripeUrl: boolean }) {
+  const title = content.workbook_title || content.title || data.node.personalised_name || cfg.title;
+  const subtitle = content.workbook_subtitle || content.subtitle;
+  const tagline = content.tagline;
+  const promise = content.transformation_promise;
+  const whoFor = content.who_its_for;
+  const youGet: string[] = Array.isArray(content.what_youll_get) ? content.what_youll_get : [];
+  const sections: any[] = Array.isArray(content.sections) ? content.sections : [];
+  const format = content.format || '8.5 × 11" PDF + Word';
+
+  const isFree = content.pricing_recommendation === "free" || Number(content.suggested_price_usd) === 0;
+  const priceNum = Number(content.suggested_price_usd) || 0;
+  const priceLabel = isFree ? "Free" : (priceNum > 0 ? `$${priceNum}` : null);
+  const deliveryUrl = data.node.delivery_url;
+
+  const renderCta = () => {
+    if (isFree) {
+      return deliveryUrl ? (
+        <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
+          <a href={deliveryUrl} target="_blank" rel="noopener noreferrer">
+            Download Workbook <ArrowRight className="ml-2 h-4 w-4" />
+          </a>
+        </Button>
+      ) : (
+        <Button className="w-full rounded-full" disabled>Available shortly</Button>
+      );
+    }
+    if (priceNum > 0 && data.node.id) {
+      return (
+        <BuyNowButton
+          authorNodeId={data.node.id}
+          authorId={data.author?.id}
+          fallbackUrl={buyUrl}
+          label={cfg.cta}
+          className="w-full rounded-full text-base py-3"
+          style={{ background: v.accent, color: v.accentText }}
+        />
+      );
+    }
+    if (hasStripeUrl) {
+      return (
+        <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
+          <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{cfg.cta} <ArrowRight className="ml-2 h-4 w-4" /></a>
+        </Button>
+      );
+    }
+    return (
+      <Button className="w-full rounded-full" variant="outline" asChild>
+        <a href={`mailto:?subject=Notify me when ${encodeURIComponent(title)} is available`}>Notify me</a>
+      </Button>
+    );
+  };
+
+  const priceDisplay = isFree ? "Free download" : (priceLabel ?? "Pricing coming soon");
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 py-12 sm:py-16 pb-32 md:pb-16">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ background: v.accent + "20", color: v.accent }}>
+          <BookOpen className="h-3.5 w-3.5" /> Companion Workbook
+        </div>
+        <h1 className="text-3xl sm:text-5xl font-bold mb-3" style={{ color: v.headingText, fontFamily: hFont }}>{title}</h1>
+        {subtitle && <p className="text-lg sm:text-xl mb-3" style={{ color: v.mutedText }}>{subtitle}</p>}
+        {tagline && <p className="text-base italic mb-4" style={{ color: v.bodyText }}>{tagline}</p>}
+        {promise && (
+          <div className="mt-6 p-4 rounded-lg border-l-4" style={{ background: v.cardBg, borderColor: v.accent }}>
+            <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: v.accent }}>The Transformation</p>
+            <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>{promise}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Cover + Pricing card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        <div className="flex flex-col items-center">
+          {data.book?.cover_image_url && (
+            <img src={data.book.cover_image_url} alt={data.book.title} className="w-full max-w-[240px] rounded-lg shadow-lg mb-3" />
+          )}
+          {data.book?.title && (
+            <p className="text-xs text-center" style={{ color: v.mutedText }}>
+              Companion to <span className="font-semibold" style={{ color: v.bodyText }}>{data.book.title}</span>
+            </p>
+          )}
+        </div>
+        <Card className="p-6 self-start" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <div className="text-center mb-4">
+            <p className="text-3xl sm:text-4xl font-bold mb-1" style={{ color: v.headingText }}>{priceDisplay}</p>
+            {!isFree && priceLabel && <p className="text-xs" style={{ color: v.mutedText }}>One-time payment · Instant access</p>}
+          </div>
+          {renderCta()}
+          <ul className="mt-5 space-y-2 text-sm" style={{ color: v.bodyText }}>
+            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> {format}</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> Instant download after purchase</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> Print at home or use on screen</li>
+          </ul>
+        </Card>
+      </div>
+
+      {/* What's Inside */}
+      {sections.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: v.headingText, fontFamily: hFont }}>What's Inside</h2>
+          <div className="space-y-5">
+            {sections.map((s, i) => (
+              <div key={i} className="border-l-2 pl-5 py-1" style={{ borderColor: v.accent }}>
+                <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: v.accent }}>
+                  Section {s.number ?? i + 1}
+                </p>
+                <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText }}>{s.title}</h3>
+                {s.description && <p className="text-sm mb-2" style={{ color: v.bodyText }}>{s.description}</p>}
+                {Array.isArray(s.exercises) && s.exercises.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {s.exercises.map((ex: string, j: number) => (
+                      <li key={j} className="flex items-start gap-2 text-sm" style={{ color: v.bodyText }}>
+                        <span style={{ color: v.accent }}>•</span> {ex}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {s.outcome && (
+                  <p className="mt-2 text-sm italic" style={{ color: v.mutedText }}>
+                    After this section, you can: {s.outcome}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* What you'll get */}
+      {youGet.length > 0 && (
+        <div className="mb-12">
+          <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: v.headingText, fontFamily: hFont }}>What You'll Get</h2>
+          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {youGet.map((item, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm" style={{ color: v.bodyText }}>
+                <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} /> {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Who it's for */}
+      {whoFor && (
+        <div className="mb-12 p-6 rounded-lg" style={{ background: v.cardBg, borderColor: v.cardBorder, borderWidth: 1 }}>
+          <h2 className="text-xl sm:text-2xl font-bold mb-3" style={{ color: v.headingText, fontFamily: hFont }}>Who It's For</h2>
+          <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>{whoFor}</p>
+        </div>
+      )}
+
+      {/* Sticky mobile CTA */}
+      <div className="md:hidden fixed inset-x-0 bottom-0 z-50 p-3 border-t shadow-lg" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <p className="text-lg font-bold leading-none" style={{ color: v.headingText }}>{priceDisplay}</p>
+            <p className="text-[10px]" style={{ color: v.mutedText }}>{format}</p>
+          </div>
+          <div className="flex-1">{renderCta()}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ═══ BP-06, BP-07, BP-08 — SALES PAGES ═══ */
 function SalesPage({ data, content, v, hFont, bgColor, type }: PageProps & { type: "workbook" | "home-study" | "special-edition" }) {
   const labels = {
