@@ -115,7 +115,7 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "Module-by-module lessons + assessments",
       "A sales page draft",
     ],
-    livesAt: "Course detail page at /your-slug/course/... — sells via Stripe, fulfilled through your dashboard.",
+    livesAt: "Lives on your course detail page at /your-slug/course/... and sells via Stripe. You can also export it as a Thinkific-ready bundle (CSV + per-day HTML lessons) to upload to Thinkific, Teachable, Kajabi, Podia, or any LMS — and link learners back from those platforms.",
     editLater: "Re-open Home Study Course to edit modules, sales copy, or pricing. Workbook recommended first.",
     estimate: "60–120 seconds",
     prerequisites: ["Your Workbook should exist first so course exercises reference your real workbook content."],
