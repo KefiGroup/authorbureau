@@ -1460,7 +1460,7 @@ function LongFormSalesPage({
         </h2>
         <p className="text-base mb-6" style={{ color: v.mutedText }}>{finalUrgency}</p>
         <div className="max-w-xs mx-auto">{renderCta(finalCtaLabel)}</div>
-        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · 30-day money-back guarantee</p>
+        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · {guaranteeText}</p>
       </section>
 
       {/* Sticky mobile CTA */}
