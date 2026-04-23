@@ -22,6 +22,15 @@ interface WorkbookSection {
   outcome?: string;
 }
 
+export type ToolkitItemType = "canvas" | "planner" | "tracker" | "playbook" | "story" | "vision" | "worksheet";
+
+export interface ToolkitItem {
+  name: string;
+  type?: ToolkitItemType;
+  purpose?: string;
+  linked_section?: number;
+}
+
 interface WorkbookContent {
   workbook_title?: string;
   workbook_subtitle?: string;
@@ -30,7 +39,7 @@ interface WorkbookContent {
   format?: string;
   transformation_promise?: string;
   who_its_for?: string;
-  what_youll_get?: string[];
+  what_youll_get?: Array<string | ToolkitItem>;
   sections?: WorkbookSection[];
 }
 
