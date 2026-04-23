@@ -1,49 +1,61 @@
 
 
-# Quick Answer + Verification Plan — BP-05 through BP-09 Status
+# Plan — Remove `temperature` Override from BP-05 → BP-09 Generators
 
-## Direct answer to your question
+## Diagnosis (verified in code)
 
-Yes — I checked Pauline's `author_nodes` table directly. Here's exactly what's there for the Brand Products category:
+All five Brand-Products generators call `openai/gpt-5` with `temperature: 0.7`, which the Lovable AI Gateway rejects with HTTP 400 for any `gpt-5*` model. Per Core memory: *"NEVER pass `temperature` override on `openai/gpt-5*` calls — only default (1) is supported."* This is exactly the bug we fixed across the 10 YR generators.
 
-| Node | Name | Built? |
-|------|------|--------|
-| BP-01 | Email Marketing | ✅ Yes |
-| BP-02 | Lead Magnet | ✅ Yes |
-| BP-03 | Social Media | ✅ Yes |
-| BP-04 | Author Website | ✅ Yes (via `author_slug`) |
-| **BP-05** | **Book Sales** | ❌ Not built |
-| **BP-06** | **Workbook** | ❌ Not built |
-| **BP-07** | **Audiobook** | ❌ Not built |
-| **BP-08** | **Special Editions** | ❌ Not built |
-| **BP-09** | **Podcast** | ❌ Not built |
+Confirmed offending lines:
 
-So the **correct** count is **4 of 9 built**. The sidebar showing "5 built" is wrong — it's inflated by **+1** because the legacy `courses` draft row is being added to the BP total (and also to the BA total, which is why BA shows 10 instead of 9).
+| Function | File | Line |
+|---|---|---|
+| BP-05 Webinars | `supabase/functions/generate-bp05-webinars/index.ts` | 132 |
+| BP-06 Workbook | `supabase/functions/generate-bp06-online-course/index.ts` | 78 |
+| BP-07 Home Study | `supabase/functions/generate-bp07-coaching/index.ts` | 73 |
+| BP-08 Special Editions | `supabase/functions/generate-bp08-mastermind/index.ts` | (in body) |
+| BP-09 Speaking/Sales Kit | `supabase/functions/generate-bp09-speaking/index.ts` | (in body) |
 
-## Why BP-05 through BP-09 are missing
+User-visible symptoms match: BP-05 surfaces "ABBY hit a snag…" (toast from the AI gateway 400); BP-06 silently returns to Introduction (the generator throws and the builder resets without showing the toast).
 
-This is **not a bug** — Pauline simply hasn't run those builders yet. The data tells the truth:
-- No rows in `author_nodes` with `node_id` in (BP-05, BP-06, BP-07, BP-08, BP-09) for her author profile.
-- No rows in the corresponding product tables (`workbooks`, `audiobooks`, `podcasts`) tied to her either.
-- Those 5 nodes are still in the "Build Now" state in her Brand Products Hub — which is the expected behaviour per `mem://ux/brand-products-hub-semantics`.
+## Fix
 
-So the audit confirms: **she has built 4, has 5 left to go**, and the sidebar should say **"4 built"** — not 5.
+Delete the `temperature: 0.7,` line in each of the five files. Leave everything else (model, messages, `max_completion_tokens` where present) untouched. No prompt changes, no schema changes, no DB changes.
 
-## What this changes about the previously approved fix
+For BP-07 the body becomes:
+```ts
+body: JSON.stringify({
+  model: "openai/gpt-5",
+  messages: [...],
+  max_completion_tokens: 8192,
+}),
+```
 
-Nothing. The fix already approved (replace inflated sums in `AuthorDashboard.tsx` lines 528–545 with `stats.nodesBuilt.brand / .buildAuthority / .yield`) is still exactly the right change and resolves both:
-- BP showing 5 instead of 4 (drops the phantom `courses` row).
-- BA showing 10 instead of 9 (drops the same `courses` row that was being double-counted into BA).
-
-## Verification after the fix ships
-
-1. `/dashboard` sidebar → Brand Products: **4 built** of 9.
-2. `/dashboard` sidebar → Build Authority: **9 built** of 9.
-3. `/dashboard` sidebar → Yield Revenue: **10 built** of 10.
-4. `/brand-products` hub → BP-05 through BP-09 still show "Build Now" (unchanged).
-5. No counter anywhere can exceed its category maximum (9 / 9 / 10).
+Same shape for the other four (without `max_completion_tokens` where it isn't currently present).
 
 ## Files touched
 
-- `src/pages/AuthorDashboard.tsx` — same 3-line replacement as previously approved. No additional files.
+- `supabase/functions/generate-bp05-webinars/index.ts` — remove `temperature: 0.7,`
+- `supabase/functions/generate-bp06-online-course/index.ts` — remove `temperature: 0.7,`
+- `supabase/functions/generate-bp07-coaching/index.ts` — remove `temperature: 0.7,`
+- `supabase/functions/generate-bp08-mastermind/index.ts` — remove `temperature: 0.7,`
+- `supabase/functions/generate-bp09-speaking/index.ts` — remove `temperature: 0.7,`
+
+Five 1-line deletions. All functions auto-redeploy.
+
+## Out of scope
+
+- BP-01 → BP-04, BA-10 → BA-18, YR-19 → YR-28 — already correct.
+- AI prompts, JSON schemas, DB schema, RLS, builders, save-author-node — unchanged.
+- Memory update — Core rule already documents this constraint; no addition needed.
+
+## Verification
+
+1. Open BP-05 Webinars builder → click Generate → completes successfully, returns webinar plan, status flips to `content_ready`.
+2. Open BP-06 Workbook → Generate → returns workbook structure, no silent reset.
+3. Open BP-07 Home Study Course → Generate → returns 3-week plan.
+4. Open BP-08 Special Editions → Generate → returns 3 editions + bundle.
+5. Open BP-09 Speaking/Sales Kit → Generate → returns event types + pricing tiers.
+6. Sidebar Brand Products counter increases as each node hits `content_ready` (e.g. 4 → 9 once all five generate for Pauline).
+7. No more `AI gateway error: 400` entries in `generate-bp0*` edge function logs.
 
