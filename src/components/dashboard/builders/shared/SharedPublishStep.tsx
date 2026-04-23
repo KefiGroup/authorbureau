@@ -85,6 +85,11 @@ export default function SharedPublishStep({
   };
 
   const handlePublish = async () => {
+    // Pre-flight: paid product requires Stripe Connect.
+    if (stripeBlocked) {
+      setStripeModalOpen(true);
+      return;
+    }
     setPublishing(true);
     setPublishError(null);
     try {
@@ -113,11 +118,25 @@ export default function SharedPublishStep({
         toast({ title: `${builderLabel} is live! 🎉` });
       }
     } catch (err: any) {
+      if (err instanceof StripeRequiredError) {
+        setStripeModalOpen(true);
+        setPublishing(false);
+        return;
+      }
       const msg = err?.message || "Publish failed. Please try again.";
       setPublishError(msg);
       toast({ title: "Publish failed", description: msg, variant: "destructive" });
     }
     setPublishing(false);
+  };
+
+  const handleMakeFree = async () => {
+    setStepData(prev => ({
+      ...prev,
+      suggested_price_usd: 0,
+      pricing_recommendation: "free",
+    }));
+    toast({ title: "Switched to free", description: "Click Publish again to go live as a free product." });
   };
 
   const handleExport = () => {
