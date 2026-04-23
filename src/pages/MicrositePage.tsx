@@ -1260,7 +1260,7 @@ function LongFormSalesPage({
     duration ? `${duration} of ${type === "home-study" ? "training" : "content"}` : `Full ${cfg.title.toLowerCase()} access`,
     youGet.length > 0 ? `${youGet.length}+ structured ${type === "home-study" ? "lessons" : "modules"}` : "All core content",
     "Instant digital delivery",
-    "30-day money-back guarantee",
+    guaranteeText,
   ];
 
   return (
