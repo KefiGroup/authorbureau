@@ -42,6 +42,7 @@ import ReaderContentViewer from "./pages/ReaderContentViewer";
 import OnlineCourseViewer from "./pages/OnlineCourseViewer";
 import Methodology from "./pages/Methodology";
 import TermsOfService from "./pages/TermsOfService";
+import ReaderTermsOfSale from "./pages/ReaderTermsOfSale";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import BrandProductsHub from "./pages/BrandProductsHub";
 import BuildAuthorityHub from "./pages/BuildAuthorityHub";
@@ -176,6 +177,7 @@ const AppRoutes = () => (
       <Route path="/sso" element={<SSO />} />
       <Route path="/purchase-success" element={<PurchaseSuccess />} />
       <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/terms-of-sale" element={<ReaderTermsOfSale />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route path="/unsubscribe" element={<UnsubscribePage />} />
       <Route path="/:authorSlug/webinar" element={<WebinarIndexPage />} />
