@@ -62,8 +62,11 @@ Generate the following as a JSON object with these exact keys:
   ],
   "who_its_for": "2-3 sentences describing the ideal reader",
   "what_youll_get": ["Deliverable 1", "Deliverable 2", "Deliverable 3", "Deliverable 4"],
+  "pricing_recommendation": "free" | "paid",
   "suggested_price_usd": 0,
-  "pricing_rationale": "Free lead magnet — captures email addresses and drives readers to your paid products",
+  "free_rationale": "Why FREE works for this workbook: 2-3 sentences covering list-building, top-of-funnel value, and how it onramps readers to the author's paid products.",
+  "paid_rationale": "Why PAID works for this workbook: 2-3 sentences referencing market price bands ($X–$Y) for comparable workbooks in this niche, plus what justifies that price (depth, frameworks, page count).",
+  "pricing_rationale": "Short single-sentence summary of the recommended path",
   "sales_page": {
     "headline": "Sales page headline",
     "subheadline": "Supporting subheadline",
