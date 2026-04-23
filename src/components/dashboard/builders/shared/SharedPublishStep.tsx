@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles,
-  ArrowRight, Settings, BarChart3, Copy, ExternalLink, AlertTriangle, Info,
+  ArrowRight, Settings, BarChart3, Copy, ExternalLink, AlertTriangle, Info, CreditCard,
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
+import { useStripeConnect } from "@/components/dashboard/StripeConnectBanner";
+import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
+import { isPaidNode } from "@/lib/is-paid-node";
+import { StripeRequiredError } from "@/lib/publish-node";
 
 export interface ChecklistItem {
   label: string;
