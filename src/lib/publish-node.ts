@@ -46,6 +46,9 @@ export async function publishNodeToSite(
   let parsed: any = null;
   try { parsed = await res.json(); } catch { /* ignore */ }
   if (!res.ok) {
+    if (res.status === 409 && parsed?.error === "stripe_required") {
+      throw new StripeRequiredError(parsed?.message || "Connect Stripe before publishing paid products.");
+    }
     const msg = parsed?.error || `Publish failed (HTTP ${res.status})`;
     console.error("[publishNodeToSite] failed:", msg, parsed);
     throw new Error(msg);
@@ -53,3 +56,13 @@ export async function publishNodeToSite(
 
   return { micrositeUrl: parsed?.micrositeUrl ?? micrositeUrl };
 }
+
+/** Thrown when the server blocks a paid-product publish because Stripe Connect isn't onboarded. */
+export class StripeRequiredError extends Error {
+  readonly code = "stripe_required" as const;
+  constructor(message: string) {
+    super(message);
+    this.name = "StripeRequiredError";
+  }
+}
+
