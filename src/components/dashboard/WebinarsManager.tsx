@@ -143,8 +143,8 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
         <BookBuilderContextBar backTab="automate" />
-        <div className="w-16 h-16 rounded-2xl bg-purple-50 flex items-center justify-center mx-auto mb-6">
-          <Video className="h-8 w-8 text-purple-600" />
+        <div className="w-16 h-16 rounded-2xl bg-[hsl(var(--builder-bridge)/0.1)] dark:bg-[hsl(var(--builder-bridge)/0.2)] flex items-center justify-center mx-auto mb-6">
+          <Video className="h-8 w-8 text-[hsl(var(--builder-bridge))]" />
         </div>
         <h2 className="font-heading text-2xl font-bold mb-3">Webinars</h2>
         <p className="text-muted-foreground text-sm leading-relaxed max-w-lg mx-auto mb-6">
@@ -274,7 +274,7 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
           <Card key={w.id} className="cursor-pointer hover:shadow-md hover:border-primary/20 transition-all" onClick={() => setSelectedId(w.id)}>
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-lg bg-purple-50 flex items-center justify-center shrink-0"><Video className="h-5 w-5 text-purple-600" /></div>
+                <div className="w-10 h-10 rounded-lg bg-[hsl(var(--builder-bridge)/0.1)] dark:bg-[hsl(var(--builder-bridge)/0.2)] flex items-center justify-center shrink-0"><Video className="h-5 w-5 text-[hsl(var(--builder-bridge))]" /></div>
                 <div>
                   <h3 className="font-medium text-sm">{w.title}</h3>
                   <p className="text-xs text-muted-foreground mt-0.5">

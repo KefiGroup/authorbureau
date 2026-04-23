@@ -399,13 +399,13 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
                 className={`
                   flex items-center gap-1.5 px-4 py-2 rounded-t-lg text-sm font-medium transition-all
                   ${isActive
-                    ? "bg-[#D4AF37] text-[#1E3A5F] font-bold shadow-sm"
-                    : "bg-white text-gray-500 hover:text-[#D4AF37]"
+                    ? "bg-secondary text-secondary-foreground font-bold shadow-sm"
+                    : "bg-card text-muted-foreground hover:text-secondary"
                   }
                   ${isAbby && !isActive ? "animate-pulse-subtle" : ""}
                 `}
               >
-                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-[#1E3A5F]" : isAbby ? "text-[#D4AF37]" : ""}`} />
+                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-secondary-foreground" : isAbby ? "text-secondary" : ""}`} />
                 {tab.label}
               </button>
             );

@@ -263,7 +263,7 @@ export default function SmartProductCard({
             </Button>
           )}
           {state === "in-progress" && (
-            <Button size="sm" className="w-full text-xs bg-blue-600 text-white hover:bg-blue-700" onClick={onContinue}>
+            <Button size="sm" className="w-full text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onContinue}>
               <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
             </Button>
           )}
