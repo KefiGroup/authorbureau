@@ -59,6 +59,16 @@ export default function BP07Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
+
+      // If a generation is already running in the background (user navigated
+      // away and came back), reattach to it instead of resetting to step 0.
+      const inflight = getGeneration<any>(authorId, "BP-07");
+      if (inflight) {
+        setStep(1);
+        attachToGeneration(inflight);
+        return;
+      }
+
       const draft = await loadBuilderDraft(authorId, "BP-07");
       const cj = draft.content as any;
       if (cj && (cj?.programme_title || cj?.study_weeks)) {
@@ -75,6 +85,7 @@ export default function BP07Builder({ authorId }: Props) {
         if (draft.isLive) setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorId]);
 
   useEffect(() => {
