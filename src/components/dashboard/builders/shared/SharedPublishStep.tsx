@@ -55,6 +55,9 @@ export default function SharedPublishStep({
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+
+  const { onboarding_complete: stripeReady, loading: stripeLoading } = useStripeConnect();
 
   // Derive persisted status from stepData
   const savedStatus = stepData.publishStatus as string | undefined;
@@ -62,7 +65,14 @@ export default function SharedPublishStep({
   const isLive = savedStatus === "live";
   const isPendingGhl = savedStatus === "published_pending_ghl";
 
-  const checks = checklist.map(c => ({ label: c.label, done: c.check(stepData) }));
+  // Detect paid product from stepData (works for any builder shape).
+  const isPaid = isPaidNode(stepData);
+  const stripeBlocked = isPaid && !stripeReady;
+
+  const baseChecks = checklist.map(c => ({ label: c.label, done: c.check(stepData) }));
+  const checks = isPaid
+    ? [...baseChecks, { label: "Stripe payments connected", done: stripeReady }]
+    : baseChecks;
   const allReady = checks.every(c => c.done);
   const proj = revenue.calculate(stepData);
 
