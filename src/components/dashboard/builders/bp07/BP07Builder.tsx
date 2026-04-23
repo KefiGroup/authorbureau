@@ -107,7 +107,7 @@ export default function BP07Builder({ authorId }: Props) {
       console.error("[BP-07] generate failed", e);
       setError(msg);
       setStep(0);
-      toast.error(msg, { duration: 12000, important: true });
+      toast.error(msg, { duration: 12000 });
     }
   };
 
