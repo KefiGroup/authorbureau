@@ -2735,7 +2735,23 @@ function CertificationPage({ data, content, v, hFont, bgColor, onSubmit, email, 
               <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                 <h3 className="text-base font-semibold mb-1" style={{ color: v.accent }}>{yrStr(l?.name || l?.level || l?.title, `Level ${i + 1}`)}</h3>
                 {l?.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{yrStr(l?.description)}</p>}
-                {l?.requirements && <p className="text-xs italic mt-2" style={{ color: v.mutedText }}>{yrInline(l?.requirements)}</p>}
+                {(() => {
+                  const reqs = yrLines(l?.requirements);
+                  if (reqs.length === 0) return null;
+                  return (
+                    <div className="mt-3">
+                      <p className="text-xs uppercase tracking-wider mb-1" style={{ color: v.mutedText }}>Requirements</p>
+                      <ul className="space-y-1">
+                        {reqs.map((r, j) => (
+                          <li key={j} className="flex items-start gap-2">
+                            <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                            <span className="text-sm" style={{ color: v.bodyText }}>{r}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
               </Card>
             ))}
           </div>
