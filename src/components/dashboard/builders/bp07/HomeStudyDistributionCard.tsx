@@ -71,7 +71,7 @@ export default function HomeStudyDistributionCard({ channels, content, authorSlu
                     <li>Add your Thinkific course URL back here so buyers receive it in their confirmation email.</li>
                   </ol>
                   <div className="flex flex-wrap gap-2 pt-1">
-                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => exportNodeAsPDF({ content, nodeName: "Home Study Course", bookTitle: content?.programme_title || "Home Study Course", authorName: "" })}>
+                    <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => downloadBuilderPackage({ content, nodeName: "Home Study Course", bookTitle: content?.programme_title || "Home Study Course", authorName: "" })}>
                       <Download className="h-3 w-3 mr-1" /> Download package
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => window.open("https://www.thinkific.com/", "_blank", "noopener")}>
