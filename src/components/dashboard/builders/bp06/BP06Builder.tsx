@@ -485,6 +485,8 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="sales" className="space-y-4 mt-4">
           <Card><CardContent className="pt-6 space-y-4">
             <div className="rounded-lg bg-muted/50 p-6 text-center space-y-3">
               <h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2>
