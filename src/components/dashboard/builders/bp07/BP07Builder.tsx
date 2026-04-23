@@ -11,8 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, GraduationCap, LayoutList, DollarSign, FileText } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, GraduationCap, LayoutList, DollarSign, FileText, Share2, GraduationCap as PortalIcon, ExternalLink, FileDown } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
