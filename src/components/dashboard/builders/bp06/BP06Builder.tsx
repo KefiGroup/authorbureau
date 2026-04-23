@@ -73,7 +73,8 @@ export default function BP06Builder({ authorId }: Props) {
       // Hydrate from author_nodes first; fall back to draft store so half-edited drafts survive a refresh.
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-06").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.status === "live" ? { ...node.content_json, activated: true } : node.content_json);
+        const baseContent = node.content_json as Record<string, unknown>;
+        setContent(node.status === "live" ? { ...baseContent, activated: true } : baseContent);
         setStep(node.status === "live" ? 3 : 2);
         return;
       }
