@@ -20,6 +20,7 @@ import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWork
 import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's target audience and events...", "Designing your event sales strategy...", "Creating pricing tiers and materials list...", "Building your post-event follow-up sequence...", "Finalising your Book Sales Kit..."];
@@ -54,17 +55,14 @@ export default function BP09Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status, current_step, activated_at").eq("author_id", authorId).eq("node_id", "BP-09").maybeSingle();
-      if (node?.content_json) {
-        const cj = node.content_json as any;
-        if (cj && Object.keys(cj).length > 0) {
-          setContent(cj);
-          setPriceOverride(cj?.suggested_price_usd || null);
-          const isLive = node.status === "live" || !!node.activated_at;
-          const savedStep = Number(cj?._currentStep ?? node.current_step ?? (isLive ? 3 : 2));
-          setStep(Math.min(3, Math.max(2, savedStep)));
-          if (isLive) setContent((p: any) => ({ ...p, activated: true }));
-        }
+      const draft = await loadBuilderDraft(authorId, "BP-09");
+      const cj = draft.content as any;
+      if (cj && Object.keys(cj).length > 0) {
+        setContent(cj);
+        setPriceOverride(cj?.suggested_price_usd || null);
+        const savedStep = Number(cj?._currentStep ?? draft.currentStep ?? (draft.isLive ? 3 : 2));
+        setStep(Math.min(3, Math.max(2, savedStep)));
+        if (draft.isLive) setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
   }, [authorId]);
@@ -109,9 +107,13 @@ export default function BP09Builder({ authorId }: Props) {
       setContent(newContent);
       setPriceOverride(data.content?.suggested_price_usd || null);
       if (authorId) {
-        await supabase.from("author_nodes")
-          .update({ content_json: newContent, current_step: 2 })
-          .eq("author_id", authorId).eq("node_id", "BP-09");
+        await autosaveBuilderDraft({
+          authorId,
+          nodeId: "BP-09",
+          nodeName: "Book Sales (Events)",
+          content: newContent,
+          currentStep: 2,
+        });
       }
       setStep(2);
     } catch (e: any) {
@@ -128,14 +130,23 @@ export default function BP09Builder({ authorId }: Props) {
     try {
       if (content && authorId) {
         const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, _currentStep: 3 };
-        await supabase.from("author_nodes")
-          .update({ content_json: merged, current_step: 3 })
-          .eq("author_id", authorId).eq("node_id", "BP-09");
+        await autosaveBuilderDraft({
+          authorId,
+          nodeId: "BP-09",
+          nodeName: "Book Sales (Events)",
+          content: merged,
+          currentStep: 3,
+        });
         setContent(merged);
       }
       await publishNodeToSite(authorId!, "BP-09", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
-    } catch (e: any) { setError(e.message); setStep(2); }
+    } catch (e: any) {
+      const msg = toAbbyError(e?.message || "Publish failed");
+      setError(msg);
+      toast.error(msg, { duration: 12000 });
+      setStep(2);
+    }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;

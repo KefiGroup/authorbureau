@@ -21,6 +21,7 @@ import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSect
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Analyzing your book for a self-paced study programme...", "Designing a 21-day reading and exercise schedule...", "Mapping chapters to daily themes and lessons...", "Creating practical exercises and reflection prompts...", "Finalising your Home Study Programme..."];
@@ -57,25 +58,20 @@ export default function BP07Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status, current_step, activated_at").eq("author_id", authorId).eq("node_id", "BP-07").maybeSingle();
-      if (node?.content_json) {
-        const cj = node.content_json as any;
-        // Only restore if we actually have generated content (programme_title is the canonical signal)
-        if (cj?.programme_title || cj?.study_weeks) {
-          setContent(cj);
-          setPriceOverride(cj?.suggested_price_usd || null);
-          const dc: string[] = Array.isArray(cj?.delivery_channels) ? cj.delivery_channels : ["readers_bureau"];
-          setChannels({
-            readers_bureau: true,
-            thinkific: dc.includes("thinkific"),
-            email_pdf: dc.includes("email_pdf"),
-          });
-          const isLive = node.status === "live" || !!node.activated_at;
-          const savedStep = Number(cj?._currentStep ?? node.current_step ?? (isLive ? 3 : 2));
-          // Clamp to valid range; never drop back to Introduction (0) or Generating (1) once content exists
-          setStep(Math.min(3, Math.max(2, savedStep)));
-          if (isLive) setContent((p: any) => ({ ...p, activated: true }));
-        }
+      const draft = await loadBuilderDraft(authorId, "BP-07");
+      const cj = draft.content as any;
+      if (cj && (cj?.programme_title || cj?.study_weeks)) {
+        setContent(cj);
+        setPriceOverride(cj?.suggested_price_usd || null);
+        const dc: string[] = Array.isArray(cj?.delivery_channels) ? cj.delivery_channels : ["readers_bureau"];
+        setChannels({
+          readers_bureau: true,
+          thinkific: dc.includes("thinkific"),
+          email_pdf: dc.includes("email_pdf"),
+        });
+        const savedStep = Number(cj?._currentStep ?? draft.currentStep ?? (draft.isLive ? 3 : 2));
+        setStep(Math.min(3, Math.max(2, savedStep)));
+        if (draft.isLive) setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
   }, [authorId]);
@@ -120,9 +116,13 @@ export default function BP07Builder({ authorId }: Props) {
       setContent(newContent);
       setPriceOverride(data.content?.suggested_price_usd || null);
       if (authorId) {
-        await supabase.from("author_nodes")
-          .update({ content_json: newContent, current_step: 2 })
-          .eq("author_id", authorId).eq("node_id", "BP-07");
+        await autosaveBuilderDraft({
+          authorId,
+          nodeId: "BP-07",
+          nodeName: "Home Study Course",
+          content: newContent,
+          currentStep: 2,
+        });
       }
       setStep(2);
     } catch (e: any) {
@@ -142,7 +142,13 @@ export default function BP07Builder({ authorId }: Props) {
     const updated = { ...content, delivery_channels: dc };
     setContent(updated);
     try {
-      await supabase.from("author_nodes").update({ content_json: updated }).eq("author_id", authorId).eq("node_id", "BP-07");
+      await autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-07",
+        nodeName: "Home Study Course",
+        content: updated,
+        currentStep: Number(updated?._currentStep ?? 2),
+      });
       if (next.thinkific && !content?.thinkific_url) {
         // Provision a Thinkific URL once when first enabled
         const token = await getActiveToken();
@@ -162,18 +168,27 @@ export default function BP07Builder({ authorId }: Props) {
   const handlePublish = async () => {
     setStep(3); setError(null);
     try {
-      // Persist current price + channel selection + step before publishing
+      // Persist current price + channel selection + step BEFORE publishing so the draft row exists
       if (content && authorId) {
         const dc = ["readers_bureau", ...(channels.thinkific ? ["thinkific"] : []), ...(channels.email_pdf ? ["email_pdf"] : [])];
         const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, delivery_channels: dc, _currentStep: 3 };
-        await supabase.from("author_nodes")
-          .update({ content_json: merged, current_step: 3 })
-          .eq("author_id", authorId).eq("node_id", "BP-07");
+        await autosaveBuilderDraft({
+          authorId,
+          nodeId: "BP-07",
+          nodeName: "Home Study Course",
+          content: merged,
+          currentStep: 3,
+        });
         setContent(merged);
       }
       await publishNodeToSite(authorId!, "BP-07", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
-    } catch (e: any) { setError(e.message); setStep(2); }
+    } catch (e: any) {
+      const msg = toAbbyError(e?.message || "Publish failed");
+      setError(msg);
+      toast.error(msg, { duration: 12000 });
+      setStep(2);
+    }
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
