@@ -102,8 +102,41 @@ export default function YR27Builder({ authorId }: Props) {
               </TabsContent>
               <TabsContent value="settings" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4">
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Campaign Goal (USD)</p><Input type="number" defaultValue={content.campaign_goal_usd} className="max-w-xs" /></div>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Campaign Duration (days)</p><Input type="number" defaultValue={content.campaign_duration_days} className="max-w-xs" /></div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Charity / Beneficiary Name</p>
+                    <Input
+                      value={content.charity_name || ""}
+                      placeholder="e.g. Make-A-Wish Foundation"
+                      onChange={(e) => {
+                        const next = { ...content, charity_name: e.target.value };
+                        setContent(next);
+                        if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "YR-27", nodeName: "Fund Raising", content: next, currentStep: 2 });
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Shown on the donate button: "Donate to {`{this name}`}"</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">External Donation Link (URL)</p>
+                    <Input
+                      type="url"
+                      value={content.external_donation_url || ""}
+                      placeholder="https://www.gofundme.com/your-campaign"
+                      onChange={(e) => {
+                        const next = { ...content, external_donation_url: e.target.value };
+                        setContent(next);
+                        if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "YR-27", nodeName: "Fund Raising", content: next, currentStep: 2 });
+                      }}
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">Donations go directly to your charity. Authors Bureau does not collect or hold donation funds — paste the charity's own donation page (GoFundMe, PayPal Giving Fund, the charity's website, etc.).</p>
+                  </div>
+                  <div className="pt-2 border-t">
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Campaign Goal (USD, display only)</p>
+                    <Input type="number" defaultValue={content.campaign_goal_usd} className="max-w-xs" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground mb-1">Campaign Duration (days, display only)</p>
+                    <Input type="number" defaultValue={content.campaign_duration_days} className="max-w-xs" />
+                  </div>
                 </CardContent></Card>
               </TabsContent>
             </Tabs>

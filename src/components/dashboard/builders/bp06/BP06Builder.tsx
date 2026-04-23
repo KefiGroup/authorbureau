@@ -440,6 +440,50 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
               </div>
             )}
           </CardContent></Card>
+
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div>
+                <h3 className="font-bold text-sm">Sell on Amazon too (optional)</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Publish your workbook on Amazon KDP first (kdp.amazon.com), then paste the
+                  product URLs here. Amazon handles printing and worldwide shipping at no
+                  upfront cost. You earn the Amazon royalty directly — Authors Bureau takes nothing.
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="amz-paperback" className="text-xs font-semibold text-muted-foreground">Amazon Paperback URL</Label>
+                <Input
+                  id="amz-paperback"
+                  type="url"
+                  placeholder="https://www.amazon.com/dp/..."
+                  value={content.amazon_paperback_url || ""}
+                  onChange={(e) => {
+                    const next = { ...content, amazon_paperback_url: e.target.value };
+                    setContent(next);
+                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+                  }}
+                />
+              </div>
+              <div>
+                <Label htmlFor="amz-kindle" className="text-xs font-semibold text-muted-foreground">Amazon Kindle URL</Label>
+                <Input
+                  id="amz-kindle"
+                  type="url"
+                  placeholder="https://www.amazon.com/dp/..."
+                  value={content.amazon_kindle_url || ""}
+                  onChange={(e) => {
+                    const next = { ...content, amazon_kindle_url: e.target.value };
+                    setContent(next);
+                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+                  }}
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Leave blank to show only the "Buy Direct" option on your reader page.
+              </p>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="sales" className="space-y-4 mt-4">

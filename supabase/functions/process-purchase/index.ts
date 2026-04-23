@@ -26,7 +26,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-const DEFAULT_PLATFORM_FEE_RATE = 0.05;
+const DEFAULT_PLATFORM_FEE_RATE = 0.08;
 
 type Admin = ReturnType<typeof createClient>;
 

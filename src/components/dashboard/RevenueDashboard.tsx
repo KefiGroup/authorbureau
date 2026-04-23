@@ -85,7 +85,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const hasAccess = isPremium || isAdmin;
   const hasRevenue = false; // TODO: wire to real transactions
   const grossSales = 0;
-  const platformFee = grossSales * 0.05;
+  const platformFee = grossSales * 0.08;
   const stripeFees = grossSales > 0 ? grossSales * 0.029 + 0.3 : 0;
   const earnings = grossSales - platformFee - stripeFees;
 

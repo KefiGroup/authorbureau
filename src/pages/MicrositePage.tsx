@@ -229,7 +229,7 @@ export default function MicrositePage() {
       {resolvedNodeId === "YR-24" && <RetreatPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "YR-25" && <CertificationPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "YR-26" && <ConferencePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
-      {resolvedNodeId === "YR-27" && <FundraisingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "YR-27" && <FundraisingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {resolvedNodeId === "YR-28" && <SponsorsPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
       {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-10", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18", "YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"].includes(resolvedNodeId!) && (
@@ -903,6 +903,9 @@ function WorkbookSalesPage({
   const priceLabel = isFree ? "Free" : (priceNum > 0 ? `$${priceNum}` : null);
   const deliveryUrl = data.node.delivery_url;
 
+  const amazonPaperbackUrl = content.amazon_paperback_url || content.amazon_url || data.book?.amazon_url;
+  const amazonKindleUrl = content.amazon_kindle_url;
+
   const renderCta = () => {
     if (isFree) {
       return deliveryUrl ? (
@@ -915,29 +918,52 @@ function WorkbookSalesPage({
         <Button className="w-full rounded-full" disabled>Available shortly</Button>
       );
     }
-    if (priceNum > 0 && data.node.id) {
-      return (
-        <BuyNowButton
-          authorNodeId={data.node.id}
-          authorId={data.author?.id}
-          fallbackUrl={buyUrl}
-          label={cfg.cta}
-          className="w-full rounded-full text-base py-3"
-          style={{ background: v.accent, color: v.accentText }}
-        />
-      );
-    }
-    if (hasStripeUrl) {
-      return (
-        <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
-          <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{cfg.cta} <ArrowRight className="ml-2 h-4 w-4" /></a>
-        </Button>
-      );
-    }
-    return (
-      <Button className="w-full rounded-full" variant="outline" asChild>
-        <a href={`mailto:?subject=Notify me when ${encodeURIComponent(title)} is available`}>Notify me</a>
+    const directButton = priceNum > 0 && data.node.id ? (
+      <BuyNowButton
+        authorNodeId={data.node.id}
+        authorId={data.author?.id}
+        fallbackUrl={buyUrl}
+        label={`Buy Direct (PDF) — $${priceNum}`}
+        className="w-full rounded-full text-base py-3"
+        style={{ background: v.accent, color: v.accentText }}
+      />
+    ) : hasStripeUrl ? (
+      <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
+        <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{cfg.cta} <ArrowRight className="ml-2 h-4 w-4" /></a>
       </Button>
+    ) : null;
+    return (
+      <div className="space-y-2">
+        {directButton}
+        {directButton && (
+          <p className="text-[11px] text-center" style={{ color: v.mutedText }}>Instant download · PDF</p>
+        )}
+        {amazonPaperbackUrl && (
+          <Button asChild variant="outline" className="w-full rounded-full text-base py-3">
+            <a href={amazonPaperbackUrl} target="_blank" rel="noopener noreferrer">
+              Buy on Amazon (Paperback) <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
+        )}
+        {amazonPaperbackUrl && (
+          <p className="text-[11px] text-center" style={{ color: v.mutedText }}>Ships worldwide</p>
+        )}
+        {amazonKindleUrl && (
+          <Button asChild variant="outline" className="w-full rounded-full text-base py-3">
+            <a href={amazonKindleUrl} target="_blank" rel="noopener noreferrer">
+              Buy on Amazon (Kindle) <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
+        )}
+        {amazonKindleUrl && (
+          <p className="text-[11px] text-center" style={{ color: v.mutedText }}>Read instantly on Kindle</p>
+        )}
+        {!directButton && !amazonPaperbackUrl && !amazonKindleUrl && (
+          <Button className="w-full rounded-full" variant="outline" asChild>
+            <a href={`mailto:?subject=Notify me when ${encodeURIComponent(title)} is available`}>Notify me</a>
+          </Button>
+        )}
+      </div>
     );
   };
 
@@ -1144,9 +1170,9 @@ function SalesPage({ data, content, v, hFont, bgColor, type }: PageProps & { typ
 
 /* ═══ BP-09 — BOOK SALES PAGE ═══ */
 function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
-  const hasAmazon = !!content.amazon_url || !!data.book?.amazon_url;
+  const hasAmazon = !!content.amazon_paperback_url || !!content.amazon_url || !!data.book?.amazon_url;
   const hasStripe = !!content.stripe_checkout_url || !!data.node.payment_link;
-  const amazonUrl = content.amazon_url || data.book?.amazon_url;
+  const amazonUrl = content.amazon_paperback_url || content.amazon_url || data.book?.amazon_url;
   const stripeUrl = content.stripe_checkout_url || data.node.payment_link;
 
   return (
@@ -1176,7 +1202,14 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
             {hasAmazon && (
               <Button className="flex-1 rounded-full" style={{ background: v.accent, color: v.accentText }} asChild>
                 <a href={amazonUrl} target="_blank" rel="noopener noreferrer">
-                  Buy on Amazon <ExternalLink className="ml-2 h-4 w-4" />
+                  Buy on Amazon (Paperback) <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            )}
+            {content.amazon_kindle_url && (
+              <Button className="flex-1 rounded-full" variant="outline" asChild>
+                <a href={content.amazon_kindle_url} target="_blank" rel="noopener noreferrer">
+                  Buy on Amazon (Kindle) <ExternalLink className="ml-2 h-4 w-4" />
                 </a>
               </Button>
             )}
@@ -3030,7 +3063,7 @@ function ConferencePage({ data, content, v, hFont, bgColor, onSubmit, email, set
 }
 
 /* ═══ YR-27 — FUNDRAISING ═══ */
-function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
   const title = yrStr(content.campaign_title, data.node.personalised_name || NODE_NAMES["YR-27"] || "Fundraising Campaign");
   const tagline = yrStr(content.tagline);
   const impact = yrStr(content.impact_statement);
@@ -3039,29 +3072,37 @@ function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, se
   const days = content.campaign_duration_days;
   const tiers = yrArr(content.donation_tiers);
   const commsPlan = yrStr(content.donor_communication_plan);
-  const paymentLink = yrStr(data.node.payment_link);
+  const charityName = yrStr(content.charity_name);
+  const externalUrl = yrStr(content.external_donation_url) || yrStr(data.node.payment_link);
+  const ctaLabel = charityName ? `Donate to ${charityName}` : "Donate Now";
+
+  const RightCard = (
+    <Card className="p-6 space-y-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+      <div className="text-center space-y-2">
+        <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Support the Cause</p>
+        <h3 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>
+          {charityName ? `100% to ${charityName}` : "Help us reach our goal"}
+        </h3>
+      </div>
+      {externalUrl ? (
+        <Button asChild className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }}>
+          <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+            {ctaLabel} <ExternalLink className="ml-2 h-4 w-4" />
+          </a>
+        </Button>
+      ) : (
+        <Button className="w-full rounded-full" disabled>Campaign coming soon</Button>
+      )}
+      <p className="text-[11px] text-center leading-relaxed" style={{ color: v.mutedText }}>
+        {externalUrl
+          ? `Donations go directly to ${charityName || "the charity"}. Authors Bureau does not process or hold donation funds.`
+          : "Campaign coming soon — donation link will be added shortly."}
+      </p>
+    </Card>
+  );
 
   return (
-    <YRLayout title={title} tagline={tagline} intro={impact} v={v} hFont={hFont}
-      right={<YRRightCard
-        actionType="donate"
-        paymentLink={paymentLink}
-        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof tiers[0]?.amount_usd === "number" ? tiers[0].amount_usd : null)}
-        commerceNodeRowId={data.node.id}
-        commerceAuthorId={data.author?.id}
-        commerceLabel="Donate Now"
-        ctaLabel={paymentLink ? "Donate Now" : "Pledge Support"}
-        inquiryHeading="Support This Campaign"
-        inquiryIntro="Every contribution moves the needle. Tell us how you'd like to give."
-        messagePlaceholder="Amount you're considering, in honour of someone, anonymous, etc."
-        selectedOfferLabel={tiers[0] ? yrStr(tiers[0]?.name || tiers[0]?.tier || tiers[0]?.title) : undefined}
-        selectedOfferPrice={typeof tiers[0]?.amount_usd === "number" ? tiers[0].amount_usd : (typeof tiers[0]?.amount === "number" ? tiers[0].amount : undefined)}
-        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
-        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
-        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
-        submitting={submitting} submitted={submitted}
-      />}
-    >
+    <YRLayout title={title} tagline={tagline} intro={impact} v={v} hFont={hFont} right={RightCard}>
       {(goal != null || days != null) && (
         <div className="grid grid-cols-2 gap-3">
           {goal != null && (
@@ -3105,6 +3146,11 @@ function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, se
               );
             })}
           </div>
+          {externalUrl && (
+            <p className="text-xs text-center mt-2" style={{ color: v.mutedText }}>
+              All tiers donate via the same link → opens {charityName || "the charity's"} donation page in a new tab.
+            </p>
+          )}
         </section>
       )}
       {commsPlan && (

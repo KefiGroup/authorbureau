@@ -191,6 +191,18 @@ export default function BP09Builder({ authorId }: Props) {
                   <div className="flex items-center justify-center gap-2"><span className="text-3xl font-bold">$</span><Input type="number" className="w-32 text-3xl font-bold text-center" value={priceOverride ?? content.suggested_price_usd ?? 19.99} onChange={(e) => setPriceOverride(Number(e.target.value))} /></div>
                   <p className="text-sm text-muted-foreground">{content.pricing_rationale}</p>
                 </CardContent></Card>
+                <Card><CardContent className="pt-6 space-y-3 text-left">
+                  <h4 className="font-bold text-sm">Sell on Amazon too (optional)</h4>
+                  <p className="text-xs text-muted-foreground">Publish on Amazon KDP first, then paste the URLs here. Amazon handles printing & shipping; you earn the Amazon royalty directly. Authors Bureau takes nothing on Amazon sales.</p>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Amazon Paperback URL</label>
+                    <Input type="url" placeholder="https://www.amazon.com/dp/..." value={content.amazon_paperback_url || content.amazon_url || ""} onChange={(e) => setContent({ ...content, amazon_paperback_url: e.target.value })} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-muted-foreground">Amazon Kindle URL</label>
+                    <Input type="url" placeholder="https://www.amazon.com/dp/..." value={content.amazon_kindle_url || ""} onChange={(e) => setContent({ ...content, amazon_kindle_url: e.target.value })} />
+                  </div>
+                </CardContent></Card>
               </TabsContent>
               <TabsContent value="materials" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-3">

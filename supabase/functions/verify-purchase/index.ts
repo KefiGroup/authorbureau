@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
-const DEFAULT_PLATFORM_FEE_PERCENT = 0.05; // fallback if platform_config row missing
+const DEFAULT_PLATFORM_FEE_PERCENT = 0.08; // fallback if platform_config row missing
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {

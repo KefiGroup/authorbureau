@@ -189,7 +189,7 @@ export function analyzePortfolio(
   }
 
   const projected = Math.round((totalLow + totalHigh) / 2);
-  const platformFees = Math.round(projected * 0.05);
+  const platformFees = Math.round(projected * 0.08);
   const netMonthly = projected - platformFees;
 
   const filledPositions = [...new Set(products.map(p => p.valueLadderPosition))];
