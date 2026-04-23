@@ -1,195 +1,121 @@
 
 
-# Plan — Platform-collected payments + automated payouts (Wise + PayPal)
+# Plan — Per-node distribution + Stripe Connect Express payouts (8%)
 
-## Decisions locked in
-- **Merchant of Record**: For Multiplier Pte Ltd (Authors Bureau), Singapore. All checkouts hit AB's existing Stripe.
-- **Currency**: charge readers in **USD**, pay authors in their local currency (Wise FX) or PayPal.
-- **Payout cadence**: monthly, 1st of month, 09:00 SGT.
-- **Minimum payout**: US$50. Below threshold rolls to next month.
-- **Tax**: authors self-declare. No W-9/W-8. AB issues an annual earnings statement only.
-- **Payout fees**: deducted from author balance (transparent line item), not absorbed by AB.
-- **Phase 1**: Wise + PayPal *batch CSV* generated automatically, admin clicks "Mark as paid" after uploading. **Phase 2 (next sprint)**: full Wise/PayPal API auto-execution.
+## Audit of what already exists vs. what's missing
 
-## Architecture
+### Per-node delivery & purchase flow
 
-```text
-Reader checkout
-   └─ create-checkout-session → AB Stripe (USD) → success
-        └─ verify-purchase / process-purchase webhook
-             └─ purchases row + author_earnings row (gross, fee, net)
-
-Monthly cron (1st @ 09:00 SGT)
-   └─ run-monthly-payouts edge fn
-        ├─ Aggregate author_earnings WHERE paid_out=false, period=last month
-        ├─ Per author: net ≥ $50 → create author_payouts row (status=queued)
-        ├─ Generate Wise CSV + PayPal CSV → upload to storage
-        ├─ Email admin: "X payouts ready, $Y total" + CSV links
-        └─ Email each author: "Your $Z payout is being processed"
-
-Admin marks payouts paid (Phase 1)
-   └─ Admin dashboard → Payouts → bulk "Mark paid" → status=paid, paid_at=now
-        └─ Email author: "Payout sent via Wise/PayPal, ref ABC123"
-
-Annual (Jan 1)
-   └─ generate-annual-statements cron
-        └─ Per author: PDF earnings statement → storage → email link
-```
-
-## Database changes
-
-```sql
--- 1. Author payout settings (extend existing)
-ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS payout_method text;        -- 'wise' | 'paypal'
-ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS wise_recipient jsonb;      -- {legal_name, country, bank_account|wise_email}
-ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS paypal_email text;
-ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS tax_self_declared_at timestamptz;
-ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS minimum_payout_usd numeric DEFAULT 50;
-
--- 2. Per-sale earnings ledger (the source of truth for what AB owes)
-CREATE TABLE author_earnings (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id uuid NOT NULL REFERENCES author_profiles(id) ON DELETE RESTRICT,
-  purchase_id uuid NOT NULL REFERENCES purchases(id) ON DELETE RESTRICT,
-  gross_usd numeric NOT NULL,
-  stripe_fee_usd numeric NOT NULL,
-  platform_fee_usd numeric NOT NULL,         -- 5%
-  net_usd numeric NOT NULL,                  -- gross - stripe - platform
-  earned_at timestamptz NOT NULL DEFAULT now(),
-  payout_id uuid REFERENCES author_payouts(id),
-  paid_out boolean NOT NULL DEFAULT false,
-  refunded boolean NOT NULL DEFAULT false,
-  created_at timestamptz DEFAULT now()
-);
-CREATE INDEX ON author_earnings (author_id, paid_out);
-
--- 3. Monthly payout batches
-CREATE TABLE author_payouts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id uuid NOT NULL REFERENCES author_profiles(id),
-  period_start date NOT NULL,                -- e.g. 2026-03-01
-  period_end date NOT NULL,                  -- 2026-03-31
-  gross_usd numeric NOT NULL,
-  total_stripe_fees_usd numeric NOT NULL,
-  total_platform_fees_usd numeric NOT NULL,
-  payout_fee_usd numeric NOT NULL DEFAULT 0, -- Wise/PayPal fee
-  net_usd numeric NOT NULL,                  -- what author actually receives
-  payout_method text NOT NULL,               -- 'wise' | 'paypal'
-  status text NOT NULL DEFAULT 'queued',     -- queued | processing | paid | failed | held
-  external_reference text,                   -- Wise/PayPal txn ID
-  csv_batch_id uuid REFERENCES payout_batches(id),
-  queued_at timestamptz DEFAULT now(),
-  paid_at timestamptz,
-  notes text
-);
-
--- 4. CSV batches (one per month per provider)
-CREATE TABLE payout_batches (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  provider text NOT NULL,                    -- 'wise' | 'paypal'
-  period_start date NOT NULL,
-  period_end date NOT NULL,
-  csv_storage_path text NOT NULL,
-  total_authors int NOT NULL,
-  total_amount_usd numeric NOT NULL,
-  status text DEFAULT 'pending',             -- pending | uploaded | completed
-  created_at timestamptz DEFAULT now(),
-  completed_at timestamptz
-);
-
--- 5. Annual earnings statements
-CREATE TABLE author_annual_statements (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  author_id uuid NOT NULL REFERENCES author_profiles(id),
-  tax_year int NOT NULL,
-  total_gross_usd numeric NOT NULL,
-  total_net_paid_usd numeric NOT NULL,
-  pdf_storage_path text NOT NULL,
-  generated_at timestamptz DEFAULT now(),
-  UNIQUE(author_id, tax_year)
-);
-
--- RLS: authors see own rows, admins see all (standard has_role pattern)
-```
-
-## Edge functions to build
-
-| Function | Trigger | Job |
+| Node | What exists | Gap to close |
 |---|---|---|
-| `create-checkout-session` *(modify)* | Reader Buy Now | Drop Connect, charge AB Stripe, write metadata |
-| `process-purchase` *(modify)* | Stripe webhook | Insert `purchases` + `author_earnings` rows with computed fees |
-| `run-monthly-payouts` | pg_cron 1st @ 09:00 SGT | Aggregate earnings → create `author_payouts` + Wise/PayPal CSVs → notify |
-| `mark-payout-paid` | Admin button | Flip status, set external_reference, email author |
-| `generate-annual-statements` | pg_cron Jan 1 | Build PDFs, store, email |
-| `download-payout-csv` | Admin click | Service-role signed URL to CSV |
+| BP-01 Email | Resend + GHL deploy, list-building only | None |
+| BP-02 Lead Magnet/Quiz | Quiz microsite + email follow-up | None |
+| BP-03 Social | Buffer scheduling | None |
+| BP-04 Author Page | Public microsite | None |
+| BP-05 Webinar | Register form + email reminders; Zoom link field | Optional paid registration via Stripe (deferred — leave free for now) |
+| **BP-06 Workbook** | Stripe direct + PDF email delivery | **Add Amazon Paperback URL + Amazon Kindle URL fields; reader page shows 3 buttons** |
+| BP-07 Home Study Course | Stripe + portal | None |
+| BP-08 Special Editions | Stripe + Amazon link | Confirm both Amazon + direct PDF buttons render |
+| BP-09 Book Sales | Amazon link + direct PDF Stripe | Add Kindle URL alongside paperback URL |
+| BA-10 Online Course | Stripe + Thinkific deploy | None |
+| BA-11 Audiobook | ACX + DistroKid distribute | None |
+| BA-12 Membership | Stripe recurring | None |
+| BA-13 Group Coaching | Stripe + Zoom | None |
+| BA-14 Podcast | Transistor RSS | None |
+| BA-15 Media/PR | Inquiry email | None |
+| BA-16 Affiliate | Tracked links | None |
+| BA-17 Upsells | Stripe one-time | None |
+| BA-18 JV | Manual outreach | None |
+| YR-19 Coaching | Stripe + Zoom | None |
+| YR-20 Big Ticket | Stripe payment link | None |
+| YR-21 Speaking | Inquiry → invoice | None |
+| YR-22 Corporate Training | Inquiry → invoice + Zoom | None |
+| YR-23 Mastermind | Stripe annual | None |
+| YR-24 Retreats | Stripe deposit | None |
+| YR-25 Certification | Stripe + portal + cert email | None |
+| YR-26 Conference | Stripe ticket sales | None |
+| **YR-27 Fundraising** | Currently has `deploy-yr27-to-stripe` (collects donations) | **Strip all Stripe; replace with External Donation Link + charity name; CTA opens external URL** |
+| YR-28 Sponsors | Inquiry + Stripe sponsor pack | None |
 
-## Frontend changes
+### Payment & payout architecture
 
-### Author side
-1. **Account Settings → "Payouts" tab** *(new, replaces Stripe Connect UI)*
-   - Choose Wise or PayPal
-   - Wise: legal name, country dropdown, bank account OR Wise email
-   - PayPal: email + confirm
-   - Tax self-declaration checkbox: *"I'm responsible for declaring this income in my country."*
-   - Status pills: Method set ✅ · Tax acknowledged ✅
-2. **Earnings Dashboard** *(new page `/earnings`)*
-   - Pending payout (current month, real-time)
-   - Next payout date + minimum threshold progress bar
-   - Lifetime totals
-   - Payout history table (period, gross, fees, net, status, ref)
-   - Per-sale ledger (drill-down)
-   - Download annual statement PDF
-3. **Publish gate** *(swap)*
-   - `RequirePayoutSetup` replaces `RequireStripeConnected`
-   - Modal: "Set up payouts to publish paid products" → links to `/account-settings?tab=payouts`
-   - "Make this free instead" still works
-4. **Sidebar nav**: "Earnings" item under Account
-5. **Cleanup**: remove Stripe Connect UI from `ConnectSettings`, neuter `useStripeConnect` hook (keeps export for backward compat, returns `{ ready: true }`)
+Already built (from prior approved sprint):
+- `purchases`, `author_earnings`, `author_payouts_v2`, `payout_batches`, `author_payout_settings` tables
+- `run-monthly-payouts` (CSV-based Wise/PayPal), `mark-payout-paid`, `generate-annual-statements`
+- Author "My Earnings" UI + admin payouts page
+- `platform_fee_percent = 0.05` in `platform_config`
+- `create-checkout-session` charges AB master Stripe directly (Merchant of Record) — no `transfer_data`
+- `verify-purchase` + `process-purchase` write `platform_fee_usd` and `net_usd` rows to `author_earnings`
 
-### Admin side (`/admin/payouts` — new)
-1. **Monthly batch view**: current month progress, ranked author list
-2. **Pending payouts table**: author, method, amount, "Download CSV" + "Mark paid" buttons
-3. **Per-author drill**: ledger entries, edit notes, hold payout
-4. **Reports tab**:
-   - Monthly P&L (gross sales, Stripe fees, platform fees collected, payouts owed, payouts paid)
-   - Author leaderboard (top earners)
-   - Failed/held payouts queue
-   - Export CSV for accounting
-5. **Annual statement trigger**: button to manually re-run for an author
+Missing (this sprint):
+- **Stripe Connect Express onboarding for payouts (not for collection)**
+- Bump platform fee `0.05 → 0.08`
+- Auto-transfer via Stripe on the 1st (replaces/augments the manual CSV flow for authors who choose Stripe payout)
+- BP-06 three-option reader page
+- YR-27 external donation only
 
-## Restoration & cleanup
+## What we'll build
 
-- **Pauline's BP-06**: promote back to `live`, regenerate microsite URL. Buy Now will work immediately because checkout uses AB Stripe.
-- **All other demoted nodes** from the previous sweep: re-promote to `live` (the prior gate was wrong).
-- **Old Stripe Connect columns** on `author_profiles` (`stripe_connected_account_id`, `stripe_onboarding_complete`): leave in DB, stop reading.
-- **Files to delete**: `RequireStripeConnected.tsx`, `StripeRequiredModal.tsx`, `StripeConnectBanner.tsx` UI, `ConnectStripePage.tsx`. Keep `stripe-connect` edge fn but return `{ deprecated: true }`.
-- **Memory update**: rewrite `mem://architecture/commerce-engine-v1` → "Platform as MoR, monthly Wise+PayPal payouts."
+### 1. Platform fee → 8%
+- Update `platform_config.platform_fee_percent` to `0.08`
+- Update `DEFAULT_FEE` constants in `create-checkout-session`, `process-purchase`, `verify-purchase` to `0.08`
+- All existing earnings calculations already read from config — no code restructure needed
+- Tooltip copy updated in `MyEarnings` page
 
-## Automation summary (what runs without human input)
+### 2. Stripe Connect Express as a 3rd payout method
+- Repurpose existing `stripe-connect` edge function: rename action to "payout onboarding" (clearly labelled), creates an Express account with `capabilities: { transfers: { requested: true } }` only (no `card_payments`). Existing `stripe_account_id` + `stripe_onboarding_complete` columns reused.
+- Add `payout_method = 'stripe'` option to `author_payout_settings` (already in default!) alongside existing `'wise'` and `'paypal'`
+- Update `ConnectStripePage` (currently misleadingly says "you keep ~92%") → rebrand as **"Connect Payout Account (Stripe)"**:
+  - Three tabs / methods: Stripe Express, Wise, PayPal — author picks one
+  - Removes "this is required to publish paid products" framing (publishing is already ungated)
+- Banner on My Earnings if no payout method connected: *"Connect a payout account to receive your earnings on the 1st of each month"*
 
-| Event | Automated action |
-|---|---|
-| Reader buys | Stripe charge → ledger row → author sees pending balance instantly |
-| Refund | `author_earnings.refunded=true`, deducted from next payout |
-| 1st of month 09:00 SGT | Aggregate, create payouts, generate CSVs, email admin + authors |
-| Author hits $50 threshold | Auto-included in next batch |
-| Below $50 | Rolls to next month automatically |
-| Jan 1 | Annual PDF statement generated + emailed |
-| Failed Wise/PayPal entry | Marked `failed`, admin alerted, balance preserved |
+### 3. Auto-transfers on the 1st (Stripe payout method)
+- Extend `run-monthly-payouts`:
+  - For authors with `payout_method='stripe'` AND `stripe_onboarding_complete=true` AND net ≥ minimum: call `stripe.transfers.create({ amount, currency:'usd', destination: account_id, transfer_group: 'PAYOUT_YYYY-MM_<author_id>' })`
+  - On success → `author_payouts_v2.status='paid'`, `external_reference=transfer.id`, `paid_at=now()`; mark `author_earnings.paid_out=true`
+  - On failure → status `'failed'`, notify owner email
+  - Wise/PayPal authors continue using the existing CSV flow (admin clicks "Mark paid")
+- Reminder email to authors with pending earnings but no connected payout method (uses existing `send-transactional-email`)
 
-## Out of scope (later)
-- Phase-2 Wise/PayPal API auto-execution (replaces "Mark paid" click)
-- 1099/SG tax filings (none required)
-- Multi-currency reader checkout
-- Refund initiation from admin UI (use Stripe dashboard for now)
-- Subscription products
+### 4. BP-06 Workbook — three purchase options
+- Builder (`BP06Builder.tsx`) Activate step gains 2 new optional URL fields:
+  - `amazon_paperback_url`
+  - `amazon_kindle_url`
+  - Stored in `author_nodes.content_json` (JSON, no schema change)
+  - Helper note about publishing on KDP first
+- Reader page `/[slug]/workbook` renders side-by-side cards for any options that are populated:
+  - **Buy Direct (PDF)** — existing Stripe checkout, badge "Instant Download"
+  - **Amazon Paperback** — opens KDP URL, badge "Ships Worldwide"
+  - **Amazon Kindle** — opens Kindle URL, badge "Read Instantly"
+- Same pattern is reused by **BP-09 Book Sales** (already has paperback URL → add `amazon_kindle_url`)
 
-## Verification
-1. Pauline's BP-06 restored to `live`; reader checkout completes; `author_earnings` row appears.
-2. Author with $0 → publishes free → publishes paid: blocked until Payouts tab filled. After fill: publishes successfully.
-3. Force-run `run-monthly-payouts` for March → CSV downloads cleanly with valid Wise/PayPal columns.
-4. Admin clicks "Mark paid" → author gets email, payout shows `paid` with reference.
-5. Author at $30 doesn't get a payout that month; rolls into next.
-6. Refund a sale → next payout reflects deduction.
-7. Annual statement PDF renders with correct totals.
+### 5. YR-27 Fundraising — external donation only
+- `YR27Builder.tsx` Activate step replaces Stripe price field with:
+  - `charity_name` (text)
+  - `external_donation_url` (URL)
+- Delete `deploy-yr27-to-stripe` edge function (or no-op it)
+- Reader page `/[slug]/fundraising`:
+  - CTA becomes "Donate to {charity_name}" → opens external URL in new tab
+  - Footnote: *"Donations go directly to {charity_name}. Authors Bureau does not process or hold donation funds."*
+  - Empty-state if URL missing: *"Campaign coming soon — donation link will be added shortly."*
+
+### 6. Database / data migrations
+- `UPDATE platform_config SET value='0.08' WHERE key='platform_fee_percent'`
+- No schema changes — `author_payout_settings.payout_method` already accepts text; `author_profiles.stripe_account_id` + `stripe_onboarding_complete` already exist; `author_payouts_v2` already records transfer references in `external_reference`
+
+### 7. Acceptance tests
+1. Reader buys $100 product → `purchases.platform_fee=8`, `author_earnings.net_usd=92`
+2. Author connects Stripe Express → `stripe_onboarding_complete=true`, badge shows
+3. Admin runs monthly payouts → for Stripe authors a real `tr_…` transfer is created and reflected in `author_payouts_v2`
+4. Author with no payout method gets reminder email
+5. BP-06 reader page shows 1, 2, or 3 buttons depending on which URLs are filled
+6. YR-27 reader page has no Stripe checkout; CTA opens external URL
+7. Pauline test: existing $0 SUCK100 promo flow still completes end-to-end
+
+## Out of scope / deferred
+- Paid BP-05 webinars (leave free for now)
+- Replacing the Wise/PayPal CSV flow — it remains for authors who don't want Stripe Express
+- Currency conversion at payout time (Stripe handles to author's bank automatically)
+- Refund-driven payout deductions (already handled in existing logic via `refunded` flag on `author_earnings`)
 
