@@ -13,7 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText, SafeBlock } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your exclusive mastermind...", "Crafting membership tiers...", "Building your application process...", "Finalising your mastermind programme..."];
 const ACT_MSGS = ["Setting up your membership tiers...", "Creating payment pages...", "Almost ready..."];
@@ -48,6 +48,7 @@ export default function YR23Builder({ authorId }: Props) {
     })(); }, [authorId]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
+  useEffect(() => { if (step === 2 && content) console.log("[YR-23] step-2 render", content); }, [step, content]);
 
   const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr23-mastermind", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-23", nodeName: "Masterminds", content: data.content, currentStep: 2 }); } catch (e: any) { setError(e.message); setStep(0); } };
   const handlePublish = async () => { setStep(3); setError(null); try { await publishNodeToSite(authorId!, "YR-23", authorSlug); setContent((p: any) => ({ ...p, activated: true })); } catch (e: any) { setError(e.message); setStep(2); } };
@@ -61,9 +62,9 @@ export default function YR23Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Mastermind</h2><p className="text-muted-foreground mb-4">Hi {authorName}! A mastermind is the most exclusive and highest-value community you can create. I'm going to design your complete mastermind programme based on '{detectedBookTitle || bookTitle || "your book"}' — with a structure, application process, and a sales page. Ready to build your inner circle?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Mastermind</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
-          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
+          <YRSafeBoundary nodeId="YR-23" debugContent={content} onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
-            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <AbbyCard><div className="text-muted-foreground"><SafeText value={content.abby_summary} /></div></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
                 <TabsTrigger value="overview" className="text-xs py-2"><Crown className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
@@ -73,12 +74,12 @@ export default function YR23Builder({ authorId }: Props) {
               </TabsList>
               <TabsContent value="overview" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-3">
-                  <h3 className="text-xl font-bold">{content.mastermind_title}</h3>
-                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
-                  <p className="text-sm">{content.programme_promise}</p>
+                  <h3 className="text-xl font-bold"><SafeText value={content.mastermind_title} /></h3>
+                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"<SafeText value={content.tagline} />"</p>}
+                  <div className="text-sm"><SafeText value={content.programme_promise} /></div>
                   <div className="flex gap-2 flex-wrap">{content.curriculum_pillars?.map((p: any, i: number) => {
                     const name = typeof p === "string" ? p : (p?.pillar_name || p?.name || p?.title);
-                    return name ? <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{name}</span> : null;
+                    return name ? <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{String(name)}</span> : null;
                   })}</div>
                 </CardContent></Card>
               </TabsContent>
@@ -87,10 +88,10 @@ export default function YR23Builder({ authorId }: Props) {
                   {content.membership_tiers?.map((t: any, i: number) => (
                     <Card key={i} className="border-amber-300 dark:border-amber-700">
                       <CardContent className="pt-6 space-y-3">
-                        <h4 className="font-bold">{t.tier_name}</h4>
+                        <h4 className="font-bold"><SafeText value={t.tier_name} /></h4>
                         <HighTicketPrice price={t.price_annual_usd} /><span className="text-xs text-muted-foreground">/year</span>
-                        <p className="text-xs text-muted-foreground">{t.group_size} · {t.meeting_cadence}</p>
-                        <ul className="space-y-1">{t.benefits?.map((b: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{b}</li>)}</ul>
+                        <p className="text-xs text-muted-foreground"><SafeText value={t.group_size} /> · <SafeText value={t.meeting_cadence} /></p>
+                        <ul className="space-y-1">{t.benefits?.map((b: any, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span><SafeText value={b} /></li>)}</ul>
                       </CardContent>
                     </Card>
                   ))}
@@ -99,16 +100,16 @@ export default function YR23Builder({ authorId }: Props) {
               <TabsContent value="application" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-3">
                   <p className="text-xs text-amber-600 dark:text-amber-400 font-medium mb-2">Only accept applicants who meet your ideal client criteria</p>
-                  <ol className="space-y-2">{content.application_questions?.map((q: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="font-bold text-primary">{i + 1}.</span>{q}</li>)}</ol>
+                  <ol className="space-y-2">{content.application_questions?.map((q: any, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="font-bold text-primary">{i + 1}.</span><SafeText value={q} /></li>)}</ol>
                 </CardContent></Card>
               </TabsContent>
               <TabsContent value="sales" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4">
-                  <h3 className="text-xl font-bold">{content.sales_page?.headline}</h3>
-                  <p className="text-muted-foreground">{content.sales_page?.subheadline}</p>
-                  <SafeText value={content.sales_page?.who_its_for} />
-                  <ul className="space-y-1">{content.sales_page?.what_youll_get?.map((w: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{w}</li>)}</ul>
-                  <Button className="w-full">{content.sales_page?.cta_button_text || "Apply for Membership"}</Button>
+                  <h3 className="text-xl font-bold"><SafeText value={content.sales_page?.headline} /></h3>
+                  <div className="text-muted-foreground"><SafeText value={content.sales_page?.subheadline} /></div>
+                  <SafeBlock value={content.sales_page?.who_its_for} />
+                  <ul className="space-y-1">{content.sales_page?.what_youll_get?.map((w: any, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span><SafeText value={w} /></li>)}</ul>
+                  <Button className="w-full">{typeof content.sales_page?.cta_button_text === "string" ? content.sales_page.cta_button_text : "Apply for Membership"}</Button>
                 </CardContent></Card>
               </TabsContent>
             </Tabs>
