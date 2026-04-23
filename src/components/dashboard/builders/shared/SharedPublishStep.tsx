@@ -300,6 +300,13 @@ export default function SharedPublishStep({
           )}
         </Button>
       </div>
+
+      <StripeRequiredModal
+        open={stripeModalOpen}
+        onOpenChange={setStripeModalOpen}
+        productLabel={`paid ${builderLabel.toLowerCase()}`}
+        onMakeFree={handleMakeFree}
+      />
     </div>
   );
 }
