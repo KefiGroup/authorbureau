@@ -2677,7 +2677,23 @@ function CertificationPage({ data, content, v, hFont, bgColor, onSubmit, email, 
 
   return (
     <YRLayout title={title} tagline={tagline} intro={promise} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Enroll Now" : "Apply for Certification"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof levels[0]?.price_usd === "number" ? levels[0].price_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Enrol in Certification"
+        ctaLabel={paymentLink ? "Enroll Now" : "Apply for Certification"}
+        inquiryHeading="Apply for Certification"
+        inquiryIntro="Tell us about your background — we'll confirm fit and enrolment options."
+        messagePlaceholder="Your role, prior experience, and what you want to do with this certification…"
+        selectedOfferLabel={levels[0] ? yrStr(levels[0]?.name || levels[0]?.level || levels[0]?.title) : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {structure && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
