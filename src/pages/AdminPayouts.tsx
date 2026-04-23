@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
-import { Loader2, Download, CheckCircle2, RefreshCw, DollarSign, Users, AlertCircle } from "lucide-react";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { Loader2, Download, CheckCircle2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -84,8 +83,8 @@ export default function AdminPayouts() {
   const totalPaidLifetime = paid.reduce((s, p) => s + Number(p.net_usd), 0);
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-6xl">
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6 max-w-6xl mx-auto">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="font-heading text-3xl font-bold">Admin · Payouts</h1>

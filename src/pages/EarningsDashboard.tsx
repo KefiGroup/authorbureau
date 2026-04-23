@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, DollarSign, Calendar, TrendingUp, Wallet, FileText, ArrowRight } from "lucide-react";
-import DashboardLayout from "@/components/dashboard/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -64,8 +63,8 @@ export default function EarningsDashboard() {
   const willPayout = pendingNet >= MIN_PAYOUT;
 
   return (
-    <DashboardLayout>
-      <div className="space-y-6 max-w-6xl">
+    <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6 max-w-6xl mx-auto">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="font-heading text-3xl font-bold flex items-center gap-2"><DollarSign className="h-7 w-7 text-secondary" /> Earnings</h1>
@@ -192,6 +191,6 @@ export default function EarningsDashboard() {
           </>
         )}
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
