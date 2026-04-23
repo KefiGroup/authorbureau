@@ -77,7 +77,15 @@ Generate the following as a JSON object with these exact keys:
   "abby_summary": "2-3 sentence summary from ABBY"
 }
 
-The sections array must have exactly 5 items mapped to the book's chapters/themes. Position this workbook as a FREE lead magnet to build the author's email list. Make everything specific to this author's book.` }
+The sections array must have exactly 5 items mapped to the book's chapters/themes.
+
+PRICING GUIDANCE — Recommend whichever path serves THIS author best, but ALWAYS provide both rationales:
+- Standalone reflective workbook → typical band $7–$27
+- Premium framework workbook with original IP → $27–$47
+- Companion to a paid course or coaching package → recommend FREE (lead magnet)
+Set suggested_price_usd to a number inside the recommended band when "paid"; set to 0 when "free".
+
+Make everything specific to this author's book.` }
         ],
       }),
     });
