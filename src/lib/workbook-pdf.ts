@@ -39,6 +39,23 @@ interface WorkbookContent {
  * layout in this renderer (cover + welcome + TOC + 2 pages/section + action plan + back cover).
  * Stays within ±1 page of the real output and updates with section count.
  */
+/**
+ * Strip leading subject+modal phrases ("You will", "You can", "Readers will", etc.)
+ * from an outcome string so it reads naturally after the label
+ * "After this section, you can:". Lowercases the first letter of the resulting
+ * verb (but leaves acronyms / proper nouns alone).
+ */
+export function normalizeOutcome(raw?: string): string {
+  if (!raw) return "";
+  let s = raw.trim();
+  s = s.replace(
+    /^(you(['']| wi)?(ll)?|you can|you['']ll be able to|readers (will|can)|the reader (will|can)|by the end[^,]*,\s*you (will|can))\s+/i,
+    "",
+  );
+  if (s.length > 1 && /^[A-Z][a-z]/.test(s)) s = s[0].toLowerCase() + s.slice(1);
+  return s;
+}
+
 export function estimateWorkbookPageCount(content: WorkbookContent | null | undefined): number {
   const sections = Array.isArray(content?.sections) ? content!.sections!.length : 0;
   // Cover (1) + Welcome (1) + TOC (1 if any sections) + sections * 2 + Action plan (1) + Back cover (1)
