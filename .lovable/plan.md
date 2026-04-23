@@ -1,121 +1,74 @@
 
 
-# Plan — Per-node distribution + Stripe Connect Express payouts (8%)
+# Home Study Course — Distribution Platform Options
 
-## Audit of what already exists vs. what's missing
+Currently BP-07 Home Study delivers exclusively inside the **Readers Bureau portal** (`/readers-bureau/learn/{purchaseId}`). That's the right *default* — zero setup for the author, single login for the reader, one platform fee. But some authors will want to push to channels they already own. Here are the realistic add-on options, ranked by fit.
 
-### Per-node delivery & purchase flow
+## Recommended additions (tiered)
 
-| Node | What exists | Gap to close |
-|---|---|---|
-| BP-01 Email | Resend + GHL deploy, list-building only | None |
-| BP-02 Lead Magnet/Quiz | Quiz microsite + email follow-up | None |
-| BP-03 Social | Buffer scheduling | None |
-| BP-04 Author Page | Public microsite | None |
-| BP-05 Webinar | Register form + email reminders; Zoom link field | Optional paid registration via Stripe (deferred — leave free for now) |
-| **BP-06 Workbook** | Stripe direct + PDF email delivery | **Add Amazon Paperback URL + Amazon Kindle URL fields; reader page shows 3 buttons** |
-| BP-07 Home Study Course | Stripe + portal | None |
-| BP-08 Special Editions | Stripe + Amazon link | Confirm both Amazon + direct PDF buttons render |
-| BP-09 Book Sales | Amazon link + direct PDF Stripe | Add Kindle URL alongside paperback URL |
-| BA-10 Online Course | Stripe + Thinkific deploy | None |
-| BA-11 Audiobook | ACX + DistroKid distribute | None |
-| BA-12 Membership | Stripe recurring | None |
-| BA-13 Group Coaching | Stripe + Zoom | None |
-| BA-14 Podcast | Transistor RSS | None |
-| BA-15 Media/PR | Inquiry email | None |
-| BA-16 Affiliate | Tracked links | None |
-| BA-17 Upsells | Stripe one-time | None |
-| BA-18 JV | Manual outreach | None |
-| YR-19 Coaching | Stripe + Zoom | None |
-| YR-20 Big Ticket | Stripe payment link | None |
-| YR-21 Speaking | Inquiry → invoice | None |
-| YR-22 Corporate Training | Inquiry → invoice + Zoom | None |
-| YR-23 Mastermind | Stripe annual | None |
-| YR-24 Retreats | Stripe deposit | None |
-| YR-25 Certification | Stripe + portal + cert email | None |
-| YR-26 Conference | Stripe ticket sales | None |
-| **YR-27 Fundraising** | Currently has `deploy-yr27-to-stripe` (collects donations) | **Strip all Stripe; replace with External Donation Link + charity name; CTA opens external URL** |
-| YR-28 Sponsors | Inquiry + Stripe sponsor pack | None |
+### Tier 1 — Add now (highest ROI, lowest effort)
 
-### Payment & payout architecture
+| Platform | Why it fits Home Study | Integration model | Effort |
+|---|---|---|---|
+| **Thinkific** | Already wired for BA-10 Online Course. Same module/lesson schema. Authors with an existing Thinkific subdomain can mirror the Home Study there. | Reuse `deploy-ba10-to-thinkific` → add `deploy-bp07-to-thinkific`. Author connects Thinkific in Account Settings → Connections. | Small |
+| **Email + PDF download (Gumroad-style)** | Self-paced PDF workbook + module PDFs delivered via email after purchase. Some authors prefer "no portal, just files." | Reuse `send-transactional-email` with attachments; generate a single bundled PDF from the existing modules. | Small |
 
-Already built (from prior approved sprint):
-- `purchases`, `author_earnings`, `author_payouts_v2`, `payout_batches`, `author_payout_settings` tables
-- `run-monthly-payouts` (CSV-based Wise/PayPal), `mark-payout-paid`, `generate-annual-statements`
-- Author "My Earnings" UI + admin payouts page
-- `platform_fee_percent = 0.05` in `platform_config`
-- `create-checkout-session` charges AB master Stripe directly (Merchant of Record) — no `transfer_data`
-- `verify-purchase` + `process-purchase` write `platform_fee_usd` and `net_usd` rows to `author_earnings`
+### Tier 2 — Add when authors ask
 
-Missing (this sprint):
-- **Stripe Connect Express onboarding for payouts (not for collection)**
-- Bump platform fee `0.05 → 0.08`
-- Auto-transfer via Stripe on the 1st (replaces/augments the manual CSV flow for authors who choose Stripe payout)
-- BP-06 three-option reader page
-- YR-27 external donation only
+| Platform | Why | Integration model | Effort |
+|---|---|---|---|
+| **Kajabi** | Premium course host; many established coaches already pay for it. | New `deploy-bp07-to-kajabi` edge function via Kajabi API; add Kajabi to the connector registry. | Medium |
+| **Podia** | Cheaper Kajabi alternative; popular with first-time course creators. | Same pattern as Kajabi. | Medium |
+| **Teachable** | Largest free tier, low barrier. | Same pattern. | Medium |
 
-## What we'll build
+### Tier 3 — Defer (low fit / high overhead)
 
-### 1. Platform fee → 8%
-- Update `platform_config.platform_fee_percent` to `0.08`
-- Update `DEFAULT_FEE` constants in `create-checkout-session`, `process-purchase`, `verify-purchase` to `0.08`
-- All existing earnings calculations already read from config — no code restructure needed
-- Tooltip copy updated in `MyEarnings` page
+- **Udemy / Skillshare** — marketplace pricing race-to-the-bottom; conflicts with our 92% author payout model.
+- **LearnWorlds / Mighty Networks** — overlap with future YR-23 Mastermind; revisit when that node ships.
+- **Patreon** — better fit for BA-12 Membership, not one-time Home Study.
+- **YouTube unlisted + password PDF** — too DIY; we'd be supporting a hack, not a product.
 
-### 2. Stripe Connect Express as a 3rd payout method
-- Repurpose existing `stripe-connect` edge function: rename action to "payout onboarding" (clearly labelled), creates an Express account with `capabilities: { transfers: { requested: true } }` only (no `card_payments`). Existing `stripe_account_id` + `stripe_onboarding_complete` columns reused.
-- Add `payout_method = 'stripe'` option to `author_payout_settings` (already in default!) alongside existing `'wise'` and `'paypal'`
-- Update `ConnectStripePage` (currently misleadingly says "you keep ~92%") → rebrand as **"Connect Payout Account (Stripe)"**:
-  - Three tabs / methods: Stripe Express, Wise, PayPal — author picks one
-  - Removes "this is required to publish paid products" framing (publishing is already ungated)
-- Banner on My Earnings if no payout method connected: *"Connect a payout account to receive your earnings on the 1st of each month"*
+## How the multi-distribution UX would work
 
-### 3. Auto-transfers on the 1st (Stripe payout method)
-- Extend `run-monthly-payouts`:
-  - For authors with `payout_method='stripe'` AND `stripe_onboarding_complete=true` AND net ≥ minimum: call `stripe.transfers.create({ amount, currency:'usd', destination: account_id, transfer_group: 'PAYOUT_YYYY-MM_<author_id>' })`
-  - On success → `author_payouts_v2.status='paid'`, `external_reference=transfer.id`, `paid_at=now()`; mark `author_earnings.paid_out=true`
-  - On failure → status `'failed'`, notify owner email
-  - Wise/PayPal authors continue using the existing CSV flow (admin clicks "Mark paid")
-- Reminder email to authors with pending earnings but no connected payout method (uses existing `send-transactional-email`)
+In the BP-07 Activate step the author picks **one or more** delivery channels:
 
-### 4. BP-06 Workbook — three purchase options
-- Builder (`BP06Builder.tsx`) Activate step gains 2 new optional URL fields:
-  - `amazon_paperback_url`
-  - `amazon_kindle_url`
-  - Stored in `author_nodes.content_json` (JSON, no schema change)
-  - Helper note about publishing on KDP first
-- Reader page `/[slug]/workbook` renders side-by-side cards for any options that are populated:
-  - **Buy Direct (PDF)** — existing Stripe checkout, badge "Instant Download"
-  - **Amazon Paperback** — opens KDP URL, badge "Ships Worldwide"
-  - **Amazon Kindle** — opens Kindle URL, badge "Read Instantly"
-- Same pattern is reused by **BP-09 Book Sales** (already has paperback URL → add `amazon_kindle_url`)
+```
+[x] Readers Bureau (default — always on)
+[ ] Thinkific  → "Connect Thinkific" if not connected
+[ ] Email PDF bundle  → uses author's verified sender
+[ ] Kajabi  (Pro tier)
+```
 
-### 5. YR-27 Fundraising — external donation only
-- `YR27Builder.tsx` Activate step replaces Stripe price field with:
-  - `charity_name` (text)
-  - `external_donation_url` (URL)
-- Delete `deploy-yr27-to-stripe` edge function (or no-op it)
-- Reader page `/[slug]/fundraising`:
-  - CTA becomes "Donate to {charity_name}" → opens external URL in new tab
-  - Footnote: *"Donations go directly to {charity_name}. Authors Bureau does not process or hold donation funds."*
-  - Empty-state if URL missing: *"Campaign coming soon — donation link will be added shortly."*
+On purchase, `process-purchase` fans out to whichever channels are enabled:
+- Readers Bureau → already implemented
+- Thinkific → enrol student via API (mirrors BA-10)
+- Email PDF → attach generated bundle to confirmation email
+- Kajabi → enrol via API
 
-### 6. Database / data migrations
-- `UPDATE platform_config SET value='0.08' WHERE key='platform_fee_percent'`
-- No schema changes — `author_payout_settings.payout_method` already accepts text; `author_profiles.stripe_account_id` + `stripe_onboarding_complete` already exist; `author_payouts_v2` already records transfer references in `external_reference`
+The reader's "Start Your Course" button in the confirmation email always points to the **primary** channel the author selected (Readers Bureau by default).
 
-### 7. Acceptance tests
-1. Reader buys $100 product → `purchases.platform_fee=8`, `author_earnings.net_usd=92`
-2. Author connects Stripe Express → `stripe_onboarding_complete=true`, badge shows
-3. Admin runs monthly payouts → for Stripe authors a real `tr_…` transfer is created and reflected in `author_payouts_v2`
-4. Author with no payout method gets reminder email
-5. BP-06 reader page shows 1, 2, or 3 buttons depending on which URLs are filled
-6. YR-27 reader page has no Stripe checkout; CTA opens external URL
-7. Pauline test: existing $0 SUCK100 promo flow still completes end-to-end
+## What changes in this sprint vs later
 
-## Out of scope / deferred
-- Paid BP-05 webinars (leave free for now)
-- Replacing the Wise/PayPal CSV flow — it remains for authors who don't want Stripe Express
-- Currency conversion at payout time (Stripe handles to author's bank automatically)
-- Refund-driven payout deductions (already handled in existing logic via `refunded` flag on `author_earnings`)
+**This sprint (small scope, high value):**
+1. Add `delivery_channels: string[]` to BP-07 `content_json` (default `["readers_bureau"]`).
+2. Add Tier-1 options (Thinkific + Email PDF bundle) to BP-07 Activate step.
+3. Build `deploy-bp07-to-thinkific` (clone of `deploy-ba10-to-thinkific`).
+4. Generate a single bundled "Home Study PDF" from existing modules and attach to confirmation email when channel is enabled.
+5. Update `purchase_confirmation` email to list each enabled channel with a CTA per channel.
+
+**Later (when authors request):**
+- Kajabi, Podia, Teachable connectors.
+- Per-channel analytics (which channel did the buyer actually use?).
+- Drip-release scheduling per channel.
+
+## Out of scope
+- Replacing the Readers Bureau as the default — it stays primary.
+- Refund/access-revocation across external platforms (manual for Tier-2 connectors).
+- Multi-channel pricing differences — single price, multi-channel fulfilment.
+
+## Acceptance test
+1. Pauline opens BP-07 Activate → sees Readers Bureau pre-checked + Thinkific + Email PDF options.
+2. She enables Thinkific (already connected from BA-10) and Email PDF.
+3. Linny buys → receives email with 3 access options: Readers Bureau link, Thinkific enrolment link, attached PDF bundle.
+4. Linny logs into any of the three and finds the same lessons.
 
