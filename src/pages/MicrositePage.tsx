@@ -2587,7 +2587,24 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
 
   return (
     <YRLayout title={title} tagline={tagline} intro={concept} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Reserve Your Spot" : "Enquire About a Retreat"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof options[0]?.price_usd === "number" ? options[0].price_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Reserve Your Seat"
+        ctaLabel={paymentLink ? "Reserve Your Spot" : "Enquire About a Retreat"}
+        inquiryHeading="Reserve Your Retreat Seat"
+        inquiryIntro="Spaces are limited. We'll confirm availability and send you the welcome pack."
+        messagePlaceholder="Which retreat option, dates that work, dietary or access needs…"
+        selectedOfferLabel={options[0] ? yrStr(options[0]?.name || options[0]?.title) : undefined}
+        selectedOfferPrice={typeof options[0]?.price_usd === "number" ? options[0].price_usd : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {options.length > 0 && (
         <section className="space-y-3">
