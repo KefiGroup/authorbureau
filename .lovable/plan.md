@@ -2,96 +2,103 @@
 
 ## Diagnosis
 
-**YR-25/26/27/28 are NOT bugs.** The DB has zero rows for those four nodes — Pauline simply hasn't clicked "Generate" yet. There's nothing for the builder to restore, so it correctly shows the Introduction step. Once she clicks Generate, those four will work (they just need the same defensive guards as YR-23/24 to be safe).
+The previous safety pass shipped the right code in principle, but the user reports YR-23 and YR-24 **still go blank** after generation. I cross-checked the live DB content against the current builder code and confirmed:
 
-**YR-23 and YR-24 are real bugs — frontend render crashes.** The DB confirms generation succeeded for both (`status=content_ready, current_step=2, content_json` populated). The "white screen on completion" and "stays blank on reload" symptoms are classic React render crashes: the AI returned shapes the JSX wasn't expecting, React threw "Objects are not valid as a React child", and the whole component tree unmounted. On reload, `loadBuilderDraft` rehydrates the same broken content → blank again. The node is **not** stuck — the data is fine, only the renderer is wrong.
+- DB has full content for **YR-23, YR-24, AND YR-25** (`status=content_ready, current_step=2`).
+- All three already import `YRSafeBoundary` and `SafeText`, and the step-2 review block is wrapped in `<YRSafeBoundary>`.
+- All identified array-vs-object fields for these three nodes (`curriculum_pillars`, `who_its_for`, `transformation_arc`, `morning/afternoon/evening`, `requirements`) are protected.
 
-### Exact crash sites (verified against the live JSON in the DB)
+**So why is it still blank?** Two remaining possibilities the prior pass didn't fully close:
 
-**`YR23Builder.tsx`**
+### Real residual crash sites (verified against live JSON)
 
-| Line | Code | AI returns | Crash |
-|---|---|---|---|
-| 77 | `curriculum_pillars.map((p: string) => <span>{p}</span>)` | `[{ pillar_name, focus_areas[], outcomes[] }]` (objects) | "Objects are not valid as a React child" → blank |
-| 104 | `<p>{content.sales_page?.who_its_for}</p>` | `string[]` | renders array as child → throws |
-| 105 | `sales_page.what_youll_get?.map(...)` | `string[]` ✅ ok | — |
+**YR-24 line 87** — `transformation_arc.starting_point`:
+```jsx
+{t.starting_point && <p>...Starting point: {String(t.starting_point)}</p>}
+```
+`String()` coerces but if AI returns an object like `{ summary: "..." }`, this prints `[object Object]` (ugly but not a crash). However, line 88-91 wraps the *value* in `<SafeText>` — and `SafeText` returns a `<p>` element. The parent `<div>` wraps a `<span>` plus a `<p>` (block inside line). **This is a DOM nesting violation that React 18 strict mode treats as a hydration error in dev, sometimes blanking the whole tree.**
 
-**`YR24Builder.tsx`**
+**YR-23 / YR-24 line 67 / 66** — `<AbbyCard><p>{content.abby_summary}</p></AbbyCard>`:
+The `abby_summary` is rendered directly with no SafeText guard. If a future regen returns it as an object/array (already happened with YR-23/24 fields), this crashes **before** the `YRSafeBoundary` wrapper because `AbbyCard` is **outside** the boundary on line 66.
 
-| Line | Code | AI returns | Crash |
-|---|---|---|---|
-| 78 | `<p>{content.transformation_arc}</p>` | `{ breakthroughs, starting_point, take_home_assets[], measurable_shifts[], capabilities_built[] }` (object) | renders object → throws |
-| 97–99 | `<p>{d.morning}</p>` `<p>{d.afternoon}</p>` `<p>{d.evening}</p>` | each is `string[]` | renders array → throws |
+Wait — re-reading: line 64 opens `<YRSafeBoundary>`, line 66/67 is `<AbbyCard>{content.abby_summary}</AbbyCard>` **inside** the boundary. Good. But the *first* render that crashes still blanks the whole step.
+
+### What's actually needed
+
+1. **Fix the DOM nesting**: replace the `<span>...<SafeText/>` inline pairs in YR-24's `transformation_arc` block (lines 88-91) with proper block-level structure so `<ul>` is never nested inside an inline context.
+2. **Universalize the SafeText guard**: wrap *every* direct text interpolation that could come back as an object/array, including: `abby_summary`, `programme_promise`, `retreat_concept`, `tagline`, `certification_promise`, `badge_concept.*`.
+3. **Make `SafeText` render-safe by default**: change it to return a `<span>` wrapper for single strings (not `<p>`), so it's drop-in safe inside any parent. Use `<div>` for the array list. That removes all current and future block-in-inline traps.
+4. **Add a visible "view raw content" debug block inside `YRSafeBoundary`**: when it catches an error, dump the offending field name + `JSON.stringify(content)` so the next failure gives Pauline (and us) the exact culprit instead of a generic message.
+5. **Add a console.error fingerprint** at the top of the step-2 render: `console.log("[YR-XX] rendering content:", content)` so the next reload, if it crashes, leaves a breadcrumb in the dev-server log we can read.
 
 ## Plan
 
-### Fix 1 — Repair the YR-23 renderer
+### Fix 1 — Refactor `SafeText` to be DOM-safe in any parent context
 
-Two changes in `src/components/dashboard/builders/yr23/YR23Builder.tsx`:
+Update `src/components/dashboard/builders/yr-shared/YRSafeBoundary.tsx`:
 
-1. **Curriculum pillars (line 77)**: render the pillar object properly — show `pillar_name` as a chip, optionally expand to show focus areas / outcomes underneath. Use a defensive coercion so the renderer also works if a future AI response returns plain strings.
-   ```tsx
-   {content.curriculum_pillars?.map((p: any, i: number) => {
-     const name = typeof p === "string" ? p : p?.pillar_name;
-     return <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{name}</span>;
-   })}
-   ```
-2. **Sales page who-it's-for (line 104)**: render as a bulleted list, with a string-fallback.
-   ```tsx
-   {Array.isArray(content.sales_page?.who_its_for) ? (
-     <ul className="space-y-1">{content.sales_page.who_its_for.map((w: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="text-primary">•</span>{w}</li>)}</ul>
-   ) : (
-     <p className="text-sm">{content.sales_page?.who_its_for}</p>
-   )}
-   ```
+- Single string → `<span>` (was `<p>`). Safe inline anywhere.
+- Array → `<ul>` wrapped in `<div>` (was bare `<ul>`). Safe in any block parent.
+- Object → `<span>` with `JSON.stringify` (was `<p>`). Inline-safe.
+- New optional prop `as?: "block" | "inline"` defaulting to inline; pass `as="block"` from places that want list rendering.
+- Add new helper `<SafeBlock value={x} />` that always renders block-level for tab content panels.
 
-### Fix 2 — Repair the YR-24 renderer
+### Fix 2 — YR-24 transformation_arc block: switch to block-level layout
 
-Two changes in `src/components/dashboard/builders/yr24/YR24Builder.tsx`:
+Replace `<span className="font-semibold">…</span> <SafeText value={t.breakthroughs} />` with a clean block layout:
+```jsx
+<div className="space-y-1">
+  <p className="text-xs font-semibold text-muted-foreground">Breakthroughs</p>
+  <SafeBlock value={t.breakthroughs} />
+</div>
+```
+Apply to `breakthroughs`, `capabilities_built`, `measurable_shifts`, `take_home_assets`, plus `starting_point` (which uses `String()` today — replace with `<SafeText>`).
 
-1. **Transformation arc (line 78)**: render the structured object — `starting_point` + `breakthroughs` as paragraphs, `capabilities_built` / `measurable_shifts` / `take_home_assets` as small lists. Add string-fallback.
-2. **Itinerary day blocks (lines 97–99)**: coerce each session to a list — `Array.isArray(d.morning) ? <ul>…</ul> : <p>{d.morning}</p>` for morning/afternoon/evening.
+### Fix 3 — Wrap every loose text interpolation in `SafeText` across YR-19…YR-28
 
-### Fix 3 — Add a `<RenderSafe>` boundary to all 10 YR builders
+Audit each builder's step-2 block and replace bare `{content.xxx}` for fields that AI might return as object/array. Specifically:
 
-Wrap the `step === 2` review block in every YR builder (YR-19 through YR-28) with a tiny React error boundary that catches any future shape-mismatch and shows an actionable fallback ("This view couldn't render — click Re-generate") instead of a blank screen. New file: `src/components/dashboard/builders/yr-shared/YRSafeBoundary.tsx`. ~30 lines, class component with `componentDidCatch`. Drops in as `<YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>…</YRSafeBoundary>`.
+- **YR-23**: `abby_summary`, `programme_promise`, `tagline`, `mastermind_title`, tier `tier_name` / `meeting_cadence`, `application_questions[i]` (already string but harden).
+- **YR-24**: `abby_summary`, `retreat_concept`, `tagline`, `retreat_title`, retreat_options `format` / `duration` / `group_size` / `location_type`, itinerary `title`.
+- **YR-25**: `abby_summary`, `certification_promise`, `tagline`, modules `description` / `assessment`, badge_concept `badge_name` / `badge_description` / `display_guidance`, level `level`.
+- **YR-19, 20, 21, 22, 26, 27, 28**: same pattern — every direct `{content.xxx}` that's not already inside a primitive context (number, boolean) becomes `<SafeText value={...} />` for inline strings or `<SafeBlock value={...} />` for paragraph-style content.
 
-This is the **structural** fix that prevents the next white-screen incident — even if the AI returns an unexpected shape for YR-25/26/27/28 when Pauline clicks Generate, she'll see a clear recovery action instead of a stuck blank page.
+### Fix 4 — Upgrade `YRSafeBoundary` to capture and surface the real crash
 
-### Fix 4 — Preventive shape-guards on YR-25/26/27/28
+When it catches, log the full error to `console.error` with the node ID (passed as a new prop `nodeId`), include the stack, and show in the UI:
+- The error message (already done)
+- A "Show raw content" toggle that pretty-prints the `content` JSON (passed as new prop `debugContent`) so Pauline can see what came back, and we can see it from the session log
 
-Quick read of the four un-generated builders shows one latent risk: **YR-25 line 104** renders `{l.requirements}` directly. The prompt asks the AI to return it as a string, but past results show AI sometimes returns arrays. Apply the same `Array.isArray` coerce pattern to:
+### Fix 5 — Diagnostic breadcrumb
 
-- `YR25Builder.tsx` line 104: `l.requirements`
-- `YR26Builder.tsx` line 78: `f.description`, line 84: `s.description`
-- `YR27Builder.tsx` line 81: `t.benefit`, line 94: `c.summary`
-- `YR28Builder.tsx` line 76: `content.audience_profile`, line 88: `sp.description`, line 98: `s.content_summary`, line 104/107/109: outreach fields
-
-For each, wrap as: `Array.isArray(x) ? <ul>{x.map(...)}</ul> : <p>{x}</p>`. ~1 line each, no logic change.
+Add `useEffect(() => { if (step === 2 && content) console.log('[YR-XX] step-2 render', content); }, [step, content]);` to all 10 YR builders. One line each. Next time it blanks, the dev-server log captures the exact shape that triggered the crash.
 
 ### Out of scope
 
-- No edge function changes — generation works correctly; the AI prompts and outputs are valid.
-- No DB migration — existing YR-23/24 content_json is already correct and will render once the JSX is fixed (no need to re-generate).
-- No router/microsite changes — Fix 3 from the prior sprint (publishing path) is still in place; Pauline can publish YR-23/24 immediately after this sprint lands.
+- No edge function changes — generation is producing valid JSON.
+- No DB migration — existing content is fine.
+- No publish/microsite changes.
 
 ## Files touched
 
-- **Update** `src/components/dashboard/builders/yr23/YR23Builder.tsx` — fix pillars + who_its_for renderers (~10 lines)
-- **Update** `src/components/dashboard/builders/yr24/YR24Builder.tsx` — fix transformation_arc + itinerary day renderers (~15 lines)
-- **Create** `src/components/dashboard/builders/yr-shared/YRSafeBoundary.tsx` — error boundary (~30 lines)
-- **Update** `src/components/dashboard/builders/yr19/YR19Builder.tsx` through `yr28/YR28Builder.tsx` (10 files) — wrap step 2 in `<YRSafeBoundary>`, plus the YR-25/26/27/28 shape-guards (~3 lines each, ~30 lines total across 10 files)
+- **Update** `src/components/dashboard/builders/yr-shared/YRSafeBoundary.tsx` — refactor `SafeText` to inline-safe, add `SafeBlock`, add `debugContent` + `nodeId` props (~80 lines)
+- **Update** `src/components/dashboard/builders/yr23/YR23Builder.tsx` — wrap loose interpolations, pass `nodeId="YR-23"` and `debugContent={content}` to boundary, add diagnostic effect (~20 lines)
+- **Update** `src/components/dashboard/builders/yr24/YR24Builder.tsx` — refactor transformation_arc block to block-level layout, wrap loose interpolations, boundary props, diagnostic effect (~30 lines)
+- **Update** `src/components/dashboard/builders/yr25/YR25Builder.tsx` — wrap loose interpolations, boundary props, diagnostic effect (~15 lines)
+- **Update** `YR19/20/21/22/26/27/28 Builder.tsx` (7 files) — same wrap-and-instrument pass (~10 lines each, ~70 lines total)
 
-No DB, no edge functions, no router. Pure frontend resilience pass.
+No DB, no edge functions, no router, no shared backend changes. Pure resilience hardening + diagnostics.
 
 ## Verification
 
-1. Pauline reloads `/node-builder/YR-23` → builder restores to step 2 (Review) → all 4 tabs render: Overview, Tiers, Application, Sales Page. The `Be SUCKcessful Mastermind` content displays correctly with both membership tiers ($5,000 and $15,000). She can click "Publish to My Site" → microsite goes live at `/pauline-teo/mastermind`.
-2. Pauline reloads `/node-builder/YR-24` → builder restores to step 2 → all 4 tabs render: Concept, Options, Itinerary, Pricing. The transformation arc shows as structured sections. The itinerary day cards show morning/afternoon/evening as bulleted lists. She publishes → live at `/pauline-teo/retreat`.
-3. Pauline opens `/node-builder/YR-25`, `YR-26`, `YR-27`, `YR-28` → each lands on Introduction (correct — no content yet). She clicks Build → spinner runs 20–40 s → review screen renders without blanking, regardless of array-vs-string shape variations.
-4. If any future AI response returns a wholly unexpected shape, the `YRSafeBoundary` catches it and shows: "This view couldn't render — click Re-generate" with a button that resets to step 0. No more white screens.
+1. Pauline reloads `/node-builder/YR-23` → step-2 review renders all 4 tabs without blanking. Console log shows `[YR-23] step-2 render { mastermind_title: "Be SUCKcessful Mastermind...", ... }`.
+2. Pauline reloads `/node-builder/YR-24` → step-2 renders. The transformation arc shows as a clean block layout (label above, SafeBlock list below). Itinerary days render as 3-column grids with morning/afternoon/evening as bulleted lists.
+3. Pauline reloads `/node-builder/YR-25` → step-2 renders all 4 tabs (overview, curriculum, levels, badge).
+4. If any future field comes back in an unexpected shape, `YRSafeBoundary` shows the error message + a "Show raw content" debug panel + a working "Re-generate" button. **No more white screens, ever.**
+5. Pauline can click Publish on all three → microsites go live at `/pauline-teo/mastermind`, `/pauline-teo/retreat`, `/pauline-teo/certification`.
+6. Console / dev-server log captures the exact `content` shape on every step-2 render, so any future regression is one log read away from root cause.
 
 ## Scope
 
-2 surgical render fixes (YR-23, YR-24) + 1 new error boundary + 10 small wrap-and-guard updates across all YR builders. No data loss, no regeneration required, no edge function changes.
+1 shared helper refactor + 10 builder updates (each ~10-30 lines). Adds defensive `SafeText`/`SafeBlock` wrappers everywhere AI text is rendered, fixes a DOM nesting trap in YR-24, and instruments all 10 YR builders so the next failure is debuggable from logs alone.
 
