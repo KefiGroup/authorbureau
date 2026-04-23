@@ -152,10 +152,10 @@ export default function FrameworkInterviewModal({
         ) : (
           <div className="py-2 space-y-4">
             {extracted && frameworks.length > 0 && (
-              <div className="flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 p-3">
-                <Sparkles className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-green-800">
-                  <strong>Abby found {frameworks.length} frameworks.</strong> Edit names/descriptions, or remove any with the <Trash2 className="h-3 w-3 inline text-green-700" /> icon.
+              <div className="flex items-start gap-2 rounded-lg bg-success/10 dark:bg-success/15 border border-success/30 p-3">
+                <Sparkles className="h-4 w-4 text-success mt-0.5 flex-shrink-0" />
+                <p className="text-xs text-success">
+                  <strong>Abby found {frameworks.length} frameworks.</strong> Edit names/descriptions, or remove any with the <Trash2 className="h-3 w-3 inline text-success" /> icon.
                 </p>
               </div>
             )}
@@ -219,7 +219,7 @@ export default function FrameworkInterviewModal({
           <Button variant="ghost" size="sm" onClick={handleSkip} className="text-muted-foreground" disabled={extracting}>
             Skip — build without frameworks
           </Button>
-          <Button onClick={handleConfirm} disabled={saving || extracting} className="bg-gradient-to-r from-amber-500 to-amber-600 text-white">
+          <Button onClick={handleConfirm} disabled={saving || extracting} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
             {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
             {validCount > 1 && buildMode === "one-each"
               ? `Build ${validCount} ${productLabel}s`

@@ -125,10 +125,10 @@ export default function BuildAuthorityHub() {
     const status = getNodeStatus(def.id);
     const isLocked = status === "locked";
     return (
-      <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
+      <div key={def.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-[var(--shadow-card-hover)] hover:border-[hsl(var(--builder-bridge)/0.4)] transition-all">
         <div className="flex items-start justify-between">
           <h3 className="font-heading text-base font-bold text-foreground">{def.name}</h3>
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300"}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : status === "live" ? "bg-success/15 text-success" : "bg-[hsl(var(--builder-bridge)/0.12)] text-[hsl(var(--builder-bridge))] dark:bg-[hsl(var(--builder-bridge)/0.2)]"}`}>
             {isLocked ? <><Lock className="h-3 w-3" /> Locked</> : status === "live" ? "Live ✓" : "Ready to Build"}
           </span>
         </div>
@@ -143,7 +143,7 @@ export default function BuildAuthorityHub() {
         <Button
           size="sm"
           variant={isLocked ? "secondary" : "default"}
-          className="w-full text-xs mt-1"
+          className={isLocked ? "w-full text-xs mt-1" : "w-full text-xs mt-1 bg-secondary text-secondary-foreground hover:bg-secondary/90"}
           onClick={() => handleCardClick(def.id)}
         >
           {isLocked ? "Upgrade to Pro →" : "Build This Product →"}
@@ -160,10 +160,10 @@ export default function BuildAuthorityHub() {
         </Button>
 
         {/* SECTION 1 — Header Card */}
-        <Card className="rounded-2xl border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 p-6 mb-6">
+        <Card className="rounded-xl border-2 border-[hsl(var(--builder-bridge)/0.3)] bg-[var(--gradient-bridge-intro)] p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[hsl(var(--builder-bridge)/0.15)] flex items-center justify-center shrink-0">
                 <span className="text-xl">👑</span>
               </div>
               <div>
@@ -171,17 +171,17 @@ export default function BuildAuthorityHub() {
                 <p className="text-sm text-muted-foreground mt-1">Scale Your Audience (9 nodes)</p>
               </div>
             </div>
-            <span className="inline-flex items-center rounded-full bg-violet-100 dark:bg-violet-900/50 px-3 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300 shrink-0">9 products</span>
+            <span className="inline-flex items-center rounded-full bg-[hsl(var(--builder-bridge)/0.15)] px-3 py-1 text-xs font-semibold text-[hsl(var(--builder-bridge))] shrink-0">9 products</span>
           </div>
         </Card>
 
         {/* SECTION 2 — Progression Box */}
-        <div className="rounded-xl border-l-4 border-violet-500 bg-violet-50/50 dark:bg-violet-950/20 p-5 mb-6">
-          <h3 className="text-xs font-black uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-2">The Build Authority Progression</h3>
+        <div className="rounded-xl border-l-4 border-[hsl(var(--builder-bridge))] bg-[hsl(var(--builder-bridge)/0.06)] p-5 mb-6">
+          <h3 className="text-xs font-black uppercase tracking-wider text-[hsl(var(--builder-bridge))] mb-2">The Build Authority Progression</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
             <strong>Brand Products</strong> build your foundation: website, book sales, email list, audience.<br/>
             <strong>Build Authority</strong> scales that foundation: courses, coaching, media visibility, new partnership models.<br/>
-            Everything in Build Authority is designed to do one thing: <span className="font-semibold text-violet-600 dark:text-violet-400">turn your book and brand into recognised expertise that attracts high-value opportunities</span>. These 9 products fall into two groups, and the order matters.
+            Everything in Build Authority is designed to do one thing: <span className="font-semibold text-[hsl(var(--builder-bridge))]">turn your book and brand into recognised expertise that attracts high-value opportunities</span>. These 9 products fall into two groups, and the order matters.
           </p>
         </div>
 
@@ -206,8 +206,8 @@ export default function BuildAuthorityHub() {
           return (
             <div key={section} className="mb-8">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-1 h-6 rounded-full bg-violet-500" />
-                <h2 className="font-heading text-sm font-black uppercase tracking-wider text-violet-600 dark:text-violet-400">{meta.heading}</h2>
+                <div className="w-1 h-6 rounded-full bg-[hsl(var(--builder-bridge))]" />
+                <h2 className="font-heading text-sm font-black uppercase tracking-wider text-[hsl(var(--builder-bridge))]">{meta.heading}</h2>
               </div>
               <p className="text-xs text-muted-foreground mb-1 ml-4">{meta.description}</p>
               <p className="text-xs text-muted-foreground mb-4 ml-4">{meta.subdesc}</p>
@@ -219,12 +219,12 @@ export default function BuildAuthorityHub() {
         })}
 
         {/* Estimated Revenue */}
-        <Card className="rounded-2xl border-2 border-violet-200 dark:border-violet-800 bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/30 dark:to-purple-950/20 p-6 mb-6">
+        <Card className="rounded-xl border-2 border-[hsl(var(--builder-bridge)/0.3)] bg-[var(--gradient-bridge-intro)] p-6 mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <Sparkles className="h-5 w-5 text-violet-600" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-violet-700 dark:text-violet-400">Estimated Revenue</span>
+            <Sparkles className="h-5 w-5 text-[hsl(var(--builder-bridge))]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--builder-bridge))]">Estimated Revenue</span>
           </div>
-          <p className="font-heading text-2xl sm:text-3xl font-black text-violet-800 dark:text-violet-300">$13,500 – $39,480 <span className="text-base">↑</span></p>
+          <p className="font-heading text-2xl sm:text-3xl font-black text-[hsl(var(--builder-bridge))]">$13,500 – $39,480 <span className="text-base">↑</span></p>
         </Card>
 
         {/* Tip */}

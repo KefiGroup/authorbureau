@@ -50,10 +50,10 @@ async function crmFetch(action: string, extra: Record<string, any> = {}) {
 }
 
 const STAT_CARDS = [
-  { key: "total", label: "TOTAL CONTACTS", icon: Users, borderColor: "border-l-[#3B82F6]", iconColor: "text-[#3B82F6]" },
-  { key: "active", label: "ACTIVE THIS WEEK", icon: TrendingUp, borderColor: "border-l-[#14B8A6]", iconColor: "text-[#14B8A6]" },
-  { key: "conversion", label: "CONVERSION RATE", icon: Target, borderColor: "border-l-[#D4AF37]", iconColor: "text-[#D4AF37]" },
-  { key: "pipeline", label: "PIPELINE VALUE", icon: DollarSign, borderColor: "border-l-[#10B981]", iconColor: "text-[#10B981]" },
+  { key: "total", label: "TOTAL CONTACTS", icon: Users, borderColor: "border-l-[hsl(var(--builder-bridge))]", iconColor: "text-[hsl(var(--builder-bridge))]" },
+  { key: "active", label: "ACTIVE THIS WEEK", icon: TrendingUp, borderColor: "border-l-[hsl(var(--builder-brand))]", iconColor: "text-[hsl(var(--builder-brand))]" },
+  { key: "conversion", label: "CONVERSION RATE", icon: Target, borderColor: "border-l-secondary", iconColor: "text-secondary" },
+  { key: "pipeline", label: "PIPELINE VALUE", icon: DollarSign, borderColor: "border-l-success", iconColor: "text-success" },
 ];
 
 export default function AuthorCRMPage({ onNavigate }: Props) {
@@ -237,7 +237,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="h-6 w-6 animate-spin text-[#D4AF37]" />
+        <Loader2 className="h-6 w-6 animate-spin text-secondary" />
       </div>
     );
   }
@@ -245,39 +245,39 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   if ((statsData?.effectiveTotal || 0) === 0 && !showForm) {
     return (
       <div className="space-y-6">
-        <div className="rounded-xl bg-[#1E3A5F] px-6 py-8 text-center">
+        <div className="rounded-xl bg-primary px-6 py-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Star className="h-6 w-6 text-[#D4AF37]" />
-            <h2 className="text-2xl font-bold text-white font-heading">My CRM</h2>
+            <Star className="h-6 w-6 text-secondary" />
+            <h2 className="text-2xl font-bold text-primary-foreground font-heading">My CRM</h2>
           </div>
-          <p className="text-[#D4AF37] text-sm mb-1">Sales Funnel & Contacts — powered by ABBY</p>
-          <p className="text-white/70 text-[13px] italic">{abbyMessage}</p>
+          <p className="text-secondary text-sm mb-1">Sales Funnel & Contacts — powered by ABBY</p>
+          <p className="text-primary-foreground/70 text-[13px] italic">{abbyMessage}</p>
         </div>
 
         {recentLeads.length > 0 && (
-          <div className="max-w-3xl mx-auto bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+          <div className="max-w-3xl mx-auto bg-card rounded-xl border border-border shadow-sm p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-heading text-base font-bold text-[#1E3A5F]">
+              <h3 className="font-heading text-base font-bold text-foreground">
                 Recent quiz leads ({recentLeads.length})
               </h3>
-              <span className="text-[11px] text-gray-500">From your funnel captures</span>
+              <span className="text-[11px] text-muted-foreground">From your funnel captures</span>
             </div>
-            <ul className="divide-y divide-gray-100">
+            <ul className="divide-y divide-border">
               {recentLeads.map((l) => (
                 <li key={l.id} className="py-2.5 flex items-center justify-between text-sm">
                   <div className="min-w-0">
-                    <p className="font-medium text-[#1E3A5F] truncate">{l.name || l.email}</p>
-                    <p className="text-[12px] text-gray-500 truncate">{l.email}</p>
+                    <p className="font-medium text-foreground truncate">{l.name || l.email}</p>
+                    <p className="text-[12px] text-muted-foreground truncate">{l.email}</p>
                   </div>
-                  <div className="flex items-center gap-3 text-[11px] text-gray-500 shrink-0 ml-4">
-                    {l.quiz_stage && <span className="px-2 py-0.5 rounded bg-[#D4AF37]/15 text-[#1E3A5F]">{l.quiz_stage}</span>}
+                  <div className="flex items-center gap-3 text-[11px] text-muted-foreground shrink-0 ml-4">
+                    {l.quiz_stage && <span className="px-2 py-0.5 rounded bg-secondary/15 text-foreground">{l.quiz_stage}</span>}
                     {typeof l.abby_score === "number" && <span>score {l.abby_score}</span>}
                     <span>{new Date(l.created_at).toLocaleDateString()}</span>
                   </div>
                 </li>
               ))}
             </ul>
-            <p className="text-[11px] text-gray-400 mt-3 italic">
+            <p className="text-[11px] text-muted-foreground mt-3 italic">
               These leads were captured by your funnels. They will appear in your full CRM shortly.
             </p>
           </div>
@@ -297,7 +297,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
               Import CSV
             </Button>
             <Button
-              className="bg-[#D4AF37] text-[#1E3A5F] hover:bg-[#D4AF37]/90 font-semibold"
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
               onClick={() => onNavigate?.("revenue-streams")}
             >
               Build Your First Product <ArrowRight className="h-4 w-4 ml-1.5" />
@@ -318,20 +318,20 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   return (
     <div className="max-w-7xl space-y-6">
       {/* Navy Banner Header */}
-      <div className="rounded-xl bg-[#1E3A5F] px-6 py-5">
+      <div className="rounded-xl bg-primary px-6 py-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <Star className="h-6 w-6 text-[#D4AF37]" />
+            <Star className="h-6 w-6 text-secondary" />
             <div>
-              <h2 className="text-xl font-bold text-white font-heading">My CRM</h2>
-              <p className="text-[#D4AF37] text-[13px]">Sales Funnel & Contacts — powered by ABBY</p>
+              <h2 className="text-xl font-bold text-primary-foreground font-heading">My CRM</h2>
+              <p className="text-secondary text-[13px]">Sales Funnel & Contacts — powered by ABBY</p>
             </div>
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button
               variant="outline"
               size="sm"
-              className="border-white/30 text-white hover:bg-[#D4AF37] hover:text-[#1E3A5F] hover:border-[#D4AF37] bg-transparent"
+              className="border-primary-foreground/30 text-primary-foreground hover:bg-secondary hover:text-secondary-foreground hover:border-secondary bg-transparent"
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
             >
@@ -341,14 +341,14 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
             <Button
               variant="outline"
               size="sm"
-              className="border-white/30 text-white hover:bg-[#D4AF37] hover:text-[#1E3A5F] hover:border-[#D4AF37] bg-transparent"
+              className="border-primary-foreground/30 text-primary-foreground hover:bg-secondary hover:text-secondary-foreground hover:border-secondary bg-transparent"
               onClick={exportCSV}
             >
               <Download className="h-4 w-4 mr-1.5" /> Export
             </Button>
             <Button
               size="sm"
-              className="bg-[#D4AF37] text-[#1E3A5F] hover:bg-[#D4AF37]/90 font-semibold"
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold"
               onClick={() => setShowForm(!showForm)}
             >
               {showForm ? <X className="mr-1.5 h-4 w-4" /> : <UserPlus className="mr-1.5 h-4 w-4" />}
@@ -356,7 +356,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
             </Button>
           </div>
         </div>
-        <p className="text-white/70 text-[13px] italic mt-2">&quot;{abbyMessage}&quot;</p>
+        <p className="text-primary-foreground/70 text-[13px] italic mt-2">&quot;{abbyMessage}&quot;</p>
       </div>
       <input ref={fileInputRef} type="file" accept=".csv" className="hidden" onChange={handleCSVImport} />
 
@@ -367,13 +367,13 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           return (
             <div
               key={stat.key}
-              className={`bg-white rounded-xl shadow-sm border-l-4 ${stat.borderColor} p-4`}
+              className={`bg-card rounded-xl shadow-sm border border-border border-l-4 ${stat.borderColor} p-4`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={`h-5 w-5 ${stat.iconColor}`} />
-                <span className="text-[11px] font-semibold tracking-wide text-gray-500 uppercase">{stat.label}</span>
+                <span className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">{stat.label}</span>
               </div>
-              <p className="text-[28px] font-bold text-[#1E3A5F] font-heading leading-none">
+              <p className="text-[28px] font-bold text-foreground font-heading leading-none">
                 {statValues[stat.key]}
               </p>
             </div>
@@ -399,13 +399,13 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
                 className={`
                   flex items-center gap-1.5 px-4 py-2 rounded-t-lg text-sm font-medium transition-all
                   ${isActive
-                    ? "bg-[#D4AF37] text-[#1E3A5F] font-bold shadow-sm"
-                    : "bg-white text-gray-500 hover:text-[#D4AF37]"
+                    ? "bg-secondary text-secondary-foreground font-bold shadow-sm"
+                    : "bg-card text-muted-foreground hover:text-secondary"
                   }
                   ${isAbby && !isActive ? "animate-pulse-subtle" : ""}
                 `}
               >
-                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-[#1E3A5F]" : isAbby ? "text-[#D4AF37]" : ""}`} />
+                <Icon className={`h-3.5 w-3.5 ${isActive ? "text-secondary-foreground" : isAbby ? "text-secondary" : ""}`} />
                 {tab.label}
               </button>
             );

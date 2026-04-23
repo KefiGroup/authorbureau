@@ -109,10 +109,10 @@ export default function YieldRevenueHub() {
     const status = getNodeStatus(def.id);
     const isLocked = status === "locked";
     return (
-      <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
+      <div key={def.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-[var(--shadow-card-hover)] hover:border-[hsl(var(--builder-yield)/0.4)] transition-all">
         <div className="flex items-start justify-between">
           <h3 className="font-heading text-base font-bold text-foreground">{def.name}</h3>
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300"}`}>
+          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : status === "live" ? "bg-success/15 text-success" : "bg-[hsl(var(--builder-yield)/0.12)] text-[hsl(var(--builder-yield))] dark:bg-[hsl(var(--builder-yield)/0.2)]"}`}>
             {isLocked ? <><Lock className="h-3 w-3" /> Locked</> : status === "live" ? "Live ✓" : "Ready to Build"}
           </span>
         </div>
@@ -127,7 +127,7 @@ export default function YieldRevenueHub() {
         <Button
           size="sm"
           variant={isLocked ? "secondary" : "default"}
-          className="w-full text-xs mt-1"
+          className={isLocked ? "w-full text-xs mt-1" : "w-full text-xs mt-1 bg-secondary text-secondary-foreground hover:bg-secondary/90"}
           onClick={() => handleCardClick(def.id)}
         >
           {isLocked ? "Upgrade to Enterprise →" : "Build This Product →"}
@@ -144,10 +144,10 @@ export default function YieldRevenueHub() {
         </Button>
 
         {/* SECTION 1 — Header Card */}
-        <Card className="rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 p-6 mb-6">
+        <Card className="rounded-xl border-2 border-[hsl(var(--builder-yield)/0.3)] bg-[var(--gradient-yield-intro)] p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[hsl(var(--builder-yield)/0.15)] flex items-center justify-center shrink-0">
                 <span className="text-xl">🏆</span>
               </div>
               <div>
@@ -155,20 +155,20 @@ export default function YieldRevenueHub() {
                 <p className="text-sm text-muted-foreground mt-1">Premium Services (10 nodes)</p>
               </div>
             </div>
-            <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/50 px-3 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300 shrink-0">10 products</span>
+            <span className="inline-flex items-center rounded-full bg-[hsl(var(--builder-yield)/0.15)] px-3 py-1 text-xs font-semibold text-[hsl(var(--builder-yield))] shrink-0">10 products</span>
           </div>
         </Card>
 
         {/* SECTION 2 — Introduction */}
         <div className="rounded-xl border border-border bg-card p-5 mb-6">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Yield Revenue is designed to do one thing: <span className="font-semibold text-amber-600 dark:text-amber-400">convert your established authority into high-ticket income</span>. Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
+            Everything in Yield Revenue is designed to do one thing: <span className="font-semibold text-[hsl(var(--builder-yield))]">convert your established authority into high-ticket income</span>. Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
           </p>
         </div>
 
         {/* SECTION 3 — Why These Work Together */}
-        <div className="rounded-xl border-l-4 border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 p-5 mb-6">
-          <h3 className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">Why These Work Together (Not in Sequence)</h3>
+        <div className="rounded-xl border-l-4 border-[hsl(var(--builder-yield))] bg-[hsl(var(--builder-yield)/0.06)] p-5 mb-6">
+          <h3 className="text-xs font-black uppercase tracking-wider text-[hsl(var(--builder-yield))] mb-2">Why These Work Together (Not in Sequence)</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Unlike Brand Products (which build on each other) or Build Authority (which amplify your reach), Yield Revenue services all draw from the same well: your established authority and audience. You don't need to do coaching before consulting, or Retreats before a Mastermind. Instead, you pursue the services that align with:<br/>
             <strong>Your strengths:</strong> What do you enjoy most?<br/>
@@ -179,7 +179,7 @@ export default function YieldRevenueHub() {
 
         {/* SECTION 4 — The Full Journey */}
         <div className="rounded-xl border border-border bg-card p-5 mb-6">
-          <h3 className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">The Full Journey</h3>
+          <h3 className="text-xs font-black uppercase tracking-wider text-[hsl(var(--builder-yield))] mb-2">The Full Journey</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
             <strong>Brand Products</strong> built your foundation and audience. <strong>Build Authority</strong> scaled your reach and credibility. <strong>Yield Revenue</strong> is where you monetise your expertise at the highest level, with premium pricing, selective clients, and maximum impact.
           </p>
@@ -205,12 +205,12 @@ export default function YieldRevenueHub() {
         </div>
 
         {/* SECTION 6 — Estimated Revenue */}
-        <Card className="rounded-2xl border-2 border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/20 p-6 mb-6">
+        <Card className="rounded-xl border-2 border-[hsl(var(--builder-yield)/0.3)] bg-[var(--gradient-yield-intro)] p-6 mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <Sparkles className="h-5 w-5 text-amber-600" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">Estimated Revenue</span>
+            <Sparkles className="h-5 w-5 text-[hsl(var(--builder-yield))]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--builder-yield))]">Estimated Revenue</span>
           </div>
-          <p className="font-heading text-2xl sm:text-3xl font-black text-amber-800 dark:text-amber-300">$68,400 – $215,520 <span className="text-base">↑</span></p>
+          <p className="font-heading text-2xl sm:text-3xl font-black text-[hsl(var(--builder-yield))]">$68,400 – $215,520 <span className="text-base">↑</span></p>
         </Card>
 
         {/* SECTION 7 — Tip */}

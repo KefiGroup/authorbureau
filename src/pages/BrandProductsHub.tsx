@@ -153,14 +153,14 @@ export default function BrandProductsHub() {
     }
     const status = getNodeStatus(nodeId);
     if (def.startHere && status === "not_started") {
-      return <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-amber-500 text-white"><Star className="h-3 w-3" /> Start Here</span>;
+      return <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-secondary text-secondary-foreground"><Star className="h-3 w-3" /> Start Here</span>;
     }
     const configs: Record<string, { label: string; cls: string }> = {
-      not_started: { label: "Ready to Build", cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
-      building: { label: "In Progress", cls: "bg-blue-100 text-blue-700" },
-      content_ready: { label: "Ready to Publish", cls: "bg-purple-100 text-purple-700" },
-      live: { label: "Live ✓", cls: "bg-emerald-100 text-emerald-700" },
-      error: { label: "Needs Attention", cls: "bg-red-100 text-red-700" },
+      not_started: { label: "Ready to Build", cls: "bg-[hsl(var(--builder-brand)/0.12)] text-[hsl(var(--builder-brand))] dark:bg-[hsl(var(--builder-brand)/0.2)]" },
+      building: { label: "In Progress", cls: "bg-secondary/15 text-secondary" },
+      content_ready: { label: "Ready to Publish", cls: "bg-accent/15 text-accent" },
+      live: { label: "Live ✓", cls: "bg-success/15 text-success" },
+      error: { label: "Needs Attention", cls: "bg-destructive/15 text-destructive" },
     };
     const cfg = configs[status] || configs.not_started;
     return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.cls}`}>{cfg.label}</span>;
@@ -182,13 +182,13 @@ export default function BrandProductsHub() {
   const renderNodeCard = (def: NodeDef) => {
     const source = getContentSource(def.id);
     return (
-      <div key={def.id} className="rounded-2xl border border-border bg-[hsl(var(--card))] p-5 flex flex-col gap-3 hover:shadow-lg transition-shadow">
+      <div key={def.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-[var(--shadow-card-hover)] hover:border-[hsl(var(--builder-brand)/0.4)] transition-all">
         <div className="flex items-start justify-between">
           <span className="text-2xl">{def.icon}</span>
           <div className="flex flex-col items-end gap-1">
             {getStatusBadge(def.id, def)}
             {source === "BP-02" && (
-              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-[hsl(var(--builder-brand)/0.12)] text-[hsl(var(--builder-brand))] dark:bg-[hsl(var(--builder-brand)/0.2)]">
                 📝 From Lead Magnets
               </span>
             )}
@@ -206,7 +206,7 @@ export default function BrandProductsHub() {
         <Button
           size="sm"
           variant={isTierUnlocked ? "default" : "secondary"}
-          className="w-full text-xs mt-1"
+          className={isTierUnlocked ? "w-full text-xs mt-1 bg-secondary text-secondary-foreground hover:bg-secondary/90" : "w-full text-xs mt-1"}
           onClick={() => handleCardClick(def.id)}
         >
           {isTierUnlocked ? "Build This Product →" : "Upgrade to Unlock"}
@@ -227,10 +227,10 @@ export default function BrandProductsHub() {
         </Button>
 
         {/* SECTION 1 — Header Card */}
-        <Card className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 p-6 mb-6">
+        <Card className="rounded-xl border-2 border-[hsl(var(--builder-brand)/0.3)] bg-[var(--gradient-brand-intro)] p-6 mb-6">
           <div className="flex items-start justify-between">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-[hsl(var(--builder-brand)/0.15)] flex items-center justify-center shrink-0">
                 <span className="text-xl">💰</span>
               </div>
               <div>
@@ -238,14 +238,14 @@ export default function BrandProductsHub() {
                 <p className="text-sm text-muted-foreground mt-1">Create Your Products (9 nodes)</p>
               </div>
             </div>
-            <span className="inline-flex items-center rounded-full bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-300 shrink-0">9 products</span>
+            <span className="inline-flex items-center rounded-full bg-[hsl(var(--builder-brand)/0.15)] px-3 py-1 text-xs font-semibold text-[hsl(var(--builder-brand))] shrink-0">9 products</span>
           </div>
         </Card>
 
         {/* SECTION 2 — Introduction */}
         <div className="rounded-xl border border-border bg-card p-5 mb-6">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Brand Products is designed to do one thing: <span className="font-semibold text-emerald-600 dark:text-emerald-400">turn your book into a recognisable brand that sells while you sleep</span>. These 9 products fall into two groups, and the order matters.
+            Everything in Brand Products is designed to do one thing: <span className="font-semibold text-[hsl(var(--builder-brand))]">turn your book into a recognisable brand that sells while you sleep</span>. These 9 products fall into two groups, and the order matters.
           </p>
         </div>
 
@@ -283,8 +283,8 @@ export default function BrandProductsHub() {
         {/* SECTION 4 — BRANDING & MARKETING */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-1 h-6 rounded-full bg-amber-500" />
-            <h2 className="font-heading text-sm font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Branding & Marketing</h2>
+            <div className="w-1 h-6 rounded-full bg-[hsl(var(--builder-brand))]" />
+            <h2 className="font-heading text-sm font-black uppercase tracking-wider text-[hsl(var(--builder-brand))]">Branding & Marketing</h2>
           </div>
           <p className="text-xs text-muted-foreground mb-4 ml-4">
             Start here. Before you sell anything, people need to find you, trust you, and hear from you consistently. These six products build your author platform, the foundation that makes everything else work.
@@ -297,8 +297,8 @@ export default function BrandProductsHub() {
         {/* SECTION 5 — DIGITAL PRODUCTS */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <div className="w-1 h-6 rounded-full bg-amber-500" />
-            <h2 className="font-heading text-sm font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">Digital Products</h2>
+            <div className="w-1 h-6 rounded-full bg-[hsl(var(--builder-brand))]" />
+            <h2 className="font-heading text-sm font-black uppercase tracking-wider text-[hsl(var(--builder-brand))]">Digital Products</h2>
           </div>
           <p className="text-xs text-muted-foreground mb-1 ml-4">
             Once your branding and marketing engine is running, these three products give your audience more ways to buy from you at higher price points.
@@ -312,12 +312,12 @@ export default function BrandProductsHub() {
         </div>
 
         {/* SECTION 6 — Estimated Revenue */}
-        <Card className="rounded-2xl border-2 border-emerald-200 dark:border-emerald-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/20 p-6 mb-6">
+        <Card className="rounded-xl border-2 border-[hsl(var(--builder-brand)/0.3)] bg-[var(--gradient-brand-intro)] p-6 mb-6">
           <div className="flex items-center gap-3 mb-1">
-            <Sparkles className="h-5 w-5 text-emerald-600" />
-            <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">Estimated Revenue</span>
+            <Sparkles className="h-5 w-5 text-[hsl(var(--builder-brand))]" />
+            <span className="text-[10px] font-bold uppercase tracking-wider text-[hsl(var(--builder-brand))]">Estimated Revenue</span>
           </div>
-          <p className="font-heading text-2xl sm:text-3xl font-black text-emerald-800 dark:text-emerald-300">$5,520 – $15,480 <span className="text-base">↑</span></p>
+          <p className="font-heading text-2xl sm:text-3xl font-black text-[hsl(var(--builder-brand))]">$5,520 – $15,480 <span className="text-base">↑</span></p>
         </Card>
 
         {/* SECTION 7 — ABBY Tip */}
