@@ -21,12 +21,15 @@ import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSect
 import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
-import { publishNodeToSite } from "@/lib/publish-node";
+import { publishNodeToSite, StripeRequiredError } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { downloadWorkbookPdf, estimateWorkbookPageCount, normalizeOutcome } from "@/lib/workbook-pdf";
 import { downloadWorkbookDocx } from "@/lib/workbook-docx";
 import { parseWorkbookDocx } from "@/lib/workbook-docx-import";
+import { useStripeConnect } from "@/components/dashboard/StripeConnectBanner";
+import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
+import { isPaidNode } from "@/lib/is-paid-node";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
@@ -53,9 +56,11 @@ export default function BP06Builder({ authorId }: Props) {
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
+  const { onboarding_complete: stripeReady, loading: stripeLoading } = useStripeConnect();
   const hasResolvedBook = hasBook || Boolean(resolvedBookTitle) || Boolean(detectedBookTitle && detectedBookTitle !== "your book");
   const effectiveBookTitle = (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau";
 
@@ -136,10 +141,38 @@ export default function BP06Builder({ authorId }: Props) {
   };
 
   const handlePublish = async () => {
+    // Pre-flight: paid workbook requires Stripe Connect.
+    if (isPaidNode(content) && !stripeReady) {
+      setStripeModalOpen(true);
+      return;
+    }
     setStep(3);
     setError(null);
     try {
       await publishNodeToSite(authorId!, "BP-06", authorSlug);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setContent((prev: any) => ({ ...prev, activated: true }));
+    } catch (e: unknown) {
+      if (e instanceof StripeRequiredError) {
+        setStripeModalOpen(true);
+        setStep(2);
+        return;
+      }
+      setError((e as Error).message);
+      setStep(2);
+    }
+  };
+
+  const handleMakeFree = async () => {
+    if (!authorId) return;
+    const next = { ...content, suggested_price_usd: 0, pricing_recommendation: "free" };
+    setContent(next);
+    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+    // Continue with publish now that it's free.
+    setStep(3);
+    setError(null);
+    try {
+      await publishNodeToSite(authorId, "BP-06", authorSlug);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: unknown) {
@@ -186,6 +219,9 @@ export default function BP06Builder({ authorId }: Props) {
             bookTitle={effectiveBookTitle}
             onActivate={handlePublish}
             onPrevious={() => setStep(0)}
+            stripeReady={stripeReady}
+            stripeLoading={stripeLoading}
+            onConnectStripe={() => setStripeModalOpen(true)}
           />
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
@@ -206,6 +242,12 @@ export default function BP06Builder({ authorId }: Props) {
           </>
         )}
       </div>
+      <StripeRequiredModal
+        open={stripeModalOpen}
+        onOpenChange={setStripeModalOpen}
+        productLabel={isPaidNode(content) ? `$${Number(content?.suggested_price_usd ?? 0)} workbook` : "paid workbook"}
+        onMakeFree={handleMakeFree}
+      />
     </div>
   );
 }
@@ -225,9 +267,12 @@ interface ReviewStepProps {
   bookTitle: string;
   onActivate: () => void;
   onPrevious: () => void;
+  stripeReady: boolean;
+  stripeLoading: boolean;
+  onConnectStripe: () => void;
 }
 
-function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onActivate, onPrevious }: ReviewStepProps) {
+function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe }: ReviewStepProps) {
   // Locked snapshot of Abby's original recommendation — never mutated by user edits.
   // Falls back to legacy fields for drafts created before the snapshot was added.
   const abbyRec: "free" | "paid" =
@@ -449,11 +494,44 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
         <InlineSectionCard nodeId="BP-06" authorId={authorId} content={content} setContent={setContent} path="transformation_promise" label="Transformation promise" type="textarea" />
         <InlineSectionCard nodeId="BP-06" authorId={authorId} content={content} setContent={setContent} path="sales_page.headline" label="Sales page headline" type="input" />
       </div>
+      {isPaid && (
+        <Card className={`border ${stripeReady ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"}`}>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${stripeReady ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}`}>
+                {stripeReady ? <Check className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">
+                  {stripeReady ? "Stripe payments connected" : "Stripe payments required"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {stripeReady
+                    ? "Readers can buy this workbook as soon as it's live."
+                    : `Connect Stripe before publishing this paid workbook ($${paidPrice}). Free workbooks can publish anytime.`}
+                </p>
+                {!stripeReady && !stripeLoading && (
+                  <Button size="sm" variant="outline" className="mt-2" onClick={onConnectStripe}>
+                    Connect Stripe →
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button variant="ghost" className="sm:w-auto" onClick={onPrevious}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Previous
         </Button>
-        <Button className="flex-1" size="lg" onClick={onActivate}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
+        <Button
+          className="flex-1"
+          size="lg"
+          onClick={onActivate}
+          disabled={isPaid && !stripeReady && !stripeLoading}
+        >
+          Publish to My Site<ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
         Your workbook will be published as {isPaid ? `a paid product at $${paidPrice}` : "a free lead magnet"} on your author site.

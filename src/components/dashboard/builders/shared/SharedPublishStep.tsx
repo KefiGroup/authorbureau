@@ -5,10 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles,
-  ArrowRight, Settings, BarChart3, Copy, ExternalLink, AlertTriangle, Info,
+  ArrowRight, Settings, BarChart3, Copy, ExternalLink, AlertTriangle, Info, CreditCard,
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
+import { useStripeConnect } from "@/components/dashboard/StripeConnectBanner";
+import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
+import { isPaidNode } from "@/lib/is-paid-node";
+import { StripeRequiredError } from "@/lib/publish-node";
 
 export interface ChecklistItem {
   label: string;
@@ -51,6 +55,9 @@ export default function SharedPublishStep({
   const [previewMode, setPreviewMode] = useState<"desktop" | "mobile">("desktop");
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [stripeModalOpen, setStripeModalOpen] = useState(false);
+
+  const { onboarding_complete: stripeReady, loading: stripeLoading } = useStripeConnect();
 
   // Derive persisted status from stepData
   const savedStatus = stepData.publishStatus as string | undefined;
@@ -58,7 +65,14 @@ export default function SharedPublishStep({
   const isLive = savedStatus === "live";
   const isPendingGhl = savedStatus === "published_pending_ghl";
 
-  const checks = checklist.map(c => ({ label: c.label, done: c.check(stepData) }));
+  // Detect paid product from stepData (works for any builder shape).
+  const isPaid = isPaidNode(stepData);
+  const stripeBlocked = isPaid && !stripeReady;
+
+  const baseChecks = checklist.map(c => ({ label: c.label, done: c.check(stepData) }));
+  const checks = isPaid
+    ? [...baseChecks, { label: "Stripe payments connected", done: stripeReady }]
+    : baseChecks;
   const allReady = checks.every(c => c.done);
   const proj = revenue.calculate(stepData);
 
@@ -71,6 +85,11 @@ export default function SharedPublishStep({
   };
 
   const handlePublish = async () => {
+    // Pre-flight: paid product requires Stripe Connect.
+    if (stripeBlocked) {
+      setStripeModalOpen(true);
+      return;
+    }
     setPublishing(true);
     setPublishError(null);
     try {
@@ -99,11 +118,25 @@ export default function SharedPublishStep({
         toast({ title: `${builderLabel} is live! 🎉` });
       }
     } catch (err: any) {
+      if (err instanceof StripeRequiredError) {
+        setStripeModalOpen(true);
+        setPublishing(false);
+        return;
+      }
       const msg = err?.message || "Publish failed. Please try again.";
       setPublishError(msg);
       toast({ title: "Publish failed", description: msg, variant: "destructive" });
     }
     setPublishing(false);
+  };
+
+  const handleMakeFree = async () => {
+    setStepData(prev => ({
+      ...prev,
+      suggested_price_usd: 0,
+      pricing_recommendation: "free",
+    }));
+    toast({ title: "Switched to free", description: "Click Publish again to go live as a free product." });
   };
 
   const handleExport = () => {
@@ -267,6 +300,13 @@ export default function SharedPublishStep({
           )}
         </Button>
       </div>
+
+      <StripeRequiredModal
+        open={stripeModalOpen}
+        onOpenChange={setStripeModalOpen}
+        productLabel={`paid ${builderLabel.toLowerCase()}`}
+        onMakeFree={handleMakeFree}
+      />
     </div>
   );
 }
