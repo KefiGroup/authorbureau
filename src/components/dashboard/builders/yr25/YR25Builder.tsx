@@ -13,7 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText, SafeBlock } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your certification programme...", "Building the curriculum...", "Creating certification levels...", "Finalising your certification..."];
 const ACT_MSGS = ["Setting up your certification platform...", "Creating payment pages...", "Almost ready..."];
@@ -48,6 +48,7 @@ export default function YR25Builder({ authorId }: Props) {
     })(); }, [authorId]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
+  useEffect(() => { if (step === 2 && content) console.log("[YR-25] step-2 render", content); }, [step, content]);
 
   const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr25-certification", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-25", nodeName: "Certification", content: data.content, currentStep: 2 }); } catch (e: any) { setError(e.message); setStep(0); } };
   const handlePublish = async () => { setStep(3); setError(null); try { await publishNodeToSite(authorId!, "YR-25", authorSlug); setContent((p: any) => ({ ...p, activated: true })); } catch (e: any) { setError(e.message); setStep(2); } };
@@ -61,9 +62,9 @@ export default function YR25Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Certification Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! A certification programme turns your methodology into a credential that others can earn — and pay for. I'm going to design your complete certification programme based on '{detectedBookTitle || bookTitle || "your book"}' — with a curriculum, assessment structure, and a certification badge concept. Ready to certify practitioners in your method?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Certification</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
-          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
+          <YRSafeBoundary nodeId="YR-25" debugContent={content} onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
-            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <AbbyCard><div className="text-muted-foreground"><SafeText value={content.abby_summary} /></div></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
                 <TabsTrigger value="overview" className="text-xs py-2"><Award className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
@@ -73,12 +74,12 @@ export default function YR25Builder({ authorId }: Props) {
               </TabsList>
               <TabsContent value="overview" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-3">
-                  <h3 className="text-xl font-bold">{content.certification_title}</h3>
-                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
-                  <p className="text-sm">{content.certification_promise}</p>
+                  <h3 className="text-xl font-bold"><SafeText value={content.certification_title} /></h3>
+                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"<SafeText value={content.tagline} />"</p>}
+                  <div className="text-sm"><SafeText value={content.certification_promise} /></div>
                   <div className="grid grid-cols-2 gap-3">
                     {Object.entries(content.programme_structure || {}).map(([k, v]) => (
-                      <div key={k} className="bg-muted/30 p-3 rounded"><p className="text-xs font-semibold text-muted-foreground capitalize">{k.replace(/_/g, " ")}</p><p className="text-sm font-medium">{String(v)}</p></div>
+                      <div key={k} className="bg-muted/30 p-3 rounded"><p className="text-xs font-semibold text-muted-foreground capitalize">{k.replace(/_/g, " ")}</p><div className="text-sm font-medium"><SafeText value={v} /></div></div>
                     ))}
                   </div>
                 </CardContent></Card>
@@ -86,9 +87,9 @@ export default function YR25Builder({ authorId }: Props) {
               <TabsContent value="curriculum" className="space-y-3 mt-4">
                 {content.modules?.map((m: any, i: number) => (
                   <Card key={i}><CardContent className="pt-4 pb-4 space-y-2">
-                    <div className="flex items-center gap-2"><span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{m.number}</span><h4 className="font-bold text-sm">{m.title}</h4></div>
-                    <p className="text-sm text-muted-foreground pl-9">{m.description}</p>
-                    <span className="inline-block text-xs bg-muted px-2 py-0.5 rounded ml-9">{m.assessment}</span>
+                    <div className="flex items-center gap-2"><span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{m.number ?? i + 1}</span><h4 className="font-bold text-sm"><SafeText value={m.title} /></h4></div>
+                    <div className="pl-9 text-sm text-muted-foreground"><SafeText value={m.description} /></div>
+                    <span className="inline-block text-xs bg-muted px-2 py-0.5 rounded ml-9"><SafeText value={m.assessment} /></span>
                   </CardContent></Card>
                 ))}
               </TabsContent>
@@ -99,11 +100,11 @@ export default function YR25Builder({ authorId }: Props) {
                       <div className="flex items-center justify-between flex-wrap gap-2">
                         <div className="flex items-center gap-2">
                           <span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{i + 1}</span>
-                          <h4 className="font-bold">{l.level}</h4>
+                          <h4 className="font-bold"><SafeText value={l.level} /></h4>
                         </div>
                         <HighTicketPrice price={l.price_usd} />
                       </div>
-                      <div className="pl-9"><SafeText value={l.requirements} className="text-muted-foreground" /></div>
+                      <div className="pl-9"><SafeBlock value={l.requirements} className="text-muted-foreground" /></div>
                     </CardContent>
                   </Card>
                 ))}
@@ -111,9 +112,9 @@ export default function YR25Builder({ authorId }: Props) {
               <TabsContent value="badge" className="space-y-4 mt-4">
                 <Card className="border-primary/30"><CardContent className="pt-6 text-center space-y-3">
                   <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto"><BadgeCheck className="h-10 w-10 text-primary" /></div>
-                  <h3 className="font-bold text-lg">{content.badge_concept?.badge_name}</h3>
-                  <p className="text-sm text-muted-foreground">{content.badge_concept?.badge_description}</p>
-                  <p className="text-xs text-muted-foreground">{content.badge_concept?.display_guidance}</p>
+                  <h3 className="font-bold text-lg"><SafeText value={content.badge_concept?.badge_name} /></h3>
+                  <div className="text-sm text-muted-foreground"><SafeText value={content.badge_concept?.badge_description} /></div>
+                  <div className="text-xs text-muted-foreground"><SafeText value={content.badge_concept?.display_guidance} /></div>
                 </CardContent></Card>
               </TabsContent>
             </Tabs>
