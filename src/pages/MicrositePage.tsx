@@ -2090,17 +2090,27 @@ const yrInline = (v: any): string => {
   try { return JSON.stringify(v); } catch { return String(v); }
 };
 
-function YRRightCard({ actionType, paymentLink, price, ctaLabel, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted, notifyHeading = "Notify Me", thankYou = "We'll be in touch soon." }: {
-  actionType: "purchase" | "enquiry" | "application" | "optin";
+function YRRightCard({
+  actionType, paymentLink, price, ctaLabel, v, hFont, bgColor,
+  onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted,
+  notifyHeading = "Notify Me", thankYou = "We'll be in touch soon.",
+  inquiryHeading, inquiryIntro, messagePlaceholder,
+  commerceNodeRowId, commerceAuthorId, commerceLabel,
+  selectedOfferLabel, selectedOfferPrice,
+}: {
+  actionType: "purchase" | "enquiry" | "application" | "optin" | "donate";
   paymentLink?: string; price?: number | string | null; ctaLabel?: string;
   v: any; hFont: string; bgColor: string;
-  onSubmit: (e: React.FormEvent) => Promise<boolean>;
+  onSubmit: (e: React.FormEvent, extraData?: Record<string, any>) => Promise<boolean>;
   email: string; setEmail: (v: string) => void;
   firstName: string; setFirstName: (v: string) => void;
   lastName: string; setLastName: (v: string) => void;
   message: string; setMessage: (v: string) => void;
   submitting: boolean; submitted: boolean;
   notifyHeading?: string; thankYou?: string;
+  inquiryHeading?: string; inquiryIntro?: string; messagePlaceholder?: string;
+  commerceNodeRowId?: string | null; commerceAuthorId?: string | null; commerceLabel?: string;
+  selectedOfferLabel?: string; selectedOfferPrice?: number | string | null;
 }) {
   if (submitted) {
     return (
@@ -2111,6 +2121,27 @@ function YRRightCard({ actionType, paymentLink, price, ctaLabel, v, hFont, bgCol
       </Card>
     );
   }
+
+  // Stripe checkout via BuyNowButton when a price is registered on author_nodes.
+  if ((actionType === "purchase" || actionType === "donate") && commerceNodeRowId && (typeof price === "number" && price > 0)) {
+    return (
+      <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{commerceLabel || ctaLabel || "Get Started"}</h3>
+        <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>${Number(price).toLocaleString()}</p>
+        {selectedOfferLabel && <p className="text-xs mb-3" style={{ color: v.mutedText }}>{selectedOfferLabel}</p>}
+        <BuyNowButton
+          authorNodeId={commerceNodeRowId}
+          authorId={commerceAuthorId || undefined}
+          fallbackUrl={paymentLink || null}
+          label={commerceLabel || ctaLabel || "Get Started"}
+          className="w-full rounded-full"
+          style={{ background: v.accent, color: bgColor }}
+        />
+      </Card>
+    );
+  }
+
+  // Static payment link fallback (legacy)
   if (actionType === "purchase" && paymentLink) {
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
@@ -2126,21 +2157,40 @@ function YRRightCard({ actionType, paymentLink, price, ctaLabel, v, hFont, bgCol
       </Card>
     );
   }
+
   const isApp = actionType === "application";
-  const isEnq = actionType === "enquiry";
-  const heading = isApp ? "Apply Now" : isEnq ? "Get in Touch" : notifyHeading;
+  const isDonate = actionType === "donate";
+  const isEnq = actionType === "enquiry" || isDonate;
+  const heading = inquiryHeading || (isApp ? "Apply Now" : isDonate ? "Make a Donation" : isEnq ? "Get in Touch" : notifyHeading);
+  const submitLabel = ctaLabel || (isApp ? "Submit Application" : isDonate ? "Pledge Support" : isEnq ? "Send Enquiry" : "Notify Me");
+  const placeholder = messagePlaceholder || (isApp ? "Why are you a fit? Tell us about you..." : isDonate ? "Share why you'd like to support…" : "Tell us what you're looking for...");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    const extra: Record<string, any> = {};
+    if (selectedOfferLabel) extra.selected_offer = selectedOfferLabel;
+    if (selectedOfferPrice != null) extra.selected_price = selectedOfferPrice;
+    return onSubmit(e, Object.keys(extra).length ? extra : undefined);
+  };
+
   return (
     <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-      <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>{heading}</h3>
-      <form onSubmit={onSubmit} className="space-y-3">
+      <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{heading}</h3>
+      {inquiryIntro && <p className="text-xs mb-4" style={{ color: v.mutedText }}>{inquiryIntro}</p>}
+      {selectedOfferLabel && (
+        <div className="my-3 p-2 rounded-md text-xs" style={{ background: `${v.accent}15`, color: v.headingText }}>
+          Interested in: <strong>{selectedOfferLabel}</strong>
+          {selectedOfferPrice != null && <> — <span style={{ color: v.accent }}>{typeof selectedOfferPrice === "number" ? `$${selectedOfferPrice.toLocaleString()}` : selectedOfferPrice}</span></>}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-3 mt-3">
         <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
         {(isApp || isEnq) && <Input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} />}
         <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
         {(isApp || isEnq) && (
-          <textarea className="w-full border rounded-md p-2 text-sm min-h-[80px]" placeholder={isApp ? "Why are you a fit? Tell us about you..." : "Tell us what you're looking for..."} value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
+          <textarea className="w-full border rounded-md p-2 text-sm min-h-[80px]" placeholder={placeholder} value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
         )}
         <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
-          {submitting ? "Submitting..." : (ctaLabel || (isApp ? "Submit Application" : isEnq ? "Send Enquiry" : "Notify Me"))} <ArrowRight className="ml-2 h-4 w-4" />
+          {submitting ? "Submitting..." : submitLabel} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </form>
     </Card>
@@ -2193,7 +2243,24 @@ function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
   return (
     <YRLayout title={title} tagline={tagline} intro={philosophy} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Book a Discovery Call" : "Request a Discovery Call"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof packages[0]?.price_usd === "number" ? packages[0].price_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Book a Discovery Call"
+        ctaLabel="Book a Discovery Call"
+        inquiryHeading="Book a Discovery Call"
+        inquiryIntro="Tell us a little about where you are — we'll reach out within 24 hours."
+        messagePlaceholder="What outcome are you working toward?"
+        selectedOfferLabel={packages[0] ? yrStr(packages[0]?.name) : undefined}
+        selectedOfferPrice={typeof packages[0]?.price_usd === "number" ? packages[0].price_usd : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {packages.length > 0 && (
         <section className="space-y-3">
@@ -2247,7 +2314,19 @@ function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setE
 
   return (
     <YRLayout title={title} intro={summary} v={v} hFont={hFont}
-      right={<YRRightCard actionType="application" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Apply for a Conversation" />}
+      right={<YRRightCard
+        actionType="application"
+        ctaLabel="Apply for a Conversation"
+        inquiryHeading="Apply for a Conversation"
+        inquiryIntro="High-touch work — we accept a limited number of clients each quarter."
+        messagePlaceholder="Briefly: what's the result you want, and why now?"
+        selectedOfferLabel={offers[0] ? yrStr(offers[0]?.name || offers[0]?.title) : undefined}
+        selectedOfferPrice={typeof offers[0]?.price_usd === "number" ? offers[0].price_usd : (typeof offers[0]?.price === "number" ? offers[0].price : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {offers.length > 0 && (
         <section className="space-y-3">
@@ -2297,7 +2376,18 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
   return (
     <YRLayout title={title} tagline={tagline} intro={oneSheet} v={v} hFont={hFont}
-      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Book This Speaker" />}
+      right={<YRRightCard
+        actionType="enquiry"
+        ctaLabel="Send Speaking Inquiry"
+        inquiryHeading="Book Pauline to Speak"
+        inquiryIntro="Tell us about your event — date, audience, and outcome you want."
+        messagePlaceholder="Event name, date, audience size, and the talk you'd like…"
+        selectedOfferLabel={talks[0] ? yrStr(talks[0]?.title || talks[0]?.name) : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {talks.length > 0 && (
         <section className="space-y-3">
@@ -2358,7 +2448,18 @@ function CorporateTrainingPage({ data, content, v, hFont, bgColor, onSubmit, ema
 
   return (
     <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
-      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Request a Proposal" />}
+      right={<YRRightCard
+        actionType="enquiry"
+        ctaLabel="Request a Training Proposal"
+        inquiryHeading="Bring this Training In-House"
+        inquiryIntro="Share your team's situation and we'll send a tailored proposal."
+        messagePlaceholder="Organisation, team size, format (in-person / virtual), preferred dates…"
+        selectedOfferLabel={formats[0] ? yrStr(formats[0]?.name || formats[0]?.title || formats[0]?.format) : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       <YRBulletSection heading="Learning Outcomes" items={outcomes} v={v} hFont={hFont} />
       {formats.length > 0 && (
@@ -2422,7 +2523,19 @@ function MastermindPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 
   return (
     <YRLayout title={title} tagline={tagline} intro={promise} v={v} hFont={hFont}
-      right={<YRRightCard actionType="application" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Apply to Join" />}
+      right={<YRRightCard
+        actionType="application"
+        ctaLabel="Apply to the Mastermind"
+        inquiryHeading="Apply for the Mastermind"
+        inquiryIntro="A small, curated cohort. We review every application personally."
+        messagePlaceholder="Where you are now, what you want this year, and why this room…"
+        selectedOfferLabel={tiers[0] ? yrStr(tiers[0]?.name || tiers[0]?.title || tiers[0]?.tier) : undefined}
+        selectedOfferPrice={typeof tiers[0]?.price_usd === "number" ? tiers[0].price_usd : (typeof tiers[0]?.price === "number" ? tiers[0].price : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       <YRBulletSection heading="Curriculum Pillars" items={pillars} v={v} hFont={hFont} />
       {tiers.length > 0 && (
@@ -2474,7 +2587,24 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
 
   return (
     <YRLayout title={title} tagline={tagline} intro={concept} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Reserve Your Spot" : "Enquire About a Retreat"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof options[0]?.price_usd === "number" ? options[0].price_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Reserve Your Seat"
+        ctaLabel={paymentLink ? "Reserve Your Spot" : "Enquire About a Retreat"}
+        inquiryHeading="Reserve Your Retreat Seat"
+        inquiryIntro="Spaces are limited. We'll confirm availability and send you the welcome pack."
+        messagePlaceholder="Which retreat option, dates that work, dietary or access needs…"
+        selectedOfferLabel={options[0] ? yrStr(options[0]?.name || options[0]?.title) : undefined}
+        selectedOfferPrice={typeof options[0]?.price_usd === "number" ? options[0].price_usd : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {options.length > 0 && (
         <section className="space-y-3">
@@ -2547,7 +2677,23 @@ function CertificationPage({ data, content, v, hFont, bgColor, onSubmit, email, 
 
   return (
     <YRLayout title={title} tagline={tagline} intro={promise} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Enroll Now" : "Apply for Certification"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof levels[0]?.price_usd === "number" ? levels[0].price_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Enrol in Certification"
+        ctaLabel={paymentLink ? "Enroll Now" : "Apply for Certification"}
+        inquiryHeading="Apply for Certification"
+        inquiryIntro="Tell us about your background — we'll confirm fit and enrolment options."
+        messagePlaceholder="Your role, prior experience, and what you want to do with this certification…"
+        selectedOfferLabel={levels[0] ? yrStr(levels[0]?.name || levels[0]?.level || levels[0]?.title) : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {structure && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
@@ -2617,7 +2763,22 @@ function ConferencePage({ data, content, v, hFont, bgColor, onSubmit, email, set
 
   return (
     <YRLayout title={title} tagline={tagline} intro={concept} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Register Now" : "Request Conference Details"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : null}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Register for the Conference"
+        ctaLabel={paymentLink ? "Register Now" : "Request Conference Details"}
+        inquiryHeading="Reserve Your Place"
+        inquiryIntro="We'll send the agenda, speaker line-up, and registration link."
+        messagePlaceholder="How many seats, sponsorship interest, dietary needs…"
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {formats.length > 0 && (
         <section className="space-y-3">
@@ -2690,7 +2851,24 @@ function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, se
 
   return (
     <YRLayout title={title} tagline={tagline} intro={impact} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Donate Now" : "Support This Campaign"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="donate"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof tiers[0]?.amount_usd === "number" ? tiers[0].amount_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Donate Now"
+        ctaLabel={paymentLink ? "Donate Now" : "Pledge Support"}
+        inquiryHeading="Support This Campaign"
+        inquiryIntro="Every contribution moves the needle. Tell us how you'd like to give."
+        messagePlaceholder="Amount you're considering, in honour of someone, anonymous, etc."
+        selectedOfferLabel={tiers[0] ? yrStr(tiers[0]?.name || tiers[0]?.tier || tiers[0]?.title) : undefined}
+        selectedOfferPrice={typeof tiers[0]?.amount_usd === "number" ? tiers[0].amount_usd : (typeof tiers[0]?.amount === "number" ? tiers[0].amount : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {(goal != null || days != null) && (
         <div className="grid grid-cols-2 gap-3">
@@ -2760,7 +2938,19 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
   return (
     <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
-      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Become a Sponsor" />}
+      right={<YRRightCard
+        actionType="enquiry"
+        ctaLabel="Become a Sponsor"
+        inquiryHeading="Become a Sponsor"
+        inquiryIntro="Choose a package below or tell us what activation you have in mind."
+        messagePlaceholder="Company, package of interest, brand goals, key dates…"
+        selectedOfferLabel={packages[0] ? yrStr(packages[0]?.name || packages[0]?.tier || packages[0]?.title) : undefined}
+        selectedOfferPrice={typeof packages[0]?.price_usd === "number" ? packages[0].price_usd : (typeof packages[0]?.price === "number" ? packages[0].price : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {audience && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>

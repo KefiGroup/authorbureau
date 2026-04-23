@@ -141,6 +141,7 @@ serve(async (req) => {
           },
         },
         node: {
+          id: node.id,
           node_id: node.node_id,
           node_name: node.node_name,
           personalised_name: node.personalised_name,
@@ -150,6 +151,8 @@ serve(async (req) => {
           payment_link: node.payment_link,
           third_party_url: node.third_party_url,
           ghl_resource_id: node.ghl_resource_id,
+          price_usd: node.price_usd,
+          currency: node.currency,
         },
         context: context || null,
         book: book || null,
