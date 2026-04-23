@@ -57,19 +57,25 @@ export default function BP07Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-07").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
+      const { data: node } = await supabase.from("author_nodes").select("content_json, status, current_step, activated_at").eq("author_id", authorId).eq("node_id", "BP-07").maybeSingle();
+      if (node?.content_json) {
         const cj = node.content_json as any;
-        setContent(cj);
-        setPriceOverride(cj?.suggested_price_usd || null);
-        const dc: string[] = Array.isArray(cj?.delivery_channels) ? cj.delivery_channels : ["readers_bureau"];
-        setChannels({
-          readers_bureau: true,
-          thinkific: dc.includes("thinkific"),
-          email_pdf: dc.includes("email_pdf"),
-        });
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+        // Only restore if we actually have generated content (programme_title is the canonical signal)
+        if (cj?.programme_title || cj?.study_weeks) {
+          setContent(cj);
+          setPriceOverride(cj?.suggested_price_usd || null);
+          const dc: string[] = Array.isArray(cj?.delivery_channels) ? cj.delivery_channels : ["readers_bureau"];
+          setChannels({
+            readers_bureau: true,
+            thinkific: dc.includes("thinkific"),
+            email_pdf: dc.includes("email_pdf"),
+          });
+          const isLive = node.status === "live" || !!node.activated_at;
+          const savedStep = Number(cj?._currentStep ?? node.current_step ?? (isLive ? 3 : 2));
+          // Clamp to valid range; never drop back to Introduction (0) or Generating (1) once content exists
+          setStep(Math.min(3, Math.max(2, savedStep)));
+          if (isLive) setContent((p: any) => ({ ...p, activated: true }));
+        }
       }
     })();
   }, [authorId]);
