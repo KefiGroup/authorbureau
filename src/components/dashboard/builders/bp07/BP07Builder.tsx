@@ -122,9 +122,41 @@ export default function BP07Builder({ authorId }: Props) {
     }
   };
 
+  const saveChannels = async (next: typeof channels) => {
+    if (!authorId || !content) return;
+    setChannels(next);
+    setSavingChannels(true);
+    const dc = ["readers_bureau", ...(next.thinkific ? ["thinkific"] : []), ...(next.email_pdf ? ["email_pdf"] : [])];
+    const updated = { ...content, delivery_channels: dc };
+    setContent(updated);
+    try {
+      await supabase.from("author_nodes").update({ content_json: updated }).eq("author_id", authorId).eq("node_id", "BP-07");
+      if (next.thinkific && !content?.thinkific_url) {
+        // Provision a Thinkific URL once when first enabled
+        const token = await getActiveToken();
+        if (token) {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deploy-bp07-to-thinkific`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+            body: JSON.stringify({ author_id: authorId }),
+          }).catch(() => null);
+        }
+      }
+    } finally {
+      setSavingChannels(false);
+    }
+  };
+
   const handlePublish = async () => {
     setStep(3); setError(null);
     try {
+      // Persist current price + channel selection before publishing
+      if (content && authorId) {
+        const dc = ["readers_bureau", ...(channels.thinkific ? ["thinkific"] : []), ...(channels.email_pdf ? ["email_pdf"] : [])];
+        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, delivery_channels: dc };
+        await supabase.from("author_nodes").update({ content_json: merged }).eq("author_id", authorId).eq("node_id", "BP-07");
+        setContent(merged);
+      }
       await publishNodeToSite(authorId!, "BP-07", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) { setError(e.message); setStep(2); }
