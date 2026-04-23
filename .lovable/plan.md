@@ -1,74 +1,114 @@
 
+# Fix plan — BP-07 publish loop (and the same hidden bug in BP-08 / BP-09)
 
-# Home Study Course — Distribution Platform Options
+## Root cause
+The publish request is reaching the backend, but the backend logs show:
 
-Currently BP-07 Home Study delivers exclusively inside the **Readers Bureau portal** (`/readers-bureau/learn/{purchaseId}`). That's the right *default* — zero setup for the author, single login for the reader, one platform fee. But some authors will want to push to channels they already own. Here are the realistic add-on options, ranked by fit.
-
-## Recommended additions (tiered)
-
-### Tier 1 — Add now (highest ROI, lowest effort)
-
-| Platform | Why it fits Home Study | Integration model | Effort |
-|---|---|---|---|
-| **Thinkific** | Already wired for BA-10 Online Course. Same module/lesson schema. Authors with an existing Thinkific subdomain can mirror the Home Study there. | Reuse `deploy-ba10-to-thinkific` → add `deploy-bp07-to-thinkific`. Author connects Thinkific in Account Settings → Connections. | Small |
-| **Email + PDF download (Gumroad-style)** | Self-paced PDF workbook + module PDFs delivered via email after purchase. Some authors prefer "no portal, just files." | Reuse `send-transactional-email` with attachments; generate a single bundled PDF from the existing modules. | Small |
-
-### Tier 2 — Add when authors ask
-
-| Platform | Why | Integration model | Effort |
-|---|---|---|---|
-| **Kajabi** | Premium course host; many established coaches already pay for it. | New `deploy-bp07-to-kajabi` edge function via Kajabi API; add Kajabi to the connector registry. | Medium |
-| **Podia** | Cheaper Kajabi alternative; popular with first-time course creators. | Same pattern as Kajabi. | Medium |
-| **Teachable** | Largest free tier, low barrier. | Same pattern. | Medium |
-
-### Tier 3 — Defer (low fit / high overhead)
-
-- **Udemy / Skillshare** — marketplace pricing race-to-the-bottom; conflicts with our 92% author payout model.
-- **LearnWorlds / Mighty Networks** — overlap with future YR-23 Mastermind; revisit when that node ships.
-- **Patreon** — better fit for BA-12 Membership, not one-time Home Study.
-- **YouTube unlisted + password PDF** — too DIY; we'd be supporting a hack, not a product.
-
-## How the multi-distribution UX would work
-
-In the BP-07 Activate step the author picks **one or more** delivery channels:
-
-```
-[x] Readers Bureau (default — always on)
-[ ] Thinkific  → "Connect Thinkific" if not connected
-[ ] Email PDF bundle  → uses author's verified sender
-[ ] Kajabi  (Pro tier)
+```text
+[save-author-node:publish] no draft row found { authorId: "...", nodeId: "BP-07" }
 ```
 
-On purchase, `process-purchase` fans out to whichever channels are enabled:
-- Readers Bureau → already implemented
-- Thinkific → enrol student via API (mirrors BA-10)
-- Email PDF → attach generated bundle to confirmation email
-- Kajabi → enrol via API
+That means the **Publish** step is working, but there is **nothing in `author_nodes` for BP-07 to publish**.
 
-The reader's "Start Your Course" button in the confirmation email always points to the **primary** channel the author selected (Readers Bureau by default).
+The bug is in the builder save flow:
+- `BP07Builder`, `BP08Builder`, and `BP09Builder` currently try to save drafts with direct browser `.update(...)` calls on `author_nodes`
+- on a fresh node, that update does **not insert a row**
+- in this project, working builders use the `save-author-node` backend helper via `autosaveBuilderDraft(...)`, which handles the shared-auth / RLS mismatch and does insert-or-update safely
+- so Publish runs, the backend looks for the draft row, finds nothing, and the UI drops back to the review screen
 
-## What changes in this sprint vs later
+## What to change
 
-**This sprint (small scope, high value):**
-1. Add `delivery_channels: string[]` to BP-07 `content_json` (default `["readers_bureau"]`).
-2. Add Tier-1 options (Thinkific + Email PDF bundle) to BP-07 Activate step.
-3. Build `deploy-bp07-to-thinkific` (clone of `deploy-ba10-to-thinkific`).
-4. Generate a single bundled "Home Study PDF" from existing modules and attach to confirmation email when channel is enabled.
-5. Update `purchase_confirmation` email to list each enabled channel with a CTA per channel.
+### 1) BP-07: replace direct draft writes with the platform autosave helper
+In `src/components/dashboard/builders/bp07/BP07Builder.tsx`:
+- replace the direct `author_nodes.update(...)` in `handleGenerate`
+- replace the direct `author_nodes.update(...)` in `handlePublish`
+- replace the direct `author_nodes.update(...)` inside `saveChannels`
 
-**Later (when authors request):**
-- Kajabi, Podia, Teachable connectors.
-- Per-channel analytics (which channel did the buyer actually use?).
-- Drip-release scheduling per channel.
+Use:
+- `autosaveBuilderDraft({ authorId, nodeId: "BP-07", nodeName: "Home Study Course", content, currentStep })`
 
-## Out of scope
-- Replacing the Readers Bureau as the default — it stays primary.
-- Refund/access-revocation across external platforms (manual for Tier-2 connectors).
-- Multi-channel pricing differences — single price, multi-channel fulfilment.
+This ensures:
+- first save inserts the row if missing
+- later saves update the same row
+- `_currentStep` persists correctly
+- Publish always has a draft row to flip live
 
-## Acceptance test
-1. Pauline opens BP-07 Activate → sees Readers Bureau pre-checked + Thinkific + Email PDF options.
-2. She enables Thinkific (already connected from BA-10) and Email PDF.
-3. Linny buys → receives email with 3 access options: Readers Bureau link, Thinkific enrolment link, attached PDF bundle.
-4. Linny logs into any of the three and finds the same lessons.
+### 2) BP-07: load using the same draft loader pattern as working nodes
+Still in `BP07Builder.tsx`:
+- switch initial hydration to use `loadBuilderDraft(authorId, "BP-07")` as the primary resume path
+- keep the existing content restoration rules (`step >= 2`, live = step 3)
+- preserve `delivery_channels`, `suggested_price_usd`, and `activated`
 
+This makes BP-07 behave like the stable builders that already survive refresh and publish correctly.
+
+### 3) BP-08 and BP-09: apply the same fix now
+These two builders have the same fragile pattern:
+- direct `.update(...)` on generate
+- direct `.update(...)` before publish
+
+Update:
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+
+Replace those direct writes with:
+- `autosaveBuilderDraft(...)` on generate
+- `autosaveBuilderDraft(...)` immediately before `publishNodeToSite(...)`
+- `loadBuilderDraft(...)` on hydration
+
+This prevents the same “looks saved but nothing exists to publish” failure from recurring there.
+
+### 4) Keep publish flow the same, but only after draft persistence succeeds
+For BP-07 / BP-08 / BP-09:
+- persist merged content first
+- then call `publishNodeToSite(...)`
+- only mark `activated: true` in local state after publish succeeds
+
+That keeps the UI honest and aligned with the backend state.
+
+### 5) Add a clearer recovery message if publish cannot find a draft
+If publish still fails for any reason:
+- show a specific error/toast like:
+  - “Your draft wasn’t saved yet. Saving it now — please try Publish again.”
+or
+  - surface the backend message directly instead of silently bouncing to review
+
+This avoids the confusing “jump back to this screen” experience.
+
+## Files to update
+- `src/components/dashboard/builders/bp07/BP07Builder.tsx`
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+- `src/lib/builder-autosave.ts` only if a tiny helper extension is needed (likely not)
+
+## Validation checklist
+After implementation, verify these cases:
+
+1. **Fresh BP-07**
+   - generate content
+   - click Publish
+   - draft row is created
+   - node goes live instead of bouncing back
+
+2. **BP-07 with channel edits**
+   - toggle Thinkific / PDF bundle
+   - refresh
+   - selections persist
+   - Publish still works
+
+3. **Existing BP-07 draft**
+   - reload builder
+   - step restores to Review or Publish correctly
+   - Publish succeeds
+
+4. **BP-08 and BP-09**
+   - generate from a clean state
+   - publish on first attempt
+   - reload restores correct step
+   - no jump back to introduction/review unless there is a real backend error
+
+## Expected outcome
+After this fix:
+- BP-07 will stop bouncing back from Publish
+- the draft will actually exist before publish runs
+- BP-08 and BP-09 will use the same reliable save pattern
+- all three builders will match the proven save/publish behavior already used by the stable nodes
