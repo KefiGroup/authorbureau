@@ -148,7 +148,11 @@ export default function EarningsDashboard() {
                 ) : (
                   <Table>
                     <TableHeader><TableRow>
-                      <TableHead>Date</TableHead><TableHead>Gross</TableHead><TableHead>Stripe fee</TableHead><TableHead>Platform 5%</TableHead><TableHead>Net</TableHead><TableHead>Status</TableHead>
+                      <TableHead>Date</TableHead><TableHead>Gross</TableHead><TableHead>Stripe fee</TableHead>
+                      <TableHead title="Authors Bureau retains 8% to cover AI generation, hosting, email delivery, and payment processing overhead. You keep 92%.">
+                        Platform 8%
+                      </TableHead>
+                      <TableHead>Net</TableHead><TableHead>Status</TableHead>
                     </TableRow></TableHeader>
                     <TableBody>{earnings.slice(0, 25).map((e) => (
                       <TableRow key={e.id}>

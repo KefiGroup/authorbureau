@@ -2,17 +2,21 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
+export type PayoutMethod = "wise" | "paypal" | "stripe";
+
 export interface PayoutReadinessState {
   ready: boolean;
-  payout_method: "wise" | "paypal" | null;
+  payout_method: PayoutMethod | null;
   tax_acknowledged: boolean;
+  stripe_onboarding_complete: boolean;
   loading: boolean;
 }
 
 /**
- * Authors must set a payout method (Wise or PayPal) AND acknowledge tax
- * self-declaration before they can publish paid products. Authors Bureau is the
- * Merchant of Record — readers always check out via the platform Stripe account.
+ * Authors must set a payout method (Wise, PayPal, or Stripe Express) AND
+ * accept the Payout Agreement (tax + payment processing terms) before they
+ * can publish paid products. Authors Bureau is the Merchant of Record —
+ * readers always check out via the platform Stripe account.
  */
 export function usePayoutReadiness() {
   const { user } = useAuth();
@@ -20,22 +24,23 @@ export function usePayoutReadiness() {
     ready: false,
     payout_method: null,
     tax_acknowledged: false,
+    stripe_onboarding_complete: false,
     loading: true,
   });
 
   const refresh = useCallback(async () => {
     if (!user) {
-      setState({ ready: false, payout_method: null, tax_acknowledged: false, loading: false });
+      setState({ ready: false, payout_method: null, tax_acknowledged: false, stripe_onboarding_complete: false, loading: false });
       return;
     }
     try {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("id")
+        .select("id, stripe_account_id, stripe_onboarding_complete")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!profile) {
-        setState({ ready: false, payout_method: null, tax_acknowledged: false, loading: false });
+        setState({ ready: false, payout_method: null, tax_acknowledged: false, stripe_onboarding_complete: false, loading: false });
         return;
       }
       const { data: settings } = await supabase
@@ -44,16 +49,19 @@ export function usePayoutReadiness() {
         .eq("author_id", profile.id)
         .maybeSingle();
 
-      const method = (settings?.payout_method as "wise" | "paypal" | null) || null;
+      const method = (settings?.payout_method as PayoutMethod | null) || null;
+      const stripeReady = !!profile.stripe_onboarding_complete;
       const methodComplete =
         (method === "wise" && !!settings?.wise_recipient) ||
-        (method === "paypal" && !!settings?.paypal_email_v2);
+        (method === "paypal" && !!settings?.paypal_email_v2) ||
+        (method === "stripe" && stripeReady);
       const taxAck = !!settings?.tax_self_declared_at;
 
       setState({
         ready: methodComplete && taxAck,
         payout_method: method,
         tax_acknowledged: taxAck,
+        stripe_onboarding_complete: stripeReady,
         loading: false,
       });
     } catch {
