@@ -39,14 +39,14 @@
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 219 30% 10%;
+    --sidebar-foreground: 40 20% 92%;
+    --sidebar-primary: 38 55% 50%;
+    --sidebar-primary-foreground: 219 47% 12%;
+    --sidebar-accent: 219 30% 16%;
+    --sidebar-accent-foreground: 40 20% 98%;
+    --sidebar-border: 219 30% 18%;
+    --sidebar-ring: 38 55% 50%;
 
     --font-heading: 'Playfair Display', Georgia, serif;
     --font-body: 'Inter', system-ui, sans-serif;
@@ -60,14 +60,14 @@
     --shadow-gold: 0 4px 20px -4px hsl(38 55% 50% / 0.35);
     --shadow-abby-glow: 0 0 20px -4px hsl(38 55% 50% / 0.25), 0 0 40px -8px hsl(38 55% 50% / 0.15);
 
-    /* Builder category accent tokens */
-    --builder-brand: 152 69% 31%;
-    --builder-bridge: 263 70% 50%;
-    --builder-yield: 199 89% 48%;
+    /* Builder category accent tokens — aligned with BuilderTheme.ts */
+    --builder-brand: 172 55% 40%;   /* teal — Brand Products */
+    --builder-bridge: 240 55% 50%;  /* indigo — Build Authority */
+    --builder-yield: 38 55% 50%;    /* amber — Yield Revenue */
 
-    --gradient-brand-intro: linear-gradient(135deg, hsl(152 69% 31% / 0.06), hsl(152 69% 31% / 0.02));
-    --gradient-bridge-intro: linear-gradient(135deg, hsl(263 70% 50% / 0.08), hsl(263 70% 50% / 0.02));
-    --gradient-yield-intro: linear-gradient(135deg, hsl(199 89% 48% / 0.06), hsl(199 89% 48% / 0.02));
+    --gradient-brand-intro: linear-gradient(135deg, hsl(172 55% 40% / 0.08), hsl(172 55% 40% / 0.02));
+    --gradient-bridge-intro: linear-gradient(135deg, hsl(240 55% 50% / 0.08), hsl(240 55% 50% / 0.02));
+    --gradient-yield-intro: linear-gradient(135deg, hsl(38 55% 50% / 0.08), hsl(38 55% 50% / 0.02));
   }
 
   .dark {
