@@ -162,13 +162,13 @@ export default function YieldRevenueHub() {
         {/* SECTION 2 — Introduction */}
         <div className="rounded-xl border border-border bg-card p-5 mb-6">
           <p className="text-sm text-muted-foreground leading-relaxed">
-            Everything in Yield Revenue is designed to do one thing: <span className="font-semibold text-amber-600 dark:text-amber-400">convert your established authority into high-ticket income</span>. Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
+            Everything in Yield Revenue is designed to do one thing: <span className="font-semibold text-[hsl(var(--builder-yield))]">convert your established authority into high-ticket income</span>. Unlike Brand Products and Build Authority, these 10 services don't require a strict sequence. You can pursue multiple streams simultaneously once you have the credibility to back them up.
           </p>
         </div>
 
         {/* SECTION 3 — Why These Work Together */}
-        <div className="rounded-xl border-l-4 border-amber-500 bg-amber-50/50 dark:bg-amber-950/20 p-5 mb-6">
-          <h3 className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">Why These Work Together (Not in Sequence)</h3>
+        <div className="rounded-xl border-l-4 border-[hsl(var(--builder-yield))] bg-[hsl(var(--builder-yield)/0.06)] p-5 mb-6">
+          <h3 className="text-xs font-black uppercase tracking-wider text-[hsl(var(--builder-yield))] mb-2">Why These Work Together (Not in Sequence)</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
             Unlike Brand Products (which build on each other) or Build Authority (which amplify your reach), Yield Revenue services all draw from the same well: your established authority and audience. You don't need to do coaching before consulting, or Retreats before a Mastermind. Instead, you pursue the services that align with:<br/>
             <strong>Your strengths:</strong> What do you enjoy most?<br/>
@@ -179,7 +179,7 @@ export default function YieldRevenueHub() {
 
         {/* SECTION 4 — The Full Journey */}
         <div className="rounded-xl border border-border bg-card p-5 mb-6">
-          <h3 className="text-xs font-black uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">The Full Journey</h3>
+          <h3 className="text-xs font-black uppercase tracking-wider text-[hsl(var(--builder-yield))] mb-2">The Full Journey</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
             <strong>Brand Products</strong> built your foundation and audience. <strong>Build Authority</strong> scaled your reach and credibility. <strong>Yield Revenue</strong> is where you monetise your expertise at the highest level, with premium pricing, selective clients, and maximum impact.
           </p>
