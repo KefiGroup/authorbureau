@@ -129,7 +129,6 @@ Make everything specific to this author's book, niche, and audience. Never use g
           },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
       }),
     });
 

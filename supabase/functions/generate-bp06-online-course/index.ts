@@ -75,7 +75,6 @@ Generate the following as a JSON object with these exact keys:
 
 The sections array must have exactly 5 items mapped to the book's chapters/themes. Position this workbook as a FREE lead magnet to build the author's email list. Make everything specific to this author's book.` }
         ],
-        temperature: 0.7,
       }),
     });
 
