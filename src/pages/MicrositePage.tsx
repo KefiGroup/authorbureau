@@ -1200,7 +1200,7 @@ function LongFormSalesPage({
   const faq = faqItems.length > 0 ? faqItems : [
     {
       q: "Is there a money-back guarantee?",
-      a: "Yes — we offer a 30-day money-back guarantee. If this isn't the right fit for you, just email us within 30 days of purchase for a full refund.",
+      a: `Yes — we offer a ${guaranteeText}. If this isn't the right fit for you, just email us within ${guaranteeDays} days of purchase for a full refund.`,
     },
     {
       q: "How long do I have access?",
