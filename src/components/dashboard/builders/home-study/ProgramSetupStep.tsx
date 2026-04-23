@@ -35,41 +35,6 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
     return null;
   }
 
-  // Gate: Workbook must exist before building Home Study
-  if (workbookExists === false) {
-    return (
-      <div className="space-y-6">
-        <Card className="p-8 border-amber-300/40 bg-amber-50/50 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-amber-100 flex items-center justify-center mx-auto mb-5">
-            <BookOpen className="h-8 w-8 text-amber-600" />
-          </div>
-          <h3 className="font-heading text-xl font-bold mb-2">
-            Build Your Workbook First
-          </h3>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto mb-6 leading-relaxed">
-            The Home Study Course sales page cross-sells your companion Workbook as a recommended add-on purchase. 
-            Build the Workbook first so Abby can reference it in your Home Study marketing copy.
-          </p>
-          <Button
-            onClick={() => {
-              const params = new URLSearchParams(window.location.search);
-              const title = params.get("bookTitle") || "";
-              const cover = params.get("bookCoverUrl") || "";
-              const qs = new URLSearchParams({ bookId, bookTitle: title, bookCoverUrl: cover }).toString();
-              window.location.href = `/dashboard?section=builder&builder=workbook&${qs}`;
-            }}
-            className="rounded-full bg-amber-600 text-white hover:bg-amber-700 font-semibold h-12 px-8 text-sm"
-          >
-            <BookOpen className="h-4 w-4 mr-2" /> Build Workbook First <ArrowRight className="h-4 w-4 ml-2" />
-          </Button>
-          <p className="text-[10px] text-muted-foreground/60 mt-4">
-            Recommended sequence: Workbook → Home Study Course → Online Course
-          </p>
-        </Card>
-      </div>
-    );
-  }
-
   // Loading state while checking
   if (workbookExists === null) {
     return null;
@@ -77,6 +42,39 @@ export default function ProgramSetupStep({ stepData, setStepData, onMarkEdited, 
 
   return (
     <div className="space-y-6">
+      {workbookExists === false && (
+        <Card className="p-5 border-amber-300/50 bg-amber-50/60 dark:bg-amber-950/20">
+          <div className="flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/40 flex items-center justify-center shrink-0">
+              <BookOpen className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-heading text-sm font-bold mb-1 text-amber-900 dark:text-amber-200">
+                We recommend building your Workbook first
+              </h4>
+              <p className="text-xs text-amber-800/80 dark:text-amber-200/80 leading-relaxed mb-3">
+                Your Home Study sales page will cross-sell a companion Workbook. Without one, Abby will skip the
+                cross-sell section. You can build the Workbook anytime and re-generate.
+              </p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  const title = params.get("bookTitle") || "";
+                  const cover = params.get("bookCoverUrl") || "";
+                  const qs = new URLSearchParams({ bookId, bookTitle: title, bookCoverUrl: cover }).toString();
+                  window.location.href = `/dashboard?section=builder&builder=workbook&${qs}`;
+                }}
+                className="rounded-full border-amber-400 text-amber-800 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/40 h-8 text-xs"
+              >
+                <BookOpen className="h-3.5 w-3.5 mr-1.5" /> Build Workbook First <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
+
       <ProductDistinctionCard highlight="home-study" />
 
       {/* Journey overview */}
