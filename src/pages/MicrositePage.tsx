@@ -2763,7 +2763,22 @@ function ConferencePage({ data, content, v, hFont, bgColor, onSubmit, email, set
 
   return (
     <YRLayout title={title} tagline={tagline} intro={concept} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Register Now" : "Request Conference Details"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : null}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Register for the Conference"
+        ctaLabel={paymentLink ? "Register Now" : "Request Conference Details"}
+        inquiryHeading="Reserve Your Place"
+        inquiryIntro="We'll send the agenda, speaker line-up, and registration link."
+        messagePlaceholder="How many seats, sponsorship interest, dietary needs…"
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {formats.length > 0 && (
         <section className="space-y-3">
