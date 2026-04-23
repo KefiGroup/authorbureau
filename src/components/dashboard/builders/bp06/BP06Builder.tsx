@@ -226,21 +226,28 @@ interface ReviewStepProps {
 }
 
 function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onActivate, onPrevious }: ReviewStepProps) {
-  const aiRecommendation: "free" | "paid" = content.pricing_recommendation === "paid" ? "paid" : "free";
-  const initialPrice = Number(content.suggested_price_usd ?? 0) || 17;
+  // Locked snapshot of Abby's original recommendation — never mutated by user edits.
+  // Falls back to legacy fields for drafts created before the snapshot was added.
+  const abbyRec: "free" | "paid" =
+    content.abby_recommendation === "paid" || content.abby_recommendation === "free"
+      ? content.abby_recommendation
+      : (content.pricing_recommendation === "paid" ? "paid" : "free");
+  const abbyPrice: number =
+    Number(content.abby_recommended_price_usd ?? content.suggested_price_usd ?? 0) || 17;
 
   // Local pricing state derived from content; persisted via autosave on change.
   const [pricingChoice, setPricingChoice] = useState<"free" | "paid">(
-    Number(content.suggested_price_usd ?? 0) > 0 ? "paid" : aiRecommendation,
+    Number(content.suggested_price_usd ?? 0) > 0 ? "paid" : abbyRec,
   );
   const [paidPrice, setPaidPrice] = useState<number>(
-    Number(content.suggested_price_usd ?? 0) > 0 ? Number(content.suggested_price_usd) : initialPrice,
+    Number(content.suggested_price_usd ?? 0) > 0 ? Number(content.suggested_price_usd) : abbyPrice,
   );
 
   const effectivePrice = pricingChoice === "paid" ? paidPrice : 0;
   const isPaid = effectivePrice > 0;
+  const pageCount = estimateWorkbookPageCount(content);
 
-  // Sync pricing choice into content + persist
+  // Sync pricing choice into content + persist. Never touches the abby_* snapshot fields.
   const persistPricing = (choice: "free" | "paid", price: number) => {
     const next = { ...content, suggested_price_usd: choice === "paid" ? price : 0, pricing_recommendation: choice };
     setContent(next);
@@ -255,9 +262,9 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
     ? `Get the Workbook — $${paidPrice}`
     : rawCta;
 
-  const recommendationLine = aiRecommendation === "free"
+  const recommendationLine = abbyRec === "free"
     ? `Abby recommends FREE — ${content.free_rationale ? "see why below." : "great for list-building."}`
-    : `Abby recommends $${initialPrice} — ${content.paid_rationale ? "see why below." : "the depth justifies a paid product."}`;
+    : `Abby recommends $${abbyPrice} — ${content.paid_rationale ? "see why below." : "the depth justifies a paid product."}`;
 
   return (
     <div className="space-y-4">
