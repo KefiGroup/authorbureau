@@ -305,15 +305,299 @@ function renderSection(doc: jsPDF, s: WorkbookSection, idx: number) {
   }
 }
 
+// ---------- Toolkit (deliverables pack) ----------
+
+function inferToolkitType(name: string): ToolkitItemType {
+  const n = name.toLowerCase();
+  if (/(canvas|map|matrix)/.test(n)) return "canvas";
+  if (/(planner|90[- ]?day|roadmap|calendar|schedule)/.test(n)) return "planner";
+  if (/(tracker|dashboard|metric|log)/.test(n)) return "tracker";
+  if (/(playbook|protocol|sop|response)/.test(n)) return "playbook";
+  if (/(story|narrative|outline|script)/.test(n)) return "story";
+  if (/(vision|futurecast|future|north[- ]?star|12[- ]?month)/.test(n)) return "vision";
+  return "worksheet";
+}
+
+function normalizeToolkit(items: Array<string | ToolkitItem> | undefined): ToolkitItem[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((it) => {
+      if (typeof it === "string") return { name: it, type: inferToolkitType(it) } as ToolkitItem;
+      if (it && typeof it === "object" && it.name) {
+        return { ...it, type: it.type || inferToolkitType(it.name) } as ToolkitItem;
+      }
+      return null;
+    })
+    .filter(Boolean) as ToolkitItem[];
+}
+
+function pageHeader(doc: jsPDF, kicker: string, title: string, purpose?: string): number {
+  let y = MARGIN;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(120);
+  doc.text(kicker, MARGIN, y);
+  y += 22;
+  y = writeText(doc, title, y, { size: 22, bold: true, color: 20, gap: 8 });
+  if (purpose) y = writeText(doc, purpose, y, { size: 11, color: 90, gap: 14 });
+  return y;
+}
+
+function drawCanvasGrid(doc: jsPDF, item: ToolkitItem) {
+  doc.addPage();
+  let y = pageHeader(doc, "TOOLKIT", item.name, item.purpose);
+  const labels = ["Where I am now", "Where I want to be", "What's in my way", "First moves this week"];
+  const gridTop = y + 4;
+  const gridH = PAGE.height - gridTop - MARGIN - 36;
+  const colW = MAX_W / 2;
+  const rowH = gridH / 2;
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.8);
+  for (let r = 0; r < 2; r++) {
+    for (let c = 0; c < 2; c++) {
+      const x = MARGIN + c * colW;
+      const yy = gridTop + r * rowH;
+      doc.rect(x, yy, colW, rowH, "S");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(80);
+      doc.text(labels[r * 2 + c], x + 10, yy + 16);
+      // ruled lines inside
+      doc.setDrawColor(220);
+      doc.setLineWidth(0.4);
+      const inner = yy + 30;
+      const lines = Math.floor((rowH - 36) / 22);
+      for (let i = 0; i < lines; i++) {
+        doc.line(x + 10, inner + i * 22, x + colW - 10, inner + i * 22);
+      }
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.8);
+    }
+  }
+  doc.setDrawColor(0);
+  doc.setTextColor(0);
+}
+
+function draw90DayPlanner(doc: jsPDF, item: ToolkitItem) {
+  doc.addPage();
+  let y = pageHeader(doc, "TOOLKIT", item.name, item.purpose);
+  const cols = 3, rows = 4;
+  const cellW = (MAX_W - (cols - 1) * 8) / cols;
+  const cellH = 96;
+  let week = 1;
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.8);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const x = MARGIN + c * (cellW + 8);
+      const yy = y + r * (cellH + 8);
+      doc.roundedRect(x, yy, cellW, cellH, 4, 4, "S");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.setTextColor(120);
+      doc.text(`Week ${week}`, x + 8, yy + 14);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(140);
+      doc.text("Milestone:", x + 8, yy + 30);
+      doc.setDrawColor(225);
+      doc.setLineWidth(0.4);
+      for (let i = 0; i < 3; i++) doc.line(x + 8, yy + 46 + i * 16, x + cellW - 8, yy + 46 + i * 16);
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.8);
+      week++;
+    }
+  }
+  doc.setDrawColor(0);
+  doc.setTextColor(0);
+}
+
+function drawWeeklyTracker(doc: jsPDF, item: ToolkitItem) {
+  doc.addPage();
+  let y = pageHeader(doc, "TOOLKIT", item.name, item.purpose);
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const metrics = ["Metric 1: ____________", "Metric 2: ____________", "Metric 3: ____________", "Metric 4: ____________", "Reflection / win"];
+  const colMetricW = 180;
+  const colDayW = (MAX_W - colMetricW) / 7;
+  const headerH = 26;
+  const rowH = 56;
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.8);
+  // header
+  doc.setFillColor(245, 247, 252);
+  doc.rect(MARGIN, y, MAX_W, headerH, "FD");
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.setTextColor(60);
+  doc.text("Track", MARGIN + 8, y + 17);
+  for (let i = 0; i < 7; i++) doc.text(days[i], MARGIN + colMetricW + colDayW * i + 8, y + 17);
+  y += headerH;
+  // rows
+  for (let r = 0; r < metrics.length; r++) {
+    doc.rect(MARGIN, y, colMetricW, rowH, "S");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(40);
+    doc.text(metrics[r], MARGIN + 8, y + 18);
+    for (let c = 0; c < 7; c++) {
+      doc.rect(MARGIN + colMetricW + colDayW * c, y, colDayW, rowH, "S");
+    }
+    y += rowH;
+  }
+  doc.setDrawColor(0);
+  doc.setTextColor(0);
+}
+
+function drawPlaybookTable(doc: jsPDF, item: ToolkitItem) {
+  doc.addPage();
+  let y = pageHeader(doc, "TOOLKIT", item.name, item.purpose);
+  const headers = ["Trigger", "Response", "Recovery"];
+  const colW = MAX_W / 3;
+  const headerH = 26;
+  const rowH = 80;
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.8);
+  doc.setFillColor(245, 247, 252);
+  for (let c = 0; c < 3; c++) {
+    doc.rect(MARGIN + c * colW, y, colW, headerH, "FD");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(50);
+    doc.text(headers[c], MARGIN + c * colW + 10, y + 17);
+  }
+  y += headerH;
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 3; c++) {
+      doc.rect(MARGIN + c * colW, y, colW, rowH, "S");
+      // ruled
+      doc.setDrawColor(225);
+      doc.setLineWidth(0.4);
+      for (let i = 1; i <= 3; i++) doc.line(MARGIN + c * colW + 8, y + i * 18, MARGIN + (c + 1) * colW - 8, y + i * 18);
+      doc.setDrawColor(180);
+      doc.setLineWidth(0.8);
+    }
+    y += rowH;
+  }
+  doc.setDrawColor(0);
+  doc.setTextColor(0);
+}
+
+function drawStoryTemplate(doc: jsPDF, item: ToolkitItem) {
+  doc.addPage();
+  let y = pageHeader(doc, "TOOLKIT", item.name, item.purpose);
+  const parts = [
+    ["Hook", "Open with a moment that pulls the reader in."],
+    ["Hardship", "What was hard, broken, or at stake?"],
+    ["Helper", "Who or what changed your approach?"],
+    ["Hinge", "The decision that turned things around."],
+    ["Hope", "What's possible now — for you and the reader."],
+  ];
+  for (const [label, hint] of parts) {
+    y = ensureSpace(doc, y, 100);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(80);
+    doc.text(label.toUpperCase(), MARGIN, y);
+    y += 14;
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(10);
+    doc.setTextColor(130);
+    doc.text(hint, MARGIN, y);
+    y += 10;
+    y = drawRuledLines(doc, y, 3);
+  }
+}
+
+function drawVisionPage(doc: jsPDF, item: ToolkitItem) {
+  doc.addPage();
+  let y = pageHeader(doc, "TOOLKIT", item.name, item.purpose);
+  const quarters = ["Q1 — Months 1–3", "Q2 — Months 4–6", "Q3 — Months 7–9", "Q4 — Months 10–12"];
+  const cellW = (MAX_W - 8) / 2;
+  const cellH = 130;
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.8);
+  for (let i = 0; i < 4; i++) {
+    const r = Math.floor(i / 2), c = i % 2;
+    const x = MARGIN + c * (cellW + 8);
+    const yy = y + r * (cellH + 8);
+    doc.roundedRect(x, yy, cellW, cellH, 4, 4, "S");
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(80);
+    doc.text(quarters[i], x + 10, yy + 18);
+    doc.setDrawColor(225);
+    doc.setLineWidth(0.4);
+    for (let k = 0; k < 5; k++) doc.line(x + 10, yy + 36 + k * 18, x + cellW - 10, yy + 36 + k * 18);
+    doc.setDrawColor(180);
+    doc.setLineWidth(0.8);
+  }
+  y += 2 * (cellH + 8) + 8;
+  y = ensureSpace(doc, y, 80);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.setTextColor(80);
+  doc.text("Evidence I'll create along the way", MARGIN, y);
+  y += 14;
+  drawRuledLines(doc, y, 4);
+  doc.setTextColor(0);
+}
+
+function drawDefaultWorksheet(doc: jsPDF, item: ToolkitItem) {
+  doc.addPage();
+  let y = pageHeader(doc, "TOOLKIT", item.name, item.purpose);
+  drawRuledLines(doc, y, 18);
+}
+
+function renderToolkitIntro(doc: jsPDF, items: ToolkitItem[]) {
+  doc.addPage();
+  let y = MARGIN;
+  y = writeText(doc, "Your Toolkit", y, { size: 26, bold: true, color: 20, gap: 12 });
+  y = writeText(
+    doc,
+    "These templates are yours to keep. Each one corresponds to a section in this workbook — fill them in by hand or on screen, then revisit them whenever you need to reset.",
+    y,
+    { size: 12, color: 60, gap: 18 },
+  );
+  for (const it of items) {
+    y = ensureSpace(doc, y, 28);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(30);
+    doc.text(`•  ${it.name}`, MARGIN, y);
+    y += 18;
+    if (it.purpose) {
+      y = writeText(doc, it.purpose, y, { size: 11, color: 90, gap: 4 });
+    }
+  }
+}
+
+function renderToolkit(doc: jsPDF, content: WorkbookContent) {
+  const items = normalizeToolkit(content.what_youll_get);
+  if (!items.length) return;
+  renderToolkitIntro(doc, items);
+  for (const it of items) {
+    switch (it.type) {
+      case "canvas": drawCanvasGrid(doc, it); break;
+      case "planner": draw90DayPlanner(doc, it); break;
+      case "tracker": drawWeeklyTracker(doc, it); break;
+      case "playbook": drawPlaybookTable(doc, it); break;
+      case "story": drawStoryTemplate(doc, it); break;
+      case "vision": drawVisionPage(doc, it); break;
+      default: drawDefaultWorksheet(doc, it);
+    }
+  }
+}
+
 function renderActionPlan(doc: jsPDF, content: WorkbookContent) {
   doc.addPage();
   let y = MARGIN;
   y = writeText(doc, "Your Action Plan", y, { size: 26, bold: true, color: 20, gap: 14 });
 
-  if (content.what_youll_get && content.what_youll_get.length) {
+  const items = normalizeToolkit(content.what_youll_get);
+  if (items.length) {
     y = writeText(doc, "What You'll Walk Away With", y, { size: 13, bold: true, color: 80, gap: 6 });
-    for (const item of content.what_youll_get) {
-      y = writeText(doc, `•  ${item}`, y, { size: 12, gap: 4 });
+    for (const item of items) {
+      y = writeText(doc, `•  ${item.name}`, y, { size: 12, gap: 4 });
     }
     y += 12;
   }
