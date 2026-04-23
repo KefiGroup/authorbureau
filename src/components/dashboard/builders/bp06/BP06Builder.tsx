@@ -411,13 +411,23 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
           <div className="flex items-start gap-3">
             <FileDown className="h-5 w-5 text-primary mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-bold">Download your branded Workbook PDF</h3>
-              <p className="text-sm text-muted-foreground">Print-ready US Letter PDF — cover, table of contents, ruled response lines, action plan, and back cover. Upload to PublishNow as your published workbook.</p>
+              <h3 className="font-bold">Download your branded Workbook</h3>
+              <p className="text-sm text-muted-foreground">Print-ready US Letter — cover, table of contents, ruled response lines, action plan, and back cover. Download as PDF for upload, or as Word to edit in Microsoft Word and re-import below.</p>
             </div>
           </div>
-          <Button size="lg" className="w-full" onClick={() => downloadWorkbookPdf({ content, bookTitle, authorName })}>
-            <FileDown className="h-4 w-4 mr-2" /> Download Workbook PDF
-          </Button>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <Button size="lg" onClick={() => downloadWorkbookPdf({ content, bookTitle, authorName })}>
+              <FileDown className="h-4 w-4 mr-2" /> Download PDF
+            </Button>
+            <Button size="lg" variant="secondary" onClick={() => downloadWorkbookDocx({ content, bookTitle, authorName })}>
+              <FileDown className="h-4 w-4 mr-2" /> Download Word (.docx)
+            </Button>
+          </div>
+          <WorkbookDocxImporter
+            authorId={authorId}
+            content={content}
+            setContent={setContent}
+          />
         </CardContent>
       </Card>
 
