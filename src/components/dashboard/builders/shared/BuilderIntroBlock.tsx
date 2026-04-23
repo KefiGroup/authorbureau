@@ -132,13 +132,14 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
   },
   "BP-09": {
     creates: [
-      "An event sales strategy with pricing tiers",
-      "Back-of-room sales scripts + a QR-code order page",
-      "A post-event follow-up email sequence",
+      "Workshop pitch + 14-slide deck + back-of-room script",
+      "Book-signing Q&A seeds + 5 inscription templates",
+      "Corporate lunch pitch deck + bulk-order proposal",
+      "Author bio (30s/60s/2min) + 5 objection responses",
     ],
-    livesAt: "Sales kit in your Brand Products library + a QR-code order page at /your-slug/buy/...",
-    editLater: "Re-open Book Sales to edit pricing, scripts, or your follow-up emails.",
-    estimate: "45–75 seconds",
+    livesAt: "Your Brand Products library — downloadable slide decks (.pptx), printable handouts (PDF/HTML), copy-paste scripts. Private toolkit, not a public page.",
+    editLater: "Re-open Live Audience Toolkit to regenerate any venue or edit scripts.",
+    estimate: "60–120 seconds",
   },
 };
 
