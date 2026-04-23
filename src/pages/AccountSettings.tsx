@@ -12,6 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Loader2, ArrowLeft, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConnectedAccountsTab from "@/components/settings/ConnectedAccountsTab";
+import PayoutsSettings from "@/components/dashboard/PayoutsSettings";
 
 export default function AccountSettings() {
   const [searchParams] = useSearchParams();
@@ -83,6 +84,7 @@ export default function AccountSettings() {
           <TabsList>
             <TabsTrigger value="profile">Profile</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
+            <TabsTrigger value="payouts">Payouts</TabsTrigger>
             <TabsTrigger value="connections">Connected Accounts</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -152,6 +154,10 @@ export default function AccountSettings() {
                 </div>
               )}
             </Card>
+          </TabsContent>
+
+          <TabsContent value="payouts">
+            <PayoutsSettings />
           </TabsContent>
 
           <TabsContent value="connections">

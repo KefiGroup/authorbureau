@@ -139,6 +139,8 @@ const AppRoutes = () => (
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/dashboard" element={<AuthorDashboard />} />
       <Route path="/account-settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+      <Route path="/earnings" element={<ProtectedRoute><EarningsDashboard /></ProtectedRoute>} />
+      <Route path="/admin/payouts" element={<ProtectedRoute><AdminPayouts /></ProtectedRoute>} />
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/my-contacts" element={<AuthorDashboard initialSection={"author-crm" as any} />} />
