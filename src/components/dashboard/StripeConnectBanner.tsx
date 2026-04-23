@@ -44,67 +44,35 @@ async function getFunctionErrorMessage(error: unknown): Promise<string> {
   return fallback;
 }
 
+/**
+ * @deprecated Sprint 41 — Authors Bureau is now Merchant of Record.
+ * Authors no longer connect Stripe directly; this hook is a no-op stub
+ * that returns "ready" so legacy gates short-circuit and let the new
+ * RequirePayoutSetup gate handle the real check.
+ */
 export function useStripeConnect() {
-  const { user, isPremium } = useAuth();
-  const [state, setState] = useState<StripeConnectState>({
-    connected: false,
-    onboarding_complete: false,
-    loading: true,
-  });
-
-  const checkStatus = useCallback(async () => {
-    if (!user) { setState({ connected: false, onboarding_complete: false, loading: false }); return; }
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "status" },
-      });
-      if (error) throw error;
-      setState({
-        connected: data.connected ?? false,
-        onboarding_complete: data.onboarding_complete ?? false,
-        loading: false,
-      });
-    } catch (error) {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  }, [user]);
-
-  useEffect(() => { checkStatus(); }, [checkStatus]);
-
+  const { isPremium } = useAuth();
   const startOnboarding = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard" },
-      });
-
-      if (error) {
-        const backendMessage = await getFunctionErrorMessage(error);
-        throw new Error(getStripeConnectErrorMessage(backendMessage));
-      }
-
-      if (!data?.url) {
-        throw new Error("Unable to start Stripe onboarding.");
-      }
-
-      const popup = window.open(data.url, "_blank", "noopener,noreferrer");
-      if (!popup) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to start Stripe onboarding.";
-      console.error("Stripe Connect onboarding failed:", err);
-      toast.error(message);
-    }
+    toast.info("Stripe Connect is no longer required — set up payouts in Account Settings → Payouts.");
   };
-
-  return { ...state, isPremium, startOnboarding, checkStatus };
+  return {
+    connected: true,
+    onboarding_complete: true,
+    loading: false,
+    isPremium,
+    startOnboarding,
+    checkStatus: async () => {},
+  };
 }
 
 interface BannerProps {
   compact?: boolean;
 }
 
-export default function StripeConnectBanner({ compact = false }: BannerProps) {
+export default function StripeConnectBanner({ compact: _compact = false }: BannerProps) {
+  // Sprint 41: deprecated — payments are platform-collected. Render nothing.
+  return null;
+  // eslint-disable-next-line no-unreachable
   const { connected, onboarding_complete, loading, isPremium, startOnboarding } = useStripeConnect();
   const [starting, setStarting] = useState(false);
 

@@ -148,8 +148,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, admin: 
   const platformFee = +(amount * feeRate).toFixed(2);
   const authorEarnings = +(amount - platformFee).toFixed(2);
 
+  // Estimated Stripe processing fee (2.9% + $0.30 for US cards). Adjust if needed.
+  const stripeFee = +((amount * 0.029) + 0.30).toFixed(2);
+  const netAfterStripe = +(amount - stripeFee).toFixed(2);
+  const netForAuthor = +(netAfterStripe - platformFee).toFixed(2);
+
   // Insert purchases row (works for both payment and subscription first invoice)
-  await admin.from("purchases").insert({
+  const { data: purchaseRow } = await admin.from("purchases").insert({
     customer_email: customerEmail,
     customer_name: customerName,
     author_id: authorRowId,
@@ -165,7 +170,24 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, admin: 
     stripe_checkout_session_id: sessionId,
     payout_status: "pending",
     payout_eligible_at: eligibleAt.toISOString(),
-  });
+  }).select("id").single();
+
+  // Sprint 41: write per-sale row to author_earnings ledger (source of truth for monthly payouts)
+  if (purchaseRow?.id) {
+    try {
+      await admin.from("author_earnings").insert({
+        author_id: authorRowId,
+        purchase_id: purchaseRow.id,
+        gross_usd: amount,
+        stripe_fee_usd: stripeFee,
+        platform_fee_usd: platformFee,
+        net_usd: netForAuthor > 0 ? netForAuthor : 0,
+        earned_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error("[process-purchase] author_earnings insert failed", e);
+    }
+  }
 
   if (nodeRowId) {
     const { data: nodeRow } = await admin
