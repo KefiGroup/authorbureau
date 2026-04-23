@@ -894,6 +894,10 @@ function SalesPage({ data, content, v, hFont, bgColor, type }: PageProps & { typ
   const hasStripeUrl = !!content.stripe_checkout_url || !!data.node.payment_link;
   const buyUrl = content.stripe_checkout_url || data.node.payment_link;
 
+  if (type === "workbook") {
+    return <WorkbookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} cfg={cfg} buyUrl={buyUrl} hasStripeUrl={hasStripeUrl} />;
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12 sm:py-20">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-start">
