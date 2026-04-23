@@ -37,6 +37,8 @@ export default function BP07Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [channels, setChannels] = useState<{ readers_bureau: boolean; thinkific: boolean; email_pdf: boolean }>({ readers_bureau: true, thinkific: false, email_pdf: false });
+  const [savingChannels, setSavingChannels] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
