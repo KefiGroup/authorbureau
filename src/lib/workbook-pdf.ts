@@ -286,7 +286,7 @@ function renderSection(doc: jsPDF, s: WorkbookSection, idx: number) {
   }
 
   if (s.outcome) {
-    y = drawCalloutBox(doc, y, "After this section, you can:", s.outcome);
+    y = drawCalloutBox(doc, y, "After this section, you can:", normalizeOutcome(s.outcome));
   }
 }
 

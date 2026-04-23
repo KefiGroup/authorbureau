@@ -57,7 +57,7 @@ Generate the following as a JSON object with these exact keys:
       "title": "Section title",
       "description": "2-3 sentences describing what this section covers",
       "exercises": ["Exercise 1", "Exercise 2", "Exercise 3"],
-      "outcome": "One sentence: what readers can DO after this section"
+      "outcome": "Verb phrase completing the sentence 'After this section, you can:' — start with a lowercase verb, no subject pronoun. Example: 'articulate a crisp niche, redesign your workspace, and track three weekly metrics.' Do NOT start with 'You will', 'You can', 'Readers will', etc."
     }
   ],
   "who_its_for": "2-3 sentences describing the ideal reader",

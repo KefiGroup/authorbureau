@@ -24,7 +24,7 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { downloadWorkbookPdf, estimateWorkbookPageCount } from "@/lib/workbook-pdf";
+import { downloadWorkbookPdf, estimateWorkbookPageCount, normalizeOutcome } from "@/lib/workbook-pdf";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
@@ -314,7 +314,7 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
               <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{s.number}</span><h4 className="font-bold">{s.title}</h4></div>
               <p className="text-sm text-muted-foreground">{s.description}</p>
               <div><p className="text-xs font-semibold text-muted-foreground mb-1">Exercises</p><ul className="space-y-1">{s.exercises?.map((e: string, j: number) => <li key={j} className="text-sm flex items-start gap-2"><span className="text-muted-foreground">{j + 1}.</span>{e}</li>)}</ul></div>
-              <Card className="bg-muted/30"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-muted-foreground mb-1">After this section, you can:</p><p className="text-sm">{s.outcome}</p></CardContent></Card>
+              <Card className="bg-muted/30"><CardContent className="pt-3 pb-3"><p className="text-xs font-semibold text-muted-foreground mb-1">After this section, you can:</p><p className="text-sm">{normalizeOutcome(s.outcome)}</p></CardContent></Card>
             </CardContent></Card>
           ))}
         </TabsContent>
