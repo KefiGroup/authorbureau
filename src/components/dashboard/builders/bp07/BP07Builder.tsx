@@ -363,6 +363,10 @@ export default function BP07Builder({ authorId }: Props) {
                 </div>
               </CardContent>
             </Card>
+
+            {/* What this means for buyers — preview */}
+            <HomeStudyDistributionCard channels={channels} content={content} authorSlug={authorSlug} variant="preview" />
+
             <div className="space-y-3 pt-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick edits</p>
               <InlineSectionCard nodeId="BP-07" authorId={authorId} content={content} setContent={setContent} path="programme_title" label="Programme title" type="input" />
