@@ -162,11 +162,13 @@ export default function BP07Builder({ authorId }: Props) {
   const handlePublish = async () => {
     setStep(3); setError(null);
     try {
-      // Persist current price + channel selection before publishing
+      // Persist current price + channel selection + step before publishing
       if (content && authorId) {
         const dc = ["readers_bureau", ...(channels.thinkific ? ["thinkific"] : []), ...(channels.email_pdf ? ["email_pdf"] : [])];
-        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, delivery_channels: dc };
-        await supabase.from("author_nodes").update({ content_json: merged }).eq("author_id", authorId).eq("node_id", "BP-07");
+        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, delivery_channels: dc, _currentStep: 3 };
+        await supabase.from("author_nodes")
+          .update({ content_json: merged, current_step: 3 })
+          .eq("author_id", authorId).eq("node_id", "BP-07");
         setContent(merged);
       }
       await publishNodeToSite(authorId!, "BP-07", authorSlug);
