@@ -99,12 +99,14 @@ Deno.serve(async (req) => {
     } else {
       const { data: node } = await admin
         .from("author_nodes")
-        .select("id, author_id, node_id, node_name, personalised_name, price_usd, currency, status")
+        .select("id, author_id, node_id, node_name, personalised_name, price_usd, currency, status, content_json")
         .eq("id", author_node_id)
         .maybeSingle();
       if (!node) throw new Error("Product not found");
       if (node.status !== "live") throw new Error("Product is not currently available");
-      const price = Number(node.price_usd ?? 0);
+      // Fall back to content_json.suggested_price_usd (Abby-generated workbooks store price there)
+      const cj = (node.content_json ?? {}) as Record<string, unknown>;
+      const price = Number(node.price_usd ?? cj.suggested_price_usd ?? cj.price ?? 0);
       if (!price || price <= 0) throw new Error("Product price not set");
       authorId = node.author_id;
       productTitle = node.personalised_name || node.node_name || "Product";
