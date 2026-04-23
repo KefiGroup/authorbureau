@@ -2073,6 +2073,740 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
   );
 }
 
+/* ═══ YR SHARED HELPERS ═══ */
+type YRPageProps = FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void };
+
+const yrStr = (v: any, fallback = ""): string => (typeof v === "string" && v.trim()) ? v : fallback;
+const yrArr = (v: any): any[] => Array.isArray(v) ? v : [];
+const yrLines = (val: any): string[] => {
+  if (Array.isArray(val)) return val.map(x => typeof x === "string" ? x : (x?.title || x?.label || x?.text || x?.name || "")).filter(Boolean);
+  if (typeof val === "string") return val.split(/\n+/).map(s => s.trim()).filter(Boolean);
+  return [];
+};
+const yrInline = (v: any): string => {
+  if (v == null) return "";
+  if (typeof v === "string") return v;
+  if (typeof v === "number" || typeof v === "boolean") return String(v);
+  try { return JSON.stringify(v); } catch { return String(v); }
+};
+
+function YRRightCard({ actionType, paymentLink, price, ctaLabel, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted, notifyHeading = "Notify Me", thankYou = "We'll be in touch soon." }: {
+  actionType: "purchase" | "enquiry" | "application" | "optin";
+  paymentLink?: string; price?: number | string | null; ctaLabel?: string;
+  v: any; hFont: string; bgColor: string;
+  onSubmit: (e: React.FormEvent) => Promise<boolean>;
+  email: string; setEmail: (v: string) => void;
+  firstName: string; setFirstName: (v: string) => void;
+  lastName: string; setLastName: (v: string) => void;
+  message: string; setMessage: (v: string) => void;
+  submitting: boolean; submitted: boolean;
+  notifyHeading?: string; thankYou?: string;
+}) {
+  if (submitted) {
+    return (
+      <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+        <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+        <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>Thank you!</h3>
+        <p className="text-sm" style={{ color: v.mutedText }}>{thankYou}</p>
+      </Card>
+    );
+  }
+  if (actionType === "purchase" && paymentLink) {
+    return (
+      <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{ctaLabel || "Get Started"}</h3>
+        {price != null && (
+          <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
+        )}
+        <a href={paymentLink} target="_blank" rel="noopener noreferrer">
+          <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
+            {ctaLabel || "Get Started"} <ArrowRight className="ml-2 h-4 w-4" />
+          </Button>
+        </a>
+      </Card>
+    );
+  }
+  const isApp = actionType === "application";
+  const isEnq = actionType === "enquiry";
+  const heading = isApp ? "Apply Now" : isEnq ? "Get in Touch" : notifyHeading;
+  return (
+    <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+      <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>{heading}</h3>
+      <form onSubmit={onSubmit} className="space-y-3">
+        <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+        {(isApp || isEnq) && <Input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} />}
+        <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+        {(isApp || isEnq) && (
+          <textarea className="w-full border rounded-md p-2 text-sm min-h-[80px]" placeholder={isApp ? "Why are you a fit? Tell us about you..." : "Tell us what you're looking for..."} value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
+        )}
+        <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+          {submitting ? "Submitting..." : (ctaLabel || (isApp ? "Submit Application" : isEnq ? "Send Enquiry" : "Notify Me"))} <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </form>
+    </Card>
+  );
+}
+
+function YRLayout({ title, tagline, intro, children, right, v, hFont }: { title: string; tagline?: string; intro?: string; children: React.ReactNode; right: React.ReactNode; v: any; hFont: string }) {
+  return (
+    <div className="max-w-6xl mx-auto px-4 py-12 sm:py-20">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+        <div className="md:col-span-2 space-y-10">
+          <header className="space-y-3">
+            <h1 className="text-3xl sm:text-5xl font-bold leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>{title}</h1>
+            {tagline && <p className="text-lg italic" style={{ color: v.accent }}>{tagline}</p>}
+            {intro && <p className="text-base leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{intro}</p>}
+          </header>
+          {children}
+        </div>
+        <div className="md:sticky md:top-6">{right}</div>
+      </div>
+    </div>
+  );
+}
+
+function YRBulletSection({ heading, items, v, hFont }: { heading: string; items: string[]; v: any; hFont: string }) {
+  if (!items.length) return null;
+  return (
+    <section className="space-y-3">
+      <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>{heading}</h2>
+      <ul className="space-y-2">
+        {items.map((line, i) => (
+          <li key={i} className="flex items-start gap-2">
+            <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+            <span className="text-sm" style={{ color: v.bodyText }}>{line}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/* ═══ YR-19 — 1-ON-1 COACHING ═══ */
+function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.practice_title, data.node.personalised_name || NODE_NAMES["YR-19"] || "Coaching");
+  const tagline = yrStr(content.tagline);
+  const philosophy = yrStr(content.coaching_philosophy);
+  const opening = yrStr(content.discovery_call_script?.opening);
+  const packages = yrArr(content.packages);
+  const paymentLink = yrStr(data.node.payment_link);
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={philosophy} v={v} hFont={hFont}
+      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Book a Discovery Call" : "Request a Discovery Call"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+    >
+      {packages.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Coaching Packages</h2>
+          <div className="space-y-3">
+            {packages.map((p: any, i: number) => {
+              const name = yrStr(p?.name, `Package ${i + 1}`);
+              const desc = yrStr(p?.description);
+              const duration = yrStr(p?.duration);
+              const price = p?.price_usd;
+              const idealFor = yrStr(p?.ideal_for);
+              const outcomes = yrLines(p?.outcomes);
+              return (
+                <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+                    <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
+                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                  </div>
+                  {duration && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>{duration}</p>}
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {idealFor && <p className="text-sm italic mb-2" style={{ color: v.mutedText }}><strong>Ideal for:</strong> {idealFor}</p>}
+                  {outcomes.length > 0 && (
+                    <ul className="space-y-1 mt-3">
+                      {outcomes.map((o, j) => (
+                        <li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{o}</span></li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {opening && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>What to expect on a discovery call</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{opening}</p>
+        </Card>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-20 — BIG TICKET OFFERS ═══ */
+function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(data.node.personalised_name, NODE_NAMES["YR-20"] || "VIP Offers");
+  const summary = yrStr(content.abby_summary);
+  const guide = yrStr(content.sales_conversation_guide);
+  const offers = yrArr(content.offers);
+
+  return (
+    <YRLayout title={title} intro={summary} v={v} hFont={hFont}
+      right={<YRRightCard actionType="application" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Apply for a Conversation" />}
+    >
+      {offers.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>The Offers</h2>
+          <div className="space-y-3">
+            {offers.map((o: any, i: number) => {
+              const name = yrStr(o?.name || o?.title, `Offer ${i + 1}`);
+              const desc = yrStr(o?.description);
+              const price = o?.price_usd ?? o?.price;
+              const incl = yrLines(o?.includes ?? o?.deliverables ?? o?.outcomes);
+              return (
+                <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+                    <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
+                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                  </div>
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {incl.length > 0 && (
+                    <ul className="space-y-1 mt-2">
+                      {incl.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}
+                    </ul>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {guide && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>How a conversation unfolds</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{guide}</p>
+        </Card>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-21 — KEYNOTE SPEAKING ═══ */
+function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.speaker_brand, data.node.personalised_name || NODE_NAMES["YR-21"] || "Keynote Speaking");
+  const tagline = yrStr(content.speaker_tagline);
+  const oneSheet = yrStr(content.speaker_one_sheet);
+  const talks = yrArr(content.signature_talks);
+  const fees = content.fee_schedule;
+  const booking = yrStr(content.booking_process);
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={oneSheet} v={v} hFont={hFont}
+      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Book This Speaker" />}
+    >
+      {talks.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Signature Talks</h2>
+          <div className="space-y-3">
+            {talks.map((t: any, i: number) => {
+              const name = yrStr(t?.title || t?.name, `Talk ${i + 1}`);
+              const desc = yrStr(t?.description || t?.summary);
+              const audience = yrStr(t?.audience || t?.ideal_for);
+              const takeaways = yrLines(t?.takeaways || t?.outcomes || t?.key_points);
+              return (
+                <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText }}>{name}</h3>
+                  {audience && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>For: {audience}</p>}
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {takeaways.length > 0 && (
+                    <ul className="space-y-1 mt-2">
+                      {takeaways.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}
+                    </ul>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {fees && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Fee Schedule</p>
+          {typeof fees === "string" ? (
+            <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{fees}</p>
+          ) : Array.isArray(fees) ? (
+            <ul className="space-y-1">{fees.map((f: any, i: number) => (<li key={i} className="text-sm" style={{ color: v.bodyText }}>• {yrInline(f)}</li>))}</ul>
+          ) : (
+            <ul className="space-y-1">{Object.entries(fees as Record<string, any>).map(([k, val]) => (<li key={k} className="text-sm" style={{ color: v.bodyText }}><strong style={{ color: v.headingText }}>{k.replace(/_/g, " ")}:</strong> {yrInline(val)}</li>))}</ul>
+          )}
+        </Card>
+      )}
+      {booking && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Booking Process</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{booking}</p>
+        </Card>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-22 — CORPORATE TRAINING ═══ */
+function CorporateTrainingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-22"] || "Corporate Training");
+  const tagline = yrStr(content.tagline);
+  const summary = yrStr(content.abby_summary);
+  const formats = yrArr(content.training_formats);
+  const outcomes = yrLines(content.learning_outcomes);
+  const outline = yrArr(content.programme_outline);
+  const targets = yrLines(content.target_organisations);
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
+      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Request a Proposal" />}
+    >
+      <YRBulletSection heading="Learning Outcomes" items={outcomes} v={v} hFont={hFont} />
+      {formats.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Training Formats</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {formats.map((f: any, i: number) => (
+              <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                <h3 className="text-base font-semibold mb-1" style={{ color: v.headingText }}>{yrStr(f?.name || f?.title || f?.format, `Format ${i + 1}`)}</h3>
+                {(f?.duration || f?.length) && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>{yrStr(f?.duration || f?.length)}</p>}
+                {f?.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{yrStr(f?.description)}</p>}
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+      {outline.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Programme Outline</h2>
+          <div className="space-y-3">
+            {outline.map((m: any, i: number) => {
+              const mTitle = yrStr(m?.title || m?.module_title || m?.name, `Module ${i + 1}`);
+              const mDesc = yrStr(m?.description || m?.summary);
+              const items = yrLines(m?.learning_outcomes || m?.topics || m?.items);
+              return (
+                <details key={i} className="group rounded-lg border p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <summary className="cursor-pointer flex items-baseline gap-3">
+                    <span className="text-xs uppercase tracking-widest shrink-0" style={{ color: v.accent }}>Module {i + 1}</span>
+                    <span className="text-base font-semibold" style={{ color: v.headingText }}>{mTitle}</span>
+                  </summary>
+                  {(mDesc || items.length > 0) && (
+                    <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: v.cardBorder }}>
+                      {mDesc && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{mDesc}</p>}
+                      {items.length > 0 && (
+                        <ul className="space-y-1">
+                          {items.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}
+                        </ul>
+                      )}
+                    </div>
+                  )}
+                </details>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      <YRBulletSection heading="Built for organisations like yours" items={targets} v={v} hFont={hFont} />
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-23 — MASTERMIND ═══ */
+function MastermindPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.mastermind_title, data.node.personalised_name || NODE_NAMES["YR-23"] || "Mastermind");
+  const tagline = yrStr(content.tagline);
+  const promise = yrStr(content.programme_promise);
+  const tiers = yrArr(content.membership_tiers);
+  const pillars = yrLines(content.curriculum_pillars);
+  const sales = content.sales_page;
+  const salesText = typeof sales === "string" ? sales : (typeof sales === "object" && sales) ? yrStr(sales.body) : "";
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={promise} v={v} hFont={hFont}
+      right={<YRRightCard actionType="application" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Apply to Join" />}
+    >
+      <YRBulletSection heading="Curriculum Pillars" items={pillars} v={v} hFont={hFont} />
+      {tiers.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Membership Tiers</h2>
+          <div className="space-y-3">
+            {tiers.map((t: any, i: number) => {
+              const name = yrStr(t?.name || t?.title || t?.tier, `Tier ${i + 1}`);
+              const price = t?.price_usd ?? t?.price;
+              const desc = yrStr(t?.description);
+              const incl = yrLines(t?.includes ?? t?.benefits ?? t?.features);
+              return (
+                <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+                    <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
+                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                  </div>
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {incl.length > 0 && (
+                    <ul className="space-y-1 mt-2">
+                      {incl.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}
+                    </ul>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {salesText && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>About this Mastermind</h2>
+          <p className="text-sm leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>{salesText}</p>
+        </section>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-24 — RETREAT ═══ */
+function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.retreat_title, data.node.personalised_name || NODE_NAMES["YR-24"] || "Retreat");
+  const tagline = yrStr(content.tagline);
+  const concept = yrStr(content.retreat_concept);
+  const arc = yrStr(content.transformation_arc);
+  const options = yrArr(content.retreat_options);
+  const itinerary = yrArr(content.sample_itinerary);
+  const paymentLink = yrStr(data.node.payment_link);
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={concept} v={v} hFont={hFont}
+      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Reserve Your Spot" : "Enquire About a Retreat"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+    >
+      {options.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Retreat Options</h2>
+          <div className="space-y-3">
+            {options.map((o: any, i: number) => {
+              const name = yrStr(o?.name || o?.title, `Option ${i + 1}`);
+              const dur = yrStr(o?.duration || o?.length);
+              const loc = yrStr(o?.location);
+              const price = o?.price_usd ?? o?.price;
+              const desc = yrStr(o?.description);
+              const incl = yrLines(o?.includes ?? o?.features);
+              return (
+                <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+                    <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
+                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                  </div>
+                  {(dur || loc) && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>{[dur, loc].filter(Boolean).join(" · ")}</p>}
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {incl.length > 0 && (
+                    <ul className="space-y-1 mt-2">{incl.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}</ul>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {arc && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Transformation Arc</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{arc}</p>
+        </Card>
+      )}
+      {itinerary.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Sample Itinerary</h2>
+          <div className="space-y-3">
+            {itinerary.map((d: any, i: number) => {
+              const dayLabel = yrStr(d?.day || d?.title, `Day ${i + 1}`);
+              const desc = yrStr(d?.description || d?.summary);
+              const items = yrLines(d?.activities || d?.items || d?.schedule);
+              return (
+                <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <h3 className="text-base font-semibold mb-1" style={{ color: v.accent }}>{dayLabel}</h3>
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {items.length > 0 && <ul className="space-y-1">{items.map((x, j) => (<li key={j} className="text-sm" style={{ color: v.bodyText }}>• {x}</li>))}</ul>}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-25 — CERTIFICATION ═══ */
+function CertificationPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.certification_title, data.node.personalised_name || NODE_NAMES["YR-25"] || "Certification Programme");
+  const tagline = yrStr(content.tagline);
+  const promise = yrStr(content.certification_promise);
+  const modules = yrArr(content.modules);
+  const levels = yrArr(content.certification_levels);
+  const badge = content.badge_concept;
+  const badgeText = typeof badge === "string" ? badge : (typeof badge === "object" && badge) ? yrStr(badge.description || badge.summary) : "";
+  const structure = yrStr(content.programme_structure);
+  const paymentLink = yrStr(data.node.payment_link);
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={promise} v={v} hFont={hFont}
+      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Enroll Now" : "Apply for Certification"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+    >
+      {structure && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Programme Structure</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{structure}</p>
+        </Card>
+      )}
+      {modules.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Curriculum</h2>
+          <div className="space-y-3">
+            {modules.map((m: any, i: number) => {
+              const mTitle = yrStr(m?.title || m?.name, `Module ${i + 1}`);
+              const mDesc = yrStr(m?.description || m?.summary);
+              const items = yrLines(m?.learning_outcomes || m?.topics || m?.items);
+              return (
+                <details key={i} className="group rounded-lg border p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <summary className="cursor-pointer flex items-baseline gap-3">
+                    <span className="text-xs uppercase tracking-widest shrink-0" style={{ color: v.accent }}>Module {i + 1}</span>
+                    <span className="text-base font-semibold" style={{ color: v.headingText }}>{mTitle}</span>
+                  </summary>
+                  {(mDesc || items.length > 0) && (
+                    <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: v.cardBorder }}>
+                      {mDesc && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{mDesc}</p>}
+                      {items.length > 0 && <ul className="space-y-1">{items.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}</ul>}
+                    </div>
+                  )}
+                </details>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {levels.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Certification Levels</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {levels.map((l: any, i: number) => (
+              <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                <h3 className="text-base font-semibold mb-1" style={{ color: v.accent }}>{yrStr(l?.name || l?.level || l?.title, `Level ${i + 1}`)}</h3>
+                {l?.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{yrStr(l?.description)}</p>}
+                {l?.requirements && <p className="text-xs italic mt-2" style={{ color: v.mutedText }}>{yrInline(l?.requirements)}</p>}
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+      {badgeText && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>The Badge</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{badgeText}</p>
+        </Card>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-26 — CONFERENCE ═══ */
+function ConferencePage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.conference_title, data.node.personalised_name || NODE_NAMES["YR-26"] || "Conference");
+  const tagline = yrStr(content.tagline);
+  const concept = yrStr(content.conference_concept);
+  const formats = yrArr(content.event_formats);
+  const outline = yrArr(content.programme_outline);
+  const sponsors = yrArr(content.sponsorship_packages);
+  const paymentLink = yrStr(data.node.payment_link);
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={concept} v={v} hFont={hFont}
+      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Register Now" : "Request Conference Details"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+    >
+      {formats.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Event Formats</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {formats.map((f: any, i: number) => (
+              <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                <h3 className="text-base font-semibold mb-1" style={{ color: v.headingText }}>{yrStr(f?.name || f?.format || f?.title, `Format ${i + 1}`)}</h3>
+                {f?.description && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{yrStr(f?.description)}</p>}
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
+      {outline.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Programme</h2>
+          <div className="space-y-3">
+            {outline.map((d: any, i: number) => {
+              const dayLabel = yrStr(d?.day || d?.title || d?.name, `Day ${i + 1}`);
+              const desc = yrStr(d?.description || d?.summary);
+              const items = yrLines(d?.sessions || d?.items || d?.activities);
+              return (
+                <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <h3 className="text-base font-semibold mb-1" style={{ color: v.accent }}>{dayLabel}</h3>
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {items.length > 0 && <ul className="space-y-1">{items.map((x, j) => (<li key={j} className="text-sm" style={{ color: v.bodyText }}>• {x}</li>))}</ul>}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {sponsors.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Sponsorship Packages</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {sponsors.map((s: any, i: number) => {
+              const name = yrStr(s?.name || s?.tier || s?.title, `Package ${i + 1}`);
+              const price = s?.price_usd ?? s?.price;
+              const incl = yrLines(s?.benefits || s?.includes);
+              return (
+                <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+                    <h3 className="text-base font-semibold" style={{ color: v.headingText }}>{name}</h3>
+                    {price != null && <span className="text-base font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                  </div>
+                  {incl.length > 0 && <ul className="space-y-1 mt-2">{incl.map((x, j) => (<li key={j} className="text-sm" style={{ color: v.bodyText }}>• {x}</li>))}</ul>}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-27 — FUNDRAISING ═══ */
+function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.campaign_title, data.node.personalised_name || NODE_NAMES["YR-27"] || "Fundraising Campaign");
+  const tagline = yrStr(content.tagline);
+  const impact = yrStr(content.impact_statement);
+  const cause = yrStr(content.cause_alignment);
+  const goal = content.campaign_goal_usd;
+  const days = content.campaign_duration_days;
+  const tiers = yrArr(content.donation_tiers);
+  const commsPlan = yrStr(content.donor_communication_plan);
+  const paymentLink = yrStr(data.node.payment_link);
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={impact} v={v} hFont={hFont}
+      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Donate Now" : "Support This Campaign"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+    >
+      {(goal != null || days != null) && (
+        <div className="grid grid-cols-2 gap-3">
+          {goal != null && (
+            <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Goal</p>
+              <p className="text-lg font-bold mt-1" style={{ color: v.accent }}>{typeof goal === "number" ? `$${goal.toLocaleString()}` : yrInline(goal)}</p>
+            </Card>
+          )}
+          {days != null && (
+            <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+              <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Duration</p>
+              <p className="text-lg font-bold mt-1" style={{ color: v.headingText }}>{typeof days === "number" ? `${days} days` : yrInline(days)}</p>
+            </Card>
+          )}
+        </div>
+      )}
+      {cause && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>The Cause</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{cause}</p>
+        </Card>
+      )}
+      {tiers.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Donation Tiers</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {tiers.map((t: any, i: number) => {
+              const name = yrStr(t?.name || t?.tier || t?.title, `Tier ${i + 1}`);
+              const amt = t?.amount_usd ?? t?.amount ?? t?.price;
+              const desc = yrStr(t?.description);
+              const perks = yrLines(t?.benefits || t?.perks || t?.includes);
+              return (
+                <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+                    <h3 className="text-base font-semibold" style={{ color: v.headingText }}>{name}</h3>
+                    {amt != null && <span className="text-base font-bold" style={{ color: v.accent }}>{typeof amt === "number" ? `$${amt.toLocaleString()}` : yrInline(amt)}</span>}
+                  </div>
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {perks.length > 0 && <ul className="space-y-1 mt-2">{perks.map((x, j) => (<li key={j} className="text-sm" style={{ color: v.bodyText }}>• {x}</li>))}</ul>}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {commsPlan && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>How donors stay informed</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{commsPlan}</p>
+        </Card>
+      )}
+    </YRLayout>
+  );
+}
+
+/* ═══ YR-28 — SPONSORS / EXHIBITORS ═══ */
+function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
+  const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-28"] || "Exhibitors & Sponsors");
+  const tagline = yrStr(content.tagline);
+  const summary = yrStr(content.abby_summary);
+  const audience = yrStr(content.audience_profile);
+  const outreach = yrStr(content.outreach_strategy);
+  const packages = yrArr(content.sponsorship_packages);
+  const deck = content.pitch_deck_outline;
+  const deckText = typeof deck === "string" ? deck : Array.isArray(deck) ? deck.map(yrInline).join("\n") : (deck ? yrInline(deck) : "");
+
+  return (
+    <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
+      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Become a Sponsor" />}
+    >
+      {audience && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Who You'll Reach</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{audience}</p>
+        </Card>
+      )}
+      {packages.length > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Sponsorship Packages</h2>
+          <div className="space-y-3">
+            {packages.map((p: any, i: number) => {
+              const name = yrStr(p?.name || p?.tier || p?.title, `Package ${i + 1}`);
+              const price = p?.price_usd ?? p?.price;
+              const desc = yrStr(p?.description);
+              const incl = yrLines(p?.benefits || p?.includes || p?.features);
+              return (
+                <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
+                    <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
+                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                  </div>
+                  {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
+                  {incl.length > 0 && <ul className="space-y-1 mt-2">{incl.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}</ul>}
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      {outreach && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>How We'll Activate Your Sponsorship</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{outreach}</p>
+        </Card>
+      )}
+      {deckText && (
+        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Pitch Deck Outline</p>
+          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{deckText}</p>
+        </Card>
+      )}
+    </YRLayout>
+  );
+}
+
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
   const optinNodes = ["BP-02", "BP-05", "BA-10", "BA-14", "BA-16"];
