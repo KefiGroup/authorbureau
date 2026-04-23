@@ -242,6 +242,12 @@ export default function BP06Builder({ authorId }: Props) {
           </>
         )}
       </div>
+      <StripeRequiredModal
+        open={stripeModalOpen}
+        onOpenChange={setStripeModalOpen}
+        productLabel={isPaidNode(content) ? `$${Number(content?.suggested_price_usd ?? 0)} workbook` : "paid workbook"}
+        onMakeFree={handleMakeFree}
+      />
     </div>
   );
 }
@@ -261,9 +267,12 @@ interface ReviewStepProps {
   bookTitle: string;
   onActivate: () => void;
   onPrevious: () => void;
+  stripeReady: boolean;
+  stripeLoading: boolean;
+  onConnectStripe: () => void;
 }
 
-function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onActivate, onPrevious }: ReviewStepProps) {
+function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe }: ReviewStepProps) {
   // Locked snapshot of Abby's original recommendation — never mutated by user edits.
   // Falls back to legacy fields for drafts created before the snapshot was added.
   const abbyRec: "free" | "paid" =
