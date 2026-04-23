@@ -24,7 +24,7 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { downloadWorkbookPdf } from "@/lib/workbook-pdf";
+import { downloadWorkbookPdf, estimateWorkbookPageCount } from "@/lib/workbook-pdf";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
