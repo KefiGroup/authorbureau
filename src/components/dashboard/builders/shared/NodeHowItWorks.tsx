@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Sparkles, MapPin, Pencil, Clock, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronUp, Sparkles, MapPin, Pencil, Clock, AlertTriangle, ShoppingCart, ExternalLink } from "lucide-react";
 import { BP_INTRO_SPECS } from "./BuilderIntroBlock";
 import { categoryStyles, getBuilderCategory } from "./BuilderTheme";
 import { cn } from "@/lib/utils";
