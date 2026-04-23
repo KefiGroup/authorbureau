@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -74,12 +75,32 @@ export default function BP09Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp09-speaking", { body: { author_id: authorId } });
-      if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
+      const token = await getActiveToken();
+      if (!token) throw new Error("Your session has expired. Please sign in again.");
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp09-speaking`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ author_id: authorId }),
+        },
+        180_000,
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
       setContent(data.content);
       setPriceOverride(data.content?.suggested_price_usd || null);
       setStep(2);
-    } catch (e: any) { setError(e.message); setStep(0); }
+    } catch (e: any) {
+      const msg = toAbbyError(e?.message || "Generation failed");
+      setError(msg);
+      setStep(0);
+      toast.error(msg);
+    }
   };
 
   const handlePublish = async () => {
