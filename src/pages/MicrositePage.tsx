@@ -2938,7 +2938,19 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
   return (
     <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
-      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Become a Sponsor" />}
+      right={<YRRightCard
+        actionType="enquiry"
+        ctaLabel="Become a Sponsor"
+        inquiryHeading="Become a Sponsor"
+        inquiryIntro="Choose a package below or tell us what activation you have in mind."
+        messagePlaceholder="Company, package of interest, brand goals, key dates…"
+        selectedOfferLabel={packages[0] ? yrStr(packages[0]?.name || packages[0]?.tier || packages[0]?.title) : undefined}
+        selectedOfferPrice={typeof packages[0]?.price_usd === "number" ? packages[0].price_usd : (typeof packages[0]?.price === "number" ? packages[0].price : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {audience && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
