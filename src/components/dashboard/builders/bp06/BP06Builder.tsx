@@ -494,11 +494,44 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
         <InlineSectionCard nodeId="BP-06" authorId={authorId} content={content} setContent={setContent} path="transformation_promise" label="Transformation promise" type="textarea" />
         <InlineSectionCard nodeId="BP-06" authorId={authorId} content={content} setContent={setContent} path="sales_page.headline" label="Sales page headline" type="input" />
       </div>
+      {isPaid && (
+        <Card className={`border ${stripeReady ? "border-emerald-500/30 bg-emerald-500/5" : "border-amber-500/30 bg-amber-500/5"}`}>
+          <CardContent className="pt-4 pb-4">
+            <div className="flex items-start gap-3">
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${stripeReady ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400" : "bg-amber-500/15 text-amber-700 dark:text-amber-400"}`}>
+                {stripeReady ? <Check className="h-4 w-4" /> : <DollarSign className="h-4 w-4" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">
+                  {stripeReady ? "Stripe payments connected" : "Stripe payments required"}
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {stripeReady
+                    ? "Readers can buy this workbook as soon as it's live."
+                    : `Connect Stripe before publishing this paid workbook ($${paidPrice}). Free workbooks can publish anytime.`}
+                </p>
+                {!stripeReady && !stripeLoading && (
+                  <Button size="sm" variant="outline" className="mt-2" onClick={onConnectStripe}>
+                    Connect Stripe →
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       <div className="flex flex-col sm:flex-row gap-3 pt-2">
         <Button variant="ghost" className="sm:w-auto" onClick={onPrevious}>
           <ArrowLeft className="h-4 w-4 mr-1" /> Previous
         </Button>
-        <Button className="flex-1" size="lg" onClick={onActivate}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
+        <Button
+          className="flex-1"
+          size="lg"
+          onClick={onActivate}
+          disabled={isPaid && !stripeReady && !stripeLoading}
+        >
+          Publish to My Site<ArrowRight className="h-4 w-4 ml-2" />
+        </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
         Your workbook will be published as {isPaid ? `a paid product at $${paidPrice}` : "a free lead magnet"} on your author site.
