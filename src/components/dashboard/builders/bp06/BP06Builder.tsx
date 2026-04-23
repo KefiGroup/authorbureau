@@ -376,16 +376,16 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
               </div>
             )}
 
-            {pricingChoice === "free" && content.free_rationale && (
+            {pricingChoice === "free" && freeRationale && (
               <div className="rounded-md bg-emerald-500/5 border border-emerald-500/20 p-3">
                 <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Why FREE works</p>
-                <p className="text-sm">{content.free_rationale}</p>
+                <p className="text-sm">{freeRationale}</p>
               </div>
             )}
-            {pricingChoice === "paid" && content.paid_rationale && (
+            {pricingChoice === "paid" && paidRationale && (
               <div className="rounded-md bg-primary/5 border border-primary/20 p-3">
                 <p className="text-xs font-semibold text-primary mb-1">Why PAID works</p>
-                <p className="text-sm">{content.paid_rationale}</p>
+                <p className="text-sm">{paidRationale}</p>
               </div>
             )}
           </CardContent></Card>
