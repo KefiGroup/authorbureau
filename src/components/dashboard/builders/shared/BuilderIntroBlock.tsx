@@ -98,8 +98,9 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
     publishExternal: {
       title: "Publish & sell on Amazon (recommended)",
       description:
-        "Workbooks are one of the highest-converting Amazon companions — readers buy them right after finishing your book. Use PublishNow.io to publish your workbook on Amazon KDP as a paperback so it can be bundled with your book or sold as an upsell.",
+        "Your workbook is formatted at 8.5 × 11\" — the standard Amazon KDP \"Large Workbook\" trim. Download the PDF and upload it directly to PublishNow.io to list it on Amazon as a paperback. Workbooks are one of the highest-converting Amazon companions — readers buy them right after finishing your book.",
       bullets: [
+        "Already KDP-ready: 8.5 × 11\" trim, no resizing needed",
         "List as a standalone paperback companion to your book",
         "Bundle with your book on your Amazon author page",
         "Use as a back-of-book upsell to grow Kindle + paperback revenue",

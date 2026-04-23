@@ -49,7 +49,7 @@ Generate the following as a JSON object with these exact keys:
   "workbook_subtitle": "One-line subtitle",
   "tagline": "A short punchy tagline (under 10 words)",
   "page_count": "e.g., 45 pages",
-  "format": "e.g., PDF + Printable, Digital Only",
+  "format": "8.5 × 11\" PDF + Word — Amazon KDP-ready (do not change this value)",
   "transformation_promise": "One sentence: the core transformation readers will experience by completing this workbook",
   "sections": [
     {
