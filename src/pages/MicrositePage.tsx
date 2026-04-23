@@ -3010,10 +3010,23 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
           <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{outreach}</p>
         </Card>
       )}
-      {deckText && (
+      {(deckSlides.length > 0 || deckString) && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Pitch Deck Outline</p>
-          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{deckText}</p>
+          <p className="text-xs uppercase tracking-wider mb-3" style={{ color: v.mutedText }}>Pitch Deck Outline</p>
+          {deckString && <p className="text-sm whitespace-pre-line mb-3" style={{ color: v.bodyText }}>{deckString}</p>}
+          {deckSlides.length > 0 && (
+            <ol className="space-y-3">
+              {deckSlides.map((s, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="text-xs font-bold shrink-0 w-14 pt-0.5" style={{ color: v.accent }}>SLIDE {s.n}</span>
+                  <div className="space-y-0.5">
+                    <p className="text-sm font-semibold" style={{ color: v.headingText }}>{s.title}</p>
+                    {s.summary && <p className="text-sm" style={{ color: v.bodyText }}>{s.summary}</p>}
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
         </Card>
       )}
     </YRLayout>
