@@ -1009,7 +1009,7 @@ function WorkbookSalesPage({
                 )}
                 {s.outcome && (
                   <p className="mt-2 text-sm italic" style={{ color: v.mutedText }}>
-                    After this section, you can: {s.outcome}
+                    After this section, you can: {normalizeOutcome(s.outcome)}
                   </p>
                 )}
               </div>
