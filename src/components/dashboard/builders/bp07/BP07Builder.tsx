@@ -116,8 +116,14 @@ export default function BP07Builder({ authorId }: Props) {
       console.info("[BP-07] http status", res.status);
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
-      setContent(data.content);
+      const newContent = { ...(data.content || {}), _currentStep: 2 };
+      setContent(newContent);
       setPriceOverride(data.content?.suggested_price_usd || null);
+      if (authorId) {
+        await supabase.from("author_nodes")
+          .update({ content_json: newContent, current_step: 2 })
+          .eq("author_id", authorId).eq("node_id", "BP-07");
+      }
       setStep(2);
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Generation failed");
