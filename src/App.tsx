@@ -58,6 +58,8 @@ import CourseSalesPage from "./pages/CourseSalesPage";
 import CourseLearnPage from "./pages/CourseLearnPage";
 import MembershipSalesPage from "./pages/MembershipSalesPage";
 import MemberPortalPage from "./pages/MemberPortalPage";
+import EarningsDashboard from "./pages/EarningsDashboard";
+import AdminPayouts from "./pages/AdminPayouts";
 import { BUILD_TIMESTAMP } from "./main";
 
 
