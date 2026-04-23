@@ -283,7 +283,7 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
             {content.workbook_subtitle && <p className="text-muted-foreground">{content.workbook_subtitle}</p>}
             {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
             <div className="flex gap-2 flex-wrap">
-              <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.page_count}</span>
+              <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{pageCount} pages</span>
               <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.format}</span>
               <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isPaid ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"}`}>
                 {isPaid ? `$${paidPrice}` : "FREE Lead Magnet"}
