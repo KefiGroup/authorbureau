@@ -457,3 +457,77 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
     </div>
   );
 }
+
+interface ImporterProps {
+  authorId: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  content: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setContent: (c: any) => void;
+}
+
+function WorkbookDocxImporter({ authorId, content, setContent }: ImporterProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleFile = async (file: File) => {
+    setBusy(true);
+    try {
+      const patch = await parseWorkbookDocx(file);
+      if (!patch || Object.keys(patch).length === 0) {
+        toast.error("Couldn't read this Word file. Make sure it's the workbook you downloaded from here.");
+        return;
+      }
+      const merged = { ...content, ...patch };
+      setContent(merged);
+      if (authorId) {
+        await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: merged, currentStep: 2 });
+        await supabase
+          .from("author_nodes")
+          .update({ content_json: merged, personalised_name: merged.workbook_title })
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-06");
+      }
+      toast.success("Workbook updated from your Word edits.");
+    } catch (e) {
+      console.error("[BP-06] docx import failed", e);
+      toast.error("That Word file couldn't be parsed. Try downloading a fresh copy and editing again.");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-dashed border-primary/30 bg-background/60 p-3 space-y-2">
+      <div className="flex items-start gap-2">
+        <Upload className="h-4 w-4 text-primary mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold">Edited in Word? Re-upload here.</p>
+          <p className="text-xs text-muted-foreground">We'll detect your changes (titles, sections, exercises, outcomes) and save them back into your workbook. Then re-download the PDF to publish.</p>
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleFile(f);
+        }}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+      >
+        <Upload className="h-4 w-4 mr-2" />
+        {busy ? "Reading your Word file…" : "Upload edited .docx"}
+      </Button>
+    </div>
+  );
+}
+
