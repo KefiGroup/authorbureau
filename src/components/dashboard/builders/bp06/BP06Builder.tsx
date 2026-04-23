@@ -84,10 +84,16 @@ export default function BP06Builder({ authorId }: Props) {
   }, [step]);
 
   const handleGenerate = async () => {
+    console.info("[BP-06] generate clicked", { authorId });
     setStep(1); setError(null);
     try {
-      const token = await getActiveToken();
-      if (!token) throw new Error("Your session has expired. Please sign in again.");
+      let token = await getActiveToken();
+      if (!token) {
+        await supabase.auth.refreshSession().catch(() => null);
+        token = await getActiveToken();
+      }
+      console.info("[BP-06] token resolved", { hasToken: !!token });
+      if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
       const res = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp06-online-course`,
         {
@@ -101,6 +107,7 @@ export default function BP06Builder({ authorId }: Props) {
         },
         180_000,
       );
+      console.info("[BP-06] http status", res.status);
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
       setContent(data.content);
@@ -108,9 +115,10 @@ export default function BP06Builder({ authorId }: Props) {
       setStep(2);
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Generation failed");
+      console.error("[BP-06] generate failed", e);
       setError(msg);
       setStep(0);
-      toast.error(msg);
+      toast.error(msg, { duration: 12000 });
     }
   };
 
