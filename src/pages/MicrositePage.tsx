@@ -2314,7 +2314,19 @@ function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setE
 
   return (
     <YRLayout title={title} intro={summary} v={v} hFont={hFont}
-      right={<YRRightCard actionType="application" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Apply for a Conversation" />}
+      right={<YRRightCard
+        actionType="application"
+        ctaLabel="Apply for a Conversation"
+        inquiryHeading="Apply for a Conversation"
+        inquiryIntro="High-touch work — we accept a limited number of clients each quarter."
+        messagePlaceholder="Briefly: what's the result you want, and why now?"
+        selectedOfferLabel={offers[0] ? yrStr(offers[0]?.name || offers[0]?.title) : undefined}
+        selectedOfferPrice={typeof offers[0]?.price_usd === "number" ? offers[0].price_usd : (typeof offers[0]?.price === "number" ? offers[0].price : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {offers.length > 0 && (
         <section className="space-y-3">
