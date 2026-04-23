@@ -2851,7 +2851,24 @@ function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, se
 
   return (
     <YRLayout title={title} tagline={tagline} intro={impact} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Donate Now" : "Support This Campaign"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="donate"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof tiers[0]?.amount_usd === "number" ? tiers[0].amount_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Donate Now"
+        ctaLabel={paymentLink ? "Donate Now" : "Pledge Support"}
+        inquiryHeading="Support This Campaign"
+        inquiryIntro="Every contribution moves the needle. Tell us how you'd like to give."
+        messagePlaceholder="Amount you're considering, in honour of someone, anonymous, etc."
+        selectedOfferLabel={tiers[0] ? yrStr(tiers[0]?.name || tiers[0]?.tier || tiers[0]?.title) : undefined}
+        selectedOfferPrice={typeof tiers[0]?.amount_usd === "number" ? tiers[0].amount_usd : (typeof tiers[0]?.amount === "number" ? tiers[0].amount : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {(goal != null || days != null) && (
         <div className="grid grid-cols-2 gap-3">
