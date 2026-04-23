@@ -1,187 +1,160 @@
-
-
-# Author Asset Library — unify all 28 nodes + level up to pro-grade slides & visuals
+# Unify book formats + collectible Special Editions under each book
 
 ## What you're asking for, in plain English
-Right now, every node (BP-01 → YR-28) generates a JSON blob into `author_nodes.content_json` and each builder shows its own download buttons in its own way. The author has no single place to **see everything they own, re-download anything, or send the assets out into the world**. On top of that, the slide decks BP-09 produces today are flat `pptxgenjs` text frames — not what authors expect when they've seen tools like Gamma or Beautiful.ai.
 
-Two things to fix:
-1. **One central Author Library** that lists every asset built across all 28 nodes, with consistent re-download / re-edit / re-send actions.
-2. **Pro-grade visual upgrade**: slide decks built with Gamma-style layouts and AI-generated cover/section images via Gemini 3 (already wired up in `generate-social-graphic`). Plus richer PDFs (workbooks, bulk-order proposals, handouts).
+Two related cleanups on the public author site:
 
----
+1. **All formats of one book belong under that book.** Right now Kindle/Paperback/Audiobook (BA-11), Workbook (BP-06), Special Edition (BP-08) and Bundle (BA-17) show up as *separate cards* in "Work With Me" — even though they're really just different ways to consume the same title. Readers get confused and the services list gets cluttered.
 
-## Part 1 — What every node already produces (audit)
-
-Below is the actual content sitting in `author_nodes.content_json` today, grouped by category. This is the master list the new Library will surface.
-
-### Brand Products (BP-01 → BP-09)
-| Node | Asset(s) in `content_json` | Best export format |
-|---|---|---|
-| BP-01 Email Marketing | 7 nurture emails + 5 broadcast templates + segments | DOCX, PDF, .eml |
-| BP-02 Lead Magnets | Quiz (8Q + 5 results), gated landing page, social pack | PDF, public microsite |
-| BP-03 Social Media | 20 branded posts + 4-week calendar + outreach kit | DOCX, CSV, PNG graphics |
-| BP-04 Author Website | Full microsite copy (5 sections) | Live page + DOCX backup |
-| BP-05 Webinars | Script, **slides**, promo emails, follow-up sequence | **PPTX (Gamma-style)**, PDF |
-| BP-06 Workbook | Chapter-aligned exercises, prompts, templates | **Designed PDF workbook** |
-| BP-07 Home Study | 21-day curriculum, lesson outlines, assessments | PDF curriculum + Thinkific bundle |
-| BP-08 Special Editions | Tier descriptions, bonus list, signed-edition copy | PDF spec sheet |
-| BP-09 Live Audience Toolkit | Workshop deck, signing kit, corporate deck, scripts, bios | **2× PPTX + PDF handout + PDF proposal** |
-
-### Build Authority (BA-10 → BA-18)
-| Node | Asset(s) | Best export |
-|---|---|---|
-| BA-10 Online Course | Full course outline, lesson scripts, quizzes | PDF, Thinkific CSV |
-| BA-11 Audiobook | Chapter-by-chapter audio + cover art | MP3 zip + cover PNG |
-| BA-12 Membership | Tier structure, content calendar, welcome emails | DOCX, PDF |
-| BA-13 Group Coaching | Programme outline, weekly agendas, worksheets | PDF |
-| BA-14 Podcast | Show concept, 12-episode arc, scripts | DOCX, RSS-ready text |
-| BA-15 Media & PR | Press release, pitch list, media kit | DOCX, **designed PDF media kit** |
-| BA-16 Affiliates | Programme rules, affiliate emails, swipe copy | DOCX |
-| BA-17 Upsells | Bundle structure, pricing, upsell scripts | DOCX |
-| BA-18 JV Partnerships | Partner list, outreach templates, deal terms | DOCX |
-
-### Yield Revenue (YR-19 → YR-28)
-| Node | Asset(s) | Best export |
-|---|---|---|
-| YR-19 1-on-1 Coaching | Packages, intake forms, sales scripts | PDF |
-| YR-20 Big Ticket | High-end offer structure, sales letter | DOCX |
-| YR-21 Speaking | Speaker brand, topic list, **keynote deck**, one-sheet | **PPTX + designed PDF one-sheet** |
-| YR-22 Corporate Training | 8-step pedagogical programme | PDF curriculum + **PPTX** |
-| YR-23 Mastermind | Programme structure, application, agendas | PDF |
-| YR-24 Retreats | Itinerary, sales page, packing list | **Designed PDF itinerary** |
-| YR-25 Certification | Curriculum, exam, certification docs | PDF |
-| YR-26 Conference | Agenda, sponsor deck, speaker brief | **PPTX + PDF agenda** |
-| YR-27 Fundraising | Campaign copy, donor emails, pitch deck | **PPTX + DOCX** |
-| YR-28 Sponsors | Sponsorship tiers, prospectus | **Designed PDF prospectus** |
-
-The data is already there. What's missing is a **single shelf to put it on** and **better-looking exports**.
+2. **Special Editions (BP-08) should be presented as collectible, occasion-themed releases** — Valentine's, Mother's Day, Father's Day, Christmas, Graduation, etc. — not as a generic "premium edition" line item. The occasion picker already exists in the BP-08 builder (`OccasionTemplateGrid.tsx`), so the public surface needs to catch up and actually showcase the occasion theming.
 
 ---
 
-## Part 2 — The Author Library (new)
+## Part 1 — Books section: one card, all formats
 
-### New page: `/dashboard?section=library` ("My Library")
+### New layout for each book card
 
-A single screen that lists every asset the author has ever built. Three view modes:
-
-**A. Grouped by node (default)** — collapsible cards for each of the 28 nodes the author has touched, showing every downloadable file inside.
-
-**B. Grouped by format** — "All slide decks", "All PDFs", "All written copy", "All graphics" — useful when the author thinks "I just need a deck for tomorrow's lunch".
-
-**C. Recent activity** — flat list, newest first.
-
-Each row exposes the same 5 actions:
-- **Open** — re-opens the source builder at the Review step (so they can edit)
-- **Download** — dropdown: Copy text · TXT · DOCX · PDF · PPTX (only formats valid for that asset)
-- **Send** — push to email, Buffer (social), or Marketing Hub (where applicable)
-- **Public link** — copy the live URL (for nodes that publish)
-- **Regenerate** — rebuild this asset with one click (triggers the node's generate function)
-
-### Where it lives
-- Dashboard sidebar gets a new "My Library" entry between "Marketing Hub" and "Revenue Dashboard"
-- Brand Products / Build Authority / Yield Revenue hub cards each get a small "View in Library →" footer link
-- Every builder's `PublishSuccessScreen` gains an "Open in Library" CTA
-
-### Backing query
-A new edge function `get-author-library` reads `author_nodes` for the user, returns:
-```json
-{ "nodes": [
-  { "node_id": "BP-09", "personalised_name": "...", "status": "live", "updated_at": "...",
-    "assets": [
-      { "type": "pptx", "label": "Workshop deck", "key": "workshop", "size_estimate": "14 slides" },
-      { "type": "pptx", "label": "Corporate lunch deck", "key": "corporate_lunch" },
-      { "type": "pdf", "label": "Workshop handout", "key": "handout" },
-      ...
-    ]}
-] }
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  [Cover]   Be SUCKcessful                                    │
+│            Subtitle line if any                              │
+│            ★★★★★  4.8 · Self-Help                            │
+│                                                              │
+│            "Two-line description preview…"                   │
+│                                                              │
+│            ── Available in ─────────────────────             │
+│             Kindle           $9.99    Buy on Amazon →       │
+│             Paperback       $19.99    Buy on Amazon →       │
+│             Audiobook       $14.99    Listen now →          │
+│             Workbook        $12.00    Get workbook →        │
+│             Bundle (3-in-1) $29.00    Save 40% →            │
+│            ────────────────────────────────────              │
+│                                                              │
+│            🎁 Collector's Editions (3 available)             │
+│             [Mother's Day] [Christmas] [Custom]              │
+│                                                              │
+│            [ View book details ]                             │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-The asset list per node is computed by a small `nodeAssetRegistry.ts` that maps each `node_id → asset definitions`. New utility, no schema change.
+Format rows are stacked, each with: format icon · format name · price (if known) · format-specific CTA. Collector's Editions get their own coloured strip below the standard formats with occasion chips.
+
+### Source mapping (no schema change)
+
+| Format row | Where it comes from |
+|---|---|
+| Kindle | `books.amazon_url` + `books.kindle_price` |
+| Paperback | `books.amazon_url` + `books.paperback_price` |
+| Audiobook | Live BA-11 node linked to this book |
+| Workbook | Live BP-06 node linked to this book |
+| Bundle | Live BA-17 node linked to this book |
+| Collector's Editions | All live BP-08 nodes for this book, grouped by `content_json.occasion_id` |
+
+Linking node → book uses the existing `book_id` (or `book_slug` fallback) on `author_nodes`. Nodes with no book link stay in "Work With Me".
 
 ---
 
-## Part 3 — Pro-grade visual upgrade
+## Part 2 — Collector's Editions section (BP-08 redesign on the public site)
 
-Two upgrades, applied to every node that produces visual output.
+Special Editions get their own **dedicated, visually-rich subsection** under each book — not just a row in the formats list. The occasion is the hook.
 
-### 3a. Gamma-style slide decks (replaces the current flat pptxgenjs output)
+### Card design per Special Edition
 
-A new shared edge function `export-pro-slides` takes any node's slide JSON and renders it through a **library of 6 Gamma-inspired layouts**, picked automatically based on slide content:
+```text
+┌─────────────────────────────────────────┐
+│  [Occasion icon: 💐 Mother's Day]       │
+│   LIMITED · MOTHER'S DAY EDITION        │
+│                                         │
+│   Be SUCKcessful — Mother's Edition     │
+│   With handwritten letter from author   │
+│                                         │
+│   • Signed hardcover                    │
+│   • Gift-wrapped with ribbon            │
+│   • Personalised dedication card        │
+│   • Delivered before May 12             │
+│                                         │
+│   $49 · Only 50 available               │
+│                                         │
+│   [ Order Mother's Day Edition → ]      │
+│                                         │
+│   📅 Order by May 5 for delivery        │
+└─────────────────────────────────────────┘
+```
 
-| Layout | Use case |
-|---|---|
-| Hero cover | Title slide — full-bleed AI-generated image, large serif title overlay |
-| Big stat | Single slide with one giant number + caption |
-| Two-column split | Image left (40%), text right (60%) — for case studies |
-| Bullet rail | 3-5 bullets with colored circle icons in left rail |
-| Quote slide | Pull-quote with attribution, muted background |
-| Divider | Section break — full-color background, white sans-serif title |
+Each card pulls from `BP-08 content_json`:
+- Occasion icon + label from `OCCASION_TEMPLATES` (already defined)
+- `edition_title`, `edition_subtitle`, `tagline`
+- Top edition tier from `editions[]` (or all 3 tiers in an expandable view)
+- `suggested_price_usd`
+- Occasion-aware urgency line ("Order by May 5 for Mother's Day delivery") computed from `peakWindow`
 
-Implementation:
-- `pptxgenjs` (already installed) does the heavy lifting — it supports gradients, shapes, images, master slides
-- A `slide-themes.ts` module ships **3 starter themes** authors can pick from at export time: **Editorial** (serif + cream), **Boardroom** (navy + white), **Bold** (high-contrast color blocks)
-- Theme picker appears on the export modal: "Choose a look" → 3 thumbnail previews → Download
+### Collector's Editions strip behaviour
 
-### 3b. AI cover/section images via Gemini 3 (Nano Banana family)
+- If the book has **no live BP-08** → strip is hidden entirely.
+- If the book has **1 BP-08** → single hero card.
+- If the book has **2+ BP-08s** → horizontal scroll/grid of occasion cards, sorted by next peak window (e.g. in April, Mother's Day surfaces first).
+- A small "🎁 Collector's Editions" section header above the grid uses occasion-aware copy: "Limited gift editions for the season".
 
-You already use `google/gemini-3-pro-image-preview` in `generate-social-graphic`. Extend the same pattern:
-- When a deck or designed PDF is exported, the system first generates **a cover image and 2-3 section dividers** via Gemini 3, prompted with the book's core thesis + author's brand colors
-- Images are cached in the `social-media-graphics` bucket (already exists, public) keyed by `{author_id}/{node_id}/{asset_key}` so re-downloads are instant
-- Author can swap the AI image for their own upload via a "Replace cover" button
+### "No Occasion" case
 
-This is the same hop you're already doing for social graphics — just applied to slide covers, PDF hero pages, media kits, retreat itineraries, sponsor prospectus, etc.
+If author picked `occasion: "none"` in the builder, the edition still shows but in a neutral "Premium Edition" style — no occasion chip, no countdown, no themed icon. This keeps existing non-themed editions usable.
 
-### 3c. Designed PDFs (replaces TXT-style PDF dumps)
+### Bundling collector's editions into the formats list
 
-A new shared edge function `export-pro-pdf` renders rich-layout PDFs (not just paragraphs of text). Built on a small HTML-to-PDF pipeline using a Deno-friendly renderer (we already do similar work for handouts via `export-bp09-handout`). Each pro PDF gets:
-- Branded cover page (author photo + book cover + AI hero image)
-- Section dividers with section number + title
-- 2-column body where appropriate (workbook exercises, retreat itineraries)
-- Footer with "Powered by Authors Bureau" (existing standard)
-- Pulls accent color from author profile (or defaults to navy + gold)
+The plain "Bundle" row in the formats list (BA-17) stays separate — that's the everyday 3-in-1. Collector bundles offered inside BP-08's `bundle_offer` are surfaced *inside the Collector's Edition card* (e.g. "Save $X with all 3 editions") rather than promoted to the formats list, so the two concepts don't collide.
 
-Nodes that get the pro-PDF treatment first: **BP-06 Workbook**, **BP-09 handout/proposal** (already done — will be re-themed), **BA-15 media kit**, **YR-21 speaker one-sheet**, **YR-24 retreat itinerary**, **YR-28 sponsor prospectus**.
+---
+
+## Part 3 — "Work With Me" section: services only
+
+After the redesign, "Work With Me" shows true services only:
+
+**Kept:** Coaching (BA-13, YR-19), Speaking (YR-21), Corporate Training (YR-22), Mastermind (YR-23), Retreats (YR-24), Certification (YR-25), Membership (BA-12), Online Course (BA-10), Group Coaching, Conference (YR-26), Big Ticket (YR-20).
+
+**Excluded (moved under their book):** BA-11 Audiobook, BP-06 Workbook, BP-08 Special Editions, BA-17 Upsells/Bundles.
+
+**Open question — Media Kit (BA-15):** suggest moving to a "For Press / Media" footer link rather than treating as a service. If you'd rather keep it in Work With Me, say so and we leave it.
 
 ---
 
 ## Part 4 — Files to add / change
 
 ### New
-- `src/pages/AuthorLibrary.tsx` — the My Library page (3 view modes, asset rows)
-- `src/components/library/AssetRow.tsx` — single asset row with the 5 actions
-- `src/lib/nodeAssetRegistry.ts` — declares which assets each of the 28 nodes exposes
-- `src/lib/slide-themes.ts` — the 3 pro slide themes + 6 layout templates
-- `supabase/functions/get-author-library/index.ts` — returns the author's full asset inventory
-- `supabase/functions/export-pro-slides/index.ts` — universal slide exporter (Gamma-style, theme-aware)
-- `supabase/functions/export-pro-pdf/index.ts` — universal designed-PDF exporter
-- `supabase/functions/generate-cover-image/index.ts` — Gemini 3 hero/divider images, cached to storage
+- `src/components/public/AuthorBookFormatsList.tsx` — the stacked formats row component (Kindle / Paperback / Audiobook / Workbook / Bundle)
+- `src/components/public/AuthorBookCollectorsStrip.tsx` — the Collector's Editions strip (occasion cards, urgency dates, hidden when none)
+- `src/components/public/CollectorsEditionCard.tsx` — single occasion-themed card
 
 ### Modified
-- `src/components/dashboard/DashboardSidebar.tsx` — add "My Library" entry
-- `src/components/dashboard/builders/shared/ExportPackageCard.tsx` — add a `pptx` button that calls `export-pro-slides` when content includes slides, and a "Choose theme" picker
-- `src/components/dashboard/builders/shared/PublishSuccessScreen.tsx` — add "Open in Library" CTA
-- All 6 builders that output slides (BP-05, BP-09, YR-21, YR-22, YR-26, YR-27) — swap the local pptx code for a single call to `export-pro-slides`
-- `supabase/functions/export-bp09-slides/index.ts` — deprecate / re-route to `export-pro-slides`
-- `supabase/config.toml` — register 3 new functions with `verify_jwt = false`
+- `src/pages/author-site/types.ts` — add helpers:
+  - `getFormatsForBook(book, liveNodes)` returning `{ kindle?, paperback?, audiobook?, workbook?, bundle? }`
+  - `getCollectorsEditionsForBook(book, liveNodes)` returning `BP08Edition[]` enriched with occasion metadata
+  - `getNextPeakDate(occasionId)` for the "Order by …" urgency line
+  - Update `BOOK_FORMAT_NODE_IDS = ["BA-11","BP-06","BP-08","BA-17"]` constant
+- `src/components/public/AuthorBooksSection.tsx` — render `AuthorBookFormatsList` + `AuthorBookCollectorsStrip` inside each book card, drop the legacy chip row
+- `src/pages/AuthorBookPage.tsx` — same two components on the dedicated book detail page, with the Collector's Editions strip given more vertical space
+- `src/components/public/AuthorWorkWithMe.tsx` — accept already-filtered `serviceOnlyNodes` prop (filtering happens upstream)
+- `src/pages/AuthorSite.tsx` — derive `serviceOnlyNodes` by excluding `BOOK_FORMAT_NODE_IDS`, pass per-book format/edition arrays into the books section
+- `src/components/dashboard/builders/special-editions/OccasionTemplateGrid.tsx` — no logic change, but export `OCCASION_TEMPLATES` so the public components can reuse the icon + peak-window data (already exported — just consume it on the public side)
 
 ### Database
-No schema changes required. `author_nodes.content_json` already holds everything. New `generate-cover-image` writes to the existing `social-media-graphics` bucket.
+No schema changes. Everything reads from existing fields:
+- `books.kindle_price`, `paperback_price`, `amazon_url`
+- `author_nodes.book_id` (or `book_slug`), `node_id`, `status`, `content_json`, `price_usd`
 
 ---
 
-## Part 5 — Out of scope for this sprint
-- Live Gamma API integration (their public API isn't open enough yet — we mimic the look with pptxgenjs themes)
-- Real-time collaborative editing of slides (download-only)
-- Auto-publishing slides to Google Slides / SlideShare
-- Re-flowing existing live nodes — old content stays as-is until the author hits "Regenerate" or re-exports
-- Versioning / history of past exports (single latest version per asset for now)
+## Part 5 — Out of scope
+- Limited-edition stock counters with real inventory tracking (we display the author's stated number from `content_json` only)
+- Per-occasion email reminders ("Mother's Day in 30 days — order now") — that's an Email Hub follow-up
+- Auto-generating occasion-themed cover art for each Collector's Edition (current covers stay; can be a follow-up using `generate-cover-image`)
+- Reordering / drag-to-arrange formats — display order is fixed (Kindle → Paperback → Audiobook → Workbook → Bundle)
+- Internationalised peak dates (Mother's Day differs by country) — using US dates from existing `OCCASION_TEMPLATES`
 
 ## Part 6 — Validation
-1. Visit `/dashboard?section=library` — see every node the author has built, grouped 3 ways
-2. Click "Download → PPTX" on a BP-09 workshop deck → choose Editorial theme → file opens with hero image, big-stat slide, bullet rail, quote slide, branded divider
-3. Click "Download → PDF" on a BP-06 workbook → opens a designed multi-page PDF with cover, exercises in 2-column, footer
-4. Click "Regenerate" on any asset → existing builder generate function runs, asset updates, library refreshes
-5. Cover images on second export are served from cache (no Gemini call)
-6. Author can swap the AI cover with their own uploaded image and re-download
-
+1. A book with Kindle, Paperback, Audiobook (BA-11), Workbook (BP-06) and a Bundle (BA-17) shows a single card with 5 stacked format rows, each with the right CTA.
+2. The same book with two live BP-08 editions (Mother's Day + Christmas) shows a Collector's Editions strip with two occasion cards, Mother's Day first if viewed in April.
+3. "Work With Me" no longer contains BA-11 / BP-06 / BP-08 / BA-17 cards.
+4. A book with no BP-08 shows no Collector's Editions strip.
+5. A BP-08 with `occasion: "none"` shows as a neutral "Premium Edition" card without occasion chip or countdown.
+6. Mother's Day card shows "Order by May 5 for May 12 delivery" when viewed before May 5; switches to "Order soon" inside the peak window; hides the date line after the peak.
+7. The dedicated book page (`/:authorSlug/book/:slug`) shows the same formats list + Collector's strip with a larger hero card per edition.
