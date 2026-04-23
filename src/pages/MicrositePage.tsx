@@ -213,7 +213,7 @@ export default function MicrositePage() {
       {resolvedNodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
       {resolvedNodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
       {resolvedNodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
-      {resolvedNodeId === "BP-09" && <BookSalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
+      {/* BP-09 is now a private author toolkit — no public microsite. */}
       {resolvedNodeId === "BA-15" && <PressKitPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-16" && <AffiliatesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-17" && <BundlesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
@@ -232,7 +232,7 @@ export default function MicrositePage() {
       {resolvedNodeId === "YR-27" && <FundraisingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {resolvedNodeId === "YR-28" && <SponsorsPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-10", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18", "YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"].includes(resolvedNodeId!) && (
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BA-10", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18", "YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"].includes(resolvedNodeId!) && (
         <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
