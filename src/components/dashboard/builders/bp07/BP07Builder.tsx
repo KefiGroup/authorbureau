@@ -23,6 +23,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
+import HomeStudyDistributionCard from "./HomeStudyDistributionCard";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Analyzing your book for a self-paced study programme...", "Designing a 21-day reading and exercise schedule...", "Mapping chapters to daily themes and lessons...", "Creating practical exercises and reflection prompts...", "Finalising your Home Study Programme..."];
@@ -162,7 +163,8 @@ export default function BP07Builder({ authorId }: Props) {
     setChannels(next);
     setSavingChannels(true);
     const dc = ["readers_bureau", ...(next.thinkific ? ["thinkific"] : []), ...(next.email_pdf ? ["email_pdf"] : [])];
-    const updated = { ...content, delivery_channels: dc };
+    const resolvedPrice = priceOverride ?? content.suggested_price_usd;
+    const updated = { ...content, delivery_channels: dc, suggested_price_usd: resolvedPrice, price: resolvedPrice };
     setContent(updated);
     try {
       await autosaveBuilderDraft({
@@ -194,7 +196,8 @@ export default function BP07Builder({ authorId }: Props) {
       // Persist current price + channel selection + step BEFORE publishing so the draft row exists
       if (content && authorId) {
         const dc = ["readers_bureau", ...(channels.thinkific ? ["thinkific"] : []), ...(channels.email_pdf ? ["email_pdf"] : [])];
-        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, delivery_channels: dc, _currentStep: 3 };
+        const resolvedPrice = priceOverride ?? content.suggested_price_usd;
+        const merged = { ...content, suggested_price_usd: resolvedPrice, price: resolvedPrice, delivery_channels: dc, _currentStep: 3 };
         await autosaveBuilderDraft({
           authorId,
           nodeId: "BP-07",
@@ -360,6 +363,10 @@ export default function BP07Builder({ authorId }: Props) {
                 </div>
               </CardContent>
             </Card>
+
+            {/* What this means for buyers — preview */}
+            <HomeStudyDistributionCard channels={channels} content={content} authorSlug={authorSlug} variant="preview" />
+
             <div className="space-y-3 pt-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick edits</p>
               <InlineSectionCard nodeId="BP-07" authorId={authorId} content={content} setContent={setContent} path="programme_title" label="Programme title" type="input" />
@@ -376,7 +383,7 @@ export default function BP07Builder({ authorId }: Props) {
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-07" authorName={authorName} penNameSlug={authorSlug} /><BackToReviewLink onClick={() => setStep(2)} /></>}
+        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-07" authorName={authorName} penNameSlug={authorSlug} /><HomeStudyDistributionCard channels={channels} content={content} authorSlug={authorSlug} variant="success" /><BackToReviewLink onClick={() => setStep(2)} /></>}
       </div>
     </div>
   );
