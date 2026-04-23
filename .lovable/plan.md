@@ -1,114 +1,99 @@
 
-# Fix plan — BP-07 publish loop (and the same hidden bug in BP-08 / BP-09)
 
-## Root cause
-The publish request is reaching the backend, but the backend logs show:
+# Fix — Live Home Study microsite shows `$TBA` and no Thinkific instructions appear
 
-```text
-[save-author-node:publish] no draft row found { authorId: "...", nodeId: "BP-07" }
-```
+## What I saw on your microsite
+On the live `/pauline-teo/home-study` page:
+- Price renders as **`$TBA`** instead of the price you set in the builder
+- The book cover is showing in the price card (we want that), but there is no real price
+- Even though you ticked Thinkific in the builder, the post-publish screen and the public site give you no instructions on what to do next on Thinkific or where to find your link
 
-That means the **Publish** step is working, but there is **nothing in `author_nodes` for BP-07 to publish**.
+This isn't one bug — it's two separate gaps in how Build → Publish → Live → Distribute connect.
 
-The bug is in the builder save flow:
-- `BP07Builder`, `BP08Builder`, and `BP09Builder` currently try to save drafts with direct browser `.update(...)` calls on `author_nodes`
-- on a fresh node, that update does **not insert a row**
-- in this project, working builders use the `save-author-node` backend helper via `autosaveBuilderDraft(...)`, which handles the shared-auth / RLS mismatch and does insert-or-update safely
-- so Publish runs, the backend looks for the draft row, finds nothing, and the UI drops back to the review screen
+---
 
-## What to change
+## Root causes
 
-### 1) BP-07: replace direct draft writes with the platform autosave helper
-In `src/components/dashboard/builders/bp07/BP07Builder.tsx`:
-- replace the direct `author_nodes.update(...)` in `handleGenerate`
-- replace the direct `author_nodes.update(...)` in `handlePublish`
-- replace the direct `author_nodes.update(...)` inside `saveChannels`
+### 1. The price isn't being mapped to the field the public page reads
+- The BP-07 builder stores your price as **`content.suggested_price_usd`** (and as the override `priceOverride`)
+- The public Sales Page in `MicrositePage.tsx` reads **`content.price`**
+- Those two fields are never reconciled, so the page falls back to `"TBA"`
+- Same field-name mismatch exists for BP-08 (special edition) — same fix applies there
 
-Use:
-- `autosaveBuilderDraft({ authorId, nodeId: "BP-07", nodeName: "Home Study Course", content, currentStep })`
+### 2. Distribution channels are saved, but never *explained* to the author
+The builder lets you tick:
+- Readers Bureau portal (default)
+- Thinkific mirror
+- Printable PDF bundle
 
-This ensures:
-- first save inserts the row if missing
-- later saves update the same row
-- `_currentStep` persists correctly
-- Publish always has a draft row to flip live
+…but after Publish, the success screen only shows:
+- a link to the public sales page
+- "Activate My Marketing Campaign"
 
-### 2) BP-07: load using the same draft loader pattern as working nodes
-Still in `BP07Builder.tsx`:
-- switch initial hydration to use `loadBuilderDraft(authorId, "BP-07")` as the primary resume path
-- keep the existing content restoration rules (`step >= 2`, live = step 3)
-- preserve `delivery_channels`, `suggested_price_usd`, and `activated`
+There is no guidance about:
+- where the Thinkific course actually lives once provisioned (the URL exists in `content.thinkific_url` but it is hidden inside the Review tab)
+- what to do on Thinkific to finish the setup (it is a placeholder URL today unless THINKIFIC_API_KEY is configured — that needs to be said honestly)
+- how the PDF bundle is delivered to buyers (it is auto-emailed, but the author never sees that explained)
 
-This makes BP-07 behave like the stable builders that already survive refresh and publish correctly.
+So the *intent* (multi-channel distribution) is wired into the data and the buyer email, but the *author UX* makes it look like nothing happened.
 
-### 3) BP-08 and BP-09: apply the same fix now
-These two builders have the same fragile pattern:
-- direct `.update(...)` on generate
-- direct `.update(...)` before publish
+---
 
-Update:
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+## What I'll change
 
-Replace those direct writes with:
-- `autosaveBuilderDraft(...)` on generate
-- `autosaveBuilderDraft(...)` immediately before `publishNodeToSite(...)`
-- `loadBuilderDraft(...)` on hydration
+### Fix A — Map the price into the field the public page reads
+**Files:** `src/components/dashboard/builders/bp07/BP07Builder.tsx`, `src/components/dashboard/builders/bp08/BP08Builder.tsx`
 
-This prevents the same “looks saved but nothing exists to publish” failure from recurring there.
+In `handlePublish` (and in `saveChannels` for BP-07), when persisting the merged content, also write:
+- `content.price = priceOverride ?? content.suggested_price_usd`
+- keep `suggested_price_usd` for backward compatibility
 
-### 4) Keep publish flow the same, but only after draft persistence succeeds
-For BP-07 / BP-08 / BP-09:
-- persist merged content first
-- then call `publishNodeToSite(...)`
-- only mark `activated: true` in local state after publish succeeds
+Result: `$TBA` becomes the actual price (e.g. `$47`) on the live `/home-study` page immediately after Publish.
 
-That keeps the UI honest and aligned with the backend state.
+### Fix B — Add a “Distribution & next steps” card to the Publish success screen for BP-07
+**Files:** new `src/components/dashboard/builders/bp07/HomeStudyDistributionCard.tsx`, edit `BP07Builder.tsx` (Step 3 success block)
 
-### 5) Add a clearer recovery message if publish cannot find a draft
-If publish still fails for any reason:
-- show a specific error/toast like:
-  - “Your draft wasn’t saved yet. Saving it now — please try Publish again.”
-or
-  - surface the backend message directly instead of silently bouncing to review
+After the green “live” checkmark, render a card listing each channel the author enabled, with an honest, plain-English instruction for each:
 
-This avoids the confusing “jump back to this screen” experience.
+- **Readers Bureau portal** — “Your buyers automatically get a private learner link emailed after purchase. No setup needed. (See Marketing Hub → Email logs to inspect a sample.)”
+- **Thinkific mirror** — show `content.thinkific_url`, a Copy button, and an instructions block:
+  - “We provisioned a placeholder Thinkific URL. To finish the mirror:
+    1. Connect your Thinkific account in Account Settings → Connections.
+    2. We will sync the 21-day curriculum into a new Thinkific course.
+    3. Buyers receive both the Readers Bureau and Thinkific links in their confirmation email.”
+  - If `THINKIFIC_API_KEY` is not yet configured, the URL is honestly labelled “Placeholder — connect Thinkific to make it live.”
+- **Printable PDF bundle** — “Buyers receive a download link in their confirmation email pointing to `/{slug}/home-study-bundle/{purchaseId}`. You don’t need to upload anything; the PDF is generated from your published lessons.”
 
-## Files to update
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx`
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
-- `src/lib/builder-autosave.ts` only if a tiny helper extension is needed (likely not)
+This card matches the pattern already used by other nodes (BA-17 download card, BP-03 success screen), so it stays visually consistent with the design freeze.
+
+### Fix C — Show the same channel summary inside the builder Review step
+**File:** `src/components/dashboard/builders/bp07/BP07Builder.tsx`
+
+Right under the existing “Distribution channels” checkboxes in Step 2, render a compact “What this means for buyers” preview. So before they hit Publish, the author already understands what each ticked box will do, where the URLs come from, and what they still need to do externally.
+
+### Fix D — Surface Thinkific connect call-to-action when ticked but not connected
+**File:** `src/components/dashboard/builders/bp07/BP07Builder.tsx`
+
+When `channels.thinkific` is on AND `content.thinkific_status !== "live"`, show an inline notice:
+- “Thinkific isn’t connected yet — your mirror URL is a placeholder. [Connect Thinkific →]” linking to `/account-settings?tab=connections`.
+
+This keeps the platform honest (matches your `manus-2026-04-23` audit memory: don’t pretend integrations are live when they aren’t) and gives the author one click to fix it.
+
+---
+
+## Files to change
+- `src/components/dashboard/builders/bp07/BP07Builder.tsx` — write `price`, render distribution preview in Step 2, render distribution card in Step 3, add Thinkific connect notice
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — write `price` on publish (same one-line fix)
+- new `src/components/dashboard/builders/bp07/HomeStudyDistributionCard.tsx` — reusable card used by both Step 2 preview and Step 3 success
+
+## Out of scope (deliberately)
+- Real Thinkific API sync — the `deploy-bp07-to-thinkific` edge function already handles that path the moment `THINKIFIC_API_KEY` + `THINKIFIC_SUBDOMAIN` are configured. No code change needed there.
+- The buyer confirmation email already fans out the right links in `process-purchase` (added in our last sprint); we’re only making the *author-side* visible.
 
 ## Validation checklist
-After implementation, verify these cases:
+1. Open BP-07, Publish — public `/home-study` page shows the real price, not `$TBA`.
+2. Tick Thinkific in Step 2 — see a clear preview block explaining what will happen + connect CTA if not connected.
+3. After Publish, success screen shows a Distribution card with one row per enabled channel and copy/open buttons.
+4. Untick a channel and republish — the Distribution card updates accordingly.
+5. BP-08 published price also renders correctly on its sales page.
 
-1. **Fresh BP-07**
-   - generate content
-   - click Publish
-   - draft row is created
-   - node goes live instead of bouncing back
-
-2. **BP-07 with channel edits**
-   - toggle Thinkific / PDF bundle
-   - refresh
-   - selections persist
-   - Publish still works
-
-3. **Existing BP-07 draft**
-   - reload builder
-   - step restores to Review or Publish correctly
-   - Publish succeeds
-
-4. **BP-08 and BP-09**
-   - generate from a clean state
-   - publish on first attempt
-   - reload restores correct step
-   - no jump back to introduction/review unless there is a real backend error
-
-## Expected outcome
-After this fix:
-- BP-07 will stop bouncing back from Publish
-- the draft will actually exist before publish runs
-- BP-08 and BP-09 will use the same reliable save pattern
-- all three builders will match the proven save/publish behavior already used by the stable nodes
