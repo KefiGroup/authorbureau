@@ -903,6 +903,9 @@ function WorkbookSalesPage({
   const priceLabel = isFree ? "Free" : (priceNum > 0 ? `$${priceNum}` : null);
   const deliveryUrl = data.node.delivery_url;
 
+  const amazonPaperbackUrl = content.amazon_paperback_url || content.amazon_url || data.book?.amazon_url;
+  const amazonKindleUrl = content.amazon_kindle_url;
+
   const renderCta = () => {
     if (isFree) {
       return deliveryUrl ? (
@@ -915,29 +918,52 @@ function WorkbookSalesPage({
         <Button className="w-full rounded-full" disabled>Available shortly</Button>
       );
     }
-    if (priceNum > 0 && data.node.id) {
-      return (
-        <BuyNowButton
-          authorNodeId={data.node.id}
-          authorId={data.author?.id}
-          fallbackUrl={buyUrl}
-          label={cfg.cta}
-          className="w-full rounded-full text-base py-3"
-          style={{ background: v.accent, color: v.accentText }}
-        />
-      );
-    }
-    if (hasStripeUrl) {
-      return (
-        <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
-          <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{cfg.cta} <ArrowRight className="ml-2 h-4 w-4" /></a>
-        </Button>
-      );
-    }
-    return (
-      <Button className="w-full rounded-full" variant="outline" asChild>
-        <a href={`mailto:?subject=Notify me when ${encodeURIComponent(title)} is available`}>Notify me</a>
+    const directButton = priceNum > 0 && data.node.id ? (
+      <BuyNowButton
+        authorNodeId={data.node.id}
+        authorId={data.author?.id}
+        fallbackUrl={buyUrl}
+        label={`Buy Direct (PDF) — $${priceNum}`}
+        className="w-full rounded-full text-base py-3"
+        style={{ background: v.accent, color: v.accentText }}
+      />
+    ) : hasStripeUrl ? (
+      <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
+        <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{cfg.cta} <ArrowRight className="ml-2 h-4 w-4" /></a>
       </Button>
+    ) : null;
+    return (
+      <div className="space-y-2">
+        {directButton}
+        {directButton && (
+          <p className="text-[11px] text-center" style={{ color: v.mutedText }}>Instant download · PDF</p>
+        )}
+        {amazonPaperbackUrl && (
+          <Button asChild variant="outline" className="w-full rounded-full text-base py-3">
+            <a href={amazonPaperbackUrl} target="_blank" rel="noopener noreferrer">
+              Buy on Amazon (Paperback) <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
+        )}
+        {amazonPaperbackUrl && (
+          <p className="text-[11px] text-center" style={{ color: v.mutedText }}>Ships worldwide</p>
+        )}
+        {amazonKindleUrl && (
+          <Button asChild variant="outline" className="w-full rounded-full text-base py-3">
+            <a href={amazonKindleUrl} target="_blank" rel="noopener noreferrer">
+              Buy on Amazon (Kindle) <ExternalLink className="ml-2 h-4 w-4" />
+            </a>
+          </Button>
+        )}
+        {amazonKindleUrl && (
+          <p className="text-[11px] text-center" style={{ color: v.mutedText }}>Read instantly on Kindle</p>
+        )}
+        {!directButton && !amazonPaperbackUrl && !amazonKindleUrl && (
+          <Button className="w-full rounded-full" variant="outline" asChild>
+            <a href={`mailto:?subject=Notify me when ${encodeURIComponent(title)} is available`}>Notify me</a>
+          </Button>
+        )}
+      </div>
     );
   };
 
@@ -1144,9 +1170,9 @@ function SalesPage({ data, content, v, hFont, bgColor, type }: PageProps & { typ
 
 /* ═══ BP-09 — BOOK SALES PAGE ═══ */
 function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
-  const hasAmazon = !!content.amazon_url || !!data.book?.amazon_url;
+  const hasAmazon = !!content.amazon_paperback_url || !!content.amazon_url || !!data.book?.amazon_url;
   const hasStripe = !!content.stripe_checkout_url || !!data.node.payment_link;
-  const amazonUrl = content.amazon_url || data.book?.amazon_url;
+  const amazonUrl = content.amazon_paperback_url || content.amazon_url || data.book?.amazon_url;
   const stripeUrl = content.stripe_checkout_url || data.node.payment_link;
 
   return (
@@ -1176,7 +1202,14 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
             {hasAmazon && (
               <Button className="flex-1 rounded-full" style={{ background: v.accent, color: v.accentText }} asChild>
                 <a href={amazonUrl} target="_blank" rel="noopener noreferrer">
-                  Buy on Amazon <ExternalLink className="ml-2 h-4 w-4" />
+                  Buy on Amazon (Paperback) <ExternalLink className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            )}
+            {content.amazon_kindle_url && (
+              <Button className="flex-1 rounded-full" variant="outline" asChild>
+                <a href={content.amazon_kindle_url} target="_blank" rel="noopener noreferrer">
+                  Buy on Amazon (Kindle) <ExternalLink className="ml-2 h-4 w-4" />
                 </a>
               </Button>
             )}
