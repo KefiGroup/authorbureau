@@ -2448,7 +2448,18 @@ function CorporateTrainingPage({ data, content, v, hFont, bgColor, onSubmit, ema
 
   return (
     <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
-      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Request a Proposal" />}
+      right={<YRRightCard
+        actionType="enquiry"
+        ctaLabel="Request a Training Proposal"
+        inquiryHeading="Bring this Training In-House"
+        inquiryIntro="Share your team's situation and we'll send a tailored proposal."
+        messagePlaceholder="Organisation, team size, format (in-person / virtual), preferred dates…"
+        selectedOfferLabel={formats[0] ? yrStr(formats[0]?.name || formats[0]?.title || formats[0]?.format) : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       <YRBulletSection heading="Learning Outcomes" items={outcomes} v={v} hFont={hFont} />
       {formats.length > 0 && (
