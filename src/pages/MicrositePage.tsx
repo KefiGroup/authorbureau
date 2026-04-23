@@ -2950,7 +2950,14 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
   const outreach = yrStr(content.outreach_strategy);
   const packages = yrArr(content.sponsorship_packages);
   const deck = content.pitch_deck_outline;
-  const deckText = typeof deck === "string" ? deck : Array.isArray(deck) ? deck.map(yrInline).join("\n") : (deck ? yrInline(deck) : "");
+  const deckSlides = Array.isArray(deck)
+    ? deck.map((s: any, i: number) => ({
+        n: typeof s?.slide === "number" ? s.slide : i + 1,
+        title: yrStr(s?.title || s?.heading, `Slide ${i + 1}`),
+        summary: yrStr(s?.content_summary || s?.summary || s?.description),
+      }))
+    : [];
+  const deckString = typeof deck === "string" ? deck : "";
 
   return (
     <YRLayout title={title} tagline={tagline} intro={summary} v={v} hFont={hFont}
