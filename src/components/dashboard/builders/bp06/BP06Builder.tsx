@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, FileText, LayoutList, DollarSign, FileDown, Gift, Tag } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, FileText, LayoutList, DollarSign, FileDown, Gift, Tag, Upload } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
@@ -25,6 +25,8 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { downloadWorkbookPdf, estimateWorkbookPageCount, normalizeOutcome } from "@/lib/workbook-pdf";
+import { downloadWorkbookDocx } from "@/lib/workbook-docx";
+import { parseWorkbookDocx } from "@/lib/workbook-docx-import";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
@@ -409,13 +411,23 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
           <div className="flex items-start gap-3">
             <FileDown className="h-5 w-5 text-primary mt-0.5" />
             <div className="flex-1">
-              <h3 className="font-bold">Download your branded Workbook PDF</h3>
-              <p className="text-sm text-muted-foreground">Print-ready US Letter PDF — cover, table of contents, ruled response lines, action plan, and back cover. Upload to PublishNow as your published workbook.</p>
+              <h3 className="font-bold">Download your branded Workbook</h3>
+              <p className="text-sm text-muted-foreground">Print-ready US Letter — cover, table of contents, ruled response lines, action plan, and back cover. Download as PDF for upload, or as Word to edit in Microsoft Word and re-import below.</p>
             </div>
           </div>
-          <Button size="lg" className="w-full" onClick={() => downloadWorkbookPdf({ content, bookTitle, authorName })}>
-            <FileDown className="h-4 w-4 mr-2" /> Download Workbook PDF
-          </Button>
+          <div className="grid sm:grid-cols-2 gap-2">
+            <Button size="lg" onClick={() => downloadWorkbookPdf({ content, bookTitle, authorName })}>
+              <FileDown className="h-4 w-4 mr-2" /> Download PDF
+            </Button>
+            <Button size="lg" variant="secondary" onClick={() => downloadWorkbookDocx({ content, bookTitle, authorName })}>
+              <FileDown className="h-4 w-4 mr-2" /> Download Word (.docx)
+            </Button>
+          </div>
+          <WorkbookDocxImporter
+            authorId={authorId}
+            content={content}
+            setContent={setContent}
+          />
         </CardContent>
       </Card>
 
@@ -445,3 +457,77 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
     </div>
   );
 }
+
+interface ImporterProps {
+  authorId: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  content: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  setContent: (c: any) => void;
+}
+
+function WorkbookDocxImporter({ authorId, content, setContent }: ImporterProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleFile = async (file: File) => {
+    setBusy(true);
+    try {
+      const patch = await parseWorkbookDocx(file);
+      if (!patch || Object.keys(patch).length === 0) {
+        toast.error("Couldn't read this Word file. Make sure it's the workbook you downloaded from here.");
+        return;
+      }
+      const merged = { ...content, ...patch };
+      setContent(merged);
+      if (authorId) {
+        await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: merged, currentStep: 2 });
+        await supabase
+          .from("author_nodes")
+          .update({ content_json: merged, personalised_name: merged.workbook_title })
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-06");
+      }
+      toast.success("Workbook updated from your Word edits.");
+    } catch (e) {
+      console.error("[BP-06] docx import failed", e);
+      toast.error("That Word file couldn't be parsed. Try downloading a fresh copy and editing again.");
+    } finally {
+      setBusy(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div className="rounded-md border border-dashed border-primary/30 bg-background/60 p-3 space-y-2">
+      <div className="flex items-start gap-2">
+        <Upload className="h-4 w-4 text-primary mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold">Edited in Word? Re-upload here.</p>
+          <p className="text-xs text-muted-foreground">We'll detect your changes (titles, sections, exercises, outcomes) and save them back into your workbook. Then re-download the PDF to publish.</p>
+        </div>
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void handleFile(f);
+        }}
+      />
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full"
+        disabled={busy}
+        onClick={() => inputRef.current?.click()}
+      >
+        <Upload className="h-4 w-4 mr-2" />
+        {busy ? "Reading your Word file…" : "Upload edited .docx"}
+      </Button>
+    </div>
+  );
+}
+
