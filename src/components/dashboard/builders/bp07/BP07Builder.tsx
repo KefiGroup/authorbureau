@@ -23,6 +23,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
+import HomeStudyDistributionCard from "./HomeStudyDistributionCard";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Analyzing your book for a self-paced study programme...", "Designing a 21-day reading and exercise schedule...", "Mapping chapters to daily themes and lessons...", "Creating practical exercises and reflection prompts...", "Finalising your Home Study Programme..."];
