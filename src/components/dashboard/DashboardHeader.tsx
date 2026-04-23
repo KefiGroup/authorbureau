@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { LogOut, Crown, Menu, Shield, Settings, User, ChevronDown } from "lucide-react";
+import { LogOut, Crown, Menu, Shield, Settings, User, ChevronDown, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -109,6 +109,11 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
             <DropdownMenuSeparator />
+            <DropdownMenuItem asChild>
+              <Link to="/earnings" className="flex items-center gap-2 cursor-pointer">
+                <Wallet className="h-4 w-4" /> Earnings & Payouts
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to="/account-settings" className="flex items-center gap-2 cursor-pointer">
                 <Settings className="h-4 w-4" /> Account Settings

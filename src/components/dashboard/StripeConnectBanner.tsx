@@ -44,107 +44,35 @@ async function getFunctionErrorMessage(error: unknown): Promise<string> {
   return fallback;
 }
 
+/**
+ * @deprecated Sprint 41 — Authors Bureau is now Merchant of Record.
+ * Authors no longer connect Stripe directly; this hook is a no-op stub
+ * that returns "ready" so legacy gates short-circuit and let the new
+ * RequirePayoutSetup gate handle the real check.
+ */
 export function useStripeConnect() {
-  const { user, isPremium } = useAuth();
-  const [state, setState] = useState<StripeConnectState>({
-    connected: false,
-    onboarding_complete: false,
-    loading: true,
-  });
-
-  const checkStatus = useCallback(async () => {
-    if (!user) { setState({ connected: false, onboarding_complete: false, loading: false }); return; }
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "status" },
-      });
-      if (error) throw error;
-      setState({
-        connected: data.connected ?? false,
-        onboarding_complete: data.onboarding_complete ?? false,
-        loading: false,
-      });
-    } catch (error) {
-      setState(prev => ({ ...prev, loading: false }));
-    }
-  }, [user]);
-
-  useEffect(() => { checkStatus(); }, [checkStatus]);
-
+  const { isPremium } = useAuth();
   const startOnboarding = async () => {
-    try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard" },
-      });
-
-      if (error) {
-        const backendMessage = await getFunctionErrorMessage(error);
-        throw new Error(getStripeConnectErrorMessage(backendMessage));
-      }
-
-      if (!data?.url) {
-        throw new Error("Unable to start Stripe onboarding.");
-      }
-
-      const popup = window.open(data.url, "_blank", "noopener,noreferrer");
-      if (!popup) {
-        window.location.href = data.url;
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unable to start Stripe onboarding.";
-      console.error("Stripe Connect onboarding failed:", err);
-      toast.error(message);
-    }
+    toast.info("Stripe Connect is no longer required — set up payouts in Account Settings → Payouts.");
   };
-
-  return { ...state, isPremium, startOnboarding, checkStatus };
+  return {
+    connected: true,
+    onboarding_complete: true,
+    loading: false,
+    isPremium,
+    startOnboarding,
+    checkStatus: async () => {},
+  };
 }
 
 interface BannerProps {
   compact?: boolean;
 }
 
-export default function StripeConnectBanner({ compact = false }: BannerProps) {
-  const { connected, onboarding_complete, loading, isPremium, startOnboarding } = useStripeConnect();
-  const [starting, setStarting] = useState(false);
-
-  if (loading || !isPremium || onboarding_complete) return null;
-
-  const handleClick = async () => {
-    setStarting(true);
-    try {
-      await startOnboarding();
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  if (compact) {
-    return (
-      <div className="flex items-center gap-2 rounded-lg border border-secondary/30 bg-secondary/5 px-3 py-2">
-        <CreditCard className="h-4 w-4 text-secondary shrink-0" />
-        <p className="text-xs text-foreground flex-1">Connect Stripe to accept payments</p>
-        <Button size="sm" className="h-7 text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={handleClick} disabled={starting}>
-          {starting ? <Loader2 className="h-3 w-3 animate-spin" /> : "Connect →"}
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-xl border border-secondary/30 bg-gradient-to-r from-secondary/5 to-secondary/10 p-4 flex flex-col sm:flex-row items-start sm:items-center gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary/15 shrink-0">
-        <CreditCard className="h-5 w-5 text-secondary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">💳 Connect your Stripe account to start accepting payments</p>
-        <p className="text-xs text-muted-foreground mt-0.5">This takes about 2 minutes. Stripe handles everything securely.</p>
-      </div>
-      <Button className="bg-secondary text-secondary-foreground hover:bg-secondary/90 whitespace-nowrap" onClick={handleClick} disabled={starting}>
-        {starting ? <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />Connecting...</> : "Connect Stripe →"}
-      </Button>
-    </div>
-  );
+export default function StripeConnectBanner(_props: BannerProps = {}) {
+  // Sprint 41: deprecated — payments are platform-collected via Authors Bureau Stripe.
+  // Authors set up Wise/PayPal payouts in Account Settings → Payouts instead.
+  return null;
 }
 
 export function StripeConnectStatus() {
