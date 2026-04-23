@@ -248,16 +248,49 @@ export async function downloadWorkbookDocx({ content, bookTitle, authorName }: W
     children.push(new Paragraph({ children: [new PageBreak()] }));
   });
 
-  // ---- Action plan ----
-  children.push(heading("Your Action Plan", HeadingLevel.HEADING_1));
-  if (content.what_youll_get && content.what_youll_get.length) {
-    children.push(p("What You'll Walk Away With", { bold: true, size: 24, color: "505050", spacingAfter: 80 }));
-    for (const item of content.what_youll_get) {
+  // ---- Toolkit (deliverables pack) ----
+  const toolkit = normalizeToolkit(content.what_youll_get);
+  if (toolkit.length) {
+    children.push(heading("Your Toolkit", HeadingLevel.HEADING_1));
+    children.push(
+      p(
+        "These templates are yours to keep. Each one corresponds to a section in this workbook — fill them in by hand or on screen, then revisit them whenever you need to reset.",
+        { color: "404040", spacingAfter: 200 },
+      ),
+    );
+    for (const it of toolkit) {
       children.push(
         new Paragraph({
           numbering: { reference: "workbook-bullets", level: 0 },
           spacing: { after: 80 },
-          children: [new TextRun({ text: item, size: 22, font: "Helvetica" })],
+          children: [
+            new TextRun({ text: it.name, bold: true, size: 22, font: "Helvetica" }),
+            ...(it.purpose ? [new TextRun({ text: ` — ${it.purpose}`, size: 22, color: "606060", font: "Helvetica" })] : []),
+          ],
+        }),
+      );
+    }
+    children.push(new Paragraph({ children: [new PageBreak()] }));
+
+    for (const it of toolkit) {
+      children.push(p("TOOLKIT", { bold: true, size: 20, color: MUTED, spacingAfter: 80 }));
+      children.push(heading(it.name, HeadingLevel.HEADING_1));
+      if (it.purpose) children.push(p(it.purpose, { color: "404040", spacingAfter: 200 }));
+      children.push(...renderToolkitTemplate(it));
+      children.push(new Paragraph({ children: [new PageBreak()] }));
+    }
+  }
+
+  // ---- Action plan ----
+  children.push(heading("Your Action Plan", HeadingLevel.HEADING_1));
+  if (toolkit.length) {
+    children.push(p("What You'll Walk Away With", { bold: true, size: 24, color: "505050", spacingAfter: 80 }));
+    for (const item of toolkit) {
+      children.push(
+        new Paragraph({
+          numbering: { reference: "workbook-bullets", level: 0 },
+          spacing: { after: 80 },
+          children: [new TextRun({ text: item.name, size: 22, font: "Helvetica" })],
         }),
       );
     }
