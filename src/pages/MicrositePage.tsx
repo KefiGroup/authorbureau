@@ -2090,17 +2090,27 @@ const yrInline = (v: any): string => {
   try { return JSON.stringify(v); } catch { return String(v); }
 };
 
-function YRRightCard({ actionType, paymentLink, price, ctaLabel, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted, notifyHeading = "Notify Me", thankYou = "We'll be in touch soon." }: {
-  actionType: "purchase" | "enquiry" | "application" | "optin";
+function YRRightCard({
+  actionType, paymentLink, price, ctaLabel, v, hFont, bgColor,
+  onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted,
+  notifyHeading = "Notify Me", thankYou = "We'll be in touch soon.",
+  inquiryHeading, inquiryIntro, messagePlaceholder,
+  commerceNodeRowId, commerceAuthorId, commerceLabel,
+  selectedOfferLabel, selectedOfferPrice,
+}: {
+  actionType: "purchase" | "enquiry" | "application" | "optin" | "donate";
   paymentLink?: string; price?: number | string | null; ctaLabel?: string;
   v: any; hFont: string; bgColor: string;
-  onSubmit: (e: React.FormEvent) => Promise<boolean>;
+  onSubmit: (e: React.FormEvent, extraData?: Record<string, any>) => Promise<boolean>;
   email: string; setEmail: (v: string) => void;
   firstName: string; setFirstName: (v: string) => void;
   lastName: string; setLastName: (v: string) => void;
   message: string; setMessage: (v: string) => void;
   submitting: boolean; submitted: boolean;
   notifyHeading?: string; thankYou?: string;
+  inquiryHeading?: string; inquiryIntro?: string; messagePlaceholder?: string;
+  commerceNodeRowId?: string | null; commerceAuthorId?: string | null; commerceLabel?: string;
+  selectedOfferLabel?: string; selectedOfferPrice?: number | string | null;
 }) {
   if (submitted) {
     return (
@@ -2111,6 +2121,27 @@ function YRRightCard({ actionType, paymentLink, price, ctaLabel, v, hFont, bgCol
       </Card>
     );
   }
+
+  // Stripe checkout via BuyNowButton when a price is registered on author_nodes.
+  if ((actionType === "purchase" || actionType === "donate") && commerceNodeRowId && (typeof price === "number" && price > 0)) {
+    return (
+      <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+        <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{commerceLabel || ctaLabel || "Get Started"}</h3>
+        <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>${Number(price).toLocaleString()}</p>
+        {selectedOfferLabel && <p className="text-xs mb-3" style={{ color: v.mutedText }}>{selectedOfferLabel}</p>}
+        <BuyNowButton
+          authorNodeId={commerceNodeRowId}
+          authorId={commerceAuthorId || undefined}
+          fallbackUrl={paymentLink || null}
+          label={commerceLabel || ctaLabel || "Get Started"}
+          className="w-full rounded-full"
+          style={{ background: v.accent, color: bgColor }}
+        />
+      </Card>
+    );
+  }
+
+  // Static payment link fallback (legacy)
   if (actionType === "purchase" && paymentLink) {
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
@@ -2126,21 +2157,40 @@ function YRRightCard({ actionType, paymentLink, price, ctaLabel, v, hFont, bgCol
       </Card>
     );
   }
+
   const isApp = actionType === "application";
-  const isEnq = actionType === "enquiry";
-  const heading = isApp ? "Apply Now" : isEnq ? "Get in Touch" : notifyHeading;
+  const isDonate = actionType === "donate";
+  const isEnq = actionType === "enquiry" || isDonate;
+  const heading = inquiryHeading || (isApp ? "Apply Now" : isDonate ? "Make a Donation" : isEnq ? "Get in Touch" : notifyHeading);
+  const submitLabel = ctaLabel || (isApp ? "Submit Application" : isDonate ? "Pledge Support" : isEnq ? "Send Enquiry" : "Notify Me");
+  const placeholder = messagePlaceholder || (isApp ? "Why are you a fit? Tell us about you..." : isDonate ? "Share why you'd like to support…" : "Tell us what you're looking for...");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    const extra: Record<string, any> = {};
+    if (selectedOfferLabel) extra.selected_offer = selectedOfferLabel;
+    if (selectedOfferPrice != null) extra.selected_price = selectedOfferPrice;
+    return onSubmit(e, Object.keys(extra).length ? extra : undefined);
+  };
+
   return (
     <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-      <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>{heading}</h3>
-      <form onSubmit={onSubmit} className="space-y-3">
+      <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{heading}</h3>
+      {inquiryIntro && <p className="text-xs mb-4" style={{ color: v.mutedText }}>{inquiryIntro}</p>}
+      {selectedOfferLabel && (
+        <div className="my-3 p-2 rounded-md text-xs" style={{ background: `${v.accent}15`, color: v.headingText }}>
+          Interested in: <strong>{selectedOfferLabel}</strong>
+          {selectedOfferPrice != null && <> — <span style={{ color: v.accent }}>{typeof selectedOfferPrice === "number" ? `$${selectedOfferPrice.toLocaleString()}` : selectedOfferPrice}</span></>}
+        </div>
+      )}
+      <form onSubmit={handleSubmit} className="space-y-3 mt-3">
         <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
         {(isApp || isEnq) && <Input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} />}
         <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
         {(isApp || isEnq) && (
-          <textarea className="w-full border rounded-md p-2 text-sm min-h-[80px]" placeholder={isApp ? "Why are you a fit? Tell us about you..." : "Tell us what you're looking for..."} value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
+          <textarea className="w-full border rounded-md p-2 text-sm min-h-[80px]" placeholder={placeholder} value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
         )}
         <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
-          {submitting ? "Submitting..." : (ctaLabel || (isApp ? "Submit Application" : isEnq ? "Send Enquiry" : "Notify Me"))} <ArrowRight className="ml-2 h-4 w-4" />
+          {submitting ? "Submitting..." : submitLabel} <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </form>
     </Card>
