@@ -669,6 +669,7 @@ export function downloadWorkbookPdf({ content, bookTitle, authorName }: Workbook
   renderWelcomePage(doc, content);
   if (sections.length) renderTOC(doc, sections);
   sections.forEach((s, i) => renderSection(doc, s, i));
+  renderToolkit(doc, content);
   renderActionPlan(doc, content);
   renderBackCover(doc, bookTitle, authorName);
 
