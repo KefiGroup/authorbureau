@@ -177,6 +177,7 @@ Deno.serve(async (req) => {
       success_url,
       cancel_url,
       metadata,
+      allow_promotion_codes: true,
       ...(mode === "subscription"
         ? { subscription_data: { metadata } }
         : { payment_intent_data: { metadata } }),
