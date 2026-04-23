@@ -90,6 +90,43 @@ export default function NodeHowItWorks({ nodeId, defaultOpen = true }: Props) {
             title="You can edit it later"
             text={spec.editLater}
           />
+          {spec.publishExternal && (
+            <div className="mt-3 pt-3 border-t border-border/60">
+              <div className="flex gap-3">
+                <div className={cn(
+                  "w-8 h-8 rounded-lg flex items-center justify-center ring-1 shrink-0",
+                  styles.iconBg, styles.ring,
+                )}>
+                  <ShoppingCart className={cn("h-4 w-4", styles.iconText)} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-foreground">{spec.publishExternal.title}</p>
+                  <p className="text-xs text-muted-foreground leading-snug mt-0.5">
+                    {spec.publishExternal.description}
+                  </p>
+                  {spec.publishExternal.bullets && (
+                    <ul className="mt-2 space-y-0.5">
+                      {spec.publishExternal.bullets.map((b, i) => (
+                        <li key={i} className="text-xs text-muted-foreground leading-snug">• {b}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <a
+                    href={spec.publishExternal.ctaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "mt-3 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md ring-1 transition-colors hover:bg-muted/60",
+                      styles.bg, styles.iconText, styles.ring,
+                    )}
+                  >
+                    {spec.publishExternal.ctaLabel}
+                    <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            </div>
+          )}
           {spec.prerequisites && spec.prerequisites.length > 0 && (
             <div className="flex gap-3 pt-3 border-t border-border/60">
               <AlertTriangle className="h-4 w-4 mt-0.5 text-amber-500 shrink-0" />
