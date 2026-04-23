@@ -60,7 +60,7 @@ export type DashboardSection =
   | "marketing" | "crm" | "author-crm" | "messages" | "reading-club" | "how-it-works" | "my-funnels"
   | "analytics" | "microsite-manager"
   | "connect-stripe" | "payout-settings" | "review-products" | "connect-settings"
-  | "marketing-hub"
+  | "marketing-hub" | "library"
   | "book-sales" | "special-editions" | "lead-magnet"
   // Universal builder nodes
   | "builder";
