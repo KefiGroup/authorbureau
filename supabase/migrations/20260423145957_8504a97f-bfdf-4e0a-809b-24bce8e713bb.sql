@@ -1,0 +1,1 @@
+UPDATE public.author_nodes SET microsite_url = NULL WHERE node_id = 'BP-09';
