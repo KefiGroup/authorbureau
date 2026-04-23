@@ -48,6 +48,7 @@ export default function YR28Builder({ authorId }: Props) {
     })(); }, [authorId]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
+  useEffect(() => { if (step === 2 && content) console.log("[YR-28] step-2 render", content); }, [step, content]);
 
   const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr28-sponsors", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-28", nodeName: "Exhibitors / JV", content: data.content, currentStep: 2 }); } catch (e: any) { setError(e.message); setStep(0); } };
   const handlePublish = async () => { setStep(3); setError(null); try { await publishNodeToSite(authorId!, "YR-28", authorSlug); setContent((p: any) => ({ ...p, activated: true })); } catch (e: any) { setError(e.message); setStep(2); } };
@@ -61,9 +62,9 @@ export default function YR28Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Sponsorship Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Attracting exhibitors and sponsors to your events turns your audience into a revenue asset. I'm going to design your complete sponsorship and exhibitor programme — with packages, a pitch deck outline, and an outreach strategy. Ready to attract sponsors?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Sponsorship Programme</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
-          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
+          <YRSafeBoundary nodeId="YR-28" debugContent={content} onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
-            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <AbbyCard><div className="text-muted-foreground"><SafeText value={content.abby_summary} /></div></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
                 <TabsTrigger value="overview" className="text-xs py-2"><Handshake className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>

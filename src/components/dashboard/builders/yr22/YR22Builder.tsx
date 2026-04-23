@@ -13,7 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary } from "../yr-shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your corporate training programme...", "Building training format options...", "Crafting your proposal template...", "Finalising your corporate offer..."];
 const ACT_MSGS = ["Creating your enquiry pipeline...", "Setting up payment pages...", "Almost ready..."];
@@ -48,6 +48,7 @@ export default function YR22Builder({ authorId }: Props) {
     })(); }, [authorId]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
+  useEffect(() => { if (step === 2 && content) console.log("[YR-22] step-2 render", content); }, [step, content]);
 
   const handleGenerate = async () => { setStep(1); setError(null); try { const { data, error: e } = await supabase.functions.invoke("generate-yr22-corporate", { body: { author_id: authorId } }); if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed"); setContent(data.content); setStep(2); void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-22", nodeName: "Training Programs", content: data.content, currentStep: 2 }); } catch (e: any) { setError(e.message); setStep(0); } };
   const handlePublish = async () => { setStep(3); setError(null); try { await publishNodeToSite(authorId!, "YR-22", authorSlug); setContent((p: any) => ({ ...p, activated: true })); } catch (e: any) { setError(e.message); setStep(2); } };
@@ -61,9 +62,9 @@ export default function YR22Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Corporate Training</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Corporate training is where your expertise meets the biggest budgets. I'm going to design your complete corporate training offer based on '{detectedBookTitle || bookTitle || "your book"}' — with a training programme, a corporate proposal template, and a pricing structure. Ready to train organisations?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Corporate Training</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
-          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
+          <YRSafeBoundary nodeId="YR-22" debugContent={content} onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
-            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <AbbyCard><div className="text-muted-foreground"><SafeText value={content.abby_summary} /></div></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
                 <TabsTrigger value="overview" className="text-xs py-2"><Building2 className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
