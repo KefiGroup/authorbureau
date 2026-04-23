@@ -183,6 +183,6 @@ export default function AdminPayouts() {
           </DialogContent>
         </Dialog>
       </div>
-    </DashboardLayout>
+    </div>
   );
 }
