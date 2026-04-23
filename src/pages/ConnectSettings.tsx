@@ -61,6 +61,7 @@ export default function ConnectSettings() {
   const [connections, setConnections] = useState<ConnRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
+  const [pendingPaidCount, setPendingPaidCount] = useState(0);
 
   const refresh = async () => {
     if (!user?.id) return;
@@ -70,6 +71,24 @@ export default function ConnectSettings() {
     ]);
     setStripeConnected(!!profile?.stripe_onboarding_complete);
     setConnections((conns as ConnRow[]) || []);
+
+    // Count paid products waiting for Stripe activation.
+    if (profile?.id && !profile?.stripe_onboarding_complete) {
+      const { data: nodes } = await supabase
+        .from("author_nodes")
+        .select("id, content_json, status")
+        .eq("author_id", profile.id);
+      const pending = (nodes || []).filter((n: any) => {
+        const cj = (n.content_json ?? {}) as Record<string, any>;
+        const price = Number(cj.suggested_price_usd ?? cj.price_usd ?? 0);
+        const isPaid = price > 0 || cj.pricing_recommendation === "paid";
+        return isPaid && n.status !== "live";
+      }).length;
+      setPendingPaidCount(pending);
+    } else {
+      setPendingPaidCount(0);
+    }
+
     setLoading(false);
   };
 
