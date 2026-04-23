@@ -35,15 +35,44 @@ interface WorkbookSection {
   outcome?: string;
 }
 
+export interface ToolkitItem {
+  name: string;
+  type?: "canvas" | "planner" | "tracker" | "playbook" | "story" | "vision" | "worksheet";
+  purpose?: string;
+  linked_section?: number;
+}
+
 export interface WorkbookContent {
   workbook_title?: string;
   workbook_subtitle?: string;
   tagline?: string;
   transformation_promise?: string;
   who_its_for?: string;
-  what_youll_get?: string[];
+  what_youll_get?: Array<string | ToolkitItem>;
   sections?: WorkbookSection[];
   [key: string]: unknown;
+}
+
+function inferToolkitType(name: string): NonNullable<ToolkitItem["type"]> {
+  const n = name.toLowerCase();
+  if (/(canvas|map|matrix)/.test(n)) return "canvas";
+  if (/(planner|90[- ]?day|roadmap|calendar|schedule)/.test(n)) return "planner";
+  if (/(tracker|dashboard|metric|log)/.test(n)) return "tracker";
+  if (/(playbook|protocol|sop|response)/.test(n)) return "playbook";
+  if (/(story|narrative|outline|script)/.test(n)) return "story";
+  if (/(vision|futurecast|future|north[- ]?star|12[- ]?month)/.test(n)) return "vision";
+  return "worksheet";
+}
+
+function normalizeToolkit(items: Array<string | ToolkitItem> | undefined): ToolkitItem[] {
+  if (!Array.isArray(items)) return [];
+  return items
+    .map((it) => {
+      if (typeof it === "string") return { name: it, type: inferToolkitType(it) };
+      if (it && typeof it === "object" && it.name) return { ...it, type: it.type || inferToolkitType(it.name) };
+      return null;
+    })
+    .filter(Boolean) as ToolkitItem[];
 }
 
 export interface WorkbookDocxOptions {
