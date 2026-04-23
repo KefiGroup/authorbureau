@@ -1,115 +1,195 @@
 
 
-# Plan — Gate "Publish/Go Live" on Stripe Connect for paid products
+# Plan — Platform-collected payments + automated payouts (Wise + PayPal)
 
-## Findings (Pauline Teo, pl@paulineteo.com)
+## Decisions locked in
+- **Merchant of Record**: For Multiplier Pte Ltd (Authors Bureau), Singapore. All checkouts hit AB's existing Stripe.
+- **Currency**: charge readers in **USD**, pay authors in their local currency (Wise FX) or PayPal.
+- **Payout cadence**: monthly, 1st of month, 09:00 SGT.
+- **Minimum payout**: US$50. Below threshold rolls to next month.
+- **Tax**: authors self-declare. No W-9/W-8. AB issues an annual earnings statement only.
+- **Payout fees**: deducted from author balance (transparent line item), not absorbed by AB.
+- **Phase 1**: Wise + PayPal *batch CSV* generated automatically, admin clicks "Mark as paid" after uploading. **Phase 2 (next sprint)**: full Wise/PayPal API auto-execution.
 
-Queried `author_profiles` directly:
+## Architecture
 
-| Field | Value |
-|---|---|
-| `pen_name` | Pauline Teo |
-| `author_slug` | pauline-teo |
-| `stripe_connected_account_id` | **null** |
-| `stripe_onboarding_complete` | **false** |
+```text
+Reader checkout
+   └─ create-checkout-session → AB Stripe (USD) → success
+        └─ verify-purchase / process-purchase webhook
+             └─ purchases row + author_earnings row (gross, fee, net)
 
-**Pauline has NOT set up Stripe.** Yet she has 25 nodes already published as `live`, including BP-06 (the $2.99 workbook). That confirms the bug: today the platform lets authors publish paid products without a payment gateway, so readers hit the "Payments coming soon" modal at Buy Now (the screenshot).
+Monthly cron (1st @ 09:00 SGT)
+   └─ run-monthly-payouts edge fn
+        ├─ Aggregate author_earnings WHERE paid_out=false, period=last month
+        ├─ Per author: net ≥ $50 → create author_payouts row (status=queued)
+        ├─ Generate Wise CSV + PayPal CSV → upload to storage
+        ├─ Email admin: "X payouts ready, $Y total" + CSV links
+        └─ Email each author: "Your $Z payout is being processed"
 
-## Why this is happening
+Admin marks payouts paid (Phase 1)
+   └─ Admin dashboard → Payouts → bulk "Mark paid" → status=paid, paid_at=now
+        └─ Email author: "Payout sent via Wise/PayPal, ref ABC123"
 
-Per `mem://architecture/commerce-engine-v1`: today the platform deliberately lets authors publish freely and only gates Stripe at the reader's Buy Now click via `BuyNowButton`. The user is now overriding that rule for paid products: **if a node has a price > 0, the author must connect Stripe before it can go live.**
-
-Free products (lead magnets, free workbook, free chapters, free webinars) keep publishing freely — only the **monetised** path requires Stripe.
-
-## What we'll build
-
-### 1. Server-side gate (the source of truth)
-
-Update `supabase/functions/save-author-node/index.ts` → `action: "publish"` branch:
-
-- After loading the node row, also load `author_profiles.stripe_onboarding_complete` for the same `authorId`.
-- Compute `isPaid` from `content_json`:
-  - `Number(content_json.suggested_price_usd ?? content_json.price_usd ?? 0) > 0`
-  - OR `content_json.pricing_recommendation === "paid"`
-  - OR any `sales_tiers[*].price_usd > 0` (covers BA-13, YR-22, YR-25, etc.)
-- If `isPaid && !stripe_onboarding_complete`, return `409` with:
-  ```json
-  { "error": "stripe_required", "message": "Connect Stripe before publishing paid products.", "stripe_required": true }
-  ```
-- Free products publish unchanged.
-
-This means even if a stale UI bypasses the front-end check, the database can never flip to `live` for a paid product without Stripe.
-
-### 2. Front-end gate (good UX)
-
-`src/lib/publish-node.ts`:
-- Detect the new `409 stripe_required` shape and throw a typed `StripeRequiredError`.
-
-`src/components/dashboard/builders/bp06/BP06Builder.tsx` and `SharedPublishStep.tsx`:
-- Pre-flight check before calling `publishNodeToSite` for paid nodes — read `useStripeConnect().onboarding_complete`. If false and the node is paid, **do not call publish**; instead show a blocking modal:
-  > **Connect Stripe to publish your paid workbook**
-  > Your $2.99 workbook needs a connected payment account so readers can actually buy it. Free products can publish anytime.
-  > [ Connect Stripe → ] [ Make this free instead ] [ Cancel ]
-- "Connect Stripe →" calls `startOnboarding()` (existing flow).
-- "Make this free instead" sets `suggested_price_usd = 0`, `pricing_recommendation = "free"`, saves, then continues publishing.
-- If publish was already attempted and the server returned `stripe_required`, surface the same modal.
-
-### 3. Builder publish-checklist row
-
-In every paid builder's checklist (`SharedPublishStep`), add a checklist item: **"Stripe payments connected"**. It only renders when `isPaid`. Reads `onboarding_complete` from `useStripeConnect`. Disables the Publish button while unchecked.
-
-For BP-06 specifically (which doesn't use `SharedPublishStep`), inject the same row inline in `BP06Builder` step 2 (Review).
-
-### 4. Status sweep for already-live paid products
-
-One-time migration to bring existing data in line with the new rule:
-
-```sql
-UPDATE author_nodes
-SET status = 'content_ready', activated_at = NULL, microsite_url = NULL
-WHERE status = 'live'
-  AND author_id IN (
-    SELECT id FROM author_profiles
-    WHERE stripe_onboarding_complete IS NOT TRUE
-  )
-  AND (
-    (content_json->>'suggested_price_usd')::numeric > 0
-    OR content_json->>'pricing_recommendation' = 'paid'
-  );
+Annual (Jan 1)
+   └─ generate-annual-statements cron
+        └─ Per author: PDF earnings statement → storage → email link
 ```
 
-For Pauline this affects **BP-06 ($2.99)** — it gets demoted to `content_ready`, the public sales page disappears (no microsite), and her dashboard will prompt her to connect Stripe to relist it. BA-10 ($197) and BA-13 ($1997) currently have no `pricing_recommendation` field set; we'll include them in the sweep too because their numeric price > 0.
+## Database changes
 
-Free nodes (BP-01..05, BA-11..18 minus paid ones, YR-19..28 without prices) stay live.
+```sql
+-- 1. Author payout settings (extend existing)
+ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS payout_method text;        -- 'wise' | 'paypal'
+ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS wise_recipient jsonb;      -- {legal_name, country, bank_account|wise_email}
+ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS paypal_email text;
+ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS tax_self_declared_at timestamptz;
+ALTER TABLE author_payout_settings ADD COLUMN IF NOT EXISTS minimum_payout_usd numeric DEFAULT 50;
 
-### 5. Account-settings nudge
+-- 2. Per-sale earnings ledger (the source of truth for what AB owes)
+CREATE TABLE author_earnings (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id uuid NOT NULL REFERENCES author_profiles(id) ON DELETE RESTRICT,
+  purchase_id uuid NOT NULL REFERENCES purchases(id) ON DELETE RESTRICT,
+  gross_usd numeric NOT NULL,
+  stripe_fee_usd numeric NOT NULL,
+  platform_fee_usd numeric NOT NULL,         -- 5%
+  net_usd numeric NOT NULL,                  -- gross - stripe - platform
+  earned_at timestamptz NOT NULL DEFAULT now(),
+  payout_id uuid REFERENCES author_payouts(id),
+  paid_out boolean NOT NULL DEFAULT false,
+  refunded boolean NOT NULL DEFAULT false,
+  created_at timestamptz DEFAULT now()
+);
+CREATE INDEX ON author_earnings (author_id, paid_out);
 
-Top of `ConnectSettings` page already exists. Add a one-line summary card above it: "X paid products are waiting for Stripe to go live" (computed live from `author_nodes` for the current author). Clicking it scrolls to the Stripe row.
+-- 3. Monthly payout batches
+CREATE TABLE author_payouts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id uuid NOT NULL REFERENCES author_profiles(id),
+  period_start date NOT NULL,                -- e.g. 2026-03-01
+  period_end date NOT NULL,                  -- 2026-03-31
+  gross_usd numeric NOT NULL,
+  total_stripe_fees_usd numeric NOT NULL,
+  total_platform_fees_usd numeric NOT NULL,
+  payout_fee_usd numeric NOT NULL DEFAULT 0, -- Wise/PayPal fee
+  net_usd numeric NOT NULL,                  -- what author actually receives
+  payout_method text NOT NULL,               -- 'wise' | 'paypal'
+  status text NOT NULL DEFAULT 'queued',     -- queued | processing | paid | failed | held
+  external_reference text,                   -- Wise/PayPal txn ID
+  csv_batch_id uuid REFERENCES payout_batches(id),
+  queued_at timestamptz DEFAULT now(),
+  paid_at timestamptz,
+  notes text
+);
 
-## Files touched
+-- 4. CSV batches (one per month per provider)
+CREATE TABLE payout_batches (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  provider text NOT NULL,                    -- 'wise' | 'paypal'
+  period_start date NOT NULL,
+  period_end date NOT NULL,
+  csv_storage_path text NOT NULL,
+  total_authors int NOT NULL,
+  total_amount_usd numeric NOT NULL,
+  status text DEFAULT 'pending',             -- pending | uploaded | completed
+  created_at timestamptz DEFAULT now(),
+  completed_at timestamptz
+);
 
-1. `supabase/functions/save-author-node/index.ts` — add Stripe gate to publish branch.
-2. `src/lib/publish-node.ts` — surface `StripeRequiredError`.
-3. `src/components/dashboard/builders/bp06/BP06Builder.tsx` — pre-flight check + modal + "make free" shortcut.
-4. `src/components/dashboard/builders/shared/SharedPublishStep.tsx` — paid-product gate, checklist row, modal (one shared modal component).
-5. `src/components/dashboard/StripeRequiredModal.tsx` — **new** shared modal.
-6. `src/lib/is-paid-node.ts` — **new** helper used by both UI and migration.
-7. `src/pages/ConnectSettings.tsx` — "X paid products waiting" nudge card.
-8. New migration — sweep existing paid-but-no-Stripe `live` rows back to `content_ready`.
+-- 5. Annual earnings statements
+CREATE TABLE author_annual_statements (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  author_id uuid NOT NULL REFERENCES author_profiles(id),
+  tax_year int NOT NULL,
+  total_gross_usd numeric NOT NULL,
+  total_net_paid_usd numeric NOT NULL,
+  pdf_storage_path text NOT NULL,
+  generated_at timestamptz DEFAULT now(),
+  UNIQUE(author_id, tax_year)
+);
 
-## Out of scope
+-- RLS: authors see own rows, admins see all (standard has_role pattern)
+```
 
-- Subscription products (membership), invoice-only services, donation flows — separate gates if needed later.
-- Auto-publishing the moment Stripe finishes onboarding (the user can come back and click Publish; we won't auto-flip status without their click).
-- Changing `BuyNowButton`'s "Payments coming soon" modal — once the gate is in place, readers will never see it for live products. We'll leave it as a defensive fallback.
-- Touching the home-study or special-edition sales pages.
+## Edge functions to build
+
+| Function | Trigger | Job |
+|---|---|---|
+| `create-checkout-session` *(modify)* | Reader Buy Now | Drop Connect, charge AB Stripe, write metadata |
+| `process-purchase` *(modify)* | Stripe webhook | Insert `purchases` + `author_earnings` rows with computed fees |
+| `run-monthly-payouts` | pg_cron 1st @ 09:00 SGT | Aggregate earnings → create `author_payouts` + Wise/PayPal CSVs → notify |
+| `mark-payout-paid` | Admin button | Flip status, set external_reference, email author |
+| `generate-annual-statements` | pg_cron Jan 1 | Build PDFs, store, email |
+| `download-payout-csv` | Admin click | Service-role signed URL to CSV |
+
+## Frontend changes
+
+### Author side
+1. **Account Settings → "Payouts" tab** *(new, replaces Stripe Connect UI)*
+   - Choose Wise or PayPal
+   - Wise: legal name, country dropdown, bank account OR Wise email
+   - PayPal: email + confirm
+   - Tax self-declaration checkbox: *"I'm responsible for declaring this income in my country."*
+   - Status pills: Method set ✅ · Tax acknowledged ✅
+2. **Earnings Dashboard** *(new page `/earnings`)*
+   - Pending payout (current month, real-time)
+   - Next payout date + minimum threshold progress bar
+   - Lifetime totals
+   - Payout history table (period, gross, fees, net, status, ref)
+   - Per-sale ledger (drill-down)
+   - Download annual statement PDF
+3. **Publish gate** *(swap)*
+   - `RequirePayoutSetup` replaces `RequireStripeConnected`
+   - Modal: "Set up payouts to publish paid products" → links to `/account-settings?tab=payouts`
+   - "Make this free instead" still works
+4. **Sidebar nav**: "Earnings" item under Account
+5. **Cleanup**: remove Stripe Connect UI from `ConnectSettings`, neuter `useStripeConnect` hook (keeps export for backward compat, returns `{ ready: true }`)
+
+### Admin side (`/admin/payouts` — new)
+1. **Monthly batch view**: current month progress, ranked author list
+2. **Pending payouts table**: author, method, amount, "Download CSV" + "Mark paid" buttons
+3. **Per-author drill**: ledger entries, edit notes, hold payout
+4. **Reports tab**:
+   - Monthly P&L (gross sales, Stripe fees, platform fees collected, payouts owed, payouts paid)
+   - Author leaderboard (top earners)
+   - Failed/held payouts queue
+   - Export CSV for accounting
+5. **Annual statement trigger**: button to manually re-run for an author
+
+## Restoration & cleanup
+
+- **Pauline's BP-06**: promote back to `live`, regenerate microsite URL. Buy Now will work immediately because checkout uses AB Stripe.
+- **All other demoted nodes** from the previous sweep: re-promote to `live` (the prior gate was wrong).
+- **Old Stripe Connect columns** on `author_profiles` (`stripe_connected_account_id`, `stripe_onboarding_complete`): leave in DB, stop reading.
+- **Files to delete**: `RequireStripeConnected.tsx`, `StripeRequiredModal.tsx`, `StripeConnectBanner.tsx` UI, `ConnectStripePage.tsx`. Keep `stripe-connect` edge fn but return `{ deprecated: true }`.
+- **Memory update**: rewrite `mem://architecture/commerce-engine-v1` → "Platform as MoR, monthly Wise+PayPal payouts."
+
+## Automation summary (what runs without human input)
+
+| Event | Automated action |
+|---|---|
+| Reader buys | Stripe charge → ledger row → author sees pending balance instantly |
+| Refund | `author_earnings.refunded=true`, deducted from next payout |
+| 1st of month 09:00 SGT | Aggregate, create payouts, generate CSVs, email admin + authors |
+| Author hits $50 threshold | Auto-included in next batch |
+| Below $50 | Rolls to next month automatically |
+| Jan 1 | Annual PDF statement generated + emailed |
+| Failed Wise/PayPal entry | Marked `failed`, admin alerted, balance preserved |
+
+## Out of scope (later)
+- Phase-2 Wise/PayPal API auto-execution (replaces "Mark paid" click)
+- 1099/SG tax filings (none required)
+- Multi-currency reader checkout
+- Refund initiation from admin UI (use Stripe dashboard for now)
+- Subscription products
 
 ## Verification
-
-1. As Pauline (no Stripe), open BP-06 at $2.99 → Publish button is disabled with checklist row "Stripe payments connected" unchecked. Clicking Publish anyway opens the new modal.
-2. Click "Make this free instead" → workbook goes live with "Free download" CTA on the public page; checklist all green.
-3. Connect Stripe → checklist flips green, Publish enables, workbook goes live with Buy Now.
-4. After the data sweep, hit `/pauline-teo/workbook` → it 404s / "Coming soon" until Stripe is connected (BP-06 demoted to `content_ready`).
-5. Free products (BP-02 lead magnet, BP-05 webinar, etc.) stay live.
-6. Direct call to `save-author-node` action=publish for a paid node without Stripe returns `409 stripe_required` (not `200`).
+1. Pauline's BP-06 restored to `live`; reader checkout completes; `author_earnings` row appears.
+2. Author with $0 → publishes free → publishes paid: blocked until Payouts tab filled. After fill: publishes successfully.
+3. Force-run `run-monthly-payouts` for March → CSV downloads cleanly with valid Wise/PayPal columns.
+4. Admin clicks "Mark paid" → author gets email, payout shows `paid` with reference.
+5. Author at $30 doesn't get a payout that month; rolls into next.
+6. Refund a sale → next payout reflects deduction.
+7. Annual statement PDF renders with correct totals.
 
