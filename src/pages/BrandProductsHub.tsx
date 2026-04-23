@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Sparkles, ArrowRight, Lock, Star, Clock, BarChart3 } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
 
@@ -148,22 +149,20 @@ export default function BrandProductsHub() {
   };
 
   const getStatusBadge = (nodeId: string, def: NodeDef) => {
-    if (!isTierUnlocked) {
-      return <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium bg-muted text-muted-foreground"><Lock className="h-3 w-3" /> Locked</span>;
-    }
+    if (!isTierUnlocked) return <StatusBadge variant="locked" />;
     const status = getNodeStatus(nodeId);
     if (def.startHere && status === "not_started") {
-      return <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-secondary text-secondary-foreground"><Star className="h-3 w-3" /> Start Here</span>;
+      return (
+        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold bg-secondary text-secondary-foreground border border-secondary/40">
+          <Star className="h-3 w-3" /> Start Here
+        </span>
+      );
     }
-    const configs: Record<string, { label: string; cls: string }> = {
-      not_started: { label: "Ready to Build", cls: "bg-[hsl(var(--builder-brand)/0.12)] text-[hsl(var(--builder-brand))] dark:bg-[hsl(var(--builder-brand)/0.2)]" },
-      building: { label: "In Progress", cls: "bg-secondary/15 text-secondary" },
-      content_ready: { label: "Ready to Publish", cls: "bg-accent/15 text-accent" },
-      live: { label: "Live ✓", cls: "bg-success/15 text-success" },
-      error: { label: "Needs Attention", cls: "bg-destructive/15 text-destructive" },
-    };
-    const cfg = configs[status] || configs.not_started;
-    return <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${cfg.cls}`}>{cfg.label}</span>;
+    if (status === "live") return <StatusBadge variant="live" label="Live ✓" />;
+    if (status === "content_ready") return <StatusBadge variant="ready" />;
+    if (status === "building") return <StatusBadge variant="building" label="In Progress" />;
+    if (status === "error") return <StatusBadge variant="locked" label="Needs Attention" className="bg-destructive/15 text-destructive border-destructive/30" />;
+    return <StatusBadge variant="not_started" />;
   };
 
 

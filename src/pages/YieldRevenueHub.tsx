@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, ArrowRight, Lock, Star, Clock } from "lucide-react";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
 
@@ -112,9 +113,7 @@ export default function YieldRevenueHub() {
       <div key={def.id} className="rounded-xl border border-border bg-card p-5 flex flex-col gap-3 hover:shadow-[var(--shadow-card-hover)] hover:border-[hsl(var(--builder-yield)/0.4)] transition-all">
         <div className="flex items-start justify-between">
           <h3 className="font-heading text-base font-bold text-foreground">{def.name}</h3>
-          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${isLocked ? "bg-muted text-muted-foreground" : status === "live" ? "bg-success/15 text-success" : "bg-[hsl(var(--builder-yield)/0.12)] text-[hsl(var(--builder-yield))] dark:bg-[hsl(var(--builder-yield)/0.2)]"}`}>
-            {isLocked ? <><Lock className="h-3 w-3" /> Locked</> : status === "live" ? "Live ✓" : "Ready to Build"}
-          </span>
+          {isLocked ? <StatusBadge variant="locked" /> : status === "live" ? <StatusBadge variant="live" label="Live ✓" /> : status === "content_ready" ? <StatusBadge variant="ready" /> : status === "building" ? <StatusBadge variant="building" label="In Progress" /> : <StatusBadge variant="not_started" />}
         </div>
         <p className="text-xs text-muted-foreground leading-relaxed flex-1">{def.description}</p>
         <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
