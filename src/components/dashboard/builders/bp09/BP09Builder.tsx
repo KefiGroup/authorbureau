@@ -143,12 +143,12 @@ export default function BP09Builder({ authorId }: Props) {
         <NodeHowItWorks nodeId="BP-09" />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's set up your Book Sales</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your sales kit, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-09")}>Complete Book Profile</Button>
               </>
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
+              ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Selling books at events can be highly profitable with the right setup. I'm going to design your complete event sales kit for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with event strategies, pricing tiers, sales materials, and a post-event follow-up sequence. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-09"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> Build My Sales Kit</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}

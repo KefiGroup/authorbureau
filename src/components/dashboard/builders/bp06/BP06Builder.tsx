@@ -159,7 +159,7 @@ export default function BP06Builder({ authorId }: Props) {
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Workbook</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button>
@@ -167,7 +167,7 @@ export default function BP06Builder({ authorId }: Props) {
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! A companion workbook is the perfect free lead magnet — it builds your email list and gives readers a practical way to apply your ideas. I'm going to design a complete workbook based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with sections, exercises, reflection prompts, and action items. Ready?</p>
                 <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-06"]} /></div>
-                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Build My Workbook</Button></>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> Build My Workbook</Button></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">I hit a snag generating your content. {toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>

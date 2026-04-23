@@ -137,12 +137,12 @@ export default function BP08Builder({ authorId }: Props) {
         <NodeHowItWorks nodeId="BP-08" />
         {step === 0 && (
           <AbbyCard><h2 className="text-xl font-bold mb-3">Let's create your Special Editions</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button>
               </>
-            ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading}><Sparkles className="h-4 w-4 mr-2" /> Design My Special Editions</Button></>)}
+              ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> Design My Special Editions</Button></>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
