@@ -163,7 +163,8 @@ export default function BP07Builder({ authorId }: Props) {
     setChannels(next);
     setSavingChannels(true);
     const dc = ["readers_bureau", ...(next.thinkific ? ["thinkific"] : []), ...(next.email_pdf ? ["email_pdf"] : [])];
-    const updated = { ...content, delivery_channels: dc };
+    const resolvedPrice = priceOverride ?? content.suggested_price_usd;
+    const updated = { ...content, delivery_channels: dc, suggested_price_usd: resolvedPrice, price: resolvedPrice };
     setContent(updated);
     try {
       await autosaveBuilderDraft({
@@ -195,7 +196,8 @@ export default function BP07Builder({ authorId }: Props) {
       // Persist current price + channel selection + step BEFORE publishing so the draft row exists
       if (content && authorId) {
         const dc = ["readers_bureau", ...(channels.thinkific ? ["thinkific"] : []), ...(channels.email_pdf ? ["email_pdf"] : [])];
-        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, delivery_channels: dc, _currentStep: 3 };
+        const resolvedPrice = priceOverride ?? content.suggested_price_usd;
+        const merged = { ...content, suggested_price_usd: resolvedPrice, price: resolvedPrice, delivery_channels: dc, _currentStep: 3 };
         await autosaveBuilderDraft({
           authorId,
           nodeId: "BP-07",
