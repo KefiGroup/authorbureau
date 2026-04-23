@@ -1,99 +1,79 @@
 
 
-# Fix — Live Home Study microsite shows `$TBA` and no Thinkific instructions appear
+# Fix — Thinkific-ready export + ordered "What's Live" sequence
 
-## What I saw on your microsite
-On the live `/pauline-teo/home-study` page:
-- Price renders as **`$TBA`** instead of the price you set in the builder
-- The book cover is showing in the price card (we want that), but there is no real price
-- Even though you ticked Thinkific in the builder, the post-publish screen and the public site give you no instructions on what to do next on Thinkific or where to find your link
-
-This isn't one bug — it's two separate gaps in how Build → Publish → Live → Distribute connect.
+## What you're asking for
+1. On the Home Study Distribution card, give the author a **Thinkific-loadable file** (not just a generic PDF) plus the live `thinkific.com` link they can paste into.
+2. On the **Connected Accounts → What's Live** list, show the live nodes **in the ABBY journey sequence** (BP-01 → BP-09 → BA-10 → BA-18 → YR-19 → YR-28), not in random order as they currently appear.
 
 ---
 
-## Root causes
+## Fix A — Thinkific-ready export from BP-07
 
-### 1. The price isn't being mapped to the field the public page reads
-- The BP-07 builder stores your price as **`content.suggested_price_usd`** (and as the override `priceOverride`)
-- The public Sales Page in `MicrositePage.tsx` reads **`content.price`**
-- Those two fields are never reconciled, so the page falls back to `"TBA"`
-- Same field-name mismatch exists for BP-08 (special edition) — same fix applies there
+**File:** `src/lib/builder-pdf.ts` (add helper) and `src/components/dashboard/builders/bp07/HomeStudyDistributionCard.tsx`
 
-### 2. Distribution channels are saved, but never *explained* to the author
-The builder lets you tick:
-- Readers Bureau portal (default)
-- Thinkific mirror
-- Printable PDF bundle
+Add a new exporter `downloadThinkificPackage({ content })` that generates a **ZIP bundle** containing:
+- `thinkific-course-import.csv` — Thinkific's "Bulk Import Lessons" CSV format with one row per day:
+  - Columns: `Chapter Name`, `Lesson Name`, `Lesson Type` (Text), `Lesson Content` (HTML body of the day), `Is Free Preview` (FALSE except Day 1)
+- `course-description.txt` — programme title, transformation promise, tagline (paste into Thinkific course landing page)
+- `lessons/` folder — one `Day-XX.html` file per day, pre-formatted with headings/exercises so the author can paste a single lesson at a time if they prefer manual entry over CSV
+- `README.txt` — 5-line instruction: "1. Log in to Thinkific. 2. Create a new course. 3. Settings → Bulk Import → upload `thinkific-course-import.csv`. 4. Paste `course-description.txt` into Course Landing Page. 5. Publish."
 
-…but after Publish, the success screen only shows:
-- a link to the public sales page
-- "Activate My Marketing Campaign"
+Use `jszip` (already in the project from other exports — confirm during impl).
 
-There is no guidance about:
-- where the Thinkific course actually lives once provisioned (the URL exists in `content.thinkific_url` but it is hidden inside the Review tab)
-- what to do on Thinkific to finish the setup (it is a placeholder URL today unless THINKIFIC_API_KEY is configured — that needs to be said honestly)
-- how the PDF bundle is delivered to buyers (it is auto-emailed, but the author never sees that explained)
+In `HomeStudyDistributionCard.tsx`:
+- Replace the current single "Download package" button with **two buttons**:
+  - `Download Thinkific bundle (.zip)` → calls `downloadThinkificPackage(...)` (primary)
+  - `Download PDF (printable)` → keeps existing `downloadBuilderPackage(...)` for offline/printable use
+- Tighten the instruction list to match the CSV flow:
+  1. Download the Thinkific bundle below
+  2. Log in at `thinkific.com` and create a new course
+  3. Go to **Bulk Import Lessons** → upload `thinkific-course-import.csv`
+  4. Paste `course-description.txt` into the Course Landing Page
+  5. Copy your Thinkific course URL back here so buyers receive it
+- Keep the existing **Open Thinkific →** button (links to `https://www.thinkific.com/`)
+- Keep the **"Your Thinkific URL"** input row with copy button
 
-So the *intent* (multi-channel distribution) is wired into the data and the buyer email, but the *author UX* makes it look like nothing happened.
+This gives the author a real Thinkific-loadable artifact instead of a generic PDF, while staying honest that we don't push to Thinkific via API.
+
+---
+
+## Fix B — Order "What's Live" by the ABBY journey sequence
+
+**File:** `src/components/settings/ConnectedAccountsTab.tsx`
+
+Currently nodes load from `author_nodes` and render in whatever order Postgres returns. Change to:
+
+1. Define `NODE_SEQUENCE` array (single source of truth, matches the 9-9-10 progression):
+   ```
+   BP-01, BP-02, BP-03, BP-04, BP-05, BP-06, BP-07, BP-08, BP-09,
+   BA-10, BA-11, BA-12, BA-13, BA-14, BA-15, BA-16, BA-17, BA-18,
+   YR-19, YR-20, YR-21, YR-22, YR-23, YR-24, YR-25, YR-26, YR-27, YR-28
+   ```
+2. After fetching, sort `nodes` by `NODE_SEQUENCE.indexOf(node.node_id)` (unknown IDs go to the bottom).
+3. Group visually with three subheaders:
+   - **Brand Products** (BP-01 → BP-09)
+   - **Build Authority** (BA-10 → BA-18)
+   - **Yield Revenue** (YR-19 → YR-28)
+4. If a group has zero live nodes, hide its subheader entirely (keeps the panel clean for early-stage authors).
+5. Keep the existing per-row layout (rocket icon + node_name + Live badge).
+
+This matches the ABBY Journey Framework already documented in memory (`abby-journey-framework-comprehensive-specs`) and gives the author a clear "where am I in the build journey" view instead of a random list.
 
 ---
 
-## What I'll change
-
-### Fix A — Map the price into the field the public page reads
-**Files:** `src/components/dashboard/builders/bp07/BP07Builder.tsx`, `src/components/dashboard/builders/bp08/BP08Builder.tsx`
-
-In `handlePublish` (and in `saveChannels` for BP-07), when persisting the merged content, also write:
-- `content.price = priceOverride ?? content.suggested_price_usd`
-- keep `suggested_price_usd` for backward compatibility
-
-Result: `$TBA` becomes the actual price (e.g. `$47`) on the live `/home-study` page immediately after Publish.
-
-### Fix B — Add a “Distribution & next steps” card to the Publish success screen for BP-07
-**Files:** new `src/components/dashboard/builders/bp07/HomeStudyDistributionCard.tsx`, edit `BP07Builder.tsx` (Step 3 success block)
-
-After the green “live” checkmark, render a card listing each channel the author enabled, with an honest, plain-English instruction for each:
-
-- **Readers Bureau portal** — “Your buyers automatically get a private learner link emailed after purchase. No setup needed. (See Marketing Hub → Email logs to inspect a sample.)”
-- **Thinkific mirror** — show `content.thinkific_url`, a Copy button, and an instructions block:
-  - “We provisioned a placeholder Thinkific URL. To finish the mirror:
-    1. Connect your Thinkific account in Account Settings → Connections.
-    2. We will sync the 21-day curriculum into a new Thinkific course.
-    3. Buyers receive both the Readers Bureau and Thinkific links in their confirmation email.”
-  - If `THINKIFIC_API_KEY` is not yet configured, the URL is honestly labelled “Placeholder — connect Thinkific to make it live.”
-- **Printable PDF bundle** — “Buyers receive a download link in their confirmation email pointing to `/{slug}/home-study-bundle/{purchaseId}`. You don’t need to upload anything; the PDF is generated from your published lessons.”
-
-This card matches the pattern already used by other nodes (BA-17 download card, BP-03 success screen), so it stays visually consistent with the design freeze.
-
-### Fix C — Show the same channel summary inside the builder Review step
-**File:** `src/components/dashboard/builders/bp07/BP07Builder.tsx`
-
-Right under the existing “Distribution channels” checkboxes in Step 2, render a compact “What this means for buyers” preview. So before they hit Publish, the author already understands what each ticked box will do, where the URLs come from, and what they still need to do externally.
-
-### Fix D — Surface Thinkific connect call-to-action when ticked but not connected
-**File:** `src/components/dashboard/builders/bp07/BP07Builder.tsx`
-
-When `channels.thinkific` is on AND `content.thinkific_status !== "live"`, show an inline notice:
-- “Thinkific isn’t connected yet — your mirror URL is a placeholder. [Connect Thinkific →]” linking to `/account-settings?tab=connections`.
-
-This keeps the platform honest (matches your `manus-2026-04-23` audit memory: don’t pretend integrations are live when they aren’t) and gives the author one click to fix it.
-
----
+## Out of scope
+- Real Thinkific API push — the existing `deploy-bp07-to-thinkific` placeholder logic stays as-is. We're improving the manual/self-serve path only.
+- Reordering anywhere else (sidebar, dashboard) — those already follow node sequence; only the Connections panel needs this fix.
 
 ## Files to change
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx` — write `price`, render distribution preview in Step 2, render distribution card in Step 3, add Thinkific connect notice
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — write `price` on publish (same one-line fix)
-- new `src/components/dashboard/builders/bp07/HomeStudyDistributionCard.tsx` — reusable card used by both Step 2 preview and Step 3 success
+- `src/lib/builder-pdf.ts` — add `downloadThinkificPackage` (or new `src/lib/builder-thinkific-export.ts` if cleaner)
+- `src/components/dashboard/builders/bp07/HomeStudyDistributionCard.tsx` — two-button export + tightened CSV instructions
+- `src/components/settings/ConnectedAccountsTab.tsx` — sequence ordering + grouped subheaders
 
-## Out of scope (deliberately)
-- Real Thinkific API sync — the `deploy-bp07-to-thinkific` edge function already handles that path the moment `THINKIFIC_API_KEY` + `THINKIFIC_SUBDOMAIN` are configured. No code change needed there.
-- The buyer confirmation email already fans out the right links in `process-purchase` (added in our last sprint); we’re only making the *author-side* visible.
-
-## Validation checklist
-1. Open BP-07, Publish — public `/home-study` page shows the real price, not `$TBA`.
-2. Tick Thinkific in Step 2 — see a clear preview block explaining what will happen + connect CTA if not connected.
-3. After Publish, success screen shows a Distribution card with one row per enabled channel and copy/open buttons.
-4. Untick a channel and republish — the Distribution card updates accordingly.
-5. BP-08 published price also renders correctly on its sales page.
+## Validation
+1. From a live BP-07, click **Download Thinkific bundle** → ZIP downloads with CSV + description + per-day HTML + README
+2. Open the CSV — has 21 rows (or N rows = number of generated days), correct columns, content populated
+3. Open Account Settings → Connected Accounts → Live nodes appear grouped under Brand / Build / Yield in correct numeric order
+4. With only Brand-tier nodes live, only the Brand Products group renders
 
