@@ -57,18 +57,24 @@ interface WorkbookContent {
 export function normalizeOutcome(raw?: string): string {
   if (!raw) return "";
   let s = raw.trim();
-  s = s.replace(
-    /^(you(['']| wi)?(ll)?|you can|you['']ll be able to|readers (will|can)|the reader (will|can)|by the end[^,]*,\s*you (will|can))\s+/i,
-    "",
-  );
+  // Strip leading subject+modal phrases. Run twice in case Abby chains them ("By the end, you will…").
+  for (let pass = 0; pass < 2; pass++) {
+    s = s.replace(
+      /^(you['\u2019]?ll|you will|you can|you['\u2019]?ll be able to|you['\u2019]?re going to|you are going to|readers? (will|can)|the readers? (will|can)|by the end[^,]*,\s*(you|readers?) (will|can))\s+/i,
+      "",
+    );
+  }
+  // Drop a leftover "be able to " (e.g. after stripping "you will").
+  s = s.replace(/^be able to\s+/i, "");
   if (s.length > 1 && /^[A-Z][a-z]/.test(s)) s = s[0].toLowerCase() + s.slice(1);
   return s;
 }
 
 export function estimateWorkbookPageCount(content: WorkbookContent | null | undefined): number {
   const sections = Array.isArray(content?.sections) ? content!.sections!.length : 0;
-  // Cover (1) + Welcome (1) + TOC (1 if any sections) + sections * 2 + Action plan (1) + Back cover (1)
-  return 1 + 1 + (sections ? 1 : 0) + sections * 2 + 1 + 1;
+  const toolkit = Array.isArray(content?.what_youll_get) ? content!.what_youll_get!.length : 0;
+  // Cover (1) + Welcome (1) + TOC (1 if any sections) + sections * 2 + Toolkit intro (1 if any) + toolkit pages + Action plan (1) + Back cover (1)
+  return 1 + 1 + (sections ? 1 : 0) + sections * 2 + (toolkit ? 1 : 0) + toolkit + 1 + 1;
 }
 
 export interface WorkbookPdfOptions {
