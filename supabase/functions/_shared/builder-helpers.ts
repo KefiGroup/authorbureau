@@ -3,7 +3,7 @@
  * Mirrors the resilience pattern used in generate-bp02-lead-magnets.
  */
 // @ts-nocheck — Deno runtime
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
