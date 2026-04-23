@@ -154,6 +154,22 @@ export default function ConnectSettings() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        {pendingPaidCount > 0 && !stripeConnected && (
+          <Card className="p-4 border-amber-500/30 bg-amber-500/5">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">
+                  {pendingPaidCount} paid product{pendingPaidCount === 1 ? "" : "s"} waiting for Stripe to go live
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Connect Stripe below to publish your paid products. Free products are unaffected.
+                </p>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {/* Stripe */}
         <Card className="p-6">
           <div className="flex items-start gap-4">
