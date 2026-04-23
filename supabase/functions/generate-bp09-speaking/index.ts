@@ -28,6 +28,7 @@ serve(async (req) => {
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: "openai/gpt-5",
+        max_completion_tokens: 8000,
         messages: [
           { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences." },
           { role: "user", content: `Create a book sales and events strategy for ${author.pen_name}'s book '${ctx.book_title}'.
