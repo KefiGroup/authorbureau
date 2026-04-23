@@ -373,10 +373,10 @@ export function downloadWorkbookPdf({ content, bookTitle, authorName }: Workbook
   renderActionPlan(doc, content);
   renderBackCover(doc, bookTitle, authorName);
 
-  // Add footers (skip cover page)
+  // Add footers (skip cover page and back cover, both have their own brand bands)
   const total = doc.getNumberOfPages();
   const label = `${content.workbook_title || "Workbook"} — ${authorName || ""}`.trim();
-  for (let p = 2; p <= total; p++) {
+  for (let p = 2; p < total; p++) {
     doc.setPage(p);
     addFooter(doc, p, total, label);
   }
