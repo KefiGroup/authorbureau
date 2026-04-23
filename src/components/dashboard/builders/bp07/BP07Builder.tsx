@@ -241,6 +241,73 @@ export default function BP07Builder({ authorId }: Props) {
                 <Card><CardContent className="pt-6 space-y-4"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2><p className="text-muted-foreground">{content.sales_page?.subheadline}</p><p className="text-sm">{content.sales_page?.pain_point}</p><p className="text-sm">{content.sales_page?.solution_statement}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Start Your Journey"}</span></div></CardContent></Card>
               </TabsContent>
             </Tabs>
+
+            {/* Distribution channels */}
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center gap-2">
+                  <Share2 className="h-4 w-4 text-primary" />
+                  <h3 className="font-bold">Distribution channels</h3>
+                  {savingChannels && <span className="text-xs text-muted-foreground">Saving…</span>}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Pick where readers can access your Home Study Course after purchase. The Readers Bureau portal is always on.
+                </p>
+
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/40 border border-border">
+                  <Checkbox checked disabled className="mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <PortalIcon className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-semibold">Readers Bureau portal</p>
+                      <span className="text-[10px] uppercase tracking-wide bg-primary/10 text-primary px-1.5 py-0.5 rounded">Default</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">Self-paced lessons in the buyer's private learner portal. Zero setup.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border">
+                  <Checkbox
+                    id="ch-thinkific"
+                    checked={channels.thinkific}
+                    onCheckedChange={(v) => saveChannels({ ...channels, thinkific: !!v })}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="ch-thinkific" className="flex items-center gap-2 cursor-pointer">
+                      <ExternalLink className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-semibold">Thinkific mirror</p>
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Provision a Thinkific course URL so buyers can also access lessons on Thinkific.
+                    </p>
+                    {channels.thinkific && content?.thinkific_url && (
+                      <a href={content.thinkific_url} target="_blank" rel="noreferrer" className="text-xs text-primary underline mt-1 inline-block break-all">
+                        {content.thinkific_url}
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border">
+                  <Checkbox
+                    id="ch-pdf"
+                    checked={channels.email_pdf}
+                    onCheckedChange={(v) => saveChannels({ ...channels, email_pdf: !!v })}
+                    className="mt-0.5"
+                  />
+                  <div className="flex-1">
+                    <label htmlFor="ch-pdf" className="flex items-center gap-2 cursor-pointer">
+                      <FileDown className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-semibold">Printable PDF bundle</p>
+                    </label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Email a link to a print-friendly version of every lesson — great for readers who prefer offline study.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
             <div className="space-y-3 pt-2">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick edits</p>
               <InlineSectionCard nodeId="BP-07" authorId={authorId} content={content} setContent={setContent} path="programme_title" label="Programme title" type="input" />
