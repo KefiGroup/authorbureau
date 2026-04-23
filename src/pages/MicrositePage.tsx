@@ -1165,13 +1165,27 @@ function LongFormSalesPage({
     .map((it: any) => (typeof it === "string" ? it : (it && (it.name || it.title)) || ""))
     .filter(Boolean);
 
-  // Pricing
+  // Pricing — prefer author-set node.price_usd over AI's suggested price
   const priceNumRaw =
+    data.node.price_usd ??
     content.price ??
     content.suggested_price_usd ??
     pr.suggested_price ??
     sp.price;
   const priceNum = Number(priceNumRaw) || 0;
+
+  // Guarantee window — never exceed (or even match) program duration.
+  // Parse leading integer from `duration` string (e.g. "21 days", "8 weeks").
+  const durationDaysMatch = (duration || "").match(/(\d+)\s*(day|week|month)/i);
+  let guaranteeDays = 30;
+  if (durationDaysMatch) {
+    const n = parseInt(durationDaysMatch[1], 10);
+    const unit = durationDaysMatch[2].toLowerCase();
+    const totalDays = unit.startsWith("week") ? n * 7 : unit.startsWith("month") ? n * 30 : n;
+    // Leave at least 7 days buffer below program length, floor at 7, cap at 30
+    guaranteeDays = Math.min(30, Math.max(7, totalDays - 7));
+  }
+  const guaranteeText = `${guaranteeDays}-day money-back guarantee`;
   const isFree = priceNum === 0 && (content.pricing_recommendation === "free" || priceNumRaw === 0);
   const compareAt = Number(content.original_price ?? content.compare_at_price ?? pr.compare_at) || 0;
   const currency = (data.node.currency || content.currency || "USD").toUpperCase();
@@ -1186,7 +1200,7 @@ function LongFormSalesPage({
   const faq = faqItems.length > 0 ? faqItems : [
     {
       q: "Is there a money-back guarantee?",
-      a: "Yes — we offer a 30-day money-back guarantee. If this isn't the right fit for you, just email us within 30 days of purchase for a full refund.",
+      a: `Yes — we offer a ${guaranteeText}. If this isn't the right fit for you, just email us within ${guaranteeDays} days of purchase for a full refund.`,
     },
     {
       q: "How long do I have access?",
@@ -1246,7 +1260,7 @@ function LongFormSalesPage({
     duration ? `${duration} of ${type === "home-study" ? "training" : "content"}` : `Full ${cfg.title.toLowerCase()} access`,
     youGet.length > 0 ? `${youGet.length}+ structured ${type === "home-study" ? "lessons" : "modules"}` : "All core content",
     "Instant digital delivery",
-    "30-day money-back guarantee",
+    guaranteeText,
   ];
 
   return (
@@ -1446,7 +1460,7 @@ function LongFormSalesPage({
         </h2>
         <p className="text-base mb-6" style={{ color: v.mutedText }}>{finalUrgency}</p>
         <div className="max-w-xs mx-auto">{renderCta(finalCtaLabel)}</div>
-        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · 30-day money-back guarantee</p>
+        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · {guaranteeText}</p>
       </section>
 
       {/* Sticky mobile CTA */}
