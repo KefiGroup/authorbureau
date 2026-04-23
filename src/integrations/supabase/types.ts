@@ -287,6 +287,58 @@ export type Database = {
         }
         Relationships: []
       }
+      author_annual_statements: {
+        Row: {
+          author_id: string
+          generated_at: string
+          id: string
+          pdf_storage_path: string
+          tax_year: number
+          total_gross_usd: number
+          total_net_paid_usd: number
+        }
+        Insert: {
+          author_id: string
+          generated_at?: string
+          id?: string
+          pdf_storage_path: string
+          tax_year: number
+          total_gross_usd?: number
+          total_net_paid_usd?: number
+        }
+        Update: {
+          author_id?: string
+          generated_at?: string
+          id?: string
+          pdf_storage_path?: string
+          tax_year?: number
+          total_gross_usd?: number
+          total_net_paid_usd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_annual_statements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_annual_statements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_annual_statements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       author_applications: {
         Row: {
           amazon_book_url: string
@@ -389,6 +441,80 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      author_earnings: {
+        Row: {
+          author_id: string
+          created_at: string
+          earned_at: string
+          gross_usd: number
+          id: string
+          net_usd: number
+          paid_out: boolean
+          payout_id: string | null
+          platform_fee_usd: number
+          purchase_id: string
+          refunded: boolean
+          stripe_fee_usd: number
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          earned_at?: string
+          gross_usd: number
+          id?: string
+          net_usd: number
+          paid_out?: boolean
+          payout_id?: string | null
+          platform_fee_usd?: number
+          purchase_id: string
+          refunded?: boolean
+          stripe_fee_usd?: number
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          earned_at?: string
+          gross_usd?: number
+          id?: string
+          net_usd?: number
+          paid_out?: boolean
+          payout_id?: string | null
+          platform_fee_usd?: number
+          purchase_id?: string
+          refunded?: boolean
+          stripe_fee_usd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_earnings_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_earnings_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_earnings_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_earnings_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "author_payouts_v2"
             referencedColumns: ["id"]
           },
         ]
@@ -546,39 +672,51 @@ export type Database = {
           author_id: string
           created_at: string
           id: string
+          minimum_payout_usd: number | null
           payout_method: string
           paypal_email: string | null
+          paypal_email_v2: string | null
           refund_window_days: number
+          tax_self_declared_at: string | null
           updated_at: string
           wise_account_number: string | null
           wise_currency: string | null
           wise_email: string | null
+          wise_recipient: Json | null
           wise_routing_number: string | null
         }
         Insert: {
           author_id: string
           created_at?: string
           id?: string
+          minimum_payout_usd?: number | null
           payout_method?: string
           paypal_email?: string | null
+          paypal_email_v2?: string | null
           refund_window_days?: number
+          tax_self_declared_at?: string | null
           updated_at?: string
           wise_account_number?: string | null
           wise_currency?: string | null
           wise_email?: string | null
+          wise_recipient?: Json | null
           wise_routing_number?: string | null
         }
         Update: {
           author_id?: string
           created_at?: string
           id?: string
+          minimum_payout_usd?: number | null
           payout_method?: string
           paypal_email?: string | null
+          paypal_email_v2?: string | null
           refund_window_days?: number
+          tax_self_declared_at?: string | null
           updated_at?: string
           wise_account_number?: string | null
           wise_currency?: string | null
           wise_email?: string | null
+          wise_recipient?: Json | null
           wise_routing_number?: string | null
         }
         Relationships: []
@@ -642,6 +780,92 @@ export type Database = {
           wise_transfer_id?: string | null
         }
         Relationships: []
+      }
+      author_payouts_v2: {
+        Row: {
+          author_id: string
+          csv_batch_id: string | null
+          external_reference: string | null
+          gross_usd: number
+          id: string
+          net_usd: number
+          notes: string | null
+          paid_at: string | null
+          payout_fee_usd: number
+          payout_method: string
+          period_end: string
+          period_start: string
+          queued_at: string
+          status: string
+          total_platform_fees_usd: number
+          total_stripe_fees_usd: number
+        }
+        Insert: {
+          author_id: string
+          csv_batch_id?: string | null
+          external_reference?: string | null
+          gross_usd?: number
+          id?: string
+          net_usd?: number
+          notes?: string | null
+          paid_at?: string | null
+          payout_fee_usd?: number
+          payout_method: string
+          period_end: string
+          period_start: string
+          queued_at?: string
+          status?: string
+          total_platform_fees_usd?: number
+          total_stripe_fees_usd?: number
+        }
+        Update: {
+          author_id?: string
+          csv_batch_id?: string | null
+          external_reference?: string | null
+          gross_usd?: number
+          id?: string
+          net_usd?: number
+          notes?: string | null
+          paid_at?: string | null
+          payout_fee_usd?: number
+          payout_method?: string
+          period_end?: string
+          period_start?: string
+          queued_at?: string
+          status?: string
+          total_platform_fees_usd?: number
+          total_stripe_fees_usd?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_payouts_v2_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_payouts_v2_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_payouts_v2_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_payouts_v2_csv_batch_id_fkey"
+            columns: ["csv_batch_id"]
+            isOneToOne: false
+            referencedRelation: "payout_batches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       author_profiles: {
         Row: {
@@ -3185,6 +3409,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payout_batches: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          csv_storage_path: string
+          id: string
+          period_end: string
+          period_start: string
+          provider: string
+          status: string
+          total_amount_usd: number
+          total_authors: number
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          csv_storage_path: string
+          id?: string
+          period_end: string
+          period_start: string
+          provider: string
+          status?: string
+          total_amount_usd?: number
+          total_authors?: number
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          csv_storage_path?: string
+          id?: string
+          period_end?: string
+          period_start?: string
+          provider?: string
+          status?: string
+          total_amount_usd?: number
+          total_authors?: number
+        }
+        Relationships: []
       }
       platform_config: {
         Row: {
