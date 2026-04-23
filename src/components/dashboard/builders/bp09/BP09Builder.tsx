@@ -21,6 +21,7 @@ import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSect
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's target audience and events...", "Designing your event sales strategy...", "Creating pricing tiers and materials list...", "Building your post-event follow-up sequence...", "Finalising your Book Sales Kit..."];

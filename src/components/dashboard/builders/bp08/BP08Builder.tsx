@@ -21,6 +21,7 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's unique qualities...", "Designing special edition concepts...", "Creating 3 premium edition tiers...", "Writing your exclusivity sales page...", "Finalising your special editions blueprint..."];
