@@ -2376,7 +2376,18 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
   return (
     <YRLayout title={title} tagline={tagline} intro={oneSheet} v={v} hFont={hFont}
-      right={<YRRightCard actionType="enquiry" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Book This Speaker" />}
+      right={<YRRightCard
+        actionType="enquiry"
+        ctaLabel="Send Speaking Inquiry"
+        inquiryHeading="Book Pauline to Speak"
+        inquiryIntro="Tell us about your event — date, audience, and outcome you want."
+        messagePlaceholder="Event name, date, audience size, and the talk you'd like…"
+        selectedOfferLabel={talks[0] ? yrStr(talks[0]?.title || talks[0]?.name) : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {talks.length > 0 && (
         <section className="space-y-3">
