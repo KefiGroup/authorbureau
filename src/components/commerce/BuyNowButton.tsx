@@ -106,18 +106,30 @@ export default function BuyNowButton({
 
   return (
     <>
-      <Button
-        className={className}
-        style={style}
-        onClick={handleClick}
-        disabled={loading}
-      >
-        {loading ? (
-          <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opening checkout…</>
-        ) : (
-          <>{label} <ArrowRight className="ml-2 h-4 w-4" /></>
-        )}
-      </Button>
+      <div className="flex flex-col items-stretch gap-1.5">
+        <Button
+          className={className}
+          style={style}
+          onClick={handleClick}
+          disabled={loading}
+        >
+          {loading ? (
+            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Opening checkout…</>
+          ) : (
+            <>{label} <ArrowRight className="ml-2 h-4 w-4" /></>
+          )}
+        </Button>
+        <p className="text-[11px] leading-snug text-muted-foreground text-center px-1">
+          By clicking {label.toLowerCase()} you agree to our{" "}
+          <a href="/terms-of-sale" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+            Terms of Sale
+          </a>{" "}
+          and{" "}
+          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
+            Privacy Policy
+          </a>.
+        </p>
+      </div>
 
       <Dialog open={paymentsModal} onOpenChange={setPaymentsModal}>
         <DialogContent className="max-w-md">

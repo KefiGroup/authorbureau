@@ -48,8 +48,10 @@ export default function Footer() {
         </div>
 
         <div className="mt-8 border-t border-primary-foreground/10 pt-8 text-center text-xs text-primary-foreground/50" style={{ fontFamily: 'var(--font-body)' }}>
-          <div className="flex items-center justify-center gap-4 mb-3">
+          <div className="flex items-center justify-center gap-4 mb-3 flex-wrap">
             <Link to="/terms" className="hover:text-secondary transition-colors">Terms of Service</Link>
+            <span>·</span>
+            <Link to="/terms-of-sale" className="hover:text-secondary transition-colors">Terms of Sale</Link>
             <span>·</span>
             <Link to="/privacy" className="hover:text-secondary transition-colors">Privacy Policy</Link>
           </div>
