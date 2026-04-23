@@ -334,3 +334,80 @@ async function resolveSubscriberUserId(admin: Admin, email: string): Promise<str
     return null;
   }
 }
+
+/* ─────────── Home Study (BP-07) multi-channel fan-out ─────────── */
+async function sendHomeStudyConfirmation(
+  admin: Admin,
+  args: {
+    authorRowId: string;
+    purchaseId: string | null;
+    customerEmail: string;
+    customerName: string | null;
+    amount: number;
+    currency: string;
+  },
+) {
+  const siteOrigin = Deno.env.get("PUBLIC_SITE_URL") || "https://authorsbureau.com";
+
+  const [{ data: author }, { data: node }] = await Promise.all([
+    admin.from("author_profiles").select("pen_name, author_slug").eq("id", args.authorRowId).maybeSingle(),
+    admin.from("author_nodes").select("content_json, personalised_name, node_name")
+      .eq("author_id", args.authorRowId).eq("node_id", "BP-07").maybeSingle(),
+  ]);
+
+  const cj = (node?.content_json ?? {}) as Record<string, any>;
+  const channels: string[] = Array.isArray(cj.delivery_channels) && cj.delivery_channels.length > 0
+    ? cj.delivery_channels
+    : ["readers_bureau"];
+  const productTitle = cj.programme_title || node?.personalised_name || node?.node_name || "Home Study Course";
+  const authorName = author?.pen_name || undefined;
+  const authorSlug = author?.author_slug || "";
+  const purchaseId = args.purchaseId || "";
+
+  const amountStr = args.currency.toUpperCase() === "USD"
+    ? `$${args.amount.toFixed(2)}`
+    : `${args.amount.toFixed(2)} ${args.currency.toUpperCase()}`;
+
+  const primaryChannel = {
+    label: "Start in Readers Bureau",
+    url: `${siteOrigin}/readers-bureau/learn/${purchaseId}`,
+    description: "Self-paced lessons in your private learner portal.",
+  };
+
+  const additionalChannels: Array<{ label: string; url: string; description?: string }> = [];
+  if (channels.includes("thinkific") && cj.thinkific_url) {
+    additionalChannels.push({
+      label: "Open in Thinkific",
+      url: cj.thinkific_url,
+      description: "Same lessons, hosted on Thinkific.",
+    });
+  }
+  if (channels.includes("email_pdf")) {
+    additionalChannels.push({
+      label: "Download printable PDF bundle",
+      url: `${siteOrigin}/${authorSlug}/home-study-bundle/${purchaseId}`,
+      description: "Print-friendly version of every lesson.",
+    });
+  }
+
+  const idempotencyKey = `home-study-purchase-${args.purchaseId ?? args.customerEmail}`;
+  const { error } = await admin.functions.invoke("send-transactional-email", {
+    body: {
+      templateName: "purchase-confirmation",
+      recipientEmail: args.customerEmail,
+      idempotencyKey,
+      templateData: {
+        customerName: args.customerName || undefined,
+        productTitle,
+        authorName,
+        amount: amountStr,
+        primaryChannel,
+        additionalChannels,
+        supportNote: "Reply to this email if anything looks off — we read every message.",
+      },
+    },
+  });
+  if (error) {
+    console.error("[process-purchase] send-transactional-email failed", error);
+  }
+}
