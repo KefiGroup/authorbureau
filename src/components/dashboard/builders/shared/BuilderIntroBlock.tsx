@@ -22,6 +22,14 @@ export interface BuilderIntroSpec {
   estimate: string;
   /** Optional prerequisites users should know about. */
   prerequisites?: string[];
+  /** Optional "publish externally" path (e.g. Amazon KDP via PublishNow.io). */
+  publishExternal?: {
+    title: string;
+    description: string;
+    bullets?: string[];
+    ctaLabel: string;
+    ctaUrl: string;
+  };
 }
 
 export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
@@ -87,6 +95,18 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
     livesAt: "Downloadable PDF saved to your Brand Products library. Sells from your microsite + can be bundled in courses.",
     editLater: "Re-open Workbook to edit prompts, regenerate exercises, or upload your own PDF.",
     estimate: "60–90 seconds",
+    publishExternal: {
+      title: "Publish & sell on Amazon (recommended)",
+      description:
+        "Workbooks are one of the highest-converting Amazon companions — readers buy them right after finishing your book. Use PublishNow.io to publish your workbook on Amazon KDP as a paperback so it can be bundled with your book or sold as an upsell.",
+      bullets: [
+        "List as a standalone paperback companion to your book",
+        "Bundle with your book on your Amazon author page",
+        "Use as a back-of-book upsell to grow Kindle + paperback revenue",
+      ],
+      ctaLabel: "Publish on Amazon via PublishNow.io",
+      ctaUrl: "https://publishnow.io",
+    },
   },
   "BP-07": {
     creates: [
