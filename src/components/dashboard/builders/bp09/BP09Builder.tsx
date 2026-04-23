@@ -150,7 +150,8 @@ export default function BP09Builder({ authorId }: Props) {
     setStep(3); setError(null);
     try {
       if (content && authorId) {
-        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, _currentStep: 3 };
+        const resolvedPrice = priceOverride ?? content.suggested_price_usd;
+        const merged = { ...content, suggested_price_usd: resolvedPrice, price: resolvedPrice, _currentStep: 3 };
         await autosaveBuilderDraft({
           authorId,
           nodeId: "BP-09",
