@@ -22,6 +22,7 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Analyzing your book for a self-paced study programme...", "Designing a 21-day reading and exercise schedule...", "Mapping chapters to daily themes and lessons...", "Creating practical exercises and reflection prompts...", "Finalising your Home Study Programme..."];
@@ -58,6 +59,16 @@ export default function BP07Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
+
+      // If a generation is already running in the background (user navigated
+      // away and came back), reattach to it instead of resetting to step 0.
+      const inflight = getGeneration<any>(authorId, "BP-07");
+      if (inflight) {
+        setStep(1);
+        attachToGeneration(inflight);
+        return;
+      }
+
       const draft = await loadBuilderDraft(authorId, "BP-07");
       const cj = draft.content as any;
       if (cj && (cj?.programme_title || cj?.study_weeks)) {
@@ -74,6 +85,7 @@ export default function BP07Builder({ authorId }: Props) {
         if (draft.isLive) setContent((p: any) => ({ ...p, activated: true }));
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorId]);
 
   useEffect(() => {
@@ -85,45 +97,48 @@ export default function BP07Builder({ authorId }: Props) {
     }
   }, [step]);
 
-  const handleGenerate = async () => {
-    console.info("[BP-07] generate clicked", { authorId, hasBook, bookTitle: detectedBookTitle });
-    setStep(1); setError(null);
-    try {
-      let token = await getActiveToken();
-      if (!token) {
-        await supabase.auth.refreshSession().catch(() => null);
-        token = await getActiveToken();
-      }
-      console.info("[BP-07] token resolved", { hasToken: !!token });
-      if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
-      const res = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp07-coaching`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ author_id: authorId }),
+  const runGeneration = async () => {
+    let token = await getActiveToken();
+    if (!token) {
+      await supabase.auth.refreshSession().catch(() => null);
+      token = await getActiveToken();
+    }
+    console.info("[BP-07] token resolved", { hasToken: !!token });
+    if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
+    const res = await fetchWithTimeout(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp07-coaching`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        180_000,
-      );
-      console.info("[BP-07] http status", res.status);
-      const data = await res.json().catch(() => null);
-      if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
-      const newContent = { ...(data.content || {}), _currentStep: 2 };
+        body: JSON.stringify({ author_id: authorId }),
+      },
+      180_000,
+    );
+    console.info("[BP-07] http status", res.status);
+    const data = await res.json().catch(() => null);
+    if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
+    const newContent = { ...(data.content || {}), _currentStep: 2 };
+    if (authorId) {
+      await autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-07",
+        nodeName: "Home Study Course",
+        content: newContent,
+        currentStep: 2,
+      });
+    }
+    return newContent;
+  };
+
+  const attachToGeneration = async (promise: Promise<any>) => {
+    try {
+      const newContent = await promise;
       setContent(newContent);
-      setPriceOverride(data.content?.suggested_price_usd || null);
-      if (authorId) {
-        await autosaveBuilderDraft({
-          authorId,
-          nodeId: "BP-07",
-          nodeName: "Home Study Course",
-          content: newContent,
-          currentStep: 2,
-        });
-      }
+      setPriceOverride(newContent?.suggested_price_usd || null);
       setStep(2);
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Generation failed");
@@ -132,6 +147,14 @@ export default function BP07Builder({ authorId }: Props) {
       setStep(0);
       toast.error(msg, { duration: 12000 });
     }
+  };
+
+  const handleGenerate = async () => {
+    console.info("[BP-07] generate clicked", { authorId, hasBook, bookTitle: detectedBookTitle });
+    if (!authorId) return;
+    setStep(1); setError(null);
+    const promise = startGeneration(authorId, "BP-07", runGeneration);
+    await attachToGeneration(promise);
   };
 
   const saveChannels = async (next: typeof channels) => {
