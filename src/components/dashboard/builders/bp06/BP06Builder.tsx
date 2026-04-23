@@ -297,11 +297,15 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
             {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
             <div className="flex gap-2 flex-wrap">
               <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{pageCount} pages</span>
-              <span className="text-xs bg-muted px-2.5 py-1 rounded-full">{content.format}</span>
+              <span className="text-xs bg-muted px-2.5 py-1 rounded-full">8.5 × 11" PDF + Word</span>
+              <span className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full font-medium">✓ Amazon KDP-ready</span>
               <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isPaid ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"}`}>
                 {isPaid ? `$${paidPrice}` : "FREE Lead Magnet"}
               </span>
             </div>
+            <p className="text-xs text-muted-foreground">
+              <span className="font-semibold text-foreground">Print format:</span> 8.5 × 11" — the standard Amazon KDP "Large Workbook" trim. Upload the PDF directly to PublishNow.io to list on Amazon as a paperback.
+            </p>
             <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Promise</p><p className="text-sm">{content.transformation_promise}</p></div>
             <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
             <div><p className="text-xs font-semibold text-muted-foreground mb-2">What You'll Get</p>
