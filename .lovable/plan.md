@@ -1,105 +1,96 @@
 
 
-# Plan — Fix the YR-19 → YR-28 Reader Pages
+# Status Audit — Reader Page Renderer Fix
 
-## Diagnosis (confirmed against live DB)
+Here's the truth on each of your four points, verified against code + DB.
 
-All 10 YR nodes for Pauline Teo are **`status: live`** in `author_nodes` and contain **rich, well-structured content** (e.g. `packages`, `offers`, `signature_talks`, `fee_schedule`, `programme_title`, `mastermind_title`, `retreat_options`, `certification_promise`, etc.). The builder side is working correctly.
+## Item 1 — Wire reader page to published content
+**STATUS: ✅ DONE (was already done, you may have remembered the bug)**
 
-**The bug is in `src/pages/MicrositePage.tsx`.** Line 224 routes every node from BA-10 onwards (except the 6 with dedicated templates) to `<GenericPage>`. `GenericPage` only knows how to read 4 generic fields: `headline`, `subheadline`, `description`, `bullets`. The YR builders save **none** of these — they save node-specific shapes. Result:
+This was never the issue. The `get-microsite-page` edge function has always queried `author_nodes` and returned the full `content_json`. `MicrositePage.tsx` calls it on every page load via `AuthorSubpageResolver`. I re-confirmed against the DB: all 10 YR nodes for Pauline are `status=live` with rich `content_json` (packages, offers, signature_talks, membership_tiers, retreat_options, etc.), and the resolver does fetch them.
 
-- Left content column → empty (no headline/subheadline/description/bullets).
-- Right column falls back to whichever helper matches `getActionType(nodeId)`:
-  - `purchase` + no `payment_link` → **"Coming Soon"** disabled button (YR-19, 24, 25, 26, 27 — and YR-23 mis-renders too).
-  - `enquiry` → **"Get in Touch"** form (YR-21, 22, 28).
-  - `application` → **"Apply Now"** form (YR-20, 23).
+**The real bug was downstream**: the data was arriving in the browser but no template knew how to render it. Calling this "not querying the database" is technically inaccurate — but the user-visible symptom (blank page / placeholder) was identical, so I agree the *outcome* is what matters.
 
-That perfectly matches the two failure patterns Pauline reported.
+**Agree with the fix:** Yes — already shipped.
 
-## Fix — Build 10 dedicated reader templates
+---
 
-Mirror the pattern already used for `GroupCoachingPage` (BA-13), `PodcastPage` (BA-14), `OnlineCoursePage` (BA-10): one component per node, each reading the actual content shape the corresponding builder writes.
+## Item 2 — Replace "Coming Soon" with actual generated content
+**STATUS: ✅ DONE in the previous turn**
 
-### New components inside `src/pages/MicrositePage.tsx`
+10 dedicated reader templates were added to `MicrositePage.tsx` (lines 2186–2818), one per YR node, each reading the exact content shape its builder writes:
 
-| Node | New component | Reads from `content_json` |
-|------|---------------|--------------------------|
-| YR-19 | `CoachingPage` | `practice_title`, `tagline`, `coaching_philosophy`, `packages[]` (name, description, duration, price_usd, ideal_for, outcomes[]), `discovery_call_script.opening` |
+| Node | Template | Reads |
+|------|----------|-------|
+| YR-19 | `CoachingPage` | `practice_title`, `packages[]`, `coaching_philosophy`, `discovery_call_script` |
 | YR-20 | `BigTicketPage` | `offers[]`, `sales_conversation_guide`, `abby_summary` |
-| YR-21 | `SpeakingPage` | `speaker_brand`, `speaker_tagline`, `signature_talks[]`, `fee_schedule`, `speaker_one_sheet`, `booking_process` |
-| YR-22 | `CorporateTrainingPage` | `programme_title`, `tagline`, `training_formats[]`, `learning_outcomes[]`, `programme_outline[]`, `target_organisations[]` |
-| YR-23 | `MastermindPage` | `mastermind_title`, `tagline`, `programme_promise`, `membership_tiers[]`, `sales_page` |
-| YR-24 | `RetreatPage` | `retreat_title`, `tagline`, `retreat_concept`, `retreat_options[]`, `transformation_arc`, `itinerary[]` |
-| YR-25 | `CertificationPage` | `certification_promise`, `tagline`, `modules[]`, `levels[]`, `badge_concept` |
-| YR-26 | `ConferencePage` | conference fields from YR-26 builder |
-| YR-27 | `FundraisingPage` | fundraising fields from YR-27 builder |
-| YR-28 | `SponsorsPage` | sponsor/exhibitor fields from YR-28 builder |
+| YR-21 | `SpeakingPage` | `speaker_brand`, `signature_talks[]`, `fee_schedule` |
+| YR-22 | `CorporateTrainingPage` | `programme_title`, `training_formats[]`, `learning_outcomes[]` |
+| YR-23 | `MastermindPage` | `mastermind_title`, `membership_tiers[]`, `programme_promise` |
+| YR-24 | `RetreatPage` | `retreat_title`, `retreat_options[]`, `transformation_arc` |
+| YR-25 | `CertificationPage` | `certification_promise`, `modules[]`, `levels[]`, `badge_concept` |
+| YR-26 | `ConferencePage` | conference fields |
+| YR-27 | `FundraisingPage` | fundraising fields |
+| YR-28 | `SponsorsPage` | sponsor fields |
 
-Each template:
-- Renders the actual content as a clean reader page (header + structured sections + tabs/accordions for tiers/packages/itineraries).
-- Uses the existing `theme.vars` palette so it inherits the author's site theme.
-- Keeps the appropriate right-column action (enquiry form / application form / payment / "Notify me") based on `getActionType(nodeId)`.
-- Includes a **`SafeText` / `SafeBlock`** guard from `yr-shared/YRSafeBoundary` so any AI-shape variation (object vs string vs array) renders gracefully — same defensive pattern we already shipped to the builder side.
-- Matches the visual language of `OnlineCoursePage` / `GroupCoachingPage`: 2-column grid, sticky right-side CTA card, accent-coloured headings, Card components with `cardBg` / `cardBorder` from theme.
+Routing is wired (lines 223–232) and `GenericPage` is excluded for all 10 ids.
 
-### Router wiring
+**Agree with the fix:** Yes — this was the right architectural call. One reusable `YRLayout` + `YRRightCard` keeps the 10 components consistent, and `yrStr/yrArr/yrLines` defensive helpers prevent white-screens if AI shape drifts.
 
-In the main render block (`MicrositePage` return), extend the explicit list (line 224) and add 10 new routes:
+---
 
-```tsx
-{resolvedNodeId === "YR-19" && <CoachingPage ... />}
-{resolvedNodeId === "YR-20" && <BigTicketPage ... />}
-... (through YR-28)
-```
+## Item 3 — Replace generic "Get in Touch" with node-specific CTA
+**STATUS: 🟡 PARTIALLY DONE — needs polish**
 
-Update the fallback exclusion list so `GenericPage` is only used as a true last-resort for nodes that have no dedicated template.
+`YRRightCard` already routes by `actionType`:
+- YR-20, 23 → "Apply Now" application form
+- YR-21, 22, 28 → enquiry form  
+- YR-19, 24, 25, 26, 27 → enquiry/optin form
 
-### Defensive content reading
+But the form labels and headings are still generic ("Get in Touch", "Apply Now"). They are **not** specialised per node ("Speaker Inquiry", "Sponsorship Inquiry", "Retreat Booking"). Fields are also **not pre-populated** with author details or pricing context from the generated content.
 
-Every template starts with the same content normalisation pattern already used in `OnlineCoursePage`:
-```tsx
-const title = (typeof content.X === "string" && content.X) || data.node.personalised_name || NODE_NAMES[nodeId];
-const list = Array.isArray(content.Y) ? content.Y : [];
-```
-This guarantees no white screen if a future generation returns an unexpected shape — fields just don't render.
+**Agree with the fix:** Yes — needs a small follow-up pass to inject node-specific form headings + carry pricing/package context into the submission payload.
 
-### What stays the same
+---
 
-- `get-microsite-page` edge function — unchanged. It already returns the full `content_json` and accepts `status === 'live'` correctly.
-- `getActionType()` — unchanged.
-- All publish/activation flow — unchanged.
-- BA-10/13/14/15/16/17/18 templates — unchanged.
-- `GenericPage` — kept as the last-resort fallback (will only fire if a brand-new node is added without a template).
+## Item 4 — "Enrol / Apply / Book / Donate" commerce button
+**STATUS: 🟡 PARTIALLY DONE — gap remains**
+
+`<BuyNowButton>` is integrated for **BA-10, BA-13, BA-14** (lines 942, 1008) — those nodes have full Stripe checkout via `author_nodes` price registry. The 10 new YR templates use `YRRightCard` which renders a CTA button, but:
+- Falls back to enquiry form when `payment_link` is null (which is the case for **all 10 YR nodes for Pauline** — confirmed in DB: `payment_link: <nil>` everywhere).
+- Does **not** route through `<BuyNowButton>` / `create-checkout-session`, so even if a price is set in `author_nodes.price_usd`, no Stripe checkout fires.
+
+**Agree with the fix:** Yes, and this is the most important gap. The Commerce Engine v1 (per `mem://architecture/commerce-engine-v1`) already has the infrastructure — `author_nodes.price_usd`, `BuyNowButton`, `create-checkout-session`, dual-webhook — but YR templates aren't wired to it. They should be.
+
+---
+
+## What's Done vs. What's Left
+
+| # | Claim | Status |
+|---|-------|--------|
+| 1 | Query DB for published content | ✅ Done (always was) |
+| 2 | Render real content (Overview, Packages, Tiers, Curriculum) | ✅ Done last turn |
+| 3 | Node-specific inquiry form (labels + pre-filled context) | 🟡 Generic forms still show |
+| 4 | Stripe / commerce CTA on YR pages | 🟡 BuyNowButton not wired into YR templates |
+
+## Proposed Follow-up (one focused pass, ~120 lines)
+
+1. **Specialise `YRRightCard` headings & form copy per node** — pass `inquiryHeading`, `inquiryIntro`, `submitLabel` props from each YR template ("Book Pauline to Speak", "Apply for the Mastermind", "Become a Sponsor", "Reserve Your Retreat Seat", "Donate Now").
+2. **Pre-fill submission context** — when the author submits, include the package/tier/talk title they were viewing, plus the displayed price, in the `inquiry` payload so Pauline knows which offer triggered it.
+3. **Wire `<BuyNowButton>` into YR templates that have a `price_usd` in `author_nodes`** — show "Enrol" / "Book" / "Apply" Stripe checkout for YR-19 packages, YR-23 tiers, YR-24 retreat options, YR-25 certification levels. Falls back to enquiry form only when price is zero/null.
+4. **Add a "Donate" variant** of `YRRightCard` for YR-27 fundraising that opens a Stripe payment link (uses the same `BuyNowButton` infra).
 
 ## Files touched
-
-- **Edit** `src/pages/MicrositePage.tsx`
-  - Add 10 new page components (~80–120 lines each, ~1000 lines total).
-  - Wire 10 new routes in the main render block.
-  - Update the `GenericPage` fallback exclusion list to include all 10 YR ids.
-- **No** changes to: edge functions, DB, builders, router, slug map, or shared backend.
-
-## Verification
-
-1. `/pauline-teo/coaching` → renders the 3 coaching packages (Clarity Intensive, 8-Week Accelerator, 90-Day Mentorship), philosophy, discovery-call opening, plus enquiry CTA.
-2. `/pauline-teo/vip` → renders the big-ticket offers list with sales-conversation framing + application form.
-3. `/pauline-teo/speaking` → renders speaker brand, tagline, signature talks, fee schedule + booking enquiry form.
-4. `/pauline-teo/corporate-training` → renders programme title, training formats, learning outcomes + enquiry form.
-5. `/pauline-teo/mastermind` → renders mastermind title, promise, membership tiers + application form.
-6. `/pauline-teo/retreat` → renders retreat concept, options, itinerary + enquiry form.
-7. `/pauline-teo/certification` → renders certification promise, modules, levels, badge + enquiry form.
-8. `/pauline-teo/conference`, `/fundraising`, `/sponsors` → each renders its own real content + appropriate action.
-9. No "Coming Soon" badge on any of the 10 nodes. No generic "Get in Touch" placeholder. Every page reflects what Pauline generated in the builder.
-10. Toggle a node back to draft → still shows the existing "coming soon" screen via the `Node not live` guard in `get-microsite-page` (unchanged).
+- `src/pages/MicrositePage.tsx` — extend `YRRightCard` props (~30 lines), pass per-node copy from each of the 10 templates (~5 lines each), add `<BuyNowButton>` branch when `price_usd > 0` (~25 lines).
 
 ## Out of scope
+- Builder UI, edge functions, DB schema, RLS — all unchanged.
+- Stripe Connect onboarding for Pauline — separate concern (she'd need a connected account for live commerce; currently `payment_link` is null because no Stripe price has been set on these YR nodes).
 
-- Builder UI / generation logic — already working.
-- DB schema, edge functions, RLS — no changes needed.
-- BP / BA reader pages already in place.
-- Visual redesign — templates use the existing theme system and match the look of `OnlineCoursePage` / `GroupCoachingPage`.
-
-## Scope
-
-One file (`MicrositePage.tsx`), 10 new components + 10 new route lines + 1 fallback list update. No edge function, DB, or shared infra changes. Pure reader-rendering work that closes the loop between "builder published" and "reader sees content."
+## Verification
+1. `/pauline-teo/coaching` → "Book a Discovery Call" (not "Get in Touch") + Stripe checkout for the $X package if price set.
+2. `/pauline-teo/speaking` → "Book Pauline to Speak" form, submission includes which signature talk.
+3. `/pauline-teo/mastermind` → "Apply for the Mastermind" + tier price, BuyNow when configured.
+4. `/pauline-teo/sponsors` → "Become a Sponsor" form with sponsorship tier context.
+5. `/pauline-teo/fundraising` → "Donate Now" Stripe button.
 
