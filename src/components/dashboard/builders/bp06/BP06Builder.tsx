@@ -247,6 +247,17 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
   const isPaid = effectivePrice > 0;
   const pageCount = estimateWorkbookPageCount(content);
 
+  // Rewrite stale page-count claims Abby may have baked into rationales
+  // (e.g. "56-page count" / "45 pages") so they match the real PDF.
+  const reconcilePageCount = (text?: string): string => {
+    if (!text) return "";
+    return text
+      .replace(/\b\d{1,3}\s*[-–]\s*page\b/gi, `${pageCount}-page`)
+      .replace(/\b\d{1,3}\s+pages?\b/gi, `${pageCount} pages`);
+  };
+  const freeRationale = reconcilePageCount(content.free_rationale);
+  const paidRationale = reconcilePageCount(content.paid_rationale);
+
   // Sync pricing choice into content + persist. Never touches the abby_* snapshot fields.
   const persistPricing = (choice: "free" | "paid", price: number) => {
     const next = { ...content, suggested_price_usd: choice === "paid" ? price : 0, pricing_recommendation: choice };
@@ -365,16 +376,16 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
               </div>
             )}
 
-            {pricingChoice === "free" && content.free_rationale && (
+            {pricingChoice === "free" && freeRationale && (
               <div className="rounded-md bg-emerald-500/5 border border-emerald-500/20 p-3">
                 <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Why FREE works</p>
-                <p className="text-sm">{content.free_rationale}</p>
+                <p className="text-sm">{freeRationale}</p>
               </div>
             )}
-            {pricingChoice === "paid" && content.paid_rationale && (
+            {pricingChoice === "paid" && paidRationale && (
               <div className="rounded-md bg-primary/5 border border-primary/20 p-3">
                 <p className="text-xs font-semibold text-primary mb-1">Why PAID works</p>
-                <p className="text-sm">{content.paid_rationale}</p>
+                <p className="text-sm">{paidRationale}</p>
               </div>
             )}
           </CardContent></Card>
