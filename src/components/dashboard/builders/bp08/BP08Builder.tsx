@@ -54,12 +54,17 @@ export default function BP08Builder({ authorId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-08").maybeSingle();
-      if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setPriceOverride((node.content_json as any)?.suggested_price_usd || null);
-        setStep(node.status === "live" ? 3 : 2);
-        if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
+      const { data: node } = await supabase.from("author_nodes").select("content_json, status, current_step, activated_at").eq("author_id", authorId).eq("node_id", "BP-08").maybeSingle();
+      if (node?.content_json) {
+        const cj = node.content_json as any;
+        if (cj && Object.keys(cj).length > 0) {
+          setContent(cj);
+          setPriceOverride(cj?.suggested_price_usd || null);
+          const isLive = node.status === "live" || !!node.activated_at;
+          const savedStep = Number(cj?._currentStep ?? node.current_step ?? (isLive ? 3 : 2));
+          setStep(Math.min(3, Math.max(2, savedStep)));
+          if (isLive) setContent((p: any) => ({ ...p, activated: true }));
+        }
       }
     })();
   }, [authorId]);
@@ -100,8 +105,14 @@ export default function BP08Builder({ authorId }: Props) {
       console.info("[BP-08] http status", res.status);
       const data = await res.json().catch(() => null);
       if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
-      setContent(data.content);
+      const newContent = { ...(data.content || {}), _currentStep: 2 };
+      setContent(newContent);
       setPriceOverride(data.content?.suggested_price_usd || null);
+      if (authorId) {
+        await supabase.from("author_nodes")
+          .update({ content_json: newContent, current_step: 2 })
+          .eq("author_id", authorId).eq("node_id", "BP-08");
+      }
       setStep(2);
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Generation failed");
@@ -115,6 +126,13 @@ export default function BP08Builder({ authorId }: Props) {
   const handlePublish = async () => {
     setStep(3); setError(null);
     try {
+      if (content && authorId) {
+        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, _currentStep: 3 };
+        await supabase.from("author_nodes")
+          .update({ content_json: merged, current_step: 3 })
+          .eq("author_id", authorId).eq("node_id", "BP-08");
+        setContent(merged);
+      }
       await publishNodeToSite(authorId!, "BP-08", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) { setError(e.message); setStep(2); }
