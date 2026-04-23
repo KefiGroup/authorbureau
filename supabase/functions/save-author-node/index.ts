@@ -251,6 +251,45 @@ Deno.serve(async (req: Request) => {
       console.warn("[save-author-node:publish] no draft row found", { authorId, nodeId });
       return json(404, { error: "Node has no draft to publish. Generate content first." });
     }
+
+    // ---- Stripe gate for paid products ----
+    // If this node is monetised, the author MUST have completed Stripe Connect onboarding
+    // before it can flip to live. Free products publish unchanged.
+    const cj = (node.content_json ?? {}) as Record<string, unknown>;
+    const priceVal = Number(
+      (cj.suggested_price_usd as number | undefined) ??
+        (cj.price_usd as number | undefined) ??
+        0,
+    );
+    const tiers = cj.sales_tiers as Array<{ price_usd?: number }> | undefined;
+    const tierPaid =
+      Array.isArray(tiers) && tiers.some((t) => Number(t?.price_usd ?? 0) > 0);
+    const isPaid =
+      priceVal > 0 || cj.pricing_recommendation === "paid" || tierPaid;
+
+    if (isPaid) {
+      const { data: authorRow, error: authorErr } = await admin
+        .from("author_profiles")
+        .select("stripe_onboarding_complete")
+        .eq("id", authorId)
+        .maybeSingle();
+      if (authorErr) {
+        console.error("[save-author-node:publish] stripe lookup failed:", authorErr.message);
+        return json(500, { error: authorErr.message });
+      }
+      if (!authorRow?.stripe_onboarding_complete) {
+        console.warn("[save-author-node:publish] blocked — Stripe not connected", {
+          authorId,
+          nodeId,
+          price: priceVal,
+        });
+        return json(409, {
+          error: "stripe_required",
+          message: "Connect Stripe before publishing paid products.",
+          stripe_required: true,
+        });
+      }
+    }
     console.log("[save-author-node:publish] matched row, updating", {
       rowId: node.id,
       previousStatus: node.status,
