@@ -122,22 +122,13 @@ Deno.serve(async (req) => {
 
     if (!amountCents || amountCents <= 0) throw new Error("Product price not set");
 
-    // ============ Resolve author + Stripe Connect ============
+    // ============ Resolve author (Authors Bureau is MoR — no Connect) ============
     const { data: author } = await admin
       .from("author_profiles")
-      .select("id, user_id, pen_name, author_slug, stripe_connected_account_id, stripe_account_id, stripe_onboarding_complete")
+      .select("id, user_id, pen_name, author_slug")
       .eq("id", authorId)
       .maybeSingle();
     if (!author) throw new Error("Author not found");
-
-    const connectedAccount =
-      author.stripe_connected_account_id || author.stripe_account_id;
-    if (!connectedAccount || !author.stripe_onboarding_complete) {
-      return new Response(
-        JSON.stringify({ error: "AUTHOR_PAYMENTS_NOT_SET_UP", author_id: author.id }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
 
     const { data: cfg } = await admin
       .from("platform_config")
@@ -145,12 +136,12 @@ Deno.serve(async (req) => {
       .eq("key", "platform_fee_percent")
       .maybeSingle();
     const feePct = Number(cfg?.value ?? DEFAULT_FEE);
-    const applicationFeeCents = Math.round(amountCents * feePct);
 
     metadata.author_id = author.id;
     metadata.author_user_id = author.user_id;
     metadata.product_title = productTitle;
     metadata.author_slug = author.author_slug || "";
+    metadata.platform_fee_percent = String(feePct);
 
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
@@ -186,20 +177,9 @@ Deno.serve(async (req) => {
       success_url,
       cancel_url,
       metadata,
-      ...(mode === "payment"
-        ? {
-            payment_intent_data: {
-              application_fee_amount: applicationFeeCents,
-              transfer_data: { destination: connectedAccount },
-            },
-          }
-        : {
-            subscription_data: {
-              application_fee_percent: feePct * 100,
-              transfer_data: { destination: connectedAccount },
-              metadata,
-            },
-          }),
+      ...(mode === "subscription"
+        ? { subscription_data: { metadata } }
+        : { payment_intent_data: { metadata } }),
     };
 
     const session = await stripe.checkout.sessions.create(sessionParams);
