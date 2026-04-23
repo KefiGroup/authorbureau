@@ -1,81 +1,97 @@
 
 
-## Verdict on Manus's Report
+## Diagnosis
 
-I cross-checked every claim against the live DB and edge function code. **3 of Manus's 4 critical claims are factually wrong.**
+**YR-25/26/27/28 are NOT bugs.** The DB has zero rows for those four nodes — Pauline simply hasn't clicked "Generate" yet. There's nothing for the builder to restore, so it correctly shows the Introduction step. Once she clicks Generate, those four will work (they just need the same defensive guards as YR-23/24 to be safe).
 
-| Manus's Claim | Reality | Evidence |
-|---|---|---|
-| "Resilience fix NOT deployed" | ❌ **WRONG — already deployed** | `generate-yr19-coaching/index.ts` line 5 imports `failResponse, aiGatewayErrorMessage`; line 33 has `temperature: 0.3, max_completion_tokens: 16000`; line 35 returns `failResponse(aiGatewayErrorMessage(...))`; line 53 returns `failResponse(message)`. All 10 YR functions match. |
-| "BA-12 at Introduction step, no content" | ❌ **WRONG** | DB row: `BA-12 status=content_ready, current_step=2, has_content=true`. Content exists; Pauline just hasn't published. |
-| "BA-14/15/16/17/18 hub says Live but builder shows Introduction step" | ⚠️ **Partially right — but it's a UI restore bug, not data integrity** | DB confirms all 5 are `status=live, current_step=3, has_url=true, activated_at` set. The hub badges are correct. The builder UI is failing to restore to step 3 on revisit — this is the same `loadBuilderDraft` bug we fixed for BA-13/14 last sprint, but YR/older BA builders may have stale call sites. |
-| "Zero YR rows; resilience fix never ran" | ⚠️ **DB part right, cause wrong** | Zero YR rows confirmed. But edge logs show **exactly one** YR-19 invocation: `200 OK, 2934 ms`. A real generation takes 15–40 s — 2.9 s means it returned `failResponse(...)` early (likely "No book found", AI gateway 429/402, or a context-shape error). The fix is shipped; we need to capture the actual error envelope. |
+**YR-23 and YR-24 are real bugs — frontend render crashes.** The DB confirms generation succeeded for both (`status=content_ready, current_step=2, content_json` populated). The "white screen on completion" and "stays blank on reload" symptoms are classic React render crashes: the AI returned shapes the JSX wasn't expecting, React threw "Objects are not valid as a React child", and the whole component tree unmounted. On reload, `loadBuilderDraft` rehydrates the same broken content → blank again. The node is **not** stuck — the data is fine, only the renderer is wrong.
 
-**One thing Manus is right about:** zero YR nodes have ever generated successfully. We need to drive that to root cause.
+### Exact crash sites (verified against the live JSON in the DB)
 
-**Out of scope per project memory:** Sessions Engine, Commerce Engine wiring, Daily.co, application dashboards (Manus's "Actions 3–5") are **product epics**, not bug fixes. Skip until generation works for all 10 YR nodes.
+**`YR23Builder.tsx`**
 
----
+| Line | Code | AI returns | Crash |
+|---|---|---|---|
+| 77 | `curriculum_pillars.map((p: string) => <span>{p}</span>)` | `[{ pillar_name, focus_areas[], outcomes[] }]` (objects) | "Objects are not valid as a React child" → blank |
+| 104 | `<p>{content.sales_page?.who_its_for}</p>` | `string[]` | renders array as child → throws |
+| 105 | `sales_page.what_youll_get?.map(...)` | `string[]` ✅ ok | — |
+
+**`YR24Builder.tsx`**
+
+| Line | Code | AI returns | Crash |
+|---|---|---|---|
+| 78 | `<p>{content.transformation_arc}</p>` | `{ breakthroughs, starting_point, take_home_assets[], measurable_shifts[], capabilities_built[] }` (object) | renders object → throws |
+| 97–99 | `<p>{d.morning}</p>` `<p>{d.afternoon}</p>` `<p>{d.evening}</p>` | each is `string[]` | renders array → throws |
 
 ## Plan
 
-### Fix 1 — Capture the real YR-19 failure (root cause we can't see yet)
+### Fix 1 — Repair the YR-23 renderer
 
-Single curl test against the deployed `generate-yr19-coaching` with Pauline's `author_id` to read the actual `failResponse` body. Three plausible causes:
+Two changes in `src/components/dashboard/builders/yr23/YR23Builder.tsx`:
 
-- **(a)** `bookTitle` empty after `buildAuthorContext` → throws "No book found" → 200 with `success:false, error:"No book found"`. Fix: same fallback already in BA generators (try `books.owner_email`, lowercase match) — port to `buildAuthorContext` if missing.
-- **(b)** AI gateway 429/402 → `failResponse(aiGatewayErrorMessage(...))` returns the friendly message. Fix: surface to Pauline + add a one-time retry with backoff in `handleGenerate`.
-- **(c)** `parseAiJson` throws on truncated/non-JSON output → caught by outer try → returned via `failResponse(message)`. Fix: bump `max_completion_tokens` further or simplify the JSON shape.
+1. **Curriculum pillars (line 77)**: render the pillar object properly — show `pillar_name` as a chip, optionally expand to show focus areas / outcomes underneath. Use a defensive coercion so the renderer also works if a future AI response returns plain strings.
+   ```tsx
+   {content.curriculum_pillars?.map((p: any, i: number) => {
+     const name = typeof p === "string" ? p : p?.pillar_name;
+     return <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{name}</span>;
+   })}
+   ```
+2. **Sales page who-it's-for (line 104)**: render as a bulleted list, with a string-fallback.
+   ```tsx
+   {Array.isArray(content.sales_page?.who_its_for) ? (
+     <ul className="space-y-1">{content.sales_page.who_its_for.map((w: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="text-primary">•</span>{w}</li>)}</ul>
+   ) : (
+     <p className="text-sm">{content.sales_page?.who_its_for}</p>
+   )}
+   ```
 
-After capturing the envelope, apply the matching one-line fix in `generate-yr19-coaching` and propagate identically to YR-20 through YR-28 (they share the same prompt/context plumbing).
+### Fix 2 — Repair the YR-24 renderer
 
-### Fix 2 — BA-12 publish UI
+Two changes in `src/components/dashboard/builders/yr24/YR24Builder.tsx`:
 
-BA-12 sits in `content_ready` with `has_url=false`. The hub correctly shows it as "Locked" only because of subscription gating (Pro tier). Add a small **Re-publish** button on the Review step of `BA12Builder.tsx` (mirrors the BA-13/14 banner already shipped) so when Pauline upgrades to Pro the publish path works in one click. **No DB change.**
+1. **Transformation arc (line 78)**: render the structured object — `starting_point` + `breakthroughs` as paragraphs, `capabilities_built` / `measurable_shifts` / `take_home_assets` as small lists. Add string-fallback.
+2. **Itinerary day blocks (lines 97–99)**: coerce each session to a list — `Array.isArray(d.morning) ? <ul>…</ul> : <p>{d.morning}</p>` for morning/afternoon/evening.
 
-### Fix 3 — Builder draft restoration for already-live BA nodes (BA-14, BA-15, BA-16, BA-17, BA-18)
+### Fix 3 — Add a `<RenderSafe>` boundary to all 10 YR builders
 
-Manus is right that the builder reopens at the Introduction step even though `status=live`. Audit each builder's `loadBuilderDraft` call:
+Wrap the `step === 2` review block in every YR builder (YR-19 through YR-28) with a tiny React error boundary that catches any future shape-mismatch and shows an actionable fallback ("This view couldn't render — click Re-generate") instead of a blank screen. New file: `src/components/dashboard/builders/yr-shared/YRSafeBoundary.tsx`. ~30 lines, class component with `componentDidCatch`. Drops in as `<YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>…</YRSafeBoundary>`.
 
-- Confirm every BA1{4..8}Builder.tsx restores to `step=3` when `__draft.isLive === true` (the YR-19 file already does — `setStep(__draft.isLive ? 3 : ...)`).
-- Where missing, port the same one-liner. ~5 lines per file, no logic change.
+This is the **structural** fix that prevents the next white-screen incident — even if the AI returns an unexpected shape for YR-25/26/27/28 when Pauline clicks Generate, she'll see a clear recovery action instead of a stuck blank page.
 
-### Fix 4 — Update Manus's report record
+### Fix 4 — Preventive shape-guards on YR-25/26/27/28
 
-Document the corrected verdicts (above) so future audits don't loop on the same false positives. Save as a memory entry: `mem://audits/manus-2026-04-23-corrections`.
+Quick read of the four un-generated builders shows one latent risk: **YR-25 line 104** renders `{l.requirements}` directly. The prompt asks the AI to return it as a string, but past results show AI sometimes returns arrays. Apply the same `Array.isArray` coerce pattern to:
 
-### Out of scope (deferred)
+- `YR25Builder.tsx` line 104: `l.requirements`
+- `YR26Builder.tsx` line 78: `f.description`, line 84: `s.description`
+- `YR27Builder.tsx` line 81: `t.benefit`, line 94: `c.summary`
+- `YR28Builder.tsx` line 76: `content.audience_profile`, line 88: `sp.description`, line 98: `s.content_summary`, line 104/107/109: outreach fields
 
-- Sessions Engine / Daily.co booking calendars (product epic)
-- Commerce Engine wiring per YR node (already exists generically via `BuyNowButton`; per-node UX is separate sprint)
-- Application management dashboard for YR-20 (separate sprint)
-- Reader test pass (do after generation is green for all 10)
+For each, wrap as: `Array.isArray(x) ? <ul>{x.map(...)}</ul> : <p>{x}</p>`. ~1 line each, no logic change.
 
----
+### Out of scope
+
+- No edge function changes — generation works correctly; the AI prompts and outputs are valid.
+- No DB migration — existing YR-23/24 content_json is already correct and will render once the JSX is fixed (no need to re-generate).
+- No router/microsite changes — Fix 3 from the prior sprint (publishing path) is still in place; Pauline can publish YR-23/24 immediately after this sprint lands.
 
 ## Files touched
 
-- **Read-only test** `supabase/functions/generate-yr19-coaching` via `curl_edge_functions` to capture real error envelope
-- **Update** `supabase/functions/_shared/builder-helpers.ts` (only if Fix 1a applies — port BA's owner_email fallback)
-- **Update** all 10 `supabase/functions/generate-yr*` files (1-line fix matching the captured root cause; may be no-op if cause is environmental like 429)
-- **Update** `src/components/dashboard/builders/ba12/BA12Builder.tsx` — add Re-publish button on Review
-- **Update** `src/components/dashboard/builders/ba14/BA14Builder.tsx` through `ba18/BA18Builder.tsx` — restore to step 3 when `isLive`
-- **Create** `mem://audits/manus-2026-04-23-corrections.md`
+- **Update** `src/components/dashboard/builders/yr23/YR23Builder.tsx` — fix pillars + who_its_for renderers (~10 lines)
+- **Update** `src/components/dashboard/builders/yr24/YR24Builder.tsx` — fix transformation_arc + itinerary day renderers (~15 lines)
+- **Create** `src/components/dashboard/builders/yr-shared/YRSafeBoundary.tsx` — error boundary (~30 lines)
+- **Update** `src/components/dashboard/builders/yr19/YR19Builder.tsx` through `yr28/YR28Builder.tsx` (10 files) — wrap step 2 in `<YRSafeBoundary>`, plus the YR-25/26/27/28 shape-guards (~3 lines each, ~30 lines total across 10 files)
 
-No DB migration. No router changes. No new edge functions. No engine wiring.
-
----
+No DB, no edge functions, no router. Pure frontend resilience pass.
 
 ## Verification
 
-1. `curl_edge_functions` against `generate-yr19-coaching` with Pauline's `author_id` returns `{success:false, error:"…"}` → real error captured.
-2. After applying the matching 1-line fix, re-curl returns `{success:true, content:{practice_title, packages[3], …}}` in 15–30 s.
-3. DB shows new row `node_id=YR-19, status=content_ready, current_step=2`.
-4. Repeat curls for YR-20 through YR-28 — all return `success:true`.
-5. Pauline reopens BA-14/15/16/17/18 builders → lands directly on the Review step (no Introduction loading screen).
-6. BA-12 Review step shows a working Re-publish button.
+1. Pauline reloads `/node-builder/YR-23` → builder restores to step 2 (Review) → all 4 tabs render: Overview, Tiers, Application, Sales Page. The `Be SUCKcessful Mastermind` content displays correctly with both membership tiers ($5,000 and $15,000). She can click "Publish to My Site" → microsite goes live at `/pauline-teo/mastermind`.
+2. Pauline reloads `/node-builder/YR-24` → builder restores to step 2 → all 4 tabs render: Concept, Options, Itinerary, Pricing. The transformation arc shows as structured sections. The itinerary day cards show morning/afternoon/evening as bulleted lists. She publishes → live at `/pauline-teo/retreat`.
+3. Pauline opens `/node-builder/YR-25`, `YR-26`, `YR-27`, `YR-28` → each lands on Introduction (correct — no content yet). She clicks Build → spinner runs 20–40 s → review screen renders without blanking, regardless of array-vs-string shape variations.
+4. If any future AI response returns a wholly unexpected shape, the `YRSafeBoundary` catches it and shows: "This view couldn't render — click Re-generate" with a button that resets to step 0. No more white screens.
 
 ## Scope
 
-1 diagnostic curl + 1 line per YR file (10 files) + 1 button in BA12 + 5 lines across BA14–18 builders. No DB, no engine epics, no router changes.
+2 surgical render fixes (YR-23, YR-24) + 1 new error boundary + 10 small wrap-and-guard updates across all YR builders. No data loss, no regeneration required, no edge function changes.
 
