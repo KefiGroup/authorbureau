@@ -2243,7 +2243,24 @@ function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
   return (
     <YRLayout title={title} tagline={tagline} intro={philosophy} v={v} hFont={hFont}
-      right={<YRRightCard actionType={paymentLink ? "purchase" : "enquiry"} paymentLink={paymentLink} ctaLabel={paymentLink ? "Book a Discovery Call" : "Request a Discovery Call"} v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
+      right={<YRRightCard
+        actionType="purchase"
+        paymentLink={paymentLink}
+        price={typeof data.node.price_usd === "number" ? data.node.price_usd : (typeof packages[0]?.price_usd === "number" ? packages[0].price_usd : null)}
+        commerceNodeRowId={data.node.id}
+        commerceAuthorId={data.author?.id}
+        commerceLabel="Book a Discovery Call"
+        ctaLabel="Book a Discovery Call"
+        inquiryHeading="Book a Discovery Call"
+        inquiryIntro="Tell us a little about where you are — we'll reach out within 24 hours."
+        messagePlaceholder="What outcome are you working toward?"
+        selectedOfferLabel={packages[0] ? yrStr(packages[0]?.name) : undefined}
+        selectedOfferPrice={typeof packages[0]?.price_usd === "number" ? packages[0].price_usd : undefined}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       {packages.length > 0 && (
         <section className="space-y-3">
