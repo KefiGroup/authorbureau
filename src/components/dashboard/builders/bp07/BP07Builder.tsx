@@ -11,8 +11,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, GraduationCap, LayoutList, DollarSign, FileText } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, GraduationCap, LayoutList, DollarSign, FileText, Share2, GraduationCap as PortalIcon, ExternalLink, FileDown } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
@@ -36,6 +37,8 @@ export default function BP07Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [channels, setChannels] = useState<{ readers_bureau: boolean; thinkific: boolean; email_pdf: boolean }>({ readers_bureau: true, thinkific: false, email_pdf: false });
+  const [savingChannels, setSavingChannels] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
@@ -56,8 +59,15 @@ export default function BP07Builder({ authorId }: Props) {
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-07").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setPriceOverride((node.content_json as any)?.suggested_price_usd || null);
+        const cj = node.content_json as any;
+        setContent(cj);
+        setPriceOverride(cj?.suggested_price_usd || null);
+        const dc: string[] = Array.isArray(cj?.delivery_channels) ? cj.delivery_channels : ["readers_bureau"];
+        setChannels({
+          readers_bureau: true,
+          thinkific: dc.includes("thinkific"),
+          email_pdf: dc.includes("email_pdf"),
+        });
         setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
       }
@@ -112,9 +122,41 @@ export default function BP07Builder({ authorId }: Props) {
     }
   };
 
+  const saveChannels = async (next: typeof channels) => {
+    if (!authorId || !content) return;
+    setChannels(next);
+    setSavingChannels(true);
+    const dc = ["readers_bureau", ...(next.thinkific ? ["thinkific"] : []), ...(next.email_pdf ? ["email_pdf"] : [])];
+    const updated = { ...content, delivery_channels: dc };
+    setContent(updated);
+    try {
+      await supabase.from("author_nodes").update({ content_json: updated }).eq("author_id", authorId).eq("node_id", "BP-07");
+      if (next.thinkific && !content?.thinkific_url) {
+        // Provision a Thinkific URL once when first enabled
+        const token = await getActiveToken();
+        if (token) {
+          await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deploy-bp07-to-thinkific`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+            body: JSON.stringify({ author_id: authorId }),
+          }).catch(() => null);
+        }
+      }
+    } finally {
+      setSavingChannels(false);
+    }
+  };
+
   const handlePublish = async () => {
     setStep(3); setError(null);
     try {
+      // Persist current price + channel selection before publishing
+      if (content && authorId) {
+        const dc = ["readers_bureau", ...(channels.thinkific ? ["thinkific"] : []), ...(channels.email_pdf ? ["email_pdf"] : [])];
+        const merged = { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, delivery_channels: dc };
+        await supabase.from("author_nodes").update({ content_json: merged }).eq("author_id", authorId).eq("node_id", "BP-07");
+        setContent(merged);
+      }
       await publishNodeToSite(authorId!, "BP-07", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) { setError(e.message); setStep(2); }

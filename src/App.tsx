@@ -13,6 +13,7 @@ import AuthorProfile from "./pages/AuthorProfile";
 import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
 import DynamicBookMicrosite from "./pages/DynamicBookMicrosite";
 import AuthorSubpageResolver from "./pages/AuthorSubpageResolver";
+import HomeStudyBundlePage from "./pages/HomeStudyBundlePage";
 import WebinarRegistrationPage from "./pages/WebinarRegistrationPage";
 import WebinarIndexPage from "./pages/WebinarIndexPage";
 import CreateMicrosite from "./pages/CreateMicrosite";
@@ -188,6 +189,7 @@ const AppRoutes = () => (
       <Route path="/:authorSlug/members/welcome" element={<MemberPortalPage />} />
       <Route path="/:authorSlug/members/portal" element={<MemberPortalPage />} />
       <Route path="/:authorSlug/members" element={<MembershipSalesPage />} />
+      <Route path="/:authorSlug/home-study-bundle/:purchaseId" element={<HomeStudyBundlePage />} />
       <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorSubpageResolver />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
