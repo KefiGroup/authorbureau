@@ -13,6 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { YRSafeBoundary } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Crafting your signature talks...", "Building your speaker one-sheet...", "Designing your fee schedule...", "Finalising your speaking business..."];
 const ACT_MSGS = ["Setting up your speaking enquiry pipeline...", "Creating your booking calendar...", "Almost ready..."];
@@ -106,6 +107,7 @@ export default function YR21Builder({ authorId }: Props) {
         )}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
+          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="talks" className="w-full">
@@ -174,6 +176,7 @@ export default function YR21Builder({ authorId }: Props) {
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
+          </YRSafeBoundary>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
