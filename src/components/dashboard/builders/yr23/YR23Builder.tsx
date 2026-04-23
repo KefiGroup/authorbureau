@@ -13,6 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your exclusive mastermind...", "Crafting membership tiers...", "Building your application process...", "Finalising your mastermind programme..."];
 const ACT_MSGS = ["Setting up your membership tiers...", "Creating payment pages...", "Almost ready..."];
@@ -60,6 +61,7 @@ export default function YR23Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Mastermind</h2><p className="text-muted-foreground mb-4">Hi {authorName}! A mastermind is the most exclusive and highest-value community you can create. I'm going to design your complete mastermind programme based on '{detectedBookTitle || bookTitle || "your book"}' — with a structure, application process, and a sales page. Ready to build your inner circle?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Mastermind</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
+          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
@@ -74,7 +76,10 @@ export default function YR23Builder({ authorId }: Props) {
                   <h3 className="text-xl font-bold">{content.mastermind_title}</h3>
                   {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
                   <p className="text-sm">{content.programme_promise}</p>
-                  <div className="flex gap-2 flex-wrap">{content.curriculum_pillars?.map((p: string, i: number) => <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{p}</span>)}</div>
+                  <div className="flex gap-2 flex-wrap">{content.curriculum_pillars?.map((p: any, i: number) => {
+                    const name = typeof p === "string" ? p : (p?.pillar_name || p?.name || p?.title);
+                    return name ? <span key={i} className="text-xs bg-primary/10 text-primary px-2.5 py-1 rounded-full">{name}</span> : null;
+                  })}</div>
                 </CardContent></Card>
               </TabsContent>
               <TabsContent value="tiers" className="mt-4">
@@ -101,7 +106,7 @@ export default function YR23Builder({ authorId }: Props) {
                 <Card><CardContent className="pt-6 space-y-4">
                   <h3 className="text-xl font-bold">{content.sales_page?.headline}</h3>
                   <p className="text-muted-foreground">{content.sales_page?.subheadline}</p>
-                  <p className="text-sm">{content.sales_page?.who_its_for}</p>
+                  <SafeText value={content.sales_page?.who_its_for} />
                   <ul className="space-y-1">{content.sales_page?.what_youll_get?.map((w: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{w}</li>)}</ul>
                   <Button className="w-full">{content.sales_page?.cta_button_text || "Apply for Membership"}</Button>
                 </CardContent></Card>
@@ -112,6 +117,7 @@ export default function YR23Builder({ authorId }: Props) {
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
+          </YRSafeBoundary>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
