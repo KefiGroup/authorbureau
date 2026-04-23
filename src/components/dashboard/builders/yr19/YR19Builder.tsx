@@ -14,7 +14,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary } from "../yr-shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Analysing your book's coaching potential...", "Designing your coaching packages...", "Creating your discovery call script...", "Outlining your client agreement...", "Finalising your coaching practice..."];
 const ACT_MSGS = ["Setting up your coaching calendar...", "Creating your payment pages...", "Generating your booking links...", "Almost ready..."];
@@ -62,6 +62,7 @@ export default function YR19Builder({ authorId }: Props) {
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
   }, [step]);
+  useEffect(() => { if (step === 2 && content) console.log("[YR-19] step-2 render", content); }, [step, content]);
 
   const handleGenerate = async () => {
     setStep(1); setError(null);
@@ -101,9 +102,9 @@ export default function YR19Builder({ authorId }: Props) {
         )}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
-          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
+          <YRSafeBoundary nodeId="YR-19" debugContent={content} onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
-            <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
+            <AbbyCard><div className="text-muted-foreground"><SafeText value={content.abby_summary} /></div></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
                 <TabsTrigger value="overview" className="text-xs py-2"><Users className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>
