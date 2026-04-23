@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
 import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlayer";
+import { normalizeOutcome } from "@/lib/workbook-pdf";
 
 interface MicrositeData {
   author: any;
@@ -892,7 +893,8 @@ function WorkbookSalesPage({
   const tagline = content.tagline;
   const promise = content.transformation_promise;
   const whoFor = content.who_its_for;
-  const youGet: string[] = Array.isArray(content.what_youll_get) ? content.what_youll_get : [];
+  const youGetRaw: any[] = Array.isArray(content.what_youll_get) ? content.what_youll_get : [];
+  const youGet: string[] = youGetRaw.map((it) => (typeof it === "string" ? it : (it && (it.name || it.title)) || "")).filter(Boolean);
   const sections: any[] = Array.isArray(content.sections) ? content.sections : [];
   const format = content.format || '8.5 × 11" PDF + Word';
 
@@ -1008,7 +1010,7 @@ function WorkbookSalesPage({
                 )}
                 {s.outcome && (
                   <p className="mt-2 text-sm italic" style={{ color: v.mutedText }}>
-                    After this section, you can: {s.outcome}
+                    After this section, you can: {normalizeOutcome(s.outcome)}
                   </p>
                 )}
               </div>
