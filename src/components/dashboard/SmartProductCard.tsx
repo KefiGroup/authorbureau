@@ -83,17 +83,17 @@ const difficultyLabels = ["", "Expert", "Hard", "Medium", "Easy", "Easy"];
 const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string; borderClass: string; cardBg: string; stripColor: string }> = {
   recommended: {
     badge: "⭐ Recommended",
-    badgeClass: "bg-amber-500/15 text-amber-700 border-amber-500/30",
-    borderClass: "border-amber-400/40 shadow-[0_0_24px_-4px_rgba(245,158,11,0.25)]",
-    cardBg: "bg-gradient-to-br from-amber-500/[0.06] via-card to-card",
-    stripColor: "bg-amber-500",
+    badgeClass: "bg-secondary/15 text-secondary border-secondary/30",
+    borderClass: "border-secondary/40 shadow-[0_0_24px_-4px_hsl(var(--secondary)/0.25)]",
+    cardBg: "bg-gradient-to-br from-secondary/[0.06] via-card to-card",
+    stripColor: "bg-secondary",
   },
   available: {
     badge: "Ready to Build",
-    badgeClass: "bg-secondary/15 text-secondary border-secondary/30",
-    borderClass: "border-secondary/20 hover:border-secondary/40",
+    badgeClass: "bg-primary/5 text-primary border-primary/20 dark:bg-primary/10 dark:text-primary-foreground/80",
+    borderClass: "border-border hover:border-secondary/40",
     cardBg: "bg-card",
-    stripColor: "bg-secondary",
+    stripColor: "bg-primary/40",
   },
   locked: {
     badge: "",
@@ -104,17 +104,17 @@ const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string;
   },
   "in-progress": {
     badge: "🔨 Building",
-    badgeClass: "bg-blue-500/15 text-blue-700 border-blue-500/30",
-    borderClass: "border-blue-400/40 shadow-[0_0_16px_-4px_rgba(59,130,246,0.2)]",
-    cardBg: "bg-gradient-to-br from-blue-500/[0.06] via-card to-card",
-    stripColor: "bg-blue-500",
+    badgeClass: "bg-secondary/15 text-secondary border-secondary/30",
+    borderClass: "border-secondary/40 shadow-[0_0_16px_-4px_hsl(var(--secondary)/0.2)]",
+    cardBg: "bg-gradient-to-br from-secondary/[0.06] via-card to-card",
+    stripColor: "bg-secondary",
   },
   published: {
     badge: "✅ Live",
-    badgeClass: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
-    borderClass: "border-emerald-400/40 shadow-[0_0_16px_-4px_rgba(16,185,129,0.2)]",
-    cardBg: "bg-gradient-to-br from-emerald-500/[0.06] via-card to-card",
-    stripColor: "bg-emerald-500",
+    badgeClass: "bg-success/15 text-success border-success/30",
+    borderClass: "border-success/40 shadow-[0_0_16px_-4px_hsl(var(--success)/0.2)]",
+    cardBg: "bg-gradient-to-br from-success/[0.06] via-card to-card",
+    stripColor: "bg-success",
   },
   "coming-soon": {
     badge: "Coming Soon",
@@ -177,13 +177,13 @@ export default function SmartProductCard({
         {/* Progress bar for in-progress */}
         {state === "in-progress" && progressPercent !== undefined && (
           <div className="space-y-1">
-            <div className="h-1.5 w-full rounded-full bg-blue-100">
+            <div className="h-1.5 w-full rounded-full bg-secondary/15">
               <div
-                className="h-full rounded-full bg-blue-500 transition-all"
+                className="h-full rounded-full bg-secondary transition-all"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <p className="text-[9px] text-blue-600 font-medium text-right">{progressPercent}%</p>
+            <p className="text-[9px] text-secondary font-medium text-right">{progressPercent}%</p>
           </div>
         )}
         <div className="grid grid-cols-3 gap-2">

@@ -421,16 +421,16 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
                   isCurrent
                     ? "border-secondary/50 bg-secondary/5 ring-1 ring-secondary/20 hover:shadow-[var(--shadow-card-hover)]"
                     : f.status === "done"
-                    ? "border-green-200 bg-green-50/30 hover:shadow-[var(--shadow-card-hover)]"
+                    ? "border-success/30 bg-success/5 hover:shadow-[var(--shadow-card-hover)]"
                     : "border-border bg-card hover:shadow-[var(--shadow-card-hover)] hover:border-secondary/40"
                 }`}
               >
                 <div className="flex items-center gap-3 mb-2">
                   <div className={`flex h-9 w-9 items-center justify-center rounded-lg transition-colors ${
-                    isCurrent ? "bg-secondary/15" : f.status === "done" ? "bg-green-100" : "bg-primary/10 group-hover:bg-secondary/15"
+                    isCurrent ? "bg-secondary/15" : f.status === "done" ? "bg-success/15" : "bg-primary/10 group-hover:bg-secondary/15"
                   }`}>
                     <f.icon className={`h-5 w-5 transition-colors ${
-                      isCurrent ? "text-secondary" : f.status === "done" ? "text-green-600" : "text-primary group-hover:text-secondary"
+                      isCurrent ? "text-secondary" : f.status === "done" ? "text-success" : "text-primary group-hover:text-secondary"
                     }`} />
                   </div>
                   <div className="flex-1">
