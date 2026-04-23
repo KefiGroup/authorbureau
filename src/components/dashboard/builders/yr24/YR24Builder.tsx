@@ -14,6 +14,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your retreat experience...", "Crafting your itinerary...", "Building retreat packages...", "Finalising your retreat programme..."];
 const ACT_MSGS = ["Creating your booking pages...", "Setting up payment links...", "Almost ready..."];
@@ -61,6 +62,7 @@ export default function YR24Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's plan your Retreat</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Retreats create the deepest transformation and command the highest per-person fees. I'm going to design your complete retreat experience based on '{detectedBookTitle || bookTitle || "your book"}' — with a retreat concept, itinerary, and pricing. Ready to create an unforgettable experience?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Retreat</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
+          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="concept" className="w-full">
@@ -75,7 +77,21 @@ export default function YR24Builder({ authorId }: Props) {
                   <h3 className="text-xl font-bold">{content.retreat_title}</h3>
                   {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
                   <p className="text-sm">{content.retreat_concept}</p>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Arc</p><p className="text-sm">{content.transformation_arc}</p></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Arc</p>{(() => {
+                    const t = content.transformation_arc;
+                    if (t == null) return null;
+                    if (typeof t === "string") return <p className="text-sm">{t}</p>;
+                    if (Array.isArray(t)) return <SafeText value={t} />;
+                    return (
+                      <div className="space-y-2 text-sm">
+                        {t.starting_point && <p><span className="font-semibold">Starting point:</span> {String(t.starting_point)}</p>}
+                        {t.breakthroughs && <div><span className="font-semibold">Breakthroughs:</span> <SafeText value={t.breakthroughs} /></div>}
+                        {t.capabilities_built && <div><span className="font-semibold">Capabilities built:</span> <SafeText value={t.capabilities_built} /></div>}
+                        {t.measurable_shifts && <div><span className="font-semibold">Measurable shifts:</span> <SafeText value={t.measurable_shifts} /></div>}
+                        {t.take_home_assets && <div><span className="font-semibold">Take-home assets:</span> <SafeText value={t.take_home_assets} /></div>}
+                      </div>
+                    );
+                  })()}</div>
                 </CardContent></Card>
               </TabsContent>
               <TabsContent value="options" className="space-y-3 mt-4">
@@ -94,9 +110,9 @@ export default function YR24Builder({ authorId }: Props) {
                   <Card key={i}><CardContent className="pt-4 pb-4">
                     <h4 className="font-bold text-sm mb-2">Day {d.day}: {d.title}</h4>
                     <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Morning</p><p>{d.morning}</p></div>
-                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Afternoon</p><p>{d.afternoon}</p></div>
-                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Evening</p><p>{d.evening}</p></div>
+                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Morning</p><SafeText value={d.morning} /></div>
+                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Afternoon</p><SafeText value={d.afternoon} /></div>
+                      <div className="bg-muted/30 p-2 rounded"><p className="font-semibold text-muted-foreground mb-1">Evening</p><SafeText value={d.evening} /></div>
                     </div>
                   </CardContent></Card>
                 ))}
@@ -115,6 +131,7 @@ export default function YR24Builder({ authorId }: Props) {
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
+          </YRSafeBoundary>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (

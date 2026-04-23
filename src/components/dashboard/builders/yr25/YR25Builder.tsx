@@ -13,6 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your certification programme...", "Building the curriculum...", "Creating certification levels...", "Finalising your certification..."];
 const ACT_MSGS = ["Setting up your certification platform...", "Creating payment pages...", "Almost ready..."];
@@ -60,6 +61,7 @@ export default function YR25Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Certification Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! A certification programme turns your methodology into a credential that others can earn — and pay for. I'm going to design your complete certification programme based on '{detectedBookTitle || bookTitle || "your book"}' — with a curriculum, assessment structure, and a certification badge concept. Ready to certify practitioners in your method?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Certification</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
+          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
@@ -101,7 +103,7 @@ export default function YR25Builder({ authorId }: Props) {
                         </div>
                         <HighTicketPrice price={l.price_usd} />
                       </div>
-                      <p className="text-sm text-muted-foreground pl-9">{l.requirements}</p>
+                      <div className="pl-9"><SafeText value={l.requirements} className="text-muted-foreground" /></div>
                     </CardContent>
                   </Card>
                 ))}
@@ -120,6 +122,7 @@ export default function YR25Builder({ authorId }: Props) {
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
+          </YRSafeBoundary>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
