@@ -900,7 +900,7 @@ function WorkbookSalesPage({
 
   const isFree = content.pricing_recommendation === "free" || Number(content.suggested_price_usd) === 0;
   const priceNum = Number(content.suggested_price_usd) || 0;
-  const priceLabel = isFree ? "Free" : (priceNum > 0 ? `$${priceNum}` : null);
+  const priceLabel = isFree ? "Free" : (priceNum > 0 ? `$${priceNum.toFixed(2)}` : null);
   const deliveryUrl = data.node.delivery_url;
 
   const amazonPaperbackUrl = content.amazon_paperback_url || content.amazon_url || data.book?.amazon_url;
@@ -923,7 +923,7 @@ function WorkbookSalesPage({
         authorNodeId={data.node.id}
         authorId={data.author?.id}
         fallbackUrl={buyUrl}
-        label={`Buy Direct (PDF) — $${priceNum}`}
+        label={`Buy Direct (PDF) — $${priceNum.toFixed(2)}`}
         className="w-full rounded-full text-base py-3"
         style={{ background: v.accent, color: v.accentText }}
       />
@@ -1190,7 +1190,7 @@ function LongFormSalesPage({
   const compareAt = Number(content.original_price ?? content.compare_at_price ?? pr.compare_at) || 0;
   const currency = (data.node.currency || content.currency || "USD").toUpperCase();
   const currencySymbol = currency === "USD" ? "$" : currency + " ";
-  const priceDisplay = isFree ? "Free" : (priceNum > 0 ? `${currencySymbol}${priceNum}` : "Pricing coming soon");
+  const priceDisplay = isFree ? "Free" : (priceNum > 0 ? `${currencySymbol}${priceNum.toFixed(2)}` : "Pricing coming soon");
 
   // FAQ — default 4 items if none provided
   const faqItems: { q: string; a: string }[] = (
@@ -1418,13 +1418,13 @@ function LongFormSalesPage({
         <Card className="p-8 max-w-md mx-auto text-center" style={{ background: v.cardBg, borderColor: v.accent, borderWidth: 2 }}>
           <p className="text-xs uppercase tracking-widest font-bold mb-3" style={{ color: v.accent }}>Get started today</p>
           {compareAt > 0 && priceNum > 0 && compareAt > priceNum && (
-            <p className="text-base line-through mb-1" style={{ color: v.mutedText }}>{currencySymbol}{compareAt}</p>
+            <p className="text-base line-through mb-1" style={{ color: v.mutedText }}>{currencySymbol}{compareAt.toFixed(2)}</p>
           )}
           <p className="text-4xl sm:text-5xl font-bold mb-1" style={{ color: v.headingText }}>{priceDisplay}</p>
           {!isFree && priceNum > 0 && <p className="text-xs mb-5" style={{ color: v.mutedText }}>One-time payment · Instant access</p>}
           {compareAt > 0 && priceNum > 0 && compareAt > priceNum && (
             <p className="text-sm font-medium mb-5" style={{ color: v.accent }}>
-              Save {currencySymbol}{(compareAt - priceNum).toFixed(0)}
+              Save {currencySymbol}{(compareAt - priceNum).toFixed(2)}
             </p>
           )}
           <div className="mb-5">{renderCta(ctaLabel)}</div>
@@ -1546,7 +1546,7 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
                 authorNodeId={data.node.id}
                 authorId={data.author?.id}
                 fallbackUrl={stripeUrl}
-                label={priceNum > 0 ? `Buy Direct — ${currencySymbol}${priceNum}` : "Buy Direct"}
+                label={priceNum > 0 ? `Buy Direct — ${currencySymbol}${priceNum.toFixed(2)}` : "Buy Direct"}
                 className="flex-1 rounded-full"
                 style={{ background: v.accent, color: v.accentText }}
               />
