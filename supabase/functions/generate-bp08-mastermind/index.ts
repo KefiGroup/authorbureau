@@ -79,7 +79,6 @@ Generate as JSON with these exact keys:
 
 editions must have exactly 3 items (e.g., Signed Edition, Gift Box Edition, VIP Edition). Make everything specific.` }
         ],
-        temperature: 0.7,
       }),
     });
 

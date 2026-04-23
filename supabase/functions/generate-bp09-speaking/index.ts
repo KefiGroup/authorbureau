@@ -85,7 +85,6 @@ Generate as JSON with these exact keys:
 
 event_types must have exactly 3 items. pricing_tiers must have exactly 3 items. Make everything specific.` }
         ],
-        temperature: 0.7,
       }),
     });
 
