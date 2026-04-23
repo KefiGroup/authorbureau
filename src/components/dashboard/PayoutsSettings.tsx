@@ -152,7 +152,7 @@ export default function PayoutsSettings() {
               <RadioGroupItem value="stripe" id="m-stripe" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="m-stripe" className="font-semibold cursor-pointer flex items-center gap-2">
-                  Stripe Express <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Fastest</Badge>
+                  Stripe Express <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Auto</Badge>
                 </Label>
                 <p className="text-xs text-muted-foreground mt-0.5">Automatic transfer to your bank on the 1st. No CSV, no waiting. Available in 45+ countries.</p>
               </div>
