@@ -59,8 +59,15 @@ export default function BP07Builder({ authorId }: Props) {
       }
       const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-07").maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setPriceOverride((node.content_json as any)?.suggested_price_usd || null);
+        const cj = node.content_json as any;
+        setContent(cj);
+        setPriceOverride(cj?.suggested_price_usd || null);
+        const dc: string[] = Array.isArray(cj?.delivery_channels) ? cj.delivery_channels : ["readers_bureau"];
+        setChannels({
+          readers_bureau: true,
+          thinkific: dc.includes("thinkific"),
+          email_pdf: dc.includes("email_pdf"),
+        });
         setStep(node.status === "live" ? 3 : 2);
         if (node.status === "live") setContent((p: any) => ({ ...p, activated: true }));
       }
