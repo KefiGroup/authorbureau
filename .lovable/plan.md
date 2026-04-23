@@ -1,64 +1,44 @@
 
 
-# Plan — Fix grammar of "After this section, you can:" outcomes
+# Plan — Lock workbook to 8.5 × 11" (KDP standard)
 
-## The bug
+The user wants to skip the trim-size picker entirely. Workbook is always **8.5 × 11"** — the standard Amazon KDP "Large Workbook" trim. We just need to say so.
 
-The label `After this section, you can:` is meant to be completed by a **verb phrase** (e.g. "articulate a crisp niche, elevate your environment, and track simple metrics"). Instead, Abby returns full sentences like `"You will articulate a crisp niche..."`, producing the broken read:
+## Changes
 
-> After this section, you can: You will articulate a crisp niche...
+### 1. PDF + DOCX stay at 8.5 × 11"
 
-## Fix (two layers — prompt + render-time sanitizer)
+`src/lib/workbook-pdf.ts` and `src/lib/workbook-docx.ts` already render at US Letter (8.5 × 11"). **No layout changes** — leave the page size, margins, and ruled-line spacing exactly as they are.
 
-### 1. Prompt — `supabase/functions/generate-bp06-online-course/index.ts`
+### 2. Update KDP-readiness messaging in the Amazon CTA
 
-Tighten the `outcome` field spec so new generations are correct:
+In `src/components/dashboard/builders/shared/BuilderIntroBlock.tsx`, update the BP-06 `publishExternal` description so the Amazon block tells the author the file is already at the right size:
 
-```jsonc
-"outcome": "Verb phrase completing the sentence 'After this section, you can:' — start with a lowercase verb, no subject pronoun. Example: 'articulate a crisp niche, redesign your workspace, and track three weekly metrics.' Do NOT start with 'You will', 'You can', 'Readers will', etc."
-```
+> "Your workbook is formatted at **8.5 × 11"** — the standard Amazon KDP 'Large Workbook' trim. Download the PDF and upload it directly at PublishNow.io to list it on Amazon as a paperback (perfect for bundling with your book or as an upsell)."
 
-### 2. Render-time sanitizer — covers existing drafts
+### 3. Surface the trim in the Overview badge
 
-Existing workbooks already in the DB still have the broken `outcome` strings. Add a tiny pure helper used by both the UI and the PDF so the fix is retroactive without a regeneration:
+In `src/components/dashboard/builders/bp06/BP06Builder.tsx`, the Overview "Format" line currently shows whatever Abby returned (e.g. "PDF + Printable"). Replace it with a fixed line:
 
-In a shared spot (top of `src/lib/workbook-pdf.ts`, also re-imported in `BP06Builder.tsx`):
+> **Print format:** 8.5 × 11" (Amazon KDP Large Workbook standard) · KDP-ready
 
-```ts
-export function normalizeOutcome(raw?: string): string {
-  if (!raw) return "";
-  let s = raw.trim();
-  // Strip leading subject+modal phrases so the sentence flows from the label.
-  s = s.replace(
-    /^(you(['']| wi)?(ll)?|you can|you['']ll be able to|readers (will|can)|the reader (will|can)|by the end[^,]*,\s*you (will|can))\s+/i,
-    "",
-  );
-  // Lowercase the first letter (verb), but leave acronyms/proper nouns alone.
-  if (s.length > 1 && /^[A-Z][a-z]/.test(s)) s = s[0].toLowerCase() + s.slice(1);
-  return s;
-}
-```
+So every author sees the same correct trim, regardless of what Abby wrote into `content.format`.
 
-Then:
-- `BP06Builder.tsx` line 317 → `<p className="text-sm">{normalizeOutcome(s.outcome)}</p>`
-- `workbook-pdf.ts` line 272 → `drawCalloutBox(doc, y, "After this section, you can:", normalizeOutcome(s.outcome))`
+### 4. Remove the trim suggestion from Abby's prompt
 
-Result: "After this section, you can: **articulate a crisp niche, elevate your environment, and track simple metrics that move your mission and money.**"
-
-## Files touched
-
-- `supabase/functions/generate-bp06-online-course/index.ts` — tighten the `outcome` field spec in the prompt.
-- `src/lib/workbook-pdf.ts` — export `normalizeOutcome` helper; use it when rendering the callout.
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx` — import and use `normalizeOutcome` in the section card.
+In `supabase/functions/generate-bp06-online-course/index.ts`, drop the `format` field from the JSON schema (or pin it to the string `"8.5 × 11\" PDF — Amazon KDP-ready"`) so Abby never proposes a different size. No `format_spec` block, no dropdown, no override.
 
 ## Out of scope
 
-- Re-running existing generations (not needed — sanitizer handles them).
-- Other AI-returned text where the same pattern might appear (no other UI label has this issue today).
+- Trim-size dropdown / picker UI (explicitly cut per user request).
+- 7×10 and 6×9 layouts.
+- Cover-file generation (handled in PublishNow.io).
 
 ## Verification
 
-1. Open the existing workbook → each section card reads "After this section, you can: **<verb phrase>**" with no "You will" stutter.
-2. Download the PDF → the callout box reads cleanly the same way.
-3. Generate a fresh workbook → new `outcome` values come back as verb phrases without needing the sanitizer.
+1. Open any existing workbook → Overview shows "Print format: 8.5 × 11" … KDP-ready".
+2. Download PDF → renders at 8.5 × 11" (unchanged).
+3. Download Word → opens at 8.5 × 11" page size (unchanged).
+4. "Publish & sell on Amazon" block reads the new copy referencing 8.5 × 11" and PublishNow.io.
+5. Generate a fresh workbook → no trim-size field appears anywhere; format is always shown as 8.5 × 11".
 
