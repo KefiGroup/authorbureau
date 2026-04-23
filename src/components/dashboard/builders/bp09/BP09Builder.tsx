@@ -335,7 +335,12 @@ export default function BP09Builder({ authorId }: Props) {
         )}
         {step === 3 && content?.activated && (
           <>
-            <PublishSuccessScreen nodeId="BP-09" authorName={authorName} penNameSlug={authorSlug} />
+            <PublishSuccessScreen
+              nodeId="BP-09"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              abbyMessage={`Your toolkit is saved here in your Brand Products library. Re-open BP-09 anytime to download the .pptx slide decks (workshop + corporate lunch), the printable PDF handout and bulk-order proposal, and copy the scripts, Q&A seeds, inscriptions and bios. Nothing is published publicly — this is your private field kit for live events.`}
+            />
             <BackToReviewLink onClick={() => setStep(2)} />
           </>
         )}
