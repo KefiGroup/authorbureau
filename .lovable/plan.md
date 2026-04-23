@@ -1,122 +1,115 @@
 
 
-# Plan — Fix Workbook sales-page language, rewrite Abby's prompt, deliver what's promised
+# Plan — Gate "Publish/Go Live" on Stripe Connect for paid products
 
-## Three real problems on the live page
+## Findings (Pauline Teo, pl@paulineteo.com)
 
-### Problem 1 — Outcome copy still leaks "You will…"
+Queried `author_profiles` directly:
 
-The screenshots show: **"After this section, you can: You will own a personal crisis-response playbook…"** and **"You will hold a clear 12-month vision…"**
-
-`normalizeOutcome()` (in `src/lib/workbook-pdf.ts`) is supposed to strip those leading subject+modal phrases, but the regex misses cases like "You will own…" because of how the alternation `you(['']| wi)?(ll)?` is composed. The regex matches `you` then optionally tries to match `'` OR ` wi`, then optionally `ll` — so "You will" doesn't reliably get caught.
-
-**Fix:** rewrite the regex with a cleaner alternation list:
-```ts
-/^(you['']?ll|you will|you can|you['']ll be able to|you['']re going to|readers (will|can)|the reader (will|can)|by the end[^,]*,\s*you (will|can))\s+/i
-```
-…and add a runtime fallback that, even after stripping, drops a leading "be able to " if Abby produced "you will be able to articulate…".
-
-We also fix the **public sales page** — the same outcomes render via `MicrositePage.tsx` → `WorkbookSalesPage`, which currently prints `s.outcome` raw. Pipe it through the same `normalizeOutcome` import.
-
-### Problem 2 — The sales page promises deliverables the workbook doesn't actually contain
-
-The sales page lists:
-- SUCKCESS Framework Canvas and 90-Day Planner
-- Crisis-Response Playbook and Energy Protocol Tracker
-- Niche and Money Metrics Canvas with weekly dashboards
-- Signature Story Template and 12-Month Futurecast Guide
-
-But the PDF (see `renderSection` in `workbook-pdf.ts`) only renders:
-- section title + description
-- exercise prompts with **6 ruled lines** under each
-- a callout "After this section, you can…"
-
-There are **no canvas grids, no tracker tables, no 90-day calendar, no story template** — just ruled lines. The author is selling artifacts that don't exist in the file.
-
-**Fix — add a real "Deliverables Pack" in the workbook itself:**
-
-After the 5 sections, insert a new **"Your Toolkit"** chapter with one templated page per item in `what_youll_get[]`. Each artifact gets a designed worksheet:
-
-| Artifact pattern Abby names | Template rendered in PDF |
+| Field | Value |
 |---|---|
-| `… Canvas` / `… Map` | 4-quadrant canvas grid (2×2), each quadrant labelled and lined for handwriting |
-| `… Planner` / `90-Day Planner` | 12-week grid (3 cols × 4 rows) with weekly milestone slots |
-| `… Tracker` / `… Dashboard` | Weekly tracking table — 7 days × N rows of metrics |
-| `… Playbook` / `… Protocol` | Numbered framework template — Trigger / Response / Recovery rows |
-| `… Story Template` / `… Outline` | 5-part story template (Hook / Hardship / Helper / Hinge / Hope) with response space |
-| `… Futurecast Guide` / `Vision …` | 12-month vision page with 4 quarter blocks + evidence list |
-| Anything else | Default lined worksheet titled with the artifact name |
+| `pen_name` | Pauline Teo |
+| `author_slug` | pauline-teo |
+| `stripe_connected_account_id` | **null** |
+| `stripe_onboarding_complete` | **false** |
 
-Implementation: in `src/lib/workbook-pdf.ts` and `src/lib/workbook-docx.ts`, add a `renderToolkit(content)` function that loops `content.what_youll_get` and dispatches to the correct template using lightweight string matching on the deliverable name. Add four helpers: `drawCanvasGrid()`, `draw90DayPlanner()`, `drawWeeklyTracker()`, `drawStoryTemplate()`. Each helper just draws boxes / lines / labels — no AI, no extra prompts.
+**Pauline has NOT set up Stripe.** Yet she has 25 nodes already published as `live`, including BP-06 (the $2.99 workbook). That confirms the bug: today the platform lets authors publish paid products without a payment gateway, so readers hit the "Payments coming soon" modal at Buy Now (the screenshot).
 
-This means **whatever Abby names in `what_youll_get`, the PDF actually contains a corresponding template page**. Promise = delivery.
+## Why this is happening
 
-### Problem 3 — Abby's prompt is too shallow
+Per `mem://architecture/commerce-engine-v1`: today the platform deliberately lets authors publish freely and only gates Stripe at the reader's Buy Now click via `BuyNowButton`. The user is now overriding that rule for paid products: **if a node has a price > 0, the author must connect Stripe before it can go live.**
 
-Current prompt asks for `what_youll_get: ["Deliverable 1", ...]` as freeform strings. Abby invents pretty names but never grounds them in the workbook's actual structure.
+Free products (lead magnets, free workbook, free chapters, free webinars) keep publishing freely — only the **monetised** path requires Stripe.
 
-**Rewrite Abby's prompt** (`supabase/functions/generate-bp06-online-course/index.ts`) so each deliverable is **a structured object** that ties back to the sections, and so the outcome copy is enforced server-side:
+## What we'll build
 
-```jsonc
-"what_youll_get": [
-  {
-    "name": "SUCKCESS Framework Canvas",
-    "type": "canvas",                      // canvas | planner | tracker | playbook | story | vision | worksheet
-    "purpose": "One sentence: what the reader uses it for",
-    "linked_section": 1                    // which section it complements
-  },
-  // …4 total, one per major section
-]
+### 1. Server-side gate (the source of truth)
+
+Update `supabase/functions/save-author-node/index.ts` → `action: "publish"` branch:
+
+- After loading the node row, also load `author_profiles.stripe_onboarding_complete` for the same `authorId`.
+- Compute `isPaid` from `content_json`:
+  - `Number(content_json.suggested_price_usd ?? content_json.price_usd ?? 0) > 0`
+  - OR `content_json.pricing_recommendation === "paid"`
+  - OR any `sales_tiers[*].price_usd > 0` (covers BA-13, YR-22, YR-25, etc.)
+- If `isPaid && !stripe_onboarding_complete`, return `409` with:
+  ```json
+  { "error": "stripe_required", "message": "Connect Stripe before publishing paid products.", "stripe_required": true }
+  ```
+- Free products publish unchanged.
+
+This means even if a stale UI bypasses the front-end check, the database can never flip to `live` for a paid product without Stripe.
+
+### 2. Front-end gate (good UX)
+
+`src/lib/publish-node.ts`:
+- Detect the new `409 stripe_required` shape and throw a typed `StripeRequiredError`.
+
+`src/components/dashboard/builders/bp06/BP06Builder.tsx` and `SharedPublishStep.tsx`:
+- Pre-flight check before calling `publishNodeToSite` for paid nodes — read `useStripeConnect().onboarding_complete`. If false and the node is paid, **do not call publish**; instead show a blocking modal:
+  > **Connect Stripe to publish your paid workbook**
+  > Your $2.99 workbook needs a connected payment account so readers can actually buy it. Free products can publish anytime.
+  > [ Connect Stripe → ] [ Make this free instead ] [ Cancel ]
+- "Connect Stripe →" calls `startOnboarding()` (existing flow).
+- "Make this free instead" sets `suggested_price_usd = 0`, `pricing_recommendation = "free"`, saves, then continues publishing.
+- If publish was already attempted and the server returned `stripe_required`, surface the same modal.
+
+### 3. Builder publish-checklist row
+
+In every paid builder's checklist (`SharedPublishStep`), add a checklist item: **"Stripe payments connected"**. It only renders when `isPaid`. Reads `onboarding_complete` from `useStripeConnect`. Disables the Publish button while unchecked.
+
+For BP-06 specifically (which doesn't use `SharedPublishStep`), inject the same row inline in `BP06Builder` step 2 (Review).
+
+### 4. Status sweep for already-live paid products
+
+One-time migration to bring existing data in line with the new rule:
+
+```sql
+UPDATE author_nodes
+SET status = 'content_ready', activated_at = NULL, microsite_url = NULL
+WHERE status = 'live'
+  AND author_id IN (
+    SELECT id FROM author_profiles
+    WHERE stripe_onboarding_complete IS NOT TRUE
+  )
+  AND (
+    (content_json->>'suggested_price_usd')::numeric > 0
+    OR content_json->>'pricing_recommendation' = 'paid'
+  );
 ```
 
-The PDF generator switches on `type` to pick the right template (canvas grid, 90-day planner grid, weekly tracker, etc.) — no string-matching guesswork.
+For Pauline this affects **BP-06 ($2.99)** — it gets demoted to `content_ready`, the public sales page disappears (no microsite), and her dashboard will prompt her to connect Stripe to relist it. BA-10 ($197) and BA-13 ($1997) currently have no `pricing_recommendation` field set; we'll include them in the sweep too because their numeric price > 0.
 
-**Also tighten the prompt:**
-- Add an explicit **language rule** for `outcome`: *"Must be a verb phrase. Must NOT begin with 'You', 'Readers', 'By the end', or any subject pronoun. Start with a lowercase action verb. Wrong: 'You will own a playbook.' Right: 'own a personal crisis-response playbook and baseline habits that make you stronger under stress.'"* Plus 2 worked examples in the prompt.
-- Add a rule for `transformation_promise`: *"One sentence, second-person ('you'), present-tense action verb, ≤ 30 words."*
-- Add a rule for `who_its_for`: *"Start with 'For…'. ≤ 60 words."*
-- Add a rule for `tagline`: *"≤ 8 words, punchy, no period."*
-- Bump `max_completion_tokens` from 8000 → 12000 to fit the structured deliverables.
+Free nodes (BP-01..05, BA-11..18 minus paid ones, YR-19..28 without prices) stay live.
 
-### Bonus: keep the existing live workbook working
+### 5. Account-settings nudge
 
-Existing `content_json` only has `what_youll_get: string[]`. The new toolkit renderer must **handle both shapes** — if items are strings it falls back to the keyword matcher; if they're objects it uses the explicit `type`.
+Top of `ConnectSettings` page already exists. Add a one-line summary card above it: "X paid products are waiting for Stripe to go live" (computed live from `author_nodes` for the current author). Clicking it scrolls to the Stripe row.
 
 ## Files touched
 
-1. `src/lib/workbook-pdf.ts`
-   - Fix `normalizeOutcome` regex.
-   - Add `renderToolkit()` + helpers (`drawCanvasGrid`, `draw90DayPlanner`, `drawWeeklyTracker`, `drawStoryTemplate`, `drawVisionPage`, `drawPlaybookTable`).
-   - Wire `renderToolkit` into `buildWorkbookPdf` between `renderSection` loop and `renderActionPlan`.
-   - Update `estimateWorkbookPageCount` to include 1 page per deliverable.
-
-2. `src/lib/workbook-docx.ts`
-   - Mirror `renderToolkit` in DOCX (simpler — tables for grids, paragraphs for prompts).
-   - Re-uses `normalizeOutcome` (already imported).
-
-3. `src/pages/MicrositePage.tsx` → `WorkbookSalesPage`
-   - Import `normalizeOutcome` from `@/lib/workbook-pdf`.
-   - Wrap `s.outcome` rendering with `normalizeOutcome(s.outcome)`.
-   - When `what_youll_get[i]` is an object, render `item.name` instead of stringifying.
-
-4. `supabase/functions/generate-bp06-online-course/index.ts`
-   - Rewrite the user prompt with the new structured `what_youll_get`, language rules, and worked examples.
-   - Bump `max_completion_tokens` to 12000.
-   - Add a server-side post-processor: walk `content.sections[*].outcome`, pass through the same `normalizeOutcome` regex (Deno-compatible copy) before save — belt-and-braces so already-saved nodes can't show "You will…".
+1. `supabase/functions/save-author-node/index.ts` — add Stripe gate to publish branch.
+2. `src/lib/publish-node.ts` — surface `StripeRequiredError`.
+3. `src/components/dashboard/builders/bp06/BP06Builder.tsx` — pre-flight check + modal + "make free" shortcut.
+4. `src/components/dashboard/builders/shared/SharedPublishStep.tsx` — paid-product gate, checklist row, modal (one shared modal component).
+5. `src/components/dashboard/StripeRequiredModal.tsx` — **new** shared modal.
+6. `src/lib/is-paid-node.ts` — **new** helper used by both UI and migration.
+7. `src/pages/ConnectSettings.tsx` — "X paid products waiting" nudge card.
+8. New migration — sweep existing paid-but-no-Stripe `live` rows back to `content_ready`.
 
 ## Out of scope
 
-- Re-running BP-06 generation on existing live workbooks — the user can click "Regenerate" if they want the new toolkit. Existing workbooks still render correctly because the renderer falls back to string matching on `what_youll_get[]`.
-- Cover image upload for KDP (PublishNow.io still owns that step).
-- Pricing changes, Stripe Connect logic — already fixed last sprint.
-- Home-study and special-edition pages — separate fix when the user reports them.
+- Subscription products (membership), invoice-only services, donation flows — separate gates if needed later.
+- Auto-publishing the moment Stripe finishes onboarding (the user can come back and click Publish; we won't auto-flip status without their click).
+- Changing `BuyNowButton`'s "Payments coming soon" modal — once the gate is in place, readers will never see it for live products. We'll leave it as a defensive fallback.
+- Touching the home-study or special-edition sales pages.
 
 ## Verification
 
-1. Hard-refresh `/pauline-teo/workbook`.
-2. **Outcomes:** every "After this section, you can:" line starts with a lowercase verb. None start with "You will", "You can", or "Readers will".
-3. **Toolkit pages:** download the PDF — between the last section and the action plan there are 4 new **Toolkit** pages, each named after a `what_youll_get` item (Canvas, Tracker, Playbook, Template) with a proper grid/table.
-4. **Sales page deliverables:** the sales page list still matches the toolkit pages 1-to-1.
-5. Generate a brand-new workbook for a different book. Inspect `content_json.what_youll_get` — items are objects with `name`, `type`, `purpose`, `linked_section`. PDF renders matching templated pages.
-6. Open the existing workbook in DOCX — same toolkit pages render with table-based templates.
+1. As Pauline (no Stripe), open BP-06 at $2.99 → Publish button is disabled with checklist row "Stripe payments connected" unchecked. Clicking Publish anyway opens the new modal.
+2. Click "Make this free instead" → workbook goes live with "Free download" CTA on the public page; checklist all green.
+3. Connect Stripe → checklist flips green, Publish enables, workbook goes live with Buy Now.
+4. After the data sweep, hit `/pauline-teo/workbook` → it 404s / "Coming soon" until Stripe is connected (BP-06 demoted to `content_ready`).
+5. Free products (BP-02 lead magnet, BP-05 webinar, etc.) stay live.
+6. Direct call to `save-author-node` action=publish for a paid node without Stripe returns `409 stripe_required` (not `200`).
 
