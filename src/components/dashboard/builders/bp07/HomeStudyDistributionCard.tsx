@@ -4,6 +4,7 @@ import { Share2, ExternalLink, FileDown, GraduationCap as PortalIcon, Copy, Aler
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import { downloadBuilderPackage } from "@/lib/builder-pdf";
+import { downloadThinkificPackage } from "@/lib/builder-thinkific-export";
 
 interface Channels {
   readers_bureau: boolean;
@@ -62,17 +63,21 @@ export default function HomeStudyDistributionCard({ channels, content, authorSlu
                 <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
                 <div className="space-y-2 flex-1">
                   <p className="text-xs font-semibold text-amber-900">
-                    Authors Bureau doesn't connect to Thinkific directly. We give you a packaged export — you upload it to Thinkific yourself.
+                    Authors Bureau doesn't connect to Thinkific directly. Download the Thinkific bundle below and bulk-import it into your Thinkific course.
                   </p>
                   <ol className="text-xs text-amber-900 space-y-1 list-decimal pl-4">
-                    <li>Download your Home Study Course package below (PDF with all 21 days, exercises, sales copy).</li>
-                    <li>Log in to Thinkific and create a new course.</li>
-                    <li>Paste each day's content as a lesson, or upload the PDF as a downloadable resource.</li>
-                    <li>Add your Thinkific course URL back here so buyers receive it in their confirmation email.</li>
+                    <li>Download the <strong>Thinkific bundle (.zip)</strong> below.</li>
+                    <li>Log in at <a href="https://www.thinkific.com/" target="_blank" rel="noreferrer" className="underline">thinkific.com</a> and create a new course.</li>
+                    <li>Open <strong>Settings → Bulk Import Lessons</strong> and upload <code className="bg-amber-100 px-1 rounded">thinkific-course-import.csv</code>.</li>
+                    <li>Paste <code className="bg-amber-100 px-1 rounded">course-description.txt</code> into your Course Landing Page.</li>
+                    <li>Copy your Thinkific course URL back here so buyers receive it in their confirmation email.</li>
                   </ol>
                   <div className="flex flex-wrap gap-2 pt-1">
+                    <Button size="sm" className="h-7 text-xs" onClick={() => downloadThinkificPackage(content || {})}>
+                      <Download className="h-3 w-3 mr-1" /> Download Thinkific bundle (.zip)
+                    </Button>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => downloadBuilderPackage({ content, nodeName: "Home Study Course", bookTitle: content?.programme_title || "Home Study Course", authorName: "" })}>
-                      <Download className="h-3 w-3 mr-1" /> Download package
+                      <Download className="h-3 w-3 mr-1" /> Download PDF (printable)
                     </Button>
                     <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => window.open("https://www.thinkific.com/", "_blank", "noopener")}>
                       Open Thinkific →
