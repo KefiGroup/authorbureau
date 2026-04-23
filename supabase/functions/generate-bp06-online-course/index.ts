@@ -96,6 +96,12 @@ Make everything specific to this author's book.` }
     raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     const content = JSON.parse(raw);
 
+    // Snapshot Abby's original recommendation into locked fields. The user-editable
+    // fields (suggested_price_usd, pricing_recommendation) may be mutated later by
+    // the builder UI, but these abby_* fields must never change after generation.
+    content.abby_recommendation = content.pricing_recommendation === "paid" ? "paid" : "free";
+    content.abby_recommended_price_usd = Number(content.suggested_price_usd) || 0;
+
     await supabase.from("author_nodes").update({
       status: "content_ready",
       content_json: content,
