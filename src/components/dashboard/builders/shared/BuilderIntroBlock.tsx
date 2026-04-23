@@ -22,6 +22,14 @@ export interface BuilderIntroSpec {
   estimate: string;
   /** Optional prerequisites users should know about. */
   prerequisites?: string[];
+  /** Optional "publish externally" path (e.g. Amazon KDP via PublishNow.io). */
+  publishExternal?: {
+    title: string;
+    description: string;
+    bullets?: string[];
+    ctaLabel: string;
+    ctaUrl: string;
+  };
 }
 
 export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
