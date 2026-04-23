@@ -2523,7 +2523,19 @@ function MastermindPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 
   return (
     <YRLayout title={title} tagline={tagline} intro={promise} v={v} hFont={hFont}
-      right={<YRRightCard actionType="application" v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} ctaLabel="Apply to Join" />}
+      right={<YRRightCard
+        actionType="application"
+        ctaLabel="Apply to the Mastermind"
+        inquiryHeading="Apply for the Mastermind"
+        inquiryIntro="A small, curated cohort. We review every application personally."
+        messagePlaceholder="Where you are now, what you want this year, and why this room…"
+        selectedOfferLabel={tiers[0] ? yrStr(tiers[0]?.name || tiers[0]?.title || tiers[0]?.tier) : undefined}
+        selectedOfferPrice={typeof tiers[0]?.price_usd === "number" ? tiers[0].price_usd : (typeof tiers[0]?.price === "number" ? tiers[0].price : undefined)}
+        v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
+        email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+        lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+        submitting={submitting} submitted={submitted}
+      />}
     >
       <YRBulletSection heading="Curriculum Pillars" items={pillars} v={v} hFont={hFont} />
       {tiers.length > 0 && (
