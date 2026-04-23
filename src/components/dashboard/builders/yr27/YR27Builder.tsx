@@ -14,6 +14,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
+import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your fundraising campaign...", "Creating donation tiers...", "Building your communication plan...", "Finalising your campaign..."];
 const ACT_MSGS = ["Creating donation payment links...", "Almost ready..."];
@@ -57,6 +58,7 @@ export default function YR27Builder({ authorId }: Props) {
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's launch your Fundraising Campaign</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Fundraising connects your platform to a cause greater than yourself — and builds deep loyalty with your audience. I'm going to design a complete fundraising campaign based on '{bookTitle || "your book"}' — with a campaign concept, donation tiers, and a donor communication plan. Ready to make an impact?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Campaign</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}
         {step === 2 && content && (
+          <YRSafeBoundary onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
@@ -78,7 +80,7 @@ export default function YR27Builder({ authorId }: Props) {
               <TabsContent value="tiers" className="space-y-3 mt-4">
                 {content.donation_tiers?.map((t: any, i: number) => (
                   <Card key={i}><CardContent className="pt-6 flex items-center justify-between">
-                    <div><h4 className="font-bold">{t.tier_name}</h4><p className="text-sm text-muted-foreground">{t.benefit}</p></div>
+                    <div><h4 className="font-bold">{t.tier_name}</h4><SafeText value={t.benefit} className="text-muted-foreground" /></div>
                     <span className="text-xl font-bold">${t.amount_usd}</span>
                   </CardContent></Card>
                 ))}
@@ -91,7 +93,7 @@ export default function YR27Builder({ authorId }: Props) {
                       <Card><CardContent className="pt-4 pb-4">
                         <div className="flex items-center gap-2 mb-1"><span className="text-xs bg-muted px-2 py-0.5 rounded-full">Day {c.day}</span><span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">{c.type}</span></div>
                         <h4 className="font-bold text-sm">{c.subject}</h4>
-                        <p className="text-sm text-muted-foreground">{c.summary}</p>
+                        <SafeText value={c.summary} className="text-muted-foreground" />
                       </CardContent></Card>
                     </div>
                   ))}
@@ -109,6 +111,7 @@ export default function YR27Builder({ authorId }: Props) {
               <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
+          </YRSafeBoundary>
         )}
         {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
