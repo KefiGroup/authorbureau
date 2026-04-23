@@ -2,7 +2,7 @@ import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, ExternalLink, PenLine, BookMarked,
   Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
-  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone, Settings, Filter,
+  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone, Settings, Filter, Library,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -259,6 +259,13 @@ export default function DashboardSidebar({
       subtitle: "Campaign Management",
       tooltip: "View and manage all your automated marketing campaigns.",
       color: "text-rose-500",
+    },
+    {
+      id: "library" as DashboardSection, label: "My Library",
+      icon: Library,
+      subtitle: "All your assets",
+      tooltip: "Every slide deck, PDF, workbook, and copy you've generated — re-download anytime.",
+      color: "text-emerald-500",
     },
     {
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,

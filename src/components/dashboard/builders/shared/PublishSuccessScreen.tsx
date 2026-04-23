@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Copy, ExternalLink, Link2, ArrowRight, Sparkles } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, Link2, ArrowRight, Sparkles, Library } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { NODE_NAMES, getMicrositeUrl, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
 
@@ -145,8 +145,11 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
         </Button>
       )}
 
-      {/* Secondary link */}
-      <div className="text-center">
+      {/* Secondary links */}
+      <div className="flex flex-col items-center gap-1">
+        <Button variant="link" className="text-sm" onClick={() => navigate("/dashboard?section=library")}>
+          <Library className="h-4 w-4 mr-1.5" />Open in My Library
+        </Button>
         <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate(hub.path)}>
           Go back to {hub.label}
         </Button>

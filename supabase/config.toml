@@ -151,3 +151,9 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.ba11-publish-audiobook]
     verify_jwt = false
+  [functions.get-author-library]
+    verify_jwt = false
+  [functions.export-pro-slides]
+    verify_jwt = false
+  [functions.generate-cover-image]
+    verify_jwt = false
