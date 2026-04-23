@@ -26,14 +26,11 @@ async function resolveUser(token: string): Promise<{ id: string; email: string }
     const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
     const { data: sharedUser } = await sharedClient.auth.getUser(token);
     if (sharedUser?.user?.id && sharedUser?.user?.email) {
-      // For stripe-connect we need a local user ID for profile queries
-      // Look up by email in local profiles
       const { data: profile } = await localClient
         .from("author_profiles")
         .select("user_id")
         .or(`user_id.eq.${sharedUser.user.id}`)
         .maybeSingle();
-      
       const userId = profile?.user_id || sharedUser.user.id;
       return { id: userId, email: sharedUser.user.email };
     }
@@ -49,6 +46,13 @@ async function resolveUser(token: string): Promise<{ id: string; email: string }
   throw new Error("Not authenticated");
 }
 
+/**
+ * Sprint 42 — Stripe Connect Express is now used PAYOUTS ONLY.
+ * Authors Bureau remains Merchant of Record and collects all reader payments
+ * via the master Stripe account. Express accounts here only receive
+ * `stripe.transfers.create()` calls on the 1st of each month and therefore
+ * request the `transfers` capability only (no `card_payments`).
+ */
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -74,7 +78,6 @@ serve(async (req) => {
     const { action } = await req.json();
     const origin = req.headers.get("origin") || "https://authorbureau.lovable.app";
 
-    // Get existing profile
     const { data: profile } = await supabaseAdmin
       .from("author_profiles")
       .select("stripe_account_id, stripe_onboarding_complete, pen_name")
@@ -90,7 +93,9 @@ serve(async (req) => {
 
       try {
         const account = await stripe.accounts.retrieve(profile.stripe_account_id);
-        const isComplete = account.charges_enabled && account.details_submitted;
+        // For payout-only Express, we only need transfers active.
+        const transfersActive = account.capabilities?.transfers === "active";
+        const isComplete = transfersActive && account.details_submitted;
 
         if (isComplete && !profile.stripe_onboarding_complete) {
           await supabaseAdmin
@@ -103,7 +108,7 @@ serve(async (req) => {
           JSON.stringify({
             connected: true,
             onboarding_complete: isComplete,
-            charges_enabled: account.charges_enabled,
+            transfers_enabled: transfersActive,
             payouts_enabled: account.payouts_enabled,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -119,12 +124,17 @@ serve(async (req) => {
       let accountId = profile?.stripe_account_id;
 
       if (!accountId) {
+        // Payout-only Express: request transfers capability only.
         const account = await stripe.accounts.create({
           type: "express",
           email: user.email,
-          metadata: { user_id: user.id },
+          metadata: { user_id: user.id, purpose: "payout_only" },
+          capabilities: {
+            transfers: { requested: true },
+          },
           business_profile: {
             name: profile?.pen_name || undefined,
+            product_description: "Royalty payouts from Authors Bureau marketplace",
           },
         });
         accountId = account.id;
@@ -137,8 +147,8 @@ serve(async (req) => {
 
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: `${origin}/dashboard?section=overview&stripe_refresh=true`,
-        return_url: `${origin}/dashboard?section=overview&stripe_connected=true`,
+        refresh_url: `${origin}/account-settings?tab=payouts&stripe_refresh=true`,
+        return_url: `${origin}/account-settings?tab=payouts&stripe_connected=true`,
         type: "account_onboarding",
       });
 
