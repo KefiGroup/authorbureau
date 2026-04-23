@@ -247,6 +247,17 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
   const isPaid = effectivePrice > 0;
   const pageCount = estimateWorkbookPageCount(content);
 
+  // Rewrite stale page-count claims Abby may have baked into rationales
+  // (e.g. "56-page count" / "45 pages") so they match the real PDF.
+  const reconcilePageCount = (text?: string): string => {
+    if (!text) return "";
+    return text
+      .replace(/\b\d{1,3}\s*[-–]\s*page\b/gi, `${pageCount}-page`)
+      .replace(/\b\d{1,3}\s+pages?\b/gi, `${pageCount} pages`);
+  };
+  const freeRationale = reconcilePageCount(content.free_rationale);
+  const paidRationale = reconcilePageCount(content.paid_rationale);
+
   // Sync pricing choice into content + persist. Never touches the abby_* snapshot fields.
   const persistPricing = (choice: "free" | "paid", price: number) => {
     const next = { ...content, suggested_price_usd: choice === "paid" ? price : 0, pricing_recommendation: choice };
