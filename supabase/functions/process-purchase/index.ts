@@ -208,6 +208,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, admin: 
     });
   }
 
+  // ─── Home Study (BP-07) → multi-channel email fan-out ───
+  if (productType === "home_study" || nodeId === "BP-07") {
+    try {
+      await sendHomeStudyConfirmation(admin, {
+        authorRowId,
+        purchaseId: purchaseRow?.id ?? null,
+        customerEmail,
+        customerName,
+        amount,
+        currency,
+      });
+    } catch (e) {
+      console.error("[process-purchase] home_study email fan-out failed", e);
+    }
+  }
+
   // ─── Membership → subscription row ───
   if (productType === "membership" || session.mode === "subscription") {
     const subId = typeof session.subscription === "string" ? session.subscription : null;
