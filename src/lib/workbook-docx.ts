@@ -158,6 +158,101 @@ function calloutBox(label: string, body: string): Table {
   });
 }
 
+// ---- Toolkit templates (DOCX) -----------------------------------------------
+
+function gridTable(rows: string[][], headerRow?: string[]): Table {
+  const colCount = (headerRow || rows[0]).length;
+  const colW = Math.floor(9360 / colCount);
+  const cellBorders = {
+    top: { style: BorderStyle.SINGLE, size: 4, color: "B4B4B4" },
+    bottom: { style: BorderStyle.SINGLE, size: 4, color: "B4B4B4" },
+    left: { style: BorderStyle.SINGLE, size: 4, color: "B4B4B4" },
+    right: { style: BorderStyle.SINGLE, size: 4, color: "B4B4B4" },
+  };
+  const trs: TableRow[] = [];
+  if (headerRow) {
+    trs.push(
+      new TableRow({
+        children: headerRow.map((h) =>
+          new TableCell({
+            width: { size: colW, type: WidthType.DXA },
+            shading: { fill: "F5F7FC", type: ShadingType.CLEAR, color: "auto" },
+            borders: cellBorders,
+            margins: { top: 120, bottom: 120, left: 120, right: 120 },
+            children: [p(h, { bold: true, size: 20, color: "505050" })],
+          }),
+        ),
+      }),
+    );
+  }
+  for (const row of rows) {
+    trs.push(
+      new TableRow({
+        children: row.map((cellText) =>
+          new TableCell({
+            width: { size: colW, type: WidthType.DXA },
+            borders: cellBorders,
+            margins: { top: 200, bottom: 200, left: 120, right: 120 },
+            children: [p(cellText, { size: 20, color: "606060" })],
+          }),
+        ),
+      }),
+    );
+  }
+  return new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: Array(colCount).fill(colW), rows: trs });
+}
+
+function renderToolkitTemplate(item: ToolkitItem): (Paragraph | Table)[] {
+  const t = item.type || "worksheet";
+  const out: (Paragraph | Table)[] = [];
+  if (t === "canvas") {
+    out.push(gridTable([["Where I am now", "Where I want to be"], ["What's in my way", "First moves this week"]]));
+  } else if (t === "planner") {
+    const rows: string[][] = [];
+    let w = 1;
+    for (let r = 0; r < 4; r++) {
+      const row: string[] = [];
+      for (let c = 0; c < 3; c++) row.push(`Week ${w++}\nMilestone:`);
+      rows.push(row);
+    }
+    out.push(gridTable(rows));
+  } else if (t === "tracker") {
+    const headers = ["Track", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const metrics = ["Metric 1", "Metric 2", "Metric 3", "Metric 4", "Reflection / win"];
+    const rows = metrics.map((m) => [m, "", "", "", "", "", "", ""]);
+    out.push(gridTable(rows, headers));
+  } else if (t === "playbook") {
+    const headers = ["Trigger", "Response", "Recovery"];
+    const rows = Array.from({ length: 5 }, () => ["", "", ""]);
+    out.push(gridTable(rows, headers));
+  } else if (t === "story") {
+    const parts: [string, string][] = [
+      ["HOOK", "Open with a moment that pulls the reader in."],
+      ["HARDSHIP", "What was hard, broken, or at stake?"],
+      ["HELPER", "Who or what changed your approach?"],
+      ["HINGE", "The decision that turned things around."],
+      ["HOPE", "What's possible now — for you and the reader."],
+    ];
+    for (const [label, hint] of parts) {
+      out.push(p(label, { bold: true, size: 22, color: "505050", spacingBefore: 120, spacingAfter: 40 }));
+      out.push(p(hint, { italic: true, size: 20, color: "808080", spacingAfter: 80 }));
+      for (let i = 0; i < 3; i++) out.push(ruledLine());
+    }
+  } else if (t === "vision") {
+    out.push(
+      gridTable([
+        ["Q1 — Months 1–3\n\n\n\n", "Q2 — Months 4–6\n\n\n\n"],
+        ["Q3 — Months 7–9\n\n\n\n", "Q4 — Months 10–12\n\n\n\n"],
+      ]),
+    );
+    out.push(p("Evidence I'll create along the way", { bold: true, size: 22, color: "505050", spacingBefore: 200, spacingAfter: 80 }));
+    for (let i = 0; i < 4; i++) out.push(ruledLine());
+  } else {
+    for (let i = 0; i < 12; i++) out.push(ruledLine());
+  }
+  return out;
+}
+
 export async function downloadWorkbookDocx({ content, bookTitle, authorName }: WorkbookDocxOptions): Promise<void> {
   const sections = Array.isArray(content.sections) ? content.sections : [];
   const children: (Paragraph | Table)[] = [];
