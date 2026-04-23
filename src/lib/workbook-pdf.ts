@@ -34,6 +34,17 @@ interface WorkbookContent {
   sections?: WorkbookSection[];
 }
 
+/**
+ * Estimate the rendered page count of the workbook PDF based on the actual
+ * layout in this renderer (cover + welcome + TOC + 2 pages/section + action plan + back cover).
+ * Stays within ±1 page of the real output and updates with section count.
+ */
+export function estimateWorkbookPageCount(content: WorkbookContent | null | undefined): number {
+  const sections = Array.isArray(content?.sections) ? content!.sections!.length : 0;
+  // Cover (1) + Welcome (1) + TOC (1 if any sections) + sections * 2 + Action plan (1) + Back cover (1)
+  return 1 + 1 + (sections ? 1 : 0) + sections * 2 + 1 + 1;
+}
+
 export interface WorkbookPdfOptions {
   content: WorkbookContent;
   bookTitle: string;
