@@ -1,8 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Share2, ExternalLink, FileDown, GraduationCap as PortalIcon, Copy, AlertTriangle } from "lucide-react";
+import { Share2, ExternalLink, FileDown, GraduationCap as PortalIcon, Copy, AlertTriangle, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { downloadBuilderPackage } from "@/lib/builder-pdf";
 
 interface Channels {
   readers_bureau: boolean;
