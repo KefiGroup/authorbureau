@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import RequireStripeConnected from "@/components/dashboard/RequireStripeConnected";
 import BP01Builder from "@/components/dashboard/builders/bp01/BP01Builder";
 import BP02Builder from "@/components/dashboard/builders/bp02/BP02Builder";
 import BP03Builder from "@/components/dashboard/builders/bp03/BP03Builder";
