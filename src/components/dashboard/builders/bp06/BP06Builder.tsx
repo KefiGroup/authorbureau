@@ -141,10 +141,38 @@ export default function BP06Builder({ authorId }: Props) {
   };
 
   const handlePublish = async () => {
+    // Pre-flight: paid workbook requires Stripe Connect.
+    if (isPaidNode(content) && !stripeReady) {
+      setStripeModalOpen(true);
+      return;
+    }
     setStep(3);
     setError(null);
     try {
       await publishNodeToSite(authorId!, "BP-06", authorSlug);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setContent((prev: any) => ({ ...prev, activated: true }));
+    } catch (e: unknown) {
+      if (e instanceof StripeRequiredError) {
+        setStripeModalOpen(true);
+        setStep(2);
+        return;
+      }
+      setError((e as Error).message);
+      setStep(2);
+    }
+  };
+
+  const handleMakeFree = async () => {
+    if (!authorId) return;
+    const next = { ...content, suggested_price_usd: 0, pricing_recommendation: "free" };
+    setContent(next);
+    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+    // Continue with publish now that it's free.
+    setStep(3);
+    setError(null);
+    try {
+      await publishNodeToSite(authorId, "BP-06", authorSlug);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: unknown) {
