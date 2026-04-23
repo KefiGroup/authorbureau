@@ -1,96 +1,99 @@
 
 
-# Status Audit — Reader Page Renderer Fix
+# Plan — Fix YR-25 & YR-28 Reader Page Display Bugs
 
-Here's the truth on each of your four points, verified against code + DB.
+## Diagnosis (verified in code)
 
-## Item 1 — Wire reader page to published content
-**STATUS: ✅ DONE (was already done, you may have remembered the bug)**
+Both bugs are in `src/pages/MicrositePage.tsx` and stem from the same root cause: array/object data being fed to `yrInline`, which falls back to `JSON.stringify` and prints raw JSON to the page.
 
-This was never the issue. The `get-microsite-page` edge function has always queried `author_nodes` and returned the full `content_json`. `MicrositePage.tsx` calls it on every page load via `AuthorSubpageResolver`. I re-confirmed against the DB: all 10 YR nodes for Pauline are `status=live` with rich `content_json` (packages, offers, signature_talks, membership_tiers, retreat_options, etc.), and the resolver does fetch them.
+### Bug 1 — YR-25 Certification Levels (line 2738)
+```tsx
+{l?.requirements && <p ...>{yrInline(l?.requirements)}</p>}
+```
+`requirements` is an **array of strings** (e.g. `["Complete all 6 modules…", "Submit a Suck-to-Start plan…"]`). `yrInline` JSON-stringifies it, so the page shows the raw bracketed string instead of bullets.
 
-**The real bug was downstream**: the data was arriving in the browser but no template knew how to render it. Calling this "not querying the database" is technically inaccurate — but the user-visible symptom (blank page / placeholder) was identical, so I agree the *outcome* is what matters.
-
-**Agree with the fix:** Yes — already shipped.
-
----
-
-## Item 2 — Replace "Coming Soon" with actual generated content
-**STATUS: ✅ DONE in the previous turn**
-
-10 dedicated reader templates were added to `MicrositePage.tsx` (lines 2186–2818), one per YR node, each reading the exact content shape its builder writes:
-
-| Node | Template | Reads |
-|------|----------|-------|
-| YR-19 | `CoachingPage` | `practice_title`, `packages[]`, `coaching_philosophy`, `discovery_call_script` |
-| YR-20 | `BigTicketPage` | `offers[]`, `sales_conversation_guide`, `abby_summary` |
-| YR-21 | `SpeakingPage` | `speaker_brand`, `signature_talks[]`, `fee_schedule` |
-| YR-22 | `CorporateTrainingPage` | `programme_title`, `training_formats[]`, `learning_outcomes[]` |
-| YR-23 | `MastermindPage` | `mastermind_title`, `membership_tiers[]`, `programme_promise` |
-| YR-24 | `RetreatPage` | `retreat_title`, `retreat_options[]`, `transformation_arc` |
-| YR-25 | `CertificationPage` | `certification_promise`, `modules[]`, `levels[]`, `badge_concept` |
-| YR-26 | `ConferencePage` | conference fields |
-| YR-27 | `FundraisingPage` | fundraising fields |
-| YR-28 | `SponsorsPage` | sponsor fields |
-
-Routing is wired (lines 223–232) and `GenericPage` is excluded for all 10 ids.
-
-**Agree with the fix:** Yes — this was the right architectural call. One reusable `YRLayout` + `YRRightCard` keeps the 10 components consistent, and `yrStr/yrArr/yrLines` defensive helpers prevent white-screens if AI shape drifts.
+### Bug 2 — YR-28 Pitch Deck Outline (line 2937)
+```tsx
+const deckText = ... Array.isArray(deck) ? deck.map(yrInline).join("\n") : ...
+```
+`pitch_deck_outline` is an **array of `{slide, title, content_summary}` objects**. `yrInline` JSON-stringifies each one, so readers see `{"slide":1,"title":"…","content_summary":"…"}` lines.
 
 ---
 
-## Item 3 — Replace generic "Get in Touch" with node-specific CTA
-**STATUS: 🟡 PARTIALLY DONE — needs polish**
+## Fix
 
-`YRRightCard` already routes by `actionType`:
-- YR-20, 23 → "Apply Now" application form
-- YR-21, 22, 28 → enquiry form  
-- YR-19, 24, 25, 26, 27 → enquiry/optin form
+### YR-25 — render `requirements` as a bullet list
+Replace the single inline paragraph with a `yrLines`-driven list (same pattern already used for module learning outcomes a few lines above):
 
-But the form labels and headings are still generic ("Get in Touch", "Apply Now"). They are **not** specialised per node ("Speaker Inquiry", "Sponsorship Inquiry", "Retreat Booking"). Fields are also **not pre-populated** with author details or pricing context from the generated content.
+```tsx
+{(() => {
+  const reqs = yrLines(l?.requirements);
+  if (reqs.length === 0) return null;
+  return (
+    <div className="mt-2">
+      <p className="text-xs uppercase tracking-wider mb-1" style={{ color: v.mutedText }}>Requirements</p>
+      <ul className="space-y-1">
+        {reqs.map((r, j) => (
+          <li key={j} className="flex items-start gap-2">
+            <CheckCircle2 className="h-3.5 w-3.5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+            <span className="text-sm" style={{ color: v.bodyText }}>{r}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+})()}
+```
 
-**Agree with the fix:** Yes — needs a small follow-up pass to inject node-specific form headings + carry pricing/package context into the submission payload.
+### YR-28 — render the pitch deck as a proper slide outline
+Replace the JSON-stringified `deckText` block (lines 2936–2937 + 2990–2995) with a structured slide list that reads `slide`, `title`, and `content_summary` cleanly. If the field is a plain string we keep the old paragraph rendering:
 
----
+```tsx
+const deckSlides = Array.isArray(deck)
+  ? deck.map((s: any, i: number) => ({
+      n: typeof s?.slide === "number" ? s.slide : i + 1,
+      title: yrStr(s?.title || s?.heading, `Slide ${i + 1}`),
+      summary: yrStr(s?.content_summary || s?.summary || s?.description),
+    }))
+  : [];
+const deckString = typeof deck === "string" ? deck : "";
 
-## Item 4 — "Enrol / Apply / Book / Donate" commerce button
-**STATUS: 🟡 PARTIALLY DONE — gap remains**
+// …in the JSX…
+{(deckSlides.length > 0 || deckString) && (
+  <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+    <p className="text-xs uppercase tracking-wider mb-3" style={{ color: v.mutedText }}>Pitch Deck Outline</p>
+    {deckString && <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{deckString}</p>}
+    {deckSlides.length > 0 && (
+      <ol className="space-y-3">
+        {deckSlides.map((s, i) => (
+          <li key={i} className="flex gap-3">
+            <span className="text-xs font-bold shrink-0 w-12 pt-0.5" style={{ color: v.accent }}>SLIDE {s.n}</span>
+            <div className="space-y-0.5">
+              <p className="text-sm font-semibold" style={{ color: v.headingText }}>{s.title}</p>
+              {s.summary && <p className="text-sm" style={{ color: v.bodyText }}>{s.summary}</p>}
+            </div>
+          </li>
+        ))}
+      </ol>
+    )}
+  </Card>
+)}
+```
 
-`<BuyNowButton>` is integrated for **BA-10, BA-13, BA-14** (lines 942, 1008) — those nodes have full Stripe checkout via `author_nodes` price registry. The 10 new YR templates use `YRRightCard` which renders a CTA button, but:
-- Falls back to enquiry form when `payment_link` is null (which is the case for **all 10 YR nodes for Pauline** — confirmed in DB: `payment_link: <nil>` everywhere).
-- Does **not** route through `<BuyNowButton>` / `create-checkout-session`, so even if a price is set in `author_nodes.price_usd`, no Stripe checkout fires.
-
-**Agree with the fix:** Yes, and this is the most important gap. The Commerce Engine v1 (per `mem://architecture/commerce-engine-v1`) already has the infrastructure — `author_nodes.price_usd`, `BuyNowButton`, `create-checkout-session`, dual-webhook — but YR templates aren't wired to it. They should be.
-
----
-
-## What's Done vs. What's Left
-
-| # | Claim | Status |
-|---|-------|--------|
-| 1 | Query DB for published content | ✅ Done (always was) |
-| 2 | Render real content (Overview, Packages, Tiers, Curriculum) | ✅ Done last turn |
-| 3 | Node-specific inquiry form (labels + pre-filled context) | 🟡 Generic forms still show |
-| 4 | Stripe / commerce CTA on YR pages | 🟡 BuyNowButton not wired into YR templates |
-
-## Proposed Follow-up (one focused pass, ~120 lines)
-
-1. **Specialise `YRRightCard` headings & form copy per node** — pass `inquiryHeading`, `inquiryIntro`, `submitLabel` props from each YR template ("Book Pauline to Speak", "Apply for the Mastermind", "Become a Sponsor", "Reserve Your Retreat Seat", "Donate Now").
-2. **Pre-fill submission context** — when the author submits, include the package/tier/talk title they were viewing, plus the displayed price, in the `inquiry` payload so Pauline knows which offer triggered it.
-3. **Wire `<BuyNowButton>` into YR templates that have a `price_usd` in `author_nodes`** — show "Enrol" / "Book" / "Apply" Stripe checkout for YR-19 packages, YR-23 tiers, YR-24 retreat options, YR-25 certification levels. Falls back to enquiry form only when price is zero/null.
-4. **Add a "Donate" variant** of `YRRightCard` for YR-27 fundraising that opens a Stripe payment link (uses the same `BuyNowButton` infra).
+### Optional hardening (same file, ~5 lines)
+Audit the rest of the YR templates for any other `yrInline(...)` calls that operate on fields the AI may return as arrays/objects, and swap to `yrLines` + bullet rendering where appropriate. (A quick grep shows the price-fallback uses are safe — they only hit `yrInline` when the value is not a number, which is rare and benign.)
 
 ## Files touched
-- `src/pages/MicrositePage.tsx` — extend `YRRightCard` props (~30 lines), pass per-node copy from each of the 10 templates (~5 lines each), add `<BuyNowButton>` branch when `price_usd > 0` (~25 lines).
+
+- `src/pages/MicrositePage.tsx` — `CertificationPage` (replace one line ~2738 with a bullet list block) and `SponsorsPage` (replace `deckText` derivation + render block, ~2936–2995). ~40 lines changed total.
 
 ## Out of scope
-- Builder UI, edge functions, DB schema, RLS — all unchanged.
-- Stripe Connect onboarding for Pauline — separate concern (she'd need a connected account for live commerce; currently `payment_link` is null because no Stripe price has been set on these YR nodes).
+
+- Builder UI, edge functions, DB schema, RLS, AI generation prompts — all unchanged. The data is correct; only the rendering is wrong.
 
 ## Verification
-1. `/pauline-teo/coaching` → "Book a Discovery Call" (not "Get in Touch") + Stripe checkout for the $X package if price set.
-2. `/pauline-teo/speaking` → "Book Pauline to Speak" form, submission includes which signature talk.
-3. `/pauline-teo/mastermind` → "Apply for the Mastermind" + tier price, BuyNow when configured.
-4. `/pauline-teo/sponsors` → "Become a Sponsor" form with sponsorship tier context.
-5. `/pauline-teo/fundraising` → "Donate Now" Stripe button.
+
+1. `/pauline-teo/certification` → Each level (Associate, Certified, Master) shows its requirements as a clean bulleted list, no `["…","…"]` text anywhere.
+2. `/pauline-teo/sponsors` → Pitch Deck Outline renders as a numbered slide list ("SLIDE 1 — From Disaster to Mastery" + summary), no `{"slide":1,…}` artifacts.
+3. Other YR pages (YR-19 through YR-24, YR-26, YR-27) — visually unchanged.
 
