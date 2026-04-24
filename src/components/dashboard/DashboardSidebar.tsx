@@ -332,7 +332,7 @@ export default function DashboardSidebar({
   );
 
   const renderCollapsibleBusinessSection = () => {
-    const shouldCollapse = !hasAnalysis && !bypassLocks && buildUnlocked === 0 && buildAuthorityUnlocked === 0 && yieldUnlocked === 0;
+    const shouldCollapse = false;
 
     return (
       <div className="space-y-0.5">
