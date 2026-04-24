@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback, useRef } from "react";
 import { isSuperAdmin } from "@/lib/superadmin";
-import { supabase } from "@/lib/shared-backend";
+import { getSharedSession, supabase } from "@/lib/shared-backend";
 import type { User, Session } from "@supabase/supabase-js";
 
 // Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
@@ -207,7 +207,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    getSharedSession().then((session) => {
       applySessionSnapshot(session);
     }).catch(() => {
       setAuthLoading(false);
