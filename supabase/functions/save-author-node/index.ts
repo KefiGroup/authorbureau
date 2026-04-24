@@ -133,13 +133,17 @@ Deno.serve(async (req: Request) => {
   }
 
   // ---- LOAD ----
+  // Per-book scoping: when bookId is provided, look up the book-specific row.
+  // If none exists for that book, return empty (so the builder starts fresh
+  // for that book) — DO NOT fall back to a different book's row.
   if (action === "load") {
-    const { data: node, error } = await admin
+    let q = admin
       .from("author_nodes")
       .select("content_json, status, microsite_url, activated_at, current_step")
       .eq("author_id", authorId)
-      .eq("node_id", nodeId)
-      .maybeSingle();
+      .eq("node_id", nodeId);
+    if (bookId) q = q.eq("book_id", bookId);
+    const { data: node, error } = await q.maybeSingle();
     if (error) {
       console.error("[save-author-node] load failed:", error.message);
       return json(500, { error: error.message });
