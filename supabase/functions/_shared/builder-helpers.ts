@@ -1,6 +1,10 @@
 /**
  * Shared helpers for BA/YR generator edge functions.
  * Mirrors the resilience pattern used in generate-bp02-lead-magnets.
+ *
+ * NOTE (2026-04-24): author_nodes is now per-book — every read/write is keyed
+ * on (author_id, node_id, book_id). Generators must thread book_id through
+ * snapshotAuthorNode() and upsertAuthorNode().
  */
 // @ts-nocheck — Deno runtime
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -76,8 +80,9 @@ export function parseAiJson(raw: string): any {
 }
 
 /**
- * Resolve the author's primary book using profile id, auth user id, or owner email.
- * Returns null if nothing can be found (caller decides whether to throw).
+ * Resolve the author's book using profile id, auth user id, or owner email.
+ * If a specific bookId is provided, returns that book IF it belongs to the
+ * author; otherwise falls back to the latest. Returns null if nothing found.
  */
 export async function resolveAuthorBook(
   supabase: ReturnType<typeof createClient>,
@@ -92,8 +97,6 @@ export async function resolveAuthorBook(
   }
   const candidateIds = Array.from(new Set([authorProfileId, authUserId].filter(Boolean) as string[]));
 
-  // If a specific bookId is provided, try it first — but only return it if it actually
-  // belongs to this author (by author_id OR owner_email). Otherwise fall through to latest.
   if (bookId) {
     const { data: byId } = await supabase
       .from("books")
@@ -123,7 +126,10 @@ export async function resolveAuthorBook(
 }
 
 /**
- * Idempotent upsert into author_nodes — never throws if the row doesn't exist yet.
+ * Idempotent upsert into author_nodes — keyed on (author_id, node_id, book_id).
+ * The book_id is REQUIRED for new rows to ensure per-book scoping; if not
+ * provided, we fall back to the previously stored book_id on an existing row,
+ * or NULL (legacy bucket) if none exists.
  */
 export async function upsertAuthorNode(
   supabase: ReturnType<typeof createClient>,
@@ -131,60 +137,102 @@ export async function upsertAuthorNode(
   nodeId: string,
   nodeName: string,
   payload: Record<string, unknown>,
+  bookId?: string | null,
 ) {
-  const { data: existing } = await supabase
-    .from("author_nodes")
-    .select("id")
-    .eq("author_id", authorId)
-    .eq("node_id", nodeId)
-    .maybeSingle();
+  // Try book-scoped match first
+  let existing: { id: string; book_id: string | null } | null = null;
+  if (bookId) {
+    const { data } = await supabase
+      .from("author_nodes")
+      .select("id, book_id")
+      .eq("author_id", authorId)
+      .eq("node_id", nodeId)
+      .eq("book_id", bookId)
+      .maybeSingle();
+    existing = (data as any) ?? null;
+  }
+  // Fallback: legacy author-only match (book_id = NULL) so we don't double-write
+  if (!existing && !bookId) {
+    const { data } = await supabase
+      .from("author_nodes")
+      .select("id, book_id")
+      .eq("author_id", authorId)
+      .eq("node_id", nodeId)
+      .is("book_id", null)
+      .maybeSingle();
+    existing = (data as any) ?? null;
+  }
 
   if (existing?.id) {
-    const { error } = await supabase.from("author_nodes").update(payload).eq("id", existing.id);
+    const updatePayload: Record<string, unknown> = { ...payload };
+    // If this update has a bookId and the row had none (legacy), pin it now.
+    if (bookId && !existing.book_id) updatePayload.book_id = bookId;
+    const { error } = await supabase.from("author_nodes").update(updatePayload).eq("id", existing.id);
     if (error) throw error;
     return;
   }
-  const { error } = await supabase.from("author_nodes").insert({
+  const insertPayload: Record<string, unknown> = {
     author_id: authorId,
     node_id: nodeId,
     node_name: nodeName,
     ...payload,
-  });
+  };
+  if (bookId) insertPayload.book_id = bookId;
+  const { error } = await supabase.from("author_nodes").insert(insertPayload);
   if (error) throw error;
 }
 
 /**
  * Snapshot the current author_nodes row so we can restore on error.
+ * Matches on (author_id, node_id, book_id) when bookId is provided.
  */
 export async function snapshotAuthorNode(
   supabase: ReturnType<typeof createClient>,
   authorId: string,
   nodeId: string,
+  bookId?: string | null,
 ): Promise<Record<string, unknown> | null> {
-  const { data } = await supabase
+  let q = supabase
     .from("author_nodes")
     .select("status, content_json, personalised_name, price_usd, currency, delivery_type, current_step")
     .eq("author_id", authorId)
-    .eq("node_id", nodeId)
-    .maybeSingle();
+    .eq("node_id", nodeId);
+  if (bookId) q = q.eq("book_id", bookId);
+  else q = q.is("book_id", null);
+  const { data } = await q.maybeSingle();
   return (data as Record<string, unknown>) ?? null;
 }
 
 /**
- * Build a context bundle from author_context with safe fallback to the latest book.
- * Never throws — returns whatever can be assembled.
+ * Nodes that REQUIRE a per-book author_context row. If the author hasn't run
+ * book analysis on this specific book yet, the generator should refuse rather
+ * than hallucinate from a different book's framework.
+ */
+export const FRAMEWORK_REQUIRED_NODES = new Set([
+  "BA-10", "BA-12", "BA-13",
+  "YR-19", "YR-20", "YR-22", "YR-23", "YR-24", "YR-25",
+]);
+
+/**
+ * Build a context bundle from author_context with book-strict mode.
+ *
+ * - When `bookId` is provided, search author_context by the matching book's title.
+ * - If no match is found AND the node is in FRAMEWORK_REQUIRED_NODES, return
+ *   `{ contextBlocked: true, ... }` so the caller can refuse cleanly.
+ * - Otherwise return ctx = null (caller proceeds with book metadata only).
  */
 export async function buildAuthorContext(
   supabase: ReturnType<typeof createClient>,
   authorProfileId: string,
   authUserId: string | null,
   bookId?: string | null,
+  nodeId?: string,
 ) {
-  // If a specific book is requested, prefer the author_context row matching that book's title.
-  // Otherwise use the most recent context.
   const book = await resolveAuthorBook(supabase, authorProfileId, authUserId, bookId);
 
   let ctx: Record<string, any> | null = null;
+  let contextSource: "book-specific" | "book-only-fallback" | "blocked" = "book-only-fallback";
+
   if (book?.title) {
     const { data: matchedCtx } = await supabase
       .from("author_context")
@@ -194,21 +242,28 @@ export async function buildAuthorContext(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    ctx = matchedCtx ?? null;
+    if (matchedCtx) {
+      ctx = matchedCtx;
+      contextSource = "book-specific";
+    }
   }
-  if (!ctx) {
-    const { data: latestCtx } = await supabase
-      .from("author_context")
-      .select("*")
-      .eq("author_id", authorProfileId)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    ctx = latestCtx ?? null;
+
+  // If no book-specific context AND this node requires framework intelligence,
+  // signal the caller to block instead of falling back to a different book.
+  const requiresFramework = nodeId ? FRAMEWORK_REQUIRED_NODES.has(nodeId) : false;
+  let contextBlocked = false;
+  if (!ctx && requiresFramework) {
+    contextBlocked = true;
+    contextSource = "blocked";
   }
+
+  // For non-framework-required nodes with no book-specific context, leave ctx
+  // as null. The caller will still have the book metadata to work with.
+  // We deliberately DO NOT fall back to "latest context for this author" any
+  // more — that's the bug that wrote Be SUCKcessful content into Invest's BA-10.
 
   const bookTitle = book?.title?.trim() || ctx?.book_title?.trim() || "";
   const bookSubtitle = book?.subtitle?.trim() || ctx?.book_subtitle?.trim() || "";
   const coreThesis = book?.description?.trim() || ctx?.core_thesis?.trim() || "";
-  return { ctx, book, bookTitle, bookSubtitle, coreThesis };
+  return { ctx, book, bookTitle, bookSubtitle, coreThesis, contextBlocked, contextSource };
 }

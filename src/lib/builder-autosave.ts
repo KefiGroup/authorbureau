@@ -22,6 +22,7 @@ export interface AutosaveOptions {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
   currentStep: number;
+  bookId?: string | null;
 }
 
 export async function autosaveBuilderDraft({
@@ -30,6 +31,7 @@ export async function autosaveBuilderDraft({
   nodeName,
   content,
   currentStep,
+  bookId,
 }: AutosaveOptions): Promise<void> {
   if (!authorId || !content) return;
   try {
@@ -53,6 +55,7 @@ export async function autosaveBuilderDraft({
           nodeName,
           content,
           currentStep,
+          bookId: bookId ?? null,
         }),
       },
       20000,
@@ -78,6 +81,7 @@ export interface LoadDraftResult {
 export async function loadBuilderDraft(
   authorId: string,
   nodeId: string,
+  bookId?: string | null,
 ): Promise<LoadDraftResult> {
   const empty: LoadDraftResult = { content: null, status: null, currentStep: 0, isLive: false, micrositeUrl: null };
   if (!authorId) return empty;
@@ -92,7 +96,7 @@ export async function loadBuilderDraft(
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ action: "load", authorId, nodeId }),
+        body: JSON.stringify({ action: "load", authorId, nodeId, bookId: bookId ?? null }),
       },
       20000,
     );
@@ -103,7 +107,6 @@ export async function loadBuilderDraft(
     }
     const data = (await res.json()) as LoadDraftResult;
     if (!data?.content) return empty;
-    // Re-apply the activated flag for live nodes so the UI shows them as live.
     const content = data.isLive ? { ...data.content, activated: true } : data.content;
     return {
       content,
