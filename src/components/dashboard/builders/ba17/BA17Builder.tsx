@@ -20,9 +20,9 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your product ladder...", "Creating your 3 bundle offers...", "Building your upsell sequences...", "Configuring your downsell...", "Finalising your upsell system..."];
 const ACT_MSGS = ["Creating your bundle products...", "Setting up payment links...", "Configuring your upsell flows...", "Almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BA17Builder({ authorId }: Props) {
+export default function BA17Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -70,7 +70,7 @@ export default function BA17Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba17-upsells", { body: { author_id: authorId } });
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba17-upsells", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-17", nodeName: "Upsells & Downsells", content: data.content, currentStep: 2 });

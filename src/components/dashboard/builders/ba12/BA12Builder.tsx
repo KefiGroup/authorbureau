@@ -21,9 +21,9 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your membership community...", "Creating membership tiers and benefits...", "Building your content calendar...", "Writing your welcome sequence...", "Finalising your membership blueprint..."];
 const ACT_MSGS = ["Setting up your membership tiers...", "Creating payment links for each tier...", "Configuring your welcome emails...", "Your membership is almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BA12Builder({ authorId }: Props) {
+export default function BA12Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -75,7 +75,7 @@ export default function BA12Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba12-membership", { body: { author_id: authorId } });
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba12-membership", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normaliseMembership(data.content || {});
       setContent(normalised); setPriceOverride(Number(normalised.tiers?.[0]?.price ?? 27)); setStep(2);

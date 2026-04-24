@@ -19,9 +19,9 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your affiliate programme...", "Creating commission tiers...", "Building affiliate resources...", "Planning your recruitment strategy...", "Finalising your programme..."];
 const ACT_MSGS = ["Setting up your affiliate programme...", "Creating affiliate resources...", "Almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BA16Builder({ authorId }: Props) {
+export default function BA16Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -67,7 +67,7 @@ export default function BA16Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba16-affiliate", { body: { author_id: authorId } });
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba16-affiliate", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-16", nodeName: "Affiliates", content: data.content, currentStep: 2 });

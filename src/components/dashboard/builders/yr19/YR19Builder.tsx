@@ -19,9 +19,9 @@ import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 const GEN_MSGS = ["Analysing your book's coaching potential...", "Designing your coaching packages...", "Creating your discovery call script...", "Outlining your client agreement...", "Finalising your coaching practice..."];
 const ACT_MSGS = ["Setting up your coaching calendar...", "Creating your payment pages...", "Generating your booking links...", "Almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function YR19Builder({ authorId }: Props) {
+export default function YR19Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const devUnlock = searchParams.get("unlock") === "true";
@@ -67,7 +67,7 @@ export default function YR19Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: e } = await supabase.functions.invoke("generate-yr19-coaching", { body: { author_id: authorId } });
+      const { data, error: e } = await supabase.functions.invoke("generate-yr19-coaching", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Generation failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-19", nodeName: "Coaching", content: data.content, currentStep: 2 });

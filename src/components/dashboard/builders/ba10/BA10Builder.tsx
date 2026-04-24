@@ -19,9 +19,9 @@ import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 const GEN_MSGS = ["Studying your book's key insights and frameworks...", "Designing your professional course structure...", "Creating 8 detailed course modules with lessons...", "Writing your course description...", "Finalising your course blueprint..."];
 const ACT_MSGS = ["Creating your course on the platform...", "Setting up your payment page...", "Generating your checkout link...", "Your course is almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BA10Builder({ authorId }: Props) {
+export default function BA10Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const devUnlock = searchParams.get("unlock") === "true";
@@ -78,7 +78,7 @@ export default function BA10Builder({ authorId }: Props) {
     console.log("[BA-10] Build My Course clicked", { authorId });
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba10-online-course", { body: { author_id: authorId } });
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba10-online-course", { body: { author_id: authorId, book_id: bookId ?? null } });
       console.log("[BA-10] generate response", { data, fnErr });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);
