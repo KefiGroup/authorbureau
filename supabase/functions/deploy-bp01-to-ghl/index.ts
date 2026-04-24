@@ -112,7 +112,7 @@ serve(async (req) => {
           errors.push(`Tag creation: ${tagResp.status} ${JSON.stringify(tagResp.data)}`);
         }
       } catch (e) {
-        errors.push(`Tag creation error: ${e.message}`);
+        errors.push(`Tag creation error: ${(e as Error).message}`);
       }
 
       // Step 2: Create campaign
@@ -127,7 +127,7 @@ serve(async (req) => {
           errors.push(`Campaign creation: ${campaignResp.status} ${JSON.stringify(campaignResp.data)}`);
         }
       } catch (e) {
-        errors.push(`Campaign creation error: ${e.message}`);
+        errors.push(`Campaign creation error: ${(e as Error).message}`);
       }
 
       // Step 3: Create email templates for welcome sequence
@@ -146,7 +146,7 @@ serve(async (req) => {
               errors.push(`Email ${email.email_number}: ${emailResp.status}`);
             }
           } catch (e) {
-            errors.push(`Email ${email.email_number} error: ${e.message}`);
+            errors.push(`Email ${email.email_number} error: ${(e as Error).message}`);
           }
         }
       }
@@ -186,9 +186,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("deploy-bp01-to-ghl error:", err.message);
+    const message = (err as Error).message;
+    console.error("deploy-bp01-to-ghl error:", message);
     return new Response(
-      JSON.stringify({ success: false, status: "error", error: err.message }),
+      JSON.stringify({ success: false, status: "error", error: message }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
