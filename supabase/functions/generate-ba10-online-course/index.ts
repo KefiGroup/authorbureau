@@ -92,28 +92,33 @@ async function upsertAuthorNode(
   supabase: ReturnType<typeof createClient>,
   authorId: string,
   payload: Record<string, unknown>,
+  bookId?: string | null,
 ) {
-  const { data: existingNode, error: existingNodeError } = await supabase
+  let q = supabase
     .from("author_nodes")
-    .select("id")
+    .select("id, book_id")
     .eq("author_id", authorId)
-    .eq("node_id", "BA-10")
-    .maybeSingle();
-
+    .eq("node_id", "BA-10");
+  q = bookId ? q.eq("book_id", bookId) : q.is("book_id", null);
+  const { data: existingNode, error: existingNodeError } = await q.maybeSingle();
   if (existingNodeError) throw existingNodeError;
 
   if (existingNode?.id) {
-    const { error } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
+    const updatePayload: Record<string, unknown> = { ...payload };
+    if (bookId && !existingNode.book_id) updatePayload.book_id = bookId;
+    const { error } = await supabase.from("author_nodes").update(updatePayload).eq("id", existingNode.id);
     if (error) throw error;
     return;
   }
 
-  const { error } = await supabase.from("author_nodes").insert({
+  const insertPayload: Record<string, unknown> = {
     author_id: authorId,
     node_id: "BA-10",
     node_name: "Online Course",
     ...payload,
-  });
+  };
+  if (bookId) insertPayload.book_id = bookId;
+  const { error } = await supabase.from("author_nodes").insert(insertPayload);
   if (error) throw error;
 }
 
