@@ -83,6 +83,7 @@ export async function resolveAuthorBook(
   supabase: ReturnType<typeof createClient>,
   authorProfileId: string,
   authUserId: string | null,
+  bookId?: string | null,
 ) {
   let userEmail: string | null = null;
   if (authUserId) {
@@ -90,6 +91,22 @@ export async function resolveAuthorBook(
     userEmail = u.user?.email ?? null;
   }
   const candidateIds = Array.from(new Set([authorProfileId, authUserId].filter(Boolean) as string[]));
+
+  // If a specific bookId is provided, try it first — but only return it if it actually
+  // belongs to this author (by author_id OR owner_email). Otherwise fall through to latest.
+  if (bookId) {
+    const { data: byId } = await supabase
+      .from("books")
+      .select("id, title, subtitle, description, cover_image_url, genre, owner_email, author_id")
+      .eq("id", bookId)
+      .maybeSingle();
+    if (byId) {
+      const ownsByAuthorId = byId.author_id && candidateIds.includes(byId.author_id);
+      const ownsByEmail = userEmail && byId.owner_email === userEmail;
+      if (ownsByAuthorId || ownsByEmail) return byId;
+    }
+  }
+
   const orParts: string[] = [];
   if (candidateIds.length) orParts.push(`author_id.in.(${candidateIds.join(",")})`);
   if (userEmail) orParts.push(`owner_email.eq.${userEmail}`);
