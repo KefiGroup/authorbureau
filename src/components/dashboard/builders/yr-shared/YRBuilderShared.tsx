@@ -5,18 +5,20 @@ import { Sparkles, ArrowLeft, Check, Copy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { categoryStyles, getBuilderCategory, type BuilderCategory } from "../shared/BuilderTheme";
+import { builderBackTarget, resolveActiveBookId } from "@/lib/book-nav";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
-export function StepHeader({ nodeId, nodeName, step, backTo = "/yield-revenue", category }: { nodeId: string; nodeName: string; step: number; backTo?: string; category?: BuilderCategory }) {
+export function StepHeader({ nodeId, nodeName, step, backTo, category }: { nodeId: string; nodeName: string; step: number; backTo?: string; category?: BuilderCategory }) {
   const navigate = useNavigate();
   const cat = category || getBuilderCategory(nodeId);
   const s = categoryStyles[cat];
+  const resolvedBack = backTo || builderBackTarget(resolveActiveBookId(), "yield");
   return (
     <>
       <div className={`border-b border-border bg-gradient-to-r ${s.headerGradient} px-4 py-3`}>
         <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}><ArrowLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => navigate(resolvedBack)}><ArrowLeft className="h-4 w-4" /></Button>
           <div className="flex-1"><h1 className="text-lg font-semibold">{nodeName}</h1><p className="text-xs text-muted-foreground">{nodeId}</p></div>
         </div>
       </div>
