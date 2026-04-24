@@ -126,8 +126,8 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "A premium bundle offer + sales copy",
       "Pricing recommendations",
     ],
-    livesAt: "Listed on your Brand Products library + sales page at /your-slug/special-edition/...",
-    editLater: "Re-open Special Edition to edit framing, bonuses, or pricing.",
+    livesAt: "Saved to your Library only — no public sales page or auto-payment link. Special editions need manual signing, printing, and fulfillment, so you take orders directly from gift buyers.",
+    editLater: "Re-open Special Edition to edit framing, bonuses, or pricing — then quote buyers from your library.",
     estimate: "45–75 seconds",
   },
   "BP-09": {

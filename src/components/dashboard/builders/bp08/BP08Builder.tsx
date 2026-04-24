@@ -25,7 +25,7 @@ import { startGeneration, getGeneration } from "@/lib/builder-generation-registr
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's unique qualities...", "Designing special edition concepts...", "Creating 3 premium edition tiers...", "Writing your exclusivity sales page...", "Finalising your special editions blueprint..."];
-const ACT_MSGS = ["Creating your special edition product...", "Setting up your payment page...", "Generating your checkout link...", "Your editions are almost ready..."];
+const ACT_MSGS = ["Saving your special editions to your library...", "Storing your edition tiers...", "Filing your sales-page copy...", "Almost done — your editions will live in your library..."];
 
 interface Props { authorId: string | null; }
 
@@ -258,13 +258,13 @@ export default function BP08Builder({ authorId }: Props) {
               <Button variant="ghost" className="sm:w-auto" onClick={() => setStep(0)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Previous
               </Button>
-              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish}>Save to My Library<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
-            <p className="text-xs text-center text-muted-foreground">Your special editions will be set up automatically with a payment link.</p>
+            <p className="text-xs text-center text-muted-foreground">Special editions stay in your library — no public sales page or auto-payment link. You handle printing, signing, and fulfillment off-platform, then take orders directly from gift buyers.</p>
           </div>
         )}
-        {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-08" authorName={authorName} penNameSlug={authorSlug} /><BackToReviewLink onClick={() => setStep(2)} /></>}
+        {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 5–10 seconds</p></div></AbbyCard>}
+        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-08" authorName={authorName} penNameSlug={authorSlug} abbyMessage={`Your special editions are saved to your library, ${authorName}. When a gift buyer asks for one — at an event, in your DMs, or via your contact form — open your library, copy the edition details, and quote them directly. You stay in control of pricing, signing, and timing for each premium order.`} /><BackToReviewLink onClick={() => setStep(2)} /></>}
       </div>
     </div>
   );
