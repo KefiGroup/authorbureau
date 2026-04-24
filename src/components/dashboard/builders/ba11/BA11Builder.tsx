@@ -22,7 +22,7 @@ const STUDIO_STEPS = [
 
 export default function BA11Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
-  const { hasBook, bookTitle: detectedBookTitle, bookId, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, bookId: detectedBookId, isLoading: isBookLoading } = useAuthorBook();
   const [authorName, setAuthorName] = useState("");
   const [userId, setUserId] = useState("");
   const [resolvedBookTitle, setResolvedBookTitle] = useState("");
