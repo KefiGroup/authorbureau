@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { establishSharedSession, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import { Loader2, AlertCircle, CheckCircle2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -113,11 +113,10 @@ export default function SSO() {
         if (cancelled) return;
         setStage("session");
 
-        const { error: sessionError } = await supabase.auth.setSession({
+        await establishSharedSession({
           access_token: data.session_data.access_token,
           refresh_token: data.session_data.refresh_token,
         });
-        if (sessionError) throw sessionError;
 
         if (cancelled) return;
         if (timeoutRef.current) clearTimeout(timeoutRef.current);
