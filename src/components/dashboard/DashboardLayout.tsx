@@ -164,9 +164,10 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           hasMicrosite={stats.liveMicrosites > 0}
           stripeConnected={stats.stripeConnected}
           pendingReviewCount={stats.products?.totalReadyForReview || 0}
-          buildUnlocked={stats.nodesBuilt?.brand || 0}
-          buildAuthorityUnlocked={stats.nodesBuilt?.buildAuthority || 0}
-          yieldUnlocked={stats.nodesBuilt?.yield || 0}
+          buildUnlocked={0}
+          buildAuthorityUnlocked={0}
+          yieldUnlocked={0}
+          currentBook={currentBook}
           buildAuthorityCategoryOpen={
             gating.length > 0 ? !isCategoryFullyClosed("marketing-channels") : true
           }
