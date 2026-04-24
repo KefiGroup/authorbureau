@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles, Calendar, List, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { useToast } from "@/hooks/use-toast";
 import type { SocialMediaPost, SocialMediaConfig } from "./types";
 import { CONTENT_TYPE_LABELS, PLATFORM_CONFIG } from "./types";
