@@ -1,11 +1,12 @@
-import { ReactNode, useState, useMemo } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { ReactNode, useState, useMemo, useEffect } from "react";
+import { useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardHeader from "./DashboardHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 import { useNodeGating } from "@/hooks/useNodeGating";
 import { isSuperAdmin } from "@/lib/superadmin";
+import { supabase } from "@/integrations/supabase/client";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
 interface Props {
@@ -68,7 +69,8 @@ function sectionToPath(section: DashboardSection): string {
 export default function DashboardLayout({ children, activeSection, bare = false }: Props) {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams<{ nodeId?: string }>();
+  const params = useParams<{ nodeId?: string; bookId?: string }>();
+  const [searchParams] = useSearchParams();
   const { user, isAdmin, isPremium, tier, subscription, signOut } = useAuth();
 
   const { stats } = useAuthorStats(user?.id);
@@ -82,6 +84,41 @@ export default function DashboardLayout({ children, activeSection, bare = false 
     () => activeSection ?? deriveActiveSection(location.pathname, params.nodeId),
     [activeSection, location.pathname, params.nodeId]
   );
+
+  // Detect active book id from route params or query string
+  const activeBookId = params.bookId ?? searchParams.get("bookId") ?? null;
+
+  // Resolve the title for the active book (lookup once when bookId changes)
+  const [currentBookTitle, setCurrentBookTitle] = useState<string>("");
+  useEffect(() => {
+    if (!activeBookId) {
+      setCurrentBookTitle("");
+      return;
+    }
+    let cancelled = false;
+    supabase
+      .from("books")
+      .select("title")
+      .eq("id", activeBookId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!cancelled && data) setCurrentBookTitle(data.title);
+      });
+    return () => { cancelled = true; };
+  }, [activeBookId]);
+
+  const currentBook = useMemo(() => {
+    if (!activeBookId) return null;
+    const s = stats.products?.perBook?.[activeBookId];
+    return {
+      id: activeBookId,
+      title: currentBookTitle || "Current Book",
+      brand: s?.brand ?? 0,
+      build: s?.build ?? 0,
+      yield: s?.yield ?? 0,
+      total: s?.total ?? 0,
+    };
+  }, [activeBookId, currentBookTitle, stats.products?.perBook]);
 
   if (!user) return <>{children}</>;
 
