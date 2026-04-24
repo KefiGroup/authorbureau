@@ -238,21 +238,23 @@ Deno.serve(async (req: Request) => {
     console.log("[save-author-node:publish] request received", {
       authorId,
       nodeId,
+      bookId: bookId ?? null,
       micrositeUrl: micrositeUrl ?? null,
       sub: userId,
     });
-    const { data: node, error: nodeErr } = await admin
+    let lookupQ = admin
       .from("author_nodes")
-      .select("id, content_json, status")
+      .select("id, content_json, status, book_id")
       .eq("author_id", authorId)
-      .eq("node_id", nodeId)
-      .maybeSingle();
+      .eq("node_id", nodeId);
+    if (bookId) lookupQ = lookupQ.eq("book_id", bookId);
+    const { data: node, error: nodeErr } = await lookupQ.maybeSingle();
     if (nodeErr) {
       console.error("[save-author-node:publish] lookup failed:", nodeErr.message);
       return json(500, { error: nodeErr.message });
     }
     if (!node) {
-      console.warn("[save-author-node:publish] no draft row found", { authorId, nodeId });
+      console.warn("[save-author-node:publish] no draft row found", { authorId, nodeId, bookId });
       return json(404, { error: "Node has no draft to publish. Generate content first." });
     }
 
@@ -266,21 +268,24 @@ Deno.serve(async (req: Request) => {
       activated: true,
       _currentStep: 3,
     };
+    const updatePayload: Record<string, unknown> = {
+      status: "live",
+      activated_at: new Date().toISOString(),
+      microsite_url: micrositeUrl ?? null,
+      current_step: 3,
+      content_json: mergedContent,
+    };
+    // Pin the row to this book if it was a legacy author-only row
+    if (bookId && !node.book_id) updatePayload.book_id = bookId;
     const { error: updErr } = await admin
       .from("author_nodes")
-      .update({
-        status: "live",
-        activated_at: new Date().toISOString(),
-        microsite_url: micrositeUrl ?? null,
-        current_step: 3,
-        content_json: mergedContent,
-      })
+      .update(updatePayload)
       .eq("id", node.id);
     if (updErr) {
       console.error("[save-author-node:publish] update failed:", updErr.message);
       return json(500, { error: updErr.message });
     }
-    console.log("[save-author-node:publish] published successfully", { rowId: node.id, nodeId, authorId, micrositeUrl });
+    console.log("[save-author-node:publish] published successfully", { rowId: node.id, nodeId, authorId, bookId, micrositeUrl });
     return json(200, { ok: true, status: "live", micrositeUrl: micrositeUrl ?? null });
   }
 
@@ -292,12 +297,13 @@ Deno.serve(async (req: Request) => {
     return json(400, { error: "nodeName is required for save" });
   }
 
-  const { data: existing, error: existingErr } = await admin
+  let existingQ = admin
     .from("author_nodes")
-    .select("id, status, activated_at, microsite_url")
+    .select("id, status, activated_at, microsite_url, book_id")
     .eq("author_id", authorId)
-    .eq("node_id", nodeId)
-    .maybeSingle();
+    .eq("node_id", nodeId);
+  if (bookId) existingQ = existingQ.eq("book_id", bookId);
+  const { data: existing, error: existingErr } = await existingQ.maybeSingle();
   if (existingErr) {
     console.error("[save-author-node] existing lookup failed:", existingErr.message);
     return json(500, { error: existingErr.message });
@@ -309,13 +315,15 @@ Deno.serve(async (req: Request) => {
     !!existing?.microsite_url;
   const status = isAlreadyLive ? "live" : "content_ready";
 
-  const payload = {
+  const payload: Record<string, unknown> = {
     content_json: { ...content, _currentStep: currentStep ?? 0 },
     current_step: currentStep ?? 0,
     status,
   };
 
   if (existing) {
+    // Pin to this book if it was a legacy author-only row
+    if (bookId && !existing.book_id) payload.book_id = bookId;
     const { error } = await admin
       .from("author_nodes")
       .update(payload)
@@ -324,20 +332,22 @@ Deno.serve(async (req: Request) => {
       console.error("[save-author-node] update failed:", error.message);
       return json(500, { error: error.message });
     }
-    console.log("[save-author-node] updated", { nodeId, authorId });
+    console.log("[save-author-node] updated", { nodeId, authorId, bookId });
     return json(200, { ok: true, mode: "update", status });
   } else {
-    const { error } = await admin.from("author_nodes").insert({
+    const insertPayload: Record<string, unknown> = {
       author_id: authorId,
       node_id: nodeId,
       node_name: nodeName,
       ...payload,
-    });
+    };
+    if (bookId) insertPayload.book_id = bookId;
+    const { error } = await admin.from("author_nodes").insert(insertPayload);
     if (error) {
       console.error("[save-author-node] insert failed:", error.message);
       return json(500, { error: error.message });
     }
-    console.log("[save-author-node] inserted", { nodeId, authorId });
+    console.log("[save-author-node] inserted", { nodeId, authorId, bookId });
     return json(200, { ok: true, mode: "insert", status });
   }
 });
