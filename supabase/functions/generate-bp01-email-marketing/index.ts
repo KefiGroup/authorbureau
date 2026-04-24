@@ -1,5 +1,7 @@
+// @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildAuthorContext, upsertAuthorNode } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,14 +9,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function fail(error: string, extra: Record<string, unknown> = {}) {
+  return new Response(
+    JSON.stringify({ success: false, error, ...extra }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { author_id } = await req.json();
-    if (!author_id) throw new Error("author_id is required");
+    const { author_id, book_id } = await req.json();
+    if (!author_id) return fail("author_id is required");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -27,31 +36,21 @@ serve(async (req) => {
       .select("pen_name, user_id, ghl_sub_account_id, subscription_tier")
       .eq("id", author_id)
       .single();
-    if (authorErr || !author) throw new Error("Author profile not found");
+    if (authorErr || !author) return fail("Author profile not found");
 
-    // Fetch author context (book info)
-    const { data: context } = await supabase
-      .from("author_context")
-      .select("book_title, book_subtitle, core_thesis, key_frameworks, target_audience_persona, unique_insights, commercial_angles")
-      .eq("author_id", author_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Fallback to books table if no author_context
-    let bookTitle = context?.book_title || "";
-    if (!bookTitle) {
-      const { data: book } = await supabase
-        .from("books")
-        .select("title, description")
-        .eq("author_id", author.user_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      bookTitle = book?.title || "your book";
+    // Per-book context (book-specific, no cross-book fallback)
+    const ctxBundle = await buildAuthorContext(supabase, author_id, author.user_id, book_id ?? null, "BP-01");
+    if (ctxBundle.contextBlocked) {
+      return fail(
+        "Please run the book analysis for this specific book before generating Email Marketing. This prevents content from leaking between your books.",
+        { status: "context_blocked", node_id: "BP-01" },
+      );
     }
-    const bookSubtitle = context?.book_subtitle || "";
-    const coreThesis = context?.core_thesis || "";
+    const context = ctxBundle.ctx;
+    const bookTitle = ctxBundle.bookTitle || "your book";
+    const bookSubtitle = ctxBundle.bookSubtitle || "";
+    const coreThesis = ctxBundle.coreThesis || "";
+    const resolvedBookId = ctxBundle.book?.id ?? book_id ?? null;
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "readers interested in personal growth";
     const uniqueInsights = context?.unique_insights ? JSON.stringify(context.unique_insights) : "N/A";
@@ -91,14 +90,15 @@ EXISTING LEAD MAGNET (already built by the author — you MUST reference this):
 IMPORTANT: The lead_magnet_offer in your response MUST use this exact lead magnet title and description. Do NOT invent a new lead magnet. All email CTAs should drive readers to this specific resource.`;
     }
 
-    // Also check author_nodes for BP-02 microsite URL
+    // Also check author_nodes for BP-02 microsite URL (book-scoped when possible)
     let leadMagnetUrl = "";
-    const { data: bp02Node } = await supabase
+    let bp02Q = supabase
       .from("author_nodes")
       .select("microsite_url, status")
       .eq("author_id", author_id)
-      .eq("node_id", "BP-02")
-      .maybeSingle();
+      .eq("node_id", "BP-02");
+    if (resolvedBookId) bp02Q = bp02Q.eq("book_id", resolvedBookId);
+    const { data: bp02Node } = await bp02Q.maybeSingle();
 
     if (bp02Node?.microsite_url) {
       leadMagnetInfo += `\n- Public URL: ${bp02Node.microsite_url}`;
@@ -197,19 +197,22 @@ Make everything specific to this author's book and audience. Never use generic p
       }
     }
 
-    // Update author_nodes BP-01
-    const { error: updateErr } = await supabase
-      .from("author_nodes")
-      .update({
-        status: "content_ready",
-        content_json: parsedContent,
-        personalised_name: (parsedContent as any).campaign_name || "Email Marketing",
-      })
-      .eq("author_id", author_id)
-      .eq("node_id", "BP-01");
-
-    if (updateErr) {
-      console.error("Failed to update author_nodes:", updateErr);
+    // Upsert author_nodes BP-01 — book-scoped
+    try {
+      await upsertAuthorNode(
+        supabase,
+        author_id,
+        "BP-01",
+        "Email Marketing",
+        {
+          status: "content_ready",
+          content_json: parsedContent,
+          personalised_name: (parsedContent as any).campaign_name || "Email Marketing",
+        },
+        resolvedBookId,
+      );
+    } catch (updateErr) {
+      console.error("Failed to upsert author_nodes:", updateErr);
     }
 
     return new Response(
