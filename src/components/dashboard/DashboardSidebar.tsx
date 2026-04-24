@@ -11,6 +11,9 @@ import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.webp";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 import { toast } from "@/hooks/use-toast";
+import BookChooserPopover from "./BookChooserPopover";
+import type { MyBook } from "@/hooks/useMyBooks";
+import type { PerBookStats } from "@/hooks/useAuthorStats";
 
 interface Props {
   activeSection: DashboardSection;
@@ -40,6 +43,15 @@ interface Props {
     yield: number;
     total: number;
   } | null;
+  /** Total number of books the author owns. Drives multi-book chooser logic. */
+  bookCount?: number;
+  /** Full books list (used by the multi-book chooser). */
+  books?: MyBook[];
+  /** Per-book stats keyed by book id (used by the multi-book chooser). */
+  perBookStats?: Record<string, PerBookStats>;
+  /** Called when the user picks a book inside the chooser; should navigate to
+   * `<section>?bookId=<id>`. */
+  onPickBookForSection?: (section: DashboardSection, bookId: string) => void;
 }
 
 interface NavItem {
@@ -87,7 +99,25 @@ export default function DashboardSidebar({
   stripeConnected = false, pendingReviewCount = 0,
   buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
   currentBook = null,
+  bookCount = 0,
+  books = [],
+  perBookStats,
+  onPickBookForSection,
 }: Props) {
+
+  // Which section, if any, is currently asking the user "which book?".
+  const [chooserFor, setChooserFor] = useState<DashboardSection | null>(null);
+  const BOOK_SCOPED: DashboardSection[] = [
+    "revenue-streams" as DashboardSection,
+    "marketing-channels" as DashboardSection,
+    "authority-builders" as DashboardSection,
+    "review-products" as DashboardSection,
+  ];
+  const isBookScoped = (s: DashboardSection) => BOOK_SCOPED.includes(s);
+  const needsBookPick = (s: DashboardSection) =>
+    isBookScoped(s) && bookCount > 1 && !currentBook;
+  const noBooksYet = bookCount === 0;
+
 
   // Hydrate from cache to prevent "0 built" flash, then update from live props
   const [buildUnlocked, setBuildUnlocked] = useState(() =>
@@ -193,57 +223,72 @@ export default function DashboardSidebar({
   const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("build"));
   const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("yield"));
 
+  // When the author has no books, every per-book builder is locked.
+  // When they have multiple books and no active context, we don't lock —
+  // we let the click open the BookChooserPopover instead.
+  const noBooksLock = noBooksYet ? "Add a book first to unlock" : undefined;
+  const pickBookSubtitle = (fallback: string, section: DashboardSection) =>
+    needsBookPick(section) ? "Pick a book →" : fallback;
+
   const businessItems: NavItem[] = [
     {
       id: "revenue-streams", label: "Brand Products", icon: DollarSign,
-      subtitle: "Create Your Products",
+      subtitle: pickBookSubtitle("Create Your Products", "revenue-streams" as DashboardSection),
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
       badge: brandAccessible && currentBook ? `${currentBook.brand}/9 built` : undefined,
-      lockMessage: !brandAccessible
+      lockMessage: noBooksLock ?? (!brandAccessible
         ? "Analyze a book first"
         : !tierAccess("brand")
         ? "Upgrade to Brand Plan ($49/mo)"
-        : undefined,
+        : undefined),
     },
     {
       id: "marketing-channels", label: "Build Authority", icon: Radio,
-      subtitle: buildAccessible ? "Scale Your Audience"
-        : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Plan" : "Coming Soon",
+      subtitle: pickBookSubtitle(
+        buildAccessible ? "Scale Your Audience"
+          : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Plan" : "Coming Soon",
+        "marketing-channels" as DashboardSection
+      ),
       tooltip: buildAccessible ? "Scale audience and recurring revenue"
         : !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to unlock"
         : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
       badge: buildAccessible && currentBook ? `${currentBook.build}/9 built` : undefined,
-      lockMessage: !buildAccessible
+      lockMessage: noBooksLock ?? (!buildAccessible
         ? (!tierAccess("build") && (isSuperAdminProp || buildAuthorityCategoryOpen)
           ? "Upgrade to Build Plan ($99/mo)"
           : (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon")
-        : undefined,
+        : undefined),
     },
     {
       id: "authority-builders", label: "Yield Revenue", icon: Award,
-      subtitle: yieldAccessible ? "Premium Services"
-        : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Plan" : "Coming Soon",
+      subtitle: pickBookSubtitle(
+        yieldAccessible ? "Premium Services"
+          : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Plan" : "Coming Soon",
+        "authority-builders" as DashboardSection
+      ),
       tooltip: yieldAccessible ? "Premium monetization services"
         : !tierAccess("yield") ? "Upgrade to Yield Plan ($249/mo) to unlock"
         : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
       badge: yieldAccessible && currentBook ? `${currentBook.yield}/10 built` : undefined,
-      lockMessage: !yieldAccessible
+      lockMessage: noBooksLock ?? (!yieldAccessible
         ? (!tierAccess("yield") && (isSuperAdminProp || yieldCategoryOpen)
           ? "Upgrade to Yield Plan ($249/mo)"
           : (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon")
-        : undefined,
+        : undefined),
     },
     {
       id: "review-products" as DashboardSection, label: "Review & Publish",
       icon: Package,
-      subtitle: "Approve & Go Live",
+      subtitle: pickBookSubtitle("Approve & Go Live", "review-products" as DashboardSection),
       tooltip: "Review AI-generated products and publish them to your microsite.",
       notificationCount: pendingReviewCount,
+      lockMessage: noBooksLock,
     },
   ];
+
 
   // ── YOUR BRAND ──
   const brandItems: NavItem[] = [
@@ -414,6 +459,7 @@ export default function DashboardSidebar({
         {(businessExpanded || collapsed) && businessItems.filter(i => !i.hidden).map((item, idx) => {
           const isLocked = !!item.lockMessage;
           const isActive = activeSection === item.id && !isLocked;
+          const needsPick = !isLocked && needsBookPick(item.id);
 
           const btn = (
             <button
@@ -421,6 +467,10 @@ export default function DashboardSidebar({
               onClick={() => {
                 if (isLocked) {
                   toast({ title: "Locked", description: item.lockMessage });
+                  return;
+                }
+                if (needsPick) {
+                  setChooserFor(item.id);
                   return;
                 }
                 onSectionChange(item.id);
@@ -440,7 +490,7 @@ export default function DashboardSidebar({
                   <span className="flex-1 text-left whitespace-normal leading-tight">
                     <span className="block">{item.label}</span>
                     {item.subtitle && (
-                      <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
+                      <span className={`block text-[10px] font-normal leading-tight ${needsPick ? "text-secondary" : "text-muted-foreground/50"}`}>{item.subtitle}</span>
                     )}
                   </span>
                   {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
@@ -452,17 +502,32 @@ export default function DashboardSidebar({
             </button>
           );
 
+          // Wrap with chooser popover when this item needs a book pick.
+          const wrapped = needsPick ? (
+            <BookChooserPopover
+              key={`${item.id}-${idx}-chooser`}
+              open={chooserFor === item.id}
+              onOpenChange={(o) => setChooserFor(o ? item.id : null)}
+              books={books}
+              perBook={perBookStats}
+              destinationLabel={item.label}
+              onPick={(bookId) => onPickBookForSection?.(item.id, bookId)}
+            >
+              {btn}
+            </BookChooserPopover>
+          ) : btn;
+
           if (item.tooltip || collapsed) {
             return (
               <Tooltip key={`${item.id}-${idx}`}>
-                <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                <TooltipTrigger asChild>{wrapped}</TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[220px] text-xs">
                   {collapsed ? item.label : item.tooltip}
                 </TooltipContent>
               </Tooltip>
             );
           }
-          return btn;
+          return wrapped;
         })}
       </div>
     );

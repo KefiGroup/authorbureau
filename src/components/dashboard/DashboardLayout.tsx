@@ -5,6 +5,7 @@ import DashboardHeader from "./DashboardHeader";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 import { useNodeGating } from "@/hooks/useNodeGating";
+import { useMyBooks } from "@/hooks/useMyBooks";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/integrations/supabase/client";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
@@ -74,6 +75,7 @@ export default function DashboardLayout({ children, activeSection, bare = false 
   const { user, isAdmin, isPremium, tier, subscription, signOut } = useAuth();
 
   const { stats } = useAuthorStats(user?.id);
+  const { books } = useMyBooks(user?.id);
   const { gating, isCategoryFullyClosed } = useNodeGating();
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -133,6 +135,17 @@ export default function DashboardLayout({ children, activeSection, bare = false 
     navigate(sectionToPath(s as DashboardSection));
   };
 
+  // When the chooser picks a book for a per-book builder, attach ?bookId=
+  const handlePickBookForSection = (section: DashboardSection, bookId: string) => {
+    const base = sectionToPath(section);
+    const sep = base.includes("?") ? "&" : "?";
+    navigate(`${base}${sep}bookId=${bookId}`);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setSidebarCollapsed(true);
+    }
+  };
+
+
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden">
       {/* Mobile overlay */}
@@ -168,6 +181,10 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           buildAuthorityUnlocked={0}
           yieldUnlocked={0}
           currentBook={currentBook}
+          bookCount={stats.bookCount}
+          books={books}
+          perBookStats={stats.products?.perBook}
+          onPickBookForSection={handlePickBookForSection}
           buildAuthorityCategoryOpen={
             gating.length > 0 ? !isCategoryFullyClosed("marketing-channels") : true
           }

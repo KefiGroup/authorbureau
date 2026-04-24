@@ -10,10 +10,13 @@ import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
 import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
 import CompactMicrositeCard from "./framework-dashboard/CompactMicrositeCard";
+import MultiBookPicker from "./framework-dashboard/MultiBookPicker";
 import SpecialEditionCalendarCard from "./SpecialEditionCalendarCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { useMyBooks } from "@/hooks/useMyBooks";
+import { useAuthorStats } from "@/hooks/useAuthorStats";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronDown } from "lucide-react";
 
@@ -25,6 +28,8 @@ interface Props {
 export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props) {
   const { user, tier, subscription, checkSubscription } = useAuth();
   const { toast } = useToast();
+  const { books: myBooks } = useMyBooks(user?.id);
+  const { stats } = useAuthorStats(user?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -274,6 +279,15 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   if (!hasPlan) {
     return (
       <div className="max-w-6xl space-y-8">
+        {/* Multi-book picker — shown when author has >1 book */}
+        {myBooks.length > 1 && (
+          <MultiBookPicker
+            books={myBooks}
+            perBook={stats.products?.perBook}
+            onAddBook={() => onNavigate("my-books")}
+          />
+        )}
+
         {/* Section 1: Meet Abby (top) */}
         <MeetAbbySection
           hasPlan={false}
@@ -317,6 +331,15 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   // STATE B: Author HAS completed Abby's analysis
   return (
     <div className="max-w-6xl space-y-8">
+      {/* Multi-book picker — shown when author has >1 book */}
+      {myBooks.length > 1 && (
+        <MultiBookPicker
+          books={myBooks}
+          perBook={stats.products?.perBook}
+          onAddBook={() => onNavigate("my-books")}
+        />
+      )}
+
       {/* Section 1: 4-Step Journey (top, step 3 highlighted) */}
       <JourneyMapCTA
         micrositeState={micrositeStep}
