@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 interface Payout { id: string; author_id: string; period_start: string; period_end: string; gross_usd: number; net_usd: number; payout_fee_usd: number; payout_method: string; status: string; external_reference: string | null; paid_at: string | null; csv_batch_id: string | null; }
 interface AuthorMini { id: string; pen_name: string | null; }
@@ -83,8 +84,9 @@ export default function AdminPayouts() {
   const totalPaidLifetime = paid.reduce((s, p) => s + Number(p.net_usd), 0);
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="space-y-6 max-w-6xl mx-auto">
+    <DashboardLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6 max-w-6xl mx-auto">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="font-heading text-3xl font-bold">Admin · Payouts</h1>
@@ -184,5 +186,6 @@ export default function AdminPayouts() {
         </Dialog>
       </div>
     </div>
+    </DashboardLayout>
   );
 }

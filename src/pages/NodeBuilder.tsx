@@ -34,6 +34,7 @@ import YR25Builder from "@/components/dashboard/builders/yr25/YR25Builder";
 import YR26Builder from "@/components/dashboard/builders/yr26/YR26Builder";
 import YR27Builder from "@/components/dashboard/builders/yr27/YR27Builder";
 import YR28Builder from "@/components/dashboard/builders/yr28/YR28Builder";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 function getHubPath(nodeId: string): string {
   if (nodeId.startsWith("BP-")) return "/brand-products";
@@ -97,13 +98,13 @@ export default function NodeBuilder() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-background">
+      <DashboardLayout>
         <div className="max-w-4xl mx-auto px-4 py-8">
           <Skeleton className="h-5 w-40 mb-6" />
           <Skeleton className="h-8 w-64 mb-4" />
           <Skeleton className="h-64 rounded-xl" />
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -126,7 +127,7 @@ export default function NodeBuilder() {
 
   if (Builder) {
     return (
-      <div className="min-h-screen bg-background">
+      <DashboardLayout>
         {/* Back link */}
         <div className="max-w-5xl mx-auto px-4 pt-4">
           <Link
@@ -138,22 +139,24 @@ export default function NodeBuilder() {
           </Link>
         </div>
         <Builder authorId={authorId} />
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
-      <h1 className="text-2xl font-bold mb-2">Coming Soon</h1>
-      <p className="text-muted-foreground mb-6">
-        The builder for node {nodeId} is not available yet.
-      </p>
-      <button
-        onClick={() => navigate("/brand-products")}
-        className="text-primary underline"
-      >
-        Back to Brand Products
-      </button>
-    </div>
+    <DashboardLayout>
+      <div className="min-h-[60vh] flex flex-col items-center justify-center p-6">
+        <h1 className="text-2xl font-bold mb-2">Coming Soon</h1>
+        <p className="text-muted-foreground mb-6">
+          The builder for node {nodeId} is not available yet.
+        </p>
+        <button
+          onClick={() => navigate("/brand-products")}
+          className="text-primary underline"
+        >
+          Back to Brand Products
+        </button>
+      </div>
+    </DashboardLayout>
   );
 }
