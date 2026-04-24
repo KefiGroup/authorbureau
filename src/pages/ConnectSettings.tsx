@@ -10,6 +10,7 @@ import {
   ArrowLeft, CreditCard, Sparkles, CheckCircle2, AlertCircle, Loader2,
   Share2, Linkedin, Instagram, Facebook, Twitter, ExternalLink,
 } from "lucide-react";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 type ConnRow = {
   id: string;
@@ -143,12 +144,9 @@ export default function ConnectSettings() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
       <div className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
           <h1 className="text-lg font-semibold">Connect Settings</h1>
         </div>
       </div>
@@ -304,6 +302,6 @@ export default function ConnectSettings() {
           </div>
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

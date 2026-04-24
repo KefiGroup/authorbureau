@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePayoutReadiness } from "@/hooks/usePayoutReadiness";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 interface EarningRow { id: string; gross_usd: number; stripe_fee_usd: number; platform_fee_usd: number; net_usd: number; earned_at: string; paid_out: boolean; refunded: boolean; }
 interface PayoutRow { id: string; period_start: string; period_end: string; gross_usd: number; net_usd: number; payout_fee_usd: number; payout_method: string; status: string; external_reference: string | null; paid_at: string | null; }
@@ -63,8 +64,9 @@ export default function EarningsDashboard() {
   const willPayout = pendingNet >= MIN_PAYOUT;
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="space-y-6 max-w-6xl mx-auto">
+    <DashboardLayout>
+      <div className="container mx-auto px-4 py-8">
+        <div className="space-y-6 max-w-6xl mx-auto">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <h1 className="font-heading text-3xl font-bold flex items-center gap-2"><DollarSign className="h-7 w-7 text-secondary" /> Earnings</h1>
@@ -196,5 +198,6 @@ export default function EarningsDashboard() {
         )}
       </div>
     </div>
+    </DashboardLayout>
   );
 }
