@@ -3,23 +3,24 @@ import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 async function readCurrentToken(): Promise<string | null> {
   try {
-    const { data: cloudSession } = await cloudSupabase.auth.getSession();
-    if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  } catch (error) {
-    // Cloud session unavailable
-  }
-  try {
     const { data: sharedSession } = await sharedSupabase.auth.getSession();
     if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
   } catch (error) {
     // Shared session unavailable
   }
+  try {
+    const { data: cloudSession } = await cloudSupabase.auth.getSession();
+    if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
+  } catch (error) {
+    // Cloud session unavailable
+  }
   return null;
 }
 
 /**
- * Resolves the best available auth token from either the Cloud or shared backend.
- * Checks Cloud first (since local Cloud sessions are auto-refreshed), then shared.
+ * Resolves the best available auth token from either the shared or Cloud backend.
+ * Checks shared first because Authors Bureau signs users into the shared backend,
+ * and a stale local Cloud session can otherwise win and send an invalid token.
  */
 export async function getActiveToken(): Promise<string | null> {
   const existingToken = await readCurrentToken();
