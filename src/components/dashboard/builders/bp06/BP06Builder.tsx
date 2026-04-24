@@ -47,7 +47,7 @@ const ACT_MSGS = [
 
 interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BP06Builder({ authorId }: Props) {
+export default function BP06Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");

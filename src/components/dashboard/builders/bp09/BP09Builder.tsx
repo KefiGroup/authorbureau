@@ -41,7 +41,7 @@ function isLegacyShape(c: any): boolean {
   return !!c.event_types && !c.workshop;
 }
 
-export default function BP09Builder({ authorId }: Props) {
+export default function BP09Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");

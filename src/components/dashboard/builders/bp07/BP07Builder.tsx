@@ -31,7 +31,7 @@ const ACT_MSGS = ["Creating your home study product...", "Setting up your paymen
 
 interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BP07Builder({ authorId }: Props) {
+export default function BP07Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");

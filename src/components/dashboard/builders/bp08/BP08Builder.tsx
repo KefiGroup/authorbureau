@@ -29,7 +29,7 @@ const ACT_MSGS = ["Saving your special editions to your library...", "Storing yo
 
 interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BP08Builder({ authorId }: Props) {
+export default function BP08Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
