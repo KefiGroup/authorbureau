@@ -11,6 +11,9 @@ import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.webp";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 import { toast } from "@/hooks/use-toast";
+import BookChooserPopover from "./BookChooserPopover";
+import type { MyBook } from "@/hooks/useMyBooks";
+import type { PerBookStats } from "@/hooks/useAuthorStats";
 
 interface Props {
   activeSection: DashboardSection;
