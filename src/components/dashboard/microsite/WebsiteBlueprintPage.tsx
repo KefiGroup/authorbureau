@@ -57,17 +57,25 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const [slugError, setSlugError] = useState("");
   const [savingSlug, setSavingSlug] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const isMountedRef = useRef(true);
 
   const handleThemeChange = useCallback(() => {
     setIframeKey((k) => k + 1);
   }, []);
 
   const authorSlug = profileData?.author_slug || "";
-  const siteUrl = authorSlug ? `https://authorsbureau.com/${authorSlug}` : "";
+  const siteUrl = useMemo(
+    () => (authorSlug ? `https://authorsbureau.com/${authorSlug}` : ""),
+    [authorSlug]
+  );
 
   useEffect(() => {
-    if (!user?.id) return;
-    loadData();
+    isMountedRef.current = true;
+    if (user?.id) loadData();
+    return () => {
+      isMountedRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
