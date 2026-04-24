@@ -31,6 +31,24 @@ function friendlyError(status: number, serverMsg?: string): string {
   return serverMsg || "Something went wrong.";
 }
 
+// Detect network-layer failures (offline, CORS, Safari ITP, aborted fetches, timeouts)
+// where we should fall back to the local Supabase auth client.
+function isNetworkLikeError(err: any): boolean {
+  if (!err) return false;
+  const name = String(err?.name || "").toLowerCase();
+  const msg = String(err?.message || "").toLowerCase();
+  return (
+    err instanceof TypeError ||
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    msg.includes("failed to fetch") ||
+    msg.includes("operation was aborted") ||
+    msg.includes("aborted") ||
+    msg.includes("network") ||
+    msg.includes("load failed")
+  );
+}
+
 async function authFetch(body: Record<string, unknown>) {
   const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
     method: "POST",
@@ -149,7 +167,7 @@ export default function Auth() {
         setResendCooldown(60);
       } catch (networkErr: any) {
         const msg = (networkErr?.message || "").toLowerCase();
-        if (msg.includes("failed to fetch") || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
+        if (isNetworkLikeError(networkErr) || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
           const { error: signUpError } = await supabase.auth.signUp({
             email: email.trim(),
             password: crypto.randomUUID(),
@@ -218,7 +236,7 @@ export default function Auth() {
         });
         if (localErr || !localAuth?.session) {
           setOtp("");
-          throw new Error(msg.includes("failed to fetch")
+          throw new Error(isNetworkLikeError(primaryErr)
             ? "Verification service is temporarily unavailable. Please click the magic link in your email instead."
             : msg || "Invalid or expired code. Please request a new one.");
         }
@@ -249,7 +267,7 @@ export default function Auth() {
           throw new Error("Sign-in verified but no session was returned.");
         }
       } catch (networkErr: any) {
-        if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
+        if (isNetworkLikeError(networkErr)) {
           const { data: directAuth, error: directAuthError } = await supabase.auth.signInWithPassword({
             email: email.trim(),
             password,
