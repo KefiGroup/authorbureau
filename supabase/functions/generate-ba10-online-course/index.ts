@@ -214,12 +214,14 @@ serve(async (req) => {
       );
     }
 
-    const { data: existingNodeSnapshot } = await supabase
+    bookIdForRestore = book_id ?? null;
+    let snapQ = supabase
       .from("author_nodes")
       .select("status, content_json, personalised_name, price_usd, currency, delivery_type, current_step")
       .eq("author_id", author_id)
-      .eq("node_id", "BA-10")
-      .maybeSingle();
+      .eq("node_id", "BA-10");
+    snapQ = book_id ? snapQ.eq("book_id", book_id) : snapQ.is("book_id", null);
+    const { data: existingNodeSnapshot } = await snapQ.maybeSingle();
     priorNodeState = (existingNodeSnapshot as Record<string, unknown>) ?? null;
 
     // Resolve the SELECTED book first (honours book_id), then fetch context matching that book.
@@ -237,15 +239,12 @@ serve(async (req) => {
         .maybeSingle();
       ctx = matchedCtx ?? null;
     }
+    // BOOK-STRICT: do NOT fall back to "latest context for this author" — that
+    // was the bug that wrote Be SUCKcessful content into Invest's BA-10.
     if (!ctx) {
-      const { data: latestCtx } = await supabase
-        .from("author_context")
-        .select("*")
-        .eq("author_id", author_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      ctx = latestCtx ?? null;
+      return failResponse(
+        "Please run the book analysis (BP-00) for this specific book before generating the Online Course. This prevents content from leaking between your books.",
+      );
     }
 
     const resolvedBookTitle = book?.title?.trim() || ctx?.book_title?.trim() || "";
