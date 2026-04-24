@@ -201,6 +201,33 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Centralized stats from author-stats edge function
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
+  const { books: myBooks } = useMyBooks(user?.id);
+
+  // Active book from URL (?bookId=...) — drives sidebar's currentBook context
+  const activeBookId = searchParams.get("bookId");
+  const activeBookEntry = activeBookId ? myBooks.find(b => b.id === activeBookId) : null;
+  const activeBookStats = activeBookId ? stats.products?.perBook?.[activeBookId] : undefined;
+  const sidebarCurrentBook = activeBookEntry
+    ? {
+        id: activeBookEntry.id,
+        title: activeBookEntry.title,
+        brand: activeBookStats?.brand ?? 0,
+        build: activeBookStats?.build ?? 0,
+        yield: activeBookStats?.yield ?? 0,
+        total: activeBookStats?.total ?? 0,
+      }
+    : null;
+
+  const handlePickBookForSection = (section: DashboardSection, bookId: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set("section", section);
+    next.set("bookId", bookId);
+    setSearchParams(next, { replace: false });
+    setActiveSectionState(section);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setSidebarCollapsed(true);
+    }
+  };
 
   // DB-driven node gating
   const { gating, isNodeOpen, isCategoryFullyClosed } = useNodeGating();
@@ -534,6 +561,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           yieldUnlocked={stats.nodesBuilt?.yield || 0}
           buildAuthorityCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
           yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
+          currentBook={sidebarCurrentBook}
+          bookCount={stats.bookCount}
+          books={myBooks}
+          perBookStats={stats.products?.perBook}
+          onPickBookForSection={handlePickBookForSection}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0 h-[100dvh] overflow-hidden">
