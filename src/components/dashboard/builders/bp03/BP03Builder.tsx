@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { builderBackTarget } from "@/lib/book-nav";
+import { builderBackTarget, resolveActiveBookId } from "@/lib/book-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
