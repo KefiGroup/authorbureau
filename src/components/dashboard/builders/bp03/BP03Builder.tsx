@@ -132,7 +132,7 @@ async function persistSocialPostsToCalendar(authorId: string, content: any, star
   return { saved: rows.length };
 }
 
-export default function BP03Builder({ authorId }: Props) {
+export default function BP03Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
