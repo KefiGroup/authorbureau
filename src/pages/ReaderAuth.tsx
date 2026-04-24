@@ -8,17 +8,9 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { establishSharedSession, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-async function establishSession(sessionData: { access_token: string; refresh_token: string }) {
-  const { error } = await supabase.auth.setSession({
-    access_token: sessionData.access_token,
-    refresh_token: sessionData.refresh_token,
-  });
-  if (error) throw error;
-}
 
 function friendlyError(status: number, serverMsg?: string): string {
   if (status === 429) return "Too many attempts. Please wait a moment and try again.";
@@ -131,7 +123,7 @@ export default function ReaderAuth() {
       const data = await authFetch({ action: "verify", email: email.trim(), code });
       if (data && data.success === false) throw new Error(data.error || "Verification failed.");
       if (data?.session_data?.access_token) {
-        await establishSession(data.session_data);
+        await establishSharedSession(data.session_data);
       } else if (data?.authUrl) {
         window.location.href = data.authUrl;
         return;
@@ -154,7 +146,7 @@ export default function ReaderAuth() {
       const data = await authFetch({ action: "password_login", email: email.trim(), password });
       if (data && data.success === false) throw new Error(data.error || "Sign-in failed.");
       if (data?.session_data?.access_token) {
-        await establishSession(data.session_data);
+        await establishSharedSession(data.session_data);
       } else if (data?.authUrl) {
         window.location.href = data.authUrl;
         return;
