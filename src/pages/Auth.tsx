@@ -8,18 +8,9 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { establishSharedSession, SHARED_BACKEND_URL } from "@/lib/shared-backend";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-
-// ─── Unified session helper ───
-async function establishSession(sessionData: { access_token: string; refresh_token: string }) {
-  const { error } = await supabase.auth.setSession({
-    access_token: sessionData.access_token,
-    refresh_token: sessionData.refresh_token,
-  });
-  if (error) throw error;
-}
 
 // ─── Error mapping ───
 function friendlyError(status: number, serverMsg?: string): string {
@@ -88,7 +79,7 @@ export default function Auth() {
       try {
         const data = await authFetch({ action: "verify_token", token: authToken });
         if (data?.session_data) {
-          await establishSession(data.session_data);
+          await establishSharedSession(data.session_data);
         } else if (data?.authUrl) {
           window.location.href = data.authUrl;
           return;
@@ -175,7 +166,7 @@ export default function Auth() {
         throw new Error(data.error || "Verification failed. Please try again.");
       }
       if (data?.session_data?.access_token) {
-        await establishSession(data.session_data);
+        await establishSharedSession(data.session_data);
       } else if (data?.authUrl) {
         window.location.href = data.authUrl;
         return;
@@ -200,7 +191,7 @@ export default function Auth() {
         throw new Error(data.error || "Sign-in failed. Please try again.");
       }
       if (data?.session_data?.access_token) {
-        await establishSession(data.session_data);
+        await establishSharedSession(data.session_data);
       } else if (data?.authUrl) {
         window.location.href = data.authUrl;
         return;
@@ -247,7 +238,7 @@ export default function Auth() {
         throw new Error(data.error || "Password reset failed. Please try again.");
       }
       if (data?.session_data?.access_token) {
-        await establishSession(data.session_data);
+        await establishSharedSession(data.session_data);
         toast({ title: "Password reset successfully!" });
       } else if (data?.authUrl) {
         window.location.href = data.authUrl;
