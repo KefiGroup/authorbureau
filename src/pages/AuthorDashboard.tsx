@@ -554,7 +554,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
               storageKey="ab_onboarding_profile_banner"
             />
           )}
-          {activeSection === "my-books" && !hasBooks && (
+          {activeSection === "my-books" && (
             <OnboardingBanner
               message="Great profile! Now let's add your first book. You can upload a manuscript or import from PublishNow."
               storageKey="ab_onboarding_books_banner"
