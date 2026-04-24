@@ -105,6 +105,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       })(),
     ]);
 
+    if (!isMountedRef.current) return;
     const profile = profileRes.data;
     setProfileData(profile);
     if (profile?.website_url) setCustomDomain(profile.website_url.replace(/^https?:\/\//, ""));
