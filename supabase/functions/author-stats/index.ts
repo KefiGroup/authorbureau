@@ -91,27 +91,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Count books
+    // Count books (also fetch created_at to attribute author_nodes to the oldest book)
     const { data: booksByAuthor } = await admin
       .from("books")
-      .select("id, published_at")
+      .select("id, published_at, created_at")
       .in("author_id", allUserIds);
 
     const { data: booksByEmail } = userEmail
-      ? await admin.from("books").select("id, published_at").eq("owner_email", userEmail)
+      ? await admin.from("books").select("id, published_at, created_at").eq("owner_email", userEmail)
       : { data: [] };
 
     const { data: booksByName } = profile?.pen_name
-      ? await admin.from("books").select("id, published_at").eq("author_name", profile.pen_name)
+      ? await admin.from("books").select("id, published_at, created_at").eq("author_name", profile.pen_name)
       : { data: [] };
 
-    const booksMap = new Map<string, { id: string; published_at: string | null }>();
+    const booksMap = new Map<string, { id: string; published_at: string | null; created_at: string | null }>();
     for (const b of [...(booksByAuthor || []), ...(booksByEmail || []), ...(booksByName || [])]) {
       booksMap.set(b.id, b);
     }
     const allBooks = Array.from(booksMap.values());
     const bookCount = allBooks.length;
     const liveMicrosites = allBooks.filter(b => !!b.published_at).length;
+
+    // Determine the "primary" book to attribute author-level nodes to (oldest book by created_at).
+    // author_nodes has no book_id column, so we attribute the author's nodes to their first/original book.
+    const sortedBooks = [...allBooks].sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return ta - tb;
+    });
+    const primaryBookId: string | null = sortedBooks[0]?.id ?? null;
 
     // Check analysis status
     const { data: assets } = await admin
