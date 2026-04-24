@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth, TIERS } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
