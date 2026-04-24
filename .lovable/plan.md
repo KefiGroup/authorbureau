@@ -1,120 +1,150 @@
 
+## The real diagnosis
 
-## Show all of an author's live offerings on the book microsite
-
-### What's actually broken
-
-The book microsite (`/pauline-teo/invest-like-buffett-for-parents`) only queries 8 product tables (`workbooks`, `home_study_courses`, `audiobooks`, `courses`, `coaching_packages`, `podcasts`, `speaking_topics`) filtered by `book_id`. For Pauline, **all 8 tables are empty** — every product she has built lives in the `author_nodes` table (Workbook BP-06 live, Audiobook BA-11 live, Lead Magnet BP-02 live, Home Study BP-07 live, 1-on-1 Coaching YR-19 live, plus 13 more). The book page never reads `author_nodes`, so the "Go Deeper" section stays empty and only the Amazon buy link shows.
-
-Compounding the issue: `author_nodes` rows have **no `book_id` column** — they're author-level. So we can't naively attribute every node to every book or both of Pauline's books would show identical offerings (which is mostly correct for her case, but wrong for a future author with two unrelated books).
-
-### What you'll see after
-
-The "Go Deeper with {Book Title}" section on `/pauline-teo/invest-like-buffett-for-parents` will list every live product card:
+Before fixing anything, the picture changes once we look at the data:
 
 ```
-Workbook ($2.99)            Audiobook ($14.99)         Home Study Course
-Lead Magnet (Free)          1-on-1 Coaching ($2,997)   Group Coaching ($1,997)
-Membership ($27)            Online Course ($297)       Big Ticket ($12,000)
-Keynote Speaking            Corporate Training         Mastermind ($5,000)
-Retreat ($3,000)            Certification ($3,500)     Conference ($497)
-Webinar                     Podcast                    Press
-Affiliates                  Bundles                    JV Partners
-Fundraising                 Sponsors
+Pauline Teo (author profile 92326a2f…)
+  Books:
+    - Be SUCKcessful                    (e5b857ac…) — created 2026-04-11
+    - Invest Like Buffett for Parents   (3c65a5f1…) — created 2026-04-24
+
+  author_nodes for this author: 22 rows total, ALL author-scoped (no book_id column)
+    BP-02 live   → /pauline-teo/free-gift            (built for Be SUCKcessful)
+    BP-06 live   → workbook (PDF)                    (built for Be SUCKcessful)
+    BP-07 live   → /pauline-teo/home-study           (built for Be SUCKcessful)
+    BP-04 content_ready → microsite                  (Be SUCKcessful copy)
+    BA-11 live   → /pauline-teo/audiobook            (Be SUCKcessful audiobook — NOT empty)
+    BA-10 content_ready → "The SUCKCESS Blueprint"   (built with Be SUCKcessful content,
+                                                       even though invoked from the new book)
+    + 16 other Be SUCKcessful nodes
+    YR-19 (1-on-1 coaching): not present
+    BP-03 status = content_ready (built, not yet activated)
+
+  author_context rows: 1 row total, for "Be SUCKcessful" only.
 ```
 
-Each card links to its existing public microsite (e.g. Workbook → `/pauline-teo/workbook`, Coaching → `/pauline-teo/coaching`). Cards that have no public page (BP-01 Email, BP-03 Social, BP-08 Special Editions, BP-09 Book Sales) are **excluded** — these are library-only / off-platform.
+Two structural facts drive every bug in your list:
 
-### Code changes
+1. **`author_nodes` has no `book_id` column.** Every node is author-scoped, so the same row is shown for every book under that author. That's why BA-11 still appears "live" on the Invest book (it's the Be SUCKcessful audiobook), and why every "node count per book" we ever showed is approximate.
+2. **`author_context` is also author + title scoped, with one row per author so far.** When the BA-10 generator runs for the new book, `buildAuthorContext()` correctly searches by `book.title = "Invest Like Buffett for Parents"`, finds nothing, and falls back to "the latest context for this author" — which is Be SUCKcessful. The AI then writes a Be SUCKcessful course. This is the source of Bug #5 (BA-10 wrong content), and it will hit every BA/YR generator the moment a second book is built without first generating its own context.
 
-**`src/pages/AuthorBookPage.tsx` — `loadBookPage()`**
+So the per-book bugs aren't really 9 separate bugs — they're two architectural gaps. The status table you sent is mostly correct as a description of *what's stored* once you accept that everything stored is currently labelled "Be SUCKcessful". The cleanup below makes per-book truth possible.
 
-After the existing `Promise.all` block, add a parallel query to `author_nodes`:
+## What this plan does
 
-```ts
-supabase
-  .from("author_nodes")
-  .select("node_id, node_name, personalised_name, status, microsite_url, payment_link, price_usd, currency, content_json, book_id")
-  .eq("author_id", authorProfileId)   // see attribution rule below
-  .in("status", ["live", "published_pending_ghl"])
+### Fix 1 — Make `author_nodes` per-book (schema + plumbing)
+
+**Migration:**
+- Add `book_id uuid` column to `public.author_nodes` (nullable, FK to `books(id)` on delete cascade).
+- Add unique index on `(author_id, node_id, book_id)` to replace the current `(author_id, node_id)` constraint, so the same node can exist independently for two books.
+- One-time backfill: set `book_id` on every existing row to the author's **oldest** book (`min(created_at) per author_id`). This pins all 22 of Pauline's existing rows to "Be SUCKcessful", which matches reality.
+
+**Edge function changes (write side):**
+- `supabase/functions/save-author-node/index.ts` — accept `bookId` in the request, include it in the lookup key (`author_id + node_id + book_id`) and in insert/update payloads. Also pass it through in the `publish` action.
+- `supabase/functions/_shared/builder-helpers.ts` — `upsertAuthorNode()` and `snapshotAuthorNode()` accept a `bookId` and key on it.
+- All 28 generator edge functions already destructure `book_id` from the request; pass it down to `upsertAuthorNode()` so the new row is written with the right `book_id`.
+
+**Frontend (read side):**
+- All places that read `author_nodes` for sidebar counts, builder hydration, microsite "Go Deeper" cards, dashboard tiles, lead-magnet activation, BP-03 setProgress, etc., must filter by `book_id = currentBookId` (or `book_id is null` for legacy rows during the migration window).
+- `src/lib/builder-autosave.ts` and the load wrapper in `save-author-node` already accept a `bookId` from the props chain we wired in earlier — extend the existing call sites to actually pass it (today many still don't).
+
+**UI consequence (this is the user-facing change):**
+- After backfill, opening **Invest Like Buffett for Parents** shows every node as "Step 1 — Not Started" — including BA-11 Audiobook. That matches the user's expectation in the table.
+- Opening **Be SUCKcessful** shows the existing 22 rows unchanged.
+- Sidebar "X built" counts are now true per-book.
+
+### Fix 2 — Force per-book `author_context` so generators stop borrowing the wrong book
+
+The BA-10 wrong-content bug isn't fixed by `book_id` alone — even with the right node row, `buildAuthorContext()` will still fall back to the only context row that exists.
+
+- **Strict mode in `buildAuthorContext()`:** when `bookId` is provided AND no `author_context` row matches that book's title, **do not silently fall back** to the latest context. Instead, return `{ ctx: null, book, ... }` and have the generator either:
+  - (a) Run with `ctx = null` (uses only `books` row metadata — safe, no cross-book bleed), or
+  - (b) Return `failResponse("Run the book Analysis (BP-00) for this book first — Abby needs the framework before she can generate this node.")` for nodes that genuinely require framework intelligence (BA-10, BA-12, BA-13, YR-19, YR-22, YR-23, YR-25 — anything content-rich).
+- Pick **(b)** for the framework-heavy nodes (those listed) and **(a)** for the rest. List goes inside `_shared/builder-helpers.ts` so it's one source of truth.
+- Add a one-line **diagnostic field** in the generator response (`context_source: "book-specific" | "book-only-fallback" | "blocked"`) so we can see in logs which nodes ran on which context.
+
+### Fix 3 — BP-03 "Unauthorized" already partially fixed; verify and unblock
+
+The previous sprint moved `ContentGenerationStep.tsx` to `getActiveToken()` + `fetchWithTimeout(120s)` and surfaces real error text. That should already let Pauline generate BP-03 for the Invest book. Action here:
+- Re-run BP-03 generation for the new book once Fix 1 is deployed (so the new row writes with `book_id = invest-id`), confirm a `content_ready` row appears scoped to that book, and confirm the toast no longer says "Unauthorized".
+- No code change unless the test still fails.
+
+### Fix 4 — Microsite "Go Deeper" reads the new column
+
+`src/pages/AuthorBookPage.tsx` already queries `author_nodes` for live nodes. Change the filter from `eq("author_id", profile.id)` to:
+
+```
+.eq("author_id", profile.id)
+.or(`book_id.eq.${bookData.id},book_id.is.null`)
 ```
 
-`authorProfileId` = `profile.id` from the existing `author_profiles` lookup (already available higher in the function).
+This means:
+- Per-book nodes (post-migration) appear only on their own book page.
+- Legacy nodes (book_id null — shouldn't exist after backfill, kept as belt-and-braces for any edge created during the migration window) still appear so we never blank out a microsite mid-deploy.
 
-**Per-book attribution rule** (mirrors the recent `author-stats` fix):
+### Fix 5 — Minor: status labelling
 
-- If a node row has `book_id` set AND it matches `bookData.id` → show on this book's page.
-- If a node row has `book_id = null` → it's an author-level offering. Show it on the **primary book** (oldest by `created_at`) only. We already fetch `allBooksRes` ordered by `created_at desc`; do one extra check `bookData.id === oldestBookId` to decide.
-- This means Pauline's 28 author-level nodes appear on Be SUCKcessful (her oldest book). They will NOT appear on Invest Like Buffett until either she explicitly tags them with that `book_id` later, OR we move attribution to "show on every book" (see Open question below).
+BP-01 and BP-03 are at `status = 'live'` and `'content_ready'` respectively but the user sees "Not Built" / "Step 4 — Publish". This is just the dashboard tile reading `current_step` instead of `status`. Add a small mapping in the Book Hub tile renderer:
 
-**Mapping author_nodes → ProductLink cards:**
-
-Build a small table inside `loadBookPage`:
-
-```ts
-const NODE_TO_PRODUCT: Record<string, { type: string; label: string; route: string }> = {
-  "BP-02": { type: "leadmagnet", label: "Free Assessment", route: "free-gift" },
-  "BP-05": { type: "webinar", label: "Webinar", route: "webinar" },
-  "BP-06": { type: "workbook", label: "Workbook", route: "workbook" },
-  "BP-07": { type: "homestudy", label: "Home Study Course", route: "home-study" },
-  "BA-10": { type: "onlinecourse", label: "Online Course", route: "online-course" },
-  "BA-11": { type: "audiobook", label: "Audiobook", route: "audiobook" },
-  "BA-12": { type: "membership", label: "Membership", route: "membership" },
-  "BA-13": { type: "groupcoaching", label: "Group Coaching", route: "group-coaching" },
-  "BA-14": { type: "podcast", label: "Podcast", route: "podcast" },
-  "BA-15": { type: "press", label: "Press & Media", route: "press" },
-  "BA-16": { type: "affiliates", label: "Affiliate Programme", route: "affiliates" },
-  "BA-17": { type: "bundles", label: "Upsells & Bundles", route: "bundles" },
-  "BA-18": { type: "jv", label: "JV Partners", route: "partners" },
-  "YR-19": { type: "coaching", label: "1-on-1 Coaching", route: "coaching" },
-  "YR-20": { type: "vip", label: "Big Ticket", route: "vip" },
-  "YR-21": { type: "speaking", label: "Keynote Speaking", route: "speaking" },
-  "YR-22": { type: "corporate", label: "Corporate Training", route: "corporate-training" },
-  "YR-23": { type: "mastermind", label: "Mastermind", route: "mastermind" },
-  "YR-24": { type: "retreat", label: "Retreat", route: "retreat" },
-  "YR-25": { type: "certification", label: "Certification", route: "certification" },
-  "YR-26": { type: "conference", label: "Conference", route: "conference" },
-  "YR-27": { type: "fundraising", label: "Fundraising", route: "fundraising" },
-  "YR-28": { type: "sponsors", label: "Sponsors", route: "sponsors" },
-};
-// BP-01, BP-03, BP-08, BP-09 deliberately omitted — no public page.
+```
+status === 'live'                         → "Live"
+status === 'content_ready'                → "Ready to publish (Step N)"
+status null && current_step >= 1          → "In progress (Step N)"
+otherwise                                 → "Not started"
 ```
 
-For each qualifying node row, push a `ProductLink`:
+So Pauline's BP-01 row reads "Live" not "Step 4 — Publish".
 
-```ts
-{
-  type: NODE_TO_PRODUCT[n.node_id].type,
-  title: n.personalised_name || NODE_TO_PRODUCT[n.node_id].label,
-  route: NODE_TO_PRODUCT[n.node_id].route,
-  price: n.price_usd ? `$${Number(n.price_usd).toLocaleString()}` : undefined,
-  description: undefined, // node cards don't have curated descriptions
-}
+## Files that will change
+
+**SQL migration**
+- `add_book_id_to_author_nodes` migration: add column, FK, unique index, backfill.
+
+**Edge functions**
+- `supabase/functions/_shared/builder-helpers.ts` — strict context, book-keyed upsert/snapshot, framework-required node list.
+- `supabase/functions/save-author-node/index.ts` — accept + key on `bookId` for save / load / publish / list-audio.
+- All 28 generators in `supabase/functions/generate-*/index.ts` — pass `book_id` to `upsertAuthorNode()` / `snapshotAuthorNode()`. Most already destructure it; just thread it through the existing helper calls.
+- `supabase/functions/setup-stripe-product/index.ts`, `deploy-yr25-to-thinkific/index.ts`, `deploy-bp05-to-ghl/index.ts` — same `book_id` filter on the lookup.
+
+**Frontend**
+- `src/lib/builder-autosave.ts` (and any direct `save-author-node` invokers) — pass `bookId`.
+- `src/pages/AuthorBookPage.tsx` — `book_id` OR-null filter for the Go Deeper section.
+- `src/pages/RevenueFullDashboard.tsx`, sidebar counter hook, Book Hub tile renderer — filter by current book + add the status→label mapping.
+- `src/components/dashboard/builders/lead-magnet/LeadMagnetStepRenderer.tsx` and any other direct `author_nodes` writes — include `book_id`.
+
+## What you'll see after
+
+For Pauline opening **Invest Like Buffett for Parents** → Book Hub:
+
+```
+BP-02  Lead Magnet           Step 1 — Not started
+BP-01  Email Marketing       Step 1 — Not started
+BP-03  Social Media          Step 1 — Not started
+BP-04  Author Website        Step 1 — Not started
+BP-06  Workbook              Step 1 — Not started
+BP-07  Home Study            Step 1 — Not started
+BA-10  Online Course         Step 1 — Not started   ← previously wrong-content row stays on Be SUCKcessful
+BA-11  Audiobook             Step 1 — Not started   ← previously bleeding from Be SUCKcessful
+YR-19  1-on-1 Coaching       Step 1 — Not started
+…all 28 nodes start fresh.
 ```
 
-**Deduplication:** if the same node also has a row in one of the existing 8 product tables (e.g. BP-06 Workbook also lives in `workbooks`), prefer the product-table row (richer description + cover image). Implement by building a `Set<string>` of `route` values pushed from product tables first, then skip any node row whose route already appears.
+For **Be SUCKcessful** → Book Hub: every existing live/content_ready row stays exactly where it is. Nothing migrates away.
 
-**Link target:** existing markup uses `/${authorSlug}/${bookSlug}/${p.route}`. For node-sourced cards we want `/${authorSlug}/${p.route}` instead (the public node microsite isn't book-scoped). Add an optional `external?: boolean` flag on `ProductLink` (or simpler: `linkTo: string`) so the renderer in lines 686-690 uses the correct URL.
+For any new author with one book: behaviour is unchanged (their single book gets all nodes, just like today).
 
-**Icons + labels:** extend `PRODUCT_ICONS` and `PRODUCT_LABELS` (lines 78-92) with the new types so cards render with the right icon (Sparkles for leadmagnet, Mic for podcast, Users for coaching/groupcoaching/mastermind, Headphones for audiobook, Package for bundles, etc.). Reuse icons already imported (`Sparkles`, `Users`, `Headphones`, `Mic`, `GraduationCap`, `BookOpen`).
+## Validation checklist
 
-### Files touched
+1. Run migration → backfill assigns 22 Pauline rows + every other author's rows to their oldest book.
+2. Sidebar counters: Pauline at root sees nothing flicker; on Be SUCKcessful sees `9/9 · 9/9 · 10/10` (or actuals); on Invest sees `0/9 · 0/9 · 0/10`.
+3. Generate BA-10 for Invest → response includes `context_source: "blocked"` with a clear "run book analysis first" toast (until that book has its own author_context row).
+4. Build BA-11 for Invest → new row written with `book_id = invest-id`, separate from the existing Be SUCKcessful BA-11 row; both books retain independent audiobook microsites.
+5. `/pauline-teo/be-suckcessful-` Go Deeper still shows the existing 22 cards. `/pauline-teo/invest-like-buffett-for-parents` Go Deeper is empty until she builds nodes for it.
+6. BP-03 generation for Invest succeeds (no "Unauthorized") and writes to the correct row.
 
-- `src/pages/AuthorBookPage.tsx` — add `author_nodes` fetch, attribution + dedup logic, `NODE_TO_PRODUCT` map, `linkTo` field on `ProductLink`, extend icon/label maps, render uses `linkTo`.
+## Out of scope for this sprint
 
-### Validation
-
-1. `/pauline-teo/invest-like-buffett-for-parents` — Go Deeper section is **empty** (because Be SUCKcessful is her oldest book and gets the author-level nodes). This is technically correct given current data but probably not what you want long-term — see Open question.
-2. `/pauline-teo/be-suckcessful-` — Go Deeper section shows ~22 cards (every live node with a public page). Each card links to the right `/pauline-teo/<slug>` URL.
-3. `/felicia-tan/to-baby-with-love` — unchanged (Felicia has no live nodes).
-4. Owner preview while logged in as Pauline — same behaviour, no extra cards leak.
-
-### Open question (one decision needed before I code)
-
-The data shows `author_nodes` has **no `book_id`** column. With the rule above, only Pauline's oldest book gets the offerings listed. Two reasonable alternatives:
-
-**Option A (proposed above):** attribute author-level nodes to the oldest book only.
-**Option B:** show every author-level node on **every** book page. Simpler, and matches reality for most solo-niche authors who position the same offerings around any of their books. For Pauline's two parallel businesses (Suckcess vs Buffett-for-Parents) it would mean both pages show the same product strip.
-
-Recommend **Option B** — most authors will want their full offering visible regardless of which book the reader landed on, and the per-book microsite still has its own hero, description, formats and Amazon link to differentiate. Confirm B and I'll code it; otherwise I default to A.
-
+- Cloning content from book A to book B (no "duplicate from Be SUCKcessful" button — authors regenerate per book).
+- Backfilling `author_context` for a second book (Pauline still needs to run book analysis on Invest before content-rich BA/YR nodes will generate). I'll surface a clear toast so she knows.
+- Visual redesign of the Book Hub tiles beyond the status→label mapping.

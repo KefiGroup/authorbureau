@@ -568,6 +568,7 @@ export type Database = {
         Row: {
           activated_at: string | null
           author_id: string
+          book_id: string | null
           checkout_url: string | null
           content_json: Json | null
           created_at: string
@@ -594,6 +595,7 @@ export type Database = {
         Insert: {
           activated_at?: string | null
           author_id: string
+          book_id?: string | null
           checkout_url?: string | null
           content_json?: Json | null
           created_at?: string
@@ -620,6 +622,7 @@ export type Database = {
         Update: {
           activated_at?: string | null
           author_id?: string
+          book_id?: string | null
           checkout_url?: string | null
           content_json?: Json | null
           created_at?: string
@@ -663,6 +666,20 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
         ]
