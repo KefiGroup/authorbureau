@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   BookOpen, ExternalLink, Loader2, ArrowRight, GraduationCap, Users,
-  Headphones, Mic, Star, Mail, CheckCircle2
+  Headphones, Mic, Star, Mail, CheckCircle2, Sparkles, Package,
+  Megaphone, Trophy, Calendar, Briefcase, Award, Globe, Heart, Handshake
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
