@@ -31,6 +31,24 @@ function friendlyError(status: number, serverMsg?: string): string {
   return serverMsg || "Something went wrong.";
 }
 
+// Detect network-layer failures (offline, CORS, Safari ITP, aborted fetches, timeouts)
+// where we should fall back to the local Supabase auth client.
+function isNetworkLikeError(err: any): boolean {
+  if (!err) return false;
+  const name = String(err?.name || "").toLowerCase();
+  const msg = String(err?.message || "").toLowerCase();
+  return (
+    err instanceof TypeError ||
+    name === "aborterror" ||
+    name === "timeouterror" ||
+    msg.includes("failed to fetch") ||
+    msg.includes("operation was aborted") ||
+    msg.includes("aborted") ||
+    msg.includes("network") ||
+    msg.includes("load failed")
+  );
+}
+
 async function authFetch(body: Record<string, unknown>) {
   const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
     method: "POST",
