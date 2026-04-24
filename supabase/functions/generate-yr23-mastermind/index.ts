@@ -14,13 +14,13 @@ serve(async (req) => {
   let parsedAuthorId: string | null = null;
   const supabase = makeServiceClient();
   try {
-    const { author_id } = await req.json();
+    const { author_id, book_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
     parsedAuthorId = author_id;
     const { data: author } = await supabase.from("author_profiles").select("pen_name, genres, user_id").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
     priorNodeState = await snapshotAuthorNode(supabase, author_id, NODE_ID);
-    const { ctx, bookTitle, coreThesis } = await buildAuthorContext(supabase, author_id, author.user_id ?? null);
+    const { ctx, bookTitle, coreThesis } = await buildAuthorContext(supabase, author_id, author.user_id ?? null, book_id);
     if (!bookTitle) throw new Error("No book found. Please add a book first.");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");

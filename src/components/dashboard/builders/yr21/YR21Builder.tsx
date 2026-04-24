@@ -18,9 +18,9 @@ import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 const GEN_MSGS = ["Crafting your signature talks...", "Building your speaker one-sheet...", "Designing your fee schedule...", "Finalising your speaking business..."];
 const ACT_MSGS = ["Setting up your speaking enquiry pipeline...", "Creating your booking calendar...", "Almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function YR21Builder({ authorId }: Props) {
+export default function YR21Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -64,7 +64,7 @@ export default function YR21Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: e } = await supabase.functions.invoke("generate-yr21-speaking", { body: { author_id: authorId } });
+      const { data, error: e } = await supabase.functions.invoke("generate-yr21-speaking", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Generation failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-21", nodeName: "Keynotes", content: data.content, currentStep: 2 });

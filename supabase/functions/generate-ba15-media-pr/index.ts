@@ -19,7 +19,7 @@ serve(async (req) => {
     let body: any;
     try { body = await req.json(); }
     catch { return failResponse("Invalid request body"); }
-    const { author_id } = body ?? {};
+    const { author_id, book_id } = body ?? {};
     if (!author_id) return failResponse("author_id is required");
     parsedAuthorId = author_id;
 
@@ -37,7 +37,7 @@ serve(async (req) => {
 
     priorNodeState = await snapshotAuthorNode(supabase, author_id, NODE_ID);
     const { ctx, book, bookTitle, bookSubtitle, coreThesis } =
-      await buildAuthorContext(supabase, author_id, author.user_id ?? null);
+      await buildAuthorContext(supabase, author_id, author.user_id ?? null, book_id);
     if (!bookTitle) return failResponse("No book found. Please add a book first.");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");

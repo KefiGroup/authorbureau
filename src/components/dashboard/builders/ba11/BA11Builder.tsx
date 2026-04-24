@@ -10,7 +10,7 @@ import AudiobookStepRenderer from "../audiobook/AudiobookStepRenderer";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft, listAudiobookChapters } from "@/lib/builder-autosave";
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
 const STUDIO_STEPS = [
   { id: "setup", label: "Setup", icon: Headphones },
@@ -20,7 +20,7 @@ const STUDIO_STEPS = [
   { id: "publish", label: "Publish & Distribute", icon: Rocket },
 ];
 
-export default function BA11Builder({ authorId }: Props) {
+export default function BA11Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const { hasBook, bookTitle: detectedBookTitle, bookId, isLoading: isBookLoading } = useAuthorBook();
   const [authorName, setAuthorName] = useState("");

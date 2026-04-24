@@ -121,6 +121,7 @@ async function resolveAuthorBook(
   supabase: ReturnType<typeof createClient>,
   authorId: string,
   cloudUserId: string | null,
+  bookId?: string | null,
 ) {
   let userEmail: string | null = null;
   if (cloudUserId) {
@@ -129,6 +130,21 @@ async function resolveAuthorBook(
   }
 
   const candidateAuthorIds = Array.from(new Set([authorId, cloudUserId].filter(Boolean) as string[]));
+
+  // Honour an explicit bookId if it actually belongs to this author.
+  if (bookId) {
+    const { data: byId } = await supabase
+      .from("books")
+      .select("id, title, cover_image_url, description, genre, owner_email, author_id")
+      .eq("id", bookId)
+      .maybeSingle();
+    if (byId) {
+      const ownsByAuthorId = byId.author_id && candidateAuthorIds.includes(byId.author_id);
+      const ownsByEmail = userEmail && byId.owner_email === userEmail;
+      if (ownsByAuthorId || ownsByEmail) return byId;
+    }
+  }
+
   const bookQuery = supabase
     .from("books")
     .select("id, title, cover_image_url, description, genre, owner_email, author_id")
@@ -154,7 +170,7 @@ serve(async (req) => {
   let priorNodeState: Record<string, unknown> | null = null;
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, book_id } = await req.json();
     if (!author_id) return failResponse("author_id is required");
     authorIdForRestore = author_id;
 
@@ -200,18 +216,35 @@ serve(async (req) => {
       .maybeSingle();
     priorNodeState = (existingNodeSnapshot as Record<string, unknown>) ?? null;
 
-    const { data: ctx } = await supabase
-      .from("author_context")
-      .select("*")
-      .eq("author_id", author_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Resolve the SELECTED book first (honours book_id), then fetch context matching that book.
+    const book = await resolveAuthorBook(supabase, author_id, courseOwnerId, book_id);
 
-    const book = await resolveAuthorBook(supabase, author_id, courseOwnerId);
-    const resolvedBookTitle = ctx?.book_title?.trim() || book?.title?.trim() || "";
+    let ctx: Record<string, any> | null = null;
+    if (book?.title) {
+      const { data: matchedCtx } = await supabase
+        .from("author_context")
+        .select("*")
+        .eq("author_id", author_id)
+        .eq("book_title", book.title)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      ctx = matchedCtx ?? null;
+    }
+    if (!ctx) {
+      const { data: latestCtx } = await supabase
+        .from("author_context")
+        .select("*")
+        .eq("author_id", author_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      ctx = latestCtx ?? null;
+    }
+
+    const resolvedBookTitle = book?.title?.trim() || ctx?.book_title?.trim() || "";
     if (!resolvedBookTitle) return failResponse("No book found. Please add a book first.");
-    const coreThesis = ctx?.core_thesis?.trim() || book?.description?.trim() || "";
+    const coreThesis = book?.description?.trim() || ctx?.core_thesis?.trim() || "";
     const targetAudience = compactJson(ctx?.target_audience_persona, "{}", 600);
     const keyFrameworks = compactJson(ctx?.key_frameworks, "[]", 700);
     const uniqueInsights = compactJson(ctx?.unique_insights, "[]", 700);

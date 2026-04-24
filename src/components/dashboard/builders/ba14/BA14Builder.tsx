@@ -20,9 +20,9 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Designing your podcast concept...", "Creating your first 10 episode ideas...", "Planning your distribution strategy...", "Building your launch plan...", "Finalising your podcast blueprint..."];
 const ACT_MSGS = ["Creating your podcast show...", "Setting up your distribution...", "Your podcast is almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BA14Builder({ authorId }: Props) {
+export default function BA14Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -76,7 +76,7 @@ export default function BA14Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba14-podcast", { body: { author_id: authorId } });
+      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba14-podcast", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normalisePodcast(data.content || {});
       setContent(normalised); setStep(2);

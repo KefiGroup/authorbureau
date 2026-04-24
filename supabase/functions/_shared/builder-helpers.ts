@@ -83,6 +83,7 @@ export async function resolveAuthorBook(
   supabase: ReturnType<typeof createClient>,
   authorProfileId: string,
   authUserId: string | null,
+  bookId?: string | null,
 ) {
   let userEmail: string | null = null;
   if (authUserId) {
@@ -90,6 +91,22 @@ export async function resolveAuthorBook(
     userEmail = u.user?.email ?? null;
   }
   const candidateIds = Array.from(new Set([authorProfileId, authUserId].filter(Boolean) as string[]));
+
+  // If a specific bookId is provided, try it first — but only return it if it actually
+  // belongs to this author (by author_id OR owner_email). Otherwise fall through to latest.
+  if (bookId) {
+    const { data: byId } = await supabase
+      .from("books")
+      .select("id, title, subtitle, description, cover_image_url, genre, owner_email, author_id")
+      .eq("id", bookId)
+      .maybeSingle();
+    if (byId) {
+      const ownsByAuthorId = byId.author_id && candidateIds.includes(byId.author_id);
+      const ownsByEmail = userEmail && byId.owner_email === userEmail;
+      if (ownsByAuthorId || ownsByEmail) return byId;
+    }
+  }
+
   const orParts: string[] = [];
   if (candidateIds.length) orParts.push(`author_id.in.(${candidateIds.join(",")})`);
   if (userEmail) orParts.push(`owner_email.eq.${userEmail}`);
@@ -161,18 +178,37 @@ export async function buildAuthorContext(
   supabase: ReturnType<typeof createClient>,
   authorProfileId: string,
   authUserId: string | null,
+  bookId?: string | null,
 ) {
-  const { data: ctx } = await supabase
-    .from("author_context")
-    .select("*")
-    .eq("author_id", authorProfileId)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // If a specific book is requested, prefer the author_context row matching that book's title.
+  // Otherwise use the most recent context.
+  const book = await resolveAuthorBook(supabase, authorProfileId, authUserId, bookId);
 
-  const book = await resolveAuthorBook(supabase, authorProfileId, authUserId);
-  const bookTitle = ctx?.book_title?.trim() || book?.title?.trim() || "";
-  const bookSubtitle = ctx?.book_subtitle?.trim() || book?.subtitle?.trim() || "";
-  const coreThesis = ctx?.core_thesis?.trim() || book?.description?.trim() || "";
+  let ctx: Record<string, any> | null = null;
+  if (book?.title) {
+    const { data: matchedCtx } = await supabase
+      .from("author_context")
+      .select("*")
+      .eq("author_id", authorProfileId)
+      .eq("book_title", book.title)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    ctx = matchedCtx ?? null;
+  }
+  if (!ctx) {
+    const { data: latestCtx } = await supabase
+      .from("author_context")
+      .select("*")
+      .eq("author_id", authorProfileId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    ctx = latestCtx ?? null;
+  }
+
+  const bookTitle = book?.title?.trim() || ctx?.book_title?.trim() || "";
+  const bookSubtitle = book?.subtitle?.trim() || ctx?.book_subtitle?.trim() || "";
+  const coreThesis = book?.description?.trim() || ctx?.core_thesis?.trim() || "";
   return { ctx, book, bookTitle, bookSubtitle, coreThesis };
 }

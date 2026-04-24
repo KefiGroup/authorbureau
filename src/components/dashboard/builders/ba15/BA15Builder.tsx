@@ -19,9 +19,9 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Building your media kit...", "Writing your press release...", "Creating your media pitch template...", "Identifying target media outlets...", "Finalising your PR strategy..."];
 const ACT_MSGS = ["Setting up your media outreach pipeline...", "Preparing your press materials...", "Almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BA15Builder({ authorId }: Props) {
+export default function BA15Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
