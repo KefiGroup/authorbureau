@@ -498,6 +498,13 @@ export default function BP02Builder({ authorId, bookId }: Props) {
           </AbbyCard>
         )}
 
+        {step === 0 && contextBlocked && (
+          <AnalyseBookGate
+            authorId={authorId}
+            bookId={activeBookId}
+            onAnalysed={() => { setContextBlocked(false); handleGenerate(); }}
+          />
+        )}
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Lead Magnets</h2>

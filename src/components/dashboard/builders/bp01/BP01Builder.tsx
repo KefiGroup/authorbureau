@@ -249,6 +249,14 @@ export default function BP01Builder({ authorId, bookId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <NodeHowItWorks nodeId="BP-01" defaultOpen={step === 0} />
         {/* STEP 0: Introduction */}
+        {step === 0 && contextBlocked && (
+          <AnalyseBookGate
+            authorId={authorId}
+            bookId={activeBookId}
+            bookTitle={bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : undefined)}
+            onAnalysed={() => { setContextBlocked(false); handleGenerate(); }}
+          />
+        )}
         {step === 0 && (
           <>
             <AbbyCard>
