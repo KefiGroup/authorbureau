@@ -80,7 +80,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   }, [user?.id]);
 
   async function loadData() {
-    setLoading(true);
+    if (isMountedRef.current) setLoading(true);
 
     // Fetch profile (local Cloud table) and books (via edge function for proper ownership)
     const [profileRes, booksResult] = await Promise.all([
