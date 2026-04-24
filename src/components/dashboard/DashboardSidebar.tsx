@@ -86,6 +86,7 @@ export default function DashboardSidebar({
   yieldUnlocked: yieldUnlockedProp = 0,
   stripeConnected = false, pendingReviewCount = 0,
   buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
+  currentBook = null,
 }: Props) {
 
   // Hydrate from cache to prevent "0 built" flash, then update from live props
