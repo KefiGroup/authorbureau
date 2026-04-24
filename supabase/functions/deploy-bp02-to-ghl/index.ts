@@ -118,7 +118,7 @@ serve(async (req) => {
           subAccountId = provisionData.ghl_subaccount_id;
           console.log("[deploy-bp02] Provisioning result:", subAccountId ? "got sub-account" : "no sub-account");
         } catch (e) {
-          console.error("[deploy-bp02] GHL provisioning failed (non-blocking):", e.message);
+          console.error("[deploy-bp02] GHL provisioning failed (non-blocking):", (e as Error).message);
         }
       }
 
@@ -182,7 +182,7 @@ serve(async (req) => {
           );
           await new Promise((r) => setTimeout(r, 200));
         } catch (e) {
-          console.error(`Custom field '${field.name}' failed:`, e.message);
+          console.error(`Custom field '${field.name}' failed:`, (e as Error).message);
         }
       }
 
@@ -214,7 +214,7 @@ serve(async (req) => {
               body: JSON.stringify({ funnelId: ghlFunnelId, name: "Opt-In Page" }),
             });
           } catch (e) {
-            console.error("Opt-in page failed:", e.message);
+            console.error("Opt-in page failed:", (e as Error).message);
           }
 
           await new Promise((r) => setTimeout(r, 300));
@@ -225,7 +225,7 @@ serve(async (req) => {
               body: JSON.stringify({ funnelId: ghlFunnelId, name: "Thank You Page" }),
             });
           } catch (e) {
-            console.error("Thank-you page failed:", e.message);
+            console.error("Thank-you page failed:", (e as Error).message);
           }
         }
       } else {
@@ -248,7 +248,7 @@ serve(async (req) => {
           }),
         });
       } catch (e) {
-        console.error("Workflow failed:", e.message);
+        console.error("Workflow failed:", (e as Error).message);
       }
 
       // Contact tag
@@ -267,7 +267,7 @@ serve(async (req) => {
           }
         );
       } catch (e) {
-        console.error("Tag failed:", e.message);
+        console.error("Tag failed:", (e as Error).message);
       }
 
       // BP-01 connection check
@@ -289,10 +289,10 @@ serve(async (req) => {
           ];
         }
       } catch (e) {
-        console.error("BP-01 check failed:", e.message);
+        console.error("BP-01 check failed:", (e as Error).message);
       }
     } catch (e) {
-      console.error("[deploy-bp02] GHL deployment error (non-blocking):", e.message);
+      console.error("[deploy-bp02] GHL deployment error (non-blocking):", (e as Error).message);
     }
 
     // ── CP-10: Update node to live ──
@@ -322,11 +322,11 @@ serve(async (req) => {
       microsite_url: micrositeUrl,
     });
   } catch (err) {
-    console.error("[deploy-bp02] ❌ FATAL:", err.message);
+    console.error("[deploy-bp02] ❌ FATAL:", (err as Error).message);
     return jsonRes({
       success: false,
       status: "error",
-      message: err.message || "An unexpected error occurred during publishing.",
+      message: (err as Error).message || "An unexpected error occurred during publishing.",
     });
   }
 });
