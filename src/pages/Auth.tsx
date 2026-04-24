@@ -267,7 +267,7 @@ export default function Auth() {
           throw new Error("Sign-in verified but no session was returned.");
         }
       } catch (networkErr: any) {
-        if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
+        if (isNetworkLikeError(networkErr)) {
           const { data: directAuth, error: directAuthError } = await supabase.auth.signInWithPassword({
             email: email.trim(),
             password,
