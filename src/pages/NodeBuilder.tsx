@@ -153,10 +153,10 @@ export default function NodeBuilder() {
           The builder for node {nodeId} is not available yet.
         </p>
         <button
-          onClick={() => navigate(bookId ? `/dashboard/book/${bookId}` : "/dashboard?section=my-books")}
+          onClick={() => navigate("/brand-products")}
           className="text-primary underline"
         >
-          Back to Book Hub
+          Back to Brand Products
         </button>
       </div>
     </DashboardLayout>

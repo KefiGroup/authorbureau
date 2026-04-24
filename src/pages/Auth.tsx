@@ -9,7 +9,6 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
-import { fetchWithTimeout } from "@/lib/get-active-token";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -32,34 +31,12 @@ function friendlyError(status: number, serverMsg?: string): string {
   return serverMsg || "Something went wrong.";
 }
 
-// Detect network-layer failures (offline, CORS, Safari ITP, aborted fetches, timeouts)
-// where we should fall back to the local Supabase auth client.
-function isNetworkLikeError(err: any): boolean {
-  if (!err) return false;
-  const name = String(err?.name || "").toLowerCase();
-  const msg = String(err?.message || "").toLowerCase();
-  return (
-    err instanceof TypeError ||
-    name === "aborterror" ||
-    name === "timeouterror" ||
-    msg.includes("failed to fetch") ||
-    msg.includes("operation was aborted") ||
-    msg.includes("aborted") ||
-    msg.includes("network") ||
-    msg.includes("load failed")
-  );
-}
-
 async function authFetch(body: Record<string, unknown>) {
-  const res = await fetchWithTimeout(
-    `${SHARED_BACKEND_URL}/functions/v1/user-auth`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
-    },
-    12000
-  );
+  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
+  });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (data?.authUrl) {
@@ -172,7 +149,7 @@ export default function Auth() {
         setResendCooldown(60);
       } catch (networkErr: any) {
         const msg = (networkErr?.message || "").toLowerCase();
-        if (isNetworkLikeError(networkErr) || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
+        if (msg.includes("failed to fetch") || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
           const { error: signUpError } = await supabase.auth.signUp({
             email: email.trim(),
             password: crypto.randomUUID(),
@@ -241,7 +218,7 @@ export default function Auth() {
         });
         if (localErr || !localAuth?.session) {
           setOtp("");
-          throw new Error(isNetworkLikeError(primaryErr)
+          throw new Error(msg.includes("failed to fetch")
             ? "Verification service is temporarily unavailable. Please click the magic link in your email instead."
             : msg || "Invalid or expired code. Please request a new one.");
         }
@@ -272,7 +249,7 @@ export default function Auth() {
           throw new Error("Sign-in verified but no session was returned.");
         }
       } catch (networkErr: any) {
-        if (isNetworkLikeError(networkErr)) {
+        if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
           const { data: directAuth, error: directAuthError } = await supabase.auth.signInWithPassword({
             email: email.trim(),
             password,

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { builderBackTarget } from "@/lib/book-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
@@ -187,7 +186,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
-        <BuilderHeader nodeId="BP-06" title="Workbook" subtitle="A printable companion workbook with chapter exercises" icon={FileText} onBack={() => navigate(builderBackTarget(bookId, "brand"))} />
+        <BuilderHeader nodeId="BP-06" title="Workbook" subtitle="A printable companion workbook with chapter exercises" icon={FileText} onBack={() => navigate("/brand-products")} />
         <UnifiedStepper nodeId="BP-06" steps={STEPS} current={step} onStepClick={(i) => { if (i <= step) setStep(i); }} />
       </div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">

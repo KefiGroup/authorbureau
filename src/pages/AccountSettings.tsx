@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useAuth, TIERS } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,15 +44,7 @@ export default function AccountSettings() {
       return;
     }
     setSaving(true);
-    await sharedSupabase.auth.refreshSession().catch(() => null);
-    const { data: sessionData } = await sharedSupabase.auth.getSession();
-    if (!sessionData.session) {
-      toast({ title: "Your session expired. Please sign in again.", variant: "destructive" });
-      setSaving(false);
-      return;
-    }
-
-    const { error } = await sharedSupabase.auth.updateUser({ password: newPassword });
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) {
       toast({ title: "Failed to update password", description: error.message, variant: "destructive" });
     } else {

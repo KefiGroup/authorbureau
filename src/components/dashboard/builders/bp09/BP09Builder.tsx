@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { builderBackTarget } from "@/lib/book-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
@@ -205,7 +204,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
           title="Live Audience Conversion Toolkit"
           subtitle="Workshops · Book signings · Corporate lunches"
           icon={Mic}
-          onBack={() => navigate(builderBackTarget(bookId, "brand"))}
+          onBack={() => navigate("/brand-products")}
         />
         <UnifiedStepper nodeId="BP-09" steps={STEPS} current={step} onStepClick={(i) => { if (i <= step) setStep(i); }} />
       </div>

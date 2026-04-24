@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { builderBackTarget } from "@/lib/book-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
@@ -232,7 +231,7 @@ export default function BP01Builder({ authorId, bookId }: Props) {
           title="Email Marketing"
           subtitle="Welcome sequence + lead magnet offer + first broadcast"
           icon={Mail}
-          onBack={() => navigate(builderBackTarget(bookId, "brand"))}
+          onBack={() => navigate("/brand-products")}
         />
         <UnifiedStepper
           nodeId="BP-01"

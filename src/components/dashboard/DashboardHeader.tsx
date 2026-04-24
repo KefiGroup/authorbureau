@@ -23,7 +23,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import NotificationCenter from "./NotificationCenter";
-import HeaderBookSwitcher from "./HeaderBookSwitcher";
 
 interface Props {
   user: SupaUser;
@@ -85,9 +84,6 @@ export default function DashboardHeader({ user, isPremium, isAdmin, tier, subscr
         </div>
       </div>
       <div className="flex items-center gap-2">
-        {/* Persistent book switcher (hidden outside book/builder routes) */}
-        <HeaderBookSwitcher />
-
         {/* Notification Center */}
         <NotificationCenter userId={user.id} onNavigate={onNavigate} />
 
