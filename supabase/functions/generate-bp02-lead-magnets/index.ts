@@ -1,5 +1,7 @@
+// @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildAuthorContext, upsertAuthorNode } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,14 +9,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function fail(error: string, extra: Record<string, unknown> = {}) {
+  return new Response(
+    JSON.stringify({ success: false, error, ...extra }),
+    { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { author_id } = await req.json();
-    if (!author_id) throw new Error("author_id is required");
+    const { author_id, book_id } = await req.json();
+    if (!author_id) return fail("author_id is required");
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -26,35 +35,21 @@ serve(async (req) => {
       .select("pen_name, user_id, ghl_sub_account_id, subscription_tier")
       .eq("id", author_id)
       .single();
-    if (authorErr || !author) throw new Error("Author profile not found");
+    if (authorErr || !author) return fail("Author profile not found");
 
-    const { data: context } = await supabase
-      .from("author_context")
-      .select("book_title, book_subtitle, core_thesis, key_frameworks, target_audience_persona, unique_insights, commercial_angles")
-      .eq("author_id", author_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Fallback to books table if no author_context exists
-    let bookTitle = context?.book_title || "";
-    let bookSubtitle = context?.book_subtitle || "";
-    let coreThesis = context?.core_thesis || "";
-    if (!bookTitle) {
-      const { data: book } = await supabase
-        .from("books")
-        .select("title, subtitle, description")
-        .eq("author_id", author.user_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (book) {
-        bookTitle = book.title || "";
-        bookSubtitle = book.subtitle || "";
-        coreThesis = book.description || "";
-      }
+    const ctxBundle = await buildAuthorContext(supabase, author_id, author.user_id, book_id ?? null, "BP-02");
+    if (ctxBundle.contextBlocked) {
+      return fail(
+        "Please run the book analysis for this specific book before generating Lead Magnets. This prevents content from leaking between your books.",
+        { status: "context_blocked", node_id: "BP-02" },
+      );
     }
-    if (!bookTitle) throw new Error("No book found. Please add a book first.");
+    const context = ctxBundle.ctx;
+    const bookTitle = ctxBundle.bookTitle;
+    const bookSubtitle = ctxBundle.bookSubtitle;
+    const coreThesis = ctxBundle.coreThesis;
+    const resolvedBookId = ctxBundle.book?.id ?? book_id ?? null;
+    if (!bookTitle) return fail("No book found. Please add a book first.");
 
     // Pull enrichment from generated_assets (business plan + source material)
     const { data: businessPlanAsset } = await supabase
@@ -415,37 +410,21 @@ IMPORTANT RULES:
     if (!parsedContent.lead_magnets || !parsedContent.optin_page) {
       console.error("AI returned incomplete content, skipping DB save:", Object.keys(parsedContent));
     } else {
-      // Upsert: check if row exists, then update or insert
-      const { data: existingNode } = await supabase
-        .from("author_nodes")
-        .select("id")
-        .eq("author_id", author_id)
-        .eq("node_id", "BP-02")
-        .maybeSingle();
-
-      const nodePayload = {
-        status: "content_ready",
-        content_json: parsedContent,
-        personalised_name: (parsedContent as any).funnel_name || "Lead Magnets",
-      };
-
-      if (existingNode) {
-        const { error: updateErr } = await supabase
-          .from("author_nodes")
-          .update(nodePayload)
-          .eq("author_id", author_id)
-          .eq("node_id", "BP-02");
-        if (updateErr) console.error("Failed to update author_nodes:", updateErr);
-      } else {
-        const { error: insertErr } = await supabase
-          .from("author_nodes")
-          .insert({
-            author_id,
-            node_id: "BP-02",
-            node_name: "Lead Magnets",
-            ...nodePayload,
-          });
-        if (insertErr) console.error("Failed to insert author_nodes:", insertErr);
+      try {
+        await upsertAuthorNode(
+          supabase,
+          author_id,
+          "BP-02",
+          "Lead Magnets",
+          {
+            status: "content_ready",
+            content_json: parsedContent,
+            personalised_name: (parsedContent as any).funnel_name || "Lead Magnets",
+          },
+          resolvedBookId,
+        );
+      } catch (e) {
+        console.error("Failed to upsert author_nodes BP-02:", e);
       }
     }
 

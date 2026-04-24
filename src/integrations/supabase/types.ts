@@ -378,6 +378,7 @@ export type Database = {
       author_context: {
         Row: {
           author_id: string
+          book_id: string | null
           book_subtitle: string | null
           book_title: string
           commercial_angles: Json | null
@@ -393,6 +394,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          book_id?: string | null
           book_subtitle?: string | null
           book_title: string
           commercial_angles?: Json | null
@@ -408,6 +410,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          book_id?: string | null
           book_subtitle?: string | null
           book_title?: string
           commercial_angles?: Json | null
@@ -441,6 +444,20 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_context_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_context_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
         ]

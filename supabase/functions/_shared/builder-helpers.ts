@@ -209,17 +209,22 @@ export async function snapshotAuthorNode(
  * than hallucinate from a different book's framework.
  */
 export const FRAMEWORK_REQUIRED_NODES = new Set([
+  "BP-01", "BP-02", "BP-03", "BP-04", "BP-05",
   "BA-10", "BA-12", "BA-13",
   "YR-19", "YR-20", "YR-22", "YR-23", "YR-24", "YR-25",
 ]);
 
 /**
- * Build a context bundle from author_context with book-strict mode.
+ * Build a context bundle from author_context with strict per-book lookup.
  *
- * - When `bookId` is provided, search author_context by the matching book's title.
- * - If no match is found AND the node is in FRAMEWORK_REQUIRED_NODES, return
- *   `{ contextBlocked: true, ... }` so the caller can refuse cleanly.
- * - Otherwise return ctx = null (caller proceeds with book metadata only).
+ * - Resolves the book first (by bookId if provided, else latest for the author).
+ * - Looks up author_context by (author_id, book_id) — this is the ONLY mode now.
+ *   The legacy book_title heuristic is gone; it caused cross-book content leaks.
+ * - If no row exists for that book AND the node is in FRAMEWORK_REQUIRED_NODES,
+ *   returns `{ contextBlocked: true, ... }` so the caller can refuse cleanly
+ *   and the UI can prompt the author to run book analysis (BP-00) for this book.
+ * - Otherwise returns ctx = null (non-framework-heavy nodes can proceed using
+ *   the book's title/description alone).
  */
 export async function buildAuthorContext(
   supabase: ReturnType<typeof createClient>,
@@ -233,14 +238,12 @@ export async function buildAuthorContext(
   let ctx: Record<string, any> | null = null;
   let contextSource: "book-specific" | "book-only-fallback" | "blocked" = "book-only-fallback";
 
-  if (book?.title) {
+  if (book?.id) {
     const { data: matchedCtx } = await supabase
       .from("author_context")
       .select("*")
       .eq("author_id", authorProfileId)
-      .eq("book_title", book.title)
-      .order("created_at", { ascending: false })
-      .limit(1)
+      .eq("book_id", book.id)
       .maybeSingle();
     if (matchedCtx) {
       ctx = matchedCtx;
@@ -248,19 +251,12 @@ export async function buildAuthorContext(
     }
   }
 
-  // If no book-specific context AND this node requires framework intelligence,
-  // signal the caller to block instead of falling back to a different book.
   const requiresFramework = nodeId ? FRAMEWORK_REQUIRED_NODES.has(nodeId) : false;
   let contextBlocked = false;
   if (!ctx && requiresFramework) {
     contextBlocked = true;
     contextSource = "blocked";
   }
-
-  // For non-framework-required nodes with no book-specific context, leave ctx
-  // as null. The caller will still have the book metadata to work with.
-  // We deliberately DO NOT fall back to "latest context for this author" any
-  // more — that's the bug that wrote Be SUCKcessful content into Invest's BA-10.
 
   const bookTitle = book?.title?.trim() || ctx?.book_title?.trim() || "";
   const bookSubtitle = book?.subtitle?.trim() || ctx?.book_subtitle?.trim() || "";

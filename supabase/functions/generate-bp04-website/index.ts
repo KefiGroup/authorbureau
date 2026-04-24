@@ -1,5 +1,7 @@
+// @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildAuthorContext, upsertAuthorNode } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +15,7 @@ serve(async (req) => {
   }
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, book_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
 
     const supabase = createClient(
@@ -28,36 +30,29 @@ serve(async (req) => {
       .single();
     if (authorErr || !author) throw new Error("Author profile not found");
 
-    const { data: context } = await supabase
-      .from("author_context")
-      .select("book_title, book_subtitle, core_thesis, key_frameworks, target_audience_persona, unique_insights, commercial_angles")
-      .eq("author_id", author_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    // Fallback: if no author_context, read from books table directly
-    let fallbackBook: { title?: string; description?: string; genre?: string } | null = null;
-    if (!context?.book_title && author.user_id) {
-      const { data: book } = await supabase
-        .from("books")
-        .select("title, description, genre")
-        .eq("author_id", author.user_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      fallbackBook = book;
-      console.log("[generate-bp04] Using books fallback:", { title: book?.title });
+    const ctxBundle = await buildAuthorContext(supabase, author_id, author.user_id, book_id ?? null, "BP-04");
+    if (ctxBundle.contextBlocked) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "context_blocked",
+          node_id: "BP-04",
+          error: "Please run the book analysis for this specific book before generating Author Website. This prevents content from leaking between your books.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
+    const context = ctxBundle.ctx;
+    const resolvedBookId = ctxBundle.book?.id ?? book_id ?? null;
 
     const authorName = author.pen_name || "Author";
-    const bookTitle = context?.book_title || fallbackBook?.title || "";
-    const bookSubtitle = context?.book_subtitle || "";
-    const coreThesis = context?.core_thesis || fallbackBook?.description || "";
+    const bookTitle = ctxBundle.bookTitle;
+    const bookSubtitle = ctxBundle.bookSubtitle;
+    const coreThesis = ctxBundle.coreThesis;
     const keyFrameworks = context?.key_frameworks ? JSON.stringify(context.key_frameworks) : "N/A";
     const audiencePersona = context?.target_audience_persona ? JSON.stringify(context.target_audience_persona) : "general readers";
     const uniqueInsights = context?.unique_insights ? JSON.stringify(context.unique_insights) : "N/A";
-    const genre = Array.isArray(author.genres) ? author.genres[0] || fallbackBook?.genre || "Non-fiction" : fallbackBook?.genre || "Non-fiction";
+    const genre = Array.isArray(author.genres) ? author.genres[0] || ctxBundle.book?.genre || "Non-fiction" : ctxBundle.book?.genre || "Non-fiction";
 
     if (!bookTitle) {
       throw new Error("No book found for this author. Please complete your book profile first.");
@@ -186,17 +181,22 @@ Make everything specific to this author's book, niche, and audience. Never use g
       }
     }
 
-    const { error: updateErr } = await supabase
-      .from("author_nodes")
-      .update({
-        status: "content_ready",
-        content_json: parsedContent,
-        personalised_name: (parsedContent as any).site_name || "Author Website",
-      })
-      .eq("author_id", author_id)
-      .eq("node_id", "BP-04");
-
-    if (updateErr) console.error("Failed to update author_nodes:", updateErr);
+    try {
+      await upsertAuthorNode(
+        supabase,
+        author_id,
+        "BP-04",
+        "Author Website",
+        {
+          status: "content_ready",
+          content_json: parsedContent,
+          personalised_name: (parsedContent as any).site_name || "Author Website",
+        },
+        resolvedBookId,
+      );
+    } catch (e) {
+      console.error("Failed to upsert author_nodes BP-04:", e);
+    }
 
     return new Response(
       JSON.stringify({ success: true, content: parsedContent }),
