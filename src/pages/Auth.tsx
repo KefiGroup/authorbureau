@@ -167,7 +167,7 @@ export default function Auth() {
         setResendCooldown(60);
       } catch (networkErr: any) {
         const msg = (networkErr?.message || "").toLowerCase();
-        if (msg.includes("failed to fetch") || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
+        if (isNetworkLikeError(networkErr) || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
           const { error: signUpError } = await supabase.auth.signUp({
             email: email.trim(),
             password: crypto.randomUUID(),
