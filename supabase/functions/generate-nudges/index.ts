@@ -114,6 +114,83 @@ serve(async (req) => {
       projected_annual_revenue: projectedAnnual,
     };
 
+    // ─── Seasonal Special Edition triggers (BP-08) ───
+    // Universal occasions mirroring src/lib/special-edition-calendar.ts
+    const SEASONAL_OCCASIONS: Array<{
+      id: string;
+      label: string;
+      emoji: string;
+      peakMonth: number; // 1-12
+      peakDay: number;
+      defaultEdition: string;
+      defaultPrice: number;
+    }> = [
+      { id: "valentines", label: "Valentine's Day", emoji: "💝", peakMonth: 2, peakDay: 14, defaultEdition: "Signed Limited", defaultPrice: 49 },
+      { id: "mothers-day", label: "Mother's Day", emoji: "🌷", peakMonth: 5, peakDay: 12, defaultEdition: "Hardcover Collector's", defaultPrice: 69 },
+      { id: "fathers-day", label: "Father's Day", emoji: "🛡", peakMonth: 6, peakDay: 15, defaultEdition: "Signed Edition", defaultPrice: 59 },
+      { id: "graduation", label: "Graduation", emoji: "🎓", peakMonth: 5, peakDay: 30, defaultEdition: "Gift Set", defaultPrice: 79 },
+      { id: "back-to-school", label: "Back to School", emoji: "📚", peakMonth: 9, peakDay: 1, defaultEdition: "Signed + Workbook", defaultPrice: 69 },
+      { id: "christmas", label: "Christmas / Holiday", emoji: "🎁", peakMonth: 12, peakDay: 15, defaultEdition: "Hardcover Gift Set", defaultPrice: 99 },
+      { id: "new-year", label: "New Year", emoji: "✨", peakMonth: 1, peakDay: 1, defaultEdition: "Limited Numbered", defaultPrice: 59 },
+    ];
+
+    const nowDate = new Date();
+    const today0 = new Date(nowDate.getFullYear(), nowDate.getMonth(), nowDate.getDate());
+
+    function nextOccPeak(o: { peakMonth: number; peakDay: number }) {
+      const y = nowDate.getFullYear();
+      const t = new Date(y, o.peakMonth - 1, o.peakDay);
+      if (t.getTime() >= today0.getTime()) return t;
+      return new Date(y + 1, o.peakMonth - 1, o.peakDay);
+    }
+
+    // BP-08 has live editions tagged this year? skip those occasions
+    const bp08Live = allNodes.filter((n: any) => n.node_id === "BP-08" && n.status === "live");
+    const liveOccasionsThisYear = new Set<string>();
+    for (const n of bp08Live) {
+      const cj = (n as any).content_json || {};
+      const occ = cj.occasion as string | undefined;
+      const yr = (n as any).activated_at ? new Date((n as any).activated_at).getFullYear() : null;
+      if (occ && yr === nowDate.getFullYear()) liveOccasionsThisYear.add(occ);
+    }
+
+    const seasonalTriggers = SEASONAL_OCCASIONS.flatMap((o) => {
+      const peak = nextOccPeak(o);
+      const days = Math.round((peak.getTime() - today0.getTime()) / (1000 * 60 * 60 * 24));
+      const weeks = Math.round(days / 7);
+      const peakYear = peak.getFullYear();
+
+      // Skip if author already shipped this occasion this year
+      if (liveOccasionsThisYear.has(o.id)) return [];
+
+      const out: any[] = [];
+      // Fire 8-week trigger when 7-9 weeks out (1-week tolerance for daily cron)
+      if (weeks >= 7 && weeks <= 9) {
+        out.push({
+          id: `special_edition_${o.id}_${peakYear}_w8`,
+          dedupeKey: `special_edition_${o.id}_${peakYear}_w8`,
+          condition: () => true,
+          title: `${o.emoji} ${o.label} is ${weeks} weeks away`,
+          content: `${data.pen_name}, authors who launch a themed edition by week 6 sell 3x more. Want me to draft a ${o.defaultEdition} ${o.label} Edition of "${data.pen_name ? "your book" : "your book"}" now? Pre-filled with the recommended price ($${o.defaultPrice}) and bonus content list — you just review and generate.`,
+          action_label: `Draft ${o.label} Edition`,
+          action_url: `/node-builder/BP-08?occasion=${o.id}&autostart=1`,
+        });
+      }
+      // Fire 4-week last-call when 3-5 weeks out
+      if (weeks >= 3 && weeks <= 5) {
+        out.push({
+          id: `special_edition_${o.id}_${peakYear}_w4`,
+          dedupeKey: `special_edition_${o.id}_${peakYear}_w4`,
+          condition: () => true,
+          title: `⏰ Last call: ${o.label} in ${weeks} weeks`,
+          content: `${data.pen_name}, this is the final window to ship a ${o.label} edition before the peak gift-buying period closes. The bundle approach (book + companion PDF + author audio note) sells best at this stage. One click and Abby drafts it.`,
+          action_label: `Draft ${o.label} Bundle`,
+          action_url: `/node-builder/BP-08?occasion=${o.id}&autostart=1`,
+        });
+      }
+      return out;
+    });
+
     // Define nudge triggers
     const triggers = [
       {
@@ -188,6 +265,7 @@ serve(async (req) => {
         action_label: "View Revenue Dashboard",
         action_url: "/revenue-dashboard",
       },
+      ...seasonalTriggers,
     ];
 
     const today = new Date().toISOString().slice(0, 10);
@@ -197,13 +275,19 @@ serve(async (req) => {
       try {
         if (!trigger.condition()) continue;
 
-        // Check if this nudge type was already created today
+        // Seasonal nudges dedupe across the whole year (id includes year);
+        // milestone nudges dedupe per day.
+        const isSeasonal = trigger.id.startsWith("special_edition_");
+        const sinceIso = isSeasonal
+          ? `${nowDate.getFullYear()}-01-01T00:00:00Z`
+          : `${today}T00:00:00Z`;
+
         const { data: existing } = await supabase
           .from("abby_nudges")
           .select("id")
           .eq("author_id", authorId)
           .eq("nudge_type", trigger.id)
-          .gte("created_at", `${today}T00:00:00Z`)
+          .gte("created_at", sinceIso)
           .limit(1);
 
         if (existing && existing.length > 0) continue;

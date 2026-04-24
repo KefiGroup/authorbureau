@@ -10,6 +10,7 @@ import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
 import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
 import CompactMicrositeCard from "./framework-dashboard/CompactMicrositeCard";
+import SpecialEditionCalendarCard from "./SpecialEditionCalendarCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -381,6 +382,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           }}
         />
       </section>
+
+      {/* Special Edition Calendar — proactive seasonal prompts (BP-08) */}
+      <SpecialEditionCalendarCard />
 
       {/* Section 4: Choose Your Path / Subscription */}
       <SubscriptionPricing
