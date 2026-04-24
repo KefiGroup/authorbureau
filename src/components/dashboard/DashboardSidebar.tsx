@@ -395,6 +395,22 @@ export default function DashboardSidebar({
             </div>
           </button>
         )}
+        {/* Current book pill — only shown inside a book's context */}
+        {!collapsed && currentBook && (businessExpanded) && (
+          <button
+            onClick={() => onSectionChange("my-books" as DashboardSection)}
+            className="mx-2 mb-1.5 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-left transition-colors hover:bg-muted"
+            title="Switch book"
+          >
+            <span className="flex items-center gap-1.5 min-w-0">
+              <BookOpen className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="truncate text-[11px] font-semibold text-foreground">{currentBook.title}</span>
+            </span>
+            <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+              {currentBook.total}/28
+            </span>
+          </button>
+        )}
         {(businessExpanded || collapsed) && businessItems.filter(i => !i.hidden).map((item, idx) => {
           const isLocked = !!item.lockMessage;
           const isActive = activeSection === item.id && !isLocked;
