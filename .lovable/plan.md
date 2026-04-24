@@ -1,112 +1,105 @@
 
 
-## Abby's Special Edition Calendar — proactive seasonal prompts
+## Fix per-book progress + clean up the multi-book sidebar
 
-Right now BP-08 already has occasion templates (Valentine's, Mother's Day, Father's Day, Christmas, etc.) and a date-aware Abby tip inside the builder. But the author only sees that tip **if they happen to open BP-08**. We need Abby to **proactively prompt** the author 6–10 weeks before each peak occasion with a one-click path to spin up a themed edition + bundle for both Amazon and the author's portal.
+Two real bugs surfaced by your second book:
+
+**Bug 1 — sidebar counts ("9 built", "9 built", "10 built") are author-wide totals.**
+They sum every node across every book, so the moment you have a second book the numbers stop meaning anything to either book. There's no per-book breakdown anywhere in the sidebar.
+
+**Bug 2 — "8% built" / "1 Products Built" on the Be SUCKcessful card is wrong.**
+The per-book counter (`stats.products.perBook[bookId]`) only counts rows from 8 product tables (`courses`, `workbooks`, `audiobooks`, `home_study_courses`, `podcasts`, `coaching_packages`, `email_flows`, `social_media_content`). It does **not** count the `author_nodes` table — which is where BP-01, BP-02, BP-03, BP-04, BP-05, BP-08, every BA-* node, and most YR-* nodes are stored. So if you've built 28 nodes but only 1 of them happens to be a workbook, the card says "1 Products Built · 8%". Plus the denominator is hardcoded to 12 instead of 28.
 
 ### What you'll see after
 
-**1. New "Special Edition Calendar" card on the dashboard**
-A horizontal calendar strip showing the next 3 upcoming occasions with countdown chips:
+**Sidebar (multi-book aware)**
+
+Drop the global `9 built / 9 built / 10 built` badges from the three category items. Replace with subtle, book-agnostic labels:
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│  🎁 Special Edition Calendar                  View full calendar │
-├─────────────────────────────────────────────────────────────────┤
-│  💝 Valentine's Day  🌷 Mother's Day  🛡 Father's Day            │
-│  in 3 weeks ⚡        in 11 weeks       in 15 weeks               │
-│  [Build edition →]   [Build edition →] [Plan edition →]          │
-└─────────────────────────────────────────────────────────────────┘
+$ Brand Products      Create Your Products
+🎙 Build Authority     Scale Your Audience
+🏆 Yield Revenue       Premium Services
 ```
 
-The "⚡" chip means the occasion is inside its **launch window** (8 weeks out for Amazon print lead time + marketing runway). Clicking "Build edition" deep-links to BP-08 with the occasion **pre-selected** and the recommended price/print-run pre-filled.
+When the user **opens a book** (i.e. is on `/dashboard/book/:bookId` or any builder route that has a `bookId` in context), a small "Current book" pill appears at the top of the sidebar:
 
-**2. Abby nudges in the existing nudge feed**
-6 new triggers fire automatically through the existing `generate-nudges` edge function:
+```text
+┌─────────────────────────────┐
+│ 📖 Be SUCKcessful   28/28 ●│
+│ Brand 9 · Build 9 · Yield 10│
+└─────────────────────────────┘
+```
 
-- **8 weeks out** — "🌷 Mother's Day is 8 weeks away. Authors who launch a themed edition by week 6 sell 3x more. Want me to draft a Hardcover Mother's Day Edition of *[Book Title]* now?"
-- **4 weeks out** — last-call nudge with bundle suggestion
-- **Fired only once per occasion per author per year** (dedupe key `special_edition_${occasion}_${year}`)
+…and the three category items show **per-book** counts inline (`9/9 built`, `9/9 built`, `10/10 built`) instead of the global totals. Click the pill to switch books.
 
-**3. One-click "Generate this edition" flow**
-Clicking the nudge or calendar CTA opens BP-08 with:
-- Occasion pre-selected (e.g. Mother's Day)
-- Edition type pre-set (Hardcover Collector's for gifting occasions, Signed for Father's Day, Gift Set for Christmas)
-- Suggested price pre-filled
-- "Includes" pre-populated with occasion-specific bonuses (themed foreword, gift inscription page, companion journal/audio for that occasion)
-- Bundle tab pre-loaded with **Amazon SKU bundle** (book + workbook + signed bookplate) and **Portal Premium bundle** (everything + author audio message)
+**Book cards on My Books Hub**
 
-Author can edit anything, then click **Generate** — Abby produces the full 3-tier edition + sales page + 30-day promo calendar (already supported by `generate-bp08-mastermind`).
+Fix the math so it actually reflects the 28-node framework:
 
-**4. Full Calendar page at `/special-editions-calendar`**
-A 12-month grid showing all occasions, status per occasion (`Not started` / `Drafted` / `Live on Portal` / `Live on Amazon`), and revenue earned per occasion last year. Reachable from the dashboard card and the BP-08 builder header.
+- Denominator: **28** (not 12).
+- Numerator: count of **distinct nodes** built for this book = rows in `author_nodes` for the book's owning author with `status IN ('content_ready','live','published_pending_ghl','draft','ready_for_review')` PLUS rows in the 8 product tables that have `book_id = this.book.id`. De-duplicate by `node_id` so a node represented in both places is only counted once.
+- Per-category breakdown shown as: `Brand 9/9 · Build 9/9 · Yield 10/10`.
+- Progress bar reflects the new denominator.
 
-### The 7 universal occasions we use
-
-Limited to a small, universal set (no niche holidays) so the calendar stays clean:
-
-| Occasion | Peak Window | Launch Trigger | Default Edition | Default Price |
-|---|---|---|---|---|
-| 💝 Valentine's Day | Jan 15 – Feb 14 | Dec 1 (10 wk) | Signed Limited (100) | $49 |
-| 🌷 Mother's Day | Apr 15 – May 12 | Mar 1 (10 wk) | Hardcover Collector's | $69 |
-| 🛡 Father's Day | May 15 – Jun 15 | Apr 1 (10 wk) | Signed Edition | $59 |
-| 🎓 Graduation | Apr 1 – Jun 30 | Feb 15 (10 wk) | Gift Set | $79 |
-| 📚 Back to School | Jul 15 – Sep 15 | Jun 1 (10 wk) | Signed + Workbook | $69 |
-| 🎁 Christmas / Holiday | Oct 15 – Dec 25 | Sep 1 (10 wk) | Hardcover Gift Set | $99 |
-| ✨ New Year | Dec 15 – Jan 15 | Nov 1 (10 wk) | Limited Numbered | $59 |
-
-These defaults already live in `OCCASION_TEMPLATES` — we just centralize them and add `launchWindowWeeks: 10` and `defaultEditionType` / `defaultPriceUsd` fields.
+For Be SUCKcessful with all 28 nodes built this will read **"28 of 28 built · 100%"**.
 
 ### What changes in code
 
-**New file: `src/lib/special-edition-calendar.ts`**
-- Single source of truth for the 7 occasions (extends what's already in `OccasionTemplateGrid.tsx`).
-- Exports `getUpcomingOccasions(now, count)`, `weeksUntil(occasion)`, `isInLaunchWindow(occasion)`, `nextOccurrence(occasion)`.
-- Handles year-rollover (Valentine's in November shows "next Feb 14", not "10 months ago").
+**`supabase/functions/author-stats/index.ts`**
+Extend `perBook` from `Record<string, number>` to `Record<string, { brand: number; build: number; yield: number; total: number; nodeIds: string[] }>`:
+- For each `author_nodes` row already fetched, look up its `book_id` (it exists on the table). Bucket it into brand/build/yield by the `BP-` / `BA-` / `YR-` prefix and append the `node_id` to `nodeIds`.
+- For each row in the 8 product tables, map the table → its node_id (e.g. `workbooks` → `BP-06`, `home_study_courses` → `BP-07`, `audiobooks` → `BP-09`, `coaching_packages` → `YR-19`, `podcasts` → `BA-12`, `email_flows` → `BP-01`, `social_media_content` → `BP-03`, `courses` → `YR-21`) and add to `nodeIds` only if not already present.
+- Final per-book counts derived from the de-duplicated `nodeIds` set.
+- Also include `BP-04` if the book's author has `author_slug` set (matches existing global logic).
 
-**New component: `src/components/dashboard/SpecialEditionCalendarCard.tsx`**
-- Renders the horizontal 3-occasion strip on the dashboard (Brand Products section).
-- Each chip shows emoji, name, "in N weeks" countdown, urgency ⚡ if inside launch window.
-- CTA: `navigate("/node-builder/BP-08?occasion=mothers-day&autostart=1")`.
+**`src/hooks/useAuthorStats.ts`**
+Update `AuthorStats.products.perBook` type to the new structured shape. No fetch logic changes.
 
-**New page: `src/pages/SpecialEditionCalendarPage.tsx`** (route `/special-editions-calendar`)
-- 12-month grid view with all occasions, status badges per occasion, last-year revenue per occasion.
-- Wrapped in `DashboardLayout`.
+**`src/components/dashboard/my-books/RevenueProjectionCard.tsx`**
+- Accept new prop shape: `{ brand, build, yield, total }` (out of 9 / 9 / 10 / 28).
+- Render: progress bar driven by `total / 28`, plus a one-line breakdown `Brand 9/9 · Build 9/9 · Yield 10/10`.
+- Keep the revenue range copy as-is.
 
-**Modify: `src/components/dashboard/builders/special-editions/SpecialEditionsStepRenderer.tsx`**
-- Read `?occasion=` and `?autostart=` query params. If present, pre-select the occasion + edition type + price + "Includes" defaults the moment the builder mounts.
-- Add a small "Why this occasion now?" callout above the existing Abby tip when launched from a nudge.
+**`src/components/dashboard/MyBooks.tsx`** (line ~540)
+Pass the new structured per-book object to `RevenueProjectionCard`. Update the small "{builtCount} Products Built" status pill to use the new `total` instead of the truncated table-only count.
 
-**Modify: `supabase/functions/generate-nudges/index.ts`**
-- Add a new "Seasonal Edition Triggers" block that loops through the 7 occasions, computes weeks-until, and inserts nudges at **8 weeks out** and **4 weeks out**.
-- Dedupe key: `special_edition_${occasionId}_${year}` so each occasion fires at most twice per year per author.
-- Skip if the author already has a `live` BP-08 node tagged with that occasion this year (check `content_json.occasion` + `activated_at` year).
-- Skip entirely if BP-08 isn't unlocked for the author's tier.
+**`src/components/dashboard/my-books/AbbyNudge.tsx`**
+Use `totalProducts={28}` for tier "yield" message (currently passes 12).
 
-**Modify: `src/pages/AuthorDashboard.tsx`**
-- Mount `<SpecialEditionCalendarCard />` inside the dashboard view, just below the Brand Products summary.
+**`src/components/dashboard/DashboardSidebar.tsx`**
+- Remove the `badge: \`${buildUnlocked} built\`` etc. from the three category items by default.
+- Add a new optional prop `currentBook?: { id: string; title: string; brand: number; build: number; yield: number; total: number }`.
+- When `currentBook` is provided: render the small "Current book" pill at the top of the BUILD YOUR BUSINESS section AND inject per-book badges on the three category items (`9/9 built` style).
+- When not provided: no badges at all on the three category items (clean look for the multi-book overview).
 
-**Bundle / Amazon hooks (no new infra needed)**
-The existing `generate-bp08-mastermind` function already produces a `bundle_offer` JSON. We extend its prompt to ALWAYS produce two bundle SKUs when an occasion is set:
-- `amazon_bundle` — physical-only items, ASIN-friendly title with occasion suffix (e.g., "*[Book]* — Mother's Day Hardcover Gift Set")
-- `portal_bundle` — adds author-only digital extras (signed audio note, themed PDF journal, companion meditation)
+**`src/components/dashboard/DashboardLayout.tsx`**
+- Detect the active book via the URL: `useParams<{ bookId?: string }>()` (works for `/dashboard/book/:bookId`) and `useSearchParams().get("bookId")` (works for builder routes).
+- Look up that book's per-book stats from `stats.products.perBook[activeBookId]` and pass as `currentBook` to `<DashboardSidebar>`.
+- Stop passing the global `buildUnlocked` / `buildAuthorityUnlocked` / `yieldUnlocked` props (or pass them only when no `currentBook` is set, to keep them as a fallback).
 
-The existing `deploy-bp08-to-ghl` function already handles the portal listing + Stripe payment link. For Amazon we generate an **Amazon Listing Pack** (title, bullets, A+ content blurb, keyword list) that the author copy-pastes into Amazon KDP — no Amazon API integration needed in this sprint.
+**`src/components/dashboard/book-hub/BookHubOverview.tsx`** (line 324)
+Update the "All 28 builders are unlocked" copy — already correct, no change needed beyond verifying the data feeding this banner is per-book consistent.
 
-### Out of scope (explicit)
+### Out of scope
 
-- Direct Amazon KDP API integration (we generate the listing copy; author publishes manually).
-- Notification email/SMS for nudges (existing in-app nudge feed only).
-- Custom occasions beyond the 7 universal ones (the BP-08 builder still supports the existing "Custom Occasion" template — it just doesn't appear on the calendar).
-- Per-book occasion editions (one occasion edition spans the author's catalog; per-book is a future iteration).
+- Switching the sidebar's other counters (pending review, unread nudges) to per-book — they remain author-wide on purpose.
+- Changing the 28-node framework definition.
+- Adding a book switcher inside the sidebar pill (clicking it just navigates back to `/dashboard?section=my-books`).
+- Backfilling historical `author_nodes.book_id` values; we trust whatever `book_id` is already stored on each row.
 
 ### Validation
 
-1. On Apr 1, dashboard shows: Mother's Day (in 6 wk ⚡), Father's Day (in 11 wk), Graduation (in 4 wk ⚡).
-2. Open the in-app nudge feed: a Mother's Day nudge appears with one-click "Draft Mother's Day Edition" CTA.
-3. Click the CTA → BP-08 opens with occasion = Mother's Day, edition type = Hardcover Collector's, price = $69, occasion-specific bonus list pre-filled.
-4. Click Generate → 3-tier edition + Amazon bundle copy + Portal bundle published, ready to copy into KDP.
-5. Re-visit the calendar: Mother's Day chip now shows "Drafted" status badge.
-6. Trigger generate-nudges twice on the same day → only one Mother's Day nudge exists (dedupe works).
-7. On Nov 1, calendar shows Christmas (in 7 wk ⚡), New Year (in 9 wk ⚡), Valentine's (in 15 wk).
+1. Sign in as the user with Be SUCKcessful + Invest Like Buffett.
+2. On `/dashboard?section=my-books`:
+   - Be SUCKcessful card shows **"28 of 28 built · 100%"** with `Brand 9/9 · Build 9/9 · Yield 10/10`.
+   - Invest Like Buffett card shows **"0 of 28 built · 0%"** with `Brand 0/9 · Build 0/9 · Yield 0/10`.
+   - Sidebar shows category items with **no built badges** (clean, multi-book mode).
+3. Click into Be SUCKcessful's Book Hub:
+   - Sidebar shows the "Current book" pill with `Be SUCKcessful · 28/28`.
+   - Category items show `9/9 built`, `9/9 built`, `10/10 built`.
+4. Click into Invest Like Buffett:
+   - Pill shows `Invest Like Buffett · 0/28`.
+   - Category items show `0/9`, `0/9`, `0/10`.
+5. Build one new node for Invest Like Buffett → its card progress moves to 1/28, sidebar pill updates within 30s (cache TTL).
 
