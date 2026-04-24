@@ -215,6 +215,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             content={content}
             setContent={setContent}
             authorId={authorId}
+            bookId={bookId ?? null}
             authorName={authorName}
             bookTitle={effectiveBookTitle}
             onActivate={handlePublish}
