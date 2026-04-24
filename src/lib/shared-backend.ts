@@ -182,12 +182,10 @@ export const sharedSupabase = createClient<Database>(
   SHARED_ANON_KEY,
   {
     auth: {
-      storage: sharedAuthStorage,
       storageKey: AUTH_STORAGE_KEY,
-      persistSession: true,
+      persistSession: false,
       autoRefreshToken: true,
       lock: processLock,
-      lockAcquireTimeout: 2000,
     },
   }
 );
@@ -247,8 +245,27 @@ export async function getSharedSession() {
   }
 
   try {
-    return JSON.parse(inMemorySessionCache);
+    const cachedSession = JSON.parse(inMemorySessionCache) as SharedSessionInput & { user?: unknown };
+    const { data, error } = await sharedSupabase.auth.setSession({
+      access_token: cachedSession.access_token,
+      refresh_token: cachedSession.refresh_token,
+    });
+
+    if (!error && data.session?.access_token) {
+      return data.session;
+    }
+
+    return cachedSession;
   } catch {
     return null;
+  }
+}
+
+export function clearSharedSessionCache() {
+  inMemorySessionCache = "";
+  try {
+    sharedAuthStorage.removeItem(AUTH_STORAGE_KEY);
+  } catch {
+    // ignore
   }
 }
