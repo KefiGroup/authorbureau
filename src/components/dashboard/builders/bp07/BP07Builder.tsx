@@ -29,7 +29,7 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Analyzing your book for a self-paced study programme...", "Designing a 21-day reading and exercise schedule...", "Mapping chapters to daily themes and lessons...", "Creating practical exercises and reflection prompts...", "Finalising your Home Study Programme..."];
 const ACT_MSGS = ["Creating your home study product...", "Setting up your payment page...", "Generating your checkout link...", "Your programme is almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
 export default function BP07Builder({ authorId }: Props) {
   const navigate = useNavigate();
