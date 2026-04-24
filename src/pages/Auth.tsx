@@ -9,6 +9,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { fetchWithTimeout } from "@/lib/get-active-token";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -50,11 +51,15 @@ function isNetworkLikeError(err: any): boolean {
 }
 
 async function authFetch(body: Record<string, unknown>) {
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
-  });
+  const res = await fetchWithTimeout(
+    `${SHARED_BACKEND_URL}/functions/v1/user-auth`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
+    },
+    12000
+  );
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     if (data?.authUrl) {
