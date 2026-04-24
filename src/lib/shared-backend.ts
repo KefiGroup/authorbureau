@@ -1,4 +1,4 @@
-import { createClient, processLock } from "@supabase/supabase-js";
+import { createClient, processLock, type Session } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 
 const AUTH_STORAGE_KEY = "authorsbureau-shared-auth";
@@ -222,7 +222,7 @@ export async function establishSharedSession(sessionData: SharedSessionInput) {
   throw lastError instanceof Error ? lastError : new Error("Unable to establish session.");
 }
 
-export async function getSharedSession() {
+export async function getSharedSession(): Promise<Session | null> {
   try {
     const { data } = await sharedSupabase.auth.getSession();
     if (data.session?.access_token) {
@@ -245,7 +245,7 @@ export async function getSharedSession() {
   }
 
   try {
-    const cachedSession = JSON.parse(inMemorySessionCache) as SharedSessionInput & { user?: unknown };
+    const cachedSession = JSON.parse(inMemorySessionCache) as Session;
     const { data, error } = await sharedSupabase.auth.setSession({
       access_token: cachedSession.access_token,
       refresh_token: cachedSession.refresh_token,
