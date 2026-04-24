@@ -1,17 +1,9 @@
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 
 /**
- * Resolves the best available auth token from either the Cloud or shared backend.
- * Checks Cloud first (since local Cloud sessions are auto-refreshed), then shared.
+ * Resolves the active auth token from the single PublishNow/shared auth session.
  */
 export async function getActiveToken(): Promise<string | null> {
-  try {
-    const { data: cloudSession } = await cloudSupabase.auth.getSession();
-    if (cloudSession?.session?.access_token) return cloudSession.session.access_token;
-  } catch (error) {
-    // Cloud session unavailable
-  }
   try {
     const { data: sharedSession } = await sharedSupabase.auth.getSession();
     if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
