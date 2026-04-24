@@ -149,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) {
-      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
       clearAuthState();
       setAuthLoading(false);
       return;

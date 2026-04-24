@@ -113,9 +113,6 @@ export default function SSO() {
         if (cancelled) return;
         setStage("session");
 
-        // Clear stale session before setting new one
-        await supabase.auth.signOut({ scope: "local" });
-
         const { error: sessionError } = await supabase.auth.setSession({
           access_token: data.session_data.access_token,
           refresh_token: data.session_data.refresh_token,
