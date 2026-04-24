@@ -193,49 +193,10 @@ export default function DashboardSidebar({
   const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("build"));
   const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("yield"));
 
+  // BP / BA / YR have been removed from the global sidebar.
+  // Authors now build inside a book context: Books Hub → pick a book → BBY tabs.
+  // Only the cross-book "Review & Publish" entry remains here.
   const businessItems: NavItem[] = [
-    {
-      id: "revenue-streams", label: "Brand Products", icon: DollarSign,
-      subtitle: "Create Your Products",
-      tooltip: "Turn your book into 9 digital products your audience can buy.",
-      color: "text-emerald-500",
-      badge: brandAccessible && currentBook ? `${currentBook.brand}/9 built` : undefined,
-      lockMessage: !brandAccessible
-        ? "Analyze a book first"
-        : !tierAccess("brand")
-        ? "Upgrade to Brand Plan ($49/mo)"
-        : undefined,
-    },
-    {
-      id: "marketing-channels", label: "Build Authority", icon: Radio,
-      subtitle: buildAccessible ? "Scale Your Audience"
-        : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Plan" : "Coming Soon",
-      tooltip: buildAccessible ? "Scale audience and recurring revenue"
-        : !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to unlock"
-        : "Build Authority is coming soon. Stay tuned!",
-      color: "text-violet-500",
-      badge: buildAccessible && currentBook ? `${currentBook.build}/9 built` : undefined,
-      lockMessage: !buildAccessible
-        ? (!tierAccess("build") && (isSuperAdminProp || buildAuthorityCategoryOpen)
-          ? "Upgrade to Build Plan ($99/mo)"
-          : (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon")
-        : undefined,
-    },
-    {
-      id: "authority-builders", label: "Yield Revenue", icon: Award,
-      subtitle: yieldAccessible ? "Premium Services"
-        : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Plan" : "Coming Soon",
-      tooltip: yieldAccessible ? "Premium monetization services"
-        : !tierAccess("yield") ? "Upgrade to Yield Plan ($249/mo) to unlock"
-        : "Yield Revenue builders are coming soon. Stay tuned!",
-      color: "text-amber-500",
-      badge: yieldAccessible && currentBook ? `${currentBook.yield}/10 built` : undefined,
-      lockMessage: !yieldAccessible
-        ? (!tierAccess("yield") && (isSuperAdminProp || yieldCategoryOpen)
-          ? "Upgrade to Yield Plan ($249/mo)"
-          : (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon")
-        : undefined,
-    },
     {
       id: "review-products" as DashboardSection, label: "Review & Publish",
       icon: Package,
