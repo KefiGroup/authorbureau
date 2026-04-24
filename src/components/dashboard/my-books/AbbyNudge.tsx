@@ -34,7 +34,7 @@ function getStyleForState(stage: JourneyStage, tier: SubscriptionTier) {
 }
 
 export default function AbbyNudge({
-  stage, bookTitle, tier, revenueStreams = 12, productsBuilt = 0, totalProducts = 12,
+  stage, bookTitle, tier, revenueStreams = 28, productsBuilt = 0, totalProducts = 28,
   nextProduct, monthlyRevenue = 0, topProduct, revenueRange = "$8,000–$30,000",
 }: AbbyNudgeProps) {
   const style = getStyleForState(stage, tier);

@@ -91,27 +91,36 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Count books
+    // Count books (also fetch created_at to attribute author_nodes to the oldest book)
     const { data: booksByAuthor } = await admin
       .from("books")
-      .select("id, published_at")
+      .select("id, published_at, created_at")
       .in("author_id", allUserIds);
 
     const { data: booksByEmail } = userEmail
-      ? await admin.from("books").select("id, published_at").eq("owner_email", userEmail)
+      ? await admin.from("books").select("id, published_at, created_at").eq("owner_email", userEmail)
       : { data: [] };
 
     const { data: booksByName } = profile?.pen_name
-      ? await admin.from("books").select("id, published_at").eq("author_name", profile.pen_name)
+      ? await admin.from("books").select("id, published_at, created_at").eq("author_name", profile.pen_name)
       : { data: [] };
 
-    const booksMap = new Map<string, { id: string; published_at: string | null }>();
+    const booksMap = new Map<string, { id: string; published_at: string | null; created_at: string | null }>();
     for (const b of [...(booksByAuthor || []), ...(booksByEmail || []), ...(booksByName || [])]) {
       booksMap.set(b.id, b);
     }
     const allBooks = Array.from(booksMap.values());
     const bookCount = allBooks.length;
     const liveMicrosites = allBooks.filter(b => !!b.published_at).length;
+
+    // Determine the "primary" book to attribute author-level nodes to (oldest book by created_at).
+    // author_nodes has no book_id column, so we attribute the author's nodes to their first/original book.
+    const sortedBooks = [...allBooks].sort((a, b) => {
+      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return ta - tb;
+    });
+    const primaryBookId: string | null = sortedBooks[0]?.id ?? null;
 
     // Check analysis status
     const { data: assets } = await admin
@@ -171,8 +180,27 @@ Deno.serve(async (req) => {
     let totalReadyForReview = 0;
     let totalPublished = 0;
 
-    // Per-book product counts
-    const perBook: Record<string, number> = {};
+    // Per-book structured node tracking. Each book gets a Set of distinct node_ids built.
+    type PerBookEntry = { brand: number; build: number; yield: number; total: number; nodeIds: string[] };
+    const perBookNodeSets: Record<string, Set<string>> = {};
+    const ensureBookSet = (bookId: string) => {
+      if (!perBookNodeSets[bookId]) perBookNodeSets[bookId] = new Set();
+      return perBookNodeSets[bookId];
+    };
+    // Initialise an empty set for every known book so each book appears in perBook
+    for (const b of allBooks) ensureBookSet(b.id);
+
+    // Map product table → its corresponding node_id
+    const TABLE_TO_NODE: Record<string, string> = {
+      courses: "YR-21",
+      home_study_courses: "BP-07",
+      audiobooks: "BP-09",
+      podcasts: "BA-12",
+      workbooks: "BP-06",
+      coaching_packages: "YR-19",
+      email_flows: "BP-01",
+      social_media_content: "BP-03",
+    };
 
     for (const table of PRODUCT_TABLES) {
       const { data: rows } = await admin
@@ -181,6 +209,7 @@ Deno.serve(async (req) => {
         .in("author_id", allUserIds);
 
       const counts: StatusCounts = { draft: 0, ready_for_review: 0, published: 0, total: 0 };
+      const nodeIdForTable = TABLE_TO_NODE[table];
 
       for (const row of rows || []) {
         counts.total++;
@@ -188,10 +217,10 @@ Deno.serve(async (req) => {
         else if (row.status === "ready_for_review") counts.ready_for_review++;
         else if (row.status === "published" || row.status === "active") counts.published++;
 
-        // Per-book counting
+        // Per-book counting — attach this row's node to its specific book
         const bookId = (row as any).book_id;
-        if (bookId) {
-          perBook[bookId] = (perBook[bookId] || 0) + 1;
+        if (bookId && nodeIdForTable) {
+          ensureBookSet(bookId).add(nodeIdForTable);
         }
       }
 
@@ -199,6 +228,33 @@ Deno.serve(async (req) => {
       totalBuilt += counts.total;
       totalReadyForReview += counts.ready_for_review;
       totalPublished += counts.published;
+    }
+
+    // Attribute every built author_node to the author's primary (oldest) book.
+    // author_nodes has no book_id column, so we attribute author-level nodes to the first book.
+    if (primaryBookId) {
+      const primarySet = ensureBookSet(primaryBookId);
+      for (const nodeId of builtNodeIds) {
+        primarySet.add(nodeId);
+      }
+    }
+
+    // Materialise structured perBook output with brand/build/yield bucket counts
+    const perBook: Record<string, PerBookEntry> = {};
+    for (const [bookId, set] of Object.entries(perBookNodeSets)) {
+      let brand = 0, build = 0, yld = 0;
+      for (const nid of set) {
+        if (nid.startsWith("BP-")) brand++;
+        else if (nid.startsWith("BA-")) build++;
+        else if (nid.startsWith("YR-")) yld++;
+      }
+      perBook[bookId] = {
+        brand,
+        build,
+        yield: yld,
+        total: set.size,
+        nodeIds: Array.from(set),
+      };
     }
 
     const result = {

@@ -59,7 +59,7 @@ interface MyBooksProps {
       totalBuilt: number;
       totalReadyForReview: number;
       totalPublished: number;
-      perBook: Record<string, number>;
+      perBook: Record<string, { brand: number; build: number; yield: number; total: number; nodeIds: string[] }>;
     };
   };
 }
@@ -288,8 +288,10 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const liveCount = centralStats?.liveMicrosites ?? books.filter(b => !!b.published_at).length;
   const analyzedCount = centralStats?.analyzedCount ?? analyzedBooks.size;
   const totalProductsBuilt = centralStats?.products.totalBuilt ?? Object.values(productCounts).reduce((s, c) => s + c, 0);
-  const totalRecommended = analyzedCount * 12; // estimated, ideally from Abby
-  const getBookProductCount = (bookId: string) => centralStats?.products.perBook[bookId] ?? productCounts[bookId] ?? 0;
+  const totalRecommended = analyzedCount * 28; // 28-node framework
+  const getBookStats = (bookId: string) =>
+    centralStats?.products.perBook[bookId] ?? { brand: 0, build: 0, yield: 0, total: productCounts[bookId] ?? 0, nodeIds: [] as string[] };
+  const getBookProductCount = (bookId: string) => getBookStats(bookId).total;
 
   // Form view
   if (showForm && user) {
@@ -538,23 +540,27 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     </div>
 
                     {/* D. Revenue Projection (analyzed only) */}
-                    {isAnalyzed && (
-                      <RevenueProjectionCard
-                        revenueRange="$8,000–$30,000/month"
-                        totalStreams={12}
-                        built={builtCount}
-                        remaining={12 - builtCount}
-                      />
-                    )}
+                    {isAnalyzed && (() => {
+                      const s = getBookStats(book.id);
+                      return (
+                        <RevenueProjectionCard
+                          revenueRange="$8,000–$30,000/month"
+                          brand={s.brand}
+                          build={s.build}
+                          yield={s.yield}
+                          total={s.total}
+                        />
+                      );
+                    })()}
 
                     {/* E. Abby Nudge */}
                     <AbbyNudge
                       stage={stage}
                       bookTitle={book.title}
                       tier={tier}
-                      revenueStreams={12}
+                      revenueStreams={28}
                       productsBuilt={builtCount}
-                      totalProducts={12}
+                      totalProducts={28}
                     />
 
                     {/* Manuscript upload dialog */}

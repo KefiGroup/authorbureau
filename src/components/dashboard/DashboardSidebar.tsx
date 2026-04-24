@@ -31,6 +31,15 @@ interface Props {
   pendingReviewCount?: number;
   buildAuthorityCategoryOpen?: boolean;
   yieldCategoryOpen?: boolean;
+  /** Per-book stats when the user is inside a specific book context */
+  currentBook?: {
+    id: string;
+    title: string;
+    brand: number;
+    build: number;
+    yield: number;
+    total: number;
+  } | null;
 }
 
 interface NavItem {
@@ -77,6 +86,7 @@ export default function DashboardSidebar({
   yieldUnlocked: yieldUnlockedProp = 0,
   stripeConnected = false, pendingReviewCount = 0,
   buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
+  currentBook = null,
 }: Props) {
 
   // Hydrate from cache to prevent "0 built" flash, then update from live props
@@ -189,7 +199,7 @@ export default function DashboardSidebar({
       subtitle: "Create Your Products",
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
-      badge: brandAccessible ? `${buildUnlocked} built` : undefined,
+      badge: brandAccessible && currentBook ? `${currentBook.brand}/9 built` : undefined,
       lockMessage: !brandAccessible
         ? "Analyze a book first"
         : !tierAccess("brand")
@@ -204,7 +214,7 @@ export default function DashboardSidebar({
         : !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to unlock"
         : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
-      badge: buildAccessible ? `${buildAuthorityUnlocked} built` : undefined,
+      badge: buildAccessible && currentBook ? `${currentBook.build}/9 built` : undefined,
       lockMessage: !buildAccessible
         ? (!tierAccess("build") && (isSuperAdminProp || buildAuthorityCategoryOpen)
           ? "Upgrade to Build Plan ($99/mo)"
@@ -219,7 +229,7 @@ export default function DashboardSidebar({
         : !tierAccess("yield") ? "Upgrade to Yield Plan ($249/mo) to unlock"
         : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
-      badge: yieldAccessible ? `${yieldUnlocked} built` : undefined,
+      badge: yieldAccessible && currentBook ? `${currentBook.yield}/10 built` : undefined,
       lockMessage: !yieldAccessible
         ? (!tierAccess("yield") && (isSuperAdminProp || yieldCategoryOpen)
           ? "Upgrade to Yield Plan ($249/mo)"
@@ -383,6 +393,22 @@ export default function DashboardSidebar({
                 <ChevronDown className="h-3 w-3 text-muted-foreground/40" />
               )}
             </div>
+          </button>
+        )}
+        {/* Current book pill — only shown inside a book's context */}
+        {!collapsed && currentBook && (businessExpanded) && (
+          <button
+            onClick={() => onSectionChange("my-books" as DashboardSection)}
+            className="mx-2 mb-1.5 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-left transition-colors hover:bg-muted"
+            title="Switch book"
+          >
+            <span className="flex items-center gap-1.5 min-w-0">
+              <BookOpen className="h-3 w-3 shrink-0 text-muted-foreground" />
+              <span className="truncate text-[11px] font-semibold text-foreground">{currentBook.title}</span>
+            </span>
+            <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
+              {currentBook.total}/28
+            </span>
           </button>
         )}
         {(businessExpanded || collapsed) && businessItems.filter(i => !i.hidden).map((item, idx) => {
