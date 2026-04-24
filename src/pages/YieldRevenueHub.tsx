@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, ArrowRight, Lock, Star, Clock } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 type NodeStatus = "locked" | "not_started" | "building" | "content_ready" | "live" | "error";
 
@@ -136,12 +137,8 @@ export default function YieldRevenueHub() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <Button asChild variant="ghost" size="sm" className="mb-4 -ml-2">
-          <Link to="/dashboard">← Back to Dashboard</Link>
-        </Button>
-
         {/* SECTION 1 — Header Card */}
         <Card className="rounded-xl border-2 border-[hsl(var(--builder-yield)/0.3)] bg-[var(--gradient-yield-intro)] p-6 mb-6">
           <div className="flex items-start justify-between">
@@ -222,6 +219,6 @@ export default function YieldRevenueHub() {
           <p className="text-xs text-muted-foreground">Analyse plans with Abby to get personalised recommendations and revenue estimates for each product.</p>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
