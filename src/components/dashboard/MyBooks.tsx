@@ -288,8 +288,10 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   const liveCount = centralStats?.liveMicrosites ?? books.filter(b => !!b.published_at).length;
   const analyzedCount = centralStats?.analyzedCount ?? analyzedBooks.size;
   const totalProductsBuilt = centralStats?.products.totalBuilt ?? Object.values(productCounts).reduce((s, c) => s + c, 0);
-  const totalRecommended = analyzedCount * 12; // estimated, ideally from Abby
-  const getBookProductCount = (bookId: string) => centralStats?.products.perBook[bookId] ?? productCounts[bookId] ?? 0;
+  const totalRecommended = analyzedCount * 28; // 28-node framework
+  const getBookStats = (bookId: string) =>
+    centralStats?.products.perBook[bookId] ?? { brand: 0, build: 0, yield: 0, total: productCounts[bookId] ?? 0, nodeIds: [] as string[] };
+  const getBookProductCount = (bookId: string) => getBookStats(bookId).total;
 
   // Form view
   if (showForm && user) {
