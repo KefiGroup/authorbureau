@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Headphones, BookOpen, Package, Star } from "lucide-react";
-import type { BookWithProducts, ThemeVars } from "./types";
+import type { BookWithProducts, ThemeVars, BookFormatNode } from "./types";
 import { fadeUp, getLowestPrice } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import AuthorBookFormatsList from "./AuthorBookFormatsList";
+import AuthorBookCollectorsStrip from "./AuthorBookCollectorsStrip";
 
 /** Maps node_id prefixes to format badge info */
 const FORMAT_BADGES: Record<string, { label: string; icon: typeof BookOpen }> = {
