@@ -49,13 +49,7 @@ function getSafeStorage(): Storage {
     return memoryStorage;
   }
 
-  try {
-    const candidate = window.localStorage;
-    const probeKey = `${AUTH_STORAGE_KEY}:probe`;
-    candidate.setItem(probeKey, "1");
-    candidate.removeItem(probeKey);
-    return candidate;
-  } catch {
+  const syncFallbackFromSessionStorage = () => {
     try {
       const bootstrap = window.sessionStorage.getItem(AUTH_MEMORY_FALLBACK_KEY);
       if (bootstrap) {
@@ -65,6 +59,89 @@ function getSafeStorage(): Storage {
     } catch {
       // Ignore sessionStorage failures too; memory fallback still works.
     }
+  };
+
+  try {
+    const candidate = window.localStorage;
+    const probeKey = `${AUTH_STORAGE_KEY}:probe`;
+    candidate.setItem(probeKey, "1");
+    candidate.removeItem(probeKey);
+    syncFallbackFromSessionStorage();
+
+    return {
+      get length() {
+        try {
+          return candidate.length;
+        } catch {
+          return memoryStorage.length;
+        }
+      },
+      clear() {
+        try {
+          candidate.clear();
+        } catch {
+          memoryStorage.clear();
+        }
+        inMemorySessionCache = "";
+        try {
+          window.sessionStorage.removeItem(AUTH_MEMORY_FALLBACK_KEY);
+        } catch {
+          // ignore
+        }
+      },
+      getItem(key: string) {
+        try {
+          const value = candidate.getItem(key);
+          if (value !== null && key === AUTH_STORAGE_KEY) {
+            inMemorySessionCache = value;
+          }
+          return value;
+        } catch {
+          return memoryStorage.getItem(key);
+        }
+      },
+      key(index: number) {
+        try {
+          return candidate.key(index);
+        } catch {
+          return memoryStorage.key(index);
+        }
+      },
+      removeItem(key: string) {
+        try {
+          candidate.removeItem(key);
+        } catch {
+          memoryStorage.removeItem(key);
+        }
+        if (key === AUTH_STORAGE_KEY) {
+          inMemorySessionCache = "";
+          try {
+            window.sessionStorage.removeItem(AUTH_MEMORY_FALLBACK_KEY);
+          } catch {
+            // ignore
+          }
+        }
+      },
+      setItem(key: string, value: string) {
+        if (key === AUTH_STORAGE_KEY) {
+          inMemorySessionCache = value;
+          memoryStorage.setItem(key, value);
+          try {
+            window.sessionStorage.setItem(AUTH_MEMORY_FALLBACK_KEY, value);
+          } catch {
+            // ignore
+          }
+        }
+
+        try {
+          candidate.setItem(key, value);
+        } catch {
+          memoryStorage.setItem(key, value);
+        }
+      },
+    } satisfies Storage;
+  } catch {
+    syncFallbackFromSessionStorage();
 
     return {
       ...memoryStorage,
