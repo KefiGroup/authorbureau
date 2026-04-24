@@ -588,13 +588,14 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
 
 interface ImporterProps {
   authorId: string | null;
+  bookId?: string | null;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setContent: (c: any) => void;
 }
 
-function WorkbookDocxImporter({ authorId, content, setContent }: ImporterProps) {
+function WorkbookDocxImporter({ authorId, bookId, content, setContent }: ImporterProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -610,11 +611,13 @@ function WorkbookDocxImporter({ authorId, content, setContent }: ImporterProps) 
       setContent(merged);
       if (authorId) {
         await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: merged, currentStep: 2, bookId: bookId ?? null });
-        await supabase
+        let q = supabase
           .from("author_nodes")
           .update({ content_json: merged, personalised_name: merged.workbook_title })
           .eq("author_id", authorId)
           .eq("node_id", "BP-06");
+        q = bookId ? q.eq("book_id", bookId) : q.is("book_id", null);
+        await q;
       }
       toast.success("Workbook updated from your Word edits.");
     } catch (e) {
