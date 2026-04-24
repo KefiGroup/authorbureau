@@ -482,7 +482,7 @@ Strict rules:
       price_usd: content.suggested_price_usd ?? 197,
       currency: "usd",
       delivery_type: "course",
-    });
+    }, book?.id ?? book_id ?? null);
 
     return new Response(
       JSON.stringify({ success: true, content: { ...content, course_id: courseId } }),
@@ -495,6 +495,7 @@ Strict rules:
           createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
           authorIdForRestore,
           priorNodeState,
+          bookIdForRestore,
         );
       } catch (restoreErr) {
         console.error("generate-ba10-online-course restore error:", errorMessage(restoreErr));
