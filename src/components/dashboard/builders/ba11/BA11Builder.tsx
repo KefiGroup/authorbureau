@@ -119,7 +119,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   }, [authorId, bookId, resolvedBookId, stepData.chapters?.length]);
 
   const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
-  const effectiveBookId = bookId || resolvedBookId;
+  const effectiveBookId = bookId || detectedBookId || resolvedBookId;
   const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle;
 
