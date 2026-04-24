@@ -199,7 +199,7 @@ export default function DashboardSidebar({
       subtitle: "Create Your Products",
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
-      badge: brandAccessible ? `${buildUnlocked} built` : undefined,
+      badge: brandAccessible && currentBook ? `${currentBook.brand}/9 built` : undefined,
       lockMessage: !brandAccessible
         ? "Analyze a book first"
         : !tierAccess("brand")
@@ -214,7 +214,7 @@ export default function DashboardSidebar({
         : !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to unlock"
         : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
-      badge: buildAccessible ? `${buildAuthorityUnlocked} built` : undefined,
+      badge: buildAccessible && currentBook ? `${currentBook.build}/9 built` : undefined,
       lockMessage: !buildAccessible
         ? (!tierAccess("build") && (isSuperAdminProp || buildAuthorityCategoryOpen)
           ? "Upgrade to Build Plan ($99/mo)"
@@ -229,7 +229,7 @@ export default function DashboardSidebar({
         : !tierAccess("yield") ? "Upgrade to Yield Plan ($249/mo) to unlock"
         : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
-      badge: yieldAccessible ? `${yieldUnlocked} built` : undefined,
+      badge: yieldAccessible && currentBook ? `${currentBook.yield}/10 built` : undefined,
       lockMessage: !yieldAccessible
         ? (!tierAccess("yield") && (isSuperAdminProp || yieldCategoryOpen)
           ? "Upgrade to Yield Plan ($249/mo)"
