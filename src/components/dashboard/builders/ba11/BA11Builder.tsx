@@ -22,7 +22,7 @@ const STUDIO_STEPS = [
 
 export default function BA11Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
-  const { hasBook, bookTitle: detectedBookTitle, bookId, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, bookId: detectedBookId, isLoading: isBookLoading } = useAuthorBook();
   const [authorName, setAuthorName] = useState("");
   const [userId, setUserId] = useState("");
   const [resolvedBookTitle, setResolvedBookTitle] = useState("");
@@ -119,7 +119,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   }, [authorId, bookId, resolvedBookId, stepData.chapters?.length]);
 
   const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
-  const effectiveBookId = bookId || resolvedBookId;
+  const effectiveBookId = bookId || detectedBookId || resolvedBookId;
   const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle;
 
