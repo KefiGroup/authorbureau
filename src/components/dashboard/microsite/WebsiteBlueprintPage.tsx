@@ -158,6 +158,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       });
     }
 
+    if (!isMountedRef.current) return;
     setBooksWithStatus(enriched);
     setLoading(false);
   }
