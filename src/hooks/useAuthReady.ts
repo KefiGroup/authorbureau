@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/shared-backend";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthReadyState {
@@ -8,7 +8,7 @@ interface AuthReadyState {
 }
 
 /**
- * Waits for the Supabase client to finish restoring the auth session
+ * Waits for the shared PublishNow auth client to finish restoring the session
  * from localStorage before exposing the user object.
  *
  * Using getSession() alone on mount can return null because the token
