@@ -14,7 +14,6 @@ import Footer from "@/components/Footer";
 
 // ─── Unified session helper ───
 async function establishSession(sessionData: { access_token: string; refresh_token: string }) {
-  await supabase.auth.signOut({ scope: "local" });
   const { error } = await supabase.auth.setSession({
     access_token: sessionData.access_token,
     refresh_token: sessionData.refresh_token,
