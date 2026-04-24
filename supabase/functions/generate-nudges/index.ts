@@ -275,13 +275,19 @@ serve(async (req) => {
       try {
         if (!trigger.condition()) continue;
 
-        // Check if this nudge type was already created today
+        // Seasonal nudges dedupe across the whole year (id includes year);
+        // milestone nudges dedupe per day.
+        const isSeasonal = trigger.id.startsWith("special_edition_");
+        const sinceIso = isSeasonal
+          ? `${nowDate.getFullYear()}-01-01T00:00:00Z`
+          : `${today}T00:00:00Z`;
+
         const { data: existing } = await supabase
           .from("abby_nudges")
           .select("id")
           .eq("author_id", authorId)
           .eq("nudge_type", trigger.id)
-          .gte("created_at", `${today}T00:00:00Z`)
+          .gte("created_at", sinceIso)
           .limit(1);
 
         if (existing && existing.length > 0) continue;
