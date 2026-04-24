@@ -16,8 +16,16 @@ export interface AuthorStats {
     totalReadyForReview: number;
     totalPublished: number;
     perTable: Record<string, { draft: number; ready_for_review: number; published: number; total: number }>;
-    perBook: Record<string, number>;
+    perBook: Record<string, PerBookStats>;
   };
+}
+
+export interface PerBookStats {
+  brand: number;
+  build: number;
+  yield: number;
+  total: number;
+  nodeIds: string[];
 }
 
 const DEFAULT_STATS: AuthorStats = {

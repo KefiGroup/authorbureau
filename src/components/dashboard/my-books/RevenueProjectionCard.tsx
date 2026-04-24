@@ -3,13 +3,28 @@ import { Progress } from "@/components/ui/progress";
 
 interface RevenueProjectionCardProps {
   revenueRange: string;
-  totalStreams: number;
-  built: number;
-  remaining: number;
+  /** Per-category build counts for this book (out of 9 / 9 / 10) */
+  brand?: number;
+  build?: number;
+  yield?: number;
+  /** Total nodes built for this book (out of 28) */
+  total?: number;
 }
 
-export default function RevenueProjectionCard({ revenueRange, totalStreams, built, remaining }: RevenueProjectionCardProps) {
-  const pct = totalStreams > 0 ? Math.round((built / totalStreams) * 100) : 0;
+const TOTAL_NODES = 28;
+const BRAND_TOTAL = 9;
+const BUILD_TOTAL = 9;
+const YIELD_TOTAL = 10;
+
+export default function RevenueProjectionCard({
+  revenueRange,
+  brand = 0,
+  build = 0,
+  yield: yld = 0,
+  total = 0,
+}: RevenueProjectionCardProps) {
+  const pct = TOTAL_NODES > 0 ? Math.round((total / TOTAL_NODES) * 100) : 0;
+  const remaining = Math.max(0, TOTAL_NODES - total);
 
   return (
     <div className="rounded-lg border-l-3 border-l-[#0D9488] border border-border bg-card p-3 space-y-2">
@@ -19,7 +34,10 @@ export default function RevenueProjectionCard({ revenueRange, totalStreams, buil
       </div>
       <p className="text-sm font-bold text-foreground">{revenueRange} by Month 12</p>
       <p className="text-[11px] text-muted-foreground">
-        {totalStreams} revenue streams mapped · {built} built · {remaining} remaining
+        {total} of {TOTAL_NODES} built · {remaining} remaining
+      </p>
+      <p className="text-[11px] text-muted-foreground">
+        Brand {brand}/{BRAND_TOTAL} · Build {build}/{BUILD_TOTAL} · Yield {yld}/{YIELD_TOTAL}
       </p>
       <div className="flex items-center gap-2">
         <Progress value={pct} className="h-1.5 flex-1 bg-[#E5E7EB]" />
