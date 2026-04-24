@@ -238,9 +238,7 @@ export default function DashboardSidebar({
       tooltip: "Every slide deck, PDF, workbook, and copy you've generated — re-download anytime.",
       color: "text-emerald-500",
     },
-    {
-      id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
-    },
+    // Revenue Dashboard removed: revenue is now per-book under Book Hub → Analytics tab.
     {
       id: "connect-stripe" as DashboardSection, label: stripeConnected ? "Stripe Connected" : "Connect Stripe",
       icon: CreditCard,
