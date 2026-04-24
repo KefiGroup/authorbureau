@@ -295,13 +295,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        void applyValidatedSession(session);
+      (event, session) => {
+        if (event === "INITIAL_SESSION" && initialResolvedRef.current && !session?.user && latestUserRef.current) {
+          return;
+        }
+
+        initialResolvedRef.current = true;
+        applyValidatedSession(session);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      await applyValidatedSession(session);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      initialResolvedRef.current = true;
+      applyValidatedSession(session);
     }).catch(() => {
       setAuthLoading(false);
     });
