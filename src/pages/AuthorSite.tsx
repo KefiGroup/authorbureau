@@ -263,7 +263,7 @@ export default function AuthorSite() {
           !!author.stripe_connected_account_id &&
           author.stripe_onboarding_complete === true
         }
-        liveNodes={liveNodes as unknown as StorefrontNode[]}
+        liveNodes={liveNodes.filter(n => !["BP-08","BA-11","BP-06","BA-17"].some(p => n.node_id.startsWith(p))) as unknown as StorefrontNode[]}
         theme={theme}
         v={v}
       />
