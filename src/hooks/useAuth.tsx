@@ -130,6 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const retryTimeoutRef = useRef<number | null>(null);
   const subscriptionCheckInFlightRef = useRef(false);
   const checkSubscriptionRef = useRef<() => Promise<void>>(async () => {});
+  const initialResolvedRef = useRef(false);
+  const latestUserRef = useRef<User | null>(null);
 
   const clearAuthState = useCallback(() => {
     setSession(null);
@@ -138,7 +140,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSubscription(signedOutSubscriptionState);
   }, []);
 
-  const applyValidatedSession = useCallback(async (nextSession: Session | null) => {
+  useEffect(() => {
+    latestUserRef.current = user;
+  }, [user]);
+
+  const applyValidatedSession = useCallback((nextSession: Session | null) => {
     if (!nextSession) {
       clearAuthState();
       setAuthLoading(false);
@@ -147,19 +153,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setAuthLoading(true);
 
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-      clearAuthState();
+    setSession(nextSession);
+    setUser(nextSession.user ?? null);
+
+    const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+    const nextUserId = nextSession.user?.id;
+    if (!nextUserId) {
+      setIsAdmin(isAdminSession);
       setAuthLoading(false);
       return;
     }
 
-    setSession(nextSession);
-    setUser(data.user);
-
-    const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-    Promise.resolve(supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" }))
+    Promise.resolve(supabase.rpc("has_role", { _user_id: nextUserId, _role: "admin" }))
       .then(({ data: hasAdminRole }) => {
         setIsAdmin(!!hasAdminRole || isAdminSession);
       })
@@ -290,13 +295,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        void applyValidatedSession(session);
+      (event, session) => {
+        if (event === "INITIAL_SESSION" && initialResolvedRef.current && !session?.user && latestUserRef.current) {
+          return;
+        }
+
+        initialResolvedRef.current = true;
+        applyValidatedSession(session);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      await applyValidatedSession(session);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      initialResolvedRef.current = true;
+      applyValidatedSession(session);
     }).catch(() => {
       setAuthLoading(false);
     });
