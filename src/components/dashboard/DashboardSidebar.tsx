@@ -31,6 +31,15 @@ interface Props {
   pendingReviewCount?: number;
   buildAuthorityCategoryOpen?: boolean;
   yieldCategoryOpen?: boolean;
+  /** Per-book stats when the user is inside a specific book context */
+  currentBook?: {
+    id: string;
+    title: string;
+    brand: number;
+    build: number;
+    yield: number;
+    total: number;
+  } | null;
 }
 
 interface NavItem {
