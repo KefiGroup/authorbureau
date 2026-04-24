@@ -62,6 +62,7 @@ function hasUsableSocialKit(value: any) {
 
 interface Props {
   authorId: string | null;
+  bookId?: string | null;
 }
 
 async function fetchBp03NodeState(body: Record<string, unknown>) {
