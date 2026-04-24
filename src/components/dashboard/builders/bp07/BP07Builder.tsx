@@ -29,9 +29,9 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Analyzing your book for a self-paced study programme...", "Designing a 21-day reading and exercise schedule...", "Mapping chapters to daily themes and lessons...", "Creating practical exercises and reflection prompts...", "Finalising your Home Study Programme..."];
 const ACT_MSGS = ["Creating your home study product...", "Setting up your payment page...", "Generating your checkout link...", "Your programme is almost ready..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BP07Builder({ authorId }: Props) {
+export default function BP07Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -70,7 +70,7 @@ export default function BP07Builder({ authorId }: Props) {
         return;
       }
 
-      const draft = await loadBuilderDraft(authorId, "BP-07");
+      const draft = await loadBuilderDraft(authorId, "BP-07", bookId ?? null);
       const cj = draft.content as any;
       if (cj && (cj?.programme_title || cj?.study_weeks)) {
         setContent(cj);
@@ -129,8 +129,7 @@ export default function BP07Builder({ authorId }: Props) {
         nodeId: "BP-07",
         nodeName: "Home Study Course",
         content: newContent,
-        currentStep: 2,
-      });
+        currentStep: 2, bookId: bookId ?? null });
     }
     return newContent;
   };
@@ -172,8 +171,7 @@ export default function BP07Builder({ authorId }: Props) {
         nodeId: "BP-07",
         nodeName: "Home Study Course",
         content: updated,
-        currentStep: Number(updated?._currentStep ?? 2),
-      });
+        currentStep: Number(updated?._currentStep ?? 2), bookId: bookId ?? null });
       if (next.thinkific && !content?.thinkific_url) {
         // Provision a Thinkific URL once when first enabled
         const token = await getActiveToken();
@@ -203,8 +201,7 @@ export default function BP07Builder({ authorId }: Props) {
           nodeId: "BP-07",
           nodeName: "Home Study Course",
           content: merged,
-          currentStep: 3,
-        });
+          currentStep: 3, bookId: bookId ?? null });
         setContent(merged);
       }
       await publishNodeToSite(authorId!, "BP-07", authorSlug);

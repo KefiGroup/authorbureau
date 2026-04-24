@@ -46,7 +46,7 @@ export default function BA16Builder({ authorId, bookId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const __draft = await loadBuilderDraft(authorId, "BA-16");
+      const __draft = await loadBuilderDraft(authorId, "BA-16", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
@@ -70,7 +70,7 @@ export default function BA16Builder({ authorId, bookId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba16-affiliate", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-16", nodeName: "Affiliates", content: data.content, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-16", nodeName: "Affiliates", content: data.content, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

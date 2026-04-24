@@ -92,28 +92,33 @@ async function upsertAuthorNode(
   supabase: ReturnType<typeof createClient>,
   authorId: string,
   payload: Record<string, unknown>,
+  bookId?: string | null,
 ) {
-  const { data: existingNode, error: existingNodeError } = await supabase
+  let q = supabase
     .from("author_nodes")
-    .select("id")
+    .select("id, book_id")
     .eq("author_id", authorId)
-    .eq("node_id", "BA-10")
-    .maybeSingle();
-
+    .eq("node_id", "BA-10");
+  q = bookId ? q.eq("book_id", bookId) : q.is("book_id", null);
+  const { data: existingNode, error: existingNodeError } = await q.maybeSingle();
   if (existingNodeError) throw existingNodeError;
 
   if (existingNode?.id) {
-    const { error } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
+    const updatePayload: Record<string, unknown> = { ...payload };
+    if (bookId && !existingNode.book_id) updatePayload.book_id = bookId;
+    const { error } = await supabase.from("author_nodes").update(updatePayload).eq("id", existingNode.id);
     if (error) throw error;
     return;
   }
 
-  const { error } = await supabase.from("author_nodes").insert({
+  const insertPayload: Record<string, unknown> = {
     author_id: authorId,
     node_id: "BA-10",
     node_name: "Online Course",
     ...payload,
-  });
+  };
+  if (bookId) insertPayload.book_id = bookId;
+  const { error } = await supabase.from("author_nodes").insert(insertPayload);
   if (error) throw error;
 }
 
@@ -168,6 +173,7 @@ serve(async (req) => {
 
   let authorIdForRestore: string | null = null;
   let priorNodeState: Record<string, unknown> | null = null;
+  let bookIdForRestore: string | null = null;
 
   try {
     const { author_id, book_id } = await req.json();
@@ -208,12 +214,14 @@ serve(async (req) => {
       );
     }
 
-    const { data: existingNodeSnapshot } = await supabase
+    bookIdForRestore = book_id ?? null;
+    let snapQ = supabase
       .from("author_nodes")
       .select("status, content_json, personalised_name, price_usd, currency, delivery_type, current_step")
       .eq("author_id", author_id)
-      .eq("node_id", "BA-10")
-      .maybeSingle();
+      .eq("node_id", "BA-10");
+    snapQ = book_id ? snapQ.eq("book_id", book_id) : snapQ.is("book_id", null);
+    const { data: existingNodeSnapshot } = await snapQ.maybeSingle();
     priorNodeState = (existingNodeSnapshot as Record<string, unknown>) ?? null;
 
     // Resolve the SELECTED book first (honours book_id), then fetch context matching that book.
@@ -231,15 +239,12 @@ serve(async (req) => {
         .maybeSingle();
       ctx = matchedCtx ?? null;
     }
+    // BOOK-STRICT: do NOT fall back to "latest context for this author" — that
+    // was the bug that wrote Be SUCKcessful content into Invest's BA-10.
     if (!ctx) {
-      const { data: latestCtx } = await supabase
-        .from("author_context")
-        .select("*")
-        .eq("author_id", author_id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      ctx = latestCtx ?? null;
+      return failResponse(
+        "Please run the book analysis (BP-00) for this specific book before generating the Online Course. This prevents content from leaking between your books.",
+      );
     }
 
     const resolvedBookTitle = book?.title?.trim() || ctx?.book_title?.trim() || "";
@@ -477,7 +482,7 @@ Strict rules:
       price_usd: content.suggested_price_usd ?? 197,
       currency: "usd",
       delivery_type: "course",
-    });
+    }, book?.id ?? book_id ?? null);
 
     return new Response(
       JSON.stringify({ success: true, content: { ...content, course_id: courseId } }),
@@ -490,6 +495,7 @@ Strict rules:
           createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
           authorIdForRestore,
           priorNodeState,
+          bookIdForRestore,
         );
       } catch (restoreErr) {
         console.error("generate-ba10-online-course restore error:", errorMessage(restoreErr));

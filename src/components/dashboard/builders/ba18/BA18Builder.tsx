@@ -50,7 +50,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
         if (book?.title) setResolvedBookTitle(book.title);
         console.log(`[BA-18] book resolution`, { authorId, detectedBookTitle, ctxTitle: null, bookTitle: book?.title ?? null });
       }
-      const __draft = await loadBuilderDraft(authorId, "BA-18");
+      const __draft = await loadBuilderDraft(authorId, "BA-18", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
@@ -88,7 +88,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
             : [],
       };
       setContent(normalised); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: normalised, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: normalised, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

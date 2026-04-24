@@ -27,9 +27,9 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's unique qualities...", "Designing special edition concepts...", "Creating 3 premium edition tiers...", "Writing your exclusivity sales page...", "Finalising your special editions blueprint..."];
 const ACT_MSGS = ["Saving your special editions to your library...", "Storing your edition tiers...", "Filing your sales-page copy...", "Almost done — your editions will live in your library..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
-export default function BP08Builder({ authorId }: Props) {
+export default function BP08Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -64,7 +64,7 @@ export default function BP08Builder({ authorId }: Props) {
         return;
       }
 
-      const draft = await loadBuilderDraft(authorId, "BP-08");
+      const draft = await loadBuilderDraft(authorId, "BP-08", bookId ?? null);
       const cj = draft.content as any;
       if (cj && Object.keys(cj).length > 0) {
         setContent(cj);
@@ -117,8 +117,7 @@ export default function BP08Builder({ authorId }: Props) {
         nodeId: "BP-08",
         nodeName: "Special Editions",
         content: newContent,
-        currentStep: 2,
-      });
+        currentStep: 2, bookId: bookId ?? null });
     }
     return newContent;
   };
@@ -157,8 +156,7 @@ export default function BP08Builder({ authorId }: Props) {
           nodeId: "BP-08",
           nodeName: "Special Editions",
           content: merged,
-          currentStep: 3,
-        });
+          currentStep: 3, bookId: bookId ?? null });
         setContent(merged);
       }
       await publishNodeToSite(authorId!, "BP-08", authorSlug);

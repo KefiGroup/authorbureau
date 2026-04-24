@@ -34,14 +34,14 @@ const GEN_MSGS = [
 ];
 const ACT_MSGS = ["Saving your toolkit...", "Marking node ready...", "Almost there..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
 function isLegacyShape(c: any): boolean {
   if (!c) return false;
   return !!c.event_types && !c.workshop;
 }
 
-export default function BP09Builder({ authorId }: Props) {
+export default function BP09Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -71,7 +71,7 @@ export default function BP09Builder({ authorId }: Props) {
       const inflight = getGeneration<any>(authorId, "BP-09");
       if (inflight) { setStep(1); attachToGeneration(inflight); return; }
 
-      const draft = await loadBuilderDraft(authorId, "BP-09");
+      const draft = await loadBuilderDraft(authorId, "BP-09", bookId ?? null);
       const cj = draft.content as any;
       if (cj && Object.keys(cj).length > 0) {
         setContent(cj);
@@ -104,7 +104,7 @@ export default function BP09Builder({ authorId }: Props) {
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
     const newContent = { ...(data.content || {}), _currentStep: 2 };
-    if (authorId) await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: newContent, currentStep: 2 });
+    if (authorId) await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: newContent, currentStep: 2, bookId: bookId ?? null });
     return newContent;
   };
 
@@ -128,7 +128,7 @@ export default function BP09Builder({ authorId }: Props) {
     try {
       if (content && authorId) {
         const merged = { ...content, _currentStep: 3 };
-        await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: merged, currentStep: 3 });
+        await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: merged, currentStep: 3, bookId: bookId ?? null });
         setContent(merged);
       }
       await publishNodeToSite(authorId!, "BP-09", authorSlug);
