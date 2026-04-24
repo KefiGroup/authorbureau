@@ -43,6 +43,15 @@ interface Props {
     yield: number;
     total: number;
   } | null;
+  /** Total number of books the author owns. Drives multi-book chooser logic. */
+  bookCount?: number;
+  /** Full books list (used by the multi-book chooser). */
+  books?: MyBook[];
+  /** Per-book stats keyed by book id (used by the multi-book chooser). */
+  perBookStats?: Record<string, PerBookStats>;
+  /** Called when the user picks a book inside the chooser; should navigate to
+   * `<section>?bookId=<id>`. */
+  onPickBookForSection?: (section: DashboardSection, bookId: string) => void;
 }
 
 interface NavItem {
