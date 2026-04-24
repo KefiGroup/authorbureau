@@ -1,15 +1,18 @@
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import SharedSetupStep, { type SetupField } from "../shared/SharedSetupStep";
 import SharedContentStep from "../shared/SharedContentStep";
 import SharedPublishStep from "../shared/SharedPublishStep";
 import OccasionTemplateGrid, { OCCASION_TEMPLATES } from "./OccasionTemplateGrid";
 import EditionReviewTabs from "./EditionReviewTabs";
 import AbbyRecommendationCard from "../shared/AbbyRecommendationCard";
+import { findCalendarOccasion } from "@/lib/special-edition-calendar";
 
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { BookOpen, Check } from "lucide-react";
+import { BookOpen, Check, Sparkles } from "lucide-react";
 
 const EDITION_TYPE_OPTIONS = [
   { value: "signed", label: "Signed Copy", badge: "$29.99–$49.99" },
