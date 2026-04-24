@@ -138,6 +138,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
+  const [contextBlocked, setContextBlocked] = useState(false);
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -311,8 +312,13 @@ export default function BP03Builder({ authorId, bookId }: Props) {
 
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp03-social-media", {
-        body: { author_id: authorId },
+        body: { author_id: authorId, book_id: bookId ?? null },
       });
+      if (data?.status === "context_blocked") {
+        setContextBlocked(true);
+        setStep(0);
+        return;
+      }
       if (fnErr) {
         const msg = fnErr.message || "";
         if (msg.includes("401") || msg.includes("Unauthorized")) throw new Error("Your session has expired. Please refresh the page and try again.");
