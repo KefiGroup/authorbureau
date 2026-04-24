@@ -173,6 +173,7 @@ serve(async (req) => {
 
   let authorIdForRestore: string | null = null;
   let priorNodeState: Record<string, unknown> | null = null;
+  let bookIdForRestore: string | null = null;
 
   try {
     const { author_id, book_id } = await req.json();
