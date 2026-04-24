@@ -48,14 +48,69 @@ interface Props extends StepRendererProps {
 function SpecialEditionSetup({ stepData, setStepData, onMarkEdited, stepId, plan, bookTitle }: Omit<Props, "bookId" | "generationState" | "setGenerationState" | "userId">) {
   const defaults = { editionType: "signed", printRun: "limited", price: 49, occasion: "none" };
   const config: Record<string, any> = stepData.editionConfig || defaults;
+  const [searchParams, setSearchParams] = useSearchParams();
+  const prefillAppliedRef = useRef(false);
+
+  // Pre-fill from ?occasion=...&autostart=1 (deep-link from dashboard / Abby nudge)
+  const fromNudge = searchParams.get("autostart") === "1";
+  const queryOccasion = searchParams.get("occasion");
+
+  useEffect(() => {
+    if (prefillAppliedRef.current) return;
+    if (!queryOccasion) return;
+    const calOcc = findCalendarOccasion(queryOccasion);
+    if (!calOcc) return;
+    prefillAppliedRef.current = true;
+
+    onMarkEdited(stepId);
+    setStepData((prev: any) => ({
+      ...prev,
+      editionConfig: {
+        ...defaults,
+        ...(prev.editionConfig || {}),
+        occasion: calOcc.id,
+        editionType: calOcc.defaultEditionType,
+        price: calOcc.defaultPriceUsd,
+        extras: (prev.editionConfig?.extras && prev.editionConfig.extras.trim().length > 0)
+          ? prev.editionConfig.extras
+          : calOcc.defaultIncludes,
+      },
+    }));
+
+    // Clean up query params so a refresh doesn't re-trigger
+    const next = new URLSearchParams(searchParams);
+    next.delete("occasion");
+    next.delete("autostart");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryOccasion]);
 
   const update = (key: string, value: any) => {
     onMarkEdited(stepId);
     setStepData(prev => ({ ...prev, editionConfig: { ...config, [key]: value } }));
   };
 
+  const nudgeOccasion = fromNudge ? findCalendarOccasion(queryOccasion) : null;
+
   return (
     <div className="space-y-6">
+      {nudgeOccasion && (
+        <div className="rounded-xl border border-secondary/40 bg-secondary/5 p-3.5 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-secondary mt-0.5 shrink-0" />
+          <div className="text-sm">
+            <p className="font-semibold text-foreground">
+              Why {nudgeOccasion.label} now?
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              Abby pre-filled this edition because {nudgeOccasion.label} is in its
+              launch window. We've set the edition type, price, and bonus list to
+              the highest-converting defaults — adjust anything below before you
+              generate.
+            </p>
+          </div>
+        </div>
+      )}
+
       <AbbyRecommendationCard>
         <p className="text-sm text-foreground leading-relaxed">{getDateAwareAbbyTip()}</p>
       </AbbyRecommendationCard>
