@@ -236,7 +236,7 @@ export default function Auth() {
         });
         if (localErr || !localAuth?.session) {
           setOtp("");
-          throw new Error(msg.includes("failed to fetch")
+          throw new Error(isNetworkLikeError(primaryErr)
             ? "Verification service is temporarily unavailable. Please click the magic link in your email instead."
             : msg || "Invalid or expired code. Please request a new one.");
         }
