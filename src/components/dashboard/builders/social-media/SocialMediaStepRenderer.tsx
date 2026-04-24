@@ -1,7 +1,7 @@
 import type { StepRendererProps } from "../shared/builder-types";
 import SocialMediaSetupStep from "./SocialMediaSetupStep";
 import ContentGenerationStep from "./ContentGenerationStep";
-import VisualAssetsStep from "./VisualAssetsStep";
+import SocialPostDesigner from "./SocialPostDesigner";
 import HashtagCTAStep from "./HashtagCTAStep";
 import SocialMediaPublishStep from "./SocialMediaPublishStep";
 
@@ -38,11 +38,13 @@ export default function SocialMediaStepRenderer({
       );
     case "graphics":
       return (
-        <VisualAssetsStep
+        <SocialPostDesigner
           stepData={stepData}
           setStepData={setStepData}
           onMarkEdited={onMarkEdited}
           bookTitle={bookTitle}
+          bookId={bookId}
+          userId={userId}
         />
       );
     case "hashtags":
