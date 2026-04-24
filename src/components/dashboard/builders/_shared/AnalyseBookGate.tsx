@@ -47,11 +47,11 @@ export default function AnalyseBookGate({ authorId, bookId, bookTitle, onAnalyse
   };
 
   return (
-    <Card className="border-amber-300/50 bg-amber-50/40 dark:bg-amber-950/20">
+    <Card className="border-primary/30 bg-primary/5">
       <CardContent className="pt-6 space-y-4">
         <div className="flex gap-3">
-          <div className="shrink-0 w-10 h-10 rounded-full bg-amber-200/60 flex items-center justify-center">
-            <AlertCircle className="h-5 w-5 text-amber-700" />
+          <div className="shrink-0 w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+            <AlertCircle className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-base mb-1">Analyse this book first</h3>
