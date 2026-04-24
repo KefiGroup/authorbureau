@@ -264,6 +264,7 @@ interface ReviewStepProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   setContent: (c: any) => void;
   authorId: string | null;
+  bookId?: string | null;
   authorName: string;
   bookTitle: string;
   onActivate: () => void;
@@ -273,7 +274,7 @@ interface ReviewStepProps {
   onConnectStripe: () => void;
 }
 
-function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe }: ReviewStepProps) {
+function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe }: ReviewStepProps) {
   // Locked snapshot of Abby's original recommendation — never mutated by user edits.
   // Falls back to legacy fields for drafts created before the snapshot was added.
   const abbyRec: "free" | "paid" =
