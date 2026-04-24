@@ -520,6 +520,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
           </div>
           <WorkbookDocxImporter
             authorId={authorId}
+            bookId={bookId ?? null}
             content={content}
             setContent={setContent}
           />
