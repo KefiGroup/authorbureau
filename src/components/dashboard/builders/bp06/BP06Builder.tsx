@@ -45,7 +45,7 @@ const ACT_MSGS = [
   "Your workbook is almost ready...",
 ];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
 export default function BP06Builder({ authorId }: Props) {
   const navigate = useNavigate();

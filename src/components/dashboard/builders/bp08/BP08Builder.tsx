@@ -27,7 +27,7 @@ const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = ["Studying your book's unique qualities...", "Designing special edition concepts...", "Creating 3 premium edition tiers...", "Writing your exclusivity sales page...", "Finalising your special editions blueprint..."];
 const ACT_MSGS = ["Saving your special editions to your library...", "Storing your edition tiers...", "Filing your sales-page copy...", "Almost done — your editions will live in your library..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
 export default function BP08Builder({ authorId }: Props) {
   const navigate = useNavigate();

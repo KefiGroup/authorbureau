@@ -34,7 +34,7 @@ const GEN_MSGS = [
 ];
 const ACT_MSGS = ["Saving your toolkit...", "Marking node ready...", "Almost there..."];
 
-interface Props { authorId: string | null; }
+interface Props { authorId: string | null; bookId?: string | null; }
 
 function isLegacyShape(c: any): boolean {
   if (!c) return false;
