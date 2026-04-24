@@ -41,6 +41,7 @@ import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Po
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
+import { useMyBooks } from "@/hooks/useMyBooks";
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { isSuperAdmin } from "@/lib/superadmin";
