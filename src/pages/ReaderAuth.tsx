@@ -99,34 +99,9 @@ export default function ReaderAuth() {
     if (!email.trim()) return;
     setSubmitting(true);
     try {
-      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-      try {
-        await authFetch({ action: "request_code", email: email.trim() });
-        setFlow("otp");
-        setResendCooldown(60);
-      } catch (networkErr: any) {
-        const msg = (networkErr?.message || "").toLowerCase();
-        if (msg.includes("failed to fetch") || msg.includes("no account") || msg.includes("sign up") || msg.includes("invalid action")) {
-          const { error: signUpError } = await supabase.auth.signUp({
-            email: email.trim(),
-            password: crypto.randomUUID(),
-            options: { emailRedirectTo: `${window.location.origin}/readers-bureau/auth` },
-          });
-          if (signUpError) {
-            const { error } = await supabase.auth.signInWithOtp({
-              email: email.trim(),
-              options: { emailRedirectTo: `${window.location.origin}/readers-bureau/auth` },
-            });
-            if (error) throw error;
-            toast({ title: "We sent you a sign-in link to your email." });
-          } else {
-            toast({ title: "Account created! Check your email for a confirmation link." });
-          }
-          setResendCooldown(60);
-        } else {
-          throw networkErr;
-        }
-      }
+      await authFetch({ action: "request_code", email: email.trim() });
+      setFlow("otp");
+      setResendCooldown(60);
     } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
@@ -153,28 +128,16 @@ export default function ReaderAuth() {
     if (code.length !== 6) return;
     setSubmitting(true);
     try {
-      try {
-        const data = await authFetch({ action: "verify", email: email.trim(), code });
-        if (data && data.success === false) throw new Error(data.error || "Verification failed.");
-        if (data?.session_data?.access_token) {
-          await establishSession(data.session_data);
-        } else if (data?.authUrl) {
-          window.location.href = data.authUrl;
-          return;
-        } else {
-          throw new Error("Sign-in verified but no session was returned.");
-        }
-      } catch (primaryErr: any) {
-        const msg = primaryErr?.message || "";
-        const { data: localAuth, error: localErr } = await supabase.auth.verifyOtp({
-          email: email.trim(),
-          token: code,
-          type: "email",
-        });
-        if (localErr || !localAuth?.session) {
-          setOtp("");
-          throw new Error(msg || "Invalid or expired code. Please request a new one.");
-        }
+      const data = await authFetch({ action: "verify", email: email.trim(), code });
+      if (data && data.success === false) throw new Error(data.error || "Verification failed.");
+      if (data?.session_data?.access_token) {
+        await establishSession(data.session_data);
+      } else if (data?.authUrl) {
+        window.location.href = data.authUrl;
+        return;
+      } else {
+        setOtp("");
+        throw new Error("Invalid or expired code. Please request a new one.");
       }
     } catch (err) {
       toast({ title: err.message, variant: "destructive" });
@@ -188,28 +151,15 @@ export default function ReaderAuth() {
     if (!email.trim() || !password) return;
     setSubmitting(true);
     try {
-      try {
-        const data = await authFetch({ action: "password_login", email: email.trim(), password });
-        if (data && data.success === false) throw new Error(data.error || "Sign-in failed.");
-        if (data?.session_data?.access_token) {
-          await establishSession(data.session_data);
-        } else if (data?.authUrl) {
-          window.location.href = data.authUrl;
-          return;
-        } else {
-          throw new Error("Sign-in verified but no session was returned.");
-        }
-      } catch (networkErr: any) {
-        if ((networkErr?.message || "").toLowerCase().includes("failed to fetch")) {
-          const { data: directAuth, error: directAuthError } = await supabase.auth.signInWithPassword({
-            email: email.trim(),
-            password,
-          });
-          if (directAuthError) throw directAuthError;
-          if (!directAuth?.session) throw new Error("Sign-in failed.");
-        } else {
-          throw networkErr;
-        }
+      const data = await authFetch({ action: "password_login", email: email.trim(), password });
+      if (data && data.success === false) throw new Error(data.error || "Sign-in failed.");
+      if (data?.session_data?.access_token) {
+        await establishSession(data.session_data);
+      } else if (data?.authUrl) {
+        window.location.href = data.authUrl;
+        return;
+      } else {
+        throw new Error("Sign-in verified but no session was returned.");
       }
     } catch (err) {
       toast({ title: err.message, variant: "destructive" });
