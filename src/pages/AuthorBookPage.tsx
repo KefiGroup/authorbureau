@@ -263,7 +263,7 @@ export default function AuthorBookPage() {
     if (currentUser) {
       const { data } = await supabase
         .from("author_profiles")
-        .select("user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
+        .select("id, user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
         .eq("author_slug", authorSlug)
         .eq("user_id", currentUser.id)
         .maybeSingle();
@@ -273,7 +273,7 @@ export default function AuthorBookPage() {
     if (!profile) {
       const { data } = await supabase
         .from("author_profiles_public" as any)
-        .select("user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
+        .select("id, user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
         .eq("author_slug", authorSlug)
         .in("directory_status", ["listed", "verified", "featured"])
         .maybeSingle();
