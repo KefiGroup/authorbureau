@@ -103,7 +103,7 @@ export default function SocialPostDesigner({ stepData, setStepData, onMarkEdited
   const compose = async (postId: string, opts: { reuseBackground?: boolean } = {}) => {
     const post = posts.find(p => p.id === postId);
     if (!post) return;
-    const design = designs[postId] || {};
+    const design: { template?: string; headline?: string; backgroundUrl?: string | null } = designs[postId] || {};
     const template = design.template || "quote_card";
     const headline = (design.headline ?? post.caption ?? "").slice(0, 240);
 
@@ -267,7 +267,7 @@ export default function SocialPostDesigner({ stepData, setStepData, onMarkEdited
                   </div>
                   <Badge className={`text-[9px] px-1 py-0 ${typeInfo.color}`}>{typeInfo.emoji}</Badge>
                   <span className="text-[10px] text-muted-foreground">{format(new Date(p.date), "MMM d")}</span>
-                  {hasDesign && <Check className="h-3 w-3 text-green-600 ml-auto" />}
+                  {hasDesign && <Check className="h-3 w-3 text-secondary ml-auto" />}
                 </div>
                 <p className="text-xs line-clamp-2">{p.caption}</p>
               </button>
