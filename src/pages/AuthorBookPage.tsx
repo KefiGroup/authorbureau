@@ -774,7 +774,7 @@ export default function AuthorBookPage() {
                 return (
                   <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
                     <Link
-                      to={`/${authorSlug}/${bookSlug}/${p.route}`}
+                      to={p.linkTo || `/${authorSlug}/${bookSlug}/${p.route}`}
                       className="group flex flex-col h-full overflow-hidden rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg"
                       style={{
                         background: v.cardBg,
