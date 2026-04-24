@@ -112,7 +112,7 @@ export default function NodeBuilder() {
 
   if (!user) return null;
 
-  const builders: Record<string, React.ComponentType<{ authorId: string | null }>> = {
+  const builders: Record<string, React.ComponentType<{ authorId: string | null; bookId?: string | null }>> = {
     "BP-01": BP01Builder, "BP-02": BP02Builder, "BP-03": BP03Builder,
     "BP-04": BP04Builder, "BP-05": BP05Builder, "BP-06": BP06Builder,
     "BP-07": BP07Builder, "BP-08": BP08Builder, "BP-09": BP09Builder,
@@ -140,7 +140,7 @@ export default function NodeBuilder() {
             Back to {getHubLabel(nodeId!)}
           </Link>
         </div>
-        <Builder authorId={authorId} />
+        <Builder authorId={authorId} bookId={bookId} />
       </DashboardLayout>
     );
   }
