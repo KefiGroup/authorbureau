@@ -55,8 +55,11 @@ export const SLUG_TO_NODE: Record<string, string> = {
   ...SLUG_ALIASES,
 };
 
-/** Nodes that have NO public microsite page */
-export const NO_MICROSITE_NODES = new Set(["BP-01", "BP-03", "BP-09"]);
+/** Nodes that have NO public microsite page.
+ * BP-08 (Special Editions) is library-only — it requires manual physical
+ * fulfillment (signing, printing, shipping, gift inscription), so the author
+ * keeps it in their library and orders are taken off-platform. */
+export const NO_MICROSITE_NODES = new Set(["BP-01", "BP-03", "BP-08", "BP-09"]);
 
 /** Node names for display */
 export const NODE_NAMES: Record<string, string> = {
