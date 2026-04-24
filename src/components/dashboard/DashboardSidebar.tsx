@@ -459,6 +459,7 @@ export default function DashboardSidebar({
         {(businessExpanded || collapsed) && businessItems.filter(i => !i.hidden).map((item, idx) => {
           const isLocked = !!item.lockMessage;
           const isActive = activeSection === item.id && !isLocked;
+          const needsPick = !isLocked && needsBookPick(item.id);
 
           const btn = (
             <button
@@ -466,6 +467,10 @@ export default function DashboardSidebar({
               onClick={() => {
                 if (isLocked) {
                   toast({ title: "Locked", description: item.lockMessage });
+                  return;
+                }
+                if (needsPick) {
+                  setChooserFor(item.id);
                   return;
                 }
                 onSectionChange(item.id);
@@ -485,7 +490,7 @@ export default function DashboardSidebar({
                   <span className="flex-1 text-left whitespace-normal leading-tight">
                     <span className="block">{item.label}</span>
                     {item.subtitle && (
-                      <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
+                      <span className={`block text-[10px] font-normal leading-tight ${needsPick ? "text-secondary" : "text-muted-foreground/50"}`}>{item.subtitle}</span>
                     )}
                   </span>
                   {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
@@ -497,17 +502,32 @@ export default function DashboardSidebar({
             </button>
           );
 
+          // Wrap with chooser popover when this item needs a book pick.
+          const wrapped = needsPick ? (
+            <BookChooserPopover
+              key={`${item.id}-${idx}-chooser`}
+              open={chooserFor === item.id}
+              onOpenChange={(o) => setChooserFor(o ? item.id : null)}
+              books={books}
+              perBook={perBookStats}
+              destinationLabel={item.label}
+              onPick={(bookId) => onPickBookForSection?.(item.id, bookId)}
+            >
+              {btn}
+            </BookChooserPopover>
+          ) : btn;
+
           if (item.tooltip || collapsed) {
             return (
               <Tooltip key={`${item.id}-${idx}`}>
-                <TooltipTrigger asChild>{btn}</TooltipTrigger>
+                <TooltipTrigger asChild>{wrapped}</TooltipTrigger>
                 <TooltipContent side="right" className="max-w-[220px] text-xs">
                   {collapsed ? item.label : item.tooltip}
                 </TooltipContent>
               </Tooltip>
             );
           }
-          return btn;
+          return wrapped;
         })}
       </div>
     );
