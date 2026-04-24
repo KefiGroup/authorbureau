@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/shared-backend";
+import { getSharedSession, supabase } from "@/lib/shared-backend";
 import type { User } from "@supabase/supabase-js";
 
 interface AuthReadyState {
@@ -29,7 +29,7 @@ export function useAuthReady(): AuthReadyState {
     let isMounted = true;
 
     // Restore once from storage first.
-    void supabase.auth.getSession().then(({ data: { session } }) => {
+    void getSharedSession().then((session) => {
       if (!isMounted) return;
       initialResolvedRef.current = true;
       setUser(session?.user ?? null);
