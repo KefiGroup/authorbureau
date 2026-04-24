@@ -181,6 +181,10 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           buildAuthorityUnlocked={0}
           yieldUnlocked={0}
           currentBook={currentBook}
+          bookCount={stats.bookCount}
+          books={books}
+          perBookStats={stats.products?.perBook}
+          onPickBookForSection={handlePickBookForSection}
           buildAuthorityCategoryOpen={
             gating.length > 0 ? !isCategoryFullyClosed("marketing-channels") : true
           }
