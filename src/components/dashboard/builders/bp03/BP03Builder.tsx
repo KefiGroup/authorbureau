@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { builderBackTarget } from "@/lib/book-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
@@ -428,7 +429,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
           title="Social Media"
           subtitle="20 branded posts + 4-week calendar + outreach kit"
           icon={Share2}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(builderBackTarget(bookId, "brand"))}
         />
         <UnifiedStepper
           nodeId="BP-03"
@@ -1024,7 +1025,7 @@ function SuccessScreen({
       </Card>
 
       <div className="flex flex-wrap items-center gap-2 justify-end">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/brand-products")}>
+        <Button variant="ghost" size="sm" onClick={() => navigate(builderBackTarget(bookId, "brand"))}>
           ← Back to Brand Products
         </Button>
         <Button size="sm" onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}>
