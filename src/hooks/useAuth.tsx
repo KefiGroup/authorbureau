@@ -130,6 +130,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const retryTimeoutRef = useRef<number | null>(null);
   const subscriptionCheckInFlightRef = useRef(false);
   const checkSubscriptionRef = useRef<() => Promise<void>>(async () => {});
+  const latestUserRef = useRef<User | null>(null);
+
+  useEffect(() => {
+    latestUserRef.current = user;
+  }, [user]);
 
   const clearAuthState = useCallback(() => {
     setSession(null);
@@ -138,7 +143,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSubscription(signedOutSubscriptionState);
   }, []);
 
-  const applyValidatedSession = useCallback(async (nextSession: Session | null) => {
+  const resolveAdminStatus = useCallback((userId: string | null) => {
+    const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+
+    if (!userId) {
+      setIsAdmin(isAdminSession);
+      setAuthLoading(false);
+      return;
+    }
+
+    window.setTimeout(() => {
+      Promise.resolve(supabase.rpc("has_role", { _user_id: userId, _role: "admin" }))
+        .then(({ data: hasAdminRole }) => {
+          setIsAdmin(!!hasAdminRole || isAdminSession);
+        })
+        .catch(() => {
+          setIsAdmin(isAdminSession);
+        })
+        .finally(() => {
+          setAuthLoading(false);
+        });
+    }, 0);
+  }, []);
+
+  const applySessionSnapshot = useCallback((nextSession: Session | null) => {
     if (!nextSession) {
       clearAuthState();
       setAuthLoading(false);
@@ -146,29 +174,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setAuthLoading(true);
-
-    const { data, error } = await supabase.auth.getUser();
-    if (error || !data.user) {
-      clearAuthState();
-      setAuthLoading(false);
-      return;
-    }
-
     setSession(nextSession);
-    setUser(data.user);
-
-    const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
-    Promise.resolve(supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" }))
-      .then(({ data: hasAdminRole }) => {
-        setIsAdmin(!!hasAdminRole || isAdminSession);
-      })
-      .catch(() => {
-        setIsAdmin(isAdminSession);
-      })
-      .finally(() => {
-        setAuthLoading(false);
-      });
-  }, [clearAuthState]);
+    setUser(nextSession.user ?? null);
+    resolveAdminStatus(nextSession.user?.id ?? null);
+  }, [clearAuthState, resolveAdminStatus]);
 
   const clearSubscriptionRetry = useCallback(() => {
     if (retryTimeoutRef.current !== null) {
@@ -289,13 +298,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        void applyValidatedSession(session);
+      (event, nextSession) => {
+        if (event === "INITIAL_SESSION" && !nextSession?.user && latestUserRef.current) {
+          return;
+        }
+
+        window.setTimeout(() => {
+          applySessionSnapshot(nextSession);
+        }, 0);
       }
     );
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      await applyValidatedSession(session);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      applySessionSnapshot(session);
     }).catch(() => {
       setAuthLoading(false);
     });
@@ -308,7 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.clearTimeout(timeout);
       clearSubscriptionRetry();
     };
-  }, [applyValidatedSession, clearSubscriptionRetry]);
+  }, [applySessionSnapshot, clearSubscriptionRetry]);
 
   useEffect(() => {
     clearSubscriptionRetry();
