@@ -45,6 +45,14 @@ export default function AccountSettings() {
       return;
     }
     setSaving(true);
+    await sharedSupabase.auth.refreshSession().catch(() => null);
+    const { data: sessionData } = await sharedSupabase.auth.getSession();
+    if (!sessionData.session) {
+      toast({ title: "Your session expired. Please sign in again.", variant: "destructive" });
+      setSaving(false);
+      return;
+    }
+
     const { error } = await sharedSupabase.auth.updateUser({ password: newPassword });
     if (error) {
       toast({ title: "Failed to update password", description: error.message, variant: "destructive" });
