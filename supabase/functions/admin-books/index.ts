@@ -83,7 +83,8 @@ Deno.serve(async (req) => {
       return json({ error: "Admin access required" }, 403);
     }
 
-    const { action, bookId, page = 1, filter } = await req.json();
+    const body = await req.json();
+    const { action, bookId, page = 1, filter } = body;
 
     if (action === "list") {
       const pageSize = 20;
@@ -240,7 +241,8 @@ Deno.serve(async (req) => {
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    const message = err instanceof Error ? err.message : String(err);
+    return new Response(JSON.stringify({ error: message }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
