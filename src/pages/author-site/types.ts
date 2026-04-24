@@ -114,6 +114,97 @@ export const fadeUp = {
   }),
 };
 
+/** Node ID prefixes that represent book *formats* (not standalone services).
+ *  These render under their parent book card, never in "Work With Me". */
+export const BOOK_FORMAT_NODE_PREFIXES = ["BA-11", "BP-06", "BP-08", "BA-17"] as const;
+
+export function isBookFormatNode(nodeId: string): boolean {
+  return BOOK_FORMAT_NODE_PREFIXES.some(p => nodeId.startsWith(p));
+}
+
+export function isCollectorsEditionNode(nodeId: string): boolean {
+  return nodeId.startsWith("BP-08");
+}
+
+/** Lightweight node shape used by format/collector helpers (subset of LiveNode). */
+export interface BookFormatNode {
+  id: string;
+  node_id: string;
+  node_name: string;
+  personalised_name: string | null;
+  content_json: Record<string, unknown> | null;
+  microsite_url: string | null;
+  payment_link: string | null;
+  third_party_url: string | null;
+  price_usd?: number | null;
+  currency?: string | null;
+}
+
+/** Returns true if a node belongs to a given book (by book_id or book_slug in content_json,
+ *  or — when neither is set — applies to all books as an author-level node). */
+export function nodeBelongsToBook(
+  node: { content_json: Record<string, unknown> | null },
+  book: { id: string; slug: string }
+): boolean {
+  const cj = node.content_json || {};
+  const bookId = cj.book_id as string | undefined;
+  const bookSlug = cj.book_slug as string | undefined;
+  if (!bookId && !bookSlug) return true;
+  if (bookId && book.id === bookId) return true;
+  if (bookSlug && book.slug === bookSlug) return true;
+  return false;
+}
+
+export function getFormatsForBook<T extends BookFormatNode>(
+  nodes: T[],
+  book: { id: string; slug: string }
+): T[] {
+  return nodes.filter(
+    n =>
+      ["BA-11", "BP-06", "BA-17"].some(p => n.node_id.startsWith(p)) &&
+      nodeBelongsToBook(n, book)
+  );
+}
+
+export function getCollectorsEditionsForBook<T extends BookFormatNode>(
+  nodes: T[],
+  book: { id: string; slug: string }
+): T[] {
+  return nodes.filter(n => n.node_id.startsWith("BP-08") && nodeBelongsToBook(n, book));
+}
+
+/** Occasion templates for BP-08 collectible / special editions.
+ *  `peakWindow` is the [start, end] order-by window expressed as MM-DD strings;
+ *  `cutoffMonthDay` is the recommended order-by date for delivery. */
+export interface OccasionTemplate {
+  key: string;
+  label: string;
+  emoji: string;
+  /** Tailwind-safe HSL accent (used as inline style only). */
+  accent: string;
+  cutoffMonthDay: string; // "MM-DD"
+  blurb: string;
+}
+
+export const OCCASION_TEMPLATES: Record<string, OccasionTemplate> = {
+  valentines: { key: "valentines", label: "Valentine's Day", emoji: "💝", accent: "351 75% 55%", cutoffMonthDay: "02-10", blurb: "A heartfelt gift for the reader you love." },
+  mothers_day: { key: "mothers_day", label: "Mother's Day", emoji: "🌷", accent: "330 70% 60%", cutoffMonthDay: "05-05", blurb: "A keepsake edition for the woman who shaped you." },
+  fathers_day: { key: "fathers_day", label: "Father's Day", emoji: "🎁", accent: "210 60% 45%", cutoffMonthDay: "06-10", blurb: "A signed edition worthy of his shelf." },
+  christmas: { key: "christmas", label: "Christmas", emoji: "🎄", accent: "0 70% 45%", cutoffMonthDay: "12-15", blurb: "A collector's gift, wrapped and ready under the tree." },
+  birthday: { key: "birthday", label: "Birthday Edition", emoji: "🎂", accent: "45 90% 55%", cutoffMonthDay: "", blurb: "A personalised, numbered keepsake for someone special." },
+  anniversary: { key: "anniversary", label: "Anniversary Edition", emoji: "💍", accent: "280 50% 50%", cutoffMonthDay: "", blurb: "A limited-run edition marking the moment." },
+};
+
+/** Compute a friendly "Order by …" line for the next upcoming cutoff, or null. */
+export function getOccasionUrgency(template: OccasionTemplate, now: Date = new Date()): string | null {
+  if (!template.cutoffMonthDay) return null;
+  const [m, d] = template.cutoffMonthDay.split("-").map(Number);
+  let cutoff = new Date(now.getFullYear(), m - 1, d);
+  if (cutoff.getTime() < now.getTime()) cutoff = new Date(now.getFullYear() + 1, m - 1, d);
+  const fmt = cutoff.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  return `Order by ${fmt} for ${template.label} delivery`;
+}
+
 export function getLowestPrice(book: BookWithProducts): string | null {
   const prices = [book.kindle_price, book.paperback_price, book.price].filter(Boolean) as string[];
   if (prices.length === 0) return null;
