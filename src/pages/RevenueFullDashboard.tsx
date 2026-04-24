@@ -11,6 +11,7 @@ import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2,
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 interface Snapshot {
   snapshot_date: string;
@@ -291,13 +292,10 @@ export default function RevenueFullDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
       {/* Header */}
       <div className="border-b border-border bg-card px-4 py-3">
         <div className="max-w-6xl mx-auto flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Revenue Dashboard</h1>
             <p className="text-xs text-muted-foreground">Track your earnings across all 28 nodes</p>
@@ -570,7 +568,7 @@ export default function RevenueFullDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardLayout>
   );
 }
 

@@ -13,6 +13,7 @@ import { Loader2, ArrowLeft, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConnectedAccountsTab from "@/components/settings/ConnectedAccountsTab";
 import PayoutsSettings from "@/components/dashboard/PayoutsSettings";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 export default function AccountSettings() {
   const [searchParams] = useSearchParams();
@@ -71,12 +72,9 @@ export default function AccountSettings() {
   const tierInfo = tier !== "free" ? TIERS[tier as keyof typeof TIERS] : null;
 
   return (
-    <div className="min-h-screen bg-background">
+    <DashboardLayout>
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
-          <Button asChild variant="ghost" size="icon">
-            <Link to="/dashboard"><ArrowLeft className="h-4 w-4" /></Link>
-          </Button>
           <h1 className="font-heading text-2xl font-bold">Account Settings</h1>
         </div>
 
@@ -224,6 +222,6 @@ export default function AccountSettings() {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Send, Loader2, ArrowLeft, MessageSquarePlus } from "lucide-react";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
 interface ChatMessage {
   id?: string;
@@ -125,14 +126,12 @@ export default function AbbyCoachPage() {
   if (!user) return null;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <DashboardLayout bare>
+      <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card px-4 py-3 shrink-0">
         <div className="max-w-3xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate("/dashboard")}>
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
             <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-secondary" />
             </div>
@@ -256,6 +255,7 @@ export default function AbbyCoachPage() {
           </Button>
         </div>
       </div>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
