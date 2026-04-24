@@ -20,6 +20,7 @@ import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWork
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
+import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -41,9 +42,10 @@ const ACTIVATING_MESSAGES = [
 
 interface Props {
   authorId: string | null;
+  bookId?: string | null;
 }
 
-export default function BP01Builder({ authorId }: Props) {
+export default function BP01Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -55,8 +57,10 @@ export default function BP01Builder({ authorId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [leadMagnetUrl, setLeadMagnetUrl] = useState<string | null>(null);
   const [leadMagnetTitle, setLeadMagnetTitle] = useState<string | null>(null);
+  const [contextBlocked, setContextBlocked] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
 
   // Load author info
   useEffect(() => {
@@ -160,10 +164,16 @@ export default function BP01Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1);
     setError(null);
+    setContextBlocked(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp01-email-marketing", {
-        body: { author_id: authorId },
+        body: { author_id: authorId, book_id: activeBookId },
       });
+      if (data?.status === "context_blocked") {
+        setContextBlocked(true);
+        setStep(0);
+        return;
+      }
       if (fnErr || !data?.success) {
         throw new Error(data?.error || fnErr?.message || "Generation failed");
       }
@@ -239,6 +249,14 @@ export default function BP01Builder({ authorId }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <NodeHowItWorks nodeId="BP-01" defaultOpen={step === 0} />
         {/* STEP 0: Introduction */}
+        {step === 0 && contextBlocked && (
+          <AnalyseBookGate
+            authorId={authorId}
+            bookId={activeBookId}
+            bookTitle={bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : undefined)}
+            onAnalysed={() => { setContextBlocked(false); handleGenerate(); }}
+          />
+        )}
         {step === 0 && (
           <>
             <AbbyCard>

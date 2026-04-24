@@ -23,6 +23,7 @@ import BuilderIntroBlock, { BP_INTRO_SPECS } from "@/components/dashboard/builde
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
+import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
@@ -51,6 +52,7 @@ const TIER_COLORS = [
 
 interface Props {
   authorId: string | null;
+  bookId?: string | null;
 }
 
 export interface PublishChannels {
@@ -71,7 +73,7 @@ const DEFAULT_CHANNELS: PublishChannels = {
   x: false,
 };
 
-export default function BP02Builder({ authorId }: Props) {
+export default function BP02Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(-1);
   const [authReady, setAuthReady] = useState(false);
@@ -195,13 +197,23 @@ export default function BP02Builder({ authorId }: Props) {
     }
   }, [step]);
 
+  const [contextBlocked, setContextBlocked] = useState(false);
+  const { bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
+
   const handleGenerate = async () => {
     setStep(1);
     setError(null);
+    setContextBlocked(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp02-lead-magnets", {
-        body: { author_id: authorId },
+        body: { author_id: authorId, book_id: activeBookId },
       });
+      if (data?.status === "context_blocked") {
+        setContextBlocked(true);
+        setStep(0);
+        return;
+      }
       if (fnErr || !data?.success) {
         throw new Error(data?.error || fnErr?.message || "Generation failed");
       }
@@ -486,6 +498,13 @@ export default function BP02Builder({ authorId }: Props) {
           </AbbyCard>
         )}
 
+        {step === 0 && contextBlocked && (
+          <AnalyseBookGate
+            authorId={authorId}
+            bookId={activeBookId}
+            onAnalysed={() => { setContextBlocked(false); handleGenerate(); }}
+          />
+        )}
         {step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Lead Magnets</h2>

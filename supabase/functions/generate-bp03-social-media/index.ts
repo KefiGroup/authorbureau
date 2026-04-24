@@ -1,10 +1,9 @@
+// @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+import {
+  corsHeaders, makeServiceClient, buildAuthorContext, upsertAuthorNode, snapshotAuthorNode,
+  failResponse, errorMessage,
+} from "../_shared/builder-helpers.ts";
 
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const SYSTEM_PROMPT =
@@ -13,10 +12,7 @@ const SYSTEM_PROMPT =
 async function callAI(userPrompt: string, maxTokens: number) {
   const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
-    headers: {
-      "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-      "Content-Type": "application/json",
-    },
+    headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "openai/gpt-5.2",
       messages: [
@@ -43,58 +39,49 @@ async function callAI(userPrompt: string, maxTokens: number) {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Track prior state so we can restore on failure
-  let priorStatus: string | null = null;
-  let priorContent: Record<string, unknown> | null = null;
-  let priorPersonalisedName: string | null = null;
-  let hadUsableKit = false;
-  let sb: ReturnType<typeof createClient> | null = null;
-  let nodeRowId: string | null = null;
-  let authorIdForCatch: string | null = null;
+  let priorState: Record<string, unknown> | null = null;
+  let parsedAuthorId: string | null = null;
+  let parsedBookId: string | null = null;
+  const sb = makeServiceClient();
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, book_id } = await req.json();
     if (!author_id) throw new Error("author_id required");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
-    authorIdForCatch = author_id;
-
-    sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-
-    // Snapshot existing node BEFORE we touch status — so a failed rerun can restore it
-    {
-      const { data: existing } = await sb.from("author_nodes")
-        .select("id, status, content_json, personalised_name")
-        .eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
-      if (existing) {
-        nodeRowId = existing.id as string;
-        priorStatus = (existing.status as string) || null;
-        priorContent = (existing.content_json as Record<string, unknown>) || null;
-        priorPersonalisedName = (existing.personalised_name as string) || null;
-        const cj: any = priorContent;
-        hadUsableKit =
-          !!cj &&
-          ((Array.isArray(cj.posts) && cj.posts.length > 0) ||
-            (Array.isArray(cj.outreach_kit) && cj.outreach_kit.length > 0));
-      }
-    }
+    parsedAuthorId = author_id;
+    parsedBookId = book_id ?? null;
 
     const { data: profile } = await sb.from("author_profiles")
       .select("pen_name, genres, user_id").eq("id", author_id).single();
-    const { data: ctx } = await sb.from("author_context")
-      .select("*").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+    if (!profile) throw new Error("Author profile not found");
 
-    let bookTitle = ctx?.book_title || "";
-    let coreThesis = ctx?.core_thesis || "";
-    if (!bookTitle) {
-      const { data: book } = await sb.from("books")
-        .select("title, description").eq("author_id", profile?.user_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      bookTitle = book?.title || "";
-      coreThesis = book?.description || "";
+    const ctxBundle = await buildAuthorContext(sb, author_id, profile.user_id ?? null, book_id ?? null, "BP-03");
+    if (ctxBundle.contextBlocked) {
+      return new Response(
+        JSON.stringify({
+          success: false,
+          status: "context_blocked",
+          node_id: "BP-03",
+          error: "Please run the book analysis for this specific book before generating Social Media. This prevents content from leaking between your books.",
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
+    const ctx = ctxBundle.ctx;
+    const resolvedBookId = ctxBundle.book?.id ?? book_id ?? null;
+    const bookTitle = ctxBundle.bookTitle;
+    const coreThesis = ctxBundle.coreThesis;
     if (!bookTitle) throw new Error("No book found. Please add a book first.");
 
-    const authorName = profile?.pen_name || "Author";
-    const genre = (profile?.genres && profile.genres[0]) || "general";
+    priorState = await snapshotAuthorNode(sb, author_id, "BP-03", resolvedBookId);
+    const hadUsableKit = (() => {
+      const cj: any = priorState?.content_json;
+      return !!cj && ((Array.isArray(cj.posts) && cj.posts.length > 0) ||
+                      (Array.isArray(cj.outreach_kit) && cj.outreach_kit.length > 0));
+    })();
+
+    const authorName = profile.pen_name || "Author";
+    const genre = (profile.genres && profile.genres[0]) || ctxBundle.book?.genre || "general";
     const audience = JSON.stringify(ctx?.target_audience_persona || {});
     const frameworks = JSON.stringify(ctx?.key_frameworks || []);
 
@@ -107,22 +94,14 @@ Target audience: ${audience}
 Key frameworks: ${frameworks}
 `.trim();
 
-    // Helper to write progress
     const setProgress = async (step: number, label: string, partial: Record<string, unknown> = {}) => {
-      const { data: existingNode } = await sb!.from("author_nodes")
-        .select("id, content_json").eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
-      const merged = { ...(existingNode?.content_json as object || {}), ...partial, progress: { step, label, total: 3 } };
-      if (existingNode) {
-        await sb!.from("author_nodes").update({ status: "generating", content_json: merged }).eq("id", existingNode.id);
-      } else {
-        await sb!.from("author_nodes").insert({
-          author_id, node_id: "BP-03", node_name: "Social Media",
-          status: "generating", content_json: merged,
-        });
-      }
+      await upsertAuthorNode(sb, author_id, "BP-03", "Social Media", {
+        status: "generating",
+        content_json: { ...partial, progress: { step, label, total: 3 } },
+      }, resolvedBookId);
     };
 
-    // STEP 1 — LinkedIn (5 posts)
+    // STEP 1 — LinkedIn
     await setProgress(1, "Writing LinkedIn posts...");
     const step1 = await callAI(
       `${baseContext}
@@ -139,7 +118,7 @@ The array must have exactly 5 items.`,
       6000
     );
 
-    // STEP 2 — Instagram + Facebook (5 + 5)
+    // STEP 2 — Instagram + Facebook
     await setProgress(2, "Writing Instagram & Facebook posts...", step1);
     const step2 = await callAI(
       `${baseContext}
@@ -158,7 +137,7 @@ Each array must have exactly 5 items.`,
       8000
     );
 
-    // STEP 3 — Twitter/X + 3 outreach templates
+    // STEP 3 — Twitter/X + outreach
     await setProgress(3, "Writing Twitter/X posts and outreach templates...", { ...step1, ...step2 });
     const step3 = await callAI(
       `${baseContext}
@@ -183,14 +162,12 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
       6000
     );
 
-    // Compose final content_json — keep `posts` shape compatible with the existing review UI
     const merged = { ...step1, ...step2, ...step3 } as Record<string, any>;
     const linkedin = merged.linkedin_posts || [];
     const instagram = merged.instagram_posts || [];
     const facebook = merged.facebook_posts || [];
     const twitter = merged.twitter_posts || [];
 
-    // Build the unified `posts` array (one entry per day, with all 4 platforms)
     const days = Math.max(linkedin.length, instagram.length, facebook.length, twitter.length);
     const posts = [];
     for (let i = 0; i < days; i++) {
@@ -216,52 +193,32 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
       posts,
       outreach_kit: merged.outreach_kit || [],
       abby_summary: merged.abby_summary || `Your social media starter kit for '${bookTitle}' is ready — 20 posts across 4 platforms plus 3 outreach templates.`,
-      // Note: 30-day email sequence intentionally dropped — handled by the Email Engine.
     };
 
-    // Save final
-    const { data: existingNode } = await sb.from("author_nodes")
-      .select("id").eq("author_id", author_id).eq("node_id", "BP-03").maybeSingle();
-    if (existingNode) {
-      await sb.from("author_nodes").update({
-        status: "content_ready",
-        content_json: finalContent,
-        personalised_name: finalContent.calendar_name,
-      }).eq("id", existingNode.id);
-    } else {
-      await sb.from("author_nodes").insert({
-        author_id, node_id: "BP-03", node_name: "Social Media",
-        status: "content_ready", content_json: finalContent,
-        personalised_name: finalContent.calendar_name,
-      });
-    }
+    await upsertAuthorNode(sb, author_id, "BP-03", "Social Media", {
+      status: "content_ready",
+      content_json: finalContent,
+      personalised_name: finalContent.calendar_name,
+    }, resolvedBookId);
 
     return new Response(JSON.stringify({ success: true, content: finalContent }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("generate-bp03-social-media error:", err);
-
-    // Restore prior stable state if a usable kit existed before this run
+    console.error("generate-bp03-social-media error:", errorMessage(err));
+    // Restore prior state if we had a usable kit
     try {
-      if (sb && nodeRowId && hadUsableKit && priorStatus && priorStatus !== "generating" && priorContent) {
-        const restored = { ...priorContent };
-        // Drop transient progress marker so the UI doesn't see stale generating state
-        delete (restored as Record<string, unknown>).progress;
-        await sb.from("author_nodes").update({
-          status: priorStatus,
-          content_json: restored,
-          ...(priorPersonalisedName ? { personalised_name: priorPersonalisedName } : {}),
-        }).eq("id", nodeRowId);
-        console.log("[BP-03] Restored prior status after failure:", priorStatus);
+      const cj: any = priorState?.content_json;
+      const hadUsableKit = !!cj && ((Array.isArray(cj.posts) && cj.posts.length > 0) ||
+                                    (Array.isArray(cj.outreach_kit) && cj.outreach_kit.length > 0));
+      if (priorState && parsedAuthorId && hadUsableKit && priorState.status && priorState.status !== "generating") {
+        const restored = { ...priorState };
+        delete (restored.content_json as any)?.progress;
+        await upsertAuthorNode(sb, parsedAuthorId, "BP-03", "Social Media", restored, parsedBookId);
       }
-    } catch (restoreErr) {
-      console.error("[BP-03] Failed to restore prior status:", restoreErr);
+    } catch (e) {
+      console.error("[BP-03] restore failed:", errorMessage(e));
     }
-
-    return new Response(JSON.stringify({ success: false, error: (err as Error).message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return failResponse(errorMessage(err));
   }
 });

@@ -35,6 +35,7 @@ import {
   computeScheduleDates,
   type Frequency,
 } from "@/components/dashboard/builders/social-media/socialKitHelpers";
+import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -61,6 +62,7 @@ function hasUsableSocialKit(value: any) {
 
 interface Props {
   authorId: string | null;
+  bookId?: string | null;
 }
 
 async function fetchBp03NodeState(body: Record<string, unknown>) {
@@ -131,11 +133,12 @@ async function persistSocialPostsToCalendar(authorId: string, content: any, star
   return { saved: rows.length };
 }
 
-export default function BP03Builder({ authorId }: Props) {
+export default function BP03Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
+  const [contextBlocked, setContextBlocked] = useState(false);
   const [bookTitle, setBookTitle] = useState("");
   const [hasContext, setHasContext] = useState<boolean | null>(null);
   const [content, setContent] = useState<any>(null);
@@ -309,8 +312,13 @@ export default function BP03Builder({ authorId }: Props) {
 
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp03-social-media", {
-        body: { author_id: authorId },
+        body: { author_id: authorId, book_id: bookId ?? null },
       });
+      if (data?.status === "context_blocked") {
+        setContextBlocked(true);
+        setStep(0);
+        return;
+      }
       if (fnErr) {
         const msg = fnErr.message || "";
         if (msg.includes("401") || msg.includes("Unauthorized")) throw new Error("Your session has expired. Please refresh the page and try again.");
@@ -435,6 +443,13 @@ export default function BP03Builder({ authorId }: Props) {
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <NodeHowItWorks nodeId="BP-03" defaultOpen={step === 0} />
+        {step === 0 && contextBlocked && (
+          <AnalyseBookGate
+            authorId={authorId}
+            bookId={bookId ?? null}
+            onAnalysed={() => { setContextBlocked(false); handleGenerate(); }}
+          />
+        )}
         {isResuming ? (
           <AbbyCard><p className="text-muted-foreground">Loading your saved social media kit…</p></AbbyCard>
         ) : step === 0 && (
