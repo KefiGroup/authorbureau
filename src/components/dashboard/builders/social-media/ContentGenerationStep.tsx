@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Sparkles, Calendar, List, RefreshCw, ChevronDown, ChevronUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { useToast } from "@/hooks/use-toast";
 import type { SocialMediaPost, SocialMediaConfig } from "./types";
 import { CONTENT_TYPE_LABELS, PLATFORM_CONFIG } from "./types";
@@ -45,13 +45,18 @@ export default function ContentGenerationStep({
     setGenerating(true);
     setGenerationState("queued");
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const token = await getActiveToken();
+      if (!token) {
+        setGenerating(false);
+        setGenerationState("error");
+        toast({ title: "Session expired", description: "Please sign out and back in.", variant: "destructive" });
+        return;
+      }
 
       setTimeout(() => setGenerationState("analyzing"), 1500);
       setTimeout(() => setGenerationState("generating"), 4000);
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+      const resp = await fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -82,9 +87,12 @@ Generate 3-5 posts per week per platform. Space them evenly. Start from tomorrow
           bookId,
           isPremium: true,
         }),
-      });
+      }, 120000);
 
-      if (!resp.ok || !resp.body) throw new Error("Generation failed");
+      if (!resp.ok || !resp.body) {
+        const errText = await resp.text().catch(() => "");
+        throw new Error(errText || `Generation failed (${resp.status})`);
+      }
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
@@ -135,7 +143,7 @@ Generate 3-5 posts per week per platform. Space them evenly. Start from tomorrow
     } catch (err) {
       console.error("Social media generation error:", err);
       setGenerationState("error");
-      toast({ title: "Generation failed", variant: "destructive" });
+      toast({ title: "Generation failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     } finally {
       setGenerating(false);
     }
