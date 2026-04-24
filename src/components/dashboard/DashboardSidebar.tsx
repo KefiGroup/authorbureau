@@ -99,7 +99,25 @@ export default function DashboardSidebar({
   stripeConnected = false, pendingReviewCount = 0,
   buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
   currentBook = null,
+  bookCount = 0,
+  books = [],
+  perBookStats,
+  onPickBookForSection,
 }: Props) {
+
+  // Which section, if any, is currently asking the user "which book?".
+  const [chooserFor, setChooserFor] = useState<DashboardSection | null>(null);
+  const BOOK_SCOPED: DashboardSection[] = [
+    "revenue-streams" as DashboardSection,
+    "marketing-channels" as DashboardSection,
+    "authority-builders" as DashboardSection,
+    "review-products" as DashboardSection,
+  ];
+  const isBookScoped = (s: DashboardSection) => BOOK_SCOPED.includes(s);
+  const needsBookPick = (s: DashboardSection) =>
+    isBookScoped(s) && bookCount > 1 && !currentBook;
+  const noBooksYet = bookCount === 0;
+
 
   // Hydrate from cache to prevent "0 built" flash, then update from live props
   const [buildUnlocked, setBuildUnlocked] = useState(() =>
