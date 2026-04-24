@@ -87,8 +87,9 @@ export default function Auth() {
           throw new Error("No session returned from magic link.");
         }
         window.history.replaceState(null, "", location.pathname);
-      } catch (err: any) {
-        toast({ title: err.message || "Magic link sign-in failed", variant: "destructive" });
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Magic link sign-in failed";
+        toast({ title: message, variant: "destructive" });
       } finally {
         setMagicLinkProcessing(false);
       }
@@ -135,8 +136,8 @@ export default function Auth() {
       await authFetch({ action: "request_code", email: email.trim() });
       setFlow("otp");
       setResendCooldown(60);
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -149,8 +150,8 @@ export default function Auth() {
       await authFetch({ action: "request_code", email: email.trim() });
       setResendCooldown(60);
       toast({ title: "New code sent to your email." });
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -174,8 +175,8 @@ export default function Auth() {
         setOtp("");
         throw new Error("Invalid or expired code. Please request a new one.");
       }
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -198,8 +199,8 @@ export default function Auth() {
       } else {
         throw new Error("Sign-in verified but no session was returned.");
       }
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -212,8 +213,8 @@ export default function Auth() {
     try {
       await authFetch({ action: "forgot_password", email: email.trim() });
       setFlow("forgot-reset");
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
@@ -246,8 +247,8 @@ export default function Auth() {
       } else {
         throw new Error("Password reset succeeded but no session was returned.");
       }
-    } catch (err: any) {
-      toast({ title: err.message, variant: "destructive" });
+    } catch (err: unknown) {
+      toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
