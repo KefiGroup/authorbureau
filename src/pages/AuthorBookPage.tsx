@@ -379,7 +379,25 @@ export default function AuthorBookPage() {
     });
     (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: parseProductDescription(p.description) }));
 
-    setProducts(prods);
+    // Merge author_nodes (Option B: every author-level live node appears on every book page).
+    // Dedup by route — product-table rows already pushed above win because they have richer metadata.
+    const existingRoutes = new Set(prods.map(p => p.route));
+    (nodesRes.data || []).forEach((n: any) => {
+      const mapping = NODE_TO_PRODUCT[n.node_id];
+      if (!mapping) return;
+      if (existingRoutes.has(mapping.route)) return;
+      const priceNum = n.price_usd != null ? Number(n.price_usd) : null;
+      prods.push({
+        type: mapping.type,
+        title: n.personalised_name || mapping.label,
+        route: mapping.route,
+        price: priceNum && priceNum > 0 ? `$${priceNum.toLocaleString()}` : undefined,
+        // author_nodes are author-level, link to /:authorSlug/:route (not book-scoped)
+        linkTo: `/${authorSlug}/${mapping.route}`,
+      });
+      existingRoutes.add(mapping.route);
+    });
+
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
     setAllAuthorBooks((allBooksRes.data || []) as any[]);
     setCoachingServices(coachRes.data || []);
