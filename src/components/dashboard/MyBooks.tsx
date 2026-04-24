@@ -59,7 +59,7 @@ interface MyBooksProps {
       totalBuilt: number;
       totalReadyForReview: number;
       totalPublished: number;
-      perBook: Record<string, number>;
+      perBook: Record<string, { brand: number; build: number; yield: number; total: number; nodeIds: string[] }>;
     };
   };
 }
@@ -538,23 +538,27 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                     </div>
 
                     {/* D. Revenue Projection (analyzed only) */}
-                    {isAnalyzed && (
-                      <RevenueProjectionCard
-                        revenueRange="$8,000–$30,000/month"
-                        totalStreams={12}
-                        built={builtCount}
-                        remaining={12 - builtCount}
-                      />
-                    )}
+                    {isAnalyzed && (() => {
+                      const s = getBookStats(book.id);
+                      return (
+                        <RevenueProjectionCard
+                          revenueRange="$8,000–$30,000/month"
+                          brand={s.brand}
+                          build={s.build}
+                          yield={s.yield}
+                          total={s.total}
+                        />
+                      );
+                    })()}
 
                     {/* E. Abby Nudge */}
                     <AbbyNudge
                       stage={stage}
                       bookTitle={book.title}
                       tier={tier}
-                      revenueStreams={12}
+                      revenueStreams={28}
                       productsBuilt={builtCount}
-                      totalProducts={12}
+                      totalProducts={28}
                     />
 
                     {/* Manuscript upload dialog */}
