@@ -279,6 +279,15 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   if (!hasPlan) {
     return (
       <div className="max-w-6xl space-y-8">
+        {/* Multi-book picker — shown when author has >1 book */}
+        {myBooks.length > 1 && (
+          <MultiBookPicker
+            books={myBooks}
+            perBook={stats.products?.perBook}
+            onAddBook={() => onNavigate("my-books")}
+          />
+        )}
+
         {/* Section 1: Meet Abby (top) */}
         <MeetAbbySection
           hasPlan={false}
@@ -322,6 +331,15 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   // STATE B: Author HAS completed Abby's analysis
   return (
     <div className="max-w-6xl space-y-8">
+      {/* Multi-book picker — shown when author has >1 book */}
+      {myBooks.length > 1 && (
+        <MultiBookPicker
+          books={myBooks}
+          perBook={stats.products?.perBook}
+          onAddBook={() => onNavigate("my-books")}
+        />
+      )}
+
       {/* Section 1: 4-Step Journey (top, step 3 highlighted) */}
       <JourneyMapCTA
         micrositeState={micrositeStep}
