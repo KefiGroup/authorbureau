@@ -121,6 +121,7 @@ async function resolveAuthorBook(
   supabase: ReturnType<typeof createClient>,
   authorId: string,
   cloudUserId: string | null,
+  bookId?: string | null,
 ) {
   let userEmail: string | null = null;
   if (cloudUserId) {
@@ -129,6 +130,21 @@ async function resolveAuthorBook(
   }
 
   const candidateAuthorIds = Array.from(new Set([authorId, cloudUserId].filter(Boolean) as string[]));
+
+  // Honour an explicit bookId if it actually belongs to this author.
+  if (bookId) {
+    const { data: byId } = await supabase
+      .from("books")
+      .select("id, title, cover_image_url, description, genre, owner_email, author_id")
+      .eq("id", bookId)
+      .maybeSingle();
+    if (byId) {
+      const ownsByAuthorId = byId.author_id && candidateAuthorIds.includes(byId.author_id);
+      const ownsByEmail = userEmail && byId.owner_email === userEmail;
+      if (ownsByAuthorId || ownsByEmail) return byId;
+    }
+  }
+
   const bookQuery = supabase
     .from("books")
     .select("id, title, cover_image_url, description, genre, owner_email, author_id")
