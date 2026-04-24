@@ -335,7 +335,7 @@ export default function AuthorBookPage() {
     const bookId = bookData.id;
     const authorIds = [...new Set([profile.user_id, bookData.author_id].filter(Boolean))];
 
-    const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes] = await Promise.all([
+    const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes, nodesRes] = await Promise.all([
       supabase.from("home_study_courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
@@ -344,6 +344,13 @@ export default function AuthorBookPage() {
       supabase.from("books").select("slug, title, cover_image_url, genre").in("author_id", authorIds).not("published_at", "is", null).order("created_at", { ascending: false }),
       supabase.from("coaching_packages").select("id, title, price, currency, description, type").in("author_id", authorIds).eq("status", "active"),
       supabase.from("speaking_topics").select("id, title, fee, fee_currency, description").in("author_id", authorIds).eq("status", "active"),
+      profile?.id
+        ? supabase
+            .from("author_nodes")
+            .select("node_id, node_name, personalised_name, status, price_usd, currency")
+            .eq("author_id", profile.id)
+            .in("status", ["live", "published_pending_ghl"])
+        : Promise.resolve({ data: [] as any[] }),
     ]);
 
     const COACHING_TYPE_TO_ROUTE: Record<string, string> = {
