@@ -87,7 +87,7 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
         <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mb-4 animate-in zoom-in duration-500">
           <CheckCircle2 className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <h2 className="text-2xl font-bold mb-1">Your {nodeName} is now live! 🎉</h2>
+        <h2 className="text-2xl font-bold mb-1">{hasPublicPage ? `Your ${nodeName} is now live! 🎉` : `Your ${nodeName} are saved to your library! 🎉`}</h2>
         <p className="text-sm text-muted-foreground">Congratulations, {authorName}!</p>
       </div>
 
