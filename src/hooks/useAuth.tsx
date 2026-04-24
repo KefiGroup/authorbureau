@@ -1,7 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback, useRef } from "react";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { supabase } from "@/lib/shared-backend";
-import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
 // Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
@@ -127,9 +126,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionState>(initialSubscriptionState);
 
-  const retryTimeoutRef = useRef<number | null>(null);
-  const subscriptionCheckInFlightRef = useRef(false);
-  const checkSubscriptionRef = useRef<() => Promise<void>>(async () => {});
   const latestUserRef = useRef<User | null>(null);
 
   useEffect(() => {
@@ -179,122 +175,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     resolveAdminStatus(nextSession.user?.id ?? null);
   }, [clearAuthState, resolveAdminStatus]);
 
-  const clearSubscriptionRetry = useCallback(() => {
-    if (retryTimeoutRef.current !== null) {
-      window.clearTimeout(retryTimeoutRef.current);
-      retryTimeoutRef.current = null;
-    }
-  }, []);
-
-  const scheduleSubscriptionRetry = useCallback((delayMs = 750) => {
-    clearSubscriptionRetry();
-    retryTimeoutRef.current = window.setTimeout(() => {
-      retryTimeoutRef.current = null;
-      void checkSubscriptionRef.current();
-    }, delayMs);
-  }, [clearSubscriptionRetry]);
-
-  const waitForSharedSessionToken = useCallback(async (timeoutMs = 5000): Promise<string | null> => {
-    if (session?.access_token) {
-      return session.access_token;
-    }
-
-    try {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.access_token) {
-        return data.session.access_token;
-      }
-    } catch {
-      // Ignore and keep waiting below
-    }
-
-    return await new Promise((resolve) => {
-      let settled = false;
-
-      const finish = (token: string | null) => {
-        if (settled) return;
-        settled = true;
-        window.clearTimeout(timeoutId);
-        window.clearInterval(pollId);
-        authListener.data.subscription.unsubscribe();
-        resolve(token);
-      };
-
-      const timeoutId = window.setTimeout(() => finish(null), timeoutMs);
-
-      const pollId = window.setInterval(async () => {
-        try {
-          const { data } = await supabase.auth.getSession();
-          if (data.session?.access_token) {
-            finish(data.session.access_token);
-          }
-        } catch {
-          // Ignore polling errors and keep waiting until timeout
-        }
-      }, 250);
-
-      const authListener = supabase.auth.onAuthStateChange((event, nextSession) => {
-        if ((event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "TOKEN_REFRESHED") && nextSession?.access_token) {
-          finish(nextSession.access_token);
-        }
-      });
-    });
-  }, [session?.access_token]);
-
   const checkSubscription = useCallback(async () => {
     if (!user) {
-      clearSubscriptionRetry();
       setSubscription(signedOutSubscriptionState);
       return;
     }
 
-    if (subscriptionCheckInFlightRef.current) {
-      return;
-    }
-
-    subscriptionCheckInFlightRef.current = true;
-    clearSubscriptionRetry();
-    setSubscription((prev) => ({ ...prev, loading: true }));
-
     try {
-      const token = await waitForSharedSessionToken();
-
-      if (!token) {
-        console.warn("[useAuth] Shared backend session not ready yet, waiting before rendering gated UI...");
-        scheduleSubscriptionRetry(750);
-        return;
-      }
-
-      const { data, error } = await cloudSupabase.functions.invoke("check-subscription", {
-        body: { source_platform: "authorsbureau" },
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (error) {
-        throw error;
-      }
-
       setSubscription({
-        subscribed: data?.subscribed ?? false,
-        productId: data?.product_id ?? null,
-        subscriptionEnd: data?.subscription_end ?? null,
+        subscribed: false,
+        productId: null,
+        subscriptionEnd: null,
         loading: false,
         checked: true,
       });
     } catch (error) {
-      console.error("[useAuth] Subscription check failed:", error);
-
-      if (subscription.checked) {
-        setSubscription((prev) => ({ ...prev, loading: false }));
-      } else {
-        scheduleSubscriptionRetry(1000);
-      }
-    } finally {
-      subscriptionCheckInFlightRef.current = false;
+      setSubscription(signedOutSubscriptionState);
     }
-  }, [clearSubscriptionRetry, scheduleSubscriptionRetry, subscription.checked, user, waitForSharedSessionToken]);
-
-  checkSubscriptionRef.current = checkSubscription;
+  }, [user]);
 
   useEffect(() => {
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
@@ -321,21 +219,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       authSub.unsubscribe();
       window.clearTimeout(timeout);
-      clearSubscriptionRetry();
     };
-  }, [applySessionSnapshot, clearSubscriptionRetry]);
+  }, [applySessionSnapshot]);
 
   useEffect(() => {
-    clearSubscriptionRetry();
-    subscriptionCheckInFlightRef.current = false;
-
     if (user?.id) {
       setSubscription(initialSubscriptionState);
       return;
     }
 
     setSubscription(signedOutSubscriptionState);
-  }, [clearSubscriptionRetry, user?.id]);
+  }, [user?.id]);
 
   // Check subscription once the authenticated user is known.
   // Keep the app in a loading state until this resolves definitively.
@@ -362,7 +256,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     sessionStorage.removeItem(ADMIN_AUTH_KEY);
     setIsAdmin(false);
-    clearSubscriptionRetry();
     await supabase.auth.signOut();
   };
 
