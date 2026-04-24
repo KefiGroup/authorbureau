@@ -414,19 +414,45 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               <span className="text-[10px] text-muted-foreground ml-2 truncate">authorsbureau.com/{authorSlug}</span>
             </div>
             {profileData?.author_slug ? (
-              <div className="relative w-full" style={{ height: "320px", overflow: "hidden" }}>
-                <iframe
-                  key={iframeKey}
-                  src={`/${profileData.author_slug}?_v=${iframeKey}`}
-                  className="absolute top-0 left-0 border-0 pointer-events-none"
-                  style={{
-                    width: "1200px",
-                    height: "2000px",
-                    transform: "scale(0.24)",
-                    transformOrigin: "top left",
-                  }}
-                  title="Author site preview"
-                />
+              <div className="relative w-full bg-muted/20" style={{ height: "320px", overflow: "hidden" }}>
+                {showPreview ? (
+                  <>
+                    <iframe
+                      key={iframeKey}
+                      src={`/${profileData.author_slug}?_v=${iframeKey}`}
+                      className="absolute top-0 left-0 border-0 pointer-events-none"
+                      style={{
+                        width: "1200px",
+                        height: "2000px",
+                        transform: "scale(0.24)",
+                        transformOrigin: "top left",
+                      }}
+                      title="Author site preview"
+                      loading="lazy"
+                      sandbox="allow-scripts allow-same-origin"
+                    />
+                    <button
+                      onClick={() => setIframeKey((k) => k + 1)}
+                      className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-md bg-background/90 backdrop-blur px-2 py-1 text-[10px] font-medium border border-border hover:bg-background shadow-sm"
+                      title="Refresh preview snapshot"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Refresh
+                    </button>
+                    <span className="absolute bottom-2 left-2 z-10 rounded bg-background/90 backdrop-blur px-1.5 py-0.5 text-[9px] text-muted-foreground border border-border">
+                      Live preview snapshot
+                    </span>
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                    <Globe className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Preview hidden to keep this page fast.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => setShowPreview(true)}>
+                      <Eye className="h-3.5 w-3.5 mr-1.5" /> Show live preview
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-8 flex flex-col items-center justify-center text-center min-h-[220px]">
