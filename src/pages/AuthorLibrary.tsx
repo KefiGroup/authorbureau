@@ -102,7 +102,7 @@ export default function AuthorLibrary() {
           Build any node in Brand Products, Build Authority, or Yield Revenue and your downloadable
           slides, PDFs, and copy will appear here.
         </p>
-        <Button onClick={() => navigate("/brand-products")}>Start with Brand Products</Button>
+        <Button onClick={() => navigate("/dashboard?section=my-books")}>Go to My Book Hub</Button>
       </div>
     );
   }

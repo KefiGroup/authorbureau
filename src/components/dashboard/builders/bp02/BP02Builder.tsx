@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { builderBackTarget, resolveActiveBookId } from "@/lib/book-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
@@ -476,7 +477,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
           title="Lead Magnets"
           subtitle="A complete lead magnet + opt-in microsite + nurture sequence"
           icon={Gift}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(builderBackTarget(bookId, "brand"))}
         />
         <UnifiedStepper
           nodeId="BP-02"
@@ -1705,7 +1706,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
       )}
 
       <div className="text-center">
-        <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate("/brand-products")}>Go back to Brand Products</Button>
+        <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate(builderBackTarget(resolveActiveBookId(), "brand"))}>Go back to Book Hub</Button>
       </div>
     </div>
   );

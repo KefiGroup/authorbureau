@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { builderBackTarget } from "@/lib/book-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
@@ -219,7 +220,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 pt-4 pb-2 space-y-3">
-        <BuilderHeader nodeId="BP-07" title="Home Study Course" subtitle="Self-paced programme built from your book" icon={GraduationCap} onBack={() => navigate("/brand-products")} />
+        <BuilderHeader nodeId="BP-07" title="Home Study Course" subtitle="Self-paced programme built from your book" icon={GraduationCap} onBack={() => navigate(builderBackTarget(bookId, "brand"))} />
         <UnifiedStepper
           nodeId="BP-07"
           steps={STEPS}
