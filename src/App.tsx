@@ -62,6 +62,7 @@ import MembershipSalesPage from "./pages/MembershipSalesPage";
 import MemberPortalPage from "./pages/MemberPortalPage";
 import EarningsDashboard from "./pages/EarningsDashboard";
 import AdminPayouts from "./pages/AdminPayouts";
+import SpecialEditionCalendarPage from "./pages/SpecialEditionCalendarPage";
 import { BUILD_TIMESTAMP } from "./main";
 
 
@@ -151,6 +152,7 @@ const AppRoutes = () => (
       <Route path="/yield-revenue" element={<ProtectedRoute><YieldRevenueHub /></ProtectedRoute>} />
       <Route path="/revenue-dashboard" element={<ProtectedRoute><RevenueFullDashboard /></ProtectedRoute>} />
       <Route path="/abby-coach" element={<ProtectedRoute><AbbyCoachPage /></ProtectedRoute>} />
+      <Route path="/special-editions-calendar" element={<ProtectedRoute><SpecialEditionCalendarPage /></ProtectedRoute>} />
       <Route path="/node-builder/:nodeId" element={<ProtectedRoute><NodeBuilder /></ProtectedRoute>} />
       <Route path="/marketing-hub" element={<ProtectedRoute><AuthorDashboard initialSection={"marketing-hub" as any} /></ProtectedRoute>} />
       <Route path="/connect-settings" element={<ProtectedRoute><ConnectSettings /></ProtectedRoute>} />

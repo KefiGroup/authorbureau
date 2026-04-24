@@ -382,6 +382,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         />
       </section>
 
+      {/* Special Edition Calendar — proactive seasonal prompts (BP-08) */}
+      <SpecialEditionCalendarCard />
+
       {/* Section 4: Choose Your Path / Subscription */}
       <SubscriptionPricing
         currentTier={tier}
