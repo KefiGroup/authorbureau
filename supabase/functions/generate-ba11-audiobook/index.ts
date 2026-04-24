@@ -19,7 +19,7 @@ serve(async (req) => {
     let body: any;
     try { body = await req.json(); }
     catch { return failResponse("Invalid request body"); }
-    const { author_id } = body ?? {};
+    const { author_id, book_id } = body ?? {};
     if (!author_id) return failResponse("author_id is required");
     parsedAuthorId = author_id;
 
