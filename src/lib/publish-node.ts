@@ -15,6 +15,7 @@ export async function publishNodeToSite(
   authorId: string,
   nodeId: string,
   penNameSlug: string,
+  bookId?: string | null,
 ): Promise<{ micrositeUrl: string | null }> {
   const hasPublicPage = !NO_MICROSITE_NODES.has(nodeId);
   const micrositeUrl = hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId) : null;
@@ -37,6 +38,7 @@ export async function publishNodeToSite(
         action: "publish",
         authorId,
         nodeId,
+        bookId: bookId ?? null,
         micrositeUrl,
       }),
     },
