@@ -17,6 +17,7 @@ import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSect
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { toAbbyError } from "@/lib/abby-error";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
+import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 
 
 
@@ -39,9 +40,10 @@ const ACTIVATING_MESSAGES = [
 
 interface Props {
   authorId: string | null;
+  bookId?: string | null;
 }
 
-export default function BP04Builder({ authorId }: Props) {
+export default function BP04Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
@@ -50,7 +52,9 @@ export default function BP04Builder({ authorId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
+  const [contextBlocked, setContextBlocked] = useState(false);
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
@@ -118,10 +122,16 @@ export default function BP04Builder({ authorId }: Props) {
   const handleGenerate = async () => {
     setStep(1);
     setError(null);
+    setContextBlocked(false);
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp04-website", {
-        body: { author_id: authorId },
+        body: { author_id: authorId, book_id: activeBookId },
       });
+      if (data?.status === "context_blocked") {
+        setContextBlocked(true);
+        setStep(0);
+        return;
+      }
       if (fnErr || !data?.success) {
         throw new Error(data?.error || fnErr?.message || "Generation failed");
       }

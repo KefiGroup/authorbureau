@@ -23,6 +23,7 @@ import BuilderIntroBlock, { BP_INTRO_SPECS } from "@/components/dashboard/builde
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
+import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
@@ -51,6 +52,7 @@ const TIER_COLORS = [
 
 interface Props {
   authorId: string | null;
+  bookId?: string | null;
 }
 
 export interface PublishChannels {

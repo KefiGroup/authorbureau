@@ -35,6 +35,7 @@ import {
   computeScheduleDates,
   type Frequency,
 } from "@/components/dashboard/builders/social-media/socialKitHelpers";
+import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
