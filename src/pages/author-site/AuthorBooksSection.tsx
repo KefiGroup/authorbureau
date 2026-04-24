@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Headphones, BookOpen, Package, Star } from "lucide-react";
-import type { BookWithProducts, ThemeVars } from "./types";
+import type { BookWithProducts, ThemeVars, BookFormatNode } from "./types";
 import { fadeUp, getLowestPrice } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import AuthorBookFormatsList from "./AuthorBookFormatsList";
+import AuthorBookCollectorsStrip from "./AuthorBookCollectorsStrip";
 
 /** Maps node_id prefixes to format badge info */
 const FORMAT_BADGES: Record<string, { label: string; icon: typeof BookOpen }> = {
@@ -73,11 +75,14 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
             return (
               <motion.div key={book.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
                 <div
-                  className="flex flex-col md:flex-row overflow-hidden transition-all group"
+                  className="overflow-hidden transition-all"
                   style={{ borderRadius: "12px", border: `1px solid ${v.cardBorder}`, background: v.cardBg, boxShadow: "0 4px 16px rgba(0, 0, 0, 0.06)" }}
-                  onMouseEnter={(e) => { e.currentTarget.style.boxShadow = "0 8px 24px rgba(0, 0, 0, 0.1)"; e.currentTarget.style.transform = "translateY(-2px)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.boxShadow = "0 4px 16px rgba(0, 0, 0, 0.06)"; e.currentTarget.style.transform = "translateY(0)"; }}
                 >
+                  <div
+                    className="flex flex-col md:flex-row group"
+                    onMouseEnter={(e) => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.transform = "translateY(0)"; }}
+                  >
                   <Link to={`/${authorSlug}/${book.slug}`} className="shrink-0 md:w-44">
                     {book.cover_image_url ? (
                       <img src={book.cover_image_url} alt={book.title} loading="lazy"
@@ -132,6 +137,23 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                       )}
                     </div>
                   </div>
+                  </div>
+                  {/* Formats stacked under the card */}
+                  <AuthorBookFormatsList
+                    book={book}
+                    authorSlug={authorSlug}
+                    liveNodes={liveNodes as unknown as BookFormatNode[]}
+                    theme={theme}
+                    v={v}
+                  />
+                  {/* Collector's editions for this book */}
+                  <AuthorBookCollectorsStrip
+                    book={book}
+                    authorSlug={authorSlug}
+                    liveNodes={liveNodes as unknown as BookFormatNode[]}
+                    theme={theme}
+                    v={v}
+                  />
                 </div>
               </motion.div>
             );

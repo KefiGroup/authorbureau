@@ -6,6 +6,7 @@ import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 
 export interface LiveNode {
+  id: string;
   node_id: string;
   node_name: string;
   personalised_name: string | null;
@@ -13,6 +14,8 @@ export interface LiveNode {
   microsite_url: string | null;
   payment_link: string | null;
   third_party_url: string | null;
+  price_usd?: number | null;
+  currency?: string | null;
 }
 
 interface Props {
