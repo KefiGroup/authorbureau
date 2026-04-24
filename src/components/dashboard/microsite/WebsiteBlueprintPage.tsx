@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Globe, Copy, CheckCircle2, ExternalLink, BookOpen,
-  GraduationCap, Users, Headphones, Mic, Loader2, Pencil, X, Check,
+  GraduationCap, Users, Headphones, Mic, Loader2, Pencil, X, Check, Eye, RefreshCw,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -57,22 +57,30 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
   const [slugError, setSlugError] = useState("");
   const [savingSlug, setSavingSlug] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
+  const [showPreview, setShowPreview] = useState(false);
+  const isMountedRef = useRef(true);
 
   const handleThemeChange = useCallback(() => {
     setIframeKey((k) => k + 1);
   }, []);
 
   const authorSlug = profileData?.author_slug || "";
-  const siteUrl = authorSlug ? `https://authorsbureau.com/${authorSlug}` : "";
+  const siteUrl = useMemo(
+    () => (authorSlug ? `https://authorsbureau.com/${authorSlug}` : ""),
+    [authorSlug]
+  );
 
   useEffect(() => {
-    if (!user?.id) return;
-    loadData();
+    isMountedRef.current = true;
+    if (user?.id) loadData();
+    return () => {
+      isMountedRef.current = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   async function loadData() {
-    setLoading(true);
+    if (isMountedRef.current) setLoading(true);
 
     // Fetch profile (local Cloud table) and books (via edge function for proper ownership)
     const [profileRes, booksResult] = await Promise.all([
@@ -97,6 +105,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       })(),
     ]);
 
+    if (!isMountedRef.current) return;
     const profile = profileRes.data;
     setProfileData(profile);
     if (profile?.website_url) setCustomDomain(profile.website_url.replace(/^https?:\/\//, ""));
@@ -149,6 +158,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
       });
     }
 
+    if (!isMountedRef.current) return;
     setBooksWithStatus(enriched);
     setLoading(false);
   }
@@ -404,19 +414,45 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
               <span className="text-[10px] text-muted-foreground ml-2 truncate">authorsbureau.com/{authorSlug}</span>
             </div>
             {profileData?.author_slug ? (
-              <div className="relative w-full" style={{ height: "320px", overflow: "hidden" }}>
-                <iframe
-                  key={iframeKey}
-                  src={`/${profileData.author_slug}?_v=${iframeKey}`}
-                  className="absolute top-0 left-0 border-0 pointer-events-none"
-                  style={{
-                    width: "1200px",
-                    height: "2000px",
-                    transform: "scale(0.24)",
-                    transformOrigin: "top left",
-                  }}
-                  title="Author site preview"
-                />
+              <div className="relative w-full bg-muted/20" style={{ height: "320px", overflow: "hidden" }}>
+                {showPreview ? (
+                  <>
+                    <iframe
+                      key={iframeKey}
+                      src={`/${profileData.author_slug}?_v=${iframeKey}`}
+                      className="absolute top-0 left-0 border-0 pointer-events-none"
+                      style={{
+                        width: "1200px",
+                        height: "2000px",
+                        transform: "scale(0.24)",
+                        transformOrigin: "top left",
+                      }}
+                      title="Author site preview"
+                      loading="lazy"
+                      sandbox="allow-scripts allow-same-origin"
+                    />
+                    <button
+                      onClick={() => setIframeKey((k) => k + 1)}
+                      className="absolute top-2 right-2 z-10 inline-flex items-center gap-1 rounded-md bg-background/90 backdrop-blur px-2 py-1 text-[10px] font-medium border border-border hover:bg-background shadow-sm"
+                      title="Refresh preview snapshot"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Refresh
+                    </button>
+                    <span className="absolute bottom-2 left-2 z-10 rounded bg-background/90 backdrop-blur px-1.5 py-0.5 text-[9px] text-muted-foreground border border-border">
+                      Live preview snapshot
+                    </span>
+                  </>
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
+                    <Globe className="h-10 w-10 text-muted-foreground/30 mb-3" />
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Preview hidden to keep this page fast.
+                    </p>
+                    <Button size="sm" variant="outline" onClick={() => setShowPreview(true)}>
+                      <Eye className="h-3.5 w-3.5 mr-1.5" /> Show live preview
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="p-8 flex flex-col items-center justify-center text-center min-h-[220px]">
