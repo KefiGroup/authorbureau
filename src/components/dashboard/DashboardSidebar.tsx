@@ -223,57 +223,72 @@ export default function DashboardSidebar({
   const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("build"));
   const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("yield"));
 
+  // When the author has no books, every per-book builder is locked.
+  // When they have multiple books and no active context, we don't lock —
+  // we let the click open the BookChooserPopover instead.
+  const noBooksLock = noBooksYet ? "Add a book first to unlock" : undefined;
+  const pickBookSubtitle = (fallback: string, section: DashboardSection) =>
+    needsBookPick(section) ? "Pick a book →" : fallback;
+
   const businessItems: NavItem[] = [
     {
       id: "revenue-streams", label: "Brand Products", icon: DollarSign,
-      subtitle: "Create Your Products",
+      subtitle: pickBookSubtitle("Create Your Products", "revenue-streams" as DashboardSection),
       tooltip: "Turn your book into 9 digital products your audience can buy.",
       color: "text-emerald-500",
       badge: brandAccessible && currentBook ? `${currentBook.brand}/9 built` : undefined,
-      lockMessage: !brandAccessible
+      lockMessage: noBooksLock ?? (!brandAccessible
         ? "Analyze a book first"
         : !tierAccess("brand")
         ? "Upgrade to Brand Plan ($49/mo)"
-        : undefined,
+        : undefined),
     },
     {
       id: "marketing-channels", label: "Build Authority", icon: Radio,
-      subtitle: buildAccessible ? "Scale Your Audience"
-        : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Plan" : "Coming Soon",
+      subtitle: pickBookSubtitle(
+        buildAccessible ? "Scale Your Audience"
+          : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Plan" : "Coming Soon",
+        "marketing-channels" as DashboardSection
+      ),
       tooltip: buildAccessible ? "Scale audience and recurring revenue"
         : !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to unlock"
         : "Build Authority is coming soon. Stay tuned!",
       color: "text-violet-500",
       badge: buildAccessible && currentBook ? `${currentBook.build}/9 built` : undefined,
-      lockMessage: !buildAccessible
+      lockMessage: noBooksLock ?? (!buildAccessible
         ? (!tierAccess("build") && (isSuperAdminProp || buildAuthorityCategoryOpen)
           ? "Upgrade to Build Plan ($99/mo)"
           : (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon")
-        : undefined,
+        : undefined),
     },
     {
       id: "authority-builders", label: "Yield Revenue", icon: Award,
-      subtitle: yieldAccessible ? "Premium Services"
-        : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Plan" : "Coming Soon",
+      subtitle: pickBookSubtitle(
+        yieldAccessible ? "Premium Services"
+          : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Plan" : "Coming Soon",
+        "authority-builders" as DashboardSection
+      ),
       tooltip: yieldAccessible ? "Premium monetization services"
         : !tierAccess("yield") ? "Upgrade to Yield Plan ($249/mo) to unlock"
         : "Yield Revenue builders are coming soon. Stay tuned!",
       color: "text-amber-500",
       badge: yieldAccessible && currentBook ? `${currentBook.yield}/10 built` : undefined,
-      lockMessage: !yieldAccessible
+      lockMessage: noBooksLock ?? (!yieldAccessible
         ? (!tierAccess("yield") && (isSuperAdminProp || yieldCategoryOpen)
           ? "Upgrade to Yield Plan ($249/mo)"
           : (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon")
-        : undefined,
+        : undefined),
     },
     {
       id: "review-products" as DashboardSection, label: "Review & Publish",
       icon: Package,
-      subtitle: "Approve & Go Live",
+      subtitle: pickBookSubtitle("Approve & Go Live", "review-products" as DashboardSection),
       tooltip: "Review AI-generated products and publish them to your microsite.",
       notificationCount: pendingReviewCount,
+      lockMessage: noBooksLock,
     },
   ];
+
 
   // ── YOUR BRAND ──
   const brandItems: NavItem[] = [
