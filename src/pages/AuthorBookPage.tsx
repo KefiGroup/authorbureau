@@ -3,7 +3,8 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   BookOpen, ExternalLink, Loader2, ArrowRight, GraduationCap, Users,
-  Headphones, Mic, Star, Mail, CheckCircle2
+  Headphones, Mic, Star, Mail, CheckCircle2, Sparkles, Package,
+  Megaphone, Trophy, Calendar, Briefcase, Award, Globe, Heart, Handshake
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
@@ -49,6 +50,8 @@ interface ProductLink {
   price?: string;
   description?: string;
   coverImageUrl?: string;
+  /** When set, overrides the default `/{authorSlug}/{bookSlug}/{route}` link target. */
+  linkTo?: string;
 }
 
 /** Extract a human-readable description from potentially JSON-encoded sales copy */
@@ -81,6 +84,23 @@ const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
   coaching: Users,
   audiobook: Headphones,
   podcast: Mic,
+  leadmagnet: Sparkles,
+  webinar: Calendar,
+  membership: Users,
+  groupcoaching: Users,
+  press: Megaphone,
+  affiliates: Handshake,
+  bundles: Package,
+  jv: Handshake,
+  vip: Trophy,
+  speaking: Mic,
+  corporate: Briefcase,
+  mastermind: Users,
+  retreat: Globe,
+  certification: Award,
+  conference: Calendar,
+  fundraising: Heart,
+  sponsors: Briefcase,
 };
 
 const PRODUCT_LABELS: Record<string, string> = {
@@ -89,6 +109,50 @@ const PRODUCT_LABELS: Record<string, string> = {
   coaching: "Coaching",
   audiobook: "Audiobook",
   podcast: "Podcast",
+  leadmagnet: "Free Assessment",
+  webinar: "Webinar",
+  membership: "Membership",
+  groupcoaching: "Group Coaching",
+  press: "Press & Media",
+  affiliates: "Affiliate Programme",
+  bundles: "Upsells & Bundles",
+  jv: "JV Partners",
+  vip: "Big Ticket",
+  speaking: "Keynote Speaking",
+  corporate: "Corporate Training",
+  mastermind: "Mastermind",
+  retreat: "Retreat",
+  certification: "Certification",
+  conference: "Conference",
+  fundraising: "Fundraising",
+  sponsors: "Sponsors",
+};
+
+/** Maps author_nodes.node_id → public microsite product card. BP-01/03/08/09 omitted (no public page). */
+const NODE_TO_PRODUCT: Record<string, { type: string; label: string; route: string }> = {
+  "BP-02": { type: "leadmagnet", label: "Free Assessment", route: "free-gift" },
+  "BP-05": { type: "webinar", label: "Webinar", route: "webinar" },
+  "BP-06": { type: "workbook", label: "Workbook", route: "workbook" },
+  "BP-07": { type: "homestudy", label: "Home Study Course", route: "home-study" },
+  "BA-10": { type: "onlinecourse", label: "Online Course", route: "online-course" },
+  "BA-11": { type: "audiobook", label: "Audiobook", route: "audiobook" },
+  "BA-12": { type: "membership", label: "Membership", route: "membership" },
+  "BA-13": { type: "groupcoaching", label: "Group Coaching", route: "group-coaching" },
+  "BA-14": { type: "podcast", label: "Podcast", route: "podcast" },
+  "BA-15": { type: "press", label: "Press & Media", route: "press" },
+  "BA-16": { type: "affiliates", label: "Affiliate Programme", route: "affiliates" },
+  "BA-17": { type: "bundles", label: "Upsells & Bundles", route: "bundles" },
+  "BA-18": { type: "jv", label: "JV Partners", route: "partners" },
+  "YR-19": { type: "coaching", label: "1-on-1 Coaching", route: "coaching" },
+  "YR-20": { type: "vip", label: "Big Ticket", route: "vip" },
+  "YR-21": { type: "speaking", label: "Keynote Speaking", route: "speaking" },
+  "YR-22": { type: "corporate", label: "Corporate Training", route: "corporate-training" },
+  "YR-23": { type: "mastermind", label: "Mastermind", route: "mastermind" },
+  "YR-24": { type: "retreat", label: "Retreat", route: "retreat" },
+  "YR-25": { type: "certification", label: "Certification", route: "certification" },
+  "YR-26": { type: "conference", label: "Conference", route: "conference" },
+  "YR-27": { type: "fundraising", label: "Fundraising", route: "fundraising" },
+  "YR-28": { type: "sponsors", label: "Sponsors", route: "sponsors" },
 };
 
 const fadeUp = {
@@ -199,7 +263,7 @@ export default function AuthorBookPage() {
     if (currentUser) {
       const { data } = await supabase
         .from("author_profiles")
-        .select("user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
+        .select("id, user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
         .eq("author_slug", authorSlug)
         .eq("user_id", currentUser.id)
         .maybeSingle();
@@ -209,7 +273,7 @@ export default function AuthorBookPage() {
     if (!profile) {
       const { data } = await supabase
         .from("author_profiles_public" as any)
-        .select("user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
+        .select("id, user_id, pen_name, bio_short, bio_long, photo_url, site_theme, author_slug, tagline, credentials, website_url, linkedin_url, twitter_url, instagram_url, youtube_url, genres")
         .eq("author_slug", authorSlug)
         .in("directory_status", ["listed", "verified", "featured"])
         .maybeSingle();
@@ -271,7 +335,7 @@ export default function AuthorBookPage() {
     const bookId = bookData.id;
     const authorIds = [...new Set([profile.user_id, bookData.author_id].filter(Boolean))];
 
-    const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes] = await Promise.all([
+    const [hsRes, cRes, abRes, podRes, otherBooksRes, allBooksRes, coachRes, speakRes, nodesRes] = await Promise.all([
       supabase.from("home_study_courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
@@ -280,6 +344,13 @@ export default function AuthorBookPage() {
       supabase.from("books").select("slug, title, cover_image_url, genre").in("author_id", authorIds).not("published_at", "is", null).order("created_at", { ascending: false }),
       supabase.from("coaching_packages").select("id, title, price, currency, description, type").in("author_id", authorIds).eq("status", "active"),
       supabase.from("speaking_topics").select("id, title, fee, fee_currency, description").in("author_id", authorIds).eq("status", "active"),
+      profile?.id
+        ? supabase
+            .from("author_nodes")
+            .select("node_id, node_name, personalised_name, status, price_usd, currency")
+            .eq("author_id", profile.id)
+            .in("status", ["live", "published_pending_ghl"])
+        : Promise.resolve({ data: [] as any[] }),
     ]);
 
     const COACHING_TYPE_TO_ROUTE: Record<string, string> = {
@@ -308,7 +379,25 @@ export default function AuthorBookPage() {
     });
     (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: parseProductDescription(p.description) }));
 
-    setProducts(prods);
+    // Merge author_nodes (Option B: every author-level live node appears on every book page).
+    // Dedup by route — product-table rows already pushed above win because they have richer metadata.
+    const existingRoutes = new Set(prods.map(p => p.route));
+    (nodesRes.data || []).forEach((n: any) => {
+      const mapping = NODE_TO_PRODUCT[n.node_id];
+      if (!mapping) return;
+      if (existingRoutes.has(mapping.route)) return;
+      const priceNum = n.price_usd != null ? Number(n.price_usd) : null;
+      prods.push({
+        type: mapping.type,
+        title: n.personalised_name || mapping.label,
+        route: mapping.route,
+        price: priceNum && priceNum > 0 ? `$${priceNum.toLocaleString()}` : undefined,
+        // author_nodes are author-level, link to /:authorSlug/:route (not book-scoped)
+        linkTo: `/${authorSlug}/${mapping.route}`,
+      });
+      existingRoutes.add(mapping.route);
+    });
+
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
     setAllAuthorBooks((allBooksRes.data || []) as any[]);
     setCoachingServices(coachRes.data || []);
@@ -685,7 +774,7 @@ export default function AuthorBookPage() {
                 return (
                   <motion.div key={i} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
                     <Link
-                      to={`/${authorSlug}/${bookSlug}/${p.route}`}
+                      to={p.linkTo || `/${authorSlug}/${bookSlug}/${p.route}`}
                       className="group flex flex-col h-full overflow-hidden rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg"
                       style={{
                         background: v.cardBg,
