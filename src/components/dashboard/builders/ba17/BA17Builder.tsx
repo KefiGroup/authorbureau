@@ -49,7 +49,7 @@ export default function BA17Builder({ authorId, bookId }: Props) {
         if (book?.title) setResolvedBookTitle(book.title);
         console.log(`[BA-17] book resolution`, { authorId, detectedBookTitle, ctxTitle: null, bookTitle: book?.title ?? null });
       }
-      const __draft = await loadBuilderDraft(authorId, "BA-17");
+      const __draft = await loadBuilderDraft(authorId, "BA-17", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
@@ -73,7 +73,7 @@ export default function BA17Builder({ authorId, bookId }: Props) {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-ba17-upsells", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-17", nodeName: "Upsells & Downsells", content: data.content, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-17", nodeName: "Upsells & Downsells", content: data.content, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

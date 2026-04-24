@@ -85,7 +85,7 @@ export default function BP06Builder({ authorId }: Props) {
         setStep(node.status === "live" ? 3 : 2);
         return;
       }
-      const draft = await loadBuilderDraft(authorId, "BP-06");
+      const draft = await loadBuilderDraft(authorId, "BP-06", bookId ?? null);
       if (draft.content) {
         setContent(draft.content);
         setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
@@ -130,7 +130,7 @@ export default function BP06Builder({ authorId }: Props) {
       setContent(data.content);
       setStep(2);
       // Autosave so refresh restores the review step (matches BA-10 behaviour).
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: data.content, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: data.content, currentStep: 2, bookId: bookId ?? null });
     } catch (e: unknown) {
       const msg = toAbbyError((e as Error)?.message || "Generation failed");
       console.error("[BP-06] generate failed", e);
@@ -167,7 +167,7 @@ export default function BP06Builder({ authorId }: Props) {
     if (!authorId) return;
     const next = { ...content, suggested_price_usd: 0, pricing_recommendation: "free" };
     setContent(next);
-    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
     // Continue with publish now that it's free.
     setStep(3);
     setError(null);
@@ -310,7 +310,7 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
     const next = { ...content, suggested_price_usd: choice === "paid" ? price : 0, pricing_recommendation: choice };
     setContent(next);
     if (authorId) {
-      void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
     }
   };
 
@@ -461,7 +461,7 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
                   onChange={(e) => {
                     const next = { ...content, amazon_paperback_url: e.target.value };
                     setContent(next);
-                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
                   }}
                 />
               </div>
@@ -475,7 +475,7 @@ function ReviewStep({ content, setContent, authorId, authorName, bookTitle, onAc
                   onChange={(e) => {
                     const next = { ...content, amazon_kindle_url: e.target.value };
                     setContent(next);
-                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2 });
+                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
                   }}
                 />
               </div>
@@ -607,7 +607,7 @@ function WorkbookDocxImporter({ authorId, content, setContent }: ImporterProps) 
       const merged = { ...content, ...patch };
       setContent(merged);
       if (authorId) {
-        await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: merged, currentStep: 2 });
+        await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: merged, currentStep: 2, bookId: bookId ?? null });
         await supabase
           .from("author_nodes")
           .update({ content_json: merged, personalised_name: merged.workbook_title })

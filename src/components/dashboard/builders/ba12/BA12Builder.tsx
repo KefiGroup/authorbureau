@@ -49,7 +49,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const __draft = await loadBuilderDraft(authorId, "BA-12");
+      const __draft = await loadBuilderDraft(authorId, "BA-12", bookId ?? null);
       if (__draft.content) {
         const wasLegacy = isLegacyMembership(__draft.content);
         const normalised = normaliseMembership(__draft.content);
@@ -57,7 +57,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
         setPriceOverride(Number(normalised?.tiers?.[0]?.price ?? 27));
         setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: __draft.currentStep ?? 2 });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
       }
     })();
@@ -79,7 +79,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normaliseMembership(data.content || {});
       setContent(normalised); setPriceOverride(Number(normalised.tiers?.[0]?.price ?? 27)); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

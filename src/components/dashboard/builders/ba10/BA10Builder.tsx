@@ -57,7 +57,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
         if (book?.title) setResolvedBookTitle(book.title);
       }
 
-      const draft = await loadBuilderDraft(authorId, "BA-10");
+      const draft = await loadBuilderDraft(authorId, "BA-10", bookId ?? null);
       if (draft.content) {
         setContent(draft.content);
         setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
@@ -85,7 +85,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
       setPriceOverride(data.content?.suggested_price_usd || null);
       setStep(2);
       // Auto-save draft so a refresh won't bump the author back to step 0
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) {
       console.error("[BA-10] generate error", e);
       const raw = String(e?.message || "");

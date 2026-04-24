@@ -46,7 +46,7 @@ export default function BA15Builder({ authorId, bookId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const __draft = await loadBuilderDraft(authorId, "BA-15");
+      const __draft = await loadBuilderDraft(authorId, "BA-15", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
@@ -71,7 +71,7 @@ export default function BA15Builder({ authorId, bookId }: Props) {
       const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba15-media-pr", { author_id: authorId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-15", nodeName: "Media Outreach", content: data.content, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-15", nodeName: "Media Outreach", content: data.content, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

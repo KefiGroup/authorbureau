@@ -56,7 +56,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
           setResolvedBookId(book.id);
         }
       }
-      const draft = await loadBuilderDraft(authorId, "BA-11");
+      const draft = await loadBuilderDraft(authorId, "BA-11", bookId ?? null);
       if (draft.content?.studio) {
         // Sanitize: strip any blob: URLs that died with the previous session.
         // They will be re-attached from storage in a follow-up effect once bookId is known.

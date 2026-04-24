@@ -49,7 +49,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
         const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (book?.title) setResolvedBookTitle(book.title);
       }
-      const __draft = await loadBuilderDraft(authorId, "BA-13");
+      const __draft = await loadBuilderDraft(authorId, "BA-13", bookId ?? null);
       if (__draft.content) {
         const wasLegacy = isLegacyGroupCoaching(__draft.content);
         const normalised = normaliseGroupCoaching(__draft.content);
@@ -58,7 +58,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
         setPriceOverride(normalised?.suggested_price_usd || null);
         setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: __draft.currentStep ?? 2 });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
       }
     })();
@@ -83,7 +83,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
       setContent(normalised);
       setPriceOverride(normalised?.suggested_price_usd || null);
       setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: 2 });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
