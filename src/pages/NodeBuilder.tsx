@@ -50,6 +50,8 @@ function getHubLabel(nodeId: string): string {
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
+  const [searchParams] = useSearchParams();
+  const bookId = searchParams.get("bookId");
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
