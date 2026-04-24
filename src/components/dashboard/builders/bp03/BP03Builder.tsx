@@ -443,6 +443,13 @@ export default function BP03Builder({ authorId, bookId }: Props) {
 
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         <NodeHowItWorks nodeId="BP-03" defaultOpen={step === 0} />
+        {step === 0 && contextBlocked && (
+          <AnalyseBookGate
+            authorId={authorId}
+            bookId={bookId ?? null}
+            onAnalysed={() => { setContextBlocked(false); handleGenerate(); }}
+          />
+        )}
         {isResuming ? (
           <AbbyCard><p className="text-muted-foreground">Loading your saved social media kit…</p></AbbyCard>
         ) : step === 0 && (
