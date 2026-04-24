@@ -143,7 +143,7 @@ Generate 3-5 posts per week per platform. Space them evenly. Start from tomorrow
     } catch (err) {
       console.error("Social media generation error:", err);
       setGenerationState("error");
-      toast({ title: "Generation failed", variant: "destructive" });
+      toast({ title: "Generation failed", description: err instanceof Error ? err.message : String(err), variant: "destructive" });
     } finally {
       setGenerating(false);
     }
