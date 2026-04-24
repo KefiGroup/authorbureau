@@ -13,6 +13,7 @@ serve(async (req) => {
 
   let priorNodeState: Record<string, unknown> | null = null;
   let parsedAuthorId: string | null = null;
+  let parsedBookId: string | null = null;
   const supabase = makeServiceClient();
 
   try {
@@ -22,6 +23,7 @@ serve(async (req) => {
     const { author_id, book_id } = body ?? {};
     if (!author_id) return failResponse("author_id is required");
     parsedAuthorId = author_id;
+    parsedBookId = book_id ?? null;
 
     const { data: author } = await supabase
       .from("author_profiles").select("pen_name, genres, user_id").eq("id", author_id).single();
@@ -35,9 +37,11 @@ serve(async (req) => {
       );
     }
 
-    priorNodeState = await snapshotAuthorNode(supabase, author_id, NODE_ID);
-    const { ctx, book, bookTitle, bookSubtitle, coreThesis } =
-      await buildAuthorContext(supabase, author_id, author.user_id ?? null, book_id);
+    priorNodeState = await snapshotAuthorNode(supabase, author_id, NODE_ID, book_id ?? null);
+    const { ctx, book, bookTitle, bookSubtitle, coreThesis, contextBlocked } = await buildAuthorContext(supabase, author_id, author.user_id ?? null, book_id, NODE_ID);
+    if (contextBlocked) {
+      return failResponse("Please run the book analysis (BP-00) for this specific book before generating " + NODE_NAME + ". This prevents content from leaking between your books.");
+    }
     if (!bookTitle) return failResponse("No book found. Please add a book first.");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -94,12 +98,12 @@ Return JSON in this EXACT shape (field names matter):
       personalised_name: content.jv_strategy_title,
       currency: "usd",
       delivery_type: "jv_partnerships",
-    });
+    }, book?.id ?? book_id ?? null);
 
     return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
     if (priorNodeState && parsedAuthorId) {
-      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState); }
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
       catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
     }
     const message = errorMessage(err);
