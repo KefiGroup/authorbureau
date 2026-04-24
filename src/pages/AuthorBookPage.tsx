@@ -50,6 +50,8 @@ interface ProductLink {
   price?: string;
   description?: string;
   coverImageUrl?: string;
+  /** When set, overrides the default `/{authorSlug}/{bookSlug}/{route}` link target. */
+  linkTo?: string;
 }
 
 /** Extract a human-readable description from potentially JSON-encoded sales copy */
