@@ -135,6 +135,17 @@ export default function DashboardLayout({ children, activeSection, bare = false 
     navigate(sectionToPath(s as DashboardSection));
   };
 
+  // When the chooser picks a book for a per-book builder, attach ?bookId=
+  const handlePickBookForSection = (section: DashboardSection, bookId: string) => {
+    const base = sectionToPath(section);
+    const sep = base.includes("?") ? "&" : "?";
+    navigate(`${base}${sep}bookId=${bookId}`);
+    if (typeof window !== "undefined" && window.innerWidth < 1024) {
+      setSidebarCollapsed(true);
+    }
+  };
+
+
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden">
       {/* Mobile overlay */}
