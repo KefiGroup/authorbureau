@@ -10,6 +10,8 @@ type SharedSessionInput = {
   refresh_token: string;
 };
 
+let inMemorySessionCache = "";
+
 function isRetryableAuthError(error: unknown): boolean {
   const text = error instanceof Error ? `${error.name}: ${error.message}` : String(error ?? "");
   return RETRYABLE_AUTH_ABORT.test(text);
@@ -57,6 +59,7 @@ function getSafeStorage(): Storage {
     try {
       const bootstrap = window.sessionStorage.getItem(AUTH_MEMORY_FALLBACK_KEY);
       if (bootstrap) {
+        inMemorySessionCache = bootstrap;
         memoryStorage.setItem(AUTH_STORAGE_KEY, bootstrap);
       }
     } catch {
@@ -67,6 +70,9 @@ function getSafeStorage(): Storage {
       ...memoryStorage,
       removeItem(key: string) {
         memoryStorage.removeItem(key);
+        if (key === AUTH_STORAGE_KEY) {
+          inMemorySessionCache = "";
+        }
         try {
           window.sessionStorage.removeItem(AUTH_MEMORY_FALLBACK_KEY);
         } catch {
@@ -76,6 +82,7 @@ function getSafeStorage(): Storage {
       setItem(key: string, value: string) {
         memoryStorage.setItem(key, value);
         if (key === AUTH_STORAGE_KEY) {
+          inMemorySessionCache = value;
           try {
             window.sessionStorage.setItem(AUTH_MEMORY_FALLBACK_KEY, value);
           } catch {
@@ -119,7 +126,9 @@ export async function establishSharedSession(sessionData: SharedSessionInput) {
 
     if (!error) {
       try {
-        sharedAuthStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(data.session));
+        const serialized = JSON.stringify(data.session);
+        inMemorySessionCache = serialized;
+        sharedAuthStorage.setItem(AUTH_STORAGE_KEY, serialized);
       } catch {
         // Ignore manual cache write failures — the in-memory session is already active.
       }
@@ -136,4 +145,33 @@ export async function establishSharedSession(sessionData: SharedSessionInput) {
   }
 
   throw lastError instanceof Error ? lastError : new Error("Unable to establish session.");
+}
+
+export async function getSharedSession() {
+  try {
+    const { data } = await sharedSupabase.auth.getSession();
+    if (data.session?.access_token) {
+      return data.session;
+    }
+  } catch {
+    // fall through to fallback cache
+  }
+
+  if (!inMemorySessionCache) {
+    try {
+      inMemorySessionCache = sharedAuthStorage.getItem(AUTH_STORAGE_KEY) ?? "";
+    } catch {
+      inMemorySessionCache = "";
+    }
+  }
+
+  if (!inMemorySessionCache) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(inMemorySessionCache);
+  } catch {
+    return null;
+  }
 }
