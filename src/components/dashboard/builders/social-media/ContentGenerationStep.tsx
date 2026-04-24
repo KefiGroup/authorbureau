@@ -45,13 +45,18 @@ export default function ContentGenerationStep({
     setGenerating(true);
     setGenerationState("queued");
     try {
-      const { data: session } = await supabase.auth.getSession();
-      const token = session?.session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+      const token = await getActiveToken();
+      if (!token) {
+        setGenerating(false);
+        setGenerationState("error");
+        toast({ title: "Session expired", description: "Please sign out and back in.", variant: "destructive" });
+        return;
+      }
 
       setTimeout(() => setGenerationState("analyzing"), 1500);
       setTimeout(() => setGenerationState("generating"), 4000);
 
-      const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+      const resp = await fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
@@ -82,9 +87,12 @@ Generate 3-5 posts per week per platform. Space them evenly. Start from tomorrow
           bookId,
           isPremium: true,
         }),
-      });
+      }, 120000);
 
-      if (!resp.ok || !resp.body) throw new Error("Generation failed");
+      if (!resp.ok || !resp.body) {
+        const errText = await resp.text().catch(() => "");
+        throw new Error(errText || `Generation failed (${resp.status})`);
+      }
 
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
