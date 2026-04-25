@@ -238,11 +238,9 @@ export default function SequencesTab() {
               {f.description && <p className="text-xs text-muted-foreground line-clamp-1">{f.description}</p>}
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              {f.node_id && (
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/node-builder/${f.node_id}`)}>
-                  <Pencil className="h-3 w-3 mr-1" /> Edit
-                </Button>
-              )}
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setEditingFlow(f)}>
+                <Pencil className="h-3 w-3 mr-1" /> Edit
+              </Button>
               {(f.status === "active" || f.status === "paused" || f.status === "draft") && (
                 <Button size="sm" variant={isHighlighted && f.status === "draft" ? "default" : "outline"} className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
                   {updatingId === f.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : f.status === "active" ? <PauseCircle className="h-3 w-3 mr-1" /> : <PlayCircle className="h-3 w-3 mr-1" />}
@@ -251,6 +249,15 @@ export default function SequencesTab() {
               )}
             </div>
           </div>
+
+          {f.node_id && (
+            <button
+              onClick={() => navigate(`/node-builder/${f.node_id}?from=marketing-hub`)}
+              className="mt-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="h-2.5 w-2.5" /> Open {f.node_id} product builder
+            </button>
+          )}
 
           {steps[f.id]?.length > 0 && (
             <div className="mt-3 pl-6 border-l-2 border-muted space-y-1">
