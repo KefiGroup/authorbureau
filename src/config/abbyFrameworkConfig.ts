@@ -211,34 +211,58 @@ export const ADVISOR_CONTENT: Record<AbbyCategory, AdvisorContent> = {
   },
 };
 
-/** Map from nodeId to its dashboard studio path (used by AbbyBuildAdvisor) */
+/**
+ * Map from nodeId to the dashboard `section` key that renders its builder.
+ * Single source of truth for both /dashboard?section= URLs and the new nested
+ * /dashboard/book/:bookId/build/:node routes.
+ */
+export const NODE_TO_SECTION: Record<string, { section: string; extraParams?: Record<string, string> }> = {
+  "social-media": { section: "social-media" },
+  workbooks: { section: "workbooks", extraParams: { builder: "workbook" } },
+  webinars: { section: "webinars" },
+  audiobook: { section: "audiobook-studio" },
+  "coaching-1on1": { section: "coaching", extraParams: { builder: "coaching-1on1" } },
+  keynotes: { section: "speaking" },
+  courses: { section: "courses", extraParams: { builder: "online-course" } },
+  "home-study": { section: "home-study" },
+  "email-marketing": { section: "email-marketing" },
+  "podcast-guest": { section: "podcast" },
+  memberships: { section: "memberships" },
+  "group-coaching": { section: "group-coaching" },
+  "lead-magnet": { section: "lead-magnet" },
+  "book-sales-events": { section: "book-sales" },
+  "special-editions": { section: "special-editions" },
+  microsite: { section: "microsite-manager" },
+  website: { section: "microsite-manager" },
+  "lead-magnets": { section: "lead-magnet" },
+  "big-ticket": { section: "big-ticket" },
+  training: { section: "training" },
+  masterminds: { section: "masterminds" },
+  retreats: { section: "retreats" },
+  certification: { section: "certification" },
+};
+
+/** Lookup the dashboard section + extra params for a node, or null. */
+export function getNodeSection(nodeId: string): { section: string; extraParams?: Record<string, string> } | null {
+  return NODE_TO_SECTION[nodeId] || null;
+}
+
+/**
+ * Map from nodeId to its dashboard studio path.
+ * Prefers the nested /dashboard/book/:bookId/build/:node URL when bookId is provided,
+ * falling back to the legacy /dashboard?section= URL otherwise.
+ */
 export function getStudioPath(nodeId: string, bookId: string, titleParam: string): string | null {
-  const map: Record<string, string> = {
-    "social-media": `/dashboard?section=social-media&bookId=${bookId}${titleParam}`,
-    workbooks: `/dashboard?section=workbooks&bookId=${bookId}${titleParam}&builder=workbook`,
-    webinars: `/dashboard?section=webinars&bookId=${bookId}${titleParam}`,
-    audiobook: `/dashboard?section=audiobook-studio&bookId=${bookId}${titleParam}`,
-    "coaching-1on1": `/dashboard?section=coaching&bookId=${bookId}${titleParam}&builder=coaching-1on1`,
-    keynotes: `/dashboard?section=speaking&bookId=${bookId}${titleParam}`,
-    courses: `/dashboard?section=courses&bookId=${bookId}${titleParam}&builder=online-course`,
-    "home-study": `/dashboard?section=home-study&bookId=${bookId}${titleParam}`,
-    "email-marketing": `/dashboard?section=email-marketing&bookId=${bookId}${titleParam}`,
-    "podcast-guest": `/dashboard?section=podcast&bookId=${bookId}${titleParam}`,
-    memberships: `/dashboard?section=memberships&bookId=${bookId}${titleParam}`,
-    "group-coaching": `/dashboard?section=group-coaching&bookId=${bookId}${titleParam}`,
-    "lead-magnet": `/dashboard?section=lead-magnet&bookId=${bookId}${titleParam}`,
-    "book-sales-events": `/dashboard?section=book-sales&bookId=${bookId}${titleParam}`,
-    "special-editions": `/dashboard?section=special-editions&bookId=${bookId}${titleParam}`,
-    microsite: `/dashboard?section=microsite-manager`,
-    website: `/dashboard?section=microsite-manager`,
-    "lead-magnets": `/dashboard?section=lead-magnet&bookId=${bookId}${titleParam}`,
-    "big-ticket": `/dashboard?section=big-ticket&bookId=${bookId}${titleParam}`,
-    training: `/dashboard?section=training&bookId=${bookId}${titleParam}`,
-    masterminds: `/dashboard?section=masterminds&bookId=${bookId}${titleParam}`,
-    retreats: `/dashboard?section=retreats&bookId=${bookId}${titleParam}`,
-    certification: `/dashboard?section=certification&bookId=${bookId}${titleParam}`,
-  };
-  return map[nodeId] || null;
+  const entry = NODE_TO_SECTION[nodeId];
+  if (!entry) return null;
+  const extra = entry.extraParams
+    ? "&" + Object.entries(entry.extraParams).map(([k, v]) => `${k}=${v}`).join("&")
+    : "";
+  if (bookId) {
+    // New nested route — keeps "you're inside this book" in the URL.
+    return `/dashboard/book/${bookId}/build/${nodeId}?bookId=${bookId}${titleParam}${extra}`;
+  }
+  return `/dashboard?section=${entry.section}${extra}`;
 }
 
 /** IDs of categories that are gated by default (fallback when DB hasn't loaded) */
