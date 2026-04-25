@@ -60,6 +60,34 @@ export default function AuthorAboutSection({ author, displayName, podcastNodes =
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                 <Mic className="h-5 w-5" style={{ color: v.accent }} /> Podcast
               </h3>
+
+              {/* Streaming service buttons (author-level) */}
+              {(author.podcast_spotify_url || author.podcast_apple_url || author.podcast_rss_url) && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {author.podcast_spotify_url && (
+                    <a href={author.podcast_spotify_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105"
+                      style={{ background: v.accent, color: v.accentText }}>
+                      Listen on Spotify
+                    </a>
+                  )}
+                  {author.podcast_apple_url && (
+                    <a href={author.podcast_apple_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all hover:scale-105"
+                      style={{ background: v.accent, color: v.accentText }}>
+                      Apple Podcasts
+                    </a>
+                  )}
+                  {author.podcast_rss_url && (
+                    <a href={author.podcast_rss_url} target="_blank" rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all hover:scale-105"
+                      style={{ borderColor: v.accent, color: v.accent, background: "transparent" }}>
+                      RSS Feed
+                    </a>
+                  )}
+                </div>
+              )}
+
               <div className="space-y-4">
                 {podcastNodes.map(node => {
                   const title = node.personalised_name || node.node_name;
