@@ -283,13 +283,13 @@ export default function SmartProductCard({
         {/* Progress bar for in-progress */}
         {state === "in-progress" && progressPercent !== undefined && (
           <div className="space-y-1">
-            <div className="h-1.5 w-full rounded-full bg-secondary/15">
+            <div className="h-1.5 w-full rounded-full bg-muted">
               <div
-                className="h-full rounded-full bg-secondary transition-all"
+                className={`h-full rounded-full transition-all ${catTokens.strip}`}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <p className="text-[9px] text-secondary font-medium text-right">{progressPercent}%</p>
+            <p className={`text-[9px] font-medium text-right ${catTokens.iconText}`}>{progressPercent}%</p>
           </div>
         )}
         {showEconomics && (
