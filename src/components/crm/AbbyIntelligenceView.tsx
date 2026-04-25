@@ -282,6 +282,54 @@ export default function AbbyIntelligenceView({ crmFetch, onContactClick }: Props
           </div>
         </div>
       )}
+
+      {/* Cross-sell engine — next-best offer per contact (deterministic, archetype ladder) */}
+      {crossSell.length > 0 && (
+        <div className="bg-white rounded-xl shadow-md border-l-4 border-[#10B981] p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="h-5 w-5 text-[#10B981]" />
+            <h4 className="text-[15px] font-bold text-[#1E3A5F]">Next-best offer · Cross-sell engine</h4>
+          </div>
+          <p className="text-[12px] text-gray-400 mb-4">
+            {crossSell.length} contact{crossSell.length === 1 ? "" : "s"} ready for their next product (sorted by ABBY score)
+          </p>
+
+          <ul className="divide-y divide-gray-100">
+            {crossSell.slice(0, 8).map((s) => (
+              <li key={s.contact_id} className="py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-[#1E3A5F] truncate">{s.contact_name}</span>
+                    <span className="text-[10px] font-bold text-[#D4AF37]">★ {s.contact_score}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-0.5 text-[12px] text-gray-500 flex-wrap">
+                    <span className="px-1.5 py-0.5 rounded bg-gray-100 text-[10px] font-semibold">
+                      {s.from_archetype_label} · {s.from_node_id}
+                    </span>
+                    <ArrowRight className="h-3 w-3 text-[#10B981]" />
+                    <span className="px-1.5 py-0.5 rounded bg-[#10B981]/10 text-[#10B981] text-[10px] font-semibold">
+                      {s.to_archetype_label} · {s.to_node_id}
+                    </span>
+                    <span className="truncate">— {s.to_product_title}</span>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  className="h-7 text-[11px] bg-[#10B981] text-white hover:bg-[#10B981]/90 font-semibold px-3 shrink-0"
+                  onClick={() => onContactClick?.(s.contact_name)}
+                >
+                  Pitch
+                </Button>
+              </li>
+            ))}
+          </ul>
+          {crossSell.length > 8 && (
+            <p className="text-[11px] text-gray-400 mt-3 italic text-center">
+              + {crossSell.length - 8} more suggestions waiting
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
