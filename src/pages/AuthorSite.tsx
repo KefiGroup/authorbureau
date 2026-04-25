@@ -263,10 +263,7 @@ export default function AuthorSite() {
         authorName={displayName}
         authorContactEmail={null}
         isOwnerViewing={isOwner}
-        stripeReady={
-          !!author.stripe_connected_account_id &&
-          author.stripe_onboarding_complete === true
-        }
+        stripeReady={true /* Authors Bureau is Merchant of Record — platform Stripe always ready */}
         liveNodes={liveNodes.filter(n => !["BP-01","BP-02","BP-08","BA-11","BP-06","BA-17"].some(p => n.node_id.startsWith(p))) as unknown as StorefrontNode[]}
         theme={theme}
         v={v}
