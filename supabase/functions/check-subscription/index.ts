@@ -95,11 +95,23 @@ serve(async (req) => {
     const customerId = customers.data[0].id;
     logStep("Found Stripe customer", { customerId });
 
-    const subscriptions = await stripe.subscriptions.list({
+    // Look for any subscription that should grant access — active OR trialing
+    // OR past_due (Stripe still keeps the customer entitled while they sort
+    // out a failed renewal). Without this, a transient renewal blip would
+    // flip the user's tier back to "Free" in the UI.
+    let subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       status: "active",
       limit: 1,
     });
+    if (subscriptions.data.length === 0) {
+      const trialing = await stripe.subscriptions.list({ customer: customerId, status: "trialing", limit: 1 });
+      if (trialing.data.length > 0) subscriptions = trialing;
+    }
+    if (subscriptions.data.length === 0) {
+      const pastDue = await stripe.subscriptions.list({ customer: customerId, status: "past_due", limit: 1 });
+      if (pastDue.data.length > 0) subscriptions = pastDue;
+    }
 
     const hasActiveSub = subscriptions.data.length > 0;
     let productId = null;
@@ -145,6 +157,7 @@ serve(async (req) => {
       subscribed: hasActiveSub,
       product_id: productId,
       subscription_end: subscriptionEnd,
+      tier,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,

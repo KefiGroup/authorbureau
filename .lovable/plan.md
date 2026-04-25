@@ -1,83 +1,68 @@
-# Analysis Tab — Design Rationale & Navigation Audit
+## What's actually happening
 
-## Part 1 — Why the Analysis tab looks the way it does
+Stripe confirms `pl@paulineteo.com` has a real, **active Yield subscription** (`sub_1TKrlPCk4r0emyO8EEMKpuW3`, price `price_1TGHUFCk4r0emyO87YrgqXJH` → product `prod_UB6BVLnks6JWoJ`). So the data source is correct — the bug is purely in how the frontend reads and caches it.
 
-The Analysis tab (`BookHubOverview.tsx`) is the **strategic command center** for a single book. Its job is to answer one question fast: *"What is the next thing I should build for this book, and how far along am I?"*
+The browser console at the moment of the bug shows:
 
-### Color & UI rationale
-The screen uses a deliberate three-stage color system tied to the **B-B-Y framework** (Brand → Build → Yield), defined in `categoryAccent.ts`:
+```
+warning: @supabase/gotrue-js: Lock "lock:authorsbureau-shared-auth"
+acquisition timed out after 10000ms.
+```
 
-- **Brand (💰 emerald/green)** — products & monetization. Green = money/growth.
-- **Build (📈 violet)** — marketing & authority assets. Violet = creative/craft work.
-- **Yield (🏆 sky blue / amber-gold)** — premium revenue (coaching, speaking). Gold = trophy/high value.
-- **Secondary gold (#B8860B)** — Abby (the AI advisor) and "next action" highlights, reinforcing brand identity.
-- **Emerald success bar** ("Yield Plan active — 28 of 28 builders unlocked") — confirms entitlement at a glance.
+That's the smoking gun. Here is the chain that flips her badge to "Free":
 
-This matches the locked **visual identity & design freeze** memory: high-contrast cards, dark navy (#1B2A4A) for premium tier, gold for Abby/CTAs.
+1. `useAuth.checkSubscription` runs every 60 s and on every navigation.
+2. It calls `getActiveToken()` → `sharedSupabase.auth.getSession()`.
+3. When the gotrue Web Lock is contended (multiple tabs / fast nav / portal popup), `getSession()` hangs and times out after 10 s with no token returned.
+4. `getActiveToken()` returns `null` → `checkSubscription` throws → the catch block writes:
+   ```
+   { subscribed: false, productId: null, checked: true }
+   ```
+   This **wipes** the previously-known "yield" state and the header re-renders as **Free**.
+5. On the next interval (or when she opens the Manage Plan / billing portal popup, which steals the lock again) the same thing happens, so she sees the badge bouncing between Yield and Free.
 
-### Information hierarchy (top → bottom)
-1. **Book context bar** — title, genre breadcrumb, "View Microsite" link, tabs (Analysis / Brand / Build / Yield / Review & Publish / Analytics).
-2. **Hero strip** — `BookHubHeroStrip`: trophy progress (23 of 28, 82%), tri-color segmented bar showing per-stage completion, three clickable stage cards (BRAND 7/9, BUILD 6/9, YIELD 10/10), plus the "Continue Where You Left Off" CTA on the right colored by destination stage.
-3. **Abby's Business Snapshot** — collapsible AI-advisor plan, with Refine / Download .docx / Replace manuscript actions.
-4. **Plan status strip** — green confirmation of active subscription + manage-plan link.
-5. **Your Next 3 Steps** (`JourneyStepper`) — the actionable list grouped by sub-category (Branding & Marketing, Digital Products, Scale Your Content), each row with code (BP-03), sequence number, status pill (Ready / In Progress / Completed / Locked), and a "Build Now →" CTA.
-6. **Abby's Market Snapshot** — competitive scan + live trends.
+The same catch path also fires whenever `check-subscription` returns a transient HTTP error, even though Stripe still has the subscription.
 
-The two-state design (pre- vs. post-analysis) is intentional: before consultation a single big "Analyze with Abby — Free" CTA dominates; after, the data-rich command center appears.
+So nothing about the tier is hardcoded — but the recovery path is too aggressive. It treats *any* transient failure as "user downgraded to Free", instead of keeping the last-known good tier.
 
-## Part 2 — Audit of clickable buttons and where they actually go
+## Fix
 
-You're right to notice this — almost every action button on the Analysis tab routes the user to `/dashboard?section=…`, **not** to a dedicated `/book/:bookId/...` builder route. Source: `getStudioPath()` in `src/config/abbyFrameworkConfig.ts` (lines 215–242). Every node maps to `/dashboard?section=<name>&bookId=...`.
+### 1. `src/hooks/useAuth.tsx` — never overwrite a known tier on transient failure
+- In the `catch` of `checkSubscription`, **do not reset** `productId` to `null`. Keep the previously-known `productId` and just mark `loading: false`. This means a single failed poll can never demote the user from Yield to Free.
+- Add a `localStorage` cache of `{ productId, subscriptionEnd, checkedAt }` keyed by `user.id`. On mount, hydrate the initial subscription state from this cache (5-minute TTL) so the header shows the correct tier instantly instead of "Free" while the first network call is in flight.
+- After a *successful* `check-subscription` response, write the cache.
+- Keep the 60 s poll, but **only update state when the response is successful** — failures become silent.
 
-### Where each CTA actually leads
+### 2. `src/lib/get-active-token.ts` — survive gotrue lock timeouts
+- Wrap `sharedSupabase.auth.getSession()` in a `Promise.race` with a 2-second timeout. If it times out, fall back to reading the cached session JSON directly from `localStorage` (`authorsbureau-shared-auth`) and decoding the `access_token` from it. This avoids waiting 10 s for the lock and lets `check-subscription` fire with the real token.
 
-| Button | Destination | Notes |
-|---|---|---|
-| Continue / Start Building (hero CTA) | `/dashboard?section=<next-node>&bookId=…` | Correct destination, but URL leaves `/book/:id` |
-| BRAND / BUILD / YIELD stage cards | Stays on Analysis page, switches local tab | OK |
-| Build Now (BP-03 Social Media) | `/dashboard?section=social-media&bookId=…` | Correct — opens Social Media Manager inside dashboard shell |
-| Build Now (BP-08 Book Sales) | `/dashboard?section=book-sales&bookId=…` | Correct |
-| Build Now (BA-10 Online Course) | `/dashboard?section=courses&bookId=…&builder=online-course` | Correct |
-| View Microsite | `https://authorsbureau.com/<authorSlug>/<bookSlug>` (new tab) | OK |
-| Manage plan | `/account-settings?tab=billing` | OK |
-| See full journey → | Switches Analysis → Brand tab in same page | OK |
-| Brand / Build / Yield package cards (free tier only) | `/dashboard?section=build-business` | OK |
-| Competitive Scan / Live Market Trends | Inside `MarketSnapshot` component | (need to verify — see audit step 1) |
+### 3. `supabase/functions/check-subscription/index.ts` — distinguish "no Stripe customer" from "no active sub"
+- Today, when Stripe returns no active subscription, the function responds with `{ subscribed: false, product_id: null }`, which the client interprets as Free. Add a defensive secondary lookup: if no `active` sub is found, also check for `trialing` and `past_due` so a brief webhook lag or failed renewal doesn't downgrade her.
+- Also include `tier` in the JSON response so the client doesn't have to re-derive it from the product ID — useful for logs/debugging only; the client still uses the product ID as the source of truth.
 
-### Why it feels like "going back to the dashboard"
+### 4. Customer Portal popup hand-off — don't steal the auth lock
+- `src/pages/AccountSettings.tsx` `handleManageBilling` invokes the edge function while a popup window is being opened. While the new tab is loading, the parent's gotrue lock is briefly contended, which is what causes the badge to flip mid-click. Switch to opening the popup **after** the function returns successfully (we already have the URL), and use `window.open(url, "_blank")` only once. This keeps the parent stable.
 
-The Book Hub lives at `/book/:bookId`, but every builder is mounted inside `AuthorDashboard.tsx` at `/dashboard` and selected via the `?section=` query param. So clicking *Build Now* on Social Media:
+### 5. Sanity audit — confirm no hardcoded downgrade paths
+Searched the codebase — the only place that ever forces tier to "free" is the failure branch in `checkSubscription`. Superadmin override is the only hardcoded *upgrade* (and her email is not in that list, which is correct — she is on a real paid Yield plan, not a comp). No component writes `subscription_tier = 'free'` to the DB on the client.
 
-1. Navigates from `/book/<id>` → `/dashboard?section=social-media&bookId=<id>`
-2. The dashboard sidebar reappears with "Dashboard" highlighted by default for a brief moment before `section=social-media` resolves
-3. The user perceives this as "I just got bounced back to the dashboard home"
+## Files to edit
 
-This is a structural UX issue, not broken links. The destinations are correct — but the transition reads as a regression.
+- `src/hooks/useAuth.tsx` — preserve last-known tier on failure, add local cache + hydration
+- `src/lib/get-active-token.ts` — add 2 s race + cached-session fallback
+- `supabase/functions/check-subscription/index.ts` — include `trialing`/`past_due` in the active-sub check, return `tier` field
+- `src/pages/AccountSettings.tsx` — open billing-portal popup after invoke resolves, not before
 
-## Part 3 — Recommended fixes (proposed, awaiting approval)
+## What this does NOT change
 
-### Fix A — Make builder pages feel like "still inside the book"
-Add a persistent **BookBuilderContextBar** at the top of every section the user reaches via `getStudioPath()` showing: book cover thumb · title · "← Back to Book Hub" link. (`BookBuilderContextBar.tsx` already exists — verify it's mounted on every section listed in the table above.)
+- No DB schema changes.
+- No Stripe configuration changes (her subscription is healthy on Stripe's side).
+- No pricing, plan labels, or routing changes.
+- The 60 s background refresh still runs; it just stops being able to demote a user on a transient blip.
 
-### Fix B — Highlight the active section in the sidebar immediately
-In `DashboardSidebar.tsx`, ensure the sidebar highlights the section from `?section=` query param on first paint, not after a re-render. This removes the "Dashboard flash" that feels like being sent home.
+## How to verify after deploy
 
-### Fix C — Preserve `?from=book-hub` so we can show a "Back to Be SUCKcessful" pill
-When navigating from Analysis tab, append `&from=book-hub` to the URL. The destination renders a top-of-page chip: `← Back to Be SUCKcessful` linking to `/book/<id>`. Cheaper than refactoring routes.
-
-### Fix D (larger, optional) — True nested routes
-Move builder routes from `/dashboard?section=social-media&bookId=…` to `/book/:bookId/build/social-media`. Keep the dashboard sidebar visible, but the URL itself signals "you're inside this book". Bigger refactor — recommended only if A–C aren't enough after testing.
-
-### Fix E — Verify two un-audited link clusters
-1. `MarketSnapshot` — confirm "Competitive Scan" and "Live Market Trends" don't redirect to `/dashboard`.
-2. `JourneyStepper` *Locked* state — currently calls `onUpgrade?.()` which navigates to `/dashboard?section=build-business`. Consider sending users to a dedicated `/upgrade?from=node:<id>` so the upgrade page can pre-select the right tier.
-
-## Recommended sequencing
-
-1. **Fix B** (sidebar active-state on first paint) — single-file change, biggest perceived improvement.
-2. **Fix A** (mount `BookBuilderContextBar` on every builder section) — confirms "you're still on this book".
-3. **Fix C** (back-pill via `?from=book-hub`) — additive, safe.
-4. **Fix E** — small audit pass on MarketSnapshot + locked-node upgrade target.
-5. **Fix D** — only if user testing still reports the "thrown back to dashboard" feeling after 1–4.
-
-After approval I'll implement A, B, C, and E, then ask before tackling D.
+1. Sign in as `pl@paulineteo.com`. Header should show **Yield** within < 500 ms (from cache) and stay there.
+2. Open Account Settings → Billing → Open Billing Portal. The popup should open in a new tab and the header should remain **Yield** in the original tab — no flicker to Free.
+3. Throttle the network in DevTools to "Slow 3G" and reload `/dashboard` — header should still show **Yield** immediately from cache, then re-confirm silently in the background.
+4. Open two tabs of the dashboard at once. The gotrue lock will be contended; the badge in both tabs must remain **Yield** (previously this is when it would flip).
