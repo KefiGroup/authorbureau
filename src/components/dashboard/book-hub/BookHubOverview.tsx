@@ -318,9 +318,13 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
               )}
             </p>
             {!isAdminAccess && (
-              <a href="/account-settings?tab=billing" className="text-xs font-semibold text-secondary hover:underline shrink-0">
+              <button
+                type="button"
+                onClick={() => navigate("/account-settings?tab=billing")}
+                className="text-xs font-semibold text-secondary hover:underline shrink-0"
+              >
                 Manage plan →
-              </a>
+              </button>
             )}
           </div>
         );
@@ -354,19 +358,19 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         <div className="rounded-2xl border-2 border-secondary/30 bg-secondary/5 p-5">
           <p className="text-sm font-medium mb-3">Ready to start building? Unlock the AI builders to create these products automatically.</p>
           <div className="flex flex-wrap gap-2">
-            <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg border-2 border-border bg-card p-3 text-center hover:border-muted-foreground/30 transition">
+            <button type="button" onClick={() => navigate("/dashboard?section=build-business")} className="flex-1 min-w-[120px] rounded-lg border-2 border-border bg-card p-3 text-center hover:border-muted-foreground/30 transition">
               <div className="text-xs font-bold">Brand Package</div>
               <div className="text-[10px] text-muted-foreground">$49/mo · 9 builders</div>
-            </a>
-            <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg bg-secondary p-3 text-center text-secondary-foreground relative">
+            </button>
+            <button type="button" onClick={() => navigate("/dashboard?section=build-business")} className="flex-1 min-w-[120px] rounded-lg bg-secondary p-3 text-center text-secondary-foreground relative">
               <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">Most Popular</span>
               <div className="text-xs font-bold">Build Package</div>
               <div className="text-[10px] text-secondary-foreground/80">$99/mo · 18 builders</div>
-            </a>
-            <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg p-3 text-center text-white" style={{ background: "#1B2A4A" }}>
+            </button>
+            <button type="button" onClick={() => navigate("/dashboard?section=build-business")} className="flex-1 min-w-[120px] rounded-lg p-3 text-center text-white" style={{ background: "#1B2A4A" }}>
               <div className="text-xs font-bold">Yield Package</div>
               <div className="text-[10px] text-white/70">$249/mo · all 28</div>
-            </a>
+            </button>
           </div>
           <p className="text-[11px] text-muted-foreground mt-2">14-day money-back guarantee · No questions asked</p>
         </div>
