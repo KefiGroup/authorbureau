@@ -30,6 +30,7 @@ import HowItWorks from "./pages/HowItWorks";
 import SSO from "./pages/SSO";
 import NotFound from "./pages/NotFound";
 import BookHub from "./pages/BookHub";
+import BookBuilderRoute from "./pages/BookBuilderRoute";
 import Solutions from "./pages/Solutions";
 import SolutionsIndex from "./pages/SolutionsIndex";
 import AuthorSite from "./pages/AuthorSite";
@@ -145,6 +146,7 @@ const AppRoutes = () => (
       <Route path="/earnings" element={<ProtectedRoute><EarningsDashboard /></ProtectedRoute>} />
       <Route path="/admin/payouts" element={<ProtectedRoute><AdminPayouts /></ProtectedRoute>} />
       <Route path="/dashboard/book/:bookId" element={<BookHub />} />
+      <Route path="/dashboard/book/:bookId/build/:node" element={<ProtectedRoute><BookBuilderRoute /></ProtectedRoute>} />
       <Route path="/book-hub/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/my-contacts" element={<AuthorDashboard initialSection={"author-crm" as any} />} />

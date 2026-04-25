@@ -26,8 +26,21 @@ const stateMeta: Record<NodeStatus, { label: string; pillClass: string; cta: str
 export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNodeId, accent, onUpgrade, onNavigateSection }: Props) {
   const navigate = useNavigate();
 
+  const goToUpgrade = (n: NodeWithProgress) => {
+    const tierKey = (n.tierRequired || "build").toLowerCase(); // "Brand" | "Build" | "Yield"
+    const params = new URLSearchParams({
+      upgrade: tierKey,
+      node: n.id,
+      nodeLabel: encodeURIComponent(n.label),
+      from: "book-hub",
+    });
+    if (bookId) params.set("bookId", bookId);
+    if (bookTitle) params.set("bookTitle", encodeURIComponent(bookTitle));
+    navigate(`/pricing?${params.toString()}`);
+  };
+
   const handleClick = (n: NodeWithProgress) => {
-    if (n.state === "locked") { onUpgrade?.(); return; }
+    if (n.state === "locked") { goToUpgrade(n); return; }
     if (n.state === "coming-soon") return;
     const titleParam = bookTitle ? `&bookTitle=${encodeURIComponent(bookTitle)}` : "";
     const path = getStudioPath(n.id, bookId, titleParam);
