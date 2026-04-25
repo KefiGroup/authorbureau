@@ -98,9 +98,10 @@ serve(async (req) => {
     return new Response(JSON.stringify({ success: true, filename, html }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
-    console.error("export-bp09-handout error:", err.message);
-    return new Response(JSON.stringify({ success: false, error: err.message }), {
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("export-bp09-handout error:", errMessage);
+    return new Response(JSON.stringify({ success: false, error: errMessage }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
