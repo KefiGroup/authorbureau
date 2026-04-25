@@ -455,7 +455,15 @@ export default function FunnelsHub() {
             const rate = f.page_views > 0 ? ((f.conversions / f.page_views) * 100).toFixed(1) : "0.0";
             const url = liveUrl(f.slug);
             return (
-              <Card key={f.id} className="overflow-hidden">
+              <Card
+                key={f.id}
+                ref={(el) => { cardRefs.current[f.id] = el as unknown as HTMLDivElement | null; }}
+                className={`overflow-hidden transition-all duration-500 ${
+                  highlightId === f.id
+                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg shadow-primary/20"
+                    : ""
+                }`}
+              >
                 <div className="h-2" style={{ backgroundColor: f.accent_color }} />
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
