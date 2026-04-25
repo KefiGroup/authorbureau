@@ -26,7 +26,8 @@ serve(async (req) => {
           const sp = await stripe.prices.create({ product: product.id, unit_amount: Math.round(item.price * 100), currency: "usd"  });
           const pl = await stripe.paymentLinks.create({ line_items: [{ price: sp.id, quantity: 1 }] });
           url = pl.url;
-        } catch (e) { console.error("Stripe error:", e.message); }
+        } catch (e) {
+    const eMessage = e instanceof Error ? e.message : String(e); console.error("Stripe error:", eMessage); }
       }
       paymentLinks.push({ label: item.name, url });
     }
@@ -39,5 +40,6 @@ serve(async (req) => {
     const micrositeUrl = author.author_slug ? `https://authorsbureau.com/${author.author_slug}/conference` : null;
     await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinks[0]?.url || "", content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinks[0]?.url || null }).eq("author_id", author_id).eq("node_id", "YR-26");
     return new Response(JSON.stringify({ success: true, payment_links: paymentLinks }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (err) { console.error("deploy-yr26-to-ghl error:", err.message); return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err); console.error("deploy-yr26-to-ghl error:", errMessage); return new Response(JSON.stringify({ success: false, error: errMessage }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }
 });

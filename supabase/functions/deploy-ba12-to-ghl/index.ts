@@ -38,7 +38,8 @@ serve(async (req) => {
           const sp = await stripe.prices.create({ product: product.id, unit_amount: Math.round(price * 100), currency: "usd" });
           const pl = await stripe.paymentLinks.create({ line_items: [{ price: sp.id, quantity: 1 }] });
           url = pl.url;
-        } catch (e) { console.error("Stripe error:", e.message); }
+        } catch (e) {
+    const eMessage = e instanceof Error ? e.message : String(e); console.error("Stripe error:", eMessage); }
       }
       paymentLinks.push({ name, url });
     }
@@ -59,7 +60,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ success: true, payment_links: paymentLinks }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    console.error("deploy-ba12-to-ghl error:", err.message);
-    return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("deploy-ba12-to-ghl error:", errMessage);
+    return new Response(JSON.stringify({ success: false, error: errMessage }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });
