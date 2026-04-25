@@ -28,7 +28,7 @@ const corsHeaders = {
 
 const DEFAULT_PLATFORM_FEE_RATE = 0.08;
 
-type Admin = ReturnType<typeof createClient>;
+type Admin = any;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
