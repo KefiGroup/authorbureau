@@ -52,7 +52,7 @@ serve(async (req) => {
 
     const body = await req.json();
 
-    let userId: string;
+    let userId: string | null = null;
     let userEmail: string | null = null;
     let bookData: any;
     let isPlatformPush = false;
