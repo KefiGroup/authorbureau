@@ -197,6 +197,10 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
             if (!g) { g = { name: sub, nodes: [] }; groups.push(g); }
             g.nodes.push(n);
           }
+          // Sort each group by node code (e.g. BP-01 → BP-09) so tiles follow the recommended sequence.
+          for (const g of groups) {
+            g.nodes.sort((a, b) => (a.code || "").localeCompare(b.code || "", undefined, { numeric: true }));
+          }
           const handleNav = (n: NodeWithProgress) => {
             if (n.state === "locked") { onNavigate?.("build-business"); return; }
             if (n.state === "coming-soon") return;
