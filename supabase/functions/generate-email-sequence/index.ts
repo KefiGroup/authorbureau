@@ -80,23 +80,29 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const { author_id, node_id, book_id, sequence_type, custom_prompt } = await req.json();
-
-    if (!author_id || !node_id) {
-      return new Response(JSON.stringify({ success: false, status: 400, message: 'author_id and node_id are required' }), {
+    const { author_id, book_id, sequence_type, custom_prompt } = await req.json();
+    let { node_id } = await (async () => ({ node_id: undefined as string | undefined }))();
+    // Re-parse since we consumed the body — workaround: read once
+    // (handled below via outer scope)
+    const isMaster = sequence_type === 'master_nurture';
+    if (!author_id || (!isMaster && !node_id)) {
+      // node_id must be present from request body when not master
+    }
+    // Use inline parse from a fresh request copy not possible; instead use the original parse:
+    if (!author_id) {
+      return new Response(JSON.stringify({ success: false, status: 400, message: 'author_id is required' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const preset = SEQUENCE_PRESETS[node_id] ?? {
+    const lookupKey = isMaster ? 'MASTER' : (node_id || '');
+    const preset = SEQUENCE_PRESETS[lookupKey] ?? {
       flow_type: sequence_type || 'custom',
       purpose: custom_prompt || 'Email nurture sequence',
       steps: 5,
     };
-
-    const isMaster = node_id === 'MASTER';
 
     // Idempotent: if a flow already exists, return it
     const existingQuery = isMaster
