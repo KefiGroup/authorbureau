@@ -296,6 +296,35 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         )}
       </div>
 
+      {/* 2.5 Plan status strip — paid users only */}
+      {effectiveTier !== "free" && (() => {
+        const isAdminAccess = isAdmin || isSuperAdmin(user?.email);
+        const planLabel = isAdminAccess
+          ? "Admin access"
+          : effectiveTier === "yield" ? "Yield Plan active"
+          : effectiveTier === "build" ? "Build Plan active"
+          : "Brand Plan active";
+        const unlockedCount = isAdminAccess || effectiveTier === "yield" ? "all 28" :
+          effectiveTier === "build" ? "18" : "9";
+        return (
+          <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3 flex items-center gap-3 flex-wrap">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success text-xs font-bold">✓</span>
+            <p className="text-sm flex-1 min-w-0">
+              <strong className="text-success">{planLabel}</strong>
+              <span className="text-muted-foreground"> — {unlockedCount} builder{unlockedCount === "1" ? "" : "s"} unlocked.</span>
+              {progress.overallTotal > 0 && (
+                <span className="text-muted-foreground"> · {progress.overallCompleted} of {progress.overallTotal} built.</span>
+              )}
+            </p>
+            {!isAdminAccess && (
+              <a href="/account-settings?tab=billing" className="text-xs font-semibold text-secondary hover:underline shrink-0">
+                Manage plan →
+              </a>
+            )}
+          </div>
+        );
+      })()}
+
       {/* 3. Your Next 3 Steps */}
       {progress.topNextSteps.length > 0 && (
         <div>
