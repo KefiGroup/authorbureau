@@ -32,6 +32,7 @@ interface SmartProductCardProps {
   onView?: () => void;
   onUpgrade?: () => void;
   genre?: string;
+  code?: string;
 }
 
 const BASELINE_REVENUE: Record<string, RevenueEstimate> = {
@@ -128,7 +129,7 @@ const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string;
 export default function SmartProductCard({
   id, label, icon: Icon, description, personalizedDescription,
   state, tierRequired, revenue, progressPercent,
-  stats, onBuild, onContinue, onView, onUpgrade, genre,
+  stats, onBuild, onContinue, onView, onUpgrade, genre, code,
 }: SmartProductCardProps) {
   const config = stateConfig[state];
   const rev = revenue || BASELINE_REVENUE[id] || { annual: 0, timeToBuild: "~2 hours", difficulty: 2 };
@@ -142,6 +143,11 @@ export default function SmartProductCard({
       <Card className={`relative overflow-hidden p-5 space-y-3.5 transition-all hover:shadow-lg h-full flex flex-col ${config.borderClass} ${config.cardBg}`}>
         {/* Left color strip */}
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${config.stripColor}`} />
+        {code && (
+          <span className="absolute top-2 right-2 text-[9px] font-mono font-bold tracking-wider text-muted-foreground/70 bg-muted/60 rounded px-1.5 py-0.5">
+            {code}
+          </span>
+        )}
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
@@ -164,6 +170,7 @@ export default function SmartProductCard({
             </div>
           </div>
         </div>
+
 
         {/* Description */}
         <p className="text-xs text-muted-foreground leading-relaxed flex-1">
