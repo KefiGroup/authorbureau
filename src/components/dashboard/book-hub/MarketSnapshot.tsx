@@ -1,17 +1,19 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Sparkles, ExternalLink, Loader2 } from "lucide-react";
+import { BarChart3, TrendingUp, Sparkles, ExternalLink, Loader2, RefreshCw, Info } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
 
 interface Props {
   data: MarketResearchData;
   loading?: boolean;
+  onRefresh?: () => void | Promise<void>;
 }
 
-export default function MarketSnapshot({ data, loading }: Props) {
+export default function MarketSnapshot({ data, loading, onRefresh }: Props) {
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-card p-6 flex items-center justify-center gap-3">
@@ -24,8 +26,9 @@ export default function MarketSnapshot({ data, loading }: Props) {
   const hasBestsellers = data.amazonBestsellers && data.amazonBestsellers.products.length > 0;
   const hasKeywords = data.amazonBestsellers?.topTitleKeywords && data.amazonBestsellers.topTitleKeywords.length > 0;
   const hasMarketIntel = Boolean(data.marketIntelligence);
+  const hasCompetitors = data.competitorProducts && data.competitorProducts.length > 0;
 
-  if (!hasBestsellers && !hasMarketIntel) return null;
+  if (!hasBestsellers && !hasMarketIntel && !hasCompetitors) return null;
 
   return (
     <motion.div
@@ -37,10 +40,15 @@ export default function MarketSnapshot({ data, loading }: Props) {
         <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center shrink-0">
           <BarChart3 className="h-4 w-4 text-secondary" />
         </div>
-        <div>
+        <div className="flex-1">
           <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Abby's Market Snapshot</p>
           <p className="text-xs text-muted-foreground">Live competitive data for "{data.amazonCategory}"</p>
         </div>
+        {onRefresh && (
+          <Button variant="ghost" size="sm" onClick={() => onRefresh()} className="h-7 gap-1.5 text-xs">
+            <RefreshCw className="h-3 w-3" /> Refresh
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="competitive" className="p-5">
@@ -56,18 +64,103 @@ export default function MarketSnapshot({ data, loading }: Props) {
         <TabsContent value="competitive" className="mt-4 space-y-5">
           {hasBestsellers && <PriceDistribution data={data} />}
           {hasBestsellers && <TopBestsellers products={data.amazonBestsellers!.products.slice(0, 3)} />}
+          {!hasBestsellers && (
+            <CompetitiveFallback competitors={data.competitorProducts || []} onRefresh={onRefresh} />
+          )}
         </TabsContent>
 
         <TabsContent value="trends" className="mt-4 space-y-5">
           {hasKeywords && <TrendingKeywords keywords={data.amazonBestsellers!.topTitleKeywords} marketIntel={data.marketIntelligence} />}
-          {hasMarketIntel && !hasKeywords && (
-            <div className="rounded-lg bg-muted/30 p-4 text-sm leading-relaxed">
-              <MarkdownRenderer content={data.marketIntelligence || ""} />
+          {!hasKeywords && hasMarketIntel && (
+            <div className="space-y-3">
+              <div className="rounded-lg bg-muted/30 p-4 text-sm leading-relaxed">
+                <MarkdownRenderer content={data.marketIntelligence || ""} />
+              </div>
+              {data.marketCitations && data.marketCitations.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider self-center">Sources:</span>
+                  {data.marketCitations.slice(0, 6).map((url, i) => (
+                    <a
+                      key={i}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors"
+                    >
+                      {new URL(url).hostname.replace("www.", "")}
+                      <ExternalLink className="h-2.5 w-2.5" />
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
+          )}
+          {!hasKeywords && !hasMarketIntel && (
+            <p className="text-xs text-muted-foreground text-center py-6">No live market trends available yet.</p>
           )}
         </TabsContent>
       </Tabs>
     </motion.div>
+  );
+}
+
+function CompetitiveFallback({
+  competitors,
+  onRefresh,
+}: {
+  competitors: { title: string; url: string; snippet: string; platform: string }[];
+  onRefresh?: () => void | Promise<void>;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 border border-amber-500/20 p-3">
+        <Info className="h-4 w-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+        <p className="text-[11px] text-foreground/80 leading-relaxed">
+          Amazon's bestseller scrape was blocked for this niche category.
+          {competitors.length > 0
+            ? " Showing competitor digital products Abby found across other platforms."
+            : " Try refreshing, or check the Live Market Trends tab for genre intelligence."}
+        </p>
+      </div>
+
+      {competitors.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold text-foreground">Competitor Digital Products</p>
+          <div className="rounded-lg border border-border overflow-hidden divide-y divide-border/50">
+            {competitors.slice(0, 5).map((c, i) => (
+              <a
+                key={i}
+                href={c.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-start gap-3 px-3 py-2.5 hover:bg-muted/40 transition-colors group"
+              >
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-secondary/15 text-secondary shrink-0 mt-0.5">
+                  {c.platform}
+                </span>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-foreground truncate group-hover:text-secondary transition-colors">
+                    {c.title}
+                  </p>
+                  {c.snippet && (
+                    <p className="text-[10px] text-muted-foreground line-clamp-2 mt-0.5">{c.snippet}</p>
+                  )}
+                </div>
+                <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0 mt-1" />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {competitors.length === 0 && onRefresh && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" size="sm" onClick={() => onRefresh()} className="gap-1.5 text-xs">
+            <RefreshCw className="h-3 w-3" /> Try again
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1,68 +1,41 @@
-## Goal
+## Why the Competitive Scan is empty
 
-Flip the SmartProductCard color logic so the **category color** (teal / indigo / amber) signals **completion** ("Live"), and a **neutral color** signals work that hasn't been built yet. This way, when an entire hub is fully built, the grid reads as a unified teal / indigo / amber wall — which is what the user expects.
+The market-research edge function ran successfully but Amazon's anti-bot blocked the bestseller scrape for the "Religion & Spirituality › Spirituality › Personal Growth › Spiritual Healing" Kindle category.
 
-## Current Behavior (the problem)
+Edge function log (06:55:23Z):
+> Market research completed for "Be SUCKcessful" — 3 sources, **0 Amazon products**, 1 competitor products
 
-In `src/components/dashboard/SmartProductCard.tsx`:
+Because `amazonBestsellers.products.length === 0`, the `amazonBestsellers` field is set to `null` server-side. In `MarketSnapshot.tsx`:
+- The header + tab bar render (because `marketIntelligence` exists)
+- The **Competitive Scan** tab body renders only `<PriceDistribution>` and `<TopBestsellers>`, both gated on `hasBestsellers` → both render nothing
+- The **Live Market Trends** tab is also gated on `hasKeywords` (derived from Amazon data) → falls back to raw markdown only if `marketIntelligence` exists
 
-- **Published tiles** all render in **green** (success) — strip, badge, gradient, stat tiles. So even when Yield is 10/10 built, every tile is green, not amber.
-- **Not-built tiles** (recommended / available / in-progress) render in the **category color** (teal / indigo / amber).
+Result: a header with two empty tabs.
 
-The user wants the opposite: built = category color, not-built = something else.
+## Fix
 
-## New Behavior
+Two changes in `src/components/dashboard/book-hub/MarketSnapshot.tsx`:
 
-| State | Strip / Badge / Gradient | Action button |
-|---|---|---|
-| **published** (built) | **Category color** (teal / indigo / amber) + small ✅ Live tag for clarity | Outline "View on Website" in category color |
-| **recommended** | **Slate** (neutral cool gray) + glow + ⭐ badge | Solid slate "Build Now" |
-| **available** | Slate strip, plain card | Solid slate "Build This Product" |
-| **in-progress** | Slate + 🔨 badge + slate progress bar | Solid slate "Continue Building" |
-| **locked** | Muted (unchanged) | Outline upgrade |
-| **coming-soon** | Muted (unchanged) | n/a |
+### 1. Show a useful Competitive tab when Amazon scrape fails
 
-**Why slate**: It's outside the BP/BA/YR palette (teal/indigo/amber), reads as "pending / unbuilt", and works on light + dark backgrounds. It also keeps the green success color free for transient confirmations elsewhere (toasts, success modals) without conflicting with hub coloring.
+When `hasBestsellers` is false, render a fallback panel inside the Competitive tab that shows:
+- A short note: *"Amazon bestseller scrape was blocked for this niche category. Showing competitor digital products instead."*
+- The `competitorProducts` list (Gumroad / Udemy / Teachable links Abby found via Perplexity) — title + platform badge + external link.
+- If `competitorProducts` is also empty, show: *"Abby couldn't pull live competitor pricing for this sub-niche. Try refreshing or check the Live Market Trends tab for genre intelligence."* with a refresh button hooked to `useMarketResearch.refetch`.
 
-The earned-revenue stat tiles on built cards keep a soft success-green tint inside (so live revenue numbers still feel "earned"), but the **outer card chrome** (strip, border, badge, button) becomes the category color so the wall of built tiles reads as the right hub color.
+### 2. Improve the Live Market Trends fallback
 
-## Changes
+When `hasKeywords` is false but `marketIntelligence` exists, the current markdown dump is hard to read. Wrap it in the same styled container the keywords use, with the citations list (`marketCitations`) rendered as clickable source chips below.
 
-### File: `src/components/dashboard/SmartProductCard.tsx`
+### 3. Pass refetch into MarketSnapshot
 
-1. **Add a `pendingTokens` constant** (slate-based) mirroring the shape of `categoryCard` entries — strip, stripSoft, border, borderHover, glow, gradient, badgeBg/Text/Border, ctaSolid, ctaAvailable, ring.
+Update `BookHubOverview.tsx` (the only caller) to pass the `refetch` callback so the fallback's "Try again" button works.
 
-2. **Rewrite `buildStateConfig(state, cat)`**:
-   - `recommended` / `available` / `in-progress` → use `pendingTokens` instead of `categoryCard[cat]`.
-   - `published` → use `categoryCard[cat]` (currently uses success/green). Badge stays "✅ Live" but recolored to category palette; strip + gradient + border switch to category color.
-   - `locked` / `coming-soon` → unchanged (muted).
+## Files touched
 
-3. **CTA buttons**:
-   - `recommended` / `available` / `in-progress` buttons use `pendingTokens.ctaSolid` / `ctaAvailable` (slate).
-   - `published` "View on Website" button switches from generic outline to outline tinted with the category color (`border-{cat}/40 text-{cat} hover:bg-{cat}/5`).
+- `src/components/dashboard/book-hub/MarketSnapshot.tsx` — add fallbacks
+- `src/components/dashboard/book-hub/BookHubOverview.tsx` — pass `onRefresh` prop
 
-4. **Icon tile** (lines 252–256):
-   - Built (`published`) → `catTokens.iconBg` + `catTokens.iconText` (already category-colored — keep).
-   - Not built (recommended/available/in-progress) → switch to slate icon tile (`bg-slate-500/15 text-slate-600 dark:text-slate-300`).
+## Out of scope (separate improvement, not doing here)
 
-5. **Progress bar** (in-progress) → slate fill instead of category fill, since "in progress" is a not-yet-built state.
-
-6. **Stat tiles** (revenue / time / difficulty grid):
-   - `published` → keep the soft green tint inside (reads as "money earned"). No change.
-   - Others → keep `bg-muted/50`. No change.
-
-### No other files touched
-
-`categoryAccent.ts`, hub pages, headers, and the "Your Next Step" hero card all stay as-is — they already correctly use category colors at the hub level.
-
-## Visual outcome
-
-- **Yield Premium Revenue (10/10 built)**: a wall of amber tiles with amber strips, amber "Live" badges, and amber outline View buttons. Reads as a finished amber hub.
-- **Build Your Brand (7/9)**: 7 teal tiles + 2 slate tiles (the unbuilt Social Media + Webinars). Eye instantly tracks the 2 slate cards as "still to do".
-- **Build Your Authority (6/9)**: 6 indigo tiles + 3 slate tiles. The "Recommended Online Course" card is slate with a glow + ⭐ — clearly the next action, visually distinct from both the built indigo tiles and the plain slate available ones.
-
-## Out of scope
-
-- Changing hub headers / "Your Next Step" hero / progress dots (already category-colored correctly).
-- Touching `BuilderTheme.ts` or `categoryAccent.ts`.
-- Changing the success green used elsewhere in the app (toasts, banners).
+- Hardening the Amazon scrape itself (rotating user agents, alternate sources like Goodreads/Google Books) — that's a backend reliability sprint, not a UI fix. The current behavior of falling back to Perplexity intelligence is correct; the UI just needs to surface that data.
