@@ -1,8 +1,8 @@
 import {
   LayoutDashboard, User, BookOpen, Sparkles,
   ChevronLeft, ChevronRight, ExternalLink, PenLine, BookMarked,
-  Lock, Globe, BarChart3, Contact, DollarSign, Radio, Award, CreditCard, Package, Wallet,
-  BookHeart, ChevronDown, ChevronUp, MessageSquare, Megaphone, Settings, Filter, Library,
+  Lock, Globe, BarChart3, Contact, CreditCard, Wallet,
+  MessageSquare, Megaphone, Settings, Filter, Library,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,9 +11,6 @@ import type { DashboardSection } from "@/pages/AuthorDashboard";
 import logoIcon from "@/assets/logo-icon.webp";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 import { toast } from "@/hooks/use-toast";
-import BookChooserPopover from "./BookChooserPopover";
-import type { MyBook } from "@/hooks/useMyBooks";
-import type { PerBookStats } from "@/hooks/useAuthorStats";
 
 interface Props {
   activeSection: DashboardSection;
@@ -27,31 +24,10 @@ interface Props {
   hasBooks?: boolean;
   hasAnalysis?: boolean;
   hasMicrosite?: boolean;
-  buildUnlocked?: number;
-  buildAuthorityUnlocked?: number;
-  yieldUnlocked?: number;
   stripeConnected?: boolean;
   pendingReviewCount?: number;
-  buildAuthorityCategoryOpen?: boolean;
-  yieldCategoryOpen?: boolean;
-  /** Per-book stats when the user is inside a specific book context */
-  currentBook?: {
-    id: string;
-    title: string;
-    brand: number;
-    build: number;
-    yield: number;
-    total: number;
-  } | null;
-  /** Total number of books the author owns. Drives multi-book chooser logic. */
+  /** Total number of books the author owns. Drives the "add a book first" lock on My Business Plan. */
   bookCount?: number;
-  /** Full books list (used by the multi-book chooser). */
-  books?: MyBook[];
-  /** Per-book stats keyed by book id (used by the multi-book chooser). */
-  perBookStats?: Record<string, PerBookStats>;
-  /** Called when the user picks a book inside the chooser; should navigate to
-   * `<section>?bookId=<id>`. */
-  onPickBookForSection?: (section: DashboardSection, bookId: string) => void;
 }
 
 interface NavItem {
@@ -67,97 +43,21 @@ interface NavItem {
   notificationCount?: number;
 }
 
-// 5-minute TTL cached counter to avoid "0 built" flicker on hydration
-const CACHE_TTL_MS = 5 * 60 * 1000;
-function readCachedCount(key: string): number {
-  if (typeof window === "undefined") return 0;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return 0;
-    const parsed = JSON.parse(raw) as { value: number; ts: number };
-    if (Date.now() - parsed.ts > CACHE_TTL_MS) return 0;
-    return typeof parsed.value === "number" ? parsed.value : 0;
-  } catch {
-    return 0;
-  }
-}
-function writeCachedCount(key: string, value: number) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem(key, JSON.stringify({ value, ts: Date.now() }));
-  } catch {
-    /* ignore quota errors */
-  }
-}
-
 export default function DashboardSidebar({
   activeSection, onSectionChange, collapsed, onToggleCollapse,
-  isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false, tier = "free", hasBooks = true, hasAnalysis = true, hasMicrosite = true,
-  buildUnlocked: buildUnlockedProp = 0,
-  buildAuthorityUnlocked: buildAuthorityUnlockedProp = 0,
-  yieldUnlocked: yieldUnlockedProp = 0,
+  isPremium, isAdmin = false, isSuperAdmin: isSuperAdminProp = false,
+  tier = "free", hasBooks = true, hasAnalysis = true,
   stripeConnected = false, pendingReviewCount = 0,
-  buildAuthorityCategoryOpen = false, yieldCategoryOpen = false,
-  currentBook = null,
   bookCount = 0,
-  books = [],
-  perBookStats,
-  onPickBookForSection,
 }: Props) {
-
-  // Which section, if any, is currently asking the user "which book?".
-  const [chooserFor, setChooserFor] = useState<DashboardSection | null>(null);
-  const BOOK_SCOPED: DashboardSection[] = [
-    "revenue-streams" as DashboardSection,
-    "marketing-channels" as DashboardSection,
-    "authority-builders" as DashboardSection,
-    "review-products" as DashboardSection,
-  ];
-  const isBookScoped = (s: DashboardSection) => BOOK_SCOPED.includes(s);
-  const needsBookPick = (s: DashboardSection) =>
-    isBookScoped(s) && bookCount > 1 && !currentBook;
-  const noBooksYet = bookCount === 0;
-
-
-  // Hydrate from cache to prevent "0 built" flash, then update from live props
-  const [buildUnlocked, setBuildUnlocked] = useState(() =>
-    buildUnlockedProp > 0 ? buildUnlockedProp : readCachedCount("ab_bp_built_count")
-  );
-  const [buildAuthorityUnlocked, setBuildAuthorityUnlocked] = useState(() =>
-    buildAuthorityUnlockedProp > 0 ? buildAuthorityUnlockedProp : readCachedCount("ab_ba_built_count")
-  );
-  const [yieldUnlocked, setYieldUnlocked] = useState(() =>
-    yieldUnlockedProp > 0 ? yieldUnlockedProp : readCachedCount("ab_yr_built_count")
-  );
-
-  useEffect(() => {
-    if (buildUnlockedProp > 0) {
-      setBuildUnlocked(buildUnlockedProp);
-      writeCachedCount("ab_bp_built_count", buildUnlockedProp);
-    }
-  }, [buildUnlockedProp]);
-  useEffect(() => {
-    if (buildAuthorityUnlockedProp > 0) {
-      setBuildAuthorityUnlocked(buildAuthorityUnlockedProp);
-      writeCachedCount("ab_ba_built_count", buildAuthorityUnlockedProp);
-    }
-  }, [buildAuthorityUnlockedProp]);
-  useEffect(() => {
-    if (yieldUnlockedProp > 0) {
-      setYieldUnlocked(yieldUnlockedProp);
-      writeCachedCount("ab_yr_built_count", yieldUnlockedProp);
-    }
-  }, [yieldUnlockedProp]);
-
-  const bypassLocks = isPremium || isAdmin;
+  const bypassLocks = isPremium || isAdmin || isSuperAdminProp;
+  const noBooksYet = bookCount === 0 && !bypassLocks;
 
   const tierAccess = (required: "brand" | "build" | "yield") => {
     if (bypassLocks) return true;
     const order: string[] = ["free", "brand", "build", "yield"];
     return order.indexOf(tier) >= order.indexOf(required);
   };
-
-  const [businessExpanded, setBusinessExpanded] = useState(true);
 
   // Unread nudge count for Ask ABBY badge
   const [unreadNudges, setUnreadNudges] = useState(0);
@@ -204,91 +104,32 @@ export default function DashboardSidebar({
       subtitle: "Your AI Business Coach",
       tooltip: "Ask ABBY anything about your author business.",
       color: "text-secondary",
+      lockMessage: noBooksYet ? "Add a book first to unlock" : undefined,
       notificationCount: unreadNudges > 0 ? unreadNudges : undefined,
     },
   ];
 
-  // ── GET STARTED ──
-  const getStartedItems: NavItem[] = [
-    { id: "my-books", label: "My Books Hub", icon: BookOpen, notificationCount: pendingReviewCount },
+  // ── BUILD MY BUSINESS ──
+  // Only two entries: My Business Plan (author-level analysis) + My Books Hub (entry to all per-book builders).
+  const buildBusinessItems: NavItem[] = [
     {
-      id: "build-business", label: hasAnalysis ? "My Business Plan" : "Build My Business Plan", icon: Sparkles,
-      badge: !hasAnalysis ? "Start Here →" : undefined,
+      id: "build-business",
+      label: hasAnalysis ? "My Business Plan" : "Build My Business Plan",
+      icon: Sparkles,
+      subtitle: hasAnalysis ? "Your ABBY plan" : "Start with ABBY",
+      badge: !hasAnalysis && !noBooksYet ? "Start Here →" : undefined,
       color: !hasAnalysis ? "text-secondary" : undefined,
-    },
-  ];
-
-  // ── BUILD YOUR BUSINESS ──
-  const brandAccessible = hasAnalysis || bypassLocks;
-  const buildAccessible = isSuperAdminProp || (buildAuthorityCategoryOpen && tierAccess("build"));
-  const yieldAccessible = isSuperAdminProp || (yieldCategoryOpen && tierAccess("yield"));
-
-  // When the author has no books, every per-book builder is locked.
-  // When they have multiple books and no active context, we don't lock —
-  // we let the click open the BookChooserPopover instead.
-  const noBooksLock = noBooksYet ? "Add a book first to unlock" : undefined;
-  const pickBookSubtitle = (fallback: string, section: DashboardSection) =>
-    needsBookPick(section) ? "Pick a book →" : fallback;
-
-  const businessItems: NavItem[] = [
-    {
-      id: "revenue-streams", label: "Brand Products", icon: DollarSign,
-      subtitle: pickBookSubtitle("Create Your Products", "revenue-streams" as DashboardSection),
-      tooltip: "Turn your book into 9 digital products your audience can buy.",
-      color: "text-emerald-500",
-      badge: brandAccessible && currentBook ? `${currentBook.brand}/9 built` : undefined,
-      lockMessage: noBooksLock ?? (!brandAccessible
-        ? "Analyze a book first"
-        : !tierAccess("brand")
-        ? "Upgrade to Brand Plan ($49/mo)"
-        : undefined),
+      lockMessage: noBooksYet ? "Add a book first to unlock" : undefined,
     },
     {
-      id: "marketing-channels", label: "Build Authority", icon: Radio,
-      subtitle: pickBookSubtitle(
-        buildAccessible ? "Scale Your Audience"
-          : (isSuperAdminProp || buildAuthorityCategoryOpen) ? "Requires Build Plan" : "Coming Soon",
-        "marketing-channels" as DashboardSection
-      ),
-      tooltip: buildAccessible ? "Scale audience and recurring revenue"
-        : !tierAccess("build") ? "Upgrade to Build Plan ($99/mo) to unlock"
-        : "Build Authority is coming soon. Stay tuned!",
-      color: "text-violet-500",
-      badge: buildAccessible && currentBook ? `${currentBook.build}/9 built` : undefined,
-      lockMessage: noBooksLock ?? (!buildAccessible
-        ? (!tierAccess("build") && (isSuperAdminProp || buildAuthorityCategoryOpen)
-          ? "Upgrade to Build Plan ($99/mo)"
-          : (isSuperAdminProp || buildAuthorityCategoryOpen) ? undefined : "Build Authority is coming soon")
-        : undefined),
-    },
-    {
-      id: "authority-builders", label: "Yield Revenue", icon: Award,
-      subtitle: pickBookSubtitle(
-        yieldAccessible ? "Premium Services"
-          : (isSuperAdminProp || yieldCategoryOpen) ? "Requires Yield Plan" : "Coming Soon",
-        "authority-builders" as DashboardSection
-      ),
-      tooltip: yieldAccessible ? "Premium monetization services"
-        : !tierAccess("yield") ? "Upgrade to Yield Plan ($249/mo) to unlock"
-        : "Yield Revenue builders are coming soon. Stay tuned!",
-      color: "text-amber-500",
-      badge: yieldAccessible && currentBook ? `${currentBook.yield}/10 built` : undefined,
-      lockMessage: noBooksLock ?? (!yieldAccessible
-        ? (!tierAccess("yield") && (isSuperAdminProp || yieldCategoryOpen)
-          ? "Upgrade to Yield Plan ($249/mo)"
-          : (isSuperAdminProp || yieldCategoryOpen) ? undefined : "Yield Revenue builders are coming soon")
-        : undefined),
-    },
-    {
-      id: "review-products" as DashboardSection, label: "Review & Publish",
-      icon: Package,
-      subtitle: pickBookSubtitle("Approve & Go Live", "review-products" as DashboardSection),
-      tooltip: "Review AI-generated products and publish them to your microsite.",
+      id: "my-books",
+      label: "My Books Hub",
+      icon: BookOpen,
+      subtitle: "Pick a book to build",
+      tooltip: "Open a book to access its Brand, Build, Yield and Review & Publish tools.",
       notificationCount: pendingReviewCount,
-      lockMessage: noBooksLock,
     },
   ];
-
 
   // ── YOUR BRAND ──
   const brandItems: NavItem[] = [
@@ -341,11 +182,69 @@ export default function DashboardSidebar({
     },
   ];
 
-  // Sister platform links (AI Writing Studio, AI Publishing Studio) — now in REVENUE & TOOLS
   const sisterLinks = [
     { label: "AI Writing Studio", icon: PenLine, path: "/writing" },
     { label: "AI Publishing Studio", icon: BookMarked, path: "/publishing" },
   ];
+
+  const renderItem = (item: NavItem, idx: number) => {
+    const isLocked = !!item.lockMessage;
+    const isActive = activeSection === item.id && !isLocked;
+
+    const btn = (
+      <button
+        key={`${item.id}-${idx}`}
+        onClick={() => {
+          if (isLocked) {
+            toast({ title: "Locked", description: item.lockMessage });
+            return;
+          }
+          onSectionChange(item.id);
+        }}
+        className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
+          isActive
+            ? "bg-primary text-primary-foreground"
+            : isLocked
+            ? "text-muted-foreground/35 cursor-default"
+            : "text-foreground hover:bg-muted"
+        }`}
+        title={isLocked ? item.lockMessage : item.label}
+      >
+        <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
+        {!collapsed && (
+          <>
+            <span className="flex-1 text-left whitespace-normal leading-tight">
+              <span className="block">{item.label}</span>
+              {item.subtitle && (
+                <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
+              )}
+            </span>
+            {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
+            {item.badge && !isLocked && (
+              <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
+            )}
+            {(item.notificationCount ?? 0) > 0 && !isLocked && (
+              <span className="inline-flex items-center justify-center rounded-full bg-secondary text-secondary-foreground w-4 h-4 text-[9px] font-bold">
+                {item.notificationCount}
+              </span>
+            )}
+          </>
+        )}
+      </button>
+    );
+
+    if (item.tooltip || collapsed) {
+      return (
+        <Tooltip key={`${item.id}-${idx}`}>
+          <TooltipTrigger asChild>{btn}</TooltipTrigger>
+          <TooltipContent side="right" className="max-w-[220px] text-xs">
+            {collapsed ? item.label : item.tooltip}
+          </TooltipContent>
+        </Tooltip>
+      );
+    }
+    return btn;
+  };
 
   const renderSection = (title: string, items: NavItem[]) => (
     <div className="space-y-0.5">
@@ -354,184 +253,9 @@ export default function DashboardSidebar({
           {title}
         </p>
       )}
-      {items.filter(i => !i.hidden).map((item, idx) => {
-        const isLocked = !!item.lockMessage;
-        const isActive = activeSection === item.id && !isLocked;
-
-        const btn = (
-          <button
-            key={`${item.id}-${idx}`}
-            onClick={() => {
-              if (isLocked) {
-                toast({ title: "Locked", description: item.lockMessage });
-                return;
-              }
-              onSectionChange(item.id);
-            }}
-            className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
-              isActive
-                ? "bg-primary text-primary-foreground"
-                : isLocked
-                ? "text-muted-foreground/35 cursor-default"
-                : "text-foreground hover:bg-muted"
-            }`}
-            title={isLocked ? item.lockMessage : item.label}
-          >
-            <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
-            {!collapsed && (
-              <>
-                <span className="flex-1 text-left whitespace-normal leading-tight">
-                  <span className="block">{item.label}</span>
-                  {item.subtitle && (
-                    <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
-                  )}
-                </span>
-                {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
-                {item.badge && !isLocked && (
-                  <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
-                )}
-                {(item.notificationCount ?? 0) > 0 && !isLocked && (
-                  <span className="inline-flex items-center justify-center rounded-full bg-secondary text-secondary-foreground w-4 h-4 text-[9px] font-bold">
-                    {item.notificationCount}
-                  </span>
-                )}
-              </>
-            )}
-          </button>
-        );
-
-        if (item.tooltip || collapsed) {
-          return (
-            <Tooltip key={`${item.id}-${idx}`}>
-              <TooltipTrigger asChild>{btn}</TooltipTrigger>
-              <TooltipContent side="right" className="max-w-[220px] text-xs">
-                {collapsed ? item.label : item.tooltip}
-              </TooltipContent>
-            </Tooltip>
-          );
-        }
-        return btn;
-      })}
+      {items.filter(i => !i.hidden).map((item, idx) => renderItem(item, idx))}
     </div>
   );
-
-  const renderCollapsibleBusinessSection = () => {
-    const shouldCollapse = !hasAnalysis && !bypassLocks && buildUnlocked === 0 && buildAuthorityUnlocked === 0 && yieldUnlocked === 0;
-
-    return (
-      <div className="space-y-0.5">
-        {!collapsed && (
-          <button
-            onClick={() => setBusinessExpanded(!businessExpanded)}
-            className="flex items-center justify-between w-full px-3 mb-1.5"
-          >
-            <p className="text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
-              Build Your Business
-            </p>
-            <div className="flex items-center gap-1">
-              {shouldCollapse && !businessExpanded && (
-                <span className="text-[8px] text-muted-foreground/30 italic">Complete analysis first</span>
-              )}
-              {businessExpanded ? (
-                <ChevronUp className="h-3 w-3 text-muted-foreground/40" />
-              ) : (
-                <ChevronDown className="h-3 w-3 text-muted-foreground/40" />
-              )}
-            </div>
-          </button>
-        )}
-        {/* Current book pill — only shown inside a book's context */}
-        {!collapsed && currentBook && (businessExpanded) && (
-          <button
-            onClick={() => onSectionChange("my-books" as DashboardSection)}
-            className="mx-2 mb-1.5 flex w-[calc(100%-1rem)] items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-2.5 py-1.5 text-left transition-colors hover:bg-muted"
-            title="Switch book"
-          >
-            <span className="flex items-center gap-1.5 min-w-0">
-              <BookOpen className="h-3 w-3 shrink-0 text-muted-foreground" />
-              <span className="truncate text-[11px] font-semibold text-foreground">{currentBook.title}</span>
-            </span>
-            <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700">
-              {currentBook.total}/28
-            </span>
-          </button>
-        )}
-        {(businessExpanded || collapsed) && businessItems.filter(i => !i.hidden).map((item, idx) => {
-          const isLocked = !!item.lockMessage;
-          const isActive = activeSection === item.id && !isLocked;
-          const needsPick = !isLocked && needsBookPick(item.id);
-
-          const btn = (
-            <button
-              key={`${item.id}-${idx}`}
-              onClick={() => {
-                if (isLocked) {
-                  toast({ title: "Locked", description: item.lockMessage });
-                  return;
-                }
-                if (needsPick) {
-                  setChooserFor(item.id);
-                  return;
-                }
-                onSectionChange(item.id);
-              }}
-              className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : isLocked
-                  ? "text-muted-foreground/35 cursor-default"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
-              }`}
-              title={isLocked ? item.lockMessage : item.label}
-            >
-              <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
-              {!collapsed && (
-                <>
-                  <span className="flex-1 text-left whitespace-normal leading-tight">
-                    <span className="block">{item.label}</span>
-                    {item.subtitle && (
-                      <span className={`block text-[10px] font-normal leading-tight ${needsPick ? "text-secondary" : "text-muted-foreground/50"}`}>{item.subtitle}</span>
-                    )}
-                  </span>
-                  {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
-                  {item.badge && !isLocked && (
-                    <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
-                  )}
-                </>
-              )}
-            </button>
-          );
-
-          // Wrap with chooser popover when this item needs a book pick.
-          const wrapped = needsPick ? (
-            <BookChooserPopover
-              key={`${item.id}-${idx}-chooser`}
-              open={chooserFor === item.id}
-              onOpenChange={(o) => setChooserFor(o ? item.id : null)}
-              books={books}
-              perBook={perBookStats}
-              destinationLabel={item.label}
-              onPick={(bookId) => onPickBookForSection?.(item.id, bookId)}
-            >
-              {btn}
-            </BookChooserPopover>
-          ) : btn;
-
-          if (item.tooltip || collapsed) {
-            return (
-              <Tooltip key={`${item.id}-${idx}`}>
-                <TooltipTrigger asChild>{wrapped}</TooltipTrigger>
-                <TooltipContent side="right" className="max-w-[220px] text-xs">
-                  {collapsed ? item.label : item.tooltip}
-                </TooltipContent>
-              </Tooltip>
-            );
-          }
-          return wrapped;
-        })}
-      </div>
-    );
-  };
 
   return (
     <aside
@@ -555,70 +279,17 @@ export default function DashboardSidebar({
       <nav className="flex-1 overflow-y-auto py-3 space-y-4 px-2">
         <TooltipProvider delayDuration={300}>
           {renderSection("Home", homeItems)}
-          {renderSection("Get Started", getStartedItems)}
-          {renderCollapsibleBusinessSection()}
+          {renderSection("Build My Business", buildBusinessItems)}
           {renderSection("Your Brand", brandItems)}
 
-          {/* REVENUE & TOOLS — includes Marketing Hub, Revenue Dashboard, Stripe, Payouts, and sister links */}
+          {/* REVENUE & TOOLS */}
           <div className="space-y-0.5">
             {!collapsed && (
               <p className="px-3 mb-1.5 text-[9px] font-bold uppercase tracking-[0.15em] text-muted-foreground/40">
                 Revenue &amp; Tools
               </p>
             )}
-            {revenueToolsItems.filter(i => !i.hidden).map((item, idx) => {
-              const isLocked = !!item.lockMessage;
-              const isActive = activeSection === item.id && !isLocked;
-
-              const btn = (
-                <button
-                  key={`${item.id}-${idx}`}
-                  onClick={() => {
-                    if (isLocked) {
-                      toast({ title: "Locked", description: item.lockMessage });
-                      return;
-                    }
-                    onSectionChange(item.id);
-                  }}
-                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : isLocked
-                      ? "text-muted-foreground/35 cursor-default"
-                      : "text-foreground hover:bg-muted"
-                  }`}
-                  title={isLocked ? item.lockMessage : item.label}
-                >
-                  <item.icon className={`h-4 w-4 shrink-0 ${!isActive && item.color ? item.color : ""}`} />
-                  {!collapsed && (
-                    <>
-                      <span className="flex-1 text-left whitespace-normal leading-tight">
-                        <span className="block">{item.label}</span>
-                        {item.subtitle && (
-                          <span className="block text-[10px] font-normal text-muted-foreground/50 leading-tight">{item.subtitle}</span>
-                        )}
-                      </span>
-                      {isLocked && <Lock className="h-3 w-3 text-muted-foreground/30" />}
-                      {item.badge && !isLocked && (
-                        <span className="text-[10px] text-muted-foreground/60 font-normal">{item.badge}</span>
-                      )}
-                    </>
-                  )}
-                </button>
-              );
-
-              if (item.tooltip || collapsed) {
-                return (
-                  <Tooltip key={`${item.id}-${idx}`}>
-                    <TooltipTrigger asChild>{btn}</TooltipTrigger>
-                    <TooltipContent side="right" className="max-w-[220px] text-xs">
-                      {collapsed ? item.label : item.tooltip}
-                    </TooltipContent>
-                  </Tooltip>
-                );
-              }
-              return btn;
-            })}
+            {revenueToolsItems.filter(i => !i.hidden).map((item, idx) => renderItem(item, idx))}
 
             {/* AI Writing Studio & AI Publishing Studio */}
             {!collapsed && sisterLinks.map((link) => (
