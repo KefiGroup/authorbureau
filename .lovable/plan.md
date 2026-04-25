@@ -1,68 +1,46 @@
-## What's actually happening
+## Problems
 
-Stripe confirms `pl@paulineteo.com` has a real, **active Yield subscription** (`sub_1TKrlPCk4r0emyO8EEMKpuW3`, price `price_1TGHUFCk4r0emyO87YrgqXJH` → product `prod_UB6BVLnks6JWoJ`). So the data source is correct — the bug is purely in how the frontend reads and caches it.
+Two issues with the Manage Plan flow for `pl@paulineteo.com`:
 
-The browser console at the moment of the bug shows:
-
+### 1. Billing Portal returns an error
+Edge function logs confirm:
 ```
-warning: @supabase/gotrue-js: Lock "lock:authorsbureau-shared-auth"
-acquisition timed out after 10000ms.
+[customer-portal] Error: Could not resolve user email from token
 ```
+The `customer-portal` function tries (a) local Cloud auth, (b) shared backend auth, (c) raw JWT decode — and all three fail for this user's session token. This user authenticates against the shared backend (`wuftdpnekscrsghqtssd.supabase.co`), and the JWT decode fallback isn't returning an email either.
 
-That's the smoking gun. Here is the chain that flips her badge to "Free":
+The real reason: the recent `get-active-token.ts` change introduced a `localStorage` fallback that can return a token from the **wrong** Supabase project (the shared backend session) which `supabase.functions.invoke()` then sends to the local Cloud function. The local `auth.getUser` rejects it (different signing key), the shared lookup also fails because the token may already be expired or only the access_token portion is present, and the JWT payload doesn't contain `email` (Supabase JWTs put email under `email` only when not stripped — the shared backend JWT here isn't carrying it the way we expect).
 
-1. `useAuth.checkSubscription` runs every 60 s and on every navigation.
-2. It calls `getActiveToken()` → `sharedSupabase.auth.getSession()`.
-3. When the gotrue Web Lock is contended (multiple tabs / fast nav / portal popup), `getSession()` hangs and times out after 10 s with no token returned.
-4. `getActiveToken()` returns `null` → `checkSubscription` throws → the catch block writes:
-   ```
-   { subscribed: false, productId: null, checked: true }
-   ```
-   This **wipes** the previously-known "yield" state and the header re-renders as **Free**.
-5. On the next interval (or when she opens the Manage Plan / billing portal popup, which steals the lock again) the same thing happens, so she sees the badge bouncing between Yield and Free.
+### 2. Manage Plan link highlights "Author Profile" in sidebar
+`/account-settings?tab=billing` is mapped in `DashboardLayout.deriveActiveSection` to the `"profile"` sidebar item — which is rendered as **"Author Profile"** in the sidebar. So clicking "Manage plan" lands the user on Billing, but the left nav shows Author Profile selected — visually wrong and confusing.
 
-The same catch path also fires whenever `check-subscription` returns a transient HTTP error, even though Stripe still has the subscription.
+## Plan
 
-So nothing about the tier is hardcoded — but the recovery path is too aggressive. It treats *any* transient failure as "user downgraded to Free", instead of keeping the last-known good tier.
+### Fix A — Resolve email reliably in `customer-portal`
+Make `resolveUserEmail` robust:
+1. Always try local Cloud `auth.getUser(token)` first.
+2. If that fails, try shared backend `auth.getUser(token)`.
+3. **NEW**: If both fail, look up the email by `user_id` claim from the JWT against `auth.users` in the shared backend via service role (we already query users by id in other shared-backend functions).
+4. Add detailed logging at each step (token prefix, decoded sub, decoded email presence) so future failures are diagnosable.
+5. Return a clear, actionable error message to the client (e.g. "Session expired — please sign out and back in") instead of the generic 500.
 
-## Fix
+Also harden the frontend `handleManageBilling`:
+- Pass the resolved access token explicitly via `headers: { Authorization: 'Bearer ${token}' }` using `getActiveToken()` (the same helper used elsewhere) so the function never receives a stale/wrong token from the SDK lock fallback.
+- Surface the edge function's `error` body in the toast (currently shows only the SDK's generic "non-2xx" message).
 
-### 1. `src/hooks/useAuth.tsx` — never overwrite a known tier on transient failure
-- In the `catch` of `checkSubscription`, **do not reset** `productId` to `null`. Keep the previously-known `productId` and just mark `loading: false`. This means a single failed poll can never demote the user from Yield to Free.
-- Add a `localStorage` cache of `{ productId, subscriptionEnd, checkedAt }` keyed by `user.id`. On mount, hydrate the initial subscription state from this cache (5-minute TTL) so the header shows the correct tier instantly instead of "Free" while the first network call is in flight.
-- After a *successful* `check-subscription` response, write the cache.
-- Keep the 60 s poll, but **only update state when the response is successful** — failures become silent.
+### Fix B — Highlight a dedicated "Account" item for billing
+Two options, pick simplest:
+- Add a new sidebar item ID `"account"` for `/account-settings*`, distinct from the profile-editor "Author Profile" item, OR
+- Add an explicit override: when `pathname.startsWith("/account-settings")`, return a new section that maps to a distinct sidebar entry labeled "Account & Billing".
 
-### 2. `src/lib/get-active-token.ts` — survive gotrue lock timeouts
-- Wrap `sharedSupabase.auth.getSession()` in a `Promise.race` with a 2-second timeout. If it times out, fall back to reading the cached session JSON directly from `localStorage` (`authorsbureau-shared-auth`) and decoding the `access_token` from it. This avoids waiting 10 s for the lock and lets `check-subscription` fire with the real token.
+Recommended: introduce `"account"` section, render a small "Account" entry under the user menu area (already exists in `DashboardHeader`), and stop forcing any sidebar item to highlight when on `/account-settings`. This avoids cluttering the main nav and matches user expectation that billing lives in the user/account dropdown, not in the sidebar.
 
-### 3. `supabase/functions/check-subscription/index.ts` — distinguish "no Stripe customer" from "no active sub"
-- Today, when Stripe returns no active subscription, the function responds with `{ subscribed: false, product_id: null }`, which the client interprets as Free. Add a defensive secondary lookup: if no `active` sub is found, also check for `trialing` and `past_due` so a brief webhook lag or failed renewal doesn't downgrade her.
-- Also include `tier` in the JSON response so the client doesn't have to re-derive it from the product ID — useful for logs/debugging only; the client still uses the product ID as the source of truth.
+### Files to change
+- `supabase/functions/customer-portal/index.ts` — robust email resolution + better errors, redeploy.
+- `src/pages/AccountSettings.tsx` — pass explicit Authorization header, surface edge error body.
+- `src/components/dashboard/DashboardLayout.tsx` — change `/account-settings` mapping so the Author Profile item no longer lights up.
 
-### 4. Customer Portal popup hand-off — don't steal the auth lock
-- `src/pages/AccountSettings.tsx` `handleManageBilling` invokes the edge function while a popup window is being opened. While the new tab is loading, the parent's gotrue lock is briefly contended, which is what causes the badge to flip mid-click. Switch to opening the popup **after** the function returns successfully (we already have the URL), and use `window.open(url, "_blank")` only once. This keeps the parent stable.
-
-### 5. Sanity audit — confirm no hardcoded downgrade paths
-Searched the codebase — the only place that ever forces tier to "free" is the failure branch in `checkSubscription`. Superadmin override is the only hardcoded *upgrade* (and her email is not in that list, which is correct — she is on a real paid Yield plan, not a comp). No component writes `subscription_tier = 'free'` to the DB on the client.
-
-## Files to edit
-
-- `src/hooks/useAuth.tsx` — preserve last-known tier on failure, add local cache + hydration
-- `src/lib/get-active-token.ts` — add 2 s race + cached-session fallback
-- `supabase/functions/check-subscription/index.ts` — include `trialing`/`past_due` in the active-sub check, return `tier` field
-- `src/pages/AccountSettings.tsx` — open billing-portal popup after invoke resolves, not before
-
-## What this does NOT change
-
-- No DB schema changes.
-- No Stripe configuration changes (her subscription is healthy on Stripe's side).
-- No pricing, plan labels, or routing changes.
-- The 60 s background refresh still runs; it just stops being able to demote a user on a transient blip.
-
-## How to verify after deploy
-
-1. Sign in as `pl@paulineteo.com`. Header should show **Yield** within < 500 ms (from cache) and stay there.
-2. Open Account Settings → Billing → Open Billing Portal. The popup should open in a new tab and the header should remain **Yield** in the original tab — no flicker to Free.
-3. Throttle the network in DevTools to "Slow 3G" and reload `/dashboard` — header should still show **Yield** immediately from cache, then re-confirm silently in the background.
-4. Open two tabs of the dashboard at once. The gotrue lock will be contended; the badge in both tabs must remain **Yield** (previously this is when it would flip).
+### Verification
+1. Call deployed `customer-portal` with the user's session via curl to confirm a valid portal URL is returned.
+2. Click "Manage plan" from Book Hub → lands on `/account-settings?tab=billing`, sidebar no longer mis-highlights Author Profile.
+3. Click "Open Billing Portal" → Stripe portal opens in a new tab without error toast.
