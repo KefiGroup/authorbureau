@@ -3,13 +3,14 @@ import { CheckCircle2, Lock, ArrowRight, Clock, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getStudioPath } from "@/config/abbyFrameworkConfig";
 import type { NodeWithProgress, NodeStatus } from "@/hooks/useBookNodeProgress";
+import type { AccentClasses } from "./categoryAccent";
 
 interface Props {
   nodes: NodeWithProgress[];
   bookId: string;
   bookTitle: string;
   highlightNodeId?: string | null;
-  accentClass: string; // e.g. "builder-brand"
+  accent: AccentClasses;
   onUpgrade?: () => void;
   onNavigateSection?: (section: string) => void;
 }
@@ -22,23 +23,18 @@ const stateMeta: Record<NodeStatus, { label: string; pillClass: string; cta: str
   "coming-soon":{ label: "Coming Soon", pillClass: "bg-muted text-muted-foreground border-border",       cta: "Notify Me" },
 };
 
-export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNodeId, accentClass, onUpgrade, onNavigateSection }: Props) {
+export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNodeId, accent, onUpgrade, onNavigateSection }: Props) {
   const navigate = useNavigate();
 
   const handleClick = (n: NodeWithProgress) => {
     if (n.state === "locked") { onUpgrade?.(); return; }
     if (n.state === "coming-soon") return;
     const titleParam = bookTitle ? `&bookTitle=${encodeURIComponent(bookTitle)}` : "";
-    if (n.navigateTo && onNavigateSection && !getStudioPath(n.id, bookId, titleParam)) {
-      onNavigateSection(n.navigateTo);
-      return;
-    }
     const path = getStudioPath(n.id, bookId, titleParam);
     if (path) navigate(path);
     else if (n.navigateTo && onNavigateSection) onNavigateSection(n.navigateTo);
   };
 
-  // group by subCategory while preserving order
   const groups: { name: string; nodes: NodeWithProgress[] }[] = [];
   for (const n of nodes) {
     const sub = n.subCategory || "Products";
@@ -51,10 +47,10 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
     <div className="space-y-6">
       {groups.map((group) => (
         <div key={group.name}>
-          <div className={`flex items-center gap-2 mb-3`}>
-            <div className={`h-px flex-1 bg-${accentClass}/20`} />
-            <span className={`text-[10px] font-bold uppercase tracking-[0.2em] text-${accentClass}`}>{group.name}</span>
-            <div className={`h-px flex-1 bg-${accentClass}/20`} />
+          <div className="flex items-center gap-2 mb-3">
+            <div className={`h-px flex-1 ${accent.divider}`} />
+            <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${accent.text}`}>{group.name}</span>
+            <div className={`h-px flex-1 ${accent.divider}`} />
           </div>
           <ol className="space-y-2">
             {group.nodes.map((n) => {
@@ -67,7 +63,7 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                   key={n.id}
                   className={`group relative flex items-center gap-3 rounded-xl border p-3 transition-all ${
                     isHighlight
-                      ? `border-${accentClass} bg-${accentClass}/5 shadow-sm ring-1 ring-${accentClass}/30`
+                      ? `${accent.border} ${accent.bgVeryLight} shadow-sm ring-1 ${accent.ring}`
                       : n.state === "completed"
                         ? "border-emerald-200 bg-emerald-50/40"
                         : n.state === "in-progress"
@@ -78,11 +74,10 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                   }`}
                 >
                   {isHighlight && (
-                    <span className={`absolute -left-px top-3 bottom-3 w-1 rounded-full bg-${accentClass}`} />
+                    <span className={`absolute -left-px top-3 bottom-3 w-1 rounded-full ${accent.bg}`} />
                   )}
-                  {/* Sequence + code */}
                   <div className="flex flex-col items-center justify-center w-12 shrink-0">
-                    <span className={`text-[10px] font-mono font-bold ${isHighlight ? `text-${accentClass}` : "text-muted-foreground"}`}>
+                    <span className={`text-[10px] font-mono font-bold ${isHighlight ? accent.text : "text-muted-foreground"}`}>
                       {n.code}
                     </span>
                     <span
@@ -92,7 +87,7 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                           : n.state === "in-progress"
                             ? "bg-amber-500 text-white"
                             : isHighlight
-                              ? `bg-${accentClass} text-white`
+                              ? `${accent.bg} text-white`
                               : "bg-muted text-muted-foreground"
                       }`}
                     >
@@ -100,17 +95,15 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                     </span>
                   </div>
 
-                  {/* Icon */}
                   <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
                     n.state === "completed" ? "bg-emerald-100 text-emerald-700" :
-                    isHighlight ? `bg-${accentClass}/15 text-${accentClass}` :
+                    isHighlight ? `${accent.bgSoft} ${accent.text}` :
                     n.state === "locked" || n.state === "coming-soon" ? "bg-muted text-muted-foreground" :
                     "bg-secondary/10 text-foreground/70"
                   }`}>
                     <Icon className="h-4 w-4" />
                   </div>
 
-                  {/* Title + status */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-semibold text-foreground truncate">{n.label}</span>
@@ -118,7 +111,7 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                         {meta.label}
                       </span>
                       {isHighlight && (
-                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-${accentClass}`}>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider ${accent.text}`}>
                           <Sparkles className="h-3 w-3" /> Next
                         </span>
                       )}
@@ -126,7 +119,6 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                     <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{n.description}</p>
                   </div>
 
-                  {/* CTA */}
                   <div className="shrink-0">
                     {n.state === "locked" ? (
                       <Button size="sm" variant="outline" className="text-xs h-8 gap-1" onClick={() => handleClick(n)}>
@@ -141,7 +133,7 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                         size="sm"
                         variant={isHighlight ? "default" : "outline"}
                         className={`text-xs h-8 gap-1 ${
-                          isHighlight ? `bg-${accentClass} text-white hover:bg-${accentClass}/90 border-transparent` :
+                          isHighlight ? accent.buttonBg :
                           n.state === "completed" ? "text-emerald-700 border-emerald-300 hover:bg-emerald-50" :
                           n.state === "in-progress" ? "text-amber-700 border-amber-300 hover:bg-amber-50" :
                           ""

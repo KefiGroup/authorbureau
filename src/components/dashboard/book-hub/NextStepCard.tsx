@@ -3,24 +3,25 @@ import { ArrowRight, Sparkles, Lock, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getStudioPath } from "@/config/abbyFrameworkConfig";
 import type { NodeWithProgress } from "@/hooks/useBookNodeProgress";
+import type { AccentClasses } from "./categoryAccent";
 
 interface Props {
   node: NodeWithProgress | null;
   bookId: string;
   bookTitle: string;
-  accentClass: string; // builder-brand | builder-bridge | builder-yield
+  accent: AccentClasses;
   onUpgrade?: () => void;
   onNavigateSection?: (section: string) => void;
   emptyMessage?: string;
 }
 
-export default function NextStepCard({ node, bookId, bookTitle, accentClass, onUpgrade, onNavigateSection, emptyMessage }: Props) {
+export default function NextStepCard({ node, bookId, bookTitle, accent, onUpgrade, onNavigateSection, emptyMessage }: Props) {
   const navigate = useNavigate();
 
   if (!node) {
     return (
       <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50/60 p-6 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
           <CheckCircle2 className="h-6 w-6" />
         </div>
         <div>
@@ -44,15 +45,15 @@ export default function NextStepCard({ node, bookId, bookTitle, accentClass, onU
   const ctaLabel = node.state === "in-progress" ? "Continue Building" : isLocked ? `Unlock ${node.tierRequired}` : "Build Now";
 
   return (
-    <div className={`rounded-2xl border-2 border-${accentClass}/40 bg-gradient-to-br from-${accentClass}/10 via-${accentClass}/5 to-transparent p-5 sm:p-6`}>
+    <div className={`rounded-2xl border-2 ${accent.borderSoft} ${accent.gradientCard} p-5 sm:p-6`}>
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles className={`h-3.5 w-3.5 text-${accentClass}`} />
-        <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-${accentClass}`}>
+        <Sparkles className={`h-3.5 w-3.5 ${accent.text}`} />
+        <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${accent.text}`}>
           Your Next Step · {node.code}
         </span>
       </div>
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className={`w-14 h-14 rounded-2xl bg-${accentClass} text-white flex items-center justify-center shadow-md shrink-0`}>
+        <div className={`w-14 h-14 rounded-2xl ${accent.bg} text-white flex items-center justify-center shadow-md shrink-0`}>
           <Icon className="h-7 w-7" />
         </div>
         <div className="flex-1 min-w-0">
@@ -61,7 +62,7 @@ export default function NextStepCard({ node, bookId, bookTitle, accentClass, onU
         </div>
         <Button
           size="lg"
-          className={`bg-${accentClass} text-white hover:bg-${accentClass}/90 gap-2 shrink-0`}
+          className={`${accent.buttonBg} gap-2 shrink-0`}
           onClick={handleClick}
         >
           {isLocked && <Lock className="h-4 w-4" />}
