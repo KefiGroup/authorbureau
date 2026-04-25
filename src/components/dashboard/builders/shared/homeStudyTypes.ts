@@ -1,4 +1,4 @@
-import type { BaseBuilderStepProps } from "../shared/builder-types";
+import type { BaseBuilderStepProps } from "./builder-types";
 
 export interface HomeStudyStepProps extends BaseBuilderStepProps {
   onStartGeneration?: () => void;
