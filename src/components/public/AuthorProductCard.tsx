@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ExternalLink, Headphones, Mic, Newspaper, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductCTA from "@/components/commerce/ProductCTA";
 import type { ThemeVars } from "@/pages/author-site/types";
