@@ -1,30 +1,49 @@
-# Make the newly-generated funnel impossible to miss
+# Fix: New funnels invisible + cards don't show what ABBY actually designed
 
-Right now ABBY says "Funnel generated!" but the new card is silently appended to the bottom of the list. If a filter is active or the list is long, the author can't tell what happened or where it went.
+## What's actually happening
 
-The `generate-funnel` edge function already returns `{ success, funnel: { id, slug, title, ... }, archetype }`, so all the data we need is already there — the frontend just isn't using it.
+Database shows **3 funnels exist** for this author, but the UI shows only 1 ("All · 1") and the suggestion list still offers "Email Marketing" and "Podcast" — meaning the freshly-generated funnels are not present in the React state.
+
+Two distinct problems:
+
+### Problem A — New funnel never reaches the UI
+
+After `supabase.functions.invoke("generate-funnel", ...)` returns, we call `await loadFunnels(authorId)` to re-fetch. This is racy / sometimes returns a stale result and the new card silently never appears. The toast says "ready below" but there's nothing to see.
+
+### Problem B — Cards don't show the actual funnel design
+
+The current card displays: title, badges, 4 stat boxes, URL, action buttons. **It never shows the headline, subheadline, or CTA copy that ABBY just wrote.** That's why the author legitimately asks "is there really a funnel?" — visually nothing looks "designed."
 
 ## Fix in `src/components/dashboard/FunnelsHub.tsx`
 
-1. **Capture the response** from `supabase.functions.invoke("generate-funnel", ...)` instead of discarding it.
+### A. Optimistic insert (don't trust the re-query alone)
 
-2. **Richer toast** with the actual funnel title and an "Open" action button:
-   - Title: `Funnel created: <title>`
-   - Description: "Scroll down to preview, copy the link, or edit the copy."
-   - Action: an "Open" button that launches the live URL in a new tab.
+In `generateForNode`, when the edge function returns `data.funnel`, immediately prepend it to `funnels` state with `setFunnels((prev) => [data.funnel, ...prev.filter((f) => f.id !== data.funnel.id)])`. Then still call `loadFunnels` in the background to reconcile. The new card appears instantly.
 
-3. **Auto-reset the filter** to `"all"` after generation so the new card is never hidden by an active filter.
+Same for `regenerate`: replace the existing row in state with the returned funnel before the re-query.
 
-4. **Highlight + scroll the new card into view:**
-   - Add `highlightId` state and a `cardRefs` ref map.
-   - Set `highlightId` to the new funnel's id.
-   - Smooth-scroll its card into view after the next render.
-   - Apply a temporary ring (`ring-2 ring-primary ring-offset-2`) plus a soft shadow on the highlighted card; clear it after ~4 seconds.
+### B. Surface the actual generated copy in the card
 
-5. **Same treatment for regeneration** (`regenerate()`) — flash the same card so the author sees the refreshed copy land.
+Restructure each funnel card so the author can immediately see what was designed:
+
+- **Hero strip at top of card** with `f.background_color` + `f.accent_color`:
+  - The generated `headline` in large type
+  - The `subheadline` in smaller text
+  - The `cta_text` rendered as a styled pill (visual preview of the button)
+- Below the hero, keep: badges row, stats grid, URL, action buttons.
+- This turns the card from an info row into a **visual mini-preview** of the designed funnel — the author sees the copy ABBY wrote without having to click "View."
+
+### C. Prominent post-generation banner
+
+When `highlightId` is set, render a sticky banner at the top of the funnel grid:
+"✨ Just created: <Title> — [Open] [Edit copy]" so even if the user doesn't scroll, they see it.
+
+### D. Better empty / loading feedback
+
+If `loadFunnels` returns and the just-generated funnel id is not in the result (race), trust the optimistic insert and log a warning rather than letting the row vanish.
 
 ## Files
 
-- `src/components/dashboard/FunnelsHub.tsx` — wire response data, toast action, scroll-and-highlight, attach refs to each funnel card, conditional ring class.
+- `src/components/dashboard/FunnelsHub.tsx` — optimistic state updates in `generateForNode` and `regenerate`, restructured funnel card with hero preview, sticky "just created" banner.
 
-No edge function changes needed — the response already includes everything.
+No edge function changes (it already returns the full funnel object).
