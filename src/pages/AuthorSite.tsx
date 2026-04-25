@@ -141,7 +141,7 @@ export default function AuthorSite() {
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("author_nodes").select("id, node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url, delivery_url, price_usd, currency, book_id").eq("author_id", profile.id).eq("status", "live"),
       supabase.from("author_testimonials").select("id, name, role, quote, avatar_url").eq("author_id", profile.user_id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
-      supabase.from("author_context").select("key_frameworks, unique_insights").eq("author_id", profile.id).maybeSingle(),
+      supabase.from("author_context").select("key_frameworks, unique_insights, book_id").eq("author_id", profile.id).maybeSingle(),
     ]);
 
     const booksPrimary = (booksRes.data || []) as Record<string, unknown>[];
@@ -171,8 +171,17 @@ export default function AuthorSite() {
     setLiveNodes((nodesRes.data || []) as unknown as LiveNode[]);
     setTestimonials((testimonialsRes.data || []) as unknown as Testimonial[]);
 
-    // Build "What's inside" highlights from author_context (frameworks/insights) with fallback to book description bullets
+    // Build "What's inside" highlights anchored to the author's curated lead
+    // book (author_context.book_id) — never to whichever book happens to sort
+    // first by created_at. Falls back to the first enriched book only when
+    // there's no author_context row.
     const ctx = (contextRes as any)?.data;
+    const preferredBookId = (ctx?.book_id as string | undefined) || null;
+    const sourceBook =
+      (preferredBookId && enriched.find(b => b.id === preferredBookId)) ||
+      enriched[0] ||
+      null;
+
     let highlights: string[] = [];
     if (ctx) {
       const frameworks = Array.isArray(ctx.key_frameworks) ? ctx.key_frameworks : [];
@@ -181,15 +190,16 @@ export default function AuthorSite() {
       const fromInsights = insights.map((i: any) => typeof i === "string" ? i : (i?.insight || i?.text || i?.title || "")).filter(Boolean);
       highlights = [...fromFrameworks, ...fromInsights];
     }
-    let sourceBookId: string | null = null;
-    if (highlights.length === 0 && enriched[0]?.description) {
-      highlights = enriched[0].description
+    let sourceBookId: string | null = sourceBook?.id ?? null;
+    if (highlights.length === 0 && sourceBook?.description) {
+      highlights = sourceBook.description
         .split(/\n+|•|·|✓|\*|—|-{2,}/)
         .map(s => s.trim())
         .filter(s => s.length > 18 && s.length < 220)
         .slice(0, 6);
-      if (highlights.length > 0) sourceBookId = enriched[0].id;
     }
+    // If we have no highlights at all, suppress the source line too
+    if (highlights.length === 0) sourceBookId = null;
     setWhatsInsideHighlights(highlights.slice(0, 8));
     setWhatsInsideSourceBookId(sourceBookId);
 
