@@ -89,6 +89,7 @@ Deno.serve(async (req) => {
           await supabase.from('crm_contacts').update({
             abby_score: newScore,
             last_activity_at: new Date().toISOString(),
+            last_node_id: 'BP-05',
           }).eq('id', contact.id);
         } else {
           await supabase.from('crm_contacts').insert({
@@ -99,6 +100,7 @@ Deno.serve(async (req) => {
             stage: 'new',
             source: 'webinar',
             last_activity_at: new Date().toISOString(),
+            last_node_id: 'BP-05',
           });
         }
       } catch (e) {
