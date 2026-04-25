@@ -547,6 +547,15 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const BUILDER_SECTIONS = new Set(["home-study", "group-coaching", "memberships", "email-marketing", "book-sales", "special-editions", "lead-magnet", "big-ticket"]);
   const isBuilderActive = !!searchParams.get("builder") || BUILDER_SECTIONS.has(activeSection);
 
+  // Sections that already render their own BookBuilderContextBar — don't double-render
+  const SELF_MOUNTED_CONTEXT_BAR = new Set(["social-media", "podcast", "webinars", "workbooks"]);
+  const showLayoutContextBar =
+    !!searchParams.get("bookId") &&
+    !SELF_MOUNTED_CONTEXT_BAR.has(activeSection) &&
+    activeSection !== "overview" &&
+    activeSection !== "my-books" &&
+    activeSection !== "profile";
+
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden">
       {/* Mobile sidebar overlay */}
