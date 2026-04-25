@@ -529,26 +529,59 @@ export default function MarketingHub({ onNavigate }: Props) {
             </div>
           )}
 
-          {/* Campaign list */}
-          <div className="space-y-3">
-            {CAMPAIGNS.map((campaign) => {
-              const status = getCampaignStatus(campaign);
-              const isHighlighted = highlightId === campaign.id;
+          {/* Archetype filter pills — view campaigns grouped by funnel archetype */}
+          <div className="flex flex-wrap gap-2">
+            {ARCHETYPE_TABS.map((t) => {
+              const active = archetypeFilter === t.key;
+              const count = t.key === "ALL"
+                ? CAMPAIGNS.length
+                : CAMPAIGNS.filter(c => getCampaignArchetype(c) === t.key).length;
               return (
-                <CampaignRow
-                  key={campaign.id}
-                  ref={isHighlighted ? highlightRef : undefined}
-                  campaign={campaign}
-                  status={status}
-                  isHighlighted={isHighlighted}
-                  nodeRows={nodeRows}
-                  isActivating={activatingCampaign === campaign.id}
-                  totalLeads={totalLeads}
-                  onActivate={() => handleActivate(campaign)}
-                  onPause={() => handlePause(campaign)}
-                />
+                <button
+                  key={t.key}
+                  onClick={() => setArchetypeFilter(t.key)}
+                  className={`flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-all ${
+                    active
+                      ? "bg-secondary text-secondary-foreground border-secondary shadow-sm"
+                      : "bg-card text-muted-foreground border-border hover:border-secondary/40 hover:text-foreground"
+                  }`}
+                >
+                  <span className={`text-[12px] font-bold ${active ? "" : "text-foreground"}`}>
+                    {t.label} <span className="opacity-70 font-normal">({count})</span>
+                  </span>
+                  <span className="text-[10px] opacity-80">{t.sub}</span>
+                </button>
               );
             })}
+          </div>
+
+          {/* Campaign list */}
+          <div className="space-y-3">
+            {CAMPAIGNS
+              .filter(c => archetypeFilter === "ALL" || getCampaignArchetype(c) === archetypeFilter)
+              .map((campaign) => {
+                const status = getCampaignStatus(campaign);
+                const isHighlighted = highlightId === campaign.id;
+                return (
+                  <CampaignRow
+                    key={campaign.id}
+                    ref={isHighlighted ? highlightRef : undefined}
+                    campaign={campaign}
+                    status={status}
+                    isHighlighted={isHighlighted}
+                    nodeRows={nodeRows}
+                    isActivating={activatingCampaign === campaign.id}
+                    totalLeads={totalLeads}
+                    onActivate={() => handleActivate(campaign)}
+                    onPause={() => handlePause(campaign)}
+                  />
+                );
+              })}
+            {CAMPAIGNS.filter(c => archetypeFilter === "ALL" || getCampaignArchetype(c) === archetypeFilter).length === 0 && (
+              <div className="text-center py-8 text-sm text-muted-foreground">
+                No campaigns in this archetype yet.
+              </div>
+            )}
           </div>
         </TabsContent>
 
