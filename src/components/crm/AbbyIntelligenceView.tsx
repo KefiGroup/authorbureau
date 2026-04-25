@@ -69,6 +69,7 @@ function getSegmentColor(group: string): string {
 export default function AbbyIntelligenceView({ crmFetch, onContactClick }: Props) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<Intelligence | null>(null);
+  const [crossSell, setCrossSell] = useState<CrossSellSuggestion[]>([]);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -76,8 +77,12 @@ export default function AbbyIntelligenceView({ crmFetch, onContactClick }: Props
       setLoading(true);
       setError("");
       try {
-        const res = await crmFetch("abby-intelligence");
-        setData(res.intelligence);
+        const [intelRes, xsRes] = await Promise.all([
+          crmFetch("abby-intelligence"),
+          crmFetch("cross-sell-suggest").catch(() => ({ suggestions: [] })),
+        ]);
+        setData(intelRes.intelligence);
+        setCrossSell(xsRes.suggestions || []);
       } catch (e: any) {
         setError(e.message || "Failed to load insights");
       }
