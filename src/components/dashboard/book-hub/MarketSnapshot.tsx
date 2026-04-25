@@ -23,12 +23,10 @@ export default function MarketSnapshot({ data, loading, onRefresh }: Props) {
     );
   }
 
-  const hasBestsellers = data.amazonBestsellers && data.amazonBestsellers.products.length > 0;
   const hasKeywords = data.amazonBestsellers?.topTitleKeywords && data.amazonBestsellers.topTitleKeywords.length > 0;
   const hasMarketIntel = Boolean(data.marketIntelligence);
-  const hasCompetitors = data.competitorProducts && data.competitorProducts.length > 0;
 
-  if (!hasBestsellers && !hasMarketIntel && !hasCompetitors) return null;
+  if (!hasKeywords && !hasMarketIntel) return null;
 
   return (
     <motion.div
@@ -38,11 +36,11 @@ export default function MarketSnapshot({ data, loading, onRefresh }: Props) {
     >
       <div className="px-5 py-4 border-b border-border bg-muted/30 flex items-center gap-3">
         <div className="w-8 h-8 rounded-lg bg-secondary/15 flex items-center justify-center shrink-0">
-          <BarChart3 className="h-4 w-4 text-secondary" />
+          <TrendingUp className="h-4 w-4 text-secondary" />
         </div>
         <div className="flex-1">
-          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Abby's Market Snapshot</p>
-          <p className="text-xs text-muted-foreground">Live competitive data for "{data.amazonCategory}"</p>
+          <p className="text-[10px] font-bold text-secondary uppercase tracking-widest">Abby's Market Trends</p>
+          <p className="text-xs text-muted-foreground">Live insights for "{data.amazonCategory}"</p>
         </div>
         {onRefresh && (
           <Button variant="ghost" size="sm" onClick={() => onRefresh()} className="h-7 gap-1.5 text-xs">
@@ -51,55 +49,51 @@ export default function MarketSnapshot({ data, loading, onRefresh }: Props) {
         )}
       </div>
 
-      <Tabs defaultValue="competitive" className="p-5">
-        <TabsList className="bg-muted/50 h-9">
-          <TabsTrigger value="competitive" className="text-xs gap-1.5">
-            <BarChart3 className="h-3 w-3" /> Competitive Scan
-          </TabsTrigger>
-          <TabsTrigger value="trends" className="text-xs gap-1.5">
-            <TrendingUp className="h-3 w-3" /> Live Market Trends
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="competitive" className="mt-4 space-y-5">
-          {hasBestsellers && <PriceDistribution data={data} />}
-          {hasBestsellers && <TopBestsellers products={data.amazonBestsellers!.products.slice(0, 3)} />}
-          {!hasBestsellers && (
-            <CompetitiveFallback competitors={data.competitorProducts || []} onRefresh={onRefresh} />
-          )}
-        </TabsContent>
-
-        <TabsContent value="trends" className="mt-4 space-y-5">
-          {hasKeywords && <TrendingKeywords keywords={data.amazonBestsellers!.topTitleKeywords} marketIntel={data.marketIntelligence} />}
-          {!hasKeywords && hasMarketIntel && (
-            <div className="space-y-3">
-              <div className="rounded-lg bg-muted/30 p-4 text-sm leading-relaxed">
-                <MarkdownRenderer content={data.marketIntelligence || ""} />
-              </div>
-              {data.marketCitations && data.marketCitations.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider self-center">Sources:</span>
-                  {data.marketCitations.slice(0, 6).map((url, i) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors"
-                    >
-                      {new URL(url).hostname.replace("www.", "")}
-                      <ExternalLink className="h-2.5 w-2.5" />
-                    </a>
-                  ))}
-                </div>
-              )}
+      <div className="p-5 space-y-5">
+        {/* How Abby uses this intelligence */}
+        <div className="rounded-lg border border-secondary/20 bg-secondary/5 p-4">
+          <div className="flex items-start gap-2.5">
+            <Sparkles className="h-4 w-4 text-secondary shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-foreground">How Abby uses these market trends</p>
+              <ul className="text-[11px] text-foreground/80 leading-relaxed space-y-1 list-disc pl-4">
+                <li><strong>Content angles:</strong> trending sub-topics shape your lead magnet hooks, course modules, and social posts so you ride what readers are actively searching for.</li>
+                <li><strong>Pricing:</strong> competitor benchmarks calibrate your workbook, course, coaching, and membership prices — keeping you competitive without underselling.</li>
+                <li><strong>Positioning keywords:</strong> high-frequency words from bestsellers are woven into your titles, sales copy, and SEO to boost discoverability.</li>
+                <li><strong>Audience targeting:</strong> demographic and pain-point signals tune Abby's email sequences, funnels, and ad copy.</li>
+              </ul>
             </div>
-          )}
-          {!hasKeywords && !hasMarketIntel && (
-            <p className="text-xs text-muted-foreground text-center py-6">No live market trends available yet.</p>
-          )}
-        </TabsContent>
-      </Tabs>
+          </div>
+        </div>
+
+        {hasKeywords && <TrendingKeywords keywords={data.amazonBestsellers!.topTitleKeywords} marketIntel={data.marketIntelligence} />}
+
+        {hasMarketIntel && (
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-foreground">Full Market Intelligence Report</p>
+            <div className="rounded-lg bg-muted/30 p-4 text-sm leading-relaxed">
+              <MarkdownRenderer content={data.marketIntelligence || ""} />
+            </div>
+            {data.marketCitations && data.marketCitations.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider self-center">Sources:</span>
+                {data.marketCitations.slice(0, 6).map((url, i) => (
+                  <a
+                    key={i}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[10px] px-2 py-1 rounded-full bg-secondary/10 text-secondary hover:bg-secondary/20 transition-colors"
+                  >
+                    {new URL(url).hostname.replace("www.", "")}
+                    <ExternalLink className="h-2.5 w-2.5" />
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
