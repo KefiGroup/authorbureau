@@ -72,32 +72,8 @@ export default function AuthorWorkWithMe({
           </p>
         </motion.div>
 
-        {/* Owner-only banner if Stripe isn't connected — keeps readers' view clean */}
-        {isOwnerViewing && !stripeReady && (
-          <div
-            className="mb-8 p-4 rounded-lg text-sm flex items-start gap-3"
-            style={{
-              background: v.cardBg,
-              border: `1px dashed ${v.cardBorder}`,
-              color: v.bodyText,
-            }}
-          >
-            <div className="flex-1">
-              <strong style={{ color: v.headingText }}>
-                Payments are not set up yet.
-              </strong>{" "}
-              Visitors won't be able to enroll until you connect Stripe. Set it
-              up to start collecting revenue.
-            </div>
-            <a
-              href="/account-settings?tab=connections"
-              className="shrink-0 underline font-semibold whitespace-nowrap"
-              style={{ color: v.accent }}
-            >
-              Set up payments →
-            </a>
-          </div>
-        )}
+        {/* Note: Authors Bureau is Merchant of Record — readers always see live
+            checkout. No owner-only Stripe banner needed. */}
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {sorted.map((node, idx) => (

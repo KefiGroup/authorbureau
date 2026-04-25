@@ -22,6 +22,7 @@ import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
 import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
 import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
+import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
 import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
@@ -34,6 +35,7 @@ export default function AuthorSite() {
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [whatsInsideHighlights, setWhatsInsideHighlights] = useState<string[]>([]);
+  const [whatsInsideSourceBookId, setWhatsInsideSourceBookId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -137,7 +139,7 @@ export default function AuthorSite() {
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
       supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
-      supabase.from("author_nodes").select("id, node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url, delivery_url, price_usd, currency").eq("author_id", profile.id).eq("status", "live"),
+      supabase.from("author_nodes").select("id, node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url, delivery_url, price_usd, currency, book_id").eq("author_id", profile.id).eq("status", "live"),
       supabase.from("author_testimonials").select("id, name, role, quote, avatar_url").eq("author_id", profile.user_id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
       supabase.from("author_context").select("key_frameworks, unique_insights").eq("author_id", profile.id).maybeSingle(),
     ]);
@@ -179,14 +181,17 @@ export default function AuthorSite() {
       const fromInsights = insights.map((i: any) => typeof i === "string" ? i : (i?.insight || i?.text || i?.title || "")).filter(Boolean);
       highlights = [...fromFrameworks, ...fromInsights];
     }
+    let sourceBookId: string | null = null;
     if (highlights.length === 0 && enriched[0]?.description) {
       highlights = enriched[0].description
         .split(/\n+|•|·|✓|\*|—|-{2,}/)
         .map(s => s.trim())
         .filter(s => s.length > 18 && s.length < 220)
         .slice(0, 6);
+      if (highlights.length > 0) sourceBookId = enriched[0].id;
     }
     setWhatsInsideHighlights(highlights.slice(0, 8));
+    setWhatsInsideSourceBookId(sourceBookId);
 
     // Related Authors
     const authorGenres = profile.genres || [];
@@ -221,7 +226,11 @@ export default function AuthorSite() {
   if (notFound || !author) return <NotFound />;
 
   return (
-    <AuthorPageLayout theme={theme} breadcrumbs={[{ label: "Home", to: "/" }, { label: displayName }]}>
+    <AuthorPageLayout
+      theme={theme}
+      breadcrumbs={[{ label: "Home", to: "/" }, { label: displayName }]}
+      footerSlot={<AuthorMicrositeFooter author={author} displayName={displayName} />}
+    >
       <AuthorBrandedNav
         authorSlug={authorSlug!}
         authorName={displayName}
@@ -248,22 +257,19 @@ export default function AuthorSite() {
         bodyFont={theme.bodyFont}
       />
 
-      <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} theme={theme} v={v} />
+      <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p))).length} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
-      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts[0]} theme={theme} v={v} />
+      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorWorkWithMe
         authorId={author.id}
         authorSlug={authorSlug!}
         authorName={displayName}
         authorContactEmail={null}
         isOwnerViewing={isOwner}
-        stripeReady={
-          !!author.stripe_connected_account_id &&
-          author.stripe_onboarding_complete === true
-        }
-        liveNodes={liveNodes.filter(n => !["BP-08","BA-11","BP-06","BA-17"].some(p => n.node_id.startsWith(p))) as unknown as StorefrontNode[]}
+        stripeReady={true /* Authors Bureau is Merchant of Record — platform Stripe always ready */}
+        liveNodes={liveNodes.filter(n => !["BP-01","BP-02","BP-08","BA-11","BP-06","BA-17"].some(p => n.node_id.startsWith(p))) as unknown as StorefrontNode[]}
         theme={theme}
         v={v}
       />

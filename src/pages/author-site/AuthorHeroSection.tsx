@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BookOpen, Mail, Globe, Linkedin, Twitter, Instagram, Youtube } from "lucide-react";
+import { BookOpen, Mail, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
 import type { AuthorData, BookWithProducts, ThemeVars } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 
@@ -9,6 +9,7 @@ const SOCIAL_LINKS = [
   { key: "amazon_author_profile_url", icon: BookOpen, label: "Amazon" },
   { key: "twitter_url", icon: Twitter, label: "Twitter/X" },
   { key: "instagram_url", icon: Instagram, label: "Instagram" },
+  { key: "facebook_url", icon: Facebook, label: "Facebook" },
   { key: "youtube_url", icon: Youtube, label: "YouTube" },
 ] as const;
 
@@ -17,13 +18,15 @@ interface Props {
   displayName: string;
   booksWithProducts: BookWithProducts[];
   allProducts: { type: string }[];
+  testimonialsCount?: number;
+  liveProductsCount?: number;
   theme: AuthorTheme;
   v: ThemeVars;
 }
 
-export default function AuthorHeroSection({ author, displayName, booksWithProducts, allProducts, theme, v }: Props) {
+export default function AuthorHeroSection({ author, displayName, booksWithProducts, allProducts, testimonialsCount = 0, liveProductsCount = 0, theme, v }: Props) {
   const totalBooks = booksWithProducts.length;
-  const totalProducts = allProducts.length;
+  const totalProducts = Math.max(allProducts.length, liveProductsCount);
 
   const socialLinks = SOCIAL_LINKS.filter(
     (s) => (author as unknown as Record<string, unknown>)[s.key]
@@ -131,7 +134,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
         </div>
 
         {/* Stats Strip */}
-        {(totalBooks > 0 || totalProducts > 0) && (
+        {(totalBooks > 0 || totalProducts > 0 || testimonialsCount > 0) && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
             className="mt-12 flex flex-wrap justify-center md:justify-start gap-6 md:gap-10 pt-8"
             style={{ borderTop: `1px solid rgba(255,255,255,0.1)` }}>
@@ -145,6 +148,12 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               <div className="text-center md:text-left">
                 <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{totalProducts}</span>
                 <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Products Available</span>
+              </div>
+            )}
+            {testimonialsCount > 0 && (
+              <div className="text-center md:text-left">
+                <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{testimonialsCount}</span>
+                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Reader Testimonials</span>
               </div>
             )}
           </motion.div>

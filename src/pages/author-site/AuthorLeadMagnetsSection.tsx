@@ -14,8 +14,10 @@ export interface LiveNode {
   microsite_url: string | null;
   payment_link: string | null;
   third_party_url: string | null;
+  delivery_url?: string | null;
   price_usd?: number | null;
   currency?: string | null;
+  book_id?: string | null;
 }
 
 interface Props {

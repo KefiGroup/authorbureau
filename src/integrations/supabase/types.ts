@@ -919,6 +919,7 @@ export type Database = {
           created_at: string
           credentials: Json | null
           directory_status: string
+          facebook_url: string | null
           frameworks: Json | null
           genres: string[] | null
           ghl_api_key: string | null
@@ -942,6 +943,9 @@ export type Database = {
           photo_crop_y: string | null
           photo_url: string | null
           photo_zoom: number | null
+          podcast_apple_url: string | null
+          podcast_rss_url: string | null
+          podcast_spotify_url: string | null
           quiz_name: string | null
           sign_off_phrase: string | null
           site_theme: string
@@ -972,6 +976,7 @@ export type Database = {
           created_at?: string
           credentials?: Json | null
           directory_status?: string
+          facebook_url?: string | null
           frameworks?: Json | null
           genres?: string[] | null
           ghl_api_key?: string | null
@@ -995,6 +1000,9 @@ export type Database = {
           photo_crop_y?: string | null
           photo_url?: string | null
           photo_zoom?: number | null
+          podcast_apple_url?: string | null
+          podcast_rss_url?: string | null
+          podcast_spotify_url?: string | null
           quiz_name?: string | null
           sign_off_phrase?: string | null
           site_theme?: string
@@ -1025,6 +1033,7 @@ export type Database = {
           created_at?: string
           credentials?: Json | null
           directory_status?: string
+          facebook_url?: string | null
           frameworks?: Json | null
           genres?: string[] | null
           ghl_api_key?: string | null
@@ -1048,6 +1057,9 @@ export type Database = {
           photo_crop_y?: string | null
           photo_url?: string | null
           photo_zoom?: number | null
+          podcast_apple_url?: string | null
+          podcast_rss_url?: string | null
+          podcast_spotify_url?: string | null
           quiz_name?: string | null
           sign_off_phrase?: string | null
           site_theme?: string

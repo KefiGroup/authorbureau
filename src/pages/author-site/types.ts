@@ -26,6 +26,10 @@ export interface AuthorData {
   stripe_connected_account_id?: string | null;
   stripe_account_id?: string | null;
   stripe_onboarding_complete?: boolean | null;
+  facebook_url?: string | null;
+  podcast_spotify_url?: string | null;
+  podcast_apple_url?: string | null;
+  podcast_rss_url?: string | null;
 }
 
 export interface BookWithProducts {
@@ -138,18 +142,26 @@ export interface BookFormatNode {
   third_party_url: string | null;
   price_usd?: number | null;
   currency?: string | null;
+  book_id?: string | null;
 }
 
-/** Returns true if a node belongs to a given book (by book_id or book_slug in content_json,
- *  or — when neither is set — applies to all books as an author-level node). */
+/** Returns true if a node belongs to a given book.
+ *  Checks (in order):
+ *    1. The top-level `book_id` column on author_nodes (canonical)
+ *    2. content_json.book_id (legacy / Abby-generated payloads)
+ *    3. content_json.book_slug (legacy)
+ *  If NONE of these are set, the node is unscoped — it MUST NOT render under
+ *  any specific book card (otherwise the same workbook appears under every
+ *  book and causes cross-contamination). Author-level sections like Work With
+ *  Me handle unscoped nodes separately. */
 export function nodeBelongsToBook(
-  node: { content_json: Record<string, unknown> | null },
+  node: { content_json: Record<string, unknown> | null; book_id?: string | null },
   book: { id: string; slug: string }
 ): boolean {
+  if (node.book_id && node.book_id === book.id) return true;
   const cj = node.content_json || {};
   const bookId = cj.book_id as string | undefined;
   const bookSlug = cj.book_slug as string | undefined;
-  if (!bookId && !bookSlug) return true;
   if (bookId && book.id === bookId) return true;
   if (bookSlug && book.slug === bookSlug) return true;
   return false;
