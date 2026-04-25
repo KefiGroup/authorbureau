@@ -266,6 +266,8 @@ export default function MarketingHub({ onNavigate }: Props) {
     }
   }, [user]);
 
+  const [archetypeFilter, setArchetypeFilter] = useState<ArchetypeFilter>("ALL");
+
   useEffect(() => { fetchNodes(); }, [fetchNodes]);
 
   /* ─── Scroll to highlighted campaign ─── */
