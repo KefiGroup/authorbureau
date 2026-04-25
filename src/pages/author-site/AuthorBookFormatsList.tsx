@@ -23,8 +23,9 @@ interface Props {
 
 function formatPrice(value: number | null | undefined, currency: string | null | undefined): string | null {
   if (value == null || isNaN(value)) return null;
-  const sym = (currency || "USD") === "USD" ? "$" : `${currency} `;
-  return `${sym}${value.toFixed(2)}`;
+  const code = (currency || "USD").toUpperCase();
+  if (code === "USD") return `$${value.toFixed(2)} USD`;
+  return `${code} ${value.toFixed(2)}`;
 }
 
 export default function AuthorBookFormatsList({ book, authorSlug, liveNodes, theme, v }: Props) {

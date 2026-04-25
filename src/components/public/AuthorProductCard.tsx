@@ -85,7 +85,8 @@ function formatPrice(price: number | null | undefined, currency?: string | null)
   if (price == null || price <= 0) return null;
   const code = (currency || "USD").toUpperCase();
   const formatted = Number.isInteger(price) ? `${price}` : price.toFixed(2);
-  return `$${formatted} ${code}`;
+  if (code === "USD") return `$${formatted} USD`;
+  return `${code} ${formatted}`;
 }
 
 /**
