@@ -79,6 +79,43 @@ const CAMPAIGNS: CampaignConfig[] = [
   },
 ];
 
+/* ─── Archetype mapping (single source of truth — mirrors author_nodes.archetype) ─── */
+type Archetype = "A" | "B" | "C" | "D";
+type ArchetypeFilter = "ALL" | Archetype;
+
+const NODE_ARCHETYPE: Record<string, Archetype> = {
+  // A — Sales (direct purchase)
+  "BP-06": "A", "BP-07": "A", "BP-08": "A", "BP-09": "A",
+  "BA-10": "A", "BA-11": "A", "BA-12": "A", "BA-17": "A",
+  // B — Opt-in (lead nurture)
+  "BP-01": "B", "BP-02": "B", "BP-03": "B", "BP-04": "B", "BP-05": "B", "BA-14": "B",
+  // C — Application (high-ticket qualification)
+  "BA-13": "C", "YR-19": "C", "YR-20": "C", "YR-21": "C", "YR-22": "C", "YR-23": "C", "YR-25": "C",
+  // D — Event (registrations / partnerships)
+  "BA-15": "D", "BA-16": "D", "BA-18": "D", "YR-24": "D", "YR-26": "D", "YR-27": "D", "YR-28": "D",
+};
+
+const ARCHETYPE_TABS: { key: ArchetypeFilter; label: string; sub: string }[] = [
+  { key: "ALL", label: "All Campaigns", sub: "Every channel" },
+  { key: "A",   label: "Sales",         sub: "Direct purchase" },
+  { key: "B",   label: "Opt-in",        sub: "Lead nurture" },
+  { key: "C",   label: "Application",   sub: "High-ticket" },
+  { key: "D",   label: "Event",         sub: "Registrations" },
+];
+
+/** Compute the dominant archetype for a campaign (most common across its nodes). */
+function getCampaignArchetype(campaign: CampaignConfig): Archetype | null {
+  const counts: Record<string, number> = {};
+  for (const nid of campaign.nodeIds) {
+    const a = NODE_ARCHETYPE[nid];
+    if (a) counts[a] = (counts[a] || 0) + 1;
+  }
+  const entries = Object.entries(counts);
+  if (entries.length === 0) return null;
+  entries.sort((x, y) => y[1] - x[1]);
+  return entries[0][0] as Archetype;
+}
+
 /* ─── Status types ─── */
 
 type NodeStatus = "not_built" | "draft" | "ready" | "active";
