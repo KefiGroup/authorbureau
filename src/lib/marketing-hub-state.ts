@@ -6,6 +6,7 @@ type MarketingHubAction =
   | "update_social_post"
   | "reschedule_social_post"
   | "sequences"
+  | "update_sequence"
   | "toggle_sequence_status"
   | "generate_all_sequences"
   | "activate_node"

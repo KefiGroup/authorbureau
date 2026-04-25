@@ -1,85 +1,72 @@
-# Rebuild BA-11 Audiobook Studio (ElevenLabs)
+# Fix Marketing Hub Sequences — ordering, Edit button intent, and back navigation
 
-The backend, BA11Builder shell, and storage are already intact. Only the 5 step UIs (currently a stub) need to be rebuilt and wired to the existing edge functions.
+## What you're seeing (and why)
 
-## What stays as-is
+Looking at your three screenshots and the code, three separate problems are stacked on top of each other in the Sequences tab. Here's what's actually happening:
 
-- `BA11Builder.tsx` — stepper, gating, autosave, blob-URL healing (already correct)
-- All edge functions: `get-manuscript-source`, `ba11-voice-preview`, `ba11-audiobook-generate`, `ba11-publish-audiobook`, `distribute-audiobook`
-- Storage bucket `audiobook-audio`, path convention `{user_id}/{book_id}/chapter-NNN.mp3`
-- `listAudiobookChapters` helper in `src/lib/builder-autosave.ts`
-- `DistributeAudiobookModal` (already exists at `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`)
+### 1. Sequences appear in random order (BA-13 first, not BP-01)
+The `marketing-hub-state` edge function returns sequences ordered by `created_at DESC` (newest first). Because the AI generated BA-13's sequence after the BP nodes, BA-13 floats to the top. There is no logic that sorts by node order (BP-01 → BP-09 → BA-10 → ... → YR-28).
 
-## What gets built
+### 2. Clicking "Edit" on a sequence opens the node builder and restarts it
+Today, the Edit button on a sequence row routes to `/node-builder/{node_id}` (e.g. `/node-builder/BA-13`). That opens the **product builder** for Group Coaching — not an email sequence editor.
 
-Replace the stub `src/components/dashboard/builders/audiobook/AudiobookStepRenderer.tsx` with a real renderer that delegates to 5 new step components in the same folder:
+Worse, the BA-13 builder reads its draft from `author_nodes`. If that draft is missing for the active book (or was generated against a different book), the builder lands on the Introduction step and — once you click Generate — kicks off a fresh build, which is what your "Publishing your group coaching programme…" screenshot is showing. You did not ask to rebuild the node; the Edit button took you somewhere that *can only build*, not edit.
 
-### 1. `AudiobookSetupStep.tsx` — `stepId="setup"`
-- Form fields written to `stepData.setup`:
-  - Narration style (select): Conversational / Authoritative / Warm-storyteller / Energetic
-  - Narrator credit (text, defaults to author's pen name)
-  - Suggested retail price USD (number, default $14.99)
-  - Short description (textarea, prefilled from book description if available)
-- Calls `onMarkEdited("setup")` on change. Gate satisfied when `setup.narration` is set.
+The intent of "Edit" on a sequence row should be **edit the email sequence** (subjects, delays, body) — not open the product builder.
 
-### 2. `ManuscriptOptimizationStep.tsx` — `stepId="optimize"`
-- Single button: **"Split Manuscript into Chapters"**
-- Calls `supabase.functions.invoke("get-manuscript-source", { body: { bookId } })`
-- Splits returned text into chapters using existing heuristic: detect `^Chapter \d+`, `^CHAPTER`, `^# ` headings; fall back to ~3500-char paragraph chunks.
-- Writes `stepData.chapters = [{ index, title, text, status: "script-ready", audioUrl: "" }]`
-- Shows resulting chapter list (title + char count + status badge), with inline title/text edit per chapter.
-- Gate satisfied when `chapters.length > 0`.
+### 3. The "Back" button from the builder lands on the Dashboard
+The builder's back link points to `/build-authority` (for BA-xx nodes). That route is now a `HubRedirect` that requires an active `bookId` in `useBookContext`; if none is set it falls through to `/dashboard`. Because Marketing Hub does not pass `bookId` into the builder URL, back-navigation always loses the book context and dumps you at the dashboard.
 
-### 3. `VoiceSelectionStep.tsx` — `stepId="voice"`
-- Grid of 10 ElevenLabs voices (using the canonical IDs from the TTS knowledge file: Roger, Sarah, Laura, Charlie, George, Callum, River, Liam, Alice, Matilda).
-- Each voice card: name, short style descriptor, **Preview** button.
-- Preview calls `supabase.functions.invoke("ba11-voice-preview", { body: { voiceId, text? } })` and plays the returned MP3 (handle base64 or URL response).
-- Selecting a voice writes `stepData.selectedVoiceId` and `stepData.selectedVoiceName`.
-- Gate satisfied when `selectedVoiceId` is set.
+## Proposed fixes
 
-### 4. `ChapterProductionStep.tsx` — `stepId="production"`
-- Lists `stepData.chapters` with per-chapter controls:
-  - **Generate Audio** button — calls `ba11-audiobook-generate` with `{ voiceId: selectedVoiceId, chapterText: chapter.text, chapterIndex: i, bookId }`. On success, store `audioUrl` from response and set `status: "audio-generated"`.
-  - **Generate All** button at top — sequentially generates pending chapters with a small delay (1.5s) between calls to avoid rate limiting; shows live progress bar.
-  - Inline `<audio controls src={audioUrl}>` once available, plus **Regenerate** button.
-- Persists each completed chapter via `onMarkEdited("production")` so blob-URL healing isn't needed (we store the public storage URL directly).
-- Gate satisfied when ≥1 chapter has `status === "audio-generated"`.
+### A. Sort sequences in canonical node order (Master first, then BP-01 → YR-28)
 
-### 5. `AudiobookPublishStep.tsx` — `stepId="publish"`
-- Shows summary card: voice, # chapters generated, total runtime estimate (chars / 14 ≈ seconds).
-- **Publish & Open Distribution** button:
-  1. Calls `supabase.functions.invoke("ba11-publish-audiobook", { body: { bookId, voiceId, chapters: [...], setup, retailPriceUsd } })` to mark the audiobook live in the registry.
-  2. On success, opens `DistributeAudiobookModal` (already built) for ACX/Spotify/Apple/Findaway/Platform package generation via `distribute-audiobook`.
-- Shows `PublishSuccessScreen` (shared) once published.
+In `supabase/functions/marketing-hub-state/index.ts` (action `sequences`), keep the DB query but re-sort the results in JS using a fixed node-order map:
 
-### 6. `AudiobookStepRenderer.tsx` — switch on `stepId`
-Plain `switch` returning the right step component, forwarding props (`stepData`, `setStepData`, `onMarkEdited`, `bookId`, `bookTitle`, `userId`, `generationState`, `setGenerationState`).
+````text
+master_nurture → BP-01 → BP-02 … BP-09 → BA-10 … BA-18 → YR-19 … YR-28 → (anything unknown last)
+````
 
-## Bug-fixes baked in from history
+This guarantees the visual list always reads top-to-bottom in framework order regardless of when each sequence was generated.
 
-- **Never persist `blob:` URLs** — only store the public `audioUrl` returned from the edge function (which uploads to `audiobook-audio` bucket).
-- **Use `supabase.functions.invoke()`** everywhere — not raw `fetch` to `/api/...` paths.
-- **Manuscript step gates production** — production button disabled until chapters exist (already enforced by `canAdvance` in BA11Builder).
-- **Session healing on reload** — already handled by BA11Builder's `listAudiobookChapters` effect; new components must read `chapter.audioUrl` and treat empty as "needs generation".
-- **ElevenLabs 4500-char cap** — UI shows a warning when a chapter exceeds the cap so the author can split it before generating.
+### B. Make "Edit" actually edit the email sequence (not the node builder)
 
-## Files to create
+Add a real sequence editor as a side drawer/modal opened from the Sequences tab. Scope (v1, minimal):
 
-- `src/components/dashboard/builders/audiobook/AudiobookSetupStep.tsx`
-- `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`
-- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
-- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
-- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
-- `src/components/dashboard/builders/audiobook/voices.ts` (the 10-voice catalogue)
+- Edit sequence **title** and **description**
+- Per-step: edit **subject**, **trigger delay (days)**, and **body** (textarea, plain text/markdown)
+- Add a step / delete a step / reorder steps
+- Save → calls a new `update_sequence` action on `marketing-hub-state`
 
-## Files to replace
+New edge-function action:
+- `update_sequence` — accepts `{ flow_id, title?, description?, steps: [{ id?, step_number, subject, body, trigger_delay_days }] }`. Upserts `email_flows` row + replaces `email_flow_steps` for that flow_id (author-scoped).
 
-- `src/components/dashboard/builders/audiobook/AudiobookStepRenderer.tsx` — swap stub for real switch.
+The Edit button on each row opens this drawer instead of navigating away. Add a smaller secondary link **"Open {node_id} builder"** for users who genuinely want to rebuild the underlying product — that link keeps the existing `/node-builder/{nodeId}` behavior so it's still discoverable but never the default.
 
-## Out of scope (can ship later)
+### C. Fix back-navigation from the node builder
 
-- Multi-chunk stitching for chapters longer than 4500 chars (current behavior: server truncates; UI warns).
-- Custom voice cloning (ElevenLabs Voice Library connect).
-- Background music bed / chapter intro stings.
+In `src/pages/NodeBuilder.tsx`, change `getHubPath` so that when there is no `bookId`:
+- If the user came from Marketing Hub (detect via a `from=marketing-hub` query param OR `document.referrer`), go back to `/marketing-hub?tab=sequences`.
+- Otherwise, instead of `/brand-products` / `/build-authority` / `/yield-revenue` (which redirect to dashboard when no book is set), go to `/my-books-hub` so the user can pick a book — or to `/dashboard` only as a last resort.
 
-Approve to proceed and I'll implement all 6 files in one pass.
+Also pass `?from=marketing-hub` from the Sequences tab whenever it does navigate to a builder (the secondary "Open builder" link in fix B), so the back button in the builder returns to the Sequences tab — not the dashboard.
+
+### D. (Optional polish) Block Edit from triggering generation
+
+Independent of A–C: in BA-13 (and any builder that reads a draft on mount), do not auto-advance to step 1/3 when the draft is empty. Today the screenshot shows the Publish step actively generating, which suggests a stale draft state pushed it forward. Verify `BA13Builder.tsx`'s draft restore logic guards on `__draft.content` being non-null before setting `step` past 0. (This is a small defensive patch; no behavior change for legitimate drafts.)
+
+## Files to change
+
+- `supabase/functions/marketing-hub-state/index.ts` — sort `sequences` response in framework order; add `update_sequence` action.
+- `src/components/dashboard/marketing-hub/SequencesTab.tsx` — replace Edit-button navigation with a new SequenceEditorDrawer; add secondary "Open builder" link with `?from=marketing-hub`.
+- `src/components/dashboard/marketing-hub/SequenceEditorDrawer.tsx` — **new file**. Title/description + steps CRUD, calls `update_sequence`.
+- `src/pages/NodeBuilder.tsx` — back-link reads `from=marketing-hub` and routes back to `/marketing-hub?tab=sequences`; safer fallback when no bookId.
+- `src/components/dashboard/builders/ba13/BA13Builder.tsx` — defensive guard so an empty draft never auto-advances steps. (Apply same guard to any other builder showing this pattern if found during implementation.)
+
+## Out of scope (call out, don't build now)
+
+- Rich-text email body editor (v1 uses plain textarea).
+- AI "regenerate just this step" button — can be added later.
+- A/B variants per step.
+
+Approve this and I'll implement A → D in one pass, then ask you to retest from the Sequences tab.

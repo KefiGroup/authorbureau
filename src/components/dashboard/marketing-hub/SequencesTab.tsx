@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
-import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle, ArrowRight } from "lucide-react";
+import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle, ArrowRight, ExternalLink } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import SequenceEditorDrawer from "./SequenceEditorDrawer";
 
 /** Maps the marketing hub `highlight` query param to the node_id stored on email_flows. */
 const HIGHLIGHT_TO_NODE: Record<string, string> = {
@@ -42,6 +43,8 @@ interface Step {
   step_number: number;
   subject: string;
   trigger_delay_days: number;
+  body_markdown?: string;
+  preview_text?: string | null;
 }
 
 const statusBadge: Record<string, string> = {
@@ -65,6 +68,7 @@ export default function SequencesTab() {
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingSingle, setGeneratingSingle] = useState(false);
   const [pulseId, setPulseId] = useState<string | null>(null);
+  const [editingFlow, setEditingFlow] = useState<FlowRow | null>(null);
 
   const load = async () => {
     try {
@@ -234,11 +238,9 @@ export default function SequencesTab() {
               {f.description && <p className="text-xs text-muted-foreground line-clamp-1">{f.description}</p>}
             </div>
             <div className="flex items-center gap-1 shrink-0">
-              {f.node_id && (
-                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/node-builder/${f.node_id}`)}>
-                  <Pencil className="h-3 w-3 mr-1" /> Edit
-                </Button>
-              )}
+              <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => setEditingFlow(f)}>
+                <Pencil className="h-3 w-3 mr-1" /> Edit
+              </Button>
               {(f.status === "active" || f.status === "paused" || f.status === "draft") && (
                 <Button size="sm" variant={isHighlighted && f.status === "draft" ? "default" : "outline"} className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
                   {updatingId === f.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : f.status === "active" ? <PauseCircle className="h-3 w-3 mr-1" /> : <PlayCircle className="h-3 w-3 mr-1" />}
@@ -247,6 +249,15 @@ export default function SequencesTab() {
               )}
             </div>
           </div>
+
+          {f.node_id && (
+            <button
+              onClick={() => navigate(`/node-builder/${f.node_id}?from=marketing-hub`)}
+              className="mt-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ExternalLink className="h-2.5 w-2.5" /> Open {f.node_id} product builder
+            </button>
+          )}
 
           {steps[f.id]?.length > 0 && (
             <div className="mt-3 pl-6 border-l-2 border-muted space-y-1">
@@ -271,6 +282,14 @@ export default function SequencesTab() {
         );
       })}
       </div>
+
+      <SequenceEditorDrawer
+        open={!!editingFlow}
+        onOpenChange={(o) => { if (!o) setEditingFlow(null); }}
+        flow={editingFlow}
+        initialSteps={editingFlow ? (steps[editingFlow.id] || []) : []}
+        onSaved={() => { void load(); }}
+      />
     </div>
   );
 }
