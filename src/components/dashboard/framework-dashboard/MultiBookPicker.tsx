@@ -44,7 +44,7 @@ export default function MultiBookPicker({ books, perBook, onAddBook }: Props) {
             <button
               key={b.id}
               type="button"
-              onClick={() => navigate(`/book-hub/${b.id}`)}
+              onClick={() => navigate(`/dashboard/book/${b.id}`)}
               className="group flex flex-col rounded-xl border border-border bg-background p-4 text-left transition-all hover:border-secondary/40 hover:shadow-[var(--shadow-card-hover)] cursor-pointer"
             >
               <div className="flex gap-3">

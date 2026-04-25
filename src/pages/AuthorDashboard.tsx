@@ -137,10 +137,27 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     "contacts": "author-crm",
   };
 
+  // Per-book builder sections — when accessed with a bookId, route into Book Hub tabs
+  const PER_BOOK_SECTIONS: Record<string, string> = {
+    "revenue-streams": "revenue-streams",
+    "marketing-channels": "marketing-channels",
+    "authority-builders": "authority-builders",
+    "review-products": "review-publish",
+    "review-publish": "review-publish",
+    "review": "review-publish",
+  };
+
   // Keep dashboard state in sync when URL params change (e.g. internal links)
   useEffect(() => {
     const urlSectionRaw = searchParams.get("section");
     if (urlSectionRaw) {
+      // If this is a per-book section AND a bookId is attached, redirect to Book Hub
+      const bookId = searchParams.get("bookId");
+      const bookHubTab = PER_BOOK_SECTIONS[urlSectionRaw];
+      if (bookHubTab && bookId) {
+        dashboardNavigate(`/dashboard/book/${bookId}?tab=${bookHubTab}`, { replace: true });
+        return;
+      }
       const redirectPath = REDIRECT_SECTIONS[urlSectionRaw];
       if (redirectPath) {
         dashboardNavigate(redirectPath, { replace: true });
