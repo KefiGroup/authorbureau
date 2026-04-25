@@ -67,7 +67,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [dataReady, setDataReady] = useState(false);
   const { toast } = useToast();
   const { plan } = useAbbyPlan(book.id);
-  const { data: marketData, loading: marketLoading } = useMarketResearch(book.id, book.title, book.genre || undefined);
+  const { data: marketData, loading: marketLoading, refetch: refetchMarket } = useMarketResearch(book.id, book.title, book.genre || undefined);
   const { gating } = useNodeGating();
   const openNodeIds = new Set(gating.filter((r) => r.is_open).map((r) => r.node_id));
   const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
