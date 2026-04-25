@@ -36,13 +36,24 @@ import YR27Builder from "@/components/dashboard/builders/yr27/YR27Builder";
 import YR28Builder from "@/components/dashboard/builders/yr28/YR28Builder";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
-function getHubPath(nodeId: string): string {
+function getHubPath(nodeId: string, bookId: string | null): string {
+  // Prefer the Book Hub tab the user came from when a book is in scope.
+  if (bookId) {
+    if (nodeId.startsWith("BP-")) return `/book-hub/${bookId}?tab=revenue-streams`;
+    if (nodeId.startsWith("BA-")) return `/book-hub/${bookId}?tab=marketing-channels`;
+    return `/book-hub/${bookId}?tab=authority-builders`;
+  }
   if (nodeId.startsWith("BP-")) return "/brand-products";
   if (nodeId.startsWith("BA-")) return "/build-authority";
   return "/yield-revenue";
 }
 
-function getHubLabel(nodeId: string): string {
+function getHubLabel(nodeId: string, bookId: string | null): string {
+  if (bookId) {
+    if (nodeId.startsWith("BP-")) return "Book Hub · Brand";
+    if (nodeId.startsWith("BA-")) return "Book Hub · Build";
+    return "Book Hub · Yield";
+  }
   if (nodeId.startsWith("BP-")) return "Brand Products";
   if (nodeId.startsWith("BA-")) return "Build Authority";
   return "Yield Revenue";
@@ -133,11 +144,11 @@ export default function NodeBuilder() {
         {/* Back link */}
         <div className="max-w-5xl mx-auto px-4 pt-4">
           <Link
-            to={getHubPath(nodeId!)}
+            to={getHubPath(nodeId!, bookId)}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to {getHubLabel(nodeId!)}
+            Back to {getHubLabel(nodeId!, bookId)}
           </Link>
         </div>
         <Builder authorId={authorId} bookId={bookId} />

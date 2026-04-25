@@ -1,10 +1,27 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
-import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle } from "lucide-react";
+import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+
+/** Maps the marketing hub `highlight` query param to the node_id stored on email_flows. */
+const HIGHLIGHT_TO_NODE: Record<string, string> = {
+  "email-marketing": "BP-01",
+  "lead-magnets": "BP-02",
+  "social-media": "BP-03",
+  "website-microsite": "BP-04",
+  "webinars": "BP-05",
+};
+/** Friendly label for the node we're highlighting. */
+const NODE_LABEL: Record<string, string> = {
+  "BP-01": "Email Marketing",
+  "BP-02": "Lead Magnets",
+  "BP-03": "Social Media",
+  "BP-04": "Author Website",
+  "BP-05": "Webinars",
+};
 
 interface FlowRow {
   id: string;
@@ -35,12 +52,19 @@ const statusBadge: Record<string, string> = {
 
 export default function SequencesTab() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightKey = searchParams.get("highlight");
+  const highlightNodeId = highlightKey ? HIGHLIGHT_TO_NODE[highlightKey] : null;
+  const highlightLabel = highlightNodeId ? NODE_LABEL[highlightNodeId] : null;
+  const highlightRef = useRef<HTMLDivElement | null>(null);
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
   const [enrollments, setEnrollments] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [generatingAll, setGeneratingAll] = useState(false);
+  const [generatingSingle, setGeneratingSingle] = useState(false);
+  const [pulseId, setPulseId] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -60,6 +84,20 @@ export default function SequencesTab() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // After flows load, if a highlight node is requested, scroll to it and pulse.
+  useEffect(() => {
+    if (loading || !highlightNodeId) return;
+    const target = flows.find((f) => f.node_id === highlightNodeId);
+    if (!target) return;
+    setPulseId(target.id);
+    // Defer to allow layout
+    requestAnimationFrame(() => {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => setPulseId(null), 3500);
+    return () => clearTimeout(t);
+  }, [loading, flows, highlightNodeId]);
 
   const toggleStatus = async (flow: FlowRow) => {
     const next = flow.status === "active" ? "paused" : "active";
@@ -139,12 +177,40 @@ export default function SequencesTab() {
     );
   }
 
+  const highlightFlow = highlightNodeId ? flows.find((f) => f.node_id === highlightNodeId) : null;
+
   return (
     <div>
       {Header}
+
+      {highlightNodeId && highlightLabel && (
+        <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Activate your {highlightLabel} sequence</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {highlightFlow
+                ? `We've highlighted the ${highlightLabel} sequence below. Click Activate to start sending.`
+                : `Your ${highlightLabel} sequence hasn't been generated yet. Open the ${highlightNodeId} builder to create it, or use "Generate sequences for all 28 nodes" above.`}
+            </p>
+          </div>
+          {!highlightFlow && (
+            <Button size="sm" className="h-8 text-xs shrink-0" onClick={() => navigate(`/node-builder/${highlightNodeId}`)}>
+              Open {highlightNodeId} <ArrowRight className="h-3 w-3 ml-1" />
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
-      {flows.map((f) => (
-        <div key={f.id} className="rounded-xl border border-border bg-card p-4">
+      {flows.map((f) => {
+        const isHighlighted = pulseId === f.id;
+        return (
+        <div
+          key={f.id}
+          ref={isHighlighted ? highlightRef : undefined}
+          className={`rounded-xl border bg-card p-4 transition-all ${isHighlighted ? "border-primary ring-2 ring-primary/40 shadow-lg" : "border-border"}`}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -174,7 +240,7 @@ export default function SequencesTab() {
                 </Button>
               )}
               {(f.status === "active" || f.status === "paused" || f.status === "draft") && (
-                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
+                <Button size="sm" variant={isHighlighted && f.status === "draft" ? "default" : "outline"} className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
                   {updatingId === f.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : f.status === "active" ? <PauseCircle className="h-3 w-3 mr-1" /> : <PlayCircle className="h-3 w-3 mr-1" />}
                   {f.status === "active" ? "Pause" : "Activate"}
                 </Button>
@@ -202,7 +268,8 @@ export default function SequencesTab() {
             <span className="flex items-center gap-1"><MousePointerClick className="h-3 w-3" /> {(Number(f.click_rate) * 100).toFixed(0)}% click</span>
           </div>
         </div>
-      ))}
+        );
+      })}
       </div>
     </div>
   );

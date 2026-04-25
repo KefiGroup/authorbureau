@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, Copy, ExternalLink, Link2, ArrowRight, Sparkles, Library } from "lucide-react";
+import { CheckCircle2, Copy, ExternalLink, Link2, ArrowRight, Sparkles, Library, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { NODE_NAMES, getMicrositeUrl, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
+
+/** Per-node override for the success-screen headline (avoids "Your Email Marketing are saved..."). */
+const NODE_SAVED_HEADLINE: Record<string, string> = {
+  "BP-01": "Your email marketing sequences are saved to your library!",
+  "BA-12": "Your membership is saved to your library!",
+  "BA-15": "Your media outreach plan is saved to your library!",
+  "BA-16": "Your affiliate program is saved to your library!",
+  "BA-17": "Your upsells are saved to your library!",
+  "BA-18": "Your revenue sharing plan is saved to your library!",
+};
 
 /** Maps node IDs to marketing hub campaign highlight IDs */
 const NODE_TO_CAMPAIGN: Record<string, string> = {
@@ -60,6 +70,7 @@ function copyToClipboard(text: string) {
 
 export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, abbyMessage }: Props) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [copied, setCopied] = useState(false);
   const nodeName = NODE_NAMES[nodeId] || nodeId;
   const hasPublicPage = !NO_MICROSITE_NODES.has(nodeId);
@@ -67,6 +78,11 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
   const campaignId = NODE_TO_CAMPAIGN[nodeId] || "email-marketing";
   const prefix = nodeId.substring(0, 2);
   const hub = NODE_TO_HUB[prefix] || NODE_TO_HUB.BP;
+  // If the user came from a Book Hub tab, prefer sending them back there.
+  const bookId = searchParams.get("bookId");
+  const tabForPrefix: Record<string, string> = { BP: "revenue-streams", BA: "marketing-channels", YR: "authority-builders" };
+  const bookHubPath = bookId ? `/book-hub/${bookId}?tab=${tabForPrefix[prefix] || "revenue-streams"}` : null;
+  const savedHeadline = NODE_SAVED_HEADLINE[nodeId] || `Your ${nodeName} is saved to your library!`;
 
   const handleCopy = () => {
     if (micrositeUrl) {
@@ -87,7 +103,7 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
         <div className="w-20 h-20 rounded-full bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center mb-4 animate-in zoom-in duration-500">
           <CheckCircle2 className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
         </div>
-        <h2 className="text-2xl font-bold mb-1">{hasPublicPage ? `Your ${nodeName} is now live! 🎉` : `Your ${nodeName} are saved to your library! 🎉`}</h2>
+        <h2 className="text-2xl font-bold mb-1">{hasPublicPage ? `Your ${nodeName} is now live! 🎉` : `${savedHeadline} 🎉`}</h2>
         <p className="text-sm text-muted-foreground">Congratulations, {authorName}!</p>
       </div>
 
@@ -150,9 +166,15 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
         <Button variant="link" className="text-sm" onClick={() => navigate("/dashboard?section=library")}>
           <Library className="h-4 w-4 mr-1.5" />Open in My Library
         </Button>
-        <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate(hub.path)}>
-          Go back to {hub.label}
-        </Button>
+        {bookHubPath ? (
+          <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate(bookHubPath)}>
+            <BookOpen className="h-4 w-4 mr-1.5" />Back to Book Hub
+          </Button>
+        ) : (
+          <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate(hub.path)}>
+            Go back to {hub.label}
+          </Button>
+        )}
       </div>
     </div>
   );
