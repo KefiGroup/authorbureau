@@ -215,11 +215,24 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                     <div className={`h-px flex-1 ${accent.divider}`} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {group.nodes.map((n) => {
+                    {group.nodes.map((n, idx) => {
                       const isNext = catProgress.nextStep?.id === n.id;
                       const cardState: ProductCardState = isNext && (n.state === "available" || n.state === "in-progress")
                         ? "recommended"
                         : stateMap[n.state];
+                      const live = liveStats[n.code];
+                      const prevPublished = group.nodes
+                        .slice(0, idx)
+                        .reverse()
+                        .find((p) => p.state === "completed");
+                      const personalized = isNext
+                        ? buildRecommendationCopy(n, {
+                            completedInCategory: catProgress.completed,
+                            totalInCategory: catProgress.total,
+                            livePercent: live?.progressPercent,
+                            previousNodeLabel: prevPublished?.label,
+                          })
+                        : undefined;
                       return (
                         <SmartProductCard
                           key={n.id}
@@ -227,9 +240,13 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                           label={n.label}
                           icon={n.icon}
                           description={n.description || ""}
+                          personalizedDescription={personalized}
                           state={cardState}
                           tierRequired={n.tierRequired}
                           code={n.code}
+                          progressPercent={live?.progressPercent}
+                          liveRevenue={live?.revenueToDate}
+                          lastActivityAt={live?.activatedAt}
                           onBuild={() => handleNav(n)}
                           onContinue={() => handleNav(n)}
                           onView={() => handleNav(n)}
