@@ -1,41 +1,63 @@
-## Why the Competitive Scan is empty
+## Goal
 
-The market-research edge function ran successfully but Amazon's anti-bot blocked the bestseller scrape for the "Religion & Spirituality › Spirituality › Personal Growth › Spiritual Healing" Kindle category.
+Eliminate the duplicate Brand Products surface so the **Book Hub → Brand tab** is the single source of truth, without breaking any existing links, deep paths, or builder back buttons. Replace the misleading "View on Website" CTA with phrasing that fits every node type.
 
-Edge function log (06:55:23Z):
-> Market research completed for "Be SUCKcessful" — 3 sources, **0 Amazon products**, 1 competitor products
+## What changes
 
-Because `amazonBestsellers.products.length === 0`, the `amazonBestsellers` field is set to `null` server-side. In `MarketSnapshot.tsx`:
-- The header + tab bar render (because `marketIntelligence` exists)
-- The **Competitive Scan** tab body renders only `<PriceDistribution>` and `<TopBestsellers>`, both gated on `hasBestsellers` → both render nothing
-- The **Live Market Trends** tab is also gated on `hasKeywords` (derived from Amazon data) → falls back to raw markdown only if `marketIntelligence` exists
+### 1. `BrandProductsHub.tsx` becomes a thin redirect
 
-Result: a header with two empty tabs.
+Rather than ripping the route out (which would break ~10 existing links across builders, dashboard, library, success screens, etc.), I'll convert the page itself into a redirect. Any visit to `/brand-products` is sent to the active book's Brand tab:
 
-## Fix
+```
+/brand-products  →  /book-hub/:bookId?tab=revenue-streams
+```
 
-Two changes in `src/components/dashboard/book-hub/MarketSnapshot.tsx`:
+If no active book is resolved yet, fallback to `/dashboard`.
 
-### 1. Show a useful Competitive tab when Amazon scrape fails
+This means:
+- All existing "Back to Brand Products" buttons keep working (no builder edits needed).
+- The duplicate UI is gone — the standalone hub component code is fully replaced.
+- One route, one experience. Single source of truth maintained.
 
-When `hasBestsellers` is false, render a fallback panel inside the Competitive tab that shows:
-- A short note: *"Amazon bestseller scrape was blocked for this niche category. Showing competitor digital products instead."*
-- The `competitorProducts` list (Gumroad / Udemy / Teachable links Abby found via Perplexity) — title + platform badge + external link.
-- If `competitorProducts` is also empty, show: *"Abby couldn't pull live competitor pricing for this sub-niche. Try refreshing or check the Live Market Trends tab for genre intelligence."* with a refresh button hooked to `useMarketResearch.refetch`.
+### 2. Rename the published-state CTA on `SmartProductCard`
 
-### 2. Improve the Live Market Trends fallback
+Currently shows **"View on Website →"** for every published node — incorrect for Email Marketing, Social Media, CRM-driven nodes, etc. that don't live on the public website.
 
-When `hasKeywords` is false but `marketIntelligence` exists, the current markdown dump is hard to read. Wrap it in the same styled container the keywords use, with the citations list (`marketCitations`) rendered as clickable source chips below.
+**New label: "Open & Manage →"** (with the existing Eye icon)
 
-### 3. Pass refetch into MarketSnapshot
+Why this phrasing:
+- Works universally — Email Marketing, Social Media, Webinars, Workbooks, Courses, Coaching, all of them
+- Action-oriented (matches "Build This Product" / "Continue Building" sibling CTAs)
+- Honest: tapping it opens the builder where the author can review, edit, or re-generate the live asset
+- Short enough to fit the card without wrapping
 
-Update `BookHubOverview.tsx` (the only caller) to pass the `refetch` callback so the fallback's "Try again" button works.
+Alternative phrasings I considered and rejected:
+- "View Live →" — ambiguous (live where?)
+- "Manage →" — too thin
+- "Edit →" — implies only editing, not viewing analytics/status
+- "Open Builder →" — too technical
+
+### 3. Verify nothing else breaks
+
+- Sidebar pathname matching (`/brand-products` → "revenue-streams" section) is preserved because the route still exists; the redirect is internal.
+- `PublishSuccessScreen` BP success path (`/brand-products`) still works → flows into the new Book Hub Brand tab.
+- `NodeBuilder` and `BP01–09` "back" handlers still work.
+- No imports removed; no broken references.
 
 ## Files touched
 
-- `src/components/dashboard/book-hub/MarketSnapshot.tsx` — add fallbacks
-- `src/components/dashboard/book-hub/BookHubOverview.tsx` — pass `onRefresh` prop
+| File | Change |
+|---|---|
+| `src/pages/BrandProductsHub.tsx` | Replace contents with redirect-only component using `useBookContext` |
+| `src/components/dashboard/SmartProductCard.tsx` | Change line 453 CTA text from "View on Website →" to "Open & Manage →" |
 
-## Out of scope (separate improvement, not doing here)
+That's it — two surgical edits. No router changes, no link rewrites across 10+ files, no risk of orphan paths.
 
-- Hardening the Amazon scrape itself (rotating user agents, alternate sources like Goodreads/Google Books) — that's a backend reliability sprint, not a UI fix. The current behavior of falling back to Perplexity intelligence is correct; the UI just needs to surface that data.
+## Out of scope
+
+- The `BookHubOverview` Brand tab itself stays as-is (it's already the winning design).
+- No changes to data fetching, no schema work, no edge functions.
+
+## After build
+
+I'll confirm the TypeScript build passes, then summarize the final CTA wording so you can sanity-check it before publishing.
