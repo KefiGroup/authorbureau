@@ -1904,6 +1904,7 @@ export type Database = {
       crm_contacts: {
         Row: {
           abby_score: number
+          archetype: Database["public"]["Enums"]["node_archetype"] | null
           author_id: string
           company: string | null
           created_at: string
@@ -1911,6 +1912,7 @@ export type Database = {
           full_name: string
           id: string
           last_activity_at: string | null
+          last_node_id: string | null
           notes: string | null
           phone: string | null
           quiz_completed_at: string | null
@@ -1922,6 +1924,7 @@ export type Database = {
         }
         Insert: {
           abby_score?: number
+          archetype?: Database["public"]["Enums"]["node_archetype"] | null
           author_id: string
           company?: string | null
           created_at?: string
@@ -1929,6 +1932,7 @@ export type Database = {
           full_name: string
           id?: string
           last_activity_at?: string | null
+          last_node_id?: string | null
           notes?: string | null
           phone?: string | null
           quiz_completed_at?: string | null
@@ -1940,6 +1944,7 @@ export type Database = {
         }
         Update: {
           abby_score?: number
+          archetype?: Database["public"]["Enums"]["node_archetype"] | null
           author_id?: string
           company?: string | null
           created_at?: string
@@ -1947,6 +1952,7 @@ export type Database = {
           full_name?: string
           id?: string
           last_activity_at?: string | null
+          last_node_id?: string | null
           notes?: string | null
           phone?: string | null
           quiz_completed_at?: string | null
