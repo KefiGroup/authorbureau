@@ -185,22 +185,23 @@ const difficultyLabels = ["", "Expert", "Hard", "Medium", "Easy", "Easy"];
 
 function buildStateConfig(state: ProductCardState, cat: BuilderCategory) {
   const c = categoryCard[cat];
+  const p = pendingTokens;
   switch (state) {
     case "recommended":
       return {
         badge: "⭐ Recommended",
-        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
-        borderClass: `${c.border} ${c.glow} ${c.ring}`,
-        cardBg: c.gradient,
-        stripColor: c.strip,
+        badgeClass: `${p.badgeBg} ${p.badgeText} ${p.badgeBorder}`,
+        borderClass: `${p.border} ${p.glow} ${p.ring}`,
+        cardBg: p.gradient,
+        stripColor: p.strip,
       };
     case "available":
       return {
         badge: "Ready to Build",
-        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
-        borderClass: c.borderHover,
+        badgeClass: `${p.badgeBg} ${p.badgeText} ${p.badgeBorder}`,
+        borderClass: p.borderHover,
         cardBg: "bg-card",
-        stripColor: c.stripSoft,
+        stripColor: p.stripSoft,
       };
     case "locked":
       return {
@@ -213,18 +214,18 @@ function buildStateConfig(state: ProductCardState, cat: BuilderCategory) {
     case "in-progress":
       return {
         badge: "🔨 Building",
-        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
-        borderClass: `${c.border} ${c.glow}`,
-        cardBg: c.gradient,
-        stripColor: c.strip,
+        badgeClass: `${p.badgeBg} ${p.badgeText} ${p.badgeBorder}`,
+        borderClass: `${p.border} ${p.glow}`,
+        cardBg: p.gradient,
+        stripColor: p.strip,
       };
     case "published":
       return {
         badge: "✅ Live",
-        badgeClass: "bg-success/15 text-success border-success/30",
-        borderClass: "border-success/40 shadow-[0_0_16px_-4px_hsl(var(--success)/0.2)]",
-        cardBg: "bg-gradient-to-br from-success/[0.06] via-card to-card",
-        stripColor: "bg-success",
+        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
+        borderClass: `${c.border} ${c.glow}`,
+        cardBg: c.gradient,
+        stripColor: c.strip,
       };
     case "coming-soon":
       return {
