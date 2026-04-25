@@ -397,19 +397,23 @@ export default function SmartProductCard({
           {state === "recommended" && (
             <Button
               size="sm"
-              className="w-full text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90"
+              className={`w-full text-xs border ${catTokens.ctaSolid} shadow-md`}
               onClick={onBuild}
             >
               <Sparkles className="h-3 w-3 mr-1.5" /> Build This Product →
             </Button>
           )}
           {state === "available" && (
-            <Button variant="outline" size="sm" className="w-full text-xs" onClick={onBuild}>
+            <Button
+              size="sm"
+              className={`w-full text-xs border ${catTokens.ctaAvailable}`}
+              onClick={onBuild}
+            >
               <ArrowRight className="h-3 w-3 mr-1.5" /> Build This Product →
             </Button>
           )}
           {state === "in-progress" && (
-            <Button size="sm" className="w-full text-xs bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onContinue}>
+            <Button size="sm" className={`w-full text-xs border ${catTokens.ctaSolid} shadow-md`} onClick={onContinue}>
               <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
             </Button>
           )}
