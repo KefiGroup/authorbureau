@@ -233,9 +233,40 @@ export default function FunnelsHub() {
     return <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   }
 
+  // Derived metrics
+  const liveCount = funnels.filter((f) => f.status === "live").length;
+  const draftCount = funnels.filter((f) => f.status !== "live").length;
+  const totalViews = funnels.reduce((s, f) => s + (f.page_views || 0), 0);
+  const totalConv = funnels.reduce((s, f) => s + (f.conversions || 0), 0);
+  const avgRate = totalViews > 0 ? ((totalConv / totalViews) * 100).toFixed(1) : "0.0";
+
+  // Suggestions = live nodes without a funnel, grouped by archetype
+  const suggestions = liveNodes.filter((n) => !funnels.some((f) => f.node_id === n.node_id));
+  const suggestionsByArch: Record<ArchetypeKey, LiveNode[]> = { A: [], B: [], C: [], D: [] };
+  for (const s of suggestions) {
+    const k = (s.archetype || "B") as ArchetypeKey;
+    suggestionsByArch[k].push(s);
+  }
+  const archOrder: ArchetypeKey[] = ["B", "A", "C", "D"];
+  const archAccent: Record<ArchetypeKey, string> = {
+    A: "border-amber-400/50 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:bg-amber-900/20 dark:text-amber-100 dark:hover:bg-amber-900/30",
+    B: "border-sky-400/50 bg-sky-50 text-sky-900 hover:bg-sky-100 dark:bg-sky-900/20 dark:text-sky-100 dark:hover:bg-sky-900/30",
+    C: "border-violet-400/50 bg-violet-50 text-violet-900 hover:bg-violet-100 dark:bg-violet-900/20 dark:text-violet-100 dark:hover:bg-violet-900/30",
+    D: "border-emerald-400/50 bg-emerald-50 text-emerald-900 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:text-emerald-100 dark:hover:bg-emerald-900/30",
+  };
+
+  // Filter applied to funnel cards
+  const filtered = funnels.filter((f) => {
+    if (filter === "all") return true;
+    if (filter === "live") return f.status === "live";
+    if (filter === "paused") return f.status !== "live";
+    const arch = liveNodes.find((n) => n.node_id === f.node_id)?.archetype;
+    return arch === filter;
+  });
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center gap-3 mb-2">
           <Filter className="h-7 w-7 text-primary" />
           <h1 className="text-3xl font-bold">My Funnels</h1>
@@ -245,42 +276,123 @@ export default function FunnelsHub() {
         </p>
       </div>
 
-      {liveNodes.length > 0 && (
-        <Card className="mb-6 border-primary/40 bg-primary/5">
-          <CardContent className="py-5">
-            <div className="flex items-start gap-3">
-              <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold mb-1">ABBY noticed something</h3>
-                <p className="text-sm text-muted-foreground mb-3">
-                  You already have {liveNodes.length === 1 ? "a live product" : `${liveNodes.length} live products`}. Want me to build a high-converting opt-in funnel for {liveNodes.length === 1 ? "it" : "each"}? Takes about 30 seconds.
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {liveNodes.map((n) => {
-                    const hasFunnel = funnels.some((f) => f.node_id === n.node_id);
-                    if (hasFunnel) return null;
-                    const isGen = generatingNodeId === n.node_id;
-                    return (
-                      <Button
-                        key={n.node_id}
-                        size="sm"
-                        onClick={() => generateForNode(n.node_id)}
-                        disabled={!!generatingNodeId}
-                      >
-                        {isGen ? (
-                          <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                        ) : (
-                          <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-                        )}
-                        Generate funnel for {NODE_NAMES[n.node_id] || n.node_id}
-                      </Button>
-                    );
-                  })}
+      {/* Stats strip */}
+      <Card className="mb-4">
+        <CardContent className="py-4">
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 text-center">
+            <div>
+              <div className="text-2xl font-bold text-green-600">{liveCount}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Live</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-muted-foreground">{draftCount}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Drafts</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{totalViews}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Views</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold">{totalConv}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Opt-ins</div>
+            </div>
+            <div>
+              <div className="text-2xl font-bold text-primary">{avgRate}%</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Avg rate</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Collapsible ABBY suggestions */}
+      {suggestions.length > 0 && (
+        <Card className="mb-6 border-primary/30 bg-primary/[0.03]">
+          <CardContent className="py-3 px-4">
+            <button
+              type="button"
+              onClick={() => setSuggestionsOpen((v) => !v)}
+              className="w-full flex items-center justify-between gap-3 text-left"
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm">
+                    ABBY can build {suggestions.length} more funnel{suggestions.length === 1 ? "" : "s"} for your live products
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Each takes ~30 seconds. Tap a product to generate.
+                  </div>
                 </div>
               </div>
-            </div>
+              {suggestionsOpen
+                ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" />
+                : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
+            </button>
+
+            {suggestionsOpen && (
+              <div className="mt-4 space-y-3 pt-3 border-t border-primary/15">
+                {archOrder.map((arch) => {
+                  const items = suggestionsByArch[arch];
+                  if (items.length === 0) return null;
+                  return (
+                    <div key={arch}>
+                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                        {ARCHETYPE_LABEL[arch]} funnels · {items.length}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {items.map((n) => {
+                          const isGen = generatingNodeId === n.node_id;
+                          return (
+                            <button
+                              key={n.node_id}
+                              type="button"
+                              onClick={() => generateForNode(n.node_id)}
+                              disabled={!!generatingNodeId}
+                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition disabled:opacity-50 ${archAccent[arch]}`}
+                            >
+                              {isGen
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : <Sparkles className="h-3 w-3" />}
+                              {NODE_NAMES[n.node_id] || n.node_id}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Filter chips */}
+      {funnels.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {([
+            { k: "all", label: `All · ${funnels.length}` },
+            { k: "live", label: `Live · ${liveCount}` },
+            { k: "paused", label: `Paused · ${draftCount}` },
+            { k: "B", label: "Opt-in" },
+            { k: "A", label: "Sales" },
+            { k: "C", label: "Application" },
+            { k: "D", label: "Event" },
+          ] as { k: FilterKey; label: string }[]).map((c) => (
+            <button
+              key={c.k}
+              type="button"
+              onClick={() => setFilter(c.k)}
+              className={`px-2.5 py-1 rounded-full border text-xs font-medium transition ${
+                filter === c.k
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-background text-muted-foreground border-border hover:bg-muted"
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
+        </div>
       )}
 
       {funnels.length === 0 ? (
@@ -290,21 +402,28 @@ export default function FunnelsHub() {
             <h3 className="text-xl font-semibold mb-2">No funnels yet</h3>
             <p className="text-muted-foreground max-w-md mx-auto">
               {liveNodes.length > 0
-                ? "Click a button above to let ABBY build your first funnel."
+                ? "Open the suggestions panel above to let ABBY build your first funnel."
                 : "Publish a Lead Magnet, Webinar, Author Website, or Book Sales page and ABBY will generate a high-converting funnel for it automatically."}
             </p>
           </CardContent>
         </Card>
+      ) : filtered.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="py-12 text-center text-muted-foreground text-sm">
+            No funnels match this filter.
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">
-          {funnels.map((f) => {
+          {filtered.map((f) => {
             const rate = f.page_views > 0 ? ((f.conversions / f.page_views) * 100).toFixed(1) : "0.0";
+            const url = liveUrl(f.slug);
             return (
               <Card key={f.id} className="overflow-hidden">
                 <div className="h-2" style={{ backgroundColor: f.accent_color }} />
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <h3 className="font-semibold truncate">{f.title}</h3>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {f.node_id && <Badge variant="secondary" className="text-xs">{NODE_NAMES[f.node_id] || f.node_id}</Badge>}
@@ -322,9 +441,25 @@ export default function FunnelsHub() {
                         </Badge>
                       </div>
                     </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="h-7 w-7 shrink-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditing({ ...f })}>
+                          <Edit className="h-3.5 w-3.5 mr-2" />Edit copy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => toggleStatus(f)}>
+                          <Power className="h-3.5 w-3.5 mr-2" />{f.status === "live" ? "Pause" : "Go Live"}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setRegenerateTarget(f)}>
+                          <Sparkles className="h-3.5 w-3.5 mr-2" />Regenerate with ABBY
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-
-
 
                   <div className="grid grid-cols-4 gap-2 mb-4 text-center">
                     <div className="bg-muted/50 rounded p-2">
@@ -346,26 +481,26 @@ export default function FunnelsHub() {
                   </div>
 
                   {authorSlug && (
-                    <div className="mb-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 rounded px-2 py-1.5 truncate">
-                      <span className="truncate">{`${window.location.origin}/${authorSlug}/${f.slug}`}</span>
-                    </div>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mb-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 hover:bg-muted/60 rounded px-2 py-1.5 transition group"
+                    >
+                      <span className="truncate flex-1">{url}</span>
+                      <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition" />
+                    </a>
                   )}
 
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline" onClick={() => window.open(liveUrl(f.slug), "_blank")}>
-                      <Eye className="h-3.5 w-3.5 mr-1" />View Funnel
+                    <Button size="sm" variant="default" onClick={() => window.open(url, "_blank")}>
+                      <Eye className="h-3.5 w-3.5 mr-1" />View
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => copyLink(f.slug)}>
                       <Copy className="h-3.5 w-3.5 mr-1" />Copy link
                     </Button>
                     <Button size="sm" variant="outline" onClick={() => navigate("/dashboard?section=author-crm")}>
-                      <Users className="h-3.5 w-3.5 mr-1" />View in CRM
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setEditing({ ...f })}>
-                      <Edit className="h-3.5 w-3.5 mr-1" />Edit
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => toggleStatus(f)}>
-                      <Power className="h-3.5 w-3.5 mr-1" />{f.status === "live" ? "Pause" : "Go Live"}
+                      <Users className="h-3.5 w-3.5 mr-1" />CRM
                     </Button>
                   </div>
                 </CardContent>
