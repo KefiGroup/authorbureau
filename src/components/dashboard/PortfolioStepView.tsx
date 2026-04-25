@@ -49,6 +49,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
   const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
   const progress = useBookNodeProgress(effectiveTier, openNodeIds);
+  const { byCode: liveStats } = useNodeLiveStats();
 
   useEffect(() => {
     async function fetchBooks() {
@@ -77,6 +78,21 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const headline = CATEGORY_HEADLINES[categoryId];
   const primaryBookId = analyzedBooks?.[0]?.id || books[0]?.id || "";
   const primaryBookTitle = analyzedBooks?.[0]?.title || books[0]?.title || "";
+
+  // Dynamic category economics — derived from actual unlocked nodes + live revenue.
+  const earnedInCategory = catProgress
+    ? catProgress.nodes.reduce((sum, n) => sum + (liveStats[n.code]?.revenueToDate || 0), 0)
+    : 0;
+  const potentialInCategory = catProgress
+    ? catProgress.nodes
+        .filter((n) => n.state !== "locked" && n.state !== "coming-soon")
+        .reduce((sum, n) => sum + (BASELINE_REVENUE[n.id]?.annual || 0), 0)
+    : 0;
+  const lockedPotential = catProgress
+    ? catProgress.nodes
+        .filter((n) => n.state === "locked")
+        .reduce((sum, n) => sum + (BASELINE_REVENUE[n.id]?.annual || 0), 0)
+    : 0;
 
   if (progress.loading || bookLoading) {
     return (
