@@ -1,10 +1,27 @@
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+
+/** Maps the marketing hub `highlight` query param to the node_id stored on email_flows. */
+const HIGHLIGHT_TO_NODE: Record<string, string> = {
+  "email-marketing": "BP-01",
+  "lead-magnets": "BP-02",
+  "social-media": "BP-03",
+  "website-microsite": "BP-04",
+  "webinars": "BP-05",
+};
+/** Friendly label for the node we're highlighting. */
+const NODE_LABEL: Record<string, string> = {
+  "BP-01": "Email Marketing",
+  "BP-02": "Lead Magnets",
+  "BP-03": "Social Media",
+  "BP-04": "Author Website",
+  "BP-05": "Webinars",
+};
 
 interface FlowRow {
   id: string;
@@ -35,12 +52,19 @@ const statusBadge: Record<string, string> = {
 
 export default function SequencesTab() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const highlightKey = searchParams.get("highlight");
+  const highlightNodeId = highlightKey ? HIGHLIGHT_TO_NODE[highlightKey] : null;
+  const highlightLabel = highlightNodeId ? NODE_LABEL[highlightNodeId] : null;
+  const highlightRef = useRef<HTMLDivElement | null>(null);
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
   const [enrollments, setEnrollments] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [generatingAll, setGeneratingAll] = useState(false);
+  const [generatingSingle, setGeneratingSingle] = useState(false);
+  const [pulseId, setPulseId] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -60,6 +84,20 @@ export default function SequencesTab() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // After flows load, if a highlight node is requested, scroll to it and pulse.
+  useEffect(() => {
+    if (loading || !highlightNodeId) return;
+    const target = flows.find((f) => f.node_id === highlightNodeId);
+    if (!target) return;
+    setPulseId(target.id);
+    // Defer to allow layout
+    requestAnimationFrame(() => {
+      highlightRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+    const t = setTimeout(() => setPulseId(null), 3500);
+    return () => clearTimeout(t);
+  }, [loading, flows, highlightNodeId]);
 
   const toggleStatus = async (flow: FlowRow) => {
     const next = flow.status === "active" ? "paused" : "active";
