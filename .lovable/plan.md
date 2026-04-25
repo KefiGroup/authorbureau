@@ -1,44 +1,40 @@
-## Plan
+## Fix: Recognize Annual Stripe Products in Tier Resolution
 
-The app is still showing Free because the subscription check is being sent through the wrong client.
+### Problem
+Each tier (Brand / Build / Yield) has **two Stripe products** — a monthly one and a duplicate "annual" one created for the "Save 17%" receipts. The frontend and `check-subscription` edge function only recognize the monthly product IDs, so any author subscribing via the **annual** payment links will be returned as `tier: "free"` and locked out of paid features.
 
-`useAuth.tsx` currently imports `supabase` from `@/lib/shared-backend` and calls:
+| Tier | Monthly product (recognized) | Annual product (currently ignored) |
+|---|---|---|
+| Brand | `prod_UB6BxxNnqv6UpV` | `prod_UDQttfkI82vPTf` |
+| Build | `prod_UB6BfcKCAYrgp0` | `prod_UDQtofrWi6NpKc` |
+| Yield | `prod_UB6BVLnks6JWoJ` | `prod_UDQtP7TtNPX0jm` |
 
-```ts
-supabase.functions.invoke("check-subscription")
-```
+This affects every future annual subscriber.
 
-That shared client points at the external shared auth backend, while the `check-subscription` function you want lives in this project’s own backend. So the frontend is not reliably hitting the function that returns your Yield plan.
+### Approach
+Add the annual product IDs as additional accepted IDs for each tier in both the frontend and the edge function. Keep monthly IDs as the canonical `product_id` so existing UI/checkout flows are untouched.
 
-## What I’ll change
+### Changes
 
-1. Update `src/hooks/useAuth.tsx` so `checkSubscription()` calls this project’s backend function URL directly, using the existing shared-session token helper.
-2. Reuse the established pattern already used by `useAuthorStats`:
-   - get the active shared auth token
-   - call `${VITE_SUPABASE_URL}/functions/v1/check-subscription`
-   - send `Authorization: Bearer <token>`
-3. Keep the current loading/fallback behavior, but only fall back to Free after a real request failure.
-4. Verify any tier-derived UI that depends on `useAuth` will then resolve from the returned `product_id` as intended.
+**1. `src/hooks/useAuth.tsx`**
+- Add `annual_product_id` field to each entry in the `TIERS` config:
+  - `brand.annual_product_id = "prod_UDQttfkI82vPTf"`
+  - `build.annual_product_id = "prod_UDQtofrWi6NpKc"`
+  - `yield.annual_product_id = "prod_UDQtP7TtNPX0jm"`
+- Update `getTierFromProductId()` to match either `product_id` or `annual_product_id` for each tier.
 
-## Expected result
+**2. `supabase/functions/check-subscription/index.ts`**
+- Extend `TIER_MAP` to include the 3 annual product IDs mapping to the same tier strings (`brand`, `build`, `yield`).
 
-After this fix, your signed-in account (`pl@paulineteo.com`) should resolve to `yield` on the frontend, so:
-- the plan badge should stop showing Free
-- Yield-gated areas like CRM should unlock
-- Account Settings / pricing state should reflect the paid plan correctly
+### Optional cleanup (not required for the fix, can defer)
+- Remove unused `LEGACY_TIER_MAP` (starter/pro/enterprise) if confirmed unreferenced.
+- Audit `setup-stripe-product` and `create-product-checkout` edge functions to ensure they don't reintroduce drift.
 
-## Technical details
+### Verification after deploy
+1. Confirm your existing Yield subscription still resolves correctly (monthly path unchanged).
+2. Use a Stripe test mode annual checkout (or query an annual subscriber if any exist) and verify `check-subscription` returns the correct tier.
+3. Check the dashboard badge and CRM access for an annual test account.
 
-Files to update:
+### Files to edit
 - `src/hooks/useAuth.tsx`
-
-Implementation approach:
-- replace `shared-backend` function invocation for subscription lookup
-- import and use `getActiveToken` + `fetchWithTimeout` from `src/lib/get-active-token.ts`
-- parse the function JSON response into:
-  - `subscribed`
-  - `productId`
-  - `subscriptionEnd`
-- preserve safe fallback if token is missing or request truly fails
-
-If you approve, I’ll apply that frontend fix next.
+- `supabase/functions/check-subscription/index.ts`

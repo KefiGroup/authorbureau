@@ -14,6 +14,7 @@ export const TIERS = {
     special_price_id: "price_1TCjzFCk4r0emyO8LdzhvM9V", // $49/mo special
     annual_price_id: "price_1TF01ZCk4r0emyO8xHrc9Vc8",
     product_id: "prod_UB6BxxNnqv6UpV",
+    annual_product_id: "prod_UDQttfkI82vPTf",
     label: "Brand Plan",
     monthlyPrice: 69,
     specialPrice: 49,
@@ -27,6 +28,7 @@ export const TIERS = {
     special_price_id: "price_1TCjzGCk4r0emyO8jkYgPpmL", // $99/mo special
     annual_price_id: "price_1TF01aCk4r0emyO8Whkqo6gz",
     product_id: "prod_UB6BfcKCAYrgp0",
+    annual_product_id: "prod_UDQtofrWi6NpKc",
     label: "Build Plan",
     monthlyPrice: 199,
     specialPrice: 99,
@@ -40,6 +42,7 @@ export const TIERS = {
     special_price_id: "price_1TCjzHCk4r0emyO82PblWqRl",  // $249/mo special
     annual_price_id: "price_1TF01bCk4r0emyO8WOX1NhtB",
     product_id: "prod_UB6BVLnks6JWoJ",
+    annual_product_id: "prod_UDQtP7TtNPX0jm",
     label: "Yield Plan",
     monthlyPrice: 499,
     specialPrice: 249,
@@ -61,9 +64,9 @@ export type SubscriptionTier = "free" | "brand" | "build" | "yield";
 
 export function getTierFromProductId(productId: string | null): SubscriptionTier {
   if (!productId) return "free";
-  if (productId === TIERS.yield.product_id) return "yield";
-  if (productId === TIERS.build.product_id) return "build";
-  if (productId === TIERS.brand.product_id) return "brand";
+  if (productId === TIERS.yield.product_id || productId === TIERS.yield.annual_product_id) return "yield";
+  if (productId === TIERS.build.product_id || productId === TIERS.build.annual_product_id) return "build";
+  if (productId === TIERS.brand.product_id || productId === TIERS.brand.annual_product_id) return "brand";
   return "free";
 }
 

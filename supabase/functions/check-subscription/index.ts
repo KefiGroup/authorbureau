@@ -11,9 +11,14 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 
 // Product-to-tier mapping
 const TIER_MAP: Record<string, string> = {
+  // Monthly products
   "prod_UB6BxxNnqv6UpV": "brand",
   "prod_UB6BfcKCAYrgp0": "build",
   "prod_UB6BVLnks6JWoJ": "yield",
+  // Annual products (Save 17% receipts)
+  "prod_UDQttfkI82vPTf": "brand",
+  "prod_UDQtofrWi6NpKc": "build",
+  "prod_UDQtP7TtNPX0jm": "yield",
 };
 
 const logStep = (step: string, details?: any) => {
