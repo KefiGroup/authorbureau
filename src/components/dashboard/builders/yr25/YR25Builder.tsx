@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ArrowRight, Award, LayoutList, DollarSign, BadgeCheck } from "lucide-react";
 import { toast } from "sonner";
-import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../yr-shared/YRBuilderShared";
+import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark, HighTicketPrice } from "../shared/CategoryBuilderShared";
 import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";

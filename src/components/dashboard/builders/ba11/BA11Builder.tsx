@@ -5,7 +5,7 @@ import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, ArrowRight, ArrowLeft, Headphones, FileAudio, Mic, Wand2, Rocket } from "lucide-react";
-import { StepHeader, AbbyCard } from "../ba-shared/BABuilderShared";
+import { StepHeader, AbbyCard } from "../shared/CategoryBuilderShared";
 import AudiobookStepRenderer from "../audiobook/AudiobookStepRenderer";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft, listAudiobookChapters } from "@/lib/builder-autosave";

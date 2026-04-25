@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Sparkles, ArrowRight, BookOpen, LayoutList, DollarSign, FileText, ChevronDown, ChevronUp } from "lucide-react";
-import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../ba-shared/BABuilderShared";
+import { StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark } from "../shared/CategoryBuilderShared";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 import BANodeDownloadCard from "@/components/dashboard/builders/shared/BANodeDownloadCard";
 import ExportPackageCard from "@/components/dashboard/builders/shared/ExportPackageCard";

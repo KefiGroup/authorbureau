@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { ArrowRight, Heart, Gift, Mail, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark } from "../yr-shared/YRBuilderShared";
+import { StepHeader, AbbyCard, LoadingStep, MultiPaymentLinks, SummaryCard, SuccessCheckmark } from "../shared/CategoryBuilderShared";
 import PublishSuccessScreen from "../shared/PublishSuccessScreen";
 import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
