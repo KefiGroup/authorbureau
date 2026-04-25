@@ -1,8 +1,6 @@
-import { useMemo } from "react";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Sparkles, ExternalLink, Loader2, RefreshCw, Info } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { TrendingUp, Sparkles, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
