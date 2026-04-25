@@ -104,6 +104,10 @@ Deno.serve(async (req) => {
     logStatus = 'opened';
   } else if (type === 'email.clicked') {
     logStatus = 'clicked';
+  } else if (type === 'email.failed') {
+    logStatus = 'failed';
+  } else if (type === 'email.delivery_delayed') {
+    logStatus = 'delayed';
   }
 
   // 1. Suppress + flag subscriber + unenroll
