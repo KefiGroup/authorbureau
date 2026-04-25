@@ -177,12 +177,40 @@ export default function SequencesTab() {
     );
   }
 
+  const highlightFlow = highlightNodeId ? flows.find((f) => f.node_id === highlightNodeId) : null;
+
   return (
     <div>
       {Header}
+
+      {highlightNodeId && highlightLabel && (
+        <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Activate your {highlightLabel} sequence</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {highlightFlow
+                ? `We've highlighted the ${highlightLabel} sequence below. Click Activate to start sending.`
+                : `Your ${highlightLabel} sequence hasn't been generated yet. Open the ${highlightNodeId} builder to create it, or use "Generate sequences for all 28 nodes" above.`}
+            </p>
+          </div>
+          {!highlightFlow && (
+            <Button size="sm" className="h-8 text-xs shrink-0" onClick={() => navigate(`/node-builder/${highlightNodeId}`)}>
+              Open {highlightNodeId} <ArrowRightIcon />
+            </Button>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3">
-      {flows.map((f) => (
-        <div key={f.id} className="rounded-xl border border-border bg-card p-4">
+      {flows.map((f) => {
+        const isHighlighted = pulseId === f.id;
+        return (
+        <div
+          key={f.id}
+          ref={isHighlighted ? highlightRef : undefined}
+          className={`rounded-xl border bg-card p-4 transition-all ${isHighlighted ? "border-primary ring-2 ring-primary/40 shadow-lg" : "border-border"}`}
+        >
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5 flex-wrap">
@@ -212,7 +240,7 @@ export default function SequencesTab() {
                 </Button>
               )}
               {(f.status === "active" || f.status === "paused" || f.status === "draft") && (
-                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
+                <Button size="sm" variant={isHighlighted && f.status === "draft" ? "default" : "outline"} className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
                   {updatingId === f.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : f.status === "active" ? <PauseCircle className="h-3 w-3 mr-1" /> : <PlayCircle className="h-3 w-3 mr-1" />}
                   {f.status === "active" ? "Pause" : "Activate"}
                 </Button>
