@@ -131,7 +131,7 @@ export default function AuthorSite() {
       if (!isOwner) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
-    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes, testimonialsRes, contextRes] = await Promise.all([
+    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes, testimonialsRes, contextRes, curatedBookIdRes] = await Promise.all([
       booksQuery,
       booksByNameQuery ? booksByNameQuery : Promise.resolve({ data: [] as unknown[] }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
@@ -141,7 +141,14 @@ export default function AuthorSite() {
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("author_nodes").select("id, node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url, delivery_url, price_usd, currency, book_id").eq("author_id", profile.id).eq("status", "live"),
       supabase.from("author_testimonials").select("id, name, role, quote, avatar_url").eq("author_id", profile.user_id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
+      // Owner-only direct read (returns null for public visitors due to RLS).
+      // Used for curated frameworks/insights when present.
       supabase.from("author_context").select("key_frameworks, unique_insights, book_id").eq("author_id", profile.id).maybeSingle(),
+      // Public-safe pointer to the author's curated lead book. Works for
+      // anonymous visitors via SECURITY DEFINER RPC, so the "What's inside"
+      // section anchors to the correct book even when the visitor cannot
+      // read author_context directly.
+      supabase.rpc("get_author_curated_book_id" as any, { _author_id: profile.id } as any),
     ]);
 
     const booksPrimary = (booksRes.data || []) as Record<string, unknown>[];
