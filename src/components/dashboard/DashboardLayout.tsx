@@ -29,7 +29,9 @@ function deriveActiveSection(pathname: string, nodeId?: string): DashboardSectio
   if (pathname.startsWith("/yield-revenue")) return "authority-builders" as DashboardSection;
   if (pathname.startsWith("/revenue-dashboard") || pathname.startsWith("/earnings"))
     return "analytics" as DashboardSection;
-  if (pathname.startsWith("/account-settings")) return "profile" as DashboardSection;
+  // /account-settings is reached from the user-menu (Account & Billing), not the
+  // main sidebar — return a non-matching id so no sidebar item is highlighted.
+  if (pathname.startsWith("/account-settings")) return "account-settings" as DashboardSection;
   if (pathname.startsWith("/connect-settings")) return "connect-settings" as DashboardSection;
   if (pathname.startsWith("/abby-coach")) return "abby-coach" as DashboardSection;
   if (pathname.startsWith("/admin/payouts")) return "analytics" as DashboardSection;

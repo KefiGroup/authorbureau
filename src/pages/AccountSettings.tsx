@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import ConnectedAccountsTab from "@/components/settings/ConnectedAccountsTab";
 import PayoutsSettings from "@/components/dashboard/PayoutsSettings";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { getActiveToken } from "@/lib/get-active-token";
 
 export default function AccountSettings() {
   const [searchParams] = useSearchParams();
@@ -58,19 +59,34 @@ export default function AccountSettings() {
   const handleManageBilling = async () => {
     setPortalLoading(true);
     // Open the popup synchronously to avoid popup blockers, then redirect it
-    // once the edge function returns. Doing it this way (instead of opening
-    // about:blank then waiting) keeps the parent's auth lock uncontested
-    // mid-call, so the tier badge doesn't flicker to "Free".
+    // once the edge function returns.
     const popup = window.open("about:blank", "_blank");
     try {
-      const { data, error } = await supabase.functions.invoke("customer-portal", {
-        body: { source_platform: "authorsbureau" },
+      const token = await getActiveToken();
+      if (!token) throw new Error("Not signed in. Please sign out and back in, then try again.");
+
+      // Call the function via fetch so we control the Authorization header
+      // and can read the JSON error body (functions.invoke hides it).
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/customer-portal`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+        },
+        body: JSON.stringify({ source_platform: "authorsbureau" }),
       });
-      if (error) throw error;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `Billing portal error (${res.status})`);
+      }
       if (data?.url && popup) {
         popup.location.href = data.url;
       } else if (data?.url) {
         window.open(data.url, "_blank");
+      } else {
+        throw new Error("Billing portal did not return a URL");
       }
     } catch (err: any) {
       popup?.close();
