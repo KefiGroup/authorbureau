@@ -55,6 +55,7 @@ Deno.serve(async (req) => {
     })
     payload = verified.payload
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     if (error instanceof WebhookError) {
       switch (error.code) {
         case 'invalid_signature':
@@ -70,7 +71,7 @@ Deno.serve(async (req) => {
         default:
           console.error('Webhook verification failed', {
             code: error.code,
-            message: error.message,
+            message: errorMessage,
           })
           return jsonResponse({ error: 'Verification failed' }, 401)
       }

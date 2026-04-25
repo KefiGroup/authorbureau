@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // @ts-ignore - npm specifier
-import PptxGenJS from "npm:pptxgenjs@3.12.0";
+import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

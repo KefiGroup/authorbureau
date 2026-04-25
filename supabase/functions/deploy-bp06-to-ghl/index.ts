@@ -31,7 +31,7 @@ serve(async (req) => {
       const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
       if (STRIPE_SECRET_KEY) {
         try {
-          const { default: Stripe } = await import("npm:stripe@17.7.0");
+          const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
           const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
           const product = await stripe.products.create({ name: title, description: content.transformation_promise || content.tagline || "", metadata: { author_id, node_id: "BP-06" } });
           const stripePrice = await stripe.prices.create({ product: product.id, unit_amount: Math.round(price * 100), currency: "usd" });
@@ -39,7 +39,8 @@ serve(async (req) => {
           paymentLinkUrl = paymentLink.url;
           content.stripe_product_id = product.id;
           content.stripe_price_id = stripePrice.id;
-        } catch (e) { console.error("Stripe error:", e.message); }
+        } catch (e) {
+    const eMessage = e instanceof Error ? e.message : String(e); console.error("Stripe error:", eMessage); }
       }
     }
 
@@ -54,7 +55,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    console.error("deploy-bp06 error:", err.message);
-    return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("deploy-bp06 error:", errMessage);
+    return new Response(JSON.stringify({ success: false, error: errMessage }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

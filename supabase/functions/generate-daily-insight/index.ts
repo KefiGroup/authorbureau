@@ -95,7 +95,8 @@ Write 2-3 sentences. Be specific, positive, and suggest one concrete next action
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("generate-daily-insight error:", err.message);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("generate-daily-insight error:", errMessage);
     return new Response(
       JSON.stringify({
         success: true,

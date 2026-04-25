@@ -2,7 +2,7 @@
 // Mirrors ba11-voice-preview pattern: in-code JWT decode, ElevenLabs TTS, returns base64 MP3.
 // Also uploads the MP3 to the audiobook-audio storage bucket so the publish step can package it.
 
-import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

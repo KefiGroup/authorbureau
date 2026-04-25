@@ -433,9 +433,10 @@ IMPORTANT RULES:
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("generate-bp02 error:", err.message);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("generate-bp02 error:", errMessage);
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify({ success: false, error: errMessage }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

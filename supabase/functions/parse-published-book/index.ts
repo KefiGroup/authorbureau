@@ -129,9 +129,10 @@ Be specific and personalised. If you cannot find the exact book, use the title a
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("parse-published-book error:", err.message);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("parse-published-book error:", errMessage);
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify({ success: false, error: errMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

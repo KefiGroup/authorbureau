@@ -48,9 +48,10 @@ serve(async (req) => {
 
     return await handleUpload(req, cloudAdmin, user.id);
   } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err);
     console.error("Unexpected error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: errMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

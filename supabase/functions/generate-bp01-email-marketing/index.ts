@@ -220,7 +220,8 @@ Make everything specific to this author's book and audience. Never use generic p
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("generate-bp01 error:", err.message);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("generate-bp01 error:", errMessage);
 
     // Try to set node status to error
     try {
@@ -229,7 +230,7 @@ Make everything specific to this author's book and audience. Never use generic p
     } catch { /* ignore */ }
 
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify({ success: false, error: errMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

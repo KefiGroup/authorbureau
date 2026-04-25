@@ -118,8 +118,8 @@ serve(async (req) => {
           const categoryMatches = markdown.match(/#[^#\n]+in(?:\s+)?(?:Books|Kindle|Audiobooks)?[^\n]*(?:\n|$)/gi);
           if (categoryMatches && categoryMatches.length > 0) {
             result.categories = categoryMatches
-              .map(cat => cat.replace(/#/g, '').trim())
-              .filter(cat => cat.length > 0)
+              .map((cat: string) => cat.replace(/#/g, '').trim())
+              .filter((cat: string) => cat.length > 0)
               .slice(0, 5);
           }
 

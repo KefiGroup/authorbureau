@@ -103,7 +103,8 @@ serve(async (req) => {
               console.log("[save-book] Found user in shared backend auth:", userId);
             }
           } catch (e) {
-            console.warn("[save-book] Shared backend auth lookup failed:", e.message);
+            const eMessage = e instanceof Error ? e.message : String(e);
+            console.warn("[save-book] Shared backend auth lookup failed:", eMessage);
           }
         }
 
@@ -412,9 +413,10 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err);
     console.error("Unexpected error:", err);
     return new Response(
-      JSON.stringify({ error: err.message }),
+      JSON.stringify({ error: errMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

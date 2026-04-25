@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import Stripe from "npm:stripe@17.7.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const GHL_BASE_URL = "https://services.leadconnectorhq.com";
 const corsHeaders = {
@@ -37,7 +37,8 @@ serve(async (req) => {
         paymentLinkUrl = paymentLink.url;
         content.stripe_product_id = product.id;
         content.stripe_price_id = stripePrice.id;
-      } catch (e) { console.error("Stripe error:", e.message); }
+      } catch (e) {
+    const eMessage = e instanceof Error ? e.message : String(e); console.error("Stripe error:", eMessage); }
     }
 
     let locationId = author.ghl_sub_account_id;
@@ -51,7 +52,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
-    console.error("deploy-bp07 error:", err.message);
-    return new Response(JSON.stringify({ success: false, error: err.message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("deploy-bp07 error:", errMessage);
+    return new Response(JSON.stringify({ success: false, error: errMessage }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 });

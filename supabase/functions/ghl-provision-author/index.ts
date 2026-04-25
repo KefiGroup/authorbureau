@@ -128,9 +128,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("ghl-provision-author error:", err.message);
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("ghl-provision-author error:", errMessage);
     return new Response(
-      JSON.stringify({ success: false, error: err.message }),
+      JSON.stringify({ success: false, error: errMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
