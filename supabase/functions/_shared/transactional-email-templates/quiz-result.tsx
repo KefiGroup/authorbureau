@@ -35,7 +35,7 @@ const QuizResultEmail = ({
   return (
     <Html lang="en" dir="ltr">
       <Head />
-      <Preview>Your {quizName} Result: {stageName} — {scoreVal}%</Preview>
+      <Preview>{`Your ${quizName} Result: ${stageName} — ${scoreVal}%`}</Preview>
       <Body style={main}>
         <Container style={container}>
           <Text style={text}>Hi {readerName},</Text>

@@ -18,7 +18,7 @@
  */
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +28,7 @@ const corsHeaders = {
 
 const DEFAULT_PLATFORM_FEE_RATE = 0.08;
 
-type Admin = ReturnType<typeof createClient>;
+type Admin = any;
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

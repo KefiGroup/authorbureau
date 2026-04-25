@@ -567,9 +567,10 @@ Deno.serve(async (req) => {
     }
 
     return err("Unknown action");
-  } catch (err: any) {
-    console.error("author-crm-data error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("author-crm-data error:", errMessage);
+    return new Response(JSON.stringify({ error: errMessage }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

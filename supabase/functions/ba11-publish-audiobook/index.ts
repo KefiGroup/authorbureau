@@ -5,7 +5,7 @@
 // 4) Sends the audiobook-distribution-ready email (non-blocking)
 // 5) Returns { success, audiobookId, chapterCount, channels, zipUrl, micrositeUrl, publicAuthorPageUrl }
 
-import { createClient } from "npm:@supabase/supabase-js@2.57.2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "npm:jszip@3.10.1";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 

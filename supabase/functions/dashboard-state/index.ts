@@ -119,9 +119,10 @@ Deno.serve(async (req) => {
       JSON.stringify({ profile: profile || null, bookCount: allIds.size }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err: any) {
-    console.error("dashboard-state error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("dashboard-state error:", errMessage);
+    return new Response(JSON.stringify({ error: errMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

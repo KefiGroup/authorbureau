@@ -21,7 +21,7 @@ function jsonResp(body: Record<string, unknown>, status = 200) {
 
 /** Resolve user from token – tries Cloud then shared backend */
 async function resolveUser(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   token: string
 ): Promise<{ userId: string; userEmail: string | null } | null> {
   const { data: { user: cloudUser } } = await adminClient.auth.getUser(token);
@@ -48,22 +48,24 @@ async function resolveUser(
 }
 
 /** Verify book ownership and return book + authorId */
+type VerifiedBook = { id: string; title?: string | null; author_id: string };
+
 async function verifyBookAccess(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   bookId: string,
   userId: string,
   userEmail: string | null
-): Promise<{ id: string; author_id: string } | null> {
+): Promise<VerifiedBook | null> {
   const { data: bookById } = await adminClient
     .from("books").select("id, title, author_id")
     .eq("id", bookId).eq("author_id", userId).maybeSingle();
-  if (bookById) return bookById;
+  if (bookById?.id && bookById?.author_id) return bookById as VerifiedBook;
 
   if (userEmail) {
     const { data: bookByEmail } = await adminClient
       .from("books").select("id, title, author_id")
       .eq("id", bookId).eq("owner_email", userEmail).maybeSingle();
-    if (bookByEmail) return bookByEmail;
+    if (bookByEmail?.id && bookByEmail?.author_id) return bookByEmail as VerifiedBook;
   }
   return null;
 }
@@ -151,7 +153,7 @@ async function parseEpubText(fileData: Blob): Promise<string> {
 
 /** Upsert source_material in generated_assets */
 async function upsertSourceMaterial(
-  adminClient: ReturnType<typeof createClient>,
+  adminClient: any,
   bookId: string,
   authorId: string,
   text: string
@@ -161,7 +163,7 @@ async function upsertSourceMaterial(
     .eq("book_id", bookId).eq("author_id", authorId)
     .eq("asset_type", "source_material").maybeSingle();
 
-  if (existing) {
+  if (existing && typeof existing.id === "string") {
     await adminClient.from("generated_assets")
       .update({ content: text, updated_at: new Date().toISOString() })
       .eq("id", existing.id);

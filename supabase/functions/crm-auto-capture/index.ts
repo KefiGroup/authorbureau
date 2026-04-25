@@ -165,9 +165,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ ok: true, contact_id: contactId }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
-  } catch (err: any) {
-    console.error("crm-auto-capture error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+  } catch (err) {
+    const errMessage = err instanceof Error ? err.message : String(err);
+    console.error("crm-auto-capture error:", errMessage);
+    return new Response(JSON.stringify({ error: errMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
