@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { BookOpen, Mail, Globe, Linkedin, Twitter, Instagram, Youtube } from "lucide-react";
+import { BookOpen, Mail, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
 import type { AuthorData, BookWithProducts, ThemeVars } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 
@@ -9,6 +9,7 @@ const SOCIAL_LINKS = [
   { key: "amazon_author_profile_url", icon: BookOpen, label: "Amazon" },
   { key: "twitter_url", icon: Twitter, label: "Twitter/X" },
   { key: "instagram_url", icon: Instagram, label: "Instagram" },
+  { key: "facebook_url", icon: Facebook, label: "Facebook" },
   { key: "youtube_url", icon: Youtube, label: "YouTube" },
 ] as const;
 
