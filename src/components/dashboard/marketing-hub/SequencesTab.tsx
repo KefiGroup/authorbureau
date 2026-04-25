@@ -282,6 +282,14 @@ export default function SequencesTab() {
         );
       })}
       </div>
+
+      <SequenceEditorDrawer
+        open={!!editingFlow}
+        onOpenChange={(o) => { if (!o) setEditingFlow(null); }}
+        flow={editingFlow}
+        initialSteps={editingFlow ? (steps[editingFlow.id] || []) : []}
+        onSaved={() => { void load(); }}
+      />
     </div>
   );
 }
