@@ -138,6 +138,7 @@ export interface BookFormatNode {
   third_party_url: string | null;
   price_usd?: number | null;
   currency?: string | null;
+  book_id?: string | null;
 }
 
 /** Returns true if a node belongs to a given book.
