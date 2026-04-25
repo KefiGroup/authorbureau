@@ -75,7 +75,7 @@ export default function BookBuilderContextBar({ backTab = "overview" }: Props) {
         variant="ghost"
         size="sm"
         className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
-        onClick={() => navigate(`/dashboard/book/${bookId}?tab=${backTab}`)}
+        onClick={() => navigate(`/dashboard/book/${bookId}?tab=${resolvedBackTab}`)}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
         Back to Book Hub
