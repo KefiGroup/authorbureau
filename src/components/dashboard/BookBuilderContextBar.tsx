@@ -28,13 +28,21 @@ export function useBookContext() {
 }
 
 interface Props {
-  /** Which ABBY tab to navigate back to (automate, build, broadcast, yield) */
+  /** Which Book Hub tab to navigate back to. Valid: overview | revenue-streams | marketing-channels | authority-builders | review-publish | analytics. Legacy aliases (automate/build/broadcast/yield) are remapped. */
   backTab?: string;
 }
 
-export default function BookBuilderContextBar({ backTab = "automate" }: Props) {
+const BACK_TAB_ALIASES: Record<string, string> = {
+  automate: "revenue-streams",
+  build: "marketing-channels",
+  broadcast: "marketing-channels",
+  yield: "authority-builders",
+};
+
+export default function BookBuilderContextBar({ backTab = "overview" }: Props) {
   const navigate = useNavigate();
   const { bookId, bookTitle, bookCoverUrl } = useBookContext();
+  const resolvedBackTab = BACK_TAB_ALIASES[backTab] || backTab;
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
 
   useEffect(() => {
@@ -67,7 +75,7 @@ export default function BookBuilderContextBar({ backTab = "automate" }: Props) {
         variant="ghost"
         size="sm"
         className="text-muted-foreground hover:text-foreground shrink-0 -ml-2"
-        onClick={() => navigate(`/dashboard/book/${bookId}?tab=${backTab}`)}
+        onClick={() => navigate(`/dashboard/book/${bookId}?tab=${resolvedBackTab}`)}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
         Back to Book Hub

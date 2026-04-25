@@ -36,6 +36,7 @@ import AuthorReadingClub from "@/components/dashboard/AuthorReadingClub";
 // AbbyConsultantBanner removed from dashboard per reorganization
 import ABBYJourneyOnboarding from "@/components/dashboard/ABBYJourneyOnboarding";
 import MarketingHub from "@/components/dashboard/MarketingHub";
+import BookBuilderContextBar from "@/components/dashboard/BookBuilderContextBar";
 import AuthorLibrary from "@/pages/AuthorLibrary";
 import { Loader2, Rocket, FileText, Video, Share2, CreditCard, Users, Trophy, Podcast, Building2, Bookmark, Award, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -547,6 +548,15 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const BUILDER_SECTIONS = new Set(["home-study", "group-coaching", "memberships", "email-marketing", "book-sales", "special-editions", "lead-magnet", "big-ticket"]);
   const isBuilderActive = !!searchParams.get("builder") || BUILDER_SECTIONS.has(activeSection);
 
+  // Sections that already render their own BookBuilderContextBar — don't double-render
+  const SELF_MOUNTED_CONTEXT_BAR = new Set(["social-media", "podcast", "webinars", "workbooks"]);
+  const showLayoutContextBar =
+    !!searchParams.get("bookId") &&
+    !SELF_MOUNTED_CONTEXT_BAR.has(activeSection) &&
+    activeSection !== "overview" &&
+    activeSection !== "my-books" &&
+    activeSection !== "profile";
+
   return (
     <div className="flex h-[100dvh] bg-background overflow-hidden">
       {/* Mobile sidebar overlay */}
@@ -587,7 +597,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
+        <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "overflow-y-auto" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
           {/* Onboarding banners for redirected pages */}
           {activeSection === "profile" && (
             <OnboardingBanner
@@ -600,6 +610,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
               message="Great profile! Now let's add your first book. You can upload a manuscript or import from PublishNow."
               storageKey="ab_onboarding_books_banner"
             />
+          )}
+          {showLayoutContextBar && (
+            <div className={isBuilderActive ? "px-6 pt-6 lg:px-8" : ""}>
+              <BookBuilderContextBar backTab="overview" />
+            </div>
           )}
           {renderSection()}
         </main>
