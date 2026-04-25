@@ -318,9 +318,13 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
               )}
             </p>
             {!isAdminAccess && (
-              <a href="/account-settings?tab=billing" className="text-xs font-semibold text-secondary hover:underline shrink-0">
+              <button
+                type="button"
+                onClick={() => navigate("/account-settings?tab=billing")}
+                className="text-xs font-semibold text-secondary hover:underline shrink-0"
+              >
                 Manage plan →
-              </a>
+              </button>
             )}
           </div>
         );
