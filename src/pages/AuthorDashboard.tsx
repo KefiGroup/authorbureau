@@ -597,7 +597,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
+        <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "overflow-y-auto" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
           {/* Onboarding banners for redirected pages */}
           {activeSection === "profile" && (
             <OnboardingBanner
@@ -610,6 +610,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
               message="Great profile! Now let's add your first book. You can upload a manuscript or import from PublishNow."
               storageKey="ab_onboarding_books_banner"
             />
+          )}
+          {showLayoutContextBar && (
+            <div className={isBuilderActive ? "px-6 pt-6 lg:px-8" : ""}>
+              <BookBuilderContextBar backTab="overview" />
+            </div>
           )}
           {renderSection()}
         </main>
