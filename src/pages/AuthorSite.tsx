@@ -226,7 +226,11 @@ export default function AuthorSite() {
   if (notFound || !author) return <NotFound />;
 
   return (
-    <AuthorPageLayout theme={theme} breadcrumbs={[{ label: "Home", to: "/" }, { label: displayName }]}>
+    <AuthorPageLayout
+      theme={theme}
+      breadcrumbs={[{ label: "Home", to: "/" }, { label: displayName }]}
+      footerSlot={<AuthorMicrositeFooter author={author} displayName={displayName} />}
+    >
       <AuthorBrandedNav
         authorSlug={authorSlug!}
         authorName={displayName}
