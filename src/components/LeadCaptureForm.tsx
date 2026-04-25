@@ -120,18 +120,14 @@ export default function LeadCaptureForm({
         },
       });
 
-      // 2. Mailing list (idempotent on author_id+email)
-      await supabase.from("author_subscribers").upsert(
-        {
-          author_id: authorUserId,
-          email: email.trim().toLowerCase(),
-          name: name.trim(),
-          source,
-          source_detail: sourceDetail ?? null,
-          status: "active",
-        },
-        { onConflict: "author_id,email" }
-      );
+      // 2. Mailing list + auto-enroll into matching sequences (idempotent)
+      await autoEnrollSubscriber({
+        email: email.trim().toLowerCase(),
+        name: name.trim(),
+        userId: authorUserId,
+        source,
+        sourceDetail: sourceDetail ?? null,
+      });
 
       setDone(true);
       toast.success(`Subscribed! You'll hear from ${displayName} soon.`);
