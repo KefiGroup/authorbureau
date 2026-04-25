@@ -32,6 +32,7 @@ interface SmartProductCardProps {
   onView?: () => void;
   onUpgrade?: () => void;
   genre?: string;
+  code?: string;
 }
 
 const BASELINE_REVENUE: Record<string, RevenueEstimate> = {
