@@ -296,7 +296,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         )}
       </div>
 
-      {/* 2.5 Plan status strip — paid users only */}
+      {/* 2.5 Plan status strip — paid users only, dynamic counts */}
       {effectiveTier !== "free" && (() => {
         const isAdminAccess = isAdmin || isSuperAdmin(user?.email);
         const planLabel = isAdminAccess
@@ -304,16 +304,17 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           : effectiveTier === "yield" ? "Yield Plan active"
           : effectiveTier === "build" ? "Build Plan active"
           : "Brand Plan active";
-        const unlockedCount = isAdminAccess || effectiveTier === "yield" ? "all 28" :
-          effectiveTier === "build" ? "18" : "9";
+        const allNodes = Object.values(progress.byCategory).flatMap((c) => c.nodes);
+        const unlockedCount = allNodes.filter((n) => n.state !== "locked" && n.state !== "coming-soon").length;
+        const totalCount = progress.overallTotal;
         return (
           <div className="rounded-xl border border-success/30 bg-success/5 px-4 py-3 flex items-center gap-3 flex-wrap">
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success text-xs font-bold">✓</span>
             <p className="text-sm flex-1 min-w-0">
               <strong className="text-success">{planLabel}</strong>
-              <span className="text-muted-foreground"> — {unlockedCount} builders unlocked.</span>
-              {progress.overallTotal > 0 && (
-                <span className="text-muted-foreground"> · {progress.overallCompleted} of {progress.overallTotal} built.</span>
+              <span className="text-muted-foreground"> — {unlockedCount} of {totalCount} builders unlocked.</span>
+              {progress.overallCompleted > 0 && (
+                <span className="text-muted-foreground"> · {progress.overallCompleted} built.</span>
               )}
             </p>
             {!isAdminAccess && (
