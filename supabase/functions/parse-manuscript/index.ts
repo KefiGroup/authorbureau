@@ -48,22 +48,24 @@ async function resolveUser(
 }
 
 /** Verify book ownership and return book + authorId */
+type VerifiedBook = { id: string; title?: string | null; author_id: string };
+
 async function verifyBookAccess(
   adminClient: ReturnType<typeof createClient>,
   bookId: string,
   userId: string,
   userEmail: string | null
-): Promise<{ id: string; author_id: string } | null> {
+): Promise<VerifiedBook | null> {
   const { data: bookById } = await adminClient
     .from("books").select("id, title, author_id")
     .eq("id", bookId).eq("author_id", userId).maybeSingle();
-  if (bookById) return bookById;
+  if (bookById?.id && bookById?.author_id) return bookById as VerifiedBook;
 
   if (userEmail) {
     const { data: bookByEmail } = await adminClient
       .from("books").select("id, title, author_id")
       .eq("id", bookId).eq("owner_email", userEmail).maybeSingle();
-    if (bookByEmail) return bookByEmail;
+    if (bookByEmail?.id && bookByEmail?.author_id) return bookByEmail as VerifiedBook;
   }
   return null;
 }
