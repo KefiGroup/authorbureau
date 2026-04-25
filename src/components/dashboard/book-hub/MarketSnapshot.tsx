@@ -1,17 +1,19 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { motion } from "framer-motion";
-import { BarChart3, TrendingUp, Sparkles, ExternalLink, Loader2 } from "lucide-react";
+import { BarChart3, TrendingUp, Sparkles, ExternalLink, Loader2, RefreshCw, Info } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
 import type { MarketResearchData } from "@/hooks/useMarketResearch";
 
 interface Props {
   data: MarketResearchData;
   loading?: boolean;
+  onRefresh?: () => void | Promise<void>;
 }
 
-export default function MarketSnapshot({ data, loading }: Props) {
+export default function MarketSnapshot({ data, loading, onRefresh }: Props) {
   if (loading) {
     return (
       <div className="rounded-xl border border-border bg-card p-6 flex items-center justify-center gap-3">
