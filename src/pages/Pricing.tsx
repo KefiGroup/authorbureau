@@ -156,21 +156,55 @@ export default function Pricing() {
             </div>
           </div>
 
+          {/* Upgrade context banner — appears when user arrives from a locked node */}
+          {highlightedPlan && (
+            <div className="max-w-3xl mx-auto mb-8 rounded-2xl border-2 border-secondary/40 bg-secondary/10 p-5">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-secondary/20 flex items-center justify-center shrink-0">
+                  <Lock className="h-4 w-4 text-secondary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-secondary mb-1">Unlock to continue</p>
+                  <h2 className="font-heading font-bold text-lg leading-tight">
+                    {nodeLabel ? <>Upgrade to <span className="text-secondary">{highlightedPlan.name}</span> to unlock <span className="underline">{decodeURIComponent(nodeLabel)}</span></> : <>Upgrade to <span className="text-secondary">{highlightedPlan.name}</span></>}
+                  </h2>
+                  {bookTitle && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      For <strong>"{decodeURIComponent(bookTitle)}"</strong>
+                    </p>
+                  )}
+                  {fromBookHub && bookId && (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/dashboard/book/${bookId}`)}
+                      className="mt-2 inline-flex items-center gap-1 text-xs text-secondary hover:underline font-semibold"
+                    >
+                      <ArrowLeft className="h-3 w-3" /> Back to Book Hub
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div ref={cardsRef} className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {PLANS.map((plan) => {
               const Icon = plan.icon;
               const isCurrentPlan = tier === plan.key;
               const hasAccess = hasTierAccess(tier, plan.key);
               const displayPrice = billingCycle === "annual" ? Math.round(plan.annualPrice / 12) : plan.price;
+              const isHighlighted = highlightedPlan?.key === plan.key;
 
               return (
                 <div
                   key={plan.key}
-                  className={`relative rounded-2xl border p-6 sm:p-8 bg-card flex flex-col ${
-                    plan.badge === "Most Popular"
-                      ? "border-secondary shadow-lg ring-1 ring-secondary/20"
-                      : "border-border"
+                  className={`relative rounded-2xl border p-6 sm:p-8 bg-card flex flex-col transition-all ${
+                    isHighlighted
+                      ? "border-secondary shadow-xl ring-2 ring-secondary/40 scale-[1.02]"
+                      : plan.badge === "Most Popular"
+                        ? "border-secondary shadow-lg ring-1 ring-secondary/20"
+                        : "border-border"
                   }`}
                 >
                   {plan.badge && (
