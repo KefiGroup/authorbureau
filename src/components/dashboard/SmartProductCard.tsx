@@ -170,7 +170,7 @@ export default function SmartProductCard({
             </div>
           </div>
         </div>
-        </div>
+
 
         {/* Description */}
         <p className="text-xs text-muted-foreground leading-relaxed flex-1">
