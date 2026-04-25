@@ -34,6 +34,7 @@ export default function AuthorSite() {
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [whatsInsideHighlights, setWhatsInsideHighlights] = useState<string[]>([]);
+  const [whatsInsideSourceBookId, setWhatsInsideSourceBookId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
