@@ -1704,9 +1704,6 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
         <SocialDistributionPack authorId={authorId} content={socialPack} onContentLoaded={setSocialPack} />
       )}
 
-      <div className="text-center">
-        <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate("/brand-products")}>Go back to Brand Products</Button>
-      </div>
     </div>
   );
 }

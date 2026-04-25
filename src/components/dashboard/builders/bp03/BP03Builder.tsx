@@ -1024,9 +1024,6 @@ function SuccessScreen({
       </Card>
 
       <div className="flex flex-wrap items-center gap-2 justify-end">
-        <Button variant="ghost" size="sm" onClick={() => navigate("/brand-products")}>
-          ← Back to Brand Products
-        </Button>
         <Button size="sm" onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}>
           View Social Calendar <ArrowRight className="h-4 w-4 ml-1" />
         </Button>
