@@ -139,12 +139,53 @@ export default function AuthorLibrary() {
         </Button>
       </div>
 
-      <Tabs defaultValue="by-node">
+      <Tabs defaultValue="marketing-packs">
         <TabsList>
+          <TabsTrigger value="marketing-packs">Marketing Packs</TabsTrigger>
           <TabsTrigger value="by-node">By node</TabsTrigger>
           <TabsTrigger value="by-format">By format</TabsTrigger>
           <TabsTrigger value="recent">Recent</TabsTrigger>
         </TabsList>
+
+        {/* ── Marketing Packs ── */}
+        <TabsContent value="marketing-packs" className="space-y-4">
+          {(() => {
+            // Group marketing assets by node_id (parsed from asset_type)
+            const byNode = new Map<string, MarketingAssetRow[]>();
+            for (const a of marketingAssets) {
+              const { node_id } = parseAssetType(a.asset_type);
+              if (!node_id) continue;
+              const list = byNode.get(node_id) || [];
+              list.push(a);
+              byNode.set(node_id, list);
+            }
+            const liveNodes = nodes.filter(n => n.status === "live");
+            if (!byNode.size) {
+              return (
+                <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+                  Marketing packs are auto-generated when you publish a node. Build & publish your first node to see your sales copy, social posts, email announcement and bonus asset here.
+                </CardContent></Card>
+              );
+            }
+            return liveNodes
+              .filter(n => byNode.has(n.node_id))
+              .map(n => {
+                const assets = byNode.get(n.node_id)!;
+                return (
+                  <MarketingPackCard
+                    key={n.id}
+                    nodeId={n.node_id}
+                    nodeName={n.personalised_name || NODE_NAMES[n.node_id] || n.node_name}
+                    authorId={profile?.id || ""}
+                    bookId={n.book_id ?? null}
+                    assets={assets}
+                    onRegenerated={load}
+                  />
+                );
+              });
+          })()}
+        </TabsContent>
+
 
         {/* ── By Node ── */}
         <TabsContent value="by-node" className="space-y-4">
