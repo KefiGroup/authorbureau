@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Star, UserPlus, ArrowRight, Loader2 } from "lucide-react";
 
 interface StageSummary {
   stage: string;
   count: number;
-  top3: { id: string; full_name: string; abby_score: number }[];
+  top3: { id: string; full_name: string; abby_score: number; archetype?: string | null; last_node_id?: string | null }[];
 }
 
 interface Props {
@@ -13,15 +13,67 @@ interface Props {
   onViewStage: (stage: string) => void;
 }
 
-const STAGES = [
-  { key: "new_lead", label: "New Lead", color: "#3B82F6" },
-  { key: "engaged", label: "Engaged", color: "#14B8A6" },
-  { key: "warm", label: "Warm", color: "#F59E0B" },
-  { key: "hot", label: "Hot", color: "#EF4444" },
-  { key: "customer", label: "Customer", color: "#10B981" },
-  { key: "vip", label: "VIP", color: "#D4AF37" },
-  { key: "cold", label: "Cold", color: "#6B7280" },
+type ArchetypeKey = "ALL" | "A" | "B" | "C" | "D";
+
+const ARCHETYPE_TABS: { key: ArchetypeKey; label: string; sub: string }[] = [
+  { key: "ALL", label: "All Pipelines", sub: "Every contact" },
+  { key: "A", label: "Sales", sub: "Direct purchase" },
+  { key: "B", label: "Opt-in", sub: "Lead nurture" },
+  { key: "C", label: "Application", sub: "Qualified high-ticket" },
+  { key: "D", label: "Event", sub: "Registrations" },
 ];
+
+// Per-archetype stage flow. Each archetype gets a tailored kanban definition.
+// Stage keys still map to the underlying crm_contacts.stage values so existing
+// data continues to flow into these columns.
+const STAGE_CONFIGS: Record<ArchetypeKey, { key: string; label: string; color: string }[]> = {
+  ALL: [
+    { key: "new_lead", label: "New Lead", color: "#3B82F6" },
+    { key: "engaged", label: "Engaged", color: "#14B8A6" },
+    { key: "warm", label: "Warm", color: "#F59E0B" },
+    { key: "hot", label: "Hot", color: "#EF4444" },
+    { key: "customer", label: "Customer", color: "#10B981" },
+    { key: "vip", label: "VIP", color: "#D4AF37" },
+    { key: "cold", label: "Cold", color: "#6B7280" },
+  ],
+  // A · Sales — Direct buy flow
+  A: [
+    { key: "new_lead", label: "Visitor", color: "#3B82F6" },
+    { key: "engaged", label: "Cart Started", color: "#14B8A6" },
+    { key: "warm", label: "Checkout", color: "#F59E0B" },
+    { key: "customer", label: "Buyer", color: "#10B981" },
+    { key: "vip", label: "Repeat Buyer", color: "#D4AF37" },
+    { key: "cold", label: "Abandoned", color: "#6B7280" },
+  ],
+  // B · Opt-in — Nurture flow
+  B: [
+    { key: "new_lead", label: "Subscriber", color: "#3B82F6" },
+    { key: "engaged", label: "Engaged", color: "#14B8A6" },
+    { key: "warm", label: "Quiz Done", color: "#F59E0B" },
+    { key: "hot", label: "Sales-Ready", color: "#EF4444" },
+    { key: "customer", label: "Converted", color: "#10B981" },
+    { key: "cold", label: "Unengaged", color: "#6B7280" },
+  ],
+  // C · Application — High-ticket qualification
+  C: [
+    { key: "new_lead", label: "Applied", color: "#3B82F6" },
+    { key: "engaged", label: "Reviewing", color: "#14B8A6" },
+    { key: "warm", label: "Call Booked", color: "#F59E0B" },
+    { key: "hot", label: "Proposal", color: "#EF4444" },
+    { key: "customer", label: "Client", color: "#10B981" },
+    { key: "vip", label: "Renewed", color: "#D4AF37" },
+    { key: "cold", label: "Disqualified", color: "#6B7280" },
+  ],
+  // D · Event — Registration to attendance
+  D: [
+    { key: "new_lead", label: "Registered", color: "#3B82F6" },
+    { key: "engaged", label: "Reminded", color: "#14B8A6" },
+    { key: "warm", label: "Confirmed", color: "#F59E0B" },
+    { key: "customer", label: "Attended", color: "#10B981" },
+    { key: "vip", label: "Post-Event Buyer", color: "#D4AF37" },
+    { key: "cold", label: "No-Show", color: "#6B7280" },
+  ],
+};
 
 function getInitials(name: string) {
   const parts = name.trim().split(/\s+/);
@@ -30,95 +82,127 @@ function getInitials(name: string) {
 }
 
 export default function PipelineView({ crmFetch, onContactClick, onViewStage }: Props) {
+  const [archetype, setArchetype] = useState<ArchetypeKey>("ALL");
   const [summaries, setSummaries] = useState<StageSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setLoading(true);
-    crmFetch("pipeline-summary")
+    const extra = archetype === "ALL" ? {} : { archetype };
+    crmFetch("pipeline-summary", extra)
       .then((d) => setSummaries(d.summary || []))
       .catch(() => setSummaries([]))
       .finally(() => setLoading(false));
-  }, [crmFetch]);
+  }, [crmFetch, archetype]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
-      </div>
-    );
-  }
+  const stages = STAGE_CONFIGS[archetype];
 
-  const summaryMap = summaries.reduce((acc, s) => {
-    acc[s.stage] = s;
-    return acc;
-  }, {} as Record<string, StageSummary>);
+  const summaryMap = useMemo(
+    () =>
+      summaries.reduce((acc, s) => {
+        acc[s.stage] = s;
+        return acc;
+      }, {} as Record<string, StageSummary>),
+    [summaries]
+  );
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-      {STAGES.map((stage) => {
-        const data = summaryMap[stage.key] || { stage: stage.key, count: 0, top3: [] };
+    <div className="space-y-4">
+      {/* Archetype filter pills */}
+      <div className="flex flex-wrap gap-2">
+        {ARCHETYPE_TABS.map((t) => {
+          const active = archetype === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setArchetype(t.key)}
+              className={`flex flex-col items-start px-3 py-2 rounded-lg border text-left transition-all ${
+                active
+                  ? "bg-secondary text-secondary-foreground border-secondary shadow-sm"
+                  : "bg-card text-muted-foreground border-border hover:border-secondary/40 hover:text-foreground"
+              }`}
+            >
+              <span className={`text-[12px] font-bold ${active ? "" : "text-foreground"}`}>{t.label}</span>
+              <span className="text-[10px] opacity-80">{t.sub}</span>
+            </button>
+          );
+        })}
+      </div>
 
-        return (
-          <div
-            key={stage.key}
-            className="rounded-xl bg-white border shadow-sm flex flex-col overflow-hidden"
-            style={{ borderTop: `3px solid ${stage.color}` }}
-          >
-            <div className="px-3 pt-4 pb-2 text-center">
-              <p className="text-3xl font-bold leading-none" style={{ color: stage.color }}>
-                {data.count}
-              </p>
-              <p className="text-[12px] font-semibold text-[#1E3A5F] mt-1 uppercase tracking-wide">
-                {stage.label}
-              </p>
-            </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
+        </div>
+      ) : (
+        <div
+          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"
+          style={{ gridTemplateColumns: `repeat(auto-fit, minmax(140px, 1fr))` }}
+        >
+          {stages.map((stage) => {
+            const data = summaryMap[stage.key] || { stage: stage.key, count: 0, top3: [] };
 
-            <div className="flex-1 px-2 pb-2 space-y-1">
-              {data.count === 0 ? (
-                <div className="text-center py-4 px-2">
-                  <UserPlus className="h-4 w-4 mx-auto mb-1 opacity-30" style={{ color: stage.color }} />
-                  <p className="text-[11px] text-gray-400 leading-tight">
-                    No {stage.label.toLowerCase()} leads yet
+            return (
+              <div
+                key={stage.key}
+                className="rounded-xl bg-white border shadow-sm flex flex-col overflow-hidden"
+                style={{ borderTop: `3px solid ${stage.color}` }}
+              >
+                <div className="px-3 pt-4 pb-2 text-center">
+                  <p className="text-3xl font-bold leading-none" style={{ color: stage.color }}>
+                    {data.count}
+                  </p>
+                  <p className="text-[12px] font-semibold text-[#1E3A5F] mt-1 uppercase tracking-wide">
+                    {stage.label}
                   </p>
                 </div>
-              ) : (
-                data.top3.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => onContactClick(c)}
-                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 transition-colors text-left"
-                  >
-                    <div
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
-                      style={{ backgroundColor: stage.color }}
-                    >
-                      {getInitials(c.full_name)}
-                    </div>
-                    <span className="text-[12px] font-medium text-[#1E3A5F] truncate flex-1">
-                      {c.full_name}
-                    </span>
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <Star className="h-2.5 w-2.5 text-[#D4AF37] fill-[#D4AF37]" />
-                      <span className="text-[10px] font-semibold text-[#1E3A5F]">{c.abby_score}</span>
-                    </div>
-                  </button>
-                ))
-              )}
-            </div>
 
-            {data.count > 0 && (
-              <button
-                onClick={() => onViewStage(stage.key)}
-                className="flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold border-t border-gray-100 transition-colors hover:bg-gray-50"
-                style={{ color: stage.color }}
-              >
-                View all {data.count} <ArrowRight className="h-3 w-3" />
-              </button>
-            )}
-          </div>
-        );
-      })}
+                <div className="flex-1 px-2 pb-2 space-y-1">
+                  {data.count === 0 ? (
+                    <div className="text-center py-4 px-2">
+                      <UserPlus className="h-4 w-4 mx-auto mb-1 opacity-30" style={{ color: stage.color }} />
+                      <p className="text-[11px] text-gray-400 leading-tight">
+                        No {stage.label.toLowerCase()} yet
+                      </p>
+                    </div>
+                  ) : (
+                    data.top3.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => onContactClick(c)}
+                        className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 transition-colors text-left"
+                      >
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-white text-[9px] font-bold shrink-0"
+                          style={{ backgroundColor: stage.color }}
+                        >
+                          {getInitials(c.full_name)}
+                        </div>
+                        <span className="text-[12px] font-medium text-[#1E3A5F] truncate flex-1">
+                          {c.full_name}
+                        </span>
+                        <div className="flex items-center gap-0.5 shrink-0">
+                          <Star className="h-2.5 w-2.5 text-[#D4AF37] fill-[#D4AF37]" />
+                          <span className="text-[10px] font-semibold text-[#1E3A5F]">{c.abby_score}</span>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+
+                {data.count > 0 && (
+                  <button
+                    onClick={() => onViewStage(stage.key)}
+                    className="flex items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold border-t border-gray-100 transition-colors hover:bg-gray-50"
+                    style={{ color: stage.color }}
+                  >
+                    View all {data.count} <ArrowRight className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }
