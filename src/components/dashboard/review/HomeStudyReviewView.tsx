@@ -25,7 +25,7 @@ import {
   DollarSign, Edit3, Eye, CheckCircle2, FileText, GraduationCap,
   Plus, X,
 } from "lucide-react";
-import type { StudyDay } from "../builders/home-study/types";
+import type { StudyDay } from "../builders/shared/homeStudyTypes";
 
 interface HomeStudyReviewViewProps {
   productId: string;
