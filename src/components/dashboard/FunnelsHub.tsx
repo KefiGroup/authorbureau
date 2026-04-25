@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,17 @@ export default function FunnelsHub() {
   const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const flashFunnel = (id: string) => {
+    setHighlightId(id);
+    setTimeout(() => {
+      const el = cardRefs.current[id];
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    setTimeout(() => setHighlightId((cur) => (cur === id ? null : cur)), 4000);
+  };
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
@@ -157,7 +168,7 @@ export default function FunnelsHub() {
     const seedFunnelType = ARCHETYPE_TO_FUNNEL_TYPE[archetype] || "opt_in";
 
     setGeneratingNodeId(nodeId);
-    const { error } = await supabase.functions.invoke("generate-funnel", {
+    const { data, error } = await supabase.functions.invoke("generate-funnel", {
       body: {
         author_id: authorId,
         node_id: nodeId,
@@ -169,8 +180,31 @@ export default function FunnelsHub() {
       toast({ title: "ABBY couldn't build that funnel", description: "Please try again in a moment.", variant: "destructive" });
       return;
     }
-    toast({ title: "Funnel generated!" });
+
+    const newFunnel = data?.funnel;
+    const newId: string | undefined = newFunnel?.id;
+    const newSlug: string | undefined = newFunnel?.slug;
+    const newTitle: string = newFunnel?.title || NODE_NAMES[nodeId] || "your funnel";
+    const url = newSlug && authorSlug ? `${window.location.origin}/${authorSlug}/${newSlug}` : null;
+
+    // Make sure the new card is visible regardless of active filter
+    setFilter("all");
     await loadFunnels(authorId);
+
+    toast({
+      title: `Funnel created: ${newTitle}`,
+      description: url ? "Scroll down to preview, copy the link, or edit the copy." : "Your new funnel is ready below.",
+      action: url ? (
+        <button
+          onClick={() => window.open(url, "_blank")}
+          className="text-xs font-semibold underline underline-offset-2"
+        >
+          Open
+        </button>
+      ) : undefined,
+    });
+
+    if (newId) flashFunnel(newId);
   };
 
   const toggleStatus = async (f: Funnel) => {
@@ -213,20 +247,22 @@ export default function FunnelsHub() {
 
   const regenerate = async () => {
     if (!regenerateTarget) return;
+    const targetId = regenerateTarget.id;
     setRegenerating(true);
-    const { data, error } = await supabase.functions.invoke("generate-funnel", {
+    const { error } = await supabase.functions.invoke("generate-funnel", {
       body: {
         node_id: regenerateTarget.node_id,
         funnel_type: regenerateTarget.funnel_type,
         force: true,
-        funnel_id: regenerateTarget.id,
+        funnel_id: targetId,
       },
     });
     setRegenerating(false);
     setRegenerateTarget(null);
     if (error) { toast({ title: "Regeneration failed", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "ABBY regenerated your funnel" });
-    if (authorId) loadFunnels(authorId);
+    toast({ title: "ABBY regenerated your funnel", description: "Fresh copy is loaded below — review and tweak as needed." });
+    if (authorId) await loadFunnels(authorId);
+    flashFunnel(targetId);
   };
 
   if (loading) {
@@ -419,7 +455,15 @@ export default function FunnelsHub() {
             const rate = f.page_views > 0 ? ((f.conversions / f.page_views) * 100).toFixed(1) : "0.0";
             const url = liveUrl(f.slug);
             return (
-              <Card key={f.id} className="overflow-hidden">
+              <Card
+                key={f.id}
+                ref={(el) => { cardRefs.current[f.id] = el as unknown as HTMLDivElement | null; }}
+                className={`overflow-hidden transition-all duration-500 ${
+                  highlightId === f.id
+                    ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-lg shadow-primary/20"
+                    : ""
+                }`}
+              >
                 <div className="h-2" style={{ backgroundColor: f.accent_color }} />
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
