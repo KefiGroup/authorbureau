@@ -2091,6 +2091,9 @@ export type Database = {
           enrolled_at: string
           flow_id: string
           id: string
+          last_message_id: string | null
+          last_sent_at: string | null
+          next_send_at: string | null
           status: string
           subscriber_id: string
         }
@@ -2100,6 +2103,9 @@ export type Database = {
           enrolled_at?: string
           flow_id: string
           id?: string
+          last_message_id?: string | null
+          last_sent_at?: string | null
+          next_send_at?: string | null
           status?: string
           subscriber_id: string
         }
@@ -2109,6 +2115,9 @@ export type Database = {
           enrolled_at?: string
           flow_id?: string
           id?: string
+          last_message_id?: string | null
+          last_sent_at?: string | null
+          next_send_at?: string | null
           status?: string
           subscriber_id?: string
         }
