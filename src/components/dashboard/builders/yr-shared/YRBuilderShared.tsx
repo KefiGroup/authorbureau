@@ -1,22 +1,19 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Sparkles, ArrowLeft, Check, Copy } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Sparkles, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { categoryStyles, getBuilderCategory, type BuilderCategory } from "../shared/BuilderTheme";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
-export function StepHeader({ nodeId, nodeName, step, backTo = "/yield-revenue", category }: { nodeId: string; nodeName: string; step: number; backTo?: string; category?: BuilderCategory }) {
-  const navigate = useNavigate();
+export function StepHeader({ nodeId, nodeName, step, backTo: _backTo = "/yield-revenue", category }: { nodeId: string; nodeName: string; step: number; backTo?: string; category?: BuilderCategory }) {
   const cat = category || getBuilderCategory(nodeId);
   const s = categoryStyles[cat];
   return (
     <>
       <div className={`border-b border-border bg-gradient-to-r ${s.headerGradient} px-4 py-3`}>
         <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate(backTo)}><ArrowLeft className="h-4 w-4" /></Button>
           <div className="flex-1"><h1 className="text-lg font-semibold">{nodeName}</h1><p className="text-xs text-muted-foreground">{nodeId}</p></div>
         </div>
       </div>

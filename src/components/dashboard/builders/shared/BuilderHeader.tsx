@@ -1,5 +1,4 @@
-import { ArrowLeft, type LucideIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { type LucideIcon } from "lucide-react";
 import { categoryStyles, getBuilderCategory } from "./BuilderTheme";
 import { cn } from "@/lib/utils";
 
@@ -13,7 +12,9 @@ interface Props {
   title: string;           // human title
   subtitle?: string;       // 1-line description
   icon: LucideIcon;
+  /** @deprecated Back navigation is handled by the page wrapper (NodeBuilder). Prop kept for API compat. */
   onBack?: () => void;
+  /** @deprecated see onBack */
   backLabel?: string;
 }
 
@@ -22,8 +23,6 @@ export default function BuilderHeader({
   title,
   subtitle,
   icon: Icon,
-  onBack,
-  backLabel = "Back to Brand Products",
 }: Props) {
   const styles = categoryStyles[getBuilderCategory(nodeId)];
 
@@ -57,16 +56,6 @@ export default function BuilderHeader({
             <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>
           )}
         </div>
-        {onBack && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onBack}
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> {backLabel}
-          </Button>
-        )}
       </div>
     </div>
   );
