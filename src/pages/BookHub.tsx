@@ -10,9 +10,10 @@ import BookHubOverview from "@/components/dashboard/book-hub/BookHubOverview";
 import PortfolioStepView from "@/components/dashboard/PortfolioStepView";
 import BookHubAnalytics from "@/components/dashboard/book-hub/BookHubAnalytics";
 import BookHubSkeleton from "@/components/dashboard/book-hub/BookHubSkeleton";
+import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
-type BookHubTab = "overview" | "revenue-streams" | "marketing-channels" | "authority-builders" | "analytics";
+type BookHubTab = "overview" | "revenue-streams" | "marketing-channels" | "authority-builders" | "review-publish" | "analytics";
 
 interface BookData {
   id: string;
@@ -32,6 +33,7 @@ const tabs: { id: BookHubTab; label: string }[] = [
   { id: "revenue-streams", label: "💰 Brand" },
   { id: "marketing-channels", label: "📈 Build" },
   { id: "authority-builders", label: "🏆 Yield" },
+  { id: "review-publish", label: "✅ Review & Publish" },
   { id: "analytics", label: "Analytics" },
 ];
 
@@ -140,6 +142,8 @@ export default function BookHub() {
             analyzedBooks={book ? [{ id: book.id, title: book.title }] : []}
           />
         );
+      case "review-publish":
+        return <ReviewProductsPage onNavigate={(s) => navigate(`/dashboard?section=${s}`)} />;
       case "analytics":
         return <BookHubAnalytics bookId={book.id} tier={effectiveTier} />;
       default:
