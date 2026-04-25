@@ -18,7 +18,7 @@ export const NODE_CODE_MAP: Record<string, string> = {
   "book-sales-events": "BP-08",
   "special-editions": "BP-09",
   courses: "BA-10",
-  audiobook: "BP-09",
+  audiobook: "BA-11",
   memberships: "BA-12",
   "group-coaching": "BA-13",
   "podcast-guest": "BA-14",
