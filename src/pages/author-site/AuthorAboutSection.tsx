@@ -18,7 +18,8 @@ interface Props {
 export default function AuthorAboutSection({ author, displayName, podcastNodes = [], theme, v }: Props) {
   const [bioExpanded, setBioExpanded] = useState(false);
   const bioText = stripHtml(author.bio_long || author.bio_short || "");
-  if (!bioText && podcastNodes.length === 0) return null;
+  const hasPodcastStreams = !!(author.podcast_spotify_url || author.podcast_apple_url || author.podcast_rss_url);
+  if (!bioText && podcastNodes.length === 0 && !hasPodcastStreams) return null;
 
   const bioParagraphs = bioText.split(/\n\n+/).filter(Boolean);
   const displayBioParagraphs = bioParagraphs.length > 2 && !bioExpanded ? bioParagraphs.slice(0, 2) : bioParagraphs;
