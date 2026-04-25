@@ -1,68 +1,44 @@
-# Fix: Paid users showing as "Free" tier
+## Plan
 
-## Root cause
+The app is still showing Free because the subscription check is being sent through the wrong client.
 
-`pl@paulineteo.com` **does** have an active **Yield** subscription in Stripe (verified — `sub_1TKrlPCk4r0emyO8EEMKpuW3`, product `prod_UB6BVLnks6JWoJ`).
-
-The `check-subscription` edge function exists and works correctly. The bug is in **`src/hooks/useAuth.tsx` lines 178–195**: `checkSubscription()` is a stub that hardcodes `productId: null` and never calls the edge function. Every signed-in user — regardless of what they paid for — resolves to `tier = "free"` unless their email is in the hardcoded `isSuperAdmin()` list.
+`useAuth.tsx` currently imports `supabase` from `@/lib/shared-backend` and calls:
 
 ```ts
-// Current (broken) — never asks Stripe:
-const checkSubscription = useCallback(async () => {
-  if (!user) { setSubscription(signedOutSubscriptionState); return; }
-  setSubscription({
-    subscribed: false,
-    productId: null,           // ← always null
-    subscriptionEnd: null,
-    loading: false,
-    checked: true,
-  });
-}, [user]);
+supabase.functions.invoke("check-subscription")
 ```
 
-## Fix
+That shared client points at the external shared auth backend, while the `check-subscription` function you want lives in this project’s own backend. So the frontend is not reliably hitting the function that returns your Yield plan.
 
-Restore `checkSubscription()` to actually invoke the `check-subscription` edge function and map its response into state. The edge function already returns `{ subscribed, product_id, subscription_end }`, and `getTierFromProductId(productId)` already maps product IDs to `"yield" | "build" | "brand"`.
+## What I’ll change
 
-### Change in `src/hooks/useAuth.tsx`
+1. Update `src/hooks/useAuth.tsx` so `checkSubscription()` calls this project’s backend function URL directly, using the existing shared-session token helper.
+2. Reuse the established pattern already used by `useAuthorStats`:
+   - get the active shared auth token
+   - call `${VITE_SUPABASE_URL}/functions/v1/check-subscription`
+   - send `Authorization: Bearer <token>`
+3. Keep the current loading/fallback behavior, but only fall back to Free after a real request failure.
+4. Verify any tier-derived UI that depends on `useAuth` will then resolve from the returned `product_id` as intended.
 
-Replace the stub with:
+## Expected result
 
-```ts
-const checkSubscription = useCallback(async () => {
-  if (!user) { setSubscription(signedOutSubscriptionState); return; }
-  try {
-    const { data, error } = await supabase.functions.invoke("check-subscription");
-    if (error) throw error;
-    setSubscription({
-      subscribed: !!data?.subscribed,
-      productId: data?.product_id ?? null,
-      subscriptionEnd: data?.subscription_end ?? null,
-      loading: false,
-      checked: true,
-    });
-  } catch {
-    // Don't block the app — fall back to free but mark as checked
-    setSubscription({
-      subscribed: false,
-      productId: null,
-      subscriptionEnd: null,
-      loading: false,
-      checked: true,
-    });
-  }
-}, [user]);
-```
+After this fix, your signed-in account (`pl@paulineteo.com`) should resolve to `yield` on the frontend, so:
+- the plan badge should stop showing Free
+- Yield-gated areas like CRM should unlock
+- Account Settings / pricing state should reflect the paid plan correctly
 
-No other changes needed — the rest of the chain (`tier`, `isPremium`, sidebar gating, CRM lock) already reads `subscription.productId` correctly.
+## Technical details
 
-## Expected result after fix
+Files to update:
+- `src/hooks/useAuth.tsx`
 
-- `pl@paulineteo.com` header badge → **Yield Plan** (not Free)
-- "My CRM" sidebar item → unlocked
-- Auto-refresh every 60s already wired (line 245), so tier stays in sync after upgrades/cancellations
-- Build/Brand subscribers will also resolve correctly for the first time
+Implementation approach:
+- replace `shared-backend` function invocation for subscription lookup
+- import and use `getActiveToken` + `fetchWithTimeout` from `src/lib/get-active-token.ts`
+- parse the function JSON response into:
+  - `subscribed`
+  - `productId`
+  - `subscriptionEnd`
+- preserve safe fallback if token is missing or request truly fails
 
-## Files touched
-
-- `src/hooks/useAuth.tsx` — replace stubbed `checkSubscription` body (lines 178–195)
+If you approve, I’ll apply that frontend fix next.

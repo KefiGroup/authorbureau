@@ -1,6 +1,7 @@
 import { useState, useEffect, createContext, useContext, ReactNode, useCallback, useRef } from "react";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { getSharedSession, supabase } from "@/lib/shared-backend";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import type { User, Session } from "@supabase/supabase-js";
 
 // Admin status key for sessionStorage (set by AdminAuth page on successful admin-auth login)
@@ -182,8 +183,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke("check-subscription");
-      if (error) throw error;
+      const token = await getActiveToken();
+      if (!token) throw new Error("No active session token");
+
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/check-subscription`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => "");
+        throw new Error(`check-subscription HTTP ${resp.status}: ${text}`);
+      }
+
+      const data = await resp.json();
       setSubscription({
         subscribed: !!data?.subscribed,
         productId: (data?.product_id as string | null) ?? null,
