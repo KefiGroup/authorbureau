@@ -7,6 +7,7 @@ import {
   Megaphone, Trophy, Calendar, Briefcase, Award, Globe, Heart, Handshake
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
 import { getThemeById, type AuthorTheme } from "@/lib/author-themes";
@@ -420,14 +421,14 @@ export default function AuthorBookPage() {
       },
     });
 
-    const { error } = await supabase.from("author_subscribers").upsert({
-      author_id: authorProfile.user_id,
+    const enroll = await autoEnrollSubscriber({
       email: email.trim().toLowerCase(),
       name: name.trim(),
+      userId: authorProfile.user_id,
       source: "book_page",
-      source_detail: `${authorSlug}/${bookSlug}`,
-      status: "active",
-    }, { onConflict: "author_id,email" });
+      sourceDetail: `${authorSlug}/${bookSlug}`,
+    });
+    const error = enroll?.error ? new Error(enroll.error) : null;
     setSubscribing(false);
     if (error) {
       toast({ title: "Error", description: "Could not subscribe. Try again.", variant: "destructive" });

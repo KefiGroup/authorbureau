@@ -172,6 +172,31 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, admin: 
     payout_eligible_at: eligibleAt.toISOString(),
   }).select("id").single();
 
+  // Auto-enroll the buyer into the node-specific email sequence + master_nurture.
+  // Fire-and-forget; never blocks payment processing.
+  if (customerEmail && customerEmail !== "unknown@unknown") {
+    try {
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/enroll-subscriber`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          email: customerEmail,
+          name: customerName,
+          author_profile_id: authorRowId,
+          user_id: authorUserId,
+          node_id: nodeId,
+          source: 'purchase',
+          source_detail: `${productType}:${sessionId}`,
+        }),
+      });
+    } catch (e) {
+      console.warn('[process-purchase] enroll-subscriber failed', e);
+    }
+  }
+
   // Sprint 41: write per-sale row to author_earnings ledger (source of truth for monthly payouts)
   if (purchaseRow?.id) {
     try {

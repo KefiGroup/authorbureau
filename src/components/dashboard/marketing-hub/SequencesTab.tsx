@@ -37,17 +37,21 @@ export default function SequencesTab() {
   const navigate = useNavigate();
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
+  const [enrollments, setEnrollments] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [generatingAll, setGeneratingAll] = useState(false);
 
   const load = async () => {
     try {
       const res = await callMarketingHubState<{
         flows: FlowRow[];
         steps_by_flow: Record<string, Step[]>;
+        active_enrollments_by_flow?: Record<string, number>;
       }>("sequences");
       setFlows(res.flows || []);
       setSteps(res.steps_by_flow || {});
+      setEnrollments(res.active_enrollments_by_flow || {});
     } catch (err: any) {
       toast({ title: "Couldn't load sequences", description: err.message, variant: "destructive" });
     } finally {
@@ -71,24 +75,65 @@ export default function SequencesTab() {
     }
   };
 
+  const generateAll = async () => {
+    setGeneratingAll(true);
+    try {
+      const res = await callMarketingHubState<{ attempted: number; skipped_existing: number; results: any[] }>(
+        "generate_all_sequences", { include_master: true }
+      );
+      const created = (res.results || []).filter((r) => r.status === "created").length;
+      const failed = (res.results || []).filter((r) => r.status !== "created").length;
+      toast({
+        title: `Generated ${created} sequence${created === 1 ? "" : "s"}`,
+        description: `${res.skipped_existing} existing skipped${failed ? ` · ${failed} failed` : ""}.`,
+      });
+      await load();
+    } catch (err: any) {
+      toast({ title: "Couldn't generate sequences", description: err.message, variant: "destructive" });
+    } finally {
+      setGeneratingAll(false);
+    }
+  };
+
+  const totalActiveEnrollments = Object.values(enrollments).reduce((a, b) => a + b, 0);
+
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
 
+  const Header = (
+    <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+      <div className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">{flows.length}</span> sequence{flows.length === 1 ? "" : "s"}
+        {" · "}
+        <span className="font-medium text-foreground">{totalActiveEnrollments}</span> active enrollment{totalActiveEnrollments === 1 ? "" : "s"}
+      </div>
+      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={generateAll} disabled={generatingAll}>
+        {generatingAll ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+        Generate sequences for all 28 nodes
+      </Button>
+    </div>
+  );
+
   if (flows.length === 0) {
     return (
-      <div className="text-center py-16 rounded-xl border border-dashed border-border bg-card">
-        <Sparkles className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-        <h3 className="text-base font-semibold">No email sequences yet</h3>
-        <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-          Abby will write your first sequence the moment you publish a lead magnet, email campaign, or webinar.
-        </p>
+      <div>
+        {Header}
+        <div className="text-center py-16 rounded-xl border border-dashed border-border bg-card">
+          <Sparkles className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <h3 className="text-base font-semibold">No email sequences yet</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+            Click "Generate sequences for all 28 nodes" to have Abby write a tailored nurture flow for every revenue node, plus an always-on master nurture sequence.
+          </p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
+    <div>
+      {Header}
+      <div className="space-y-3">
       {flows.map((f) => (
         <div key={f.id} className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-start justify-between gap-4">
@@ -107,42 +152,27 @@ export default function SequencesTab() {
                 {f.node_id && (
                   <Badge variant="outline" className="text-[10px]">{f.node_id}</Badge>
                 )}
+                {f.flow_type === "master_nurture" && (
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">Master</Badge>
+                )}
               </div>
               {f.description && <p className="text-xs text-muted-foreground line-clamp-1">{f.description}</p>}
             </div>
             <div className="flex items-center gap-1 shrink-0">
               {f.node_id && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs"
-                  onClick={() => navigate(`/node-builder/${f.node_id}`)}
-                >
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/node-builder/${f.node_id}`)}>
                   <Pencil className="h-3 w-3 mr-1" /> Edit
                 </Button>
               )}
               {(f.status === "active" || f.status === "paused" || f.status === "draft") && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs"
-                  disabled={updatingId === f.id}
-                  onClick={() => toggleStatus(f)}
-                >
-                  {updatingId === f.id ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : f.status === "active" ? (
-                    <PauseCircle className="h-3 w-3 mr-1" />
-                  ) : (
-                    <PlayCircle className="h-3 w-3 mr-1" />
-                  )}
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
+                  {updatingId === f.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : f.status === "active" ? <PauseCircle className="h-3 w-3 mr-1" /> : <PlayCircle className="h-3 w-3 mr-1" />}
                   {f.status === "active" ? "Pause" : "Activate"}
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Steps preview */}
           {steps[f.id]?.length > 0 && (
             <div className="mt-3 pl-6 border-l-2 border-muted space-y-1">
               {steps[f.id].slice(0, 5).map((s) => (
@@ -157,14 +187,14 @@ export default function SequencesTab() {
             </div>
           )}
 
-          {/* Metrics */}
           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {f.total_subscribers} subscribers</span>
+            <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {enrollments[f.id] || 0} active · {f.total_subscribers} total</span>
             <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {(Number(f.open_rate) * 100).toFixed(0)}% open</span>
             <span className="flex items-center gap-1"><MousePointerClick className="h-3 w-3" /> {(Number(f.click_rate) * 100).toFixed(0)}% click</span>
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }

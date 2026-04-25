@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { toast } from "@/hooks/use-toast";
 
 interface BuyNowButtonProps {
@@ -81,12 +82,11 @@ export default function BuyNowButton({
       return;
     }
     try {
-      await supabase.from("author_subscribers").insert({
-        author_id: authorId,
+      await autoEnrollSubscriber({
         email: leadEmail,
+        userId: authorId,
         source: "waitlist",
-        source_detail: `node:${authorNodeId} (payments not set up)`,
-        status: "active",
+        sourceDetail: `node:${authorNodeId} (payments not set up)`,
       });
       // Best-effort nudge to author — non-blocking
       supabase.from("abby_nudges").insert({

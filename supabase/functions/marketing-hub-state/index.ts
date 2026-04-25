@@ -17,6 +17,7 @@ type Action =
   | "reschedule_social_post"
   | "sequences"
   | "toggle_sequence_status"
+  | "generate_all_sequences"
   | "activate_node"
   | "pause_node"
   | "email_settings"
@@ -292,11 +293,81 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Active enrollment counts per flow
+      const enrollmentCounts: Record<string, number> = {};
+      if (flowList.length > 0) {
+        const { data: enrRows } = await cloudAdmin
+          .from("email_flow_enrollments")
+          .select("flow_id")
+          .in("flow_id", flowList.map((f) => f.id))
+          .eq("status", "active");
+        (enrRows ?? []).forEach((r: any) => {
+          enrollmentCounts[r.flow_id] = (enrollmentCounts[r.flow_id] || 0) + 1;
+        });
+      }
+
       return respond({
         success: true,
         author_profile_id: authorProfile.id,
         flows: flowList,
         steps_by_flow: stepsByFlow,
+        active_enrollments_by_flow: enrollmentCounts,
+      });
+    }
+
+    if (action === "generate_all_sequences") {
+      // Generate node-specific sequences for the 28 product nodes + a master_nurture flow.
+      const NODES = [
+        'BP-01','BP-02','BP-03','BP-04','BP-05','BP-06','BP-07','BP-08','BP-09',
+        'BA-10','BA-11','BA-12','BA-13','BA-14','BA-15','BA-16','BA-17','BA-18',
+        'YR-19','YR-20','YR-21','YR-22','YR-23','YR-24','YR-25','YR-26','YR-27','YR-28',
+      ];
+      const includeMaster = body?.include_master !== false;
+
+      const { data: existingFlows } = await cloudAdmin
+        .from("email_flows").select("node_id, flow_type")
+        .eq("author_id", authorProfile.id);
+      const existingNodes = new Set((existingFlows || []).filter((f: any) => f.node_id).map((f: any) => f.node_id));
+      const hasMaster = (existingFlows || []).some((f: any) => f.flow_type === 'master_nurture');
+
+      const results: Array<{ target: string; status: string; flow_id?: string; error?: string }> = [];
+
+      // Master first so node sequences can roll into it on completion.
+      const targets: Array<{ kind: 'master' | 'node'; node_id?: string }> = [];
+      if (includeMaster && !hasMaster) targets.push({ kind: 'master' });
+      for (const n of NODES) if (!existingNodes.has(n)) targets.push({ kind: 'node', node_id: n });
+
+      for (const t of targets) {
+        try {
+          const payload: Record<string, unknown> = { author_id: authorProfile.id };
+          if (t.kind === 'master') payload.sequence_type = 'master_nurture';
+          else payload.node_id = t.node_id;
+
+          const resp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-email-sequence`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify(payload),
+          });
+          const data = await resp.json().catch(() => ({}));
+          results.push({
+            target: t.kind === 'master' ? 'master_nurture' : t.node_id!,
+            status: resp.ok ? 'created' : 'failed',
+            flow_id: data?.flow_id,
+            error: resp.ok ? undefined : (data?.message || `HTTP ${resp.status}`),
+          });
+        } catch (e) {
+          results.push({ target: t.kind === 'master' ? 'master_nurture' : t.node_id!, status: 'error', error: (e as Error).message });
+        }
+      }
+
+      return respond({
+        success: true,
+        skipped_existing: NODES.filter((n) => existingNodes.has(n)).length + (hasMaster ? 1 : 0),
+        attempted: results.length,
+        results,
       });
     }
 

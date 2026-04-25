@@ -8,6 +8,7 @@ import {
   KeyRound, Video, Sparkles, Ticket, ChevronDown, Shield
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
@@ -361,7 +362,14 @@ export default function AuthorProductPage() {
     await supabase.functions.invoke("crm-auto-capture", {
       body: { email: email.trim(), name: name.trim(), source: "subscribe_form", source_detail: `product_page: ${authorSlug}/${bookSlug}/${productType}`, author_id: author.user_id, message: subMessage.trim() || undefined },
     });
-    const { error } = await supabase.from("author_subscribers").upsert({ author_id: author.user_id, email: email.trim().toLowerCase(), name: name.trim(), source: "product_page", source_detail: `${authorSlug}/${bookSlug}/${productType}`, status: "active" }, { onConflict: "author_id,email" });
+    const enroll = await autoEnrollSubscriber({
+      email: email.trim().toLowerCase(),
+      name: name.trim(),
+      userId: author.user_id,
+      source: "product_page",
+      sourceDetail: `${authorSlug}/${bookSlug}/${productType}`,
+    });
+    const error = enroll?.error ? new Error(enroll.error) : null;
     setSubscribing(false);
     if (error) toast({ title: "Error", description: "Could not subscribe.", variant: "destructive" });
     else { setSubscribed(true); toast({ title: "Subscribed!" }); setEmail(""); setName(""); setSubMessage(""); }

@@ -81,22 +81,22 @@ Deno.serve(async (req) => {
 
   try {
     const { author_id, node_id, book_id, sequence_type, custom_prompt } = await req.json();
+    const isMaster = sequence_type === 'master_nurture' || node_id === 'MASTER';
 
-    if (!author_id || !node_id) {
-      return new Response(JSON.stringify({ success: false, status: 400, message: 'author_id and node_id are required' }), {
+    if (!author_id || (!isMaster && !node_id)) {
+      return new Response(JSON.stringify({ success: false, status: 400, message: 'author_id required (and node_id unless sequence_type=master_nurture)' }), {
         status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    const preset = SEQUENCE_PRESETS[node_id] ?? {
+    const lookupKey = isMaster ? 'MASTER' : (node_id as string);
+    const preset = SEQUENCE_PRESETS[lookupKey] ?? {
       flow_type: sequence_type || 'custom',
       purpose: custom_prompt || 'Email nurture sequence',
       steps: 5,
     };
-
-    const isMaster = node_id === 'MASTER';
 
     // Idempotent: if a flow already exists, return it
     const existingQuery = isMaster
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: null }),
     ]);
 
-    const nodeCtx = getNodeContext(node_id);
+    const nodeCtx = getNodeContext(node_id || '');
 
     const cadenceLine = preset.cadence
       ? `Use this exact cadence (trigger_delay_days for each step in order): ${JSON.stringify(preset.cadence)}.`

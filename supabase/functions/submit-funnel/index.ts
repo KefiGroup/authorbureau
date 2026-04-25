@@ -202,42 +202,27 @@ Deno.serve(async (req) => {
       console.warn('[submit-funnel] ⚠️ no author_user_id — skipping crm_contacts mirror');
     }
 
-    // 5) Subscriber upsert
-    const { data: existingSub } = await supabase
-      .from('author_subscribers')
-      .select('id')
-      .eq('author_id', funnel.author_id)
-      .eq('email', cleanEmail)
-      .maybeSingle();
-
-    let subscriberId = existingSub?.id;
-    if (!subscriberId) {
-      const { data: newSub } = await supabase
-        .from('author_subscribers')
-        .insert({ author_id: funnel.author_id, email: cleanEmail, name: name || null, source: 'funnel', source_detail: funnel.id, status: 'active' })
-        .select('id')
-        .single();
-      subscriberId = newSub?.id;
-    }
-
-    // 6) Trigger sequence — now also sends step 1 via Resend
-    if (funnel.node_id && subscriberId) {
-      const { data: flow } = await supabase
-        .from('email_flows')
-        .select('id')
-        .eq('author_id', funnel.author_id)
-        .eq('node_id', funnel.node_id)
-        .eq('status', 'active')
-        .limit(1)
-        .maybeSingle();
-
-      if (flow) {
-        fetch(`${SUPABASE_URL}/functions/v1/trigger-sequence`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
-          body: JSON.stringify({ flow_id: flow.id, subscriber_id: subscriberId, lead_id: leadId, email: cleanEmail, name }),
-        }).catch((e) => console.warn('trigger-sequence failed', e));
-      }
+    // 5) Subscriber upsert + auto-enroll in node sequence + master_nurture.
+    //    enroll-subscriber resolves user_id <-> author_profile_id and writes the
+    //    subscriber under the auth.users.id convention (matches RLS).
+    let subscriberId: string | null = null;
+    try {
+      const enrollResp = await fetch(`${SUPABASE_URL}/functions/v1/enroll-subscriber`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}` },
+        body: JSON.stringify({
+          email: cleanEmail,
+          name: name || null,
+          author_profile_id: funnel.author_id,
+          node_id: funnel.node_id || null,
+          source: 'funnel',
+          source_detail: funnel.id,
+        }),
+      });
+      const enrollData = await enrollResp.json().catch(() => ({}));
+      subscriberId = enrollData?.subscriber_id || null;
+    } catch (e) {
+      console.warn('[submit-funnel] enroll-subscriber failed', e);
     }
 
     // Default redirect to thank-you page if no explicit cta_url is set
