@@ -5859,6 +5859,10 @@ export type Database = {
         Returns: number
       }
       generate_account_id: { Args: never; Returns: string }
+      get_author_curated_book_id: {
+        Args: { _author_id: string }
+        Returns: string
+      }
       get_reading_leaderboard: {
         Args: { limit_count?: number }
         Returns: {
