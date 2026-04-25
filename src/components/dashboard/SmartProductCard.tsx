@@ -79,6 +79,24 @@ const categoryCard: Record<BuilderCategory, {
   },
 };
 
+// Neutral "not built yet" palette — slate, intentionally outside teal/indigo/amber
+const pendingTokens = {
+  iconBg: "bg-slate-500/15",
+  iconText: "text-slate-600 dark:text-slate-300",
+  strip: "bg-slate-500",
+  stripSoft: "bg-slate-400/50",
+  border: "border-slate-400/50",
+  borderHover: "border-border hover:border-slate-400/50",
+  glow: "shadow-[0_0_24px_-4px_hsl(215_20%_45%_/_0.35)]",
+  gradient: "bg-gradient-to-br from-slate-500/[0.08] via-card to-card",
+  badgeBg: "bg-slate-500/15",
+  badgeText: "text-slate-700 dark:text-slate-200",
+  badgeBorder: "border-slate-500/30",
+  ctaSolid: "bg-slate-700 hover:bg-slate-800 text-white border-slate-700 dark:bg-slate-600 dark:hover:bg-slate-500 dark:border-slate-600",
+  ctaAvailable: "bg-slate-600 hover:bg-slate-700 text-white border-slate-600 dark:bg-slate-500 dark:hover:bg-slate-400 dark:border-slate-500",
+  ring: "ring-2 ring-slate-400/40",
+};
+
 interface RevenueEstimate {
   annual: number;
   timeToBuild: string;
@@ -167,22 +185,23 @@ const difficultyLabels = ["", "Expert", "Hard", "Medium", "Easy", "Easy"];
 
 function buildStateConfig(state: ProductCardState, cat: BuilderCategory) {
   const c = categoryCard[cat];
+  const p = pendingTokens;
   switch (state) {
     case "recommended":
       return {
         badge: "⭐ Recommended",
-        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
-        borderClass: `${c.border} ${c.glow} ${c.ring}`,
-        cardBg: c.gradient,
-        stripColor: c.strip,
+        badgeClass: `${p.badgeBg} ${p.badgeText} ${p.badgeBorder}`,
+        borderClass: `${p.border} ${p.glow} ${p.ring}`,
+        cardBg: p.gradient,
+        stripColor: p.strip,
       };
     case "available":
       return {
         badge: "Ready to Build",
-        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
-        borderClass: c.borderHover,
+        badgeClass: `${p.badgeBg} ${p.badgeText} ${p.badgeBorder}`,
+        borderClass: p.borderHover,
         cardBg: "bg-card",
-        stripColor: c.stripSoft,
+        stripColor: p.stripSoft,
       };
     case "locked":
       return {
@@ -195,18 +214,18 @@ function buildStateConfig(state: ProductCardState, cat: BuilderCategory) {
     case "in-progress":
       return {
         badge: "🔨 Building",
-        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
-        borderClass: `${c.border} ${c.glow}`,
-        cardBg: c.gradient,
-        stripColor: c.strip,
+        badgeClass: `${p.badgeBg} ${p.badgeText} ${p.badgeBorder}`,
+        borderClass: `${p.border} ${p.glow}`,
+        cardBg: p.gradient,
+        stripColor: p.strip,
       };
     case "published":
       return {
         badge: "✅ Live",
-        badgeClass: "bg-success/15 text-success border-success/30",
-        borderClass: "border-success/40 shadow-[0_0_16px_-4px_hsl(var(--success)/0.2)]",
-        cardBg: "bg-gradient-to-br from-success/[0.06] via-card to-card",
-        stripColor: "bg-success",
+        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
+        borderClass: `${c.border} ${c.glow}`,
+        cardBg: c.gradient,
+        stripColor: c.strip,
       };
     case "coming-soon":
       return {
@@ -250,9 +269,16 @@ export default function SmartProductCard({
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-            state === "locked" ? "bg-muted" : state === "coming-soon" ? "bg-muted/60" : catTokens.iconBg
+            state === "locked" ? "bg-muted"
+              : state === "coming-soon" ? "bg-muted/60"
+              : state === "published" ? catTokens.iconBg
+              : pendingTokens.iconBg
           }`}>
-            <Icon className={`h-5 w-5 ${state === "locked" || state === "coming-soon" ? "text-muted-foreground/40" : catTokens.iconText}`} />
+            <Icon className={`h-5 w-5 ${
+              state === "locked" || state === "coming-soon" ? "text-muted-foreground/40"
+                : state === "published" ? catTokens.iconText
+                : pendingTokens.iconText
+            }`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
@@ -285,11 +311,11 @@ export default function SmartProductCard({
           <div className="space-y-1">
             <div className="h-1.5 w-full rounded-full bg-muted">
               <div
-                className={`h-full rounded-full transition-all ${catTokens.strip}`}
+                className={`h-full rounded-full transition-all ${pendingTokens.strip}`}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <p className={`text-[9px] font-medium text-right ${catTokens.iconText}`}>{progressPercent}%</p>
+            <p className={`text-[9px] font-medium text-right ${pendingTokens.iconText}`}>{progressPercent}%</p>
           </div>
         )}
         {showEconomics && (
@@ -397,7 +423,7 @@ export default function SmartProductCard({
           {state === "recommended" && (
             <Button
               size="sm"
-              className={`w-full text-xs border ${catTokens.ctaSolid} shadow-md`}
+              className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`}
               onClick={onBuild}
             >
               <Sparkles className="h-3 w-3 mr-1.5" /> Build This Product →
@@ -406,19 +432,24 @@ export default function SmartProductCard({
           {state === "available" && (
             <Button
               size="sm"
-              className={`w-full text-xs border ${catTokens.ctaAvailable}`}
+              className={`w-full text-xs border ${pendingTokens.ctaAvailable}`}
               onClick={onBuild}
             >
               <ArrowRight className="h-3 w-3 mr-1.5" /> Build This Product →
             </Button>
           )}
           {state === "in-progress" && (
-            <Button size="sm" className={`w-full text-xs border ${catTokens.ctaSolid} shadow-md`} onClick={onContinue}>
+            <Button size="sm" className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`} onClick={onContinue}>
               <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
             </Button>
           )}
           {state === "published" && (
-            <Button variant="outline" size="sm" className="w-full text-xs" onClick={onView}>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`w-full text-xs bg-transparent ${catTokens.border} ${catTokens.iconText} hover:${catTokens.badgeBg}`}
+              onClick={onView}
+            >
               <Eye className="h-3 w-3 mr-1.5" /> View on Website →
             </Button>
           )}

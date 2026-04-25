@@ -1,57 +1,68 @@
 ## Goal
 
-Make `SmartProductCard` honor the B-B-Y category color scheme (Brand=Teal, Build=Indigo, Yield=Amber) and make the "available" outline Build button much more visually obvious.
+Flip the SmartProductCard color logic so the **category color** (teal / indigo / amber) signals **completion** ("Live"), and a **neutral color** signals work that hasn't been built yet. This way, when an entire hub is fully built, the grid reads as a unified teal / indigo / amber wall — which is what the user expects.
 
-## Current State
+## Current Behavior (the problem)
 
-- `SmartProductCard.tsx` uses a single `secondary` (gold) accent for icons, strips, badges, and the "Recommended" CTA — regardless of whether the node is BP-, BA-, or YR-.
-- `available` cards render a faint outline button (`<Button variant="outline">`) which the user finds too subtle next to the bold gold "Recommended" CTA.
-- The category color tokens already exist in `src/components/dashboard/builders/shared/BuilderTheme.ts` (teal / indigo / amber), but `SmartProductCard` does not consume them.
-- The screenshot is the BA section ("SCALE YOUR CONTENT") — those cards should read indigo, not gold.
+In `src/components/dashboard/SmartProductCard.tsx`:
+
+- **Published tiles** all render in **green** (success) — strip, badge, gradient, stat tiles. So even when Yield is 10/10 built, every tile is green, not amber.
+- **Not-built tiles** (recommended / available / in-progress) render in the **category color** (teal / indigo / amber).
+
+The user wants the opposite: built = category color, not-built = something else.
+
+## New Behavior
+
+| State | Strip / Badge / Gradient | Action button |
+|---|---|---|
+| **published** (built) | **Category color** (teal / indigo / amber) + small ✅ Live tag for clarity | Outline "View on Website" in category color |
+| **recommended** | **Slate** (neutral cool gray) + glow + ⭐ badge | Solid slate "Build Now" |
+| **available** | Slate strip, plain card | Solid slate "Build This Product" |
+| **in-progress** | Slate + 🔨 badge + slate progress bar | Solid slate "Continue Building" |
+| **locked** | Muted (unchanged) | Outline upgrade |
+| **coming-soon** | Muted (unchanged) | n/a |
+
+**Why slate**: It's outside the BP/BA/YR palette (teal/indigo/amber), reads as "pending / unbuilt", and works on light + dark backgrounds. It also keeps the green success color free for transient confirmations elsewhere (toasts, success modals) without conflicting with hub coloring.
+
+The earned-revenue stat tiles on built cards keep a soft success-green tint inside (so live revenue numbers still feel "earned"), but the **outer card chrome** (strip, border, badge, button) becomes the category color so the wall of built tiles reads as the right hub color.
 
 ## Changes
 
-### 1. Wire category into `SmartProductCard.tsx`
+### File: `src/components/dashboard/SmartProductCard.tsx`
 
-- Import `getBuilderCategory` + `categoryStyles` from `BuilderTheme.ts`.
-- Derive `category = getBuilderCategory(code ?? "")` (the `code` prop already carries `BA-10`, `BP-09`, `YR-22` etc.).
-- Replace hard-coded `secondary` usages in `stateConfig` with category-driven equivalents:
-  - `recommended` / `in-progress`: border, glow, gradient bg, left strip, badge bg, icon background and icon color all sourced from `categoryStyles[category]`.
-  - `available`: hover border + left strip use category color (lighter opacity).
-  - `published`: keep success green (status, not category).
-  - `locked` / `coming-soon`: keep neutral muted.
-- Icon tile (lines 158–163) and Icon color use `categoryStyles[category].iconBg` / `iconText`.
+1. **Add a `pendingTokens` constant** (slate-based) mirroring the shape of `categoryCard` entries — strip, stripSoft, border, borderHover, glow, gradient, badgeBg/Text/Border, ctaSolid, ctaAvailable, ring.
 
-### 2. Category-colored CTAs
+2. **Rewrite `buildStateConfig(state, cat)`**:
+   - `recommended` / `available` / `in-progress` → use `pendingTokens` instead of `categoryCard[cat]`.
+   - `published` → use `categoryCard[cat]` (currently uses success/green). Badge stays "✅ Live" but recolored to category palette; strip + gradient + border switch to category color.
+   - `locked` / `coming-soon` → unchanged (muted).
 
-Replace the single `bg-secondary text-secondary-foreground` button styling with category-specific buttons:
+3. **CTA buttons**:
+   - `recommended` / `available` / `in-progress` buttons use `pendingTokens.ctaSolid` / `ctaAvailable` (slate).
+   - `published` "View on Website" button switches from generic outline to outline tinted with the category color (`border-{cat}/40 text-{cat} hover:bg-{cat}/5`).
 
-- `recommended` CTA → `categoryStyles[category].buttonAccent` (solid teal / indigo / amber).
-- `in-progress` "Continue Building" CTA → same solid category color.
-- `available` CTA — the user's main complaint. Upgrade from a flat outline to a **prominent solid filled button** in the category color at slightly reduced intensity to still differentiate from "Recommended":
-  - Use `bg-{category}-500/90 hover:bg-{category}-600 text-white border border-{category}-500` (full solid, not outline).
-  - Keep "Recommended" visually dominant via the badge, glow shadow, gradient card background, and a subtle ring (`ring-2 ring-{category}-400/40`) — not via being the only colored button.
+4. **Icon tile** (lines 252–256):
+   - Built (`published`) → `catTokens.iconBg` + `catTokens.iconText` (already category-colored — keep).
+   - Not built (recommended/available/in-progress) → switch to slate icon tile (`bg-slate-500/15 text-slate-600 dark:text-slate-300`).
 
-This way every Build button is obviously clickable and color-coded, while "Recommended" still pops through the card-level treatment.
+5. **Progress bar** (in-progress) → slate fill instead of category fill, since "in progress" is a not-yet-built state.
 
-### 3. Differentiation hierarchy (so Recommended still stands out)
+6. **Stat tiles** (revenue / time / difficulty grid):
+   - `published` → keep the soft green tint inside (reads as "money earned"). No change.
+   - Others → keep `bg-muted/50`. No change.
 
-| State | Card | Button |
-|-------|------|--------|
-| Recommended | Glow + gradient + ring + ⭐ badge | Solid category color, Sparkles icon |
-| Available | Plain card, category left strip | Solid category color (slightly muted), arrow icon |
-| In progress | Gradient + 🔨 badge + progress bar | Solid category color, wrench icon |
-| Published | Green border + ✅ Live | Outline (View on Website) |
-| Locked | Muted, dimmed | Outline upgrade |
+### No other files touched
 
-### 4. Files touched
+`categoryAccent.ts`, hub pages, headers, and the "Your Next Step" hero card all stay as-is — they already correctly use category colors at the hub level.
 
-- `src/components/dashboard/SmartProductCard.tsx` — only file changed.
+## Visual outcome
 
-No DB / edge function / route changes. Existing `code` prop already supplies the BA-/BP-/YR- prefix needed for category detection.
+- **Yield Premium Revenue (10/10 built)**: a wall of amber tiles with amber strips, amber "Live" badges, and amber outline View buttons. Reads as a finished amber hub.
+- **Build Your Brand (7/9)**: 7 teal tiles + 2 slate tiles (the unbuilt Social Media + Webinars). Eye instantly tracks the 2 slate cards as "still to do".
+- **Build Your Authority (6/9)**: 6 indigo tiles + 3 slate tiles. The "Recommended Online Course" card is slate with a glow + ⭐ — clearly the next action, visually distinct from both the built indigo tiles and the plain slate available ones.
 
 ## Out of scope
 
-- Recoloring the builder pages themselves (already category-themed via `BuilderTheme`).
-- Changing the Hub headers or `PortfolioStepView` layout.
-- Modifying the "Your Next Step" hero card at the top (it sits above the grid and uses its own styling).
+- Changing hub headers / "Your Next Step" hero / progress dots (already category-colored correctly).
+- Touching `BuilderTheme.ts` or `categoryAccent.ts`.
+- Changing the success green used elsewhere in the app (toasts, banners).
