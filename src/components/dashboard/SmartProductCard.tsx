@@ -27,12 +27,27 @@ interface SmartProductCardProps {
   revenue?: RevenueEstimate;
   progressPercent?: number;
   stats?: { views?: number; sales?: number };
+  /** Real revenue earned from author_nodes.revenue_to_date */
+  liveRevenue?: number;
+  /** ISO timestamp of last activation/update */
+  lastActivityAt?: string | null;
   onBuild?: () => void;
   onContinue?: () => void;
   onView?: () => void;
   onUpgrade?: () => void;
   genre?: string;
   code?: string;
+}
+
+function formatRelative(iso: string): string {
+  const d = new Date(iso).getTime();
+  const diff = Date.now() - d;
+  const days = Math.floor(diff / 86_400_000);
+  if (days < 1) return "today";
+  if (days === 1) return "yesterday";
+  if (days < 30) return `${days}d ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
 }
 
 const BASELINE_REVENUE: Record<string, RevenueEstimate> = {
@@ -129,10 +144,14 @@ const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string;
 export default function SmartProductCard({
   id, label, icon: Icon, description, personalizedDescription,
   state, tierRequired, revenue, progressPercent,
-  stats, onBuild, onContinue, onView, onUpgrade, genre, code,
+  stats, liveRevenue, lastActivityAt,
+  onBuild, onContinue, onView, onUpgrade, genre, code,
 }: SmartProductCardProps) {
   const config = stateConfig[state];
   const rev = revenue || BASELINE_REVENUE[id] || { annual: 0, timeToBuild: "~2 hours", difficulty: 2 };
+  const showEconomics = state !== "coming-soon";
+  const isPublished = state === "published";
+  const isInProgress = state === "in-progress";
 
   return (
     <motion.div
