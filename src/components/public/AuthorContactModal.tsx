@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { X, Send, Loader2, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 
 interface AuthorContactModalProps {
   open: boolean;

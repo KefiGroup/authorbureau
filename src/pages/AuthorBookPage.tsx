@@ -7,6 +7,7 @@ import {
   Megaphone, Trophy, Calendar, Briefcase, Award, Globe, Heart, Handshake
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
 import { getThemeById, type AuthorTheme } from "@/lib/author-themes";

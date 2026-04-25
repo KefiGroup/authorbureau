@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
+import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { toast } from "@/hooks/use-toast";
 
 interface BuyNowButtonProps {

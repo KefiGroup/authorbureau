@@ -8,6 +8,7 @@ import {
   KeyRound, Video, Sparkles, Ticket, ChevronDown, Shield
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
