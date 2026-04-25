@@ -1,120 +1,98 @@
-## Goal
+## Two issues to address
 
-Redesign the Book Hub page (Analysis tab) and the three category tabs (Brand, Build, Yield) into a clean, dynamic, sequence-driven workspace that smartly guides the user through the build journey based on what they have already completed — bringing back the previous "BP-01 → BP-02 → …" guided flow inside each book.
+### Issue 1 — Pricing tiles showing on Analysis tab for paid users
 
-## Current Problems
+On the Book Hub → Analysis tab, the **"Ready to start building?" pricing block** (Brand $49 / Build $99 / Yield $249) renders for users who are already on a paid plan.
 
-1. **Analysis tab is overloaded** — Abby's snapshot, recommended sequence, plan tabs, manuscript upload, market snapshot, and pricing CTAs all stacked into one long scroll. Hard to scan.
-2. **Brand / Build / Yield tabs are static** — they show all 9–10 product cards with the same priority no matter what the user has built. No "what's next" signal.
-3. **No clear next action** — user lands on the page and has to read paragraphs of intro copy to figure out where to click.
-4. **Sequence is hidden in copy** — the BP-01 → BP-02 progression exists in the data (`sequence` field) but is not surfaced as a visual journey.
-5. **Status not reflected at a glance** — completed / in-progress / locked states exist but are buried inside cards mixed with copy.
+**Root cause** (`src/components/dashboard/book-hub/BookHubOverview.tsx`): the upgrade block is gated by `tier === "free"`, but in the screenshot the user is clearly on a paid plan and still sees the tiles. We will tighten the gate to use `effectiveTier !== "free"` (which already accounts for admin / superadmin) and replace the block for paid users with a compact one-line plan-status strip.
 
-## Proposed UX
+### Issue 2 — Brand / Build / Yield tabs should use the previous "namecard" design
 
-### 1. Analysis tab — clean three-zone layout
+The current category pages (`PortfolioStepView.tsx`) render each node as a thin one-line row inside a vertical stepper (icon + name + status pill + tiny CTA). The user wants the **previous rich product card** look back — the `SmartProductCard` design (still in the codebase at `src/components/dashboard/SmartProductCard.tsx`) which shows for each node:
 
-```text
-┌─────────────────────────────────────────────────────┐
-│  HERO STRIP                                         │
-│  Cover · Title · Genre · "X of 28 products built"   │
-│  Progress bar across Brand/Build/Yield              │
-│  [Continue Where You Left Off →]   (next node CTA)  │
-├─────────────────────────────────────────────────────┤
-│  ABBY'S SNAPSHOT (collapsed by default if analyzed) │
-│  One-liner summary + "View full plan" expander      │
-│  Refine with Abby · Download .docx                  │
-├─────────────────────────────────────────────────────┤
-│  YOUR NEXT 3 STEPS  (dynamic, picks first 3 not-    │
-│  completed nodes from full 28 in sequence order)    │
-│  • #5  Quick-Start Workbook  · BP-06 · Build Now →  │
-│  • #6  Home Study Course     · BP-07 · Build Now →  │
-│  • #7  Online Course         · BA-10 · Locked       │
-└─────────────────────────────────────────────────────┘
-        + Market Snapshot (kept, lower priority)
-```
+- Larger card with icon and product name
+- Status badge (Recommended / Available / In Progress / Published / Locked / Coming Soon)
+- Description (and personalized description when available)
+- Revenue estimate (e.g. "$3,940/yr potential")
+- Time to build + difficulty stars
+- Tier requirement badge for locked items
+- A primary CTA (Build / Continue / View / Unlock)
 
-- Manuscript upload moves into a small inline button on the snapshot, not a full row.
-- Pricing tiles only appear for tier=`free`. For paid tiers we show "X of Y in your plan unlocked".
-- "Continue Where You Left Off" jumps directly to the lowest-sequence node that is `in-progress`, otherwise the next `available` node.
+The smart-sequencing benefits from the recent redesign are kept — the page still computes the single "next step" and shows it prominently — but the body of the page returns to a card grid instead of the stepper rail.
 
-### 2. Brand / Build / Yield tabs — guided journey view
+## Fix
 
-Each tab becomes a single sequenced rail rather than three sub-category blocks of equal weight.
+### Part A — `BookHubOverview.tsx`
+
+1. Compute `const isPaidOrAdmin = effectiveTier !== "free";`
+2. Replace the existing `{tier === "free" && ...pricing...}` block with:
+   - **Free users** → existing pricing tiles (unchanged).
+   - **Paid users / admin** → small one-line "plan status" strip:
+     ```
+     ✓ Yield Plan active — all 28 builders unlocked. · Manage plan →
+     ```
+     Variants: Brand → "9 builders unlocked", Build → "18 builders unlocked", Yield/admin → "all 28 builders unlocked". "Manage plan" links to `/account-settings?tab=billing`.
+3. Move that strip **above** "Your Next N Steps" so users see plan confirmation first, then their next actions.
+
+### Part B — `PortfolioStepView.tsx` (Brand / Build / Yield)
+
+Restructure each category tab to:
 
 ```text
 ┌─────────────────────────────────────────────────────┐
-│  CATEGORY HEADER  (compact)                          │
-│  💰 Brand · 9 products · 4 completed · ~$15k/yr     │
-│  Stage progress dots: ●●●●○○○○○                     │
+│  Compact category header  (kept, slightly smaller)  │
+│  Title · X of Y built · revenue range · progress    │
+│  "Why this order?" disclosure (kept)                │
 ├─────────────────────────────────────────────────────┤
-│  YOUR NEXT STEP                                     │
-│  Big card highlighting the next sequenced node      │
-│  (state-aware: Continue / Build Now / Unlock)       │
+│  YOUR NEXT STEP  (kept — single hero card)          │
 ├─────────────────────────────────────────────────────┤
 │  THE FULL JOURNEY                                   │
-│  Vertical stepper, BP-01 → BP-09, each row =        │
-│  [#] [icon] [name] [BP code] [status pill] [CTA]    │
-│  Sub-category dividers (Branding & Marketing /      │
-│  Digital Products) shown as section breaks, not     │
-│  full intro paragraphs.                             │
-│  Long intro copy collapses behind a "Why this       │
-│  order?" expander.                                  │
+│  Sub-category section (e.g. Branding & Marketing)   │
+│    ┌──────────┐ ┌──────────┐ ┌──────────┐           │
+│    │ BP-04    │ │ BP-02    │ │ BP-01    │           │
+│    │ Website  │ │ Lead Mag │ │ Email    │           │
+│    │ [card]   │ │ [card]   │ │ [card]   │           │
+│    └──────────┘ └──────────┘ └──────────┘           │
+│  Sub-category section (Digital Products)            │
+│    grid of SmartProductCards                        │
 └─────────────────────────────────────────────────────┘
 ```
 
-State-driven row styling:
-- `completed` → green check, "View" CTA
-- `in-progress` → amber dot, "Continue" CTA, slight highlight
-- `next-available` → secondary highlight ring, "Build Now" CTA (only one row at a time)
-- `available` → neutral, "Build" CTA
-- `locked` → grey, lock icon + tier badge, "Unlock <Tier>" CTA
-- `coming-soon` → muted, "Coming soon" pill
+Implementation:
 
-The "next-available" row gets a subtle pulse / left-border accent so the user always knows the single next click.
+1. **Drop the `JourneyStepper` rendering** in the "Full Journey" section.
+2. **Re-introduce `SmartProductCard`** in a responsive grid (2 columns on `sm`, 3 columns on `lg`).
+3. Group cards by **sub-category** (`subCategory` field on each node — e.g. "Branding & Marketing", "Digital Products" for Brand). Sub-category header = small uppercase divider, no long intro paragraph.
+4. **Map our computed `state` (NodeStatus) → SmartProductCard's `ProductCardState`**:
+   - `completed` → `published`
+   - `in-progress` → `in-progress`
+   - the single category `nextStep.id` → `recommended` (only one card per category gets this)
+   - `available` (others) → `available`
+   - `locked` → `locked`
+   - `coming-soon` → `coming-soon`
+5. Show the **BP-XX / BA-XX / YR-XX code** as a small badge in the top-left corner of each card (use `NODE_CODE_MAP` already exported by `useBookNodeProgress`). Add a `code?: string` prop to `SmartProductCard` for this.
+6. Wire each card's CTAs:
+   - `onBuild` / `onContinue` / `onView` → `onNavigate(node.id)` (same routing already in `JourneyStepper`).
+   - `onUpgrade` → `onNavigate("build-business")`.
+7. Keep the **Next Step hero card** (`NextStepCard`) unchanged — it's still the primary call-to-action above the grid.
+8. Remove `JourneyStepper` import from `PortfolioStepView.tsx`. The component file stays in the codebase (still used by `BookHubOverview.tsx` for the top-3 next-steps list on the Analysis tab).
 
-### 3. Smart sequencing rules
+### Part C — Tier-upsell tightening on category tabs
 
-For each category, the next-action algorithm runs once and is reused by both the Analysis tab (top 3) and the category tabs (highlighted row):
+In `PortfolioStepView.tsx`, no global "Upgrade to unlock" CTA exists at the header level today, so nothing to remove there. Per-card tier badges (`Locked` + `Unlock <Tier>`) on individual `SmartProductCard`s remain — they only render when a specific node's `tierRequired` exceeds the user's tier (won't fire for a Yield user).
 
-1. Sort nodes by `sequence` ascending.
-2. Drop `coming-soon` and `planned` from "next" candidates (still rendered, just skipped).
-3. First node where `status !== completed` AND `tierRequired` is met → that is the **Next Step**.
-4. If none → category shows "🎉 All caught up — keep refining or move to next category".
+## Files to modify
 
-Across categories, Brand finishes before Build is highlighted, Build before Yield. A node in a higher category can still be unlocked early but is not promoted as "next".
+- `src/components/dashboard/book-hub/BookHubOverview.tsx` — gate pricing block; add plan-status strip; reorder.
+- `src/components/dashboard/PortfolioStepView.tsx` — replace `JourneyStepper` with `SmartProductCard` grid grouped by `subCategory`; keep header + NextStepCard.
+- `src/components/dashboard/SmartProductCard.tsx` — add optional `code?: string` prop and render small code badge (BP-XX / BA-XX / YR-XX) at top-left.
 
-## Technical Plan
-
-**Files to modify:**
-- `src/components/dashboard/book-hub/BookHubOverview.tsx` — restructure into HeroStrip + collapsible Snapshot + Next3Steps. Keep manuscript upload, market snapshot, plan tabs but make them collapsible/secondary.
-- `src/components/dashboard/PortfolioStepView.tsx` — replace the per-sub-category card grid with: compact header, "Your Next Step" hero card, vertical journey stepper. Move long sub-category intros into collapsible "Why this order?" disclosures. Keep `getNodeState` logic; add helper `getNextStep(nodes)`.
-
-**New small components (under `src/components/dashboard/book-hub/`):**
-- `BookHubHeroStrip.tsx` — cover + progress + "Continue where you left off".
-- `JourneyStepper.tsx` — reusable vertical stepper used by all 3 category tabs.
-- `NextStepCard.tsx` — large highlighted card for the single recommended next node.
-- `CategoryProgressDots.tsx` — small N-of-M dot indicator.
-
-**Data sources (no schema changes):**
-- Existing `useAbbyPlan(bookId)` for `completedAssets` count.
-- Existing `author_nodes` query in `BookHubOverview` extended into a shared hook `useBookNodeProgress(bookId)` returning `{ statuses, nextStepByCategory, totalsByCategory }` so both files share one source of truth.
-- `ABBY_CATEGORIES` (already has `sequence`, `subCategory`, `tierRequired`) drives ordering.
-
-**Keep behavior:**
-- Tier gating, admin override via `isSuperAdmin`, `useNodeGating` for open nodes.
-- Existing routes — clicking a node still uses `getStudioPath(nodeId, bookId, …)`.
-- Brand/Build/Yield colour tokens (`builder-brand`, `builder-bridge`, `builder-yield`) and gradient classes are reused for the new components.
-
-**Out of scope:**
-- Sidebar (already trimmed to "My Business Plan" + "My Books Hub").
-- Routing (`/dashboard/book/:bookId?tab=…` already canonical).
-- Review & Publish and Analytics tabs — left as-is for this pass.
+No new hooks, no schema changes, no routing changes.
 
 ## Acceptance
 
-- Analysis tab fits within ~1.5 viewport heights with snapshot collapsed.
-- Each of Brand / Build / Yield tabs shows a single clear "next step" highlighted automatically based on `author_nodes.status`.
-- Sequence numbers (BP-01…BP-09, BA-10…BA-18, YR-19…YR-28) visible on every row.
-- Completing a node (status flips to `live`) automatically advances the highlighted "next step" on next visit.
-- Locked rows display the correct tier upgrade CTA without breaking the stepper layout.
+- Brand / Build / Yield plan users **never** see the "Ready to start building?" pricing tiles on the Analysis tab. They see a single "Plan active — N builders unlocked · Manage plan" line instead.
+- Free users still see the existing pricing tiles.
+- Brand / Build / Yield tabs now display the previous rich namecard layout: each node as a `SmartProductCard` in a grid grouped by sub-category, with revenue, difficulty, time-to-build, tier badges, and BP/BA/YR code badge.
+- The single "Your Next Step" hero card remains above the grid; the `nextStep` node in the grid is also marked `recommended`.
+- Status (completed / in-progress / locked / coming-soon) is reflected on each card automatically from `useBookNodeProgress`.
