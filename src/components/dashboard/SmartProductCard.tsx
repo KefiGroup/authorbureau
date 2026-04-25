@@ -79,6 +79,24 @@ const categoryCard: Record<BuilderCategory, {
   },
 };
 
+// Neutral "not built yet" palette — slate, intentionally outside teal/indigo/amber
+const pendingTokens = {
+  iconBg: "bg-slate-500/15",
+  iconText: "text-slate-600 dark:text-slate-300",
+  strip: "bg-slate-500",
+  stripSoft: "bg-slate-400/50",
+  border: "border-slate-400/50",
+  borderHover: "border-border hover:border-slate-400/50",
+  glow: "shadow-[0_0_24px_-4px_hsl(215_20%_45%_/_0.35)]",
+  gradient: "bg-gradient-to-br from-slate-500/[0.08] via-card to-card",
+  badgeBg: "bg-slate-500/15",
+  badgeText: "text-slate-700 dark:text-slate-200",
+  badgeBorder: "border-slate-500/30",
+  ctaSolid: "bg-slate-700 hover:bg-slate-800 text-white border-slate-700 dark:bg-slate-600 dark:hover:bg-slate-500 dark:border-slate-600",
+  ctaAvailable: "bg-slate-600 hover:bg-slate-700 text-white border-slate-600 dark:bg-slate-500 dark:hover:bg-slate-400 dark:border-slate-500",
+  ring: "ring-2 ring-slate-400/40",
+};
+
 interface RevenueEstimate {
   annual: number;
   timeToBuild: string;
