@@ -139,6 +139,23 @@ export default function AuthorProductCard({
   const isHighTouchInquiry =
     !hasPrice && !!authorContactEmail && /^(YR-|BA-13|BA-12)/.test(node.node_id);
 
+  // INFORMATIONAL nodes — non-transactional revenue surfaces (Podcast,
+  // Media Kit, Affiliate Programme, JV/Revenue Share). They are LIVE products,
+  // just not paid via Stripe. They must NEVER show "Coming Soon" — instead
+  // route readers straight to the relevant microsite via delivery_url.
+  const INFORMATIONAL_CTAS: Record<string, { label: string; Icon: typeof ArrowRight; replacePriceLabel?: string }> = {
+    "BA-14": { label: "Listen Now",        Icon: Headphones,  replacePriceLabel: "Free to listen" },
+    "BA-15": { label: "View Media Kit",    Icon: Newspaper,   replacePriceLabel: "Press resources" },
+    "BA-16": { label: "Join Programme",    Icon: Handshake,   replacePriceLabel: "Apply to join" },
+    "BA-18": { label: "Partner With Us",   Icon: Handshake,   replacePriceLabel: "By application" },
+  };
+  const informational =
+    !hasPrice && (node.delivery_url || node.payment_link || node.third_party_url)
+      ? INFORMATIONAL_CTAS[node.node_id.substring(0, 5)]
+      : undefined;
+  const informationalHref =
+    node.delivery_url || node.payment_link || node.third_party_url || `/${authorSlug}`;
+
   return (
     <article
       className="group flex flex-col h-full p-5 rounded-xl transition-all hover:-translate-y-0.5 hover:shadow-lg"
@@ -194,7 +211,7 @@ export default function AuthorProductCard({
             className="text-base font-semibold"
             style={{ color: v.mutedText }}
           >
-            Pricing on request
+            {informational?.replacePriceLabel || "Pricing on request"}
           </span>
         )}
       </div>
