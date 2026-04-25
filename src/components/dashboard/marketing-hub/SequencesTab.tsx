@@ -131,7 +131,9 @@ export default function SequencesTab() {
   }
 
   return (
-    <div className="space-y-3">
+    <div>
+      {Header}
+      <div className="space-y-3">
       {flows.map((f) => (
         <div key={f.id} className="rounded-xl border border-border bg-card p-4">
           <div className="flex items-start justify-between gap-4">
@@ -150,42 +152,27 @@ export default function SequencesTab() {
                 {f.node_id && (
                   <Badge variant="outline" className="text-[10px]">{f.node_id}</Badge>
                 )}
+                {f.flow_type === "master_nurture" && (
+                  <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">Master</Badge>
+                )}
               </div>
               {f.description && <p className="text-xs text-muted-foreground line-clamp-1">{f.description}</p>}
             </div>
             <div className="flex items-center gap-1 shrink-0">
               {f.node_id && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs"
-                  onClick={() => navigate(`/node-builder/${f.node_id}`)}
-                >
+                <Button size="sm" variant="outline" className="h-8 text-xs" onClick={() => navigate(`/node-builder/${f.node_id}`)}>
                   <Pencil className="h-3 w-3 mr-1" /> Edit
                 </Button>
               )}
               {(f.status === "active" || f.status === "paused" || f.status === "draft") && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs"
-                  disabled={updatingId === f.id}
-                  onClick={() => toggleStatus(f)}
-                >
-                  {updatingId === f.id ? (
-                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                  ) : f.status === "active" ? (
-                    <PauseCircle className="h-3 w-3 mr-1" />
-                  ) : (
-                    <PlayCircle className="h-3 w-3 mr-1" />
-                  )}
+                <Button size="sm" variant="outline" className="h-8 text-xs" disabled={updatingId === f.id} onClick={() => toggleStatus(f)}>
+                  {updatingId === f.id ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : f.status === "active" ? <PauseCircle className="h-3 w-3 mr-1" /> : <PlayCircle className="h-3 w-3 mr-1" />}
                   {f.status === "active" ? "Pause" : "Activate"}
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Steps preview */}
           {steps[f.id]?.length > 0 && (
             <div className="mt-3 pl-6 border-l-2 border-muted space-y-1">
               {steps[f.id].slice(0, 5).map((s) => (
@@ -200,14 +187,14 @@ export default function SequencesTab() {
             </div>
           )}
 
-          {/* Metrics */}
           <div className="flex items-center gap-4 mt-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {f.total_subscribers} subscribers</span>
+            <span className="flex items-center gap-1"><Users className="h-3 w-3" /> {enrollments[f.id] || 0} active · {f.total_subscribers} total</span>
             <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {(Number(f.open_rate) * 100).toFixed(0)}% open</span>
             <span className="flex items-center gap-1"><MousePointerClick className="h-3 w-3" /> {(Number(f.click_rate) * 100).toFixed(0)}% click</span>
           </div>
         </div>
       ))}
+      </div>
     </div>
   );
 }
