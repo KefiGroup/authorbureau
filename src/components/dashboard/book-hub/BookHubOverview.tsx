@@ -384,7 +384,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       )}
 
       {/* 5. Market snapshot — keep, but lower */}
-      {(marketData || marketLoading) && <MarketSnapshot data={marketData!} loading={marketLoading} />}
+      {(marketData || marketLoading) && <MarketSnapshot data={marketData!} loading={marketLoading} onRefresh={refetchMarket} />}
 
       {showManuscriptUpload && (
         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
