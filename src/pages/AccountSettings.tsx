@@ -57,14 +57,24 @@ export default function AccountSettings() {
 
   const handleManageBilling = async () => {
     setPortalLoading(true);
+    // Open the popup synchronously to avoid popup blockers, then redirect it
+    // once the edge function returns. Doing it this way (instead of opening
+    // about:blank then waiting) keeps the parent's auth lock uncontested
+    // mid-call, so the tier badge doesn't flicker to "Free".
+    const popup = window.open("about:blank", "_blank");
     try {
       const { data, error } = await supabase.functions.invoke("customer-portal", {
         body: { source_platform: "authorsbureau" },
       });
       if (error) throw error;
-      if (data?.url) window.open(data.url, "_blank");
-    } catch (err) {
-      toast({ title: "Could not open billing portal", description: err.message, variant: "destructive" });
+      if (data?.url && popup) {
+        popup.location.href = data.url;
+      } else if (data?.url) {
+        window.open(data.url, "_blank");
+      }
+    } catch (err: any) {
+      popup?.close();
+      toast({ title: "Could not open billing portal", description: err?.message ?? String(err), variant: "destructive" });
     }
     setPortalLoading(false);
   };

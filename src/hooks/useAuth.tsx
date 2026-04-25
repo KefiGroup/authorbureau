@@ -206,23 +206,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const data = await resp.json();
-      setSubscription({
+      const next: SubscriptionState = {
         subscribed: !!data?.subscribed,
         productId: (data?.product_id as string | null) ?? null,
         subscriptionEnd: (data?.subscription_end as string | null) ?? null,
         loading: false,
         checked: true,
-      });
+      };
+      setSubscription(next);
+      // Cache last-known good subscription so subsequent loads don't flash "Free"
+      try {
+        if (user?.id) {
+          window.localStorage.setItem(
+            `ab_sub_cache:${user.id}`,
+            JSON.stringify({ ...next, checkedAt: Date.now() })
+          );
+        }
+      } catch { /* ignore */ }
     } catch (error) {
-      console.warn("[useAuth] check-subscription failed:", error);
-      // Fall back to free, but mark as checked so the app doesn't hang on loading
-      setSubscription({
-        subscribed: false,
-        productId: null,
-        subscriptionEnd: null,
+      console.warn("[useAuth] check-subscription failed (preserving last-known tier):", error);
+      // IMPORTANT: do NOT downgrade the user on transient failures.
+      // Keep whatever productId we already have — only flip `loading` off
+      // and mark `checked` so the app doesn't hang on the loading skeleton.
+      setSubscription((prev) => ({
+        ...prev,
         loading: false,
         checked: true,
-      });
+      }));
     }
   }, [user]);
 
@@ -256,6 +266,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (user?.id) {
+      // Hydrate from local cache (5-minute TTL) so the badge shows the
+      // correct tier instantly while check-subscription verifies in the bg.
+      try {
+        const raw = window.localStorage.getItem(`ab_sub_cache:${user.id}`);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          const fresh = cached?.checkedAt && Date.now() - cached.checkedAt < 5 * 60_000;
+          if (fresh && cached?.productId) {
+            setSubscription({
+              subscribed: !!cached.subscribed,
+              productId: cached.productId ?? null,
+              subscriptionEnd: cached.subscriptionEnd ?? null,
+              loading: false,
+              checked: true,
+            });
+            return;
+          }
+        }
+      } catch { /* ignore */ }
       setSubscription(initialSubscriptionState);
       return;
     }
