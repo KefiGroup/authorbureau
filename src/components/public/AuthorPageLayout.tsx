@@ -14,10 +14,14 @@ export default function AuthorPageLayout({
   theme,
   breadcrumbs,
   children,
+  footerSlot,
 }: {
   theme: AuthorTheme;
   breadcrumbs?: { label: string; to?: string }[];
   children: ReactNode;
+  /** Optional richer footer (socials + legal). When provided, replaces the
+   *  default "Powered by" badge. */
+  footerSlot?: ReactNode;
 }) {
   const cssVars = getThemeCSSVars(theme);
 
@@ -46,19 +50,22 @@ export default function AuthorPageLayout({
           {children}
         </div>
 
-        {/* Powered by Authors Bureau — only fixed-color element */}
-        <footer
-          className="py-6 text-center"
-          style={{ background: "var(--theme-primary)" }}
-        >
-          <Link
-            to="/"
-            className="text-xs transition-opacity hover:opacity-80"
-            style={{ color: "#888888" }}
+        {footerSlot ? (
+          footerSlot
+        ) : (
+          <footer
+            className="py-6 text-center"
+            style={{ background: "var(--theme-primary)" }}
           >
-            Powered by Authors Bureau
-          </Link>
-        </footer>
+            <Link
+              to="/"
+              className="text-xs transition-opacity hover:opacity-80"
+              style={{ color: "#888888" }}
+            >
+              Powered by Authors Bureau
+            </Link>
+          </footer>
+        )}
       </div>
     </>
   );
