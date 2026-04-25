@@ -143,20 +143,72 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
         }
       />
 
-      {/* Full journey */}
+      {/* Full journey — grouped SmartProductCard grid */}
       <div>
         <h2 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground mb-3">
           The Full Journey
         </h2>
-        <JourneyStepper
-          nodes={catProgress.nodes}
-          bookId={primaryBookId}
-          bookTitle={primaryBookTitle}
-          highlightNodeId={catProgress.nextStep?.id || null}
-          accent={accent}
-          onUpgrade={() => onNavigate?.("build-business")}
-          onNavigateSection={onNavigate}
-        />
+        {(() => {
+          const stateMap: Record<NodeStatus, ProductCardState> = {
+            completed: "published",
+            "in-progress": "in-progress",
+            available: "available",
+            locked: "locked",
+            "coming-soon": "coming-soon",
+          };
+          const groups: { name: string; nodes: NodeWithProgress[] }[] = [];
+          for (const n of catProgress.nodes) {
+            const sub = n.subCategory || "Products";
+            let g = groups.find((x) => x.name === sub);
+            if (!g) { g = { name: sub, nodes: [] }; groups.push(g); }
+            g.nodes.push(n);
+          }
+          const handleNav = (n: NodeWithProgress) => {
+            if (n.state === "locked") { onNavigate?.("build-business"); return; }
+            if (n.state === "coming-soon") return;
+            const titleParam = primaryBookTitle ? `&bookTitle=${encodeURIComponent(primaryBookTitle)}` : "";
+            const path = getStudioPath(n.id, primaryBookId, titleParam);
+            if (path) navigate(path);
+            else if (n.navigateTo && onNavigate) onNavigate(n.navigateTo);
+          };
+          return (
+            <div className="space-y-6">
+              {groups.map((group) => (
+                <div key={group.name}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className={`h-px flex-1 ${accent.divider}`} />
+                    <span className={`text-[10px] font-bold uppercase tracking-[0.2em] ${accent.text}`}>{group.name}</span>
+                    <div className={`h-px flex-1 ${accent.divider}`} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {group.nodes.map((n) => {
+                      const isNext = catProgress.nextStep?.id === n.id;
+                      const cardState: ProductCardState = isNext && (n.state === "available" || n.state === "in-progress")
+                        ? "recommended"
+                        : stateMap[n.state];
+                      return (
+                        <SmartProductCard
+                          key={n.id}
+                          id={n.id}
+                          label={n.label}
+                          icon={n.icon}
+                          description={n.description || ""}
+                          state={cardState}
+                          tierRequired={n.tierRequired}
+                          code={n.code}
+                          onBuild={() => handleNav(n)}
+                          onContinue={() => handleNav(n)}
+                          onView={() => handleNav(n)}
+                          onUpgrade={() => onNavigate?.("build-business")}
+                        />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
       </div>
 
       <p className="text-[11px] text-muted-foreground text-center pt-2">
