@@ -119,7 +119,26 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
             <div className="flex items-center gap-3 mt-1 text-xs text-foreground/70 flex-wrap">
               <span><strong>{catProgress.completed}</strong> of {catProgress.total} built</span>
               {catProgress.inProgress > 0 && <span>· {catProgress.inProgress} in progress</span>}
-              <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {headline?.revenue}</span>
+              <span className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                {earnedInCategory > 0 ? (
+                  <>
+                    <strong>${earnedInCategory.toLocaleString()}</strong> earned
+                    {potentialInCategory > 0 && (
+                      <span className="text-muted-foreground"> · ${potentialInCategory.toLocaleString()}/yr potential</span>
+                    )}
+                  </>
+                ) : potentialInCategory > 0 ? (
+                  <>
+                    <strong>${potentialInCategory.toLocaleString()}/yr</strong> potential
+                    {lockedPotential > 0 && (
+                      <span className="text-muted-foreground"> · +${lockedPotential.toLocaleString()} locked</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Unlock to see potential</span>
+                )}
+              </span>
             </div>
           </div>
           <div className="hidden sm:block shrink-0">
