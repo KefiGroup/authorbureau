@@ -1,30 +1,28 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getStudioPath } from "@/config/abbyFrameworkConfig";
 import { motion } from "framer-motion";
-import { Sparkles, Zap, FileText, Upload, Download, Loader2, Lock, ArrowRight, CheckCircle2, X } from "lucide-react";
+import { Sparkles, FileText, Upload, Download, Loader2, ChevronDown, X, ArrowRight } from "lucide-react";
 import BookHubSkeleton from "./BookHubSkeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import MarketSnapshot from "./MarketSnapshot";
+import BookHubHeroStrip from "./BookHubHeroStrip";
+import JourneyStepper from "./JourneyStepper";
+import { ACCENT_CLASSES } from "./categoryAccent";
 import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { printExportHtml } from "@/lib/print-export";
 import { useToast } from "@/hooks/use-toast";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
 import { useMarketResearch } from "@/hooks/useMarketResearch";
-import type { SubscriptionTier } from "@/hooks/useAuth";
-import { hasTierAccess } from "@/hooks/useAuth";
+import { useNodeGating } from "@/hooks/useNodeGating";
+import { useBookNodeProgress } from "@/hooks/useBookNodeProgress";
+import { useAuth, type SubscriptionTier } from "@/hooks/useAuth";
+import { isSuperAdmin } from "@/lib/superadmin";
 
-
-interface PlanSection {
-  key: string;
-  label: string;
-  emoji: string;
-  content: string;
-}
+interface PlanSection { key: string; label: string; emoji: string; content: string; }
 
 function extractSections(fullContent: string): PlanSection[] {
   const sections: PlanSection[] = [];
@@ -34,29 +32,16 @@ function extractSections(fullContent: string): PlanSection[] {
     { key: "build", label: "B·Build Authority", emoji: "📈", regex: /(?:#{1,3}.*?(?:B[·.]?BUILD AUTHORITY|SECTION 3).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
     { key: "yield", label: "Y·Yield Revenue", emoji: "🏆", regex: /(?:#{1,3}.*?(?:Y[·.]?YIELD REVENUE|SECTION 4).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
     { key: "monetization", label: "Monetisation Map", emoji: "📊", regex: /(?:#{1,3}.*?(?:MONETIS?ATION MAP|SECTION 5).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
-    { key: "unlock", label: "Unlock Your Plan", emoji: "🔓", regex: /(?:#{1,3}.*?(?:UNLOCK YOUR PLAN|SECTION 6).*?\n)([\s\S]*?)(?=\n#{1,3}\s*(?:SECTION|---)\s|$)/i },
     { key: "nextsteps", label: "Next Steps", emoji: "🚀", regex: /(?:#{1,3}.*?(?:NEXT STEPS|SECTION 7).*?\n)([\s\S]*?)$/i },
-    // Legacy format fallbacks
-    { key: "brand", label: "Brand Plan", emoji: "🟢", regex: /(?:#{1,3}.*?STARTER PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?PRO PACKAGE|$)/i },
-    { key: "build", label: "Build Plan", emoji: "🔵", regex: /(?:#{1,3}.*?PRO PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?ENTERPRISE PACKAGE|$)/i },
-    { key: "yield", label: "Yield Plan", emoji: "🟣", regex: /(?:#{1,3}.*?ENTERPRISE PACKAGE.*?\n)([\s\S]*?)(?=\n#{1,3}|\n.*?MONETIZATION MAP|$)/i },
   ];
   for (const p of patterns) {
-    // Skip legacy patterns if we already found new-format sections
-    if (["brand", "build", "yield"].includes(p.key) && sections.some(s => ["brand", "build", "yield"].includes(s.key))) continue;
     const match = fullContent.match(p.regex);
-    if (match?.[1]?.trim()) {
-      sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: match[1].trim() });
-    }
+    if (match?.[1]?.trim()) sections.push({ key: p.key, label: p.label, emoji: p.emoji, content: match[1].trim() });
   }
   return sections;
 }
 
-interface Book {
-  id: string;
-  title: string;
-  genre?: string | null;
-}
+interface Book { id: string; title: string; genre?: string | null; }
 
 interface Props {
   book: Book;
@@ -65,54 +50,9 @@ interface Props {
   onNavigateTab: (tab: string) => void;
 }
 
-// Top recommendations — sequenced by the ABBY Framework build order
-// Phase A (Branding & Marketing) → Phase B (Digital Products) → Build Authority → Yield Revenue
-interface Recommendation {
-  name: string;
-  nodeId: string;
-  category: "build" | "bridge" | "yield";
-  revenue: string;
-  requiredTier: SubscriptionTier;
-  sequence: number; // lower = do first
-}
-
-// Maps recommendation nodeId to actual author_nodes.node_id
-const REC_TO_AUTHOR_NODE: Record<string, string> = {
-  "website": "BP-04",
-  "lead-magnets": "BP-02",
-  "email-marketing": "BP-01",
-  "social-media": "BP-03",
-  "workbooks": "BP-06",
-  "home-study": "BP-07",
-  "courses": "BA-10",
-  "audiobooks": "BP-09",
-  "coaching-1on1": "YR-19",
-};
-
-type ProductStatus = "not-started" | "in-progress" | "completed";
-
-function getRecommendationsFromPlan(planContent: string | null): Recommendation[] {
-  return [
-    { name: "Author Website & Microsite", nodeId: "website", category: "build", revenue: "Your branding foundation — start here", requiredTier: "brand", sequence: 1 },
-    { name: "Lead Magnet & Email Opt-in", nodeId: "lead-magnets", category: "build", revenue: "Start building your audience list", requiredTier: "brand", sequence: 2 },
-    { name: "Email Marketing Flows", nodeId: "email-marketing", category: "build", revenue: "Nurture readers into buyers", requiredTier: "brand", sequence: 3 },
-    { name: "Social Media Calendar", nodeId: "social-media", category: "build", revenue: "90-day content plan for visibility", requiredTier: "brand", sequence: 4 },
-    { name: "Quick-Start Workbook", nodeId: "workbooks", category: "build", revenue: "Potentially Generating: $270 - $1,500/mo", requiredTier: "brand", sequence: 5 },
-    { name: "Home Study Course", nodeId: "home-study", category: "build", revenue: "Potentially Generating: $400 - $2,000/mo", requiredTier: "brand", sequence: 6 },
-    { name: "Online Course", nodeId: "courses", category: "bridge", revenue: "Potentially Generating: $500 - $3,000/mo", requiredTier: "build", sequence: 7 },
-    { name: "Audiobook", nodeId: "audiobooks", category: "bridge", revenue: "Potentially Generating: $300 - $1,500/mo", requiredTier: "build", sequence: 8 },
-    { name: "1-on-1 Coaching Program", nodeId: "coaching-1on1", category: "yield", revenue: "Potentially Generating: $1,000 - $5,000/mo", requiredTier: "yield", sequence: 9 },
-  ];
-}
-
-const categoryBadge: Record<string, { label: string; className: string }> = {
-  build: { label: "B·Brand", className: "bg-emerald-100 text-emerald-700" },
-  bridge: { label: "B·Build", className: "bg-violet-100 text-violet-700" },
-  yield: { label: "Y·Yield", className: "bg-sky-100 text-sky-700" },
-};
-
 export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateTab }: Props) {
   const navigate = useNavigate();
+  const { user, isAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const showStartBanner = searchParams.get("from") === "start-building";
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -122,44 +62,37 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const [showManuscriptUpload, setShowManuscriptUpload] = useState(false);
   const [planContent, setPlanContent] = useState<string | null>(null);
   const [planSections, setPlanSections] = useState<PlanSection[]>([]);
+  const [snapshotOpen, setSnapshotOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const [dataReady, setDataReady] = useState(false);
-  const [authorId, setAuthorId] = useState<string>("");
-  const [productStatuses, setProductStatuses] = useState<Record<string, ProductStatus>>({});
   const { toast } = useToast();
-  const { plan, completedAssets } = useAbbyPlan(book.id);
+  const { plan } = useAbbyPlan(book.id);
   const { data: marketData, loading: marketLoading } = useMarketResearch(book.id, book.title, book.genre || undefined);
+  const { gating } = useNodeGating();
+  const openNodeIds = new Set(gating.filter((r) => r.is_open).map((r) => r.node_id));
+  const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
+  const progress = useBookNodeProgress(effectiveTier, openNodeIds);
 
   const isAnalyzed = hasConsultation || planSections.length > 0 || !!plan;
-  const recommendations = getRecommendationsFromPlan(planContent);
-  const builtCount = completedAssets.length;
-
 
   useEffect(() => {
     async function checkData() {
-      // Try shared backend session first, fall back to cloud session
       const { data: { session: sharedSession } } = await sharedSupabase.auth.getSession();
       const { data: { session: cloudSession } } = await supabase.auth.getSession();
       const session = sharedSession || cloudSession;
       const token = session?.access_token;
       const userId = session?.user?.id;
       if (!userId) { setDataReady(true); return; }
-      setAuthorId(userId);
 
       try {
         const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
           body: JSON.stringify({ action: "count", book_id: book.id }),
         });
         const result = await resp.json();
         setHasConsultation((result.count ?? 0) > 0);
-      } catch (error) {
-        setHasConsultation(false);
-      }
+      } catch { setHasConsultation(false); }
 
       const { data: assets } = await supabase
         .from("generated_assets")
@@ -175,10 +108,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       try {
         const planResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
           body: JSON.stringify({ action: "get-plan", bookId: book.id }),
         });
         if (planResp.ok) {
@@ -188,62 +118,14 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             setPlanSections(extractSections(planResult.content));
           }
         }
-      } catch (error) {
-        console.error("Failed to fetch business plan");
-      }
-
-      // Single source of truth: read product statuses from author_nodes
-      const statuses: Record<string, ProductStatus> = {};
-
-      try {
-        // Get author_profiles.id for this user
-        const { data: authorProfile } = await supabase
-          .from("author_profiles")
-          .select("id, author_slug")
-          .eq("user_id", userId)
-          .maybeSingle();
-
-        if (authorProfile?.id) {
-          const { data: nodes } = await supabase
-            .from("author_nodes")
-            .select("node_id, status")
-            .eq("author_id", authorProfile.id);
-
-          if (nodes) {
-            for (const node of nodes) {
-              // Find the recommendation nodeId for this author_nodes.node_id
-              const recNodeId = Object.entries(REC_TO_AUTHOR_NODE).find(
-                ([, authorNodeId]) => authorNodeId === node.node_id
-              )?.[0];
-              if (!recNodeId) continue;
-
-              if (node.status === "live" || node.status === "published_pending_ghl") {
-                statuses[recNodeId] = "completed";
-              } else if (node.status === "content_ready" || node.status === "draft") {
-                if (!statuses[recNodeId]) statuses[recNodeId] = "in-progress";
-              }
-            }
-          }
-
-          // Also mark website as completed if author has a slug (live profile page)
-          if (authorProfile.author_slug && !statuses["website"]) {
-            statuses["website"] = "completed";
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch author_nodes statuses:", error);
-      }
-
-      setProductStatuses(statuses);
+      } catch { /* noop */ }
 
       setDataReady(true);
     }
     checkData();
   }, [book.id]);
 
-  if (!dataReady) {
-    return <BookHubSkeleton />;
-  }
+  if (!dataReady || progress.loading) return <BookHubSkeleton />;
 
   const handleDownloadPlan = async () => {
     if (!planContent) return;
@@ -263,305 +145,211 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Calibri',sans-serif;color:#1a1a1a;line-height:1.6;padding:40px;max-width:800px;margin:0 auto}h1{font-size:26px;color:#B8860B;border-bottom:3px solid #B8860B;padding-bottom:12px}h2{font-size:20px;color:#333;margin-top:28px}h3{font-size:16px;color:#555}p{font-size:13px}ul,ol{font-size:13px}li{margin-bottom:4px}strong{color:#222}</style></head><body>${html}</body></html>`;
       printExportHtml(fullHtml, `ABBY Business Plan - ${book.title}`);
       toast({ title: "Downloaded!", description: "Business plan saved as .docx" });
-    } catch (error) {
-      toast({ title: "Download failed", variant: "destructive" });
-    }
+    } catch { toast({ title: "Download failed", variant: "destructive" }); }
     setDownloading(false);
   };
 
-  const canBuildProduct = (requiredTier: SubscriptionTier) => hasTierAccess(tier, requiredTier);
+  const handleJumpTab = (tab: string) => onNavigateTab(tab);
 
-  // Render the snapshot content based on analysis state + tier
-  const renderSnapshotContent = () => {
-    // STATE A: Not analyzed
-    if (!isAnalyzed) {
-      return (
-        <>
-          <p className="text-sm text-muted-foreground leading-relaxed">
-            I'll analyze <strong>"{book.title}"</strong> and map your expertise to up to 28 revenue streams — from courses and coaching to speaking and retreats. The analysis is completely free and takes about 5 minutes.
-          </p>
-          <div className="flex items-center gap-2 mt-3 text-xs">
-            <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-            {hasManuscript ? (
-              <span className="text-muted-foreground">
-                ✅ Manuscript loaded — {Math.round(manuscriptChars / 1000)}k characters
-                <button onClick={() => setShowManuscriptUpload(!showManuscriptUpload)} className="ml-2 text-secondary hover:underline">
-                  {showManuscriptUpload ? "Hide" : "Replace"}
-                </button>
-              </span>
-            ) : (
-              <button onClick={() => setShowManuscriptUpload(!showManuscriptUpload)} className="text-secondary hover:underline flex items-center gap-1">
-                <Upload className="h-3 w-3" />
-                Upload manuscript for deeper analysis
-              </button>
-            )}
-          </div>
-          <div className="mt-4">
-            <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onConsultAbby}>
-              <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-              Analyze with Abby — Free
-            </Button>
-          </div>
-        </>
-      );
-    }
+  const accent = ACCENT_CLASSES.brand; // for the top-3 list
 
-    // Analyzed states — show plan tabs if available, then tier-specific content below
+  // STATE A: Not analyzed → keep the old "analyze me" call to action
+  if (!isAnalyzed) {
     return (
-      <>
-        {/* Tier-specific intro text */}
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          {tier === "free" && (
-            <>I've analyzed <strong>"{book.title}"</strong> and mapped revenue streams with projected potential. Here's your top 3 recommendations:</>
-          )}
-          {tier === "brand" && (
-            <>Your plan for <strong>"{book.title}"</strong> is ready. On your Starter plan, you can build 3 products right now. Here's what I recommend starting with:</>
-          )}
-          {tier === "build" && (
-            <>Your plan for <strong>"{book.title}"</strong> is ready with projected revenue potential. On Pro, you have access to 18 builders (Brand + Build). Let's make it happen!</>
-          )}
-          {tier === "yield" && (
-            <>Your plan for <strong>"{book.title}"</strong> is ready. All 28 builders are unlocked on your Enterprise plan — let's build your author empire!</>
-          )}
-        </p>
-
-        {/* Plan section content */}
-        {planSections.length === 1 ? (
-          <div className="mt-3 rounded-lg bg-muted/30 p-4 max-h-[300px] overflow-y-auto text-sm">
-            <MarkdownRenderer content={planSections[0].content} />
-          </div>
-        ) : planSections.length > 1 ? (
-          <Tabs defaultValue={planSections[0]?.key} className="mt-3">
-            <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
-              {planSections.map((s) => (
-                <TabsTrigger
-                  key={s.key}
-                  value={s.key}
-                  className="text-[11px] px-3 py-1.5 data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary data-[state=active]:shadow-sm rounded-full border border-transparent data-[state=active]:border-secondary/30"
-                >
-                  {s.emoji} {s.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-            {planSections.map((s) => (
-              <TabsContent key={s.key} value={s.key} className="mt-3">
-                <div className="rounded-lg bg-muted/30 p-4 max-h-[300px] overflow-y-auto text-sm">
-                  <MarkdownRenderer content={s.content} />
-                </div>
-              </TabsContent>
-            ))}
-          </Tabs>
-        ) : null}
-
-        {/* Recommendations cards — sequenced by build order */}
-        <div className="mt-4">
-          <h4 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1.5">
-            <ArrowRight className="h-3 w-3" /> Your recommended build sequence
-          </h4>
-          <div className="space-y-2">
-            {recommendations.map((rec, i) => {
-              const badge = categoryBadge[rec.category];
-              const canAccess = canBuildProduct(rec.requiredTier);
-              const status = productStatuses[rec.nodeId] || "not-started";
-              const isCompleted = status === "completed";
-              const isInProgress = status === "in-progress";
-              return (
-                <div key={i} className={`flex items-center gap-3 rounded-lg border p-3 ${
-                  isCompleted ? "border-emerald-300 bg-emerald-50/50" : isInProgress ? "border-amber-300 bg-amber-50/30" : "border-border bg-card"
-                }`}>
-                  <span className={`shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    isCompleted ? "bg-emerald-500 text-white" : isInProgress ? "bg-amber-500 text-white" : "bg-muted text-muted-foreground"
-                  }`}>
-                    {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : rec.sequence}
+      <div className="space-y-6">
+        <motion.div
+          className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 p-6"
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0 text-xl">👩‍💼</div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-heading font-bold text-base">Abby's Business Snapshot</h3>
+                <span className="text-[9px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 rounded-full px-2 py-0.5">AI Advisor</span>
+              </div>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                I'll analyze <strong>"{book.title}"</strong> and map your expertise to up to 28 revenue streams — from courses and coaching to speaking and retreats. The analysis is free and takes ~5 minutes.
+              </p>
+              <div className="flex items-center gap-2 mt-3 text-xs">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                {hasManuscript ? (
+                  <span className="text-muted-foreground">
+                    ✅ Manuscript loaded — {Math.round(manuscriptChars / 1000)}k characters
+                    <button onClick={() => setShowManuscriptUpload(!showManuscriptUpload)} className="ml-2 text-secondary hover:underline">
+                      {showManuscriptUpload ? "Hide" : "Replace"}
+                    </button>
                   </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium truncate">{rec.name}</span>
-                      <span className={`text-[10px] font-medium rounded-full px-2 py-0.5 ${badge.className}`}>{badge.label}</span>
-                      {isCompleted && (
-                        <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-emerald-100 text-emerald-700">Completed</span>
-                      )}
-                      {isInProgress && (
-                        <span className="text-[10px] font-semibold rounded-full px-2 py-0.5 bg-amber-100 text-amber-700">In Progress</span>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground">{rec.revenue}</span>
-                  </div>
-                  {canAccess ? (
-                    <Button size="sm" variant="outline" className={`text-xs h-7 gap-1 ${
-                      isCompleted ? "text-emerald-700 border-emerald-300 hover:bg-emerald-50" :
-                      isInProgress ? "text-amber-700 border-amber-300 hover:bg-amber-50" :
-                      "text-teal-700 border-teal-300 hover:bg-teal-50"
-                    }`} onClick={() => {
-                      const titleParam = book.title ? `&bookTitle=${encodeURIComponent(book.title)}` : "";
-                      const studioPath = getStudioPath(rec.nodeId, book.id, titleParam);
-                      if (studioPath) {
-                        navigate(studioPath);
-                      } else {
-                        onNavigateTab("revenue-streams");
-                      }
-                    }}>
-                      {isCompleted ? <>View <ArrowRight className="h-3 w-3" /></> :
-                       isInProgress ? <>Continue <ArrowRight className="h-3 w-3" /></> :
-                       <>Build Now <ArrowRight className="h-3 w-3" /></>}
-                    </Button>
-                  ) : (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <Lock className="h-3 w-3" />
-                      {rec.requiredTier === "build" ? "Build Package" : rec.requiredTier === "yield" ? "Yield Package" : "Brand Package"}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Tier-specific CTA below recommendations */}
-        {tier === "free" && (
-          <div className="mt-4 rounded-xl border-2 border-secondary/30 bg-secondary/5 p-4">
-            <p className="text-sm font-medium mb-3">Ready to start building? Your plan is ready — unlock the AI builders to create these products automatically.</p>
-            <div className="flex flex-wrap gap-2">
-              <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg border-2 border-border bg-card p-3 text-center hover:border-muted-foreground/30 transition-colors">
-                <div className="text-xs font-bold">Brand Package</div>
-                <div className="text-[10px] text-muted-foreground">$49/mo · 9 builders</div>
-              </a>
-              <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg bg-secondary p-3 text-center text-secondary-foreground relative">
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">Most Popular</span>
-                <div className="text-xs font-bold">Build Package</div>
-                <div className="text-[10px] text-secondary-foreground/80">$99/mo · 18 builders</div>
-              </a>
-              <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg p-3 text-center text-white" style={{ background: "#1B2A4A" }}>
-                <div className="text-xs font-bold">Yield Package</div>
-                <div className="text-[10px] text-white/70">$249/mo · all 28</div>
-              </a>
+                ) : (
+                  <button onClick={() => setShowManuscriptUpload(!showManuscriptUpload)} className="text-secondary hover:underline flex items-center gap-1">
+                    <Upload className="h-3 w-3" /> Upload manuscript for deeper analysis
+                  </button>
+                )}
+              </div>
+              <Button size="sm" className="mt-4 bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onConsultAbby}>
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Analyze with Abby — Free
+              </Button>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-2">14-day money-back guarantee · No questions asked</p>
           </div>
-        )}
-
-        {tier === "brand" && builtCount >= 2 && (
-          <div className="mt-4 rounded-lg bg-violet-50 border border-violet-200 p-3">
-            <p className="text-sm text-violet-800">
-              <strong>Ready to scale?</strong> You've built {builtCount} Brand products. Upgrade to Build Package ($99/mo) to unlock courses, coaching, webinars, and more.{" "}
-              <a href="/dashboard?section=build-business" className="font-semibold underline">Upgrade to Build →</a>
-            </p>
-          </div>
-        )}
-
-        {tier === "build" && (
-          <div className="mt-4 rounded-lg border border-secondary/30 bg-secondary/5 p-3">
-            <p className="text-sm text-foreground">
-              <strong>Ready for premium services?</strong> Yield Package ($249/mo) unlocks retreats, certification, masterminds, corporate training, and a 1-on-1 strategy session with Pauline Teo.{" "}
-              <a href="/dashboard?section=build-business" className="font-semibold text-secondary underline">Upgrade to Yield →</a>
-            </p>
-          </div>
-        )}
-
-        {tier === "yield" && (
-          <div className="mt-4 rounded-lg bg-emerald-50 border border-emerald-200 p-3">
-            <p className="text-sm text-emerald-800">
-              <CheckCircle2 className="h-4 w-4 inline mr-1" />
-              You have full access to everything. Start building to reach your revenue potential. Every product you create appears on your website automatically.
-            </p>
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div className="flex items-center gap-2 mt-3 text-xs">
-          <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-          {hasManuscript ? (
-            <span className="text-muted-foreground">
-              ✅ Manuscript loaded — {Math.round(manuscriptChars / 1000)}k characters
-              <button onClick={() => setShowManuscriptUpload(!showManuscriptUpload)} className="ml-2 text-secondary hover:underline">
-                {showManuscriptUpload ? "Hide" : "Replace"}
-              </button>
-            </span>
-          ) : (
-            <button onClick={() => setShowManuscriptUpload(!showManuscriptUpload)} className="text-secondary hover:underline flex items-center gap-1">
-              <Upload className="h-3 w-3" />
-              Upload manuscript for Abby to analyze
-            </button>
-          )}
-        </div>
-
-        <div className="flex flex-wrap gap-2 mt-4">
-          <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onConsultAbby}>
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-            {planSections.length > 0 ? "Refine Plan with Abby" : "Continue Analysis with Abby"}
-          </Button>
-          {planSections.length > 0 && (
-            <Button size="sm" variant="outline" className="gap-1.5" onClick={handleDownloadPlan} disabled={downloading}>
-              {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-              Download .docx
-            </Button>
-          )}
-        </div>
-      </>
+        </motion.div>
+        {showManuscriptUpload && <ManuscriptUpload bookId={book.id} bookTitle={book.title} />}
+      </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6">
-      {/* Contextual "Start Here" banner — only when arriving via Start Building button */}
       {showStartBanner && !bannerDismissed && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           className="relative rounded-xl border-2 border-secondary/40 bg-secondary/10 p-4 pr-10"
         >
           <button
-            onClick={() => {
-              setBannerDismissed(true);
-              searchParams.delete("from");
-              setSearchParams(searchParams, { replace: true });
-            }}
-            className="absolute top-3 right-3 text-secondary/60 hover:text-secondary transition-colors"
+            onClick={() => { setBannerDismissed(true); searchParams.delete("from"); setSearchParams(searchParams, { replace: true }); }}
+            className="absolute top-3 right-3 text-secondary/60 hover:text-secondary"
             aria-label="Dismiss"
           >
             <X className="h-4 w-4" />
           </button>
           <p className="text-sm font-medium text-foreground leading-relaxed">
             <Sparkles className="h-4 w-4 inline mr-1.5 text-secondary" />
-            <strong>Abby recommends starting here: Website</strong> — your digital home base. It takes ~1 hour and unlocks everything else. Build it first.
+            <strong>Abby recommends starting here.</strong> Your next step is highlighted below — one click away.
           </p>
         </motion.div>
       )}
-      {/* Abby's Business Snapshot */}
-      <motion.div
-        className="rounded-2xl border-2 border-secondary/30 bg-gradient-to-r from-secondary/5 via-secondary/10 to-secondary/5 p-6"
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 rounded-full bg-secondary/15 flex items-center justify-center flex-shrink-0 text-xl">
-            👩‍💼
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="font-heading font-bold text-base">Abby's Business Snapshot</h3>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 rounded-full px-2 py-0.5">
-                AI Advisor
-              </span>
-            </div>
-            {renderSnapshotContent()}
-          </div>
-        </div>
-      </motion.div>
 
-      {/* Market Snapshot — shown after analysis */}
-      {isAnalyzed && (marketData || marketLoading) && (
-        <MarketSnapshot data={marketData!} loading={marketLoading} />
+      {/* 1. Hero strip with progress and continue CTA */}
+      <BookHubHeroStrip
+        bookId={book.id}
+        bookTitle={book.title}
+        progress={progress}
+        onJumpTab={handleJumpTab}
+      />
+
+      {/* 2. Abby's snapshot — collapsible */}
+      <div className="rounded-2xl border border-secondary/20 bg-card overflow-hidden">
+        <button
+          onClick={() => setSnapshotOpen((v) => !v)}
+          className="w-full flex items-center gap-3 p-4 hover:bg-secondary/5 transition"
+        >
+          <div className="w-9 h-9 rounded-full bg-secondary/15 flex items-center justify-center text-base shrink-0">👩‍💼</div>
+          <div className="flex-1 text-left min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-heading font-bold text-sm">Abby's Business Snapshot</span>
+              <span className="text-[9px] font-bold uppercase tracking-widest text-secondary bg-secondary/10 rounded-full px-2 py-0.5">AI Advisor</span>
+            </div>
+            <p className="text-xs text-muted-foreground truncate">
+              Plan ready for <strong>"{book.title}"</strong> · {planSections.length} section{planSections.length === 1 ? "" : "s"} · click to view
+            </p>
+          </div>
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${snapshotOpen ? "rotate-180" : ""}`} />
+        </button>
+
+        {snapshotOpen && (
+          <div className="border-t border-border p-4 space-y-3">
+            {planSections.length === 1 ? (
+              <div className="rounded-lg bg-muted/30 p-4 max-h-[320px] overflow-y-auto text-sm">
+                <MarkdownRenderer content={planSections[0].content} />
+              </div>
+            ) : planSections.length > 1 ? (
+              <Tabs defaultValue={planSections[0]?.key}>
+                <TabsList className="h-auto flex-wrap gap-1 bg-transparent p-0">
+                  {planSections.map((s) => (
+                    <TabsTrigger
+                      key={s.key} value={s.key}
+                      className="text-[11px] px-3 py-1.5 data-[state=active]:bg-secondary/15 data-[state=active]:text-secondary rounded-full border border-transparent data-[state=active]:border-secondary/30"
+                    >
+                      {s.emoji} {s.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                {planSections.map((s) => (
+                  <TabsContent key={s.key} value={s.key} className="mt-3">
+                    <div className="rounded-lg bg-muted/30 p-4 max-h-[320px] overflow-y-auto text-sm">
+                      <MarkdownRenderer content={s.content} />
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            ) : null}
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-secondary/90" onClick={onConsultAbby}>
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                {planSections.length > 0 ? "Refine Plan with Abby" : "Continue Analysis"}
+              </Button>
+              {planSections.length > 0 && (
+                <Button size="sm" variant="outline" className="gap-1.5" onClick={handleDownloadPlan} disabled={downloading}>
+                  {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  Download .docx
+                </Button>
+              )}
+              <button
+                onClick={() => setShowManuscriptUpload(!showManuscriptUpload)}
+                className="ml-auto text-xs text-secondary hover:underline flex items-center gap-1"
+              >
+                <Upload className="h-3 w-3" />
+                {hasManuscript ? `Manuscript loaded (${Math.round(manuscriptChars / 1000)}k chars) — Replace` : "Upload manuscript"}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Your Next 3 Steps */}
+      {progress.topNextSteps.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/70 flex items-center gap-1.5">
+              <ArrowRight className="h-3.5 w-3.5" /> Your Next {progress.topNextSteps.length} Step{progress.topNextSteps.length === 1 ? "" : "s"}
+            </h2>
+            <button onClick={() => onNavigateTab("revenue-streams")} className="text-xs text-secondary hover:underline font-semibold">
+              See full journey →
+            </button>
+          </div>
+          <JourneyStepper
+            nodes={progress.topNextSteps}
+            bookId={book.id}
+            bookTitle={book.title}
+            highlightNodeId={progress.topNextSteps[0]?.id || null}
+            accent={accent}
+            onUpgrade={() => navigate("/dashboard?section=build-business")}
+            onNavigateSection={(s) => navigate(`/dashboard?section=${s}&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
+          />
+        </div>
       )}
 
-      {/* Expandable manuscript upload */}
+      {/* 4. Tier upgrade CTA — free only */}
+      {tier === "free" && (
+        <div className="rounded-2xl border-2 border-secondary/30 bg-secondary/5 p-5">
+          <p className="text-sm font-medium mb-3">Ready to start building? Unlock the AI builders to create these products automatically.</p>
+          <div className="flex flex-wrap gap-2">
+            <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg border-2 border-border bg-card p-3 text-center hover:border-muted-foreground/30 transition">
+              <div className="text-xs font-bold">Brand Package</div>
+              <div className="text-[10px] text-muted-foreground">$49/mo · 9 builders</div>
+            </a>
+            <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg bg-secondary p-3 text-center text-secondary-foreground relative">
+              <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold uppercase bg-secondary text-secondary-foreground rounded-full px-2 py-0.5">Most Popular</span>
+              <div className="text-xs font-bold">Build Package</div>
+              <div className="text-[10px] text-secondary-foreground/80">$99/mo · 18 builders</div>
+            </a>
+            <a href="/dashboard?section=build-business" className="flex-1 min-w-[120px] rounded-lg p-3 text-center text-white" style={{ background: "#1B2A4A" }}>
+              <div className="text-xs font-bold">Yield Package</div>
+              <div className="text-[10px] text-white/70">$249/mo · all 28</div>
+            </a>
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-2">14-day money-back guarantee · No questions asked</p>
+        </div>
+      )}
+
+      {/* 5. Market snapshot — keep, but lower */}
+      {(marketData || marketLoading) && <MarketSnapshot data={marketData!} loading={marketLoading} />}
+
       {showManuscriptUpload && (
-        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}>
+        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
           <ManuscriptUpload bookId={book.id} bookTitle={book.title} />
         </motion.div>
       )}
-
     </div>
   );
 }
-
