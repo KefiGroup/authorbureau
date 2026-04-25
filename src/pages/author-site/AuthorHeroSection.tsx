@@ -134,7 +134,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
         </div>
 
         {/* Stats Strip */}
-        {(totalBooks > 0 || totalProducts > 0) && (
+        {(totalBooks > 0 || totalProducts > 0 || testimonialsCount > 0) && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
             className="mt-12 flex flex-wrap justify-center md:justify-start gap-6 md:gap-10 pt-8"
             style={{ borderTop: `1px solid rgba(255,255,255,0.1)` }}>
@@ -148,6 +148,12 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               <div className="text-center md:text-left">
                 <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{totalProducts}</span>
                 <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Products Available</span>
+              </div>
+            )}
+            {testimonialsCount > 0 && (
+              <div className="text-center md:text-left">
+                <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{testimonialsCount}</span>
+                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Reader Testimonials</span>
               </div>
             )}
           </motion.div>
