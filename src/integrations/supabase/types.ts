@@ -584,6 +584,7 @@ export type Database = {
       author_nodes: {
         Row: {
           activated_at: string | null
+          archetype: Database["public"]["Enums"]["node_archetype"] | null
           author_id: string
           book_id: string | null
           checkout_url: string | null
@@ -611,6 +612,7 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
+          archetype?: Database["public"]["Enums"]["node_archetype"] | null
           author_id: string
           book_id?: string | null
           checkout_url?: string | null
@@ -638,6 +640,7 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
+          archetype?: Database["public"]["Enums"]["node_archetype"] | null
           author_id?: string
           book_id?: string | null
           checkout_url?: string | null
@@ -5784,11 +5787,56 @@ export type Database = {
         }
         Relationships: []
       }
+      link_audit_v: {
+        Row: {
+          archetype: Database["public"]["Enums"]["node_archetype"] | null
+          author_id: string | null
+          author_node_id: string | null
+          author_slug: string | null
+          delivery_type: string | null
+          delivery_url: string | null
+          expected_microsite_url: string | null
+          link_status: string | null
+          node_id: string | null
+          node_name: string | null
+          pen_name: string | null
+          price_usd: number | null
+          status: string | null
+          stripe_price_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       check_rate_limit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
+      }
+      compute_node_microsite_url: {
+        Args: { p_author_id: string; p_node_id: string }
+        Returns: string
       }
       delete_email: {
         Args: { message_id: number; queue_name: string }
@@ -5844,6 +5892,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      node_archetype: "A" | "B" | "C" | "D"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -5972,6 +6021,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      node_archetype: ["A", "B", "C", "D"],
     },
   },
 } as const
