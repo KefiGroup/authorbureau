@@ -58,17 +58,13 @@ export default function AuthorContactModal({
         },
       });
 
-      // 2. Also save to author_subscribers for email list
-      await supabase.from("author_subscribers").upsert(
-        {
-          author_id: authorId,
-          email: form.email.toLowerCase().trim(),
-          name: form.name || null,
-          source: "contact_form",
-          status: "active",
-        },
-        { onConflict: "author_id,email" }
-      );
+      // 2. Save to mailing list + auto-enroll into matching sequences
+      await autoEnrollSubscriber({
+        email: form.email.toLowerCase().trim(),
+        name: form.name || null,
+        userId: authorId,
+        source: "contact_form",
+      });
 
       setSent(true);
     } catch (err) {
