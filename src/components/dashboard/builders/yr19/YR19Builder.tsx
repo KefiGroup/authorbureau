@@ -16,8 +16,8 @@ import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
 
-const GEN_MSGS = ["Analysing your book's coaching potential...", "Designing your coaching packages...", "Creating your discovery call script...", "Outlining your client agreement...", "Finalising your coaching practice..."];
-const ACT_MSGS = ["Setting up your coaching calendar...", "Creating your payment pages...", "Generating your booking links...", "Almost ready..."];
+const GEN_MSGS = ["Designing your coaching practice..."];
+const ACT_MSGS = ["Publishing your coaching practice..."];
 
 interface Props { authorId: string | null; bookId?: string | null; }
 

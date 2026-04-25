@@ -18,8 +18,8 @@ import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { normaliseGroupCoaching, isLegacyGroupCoaching } from "./normalise";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
-const GEN_MSGS = ["Designing your group coaching programme...", "Creating your 8-week curriculum...", "Writing your sales page...", "Finalising your programme blueprint..."];
-const ACT_MSGS = ["Setting up your group sessions...", "Creating your payment page...", "Your programme is almost ready..."];
+const GEN_MSGS = ["Designing your group coaching programme..."];
+const ACT_MSGS = ["Publishing your group coaching programme..."];
 
 interface Props { authorId: string | null; bookId?: string | null; }
 
