@@ -117,23 +117,27 @@ serve(async (req) => {
       console.log("[microsite-action] ⏭ Skipping GHL contact for quiz completion to avoid automation email");
     }
 
-    // ─── Author Subscribers (existing) ───
-    console.log("[microsite-action] ▶ Upserting author_subscribers for", cleanEmail);
+    // ─── Author Subscribers + Sequence Auto-Enroll ───
+    console.log("[microsite-action] ▶ enroll-subscriber for", cleanEmail);
     try {
-      await supabaseAdmin.from("author_subscribers").upsert(
-        {
-          author_id: authorUserId || author_id,
+      await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/enroll-subscriber`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
           email: cleanEmail,
           name: fullName !== email ? fullName : null,
-          source: "microsite",
+          user_id: authorUserId || null,
+          author_profile_id: !authorUserId ? author_id : null,
+          node_id: node_id,
+          source: 'microsite',
           source_detail: `${node_id}:${action_type}`,
-          status: "active",
-          subscribed_at: new Date().toISOString(),
-        },
-        { onConflict: "author_id,email", ignoreDuplicates: false }
-      );
+        }),
+      });
     } catch (subErr) {
-      console.error("Subscriber upsert failed:", subErr);
+      console.error("enroll-subscriber failed:", subErr);
     }
 
     // ─── LEVEL 1: Author-level CRM ───
