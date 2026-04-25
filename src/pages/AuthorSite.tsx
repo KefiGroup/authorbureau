@@ -256,7 +256,7 @@ export default function AuthorSite() {
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} />
-      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts[0]} theme={theme} v={v} />
+      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorWorkWithMe
         authorId={author.id}
         authorSlug={authorSlug!}
