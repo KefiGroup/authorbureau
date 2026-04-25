@@ -56,7 +56,7 @@ function getHubLabel(nodeId: string, bookId: string | null, from: string | null)
     if (nodeId.startsWith("BA-")) return "Book Hub · Build";
     return "Book Hub · Yield";
   }
-  return "My Books";
+  return "Dashboard";
 }
 
 export default function NodeBuilder() {
