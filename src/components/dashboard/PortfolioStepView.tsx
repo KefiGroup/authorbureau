@@ -3,14 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken } from "@/lib/get-active-token";
-import { ABBY_CATEGORIES, type AbbyCategory } from "@/config/abbyFrameworkConfig";
+import { ABBY_CATEGORIES, getStudioPath, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { useNodeGating } from "@/hooks/useNodeGating";
-import { useBookNodeProgress } from "@/hooks/useBookNodeProgress";
+import { useBookNodeProgress, type NodeWithProgress, type NodeStatus } from "@/hooks/useBookNodeProgress";
 import { ACCENT_CLASSES, categoryToAccent } from "@/components/dashboard/book-hub/categoryAccent";
 import NextStepCard from "@/components/dashboard/book-hub/NextStepCard";
-import JourneyStepper from "@/components/dashboard/book-hub/JourneyStepper";
 import CategoryProgressDots from "@/components/dashboard/book-hub/CategoryProgressDots";
+import SmartProductCard, { type ProductCardState } from "@/components/dashboard/SmartProductCard";
 
 interface BookSummary { id: string; title: string; }
 
