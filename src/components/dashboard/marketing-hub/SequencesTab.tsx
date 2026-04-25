@@ -268,7 +268,8 @@ export default function SequencesTab() {
             <span className="flex items-center gap-1"><MousePointerClick className="h-3 w-3" /> {(Number(f.click_rate) * 100).toFixed(0)}% click</span>
           </div>
         </div>
-      ))}
+        );
+      })}
       </div>
     </div>
   );
