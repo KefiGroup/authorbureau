@@ -3,25 +3,51 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Sparkles, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { categoryStyles, getBuilderCategory, type BuilderCategory } from "../shared/BuilderTheme";
+import { categoryStyles, getBuilderCategory, type BuilderCategory } from "./BuilderTheme";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
-export function StepHeader({ nodeId, nodeName, step, backTo: _backTo = "/yield-revenue", category }: { nodeId: string; nodeName: string; step: number; backTo?: string; category?: BuilderCategory }) {
+/**
+ * Unified shared building blocks used by both BA-* and YR-* builders.
+ * Replaces the previous BABuilderShared.tsx and YRBuilderShared.tsx
+ * (which were 95% identical). The default `category` simply controls
+ * theming — pass "build" for BA nodes and "yield" for YR nodes.
+ */
+
+export function StepHeader({
+  nodeId,
+  nodeName,
+  step,
+  category,
+}: {
+  nodeId: string;
+  nodeName: string;
+  step: number;
+  /** @deprecated retained for backwards compatibility — back navigation lives in NodeBuilder */
+  backTo?: string;
+  category?: BuilderCategory;
+}) {
   const cat = category || getBuilderCategory(nodeId);
   const s = categoryStyles[cat];
   return (
     <>
       <div className={`border-b border-border bg-gradient-to-r ${s.headerGradient} px-4 py-3`}>
         <div className="max-w-3xl mx-auto flex items-center gap-3">
-          <div className="flex-1"><h1 className="text-lg font-semibold">{nodeName}</h1><p className="text-xs text-muted-foreground">{nodeId}</p></div>
+          <div className="flex-1">
+            <h1 className="text-lg font-semibold">{nodeName}</h1>
+            <p className="text-xs text-muted-foreground">{nodeId}</p>
+          </div>
         </div>
       </div>
       <div className="max-w-3xl mx-auto px-4 pt-6 pb-2">
         <div className="flex items-center gap-1">
           {STEPS.map((label, i) => (
             <div key={label} className="flex items-center gap-1 flex-1">
-              <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${i < step ? s.stepDone : i === step ? s.stepActiveRing : "bg-muted text-muted-foreground"}`}>
+              <div
+                className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold shrink-0 ${
+                  i < step ? s.stepDone : i === step ? s.stepActiveRing : "bg-muted text-muted-foreground"
+                }`}
+              >
                 {i < step ? <Check className="h-3.5 w-3.5" /> : i + 1}
               </div>
               <span className="text-xs text-muted-foreground hidden sm:inline truncate">{label}</span>
@@ -34,7 +60,13 @@ export function StepHeader({ nodeId, nodeName, step, backTo: _backTo = "/yield-r
   );
 }
 
-export function AbbyCard({ children, category = "yield" }: { children: React.ReactNode; category?: BuilderCategory }) {
+export function AbbyCard({
+  children,
+  category = "build",
+}: {
+  children: React.ReactNode;
+  category?: BuilderCategory;
+}) {
   const s = categoryStyles[category];
   return (
     <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}>
@@ -51,12 +83,22 @@ export function AbbyCard({ children, category = "yield" }: { children: React.Rea
   );
 }
 
-export function LoadingStep({ messages, msgIndex, category = "yield" }: { messages: string[]; msgIndex: number; category?: BuilderCategory }) {
+export function LoadingStep({
+  messages,
+  msgIndex,
+  category = "build",
+}: {
+  messages: string[];
+  msgIndex: number;
+  category?: BuilderCategory;
+}) {
   const s = categoryStyles[category];
   return (
     <AbbyCard category={category}>
       <div className="space-y-4">
-        <p className="text-muted-foreground font-medium animate-pulse">{messages[msgIndex % messages.length]}</p>
+        <p className="text-muted-foreground font-medium animate-pulse">
+          {messages[msgIndex % messages.length]}
+        </p>
         <Progress value={undefined} className={`h-2 w-full [&>div]:animate-pulse ${s.progressBar}`} />
         <p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p>
       </div>
@@ -69,11 +111,19 @@ export function PaymentLinkCard({ link, label }: { link: string; label?: string 
   return (
     <Card className="border-green-200 bg-green-50 dark:border-green-900 dark:bg-green-950/30">
       <CardContent className="pt-6">
-        {label && <p className="text-xs font-semibold text-muted-foreground mb-2">{label}</p>}
-        {!label && <p className="text-xs font-semibold text-muted-foreground mb-2">Your Payment Link</p>}
+        <p className="text-xs font-semibold text-muted-foreground mb-2">{label || "Your Payment Link"}</p>
         <div className="flex items-center gap-2">
           <code className="flex-1 text-sm bg-background p-2 rounded border truncate">{link}</code>
-          <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(link); toast.success("Copied!"); }}><Copy className="h-4 w-4" /></Button>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => {
+              navigator.clipboard.writeText(link);
+              toast.success("Copied!");
+            }}
+          >
+            <Copy className="h-4 w-4" />
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -83,23 +133,35 @@ export function PaymentLinkCard({ link, label }: { link: string; label?: string 
 export function MultiPaymentLinks({ links }: { links: { label: string; url: string }[] }) {
   return (
     <div className="space-y-3">
-      {links.filter(l => l.url).map((l, i) => <PaymentLinkCard key={i} link={l.url} label={l.label} />)}
+      {links
+        .filter((l) => l.url)
+        .map((l, i) => (
+          <PaymentLinkCard key={i} link={l.url} label={l.label} />
+        ))}
     </div>
   );
 }
 
 export function SummaryCard({ items }: { items: string[] }) {
   return (
-    <Card><CardContent className="pt-6 space-y-2">
-      {items.map((item, i) => <p key={i} className="flex items-center gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0" /> {item}</p>)}
-    </CardContent></Card>
+    <Card>
+      <CardContent className="pt-6 space-y-2">
+        {items.map((item, i) => (
+          <p key={i} className="flex items-center gap-2 text-sm">
+            <Check className="h-4 w-4 text-green-600 shrink-0" /> {item}
+          </p>
+        ))}
+      </CardContent>
+    </Card>
   );
 }
 
 export function SuccessCheckmark() {
   return (
     <div className="flex justify-center py-4">
-      <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950/50 flex items-center justify-center animate-bounce"><Check className="h-8 w-8 text-green-600" /></div>
+      <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-950/50 flex items-center justify-center animate-bounce">
+        <Check className="h-8 w-8 text-green-600" />
+      </div>
     </div>
   );
 }
@@ -107,7 +169,13 @@ export function SuccessCheckmark() {
 export function HighTicketPrice({ price, className = "" }: { price: number; className?: string }) {
   const isHighTicket = price >= 5000;
   return (
-    <span className={`font-bold ${isHighTicket ? "text-2xl sm:text-3xl text-amber-700 dark:text-amber-400" : "text-xl sm:text-2xl text-foreground"} ${className}`}>
+    <span
+      className={`font-bold ${
+        isHighTicket
+          ? "text-2xl sm:text-3xl text-amber-700 dark:text-amber-400"
+          : "text-xl sm:text-2xl text-foreground"
+      } ${className}`}
+    >
       ${price.toLocaleString()}
     </span>
   );

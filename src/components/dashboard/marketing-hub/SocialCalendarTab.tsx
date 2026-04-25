@@ -35,7 +35,7 @@ import {
   PLATFORM_LABELS,
   composerUrl,
   dayKey,
-} from "@/components/dashboard/builders/social-media/socialKitHelpers";
+} from "@/components/dashboard/builders/shared/socialKitHelpers";
 
 interface Props {
   authorId: string | null;
