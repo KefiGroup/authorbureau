@@ -82,12 +82,11 @@ export default function BuyNowButton({
       return;
     }
     try {
-      await supabase.from("author_subscribers").insert({
-        author_id: authorId,
+      await autoEnrollSubscriber({
         email: leadEmail,
+        userId: authorId,
         source: "waitlist",
-        source_detail: `node:${authorNodeId} (payments not set up)`,
-        status: "active",
+        sourceDetail: `node:${authorNodeId} (payments not set up)`,
       });
       // Best-effort nudge to author — non-blocking
       supabase.from("abby_nudges").insert({
