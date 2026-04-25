@@ -109,11 +109,12 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
     console.error("deploy-bp03-to-ghl error:", err);
     return new Response(JSON.stringify({
       success: false,
       status: "error",
-      error: err.message,
+      error: errorMessage,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

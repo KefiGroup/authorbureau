@@ -151,9 +151,10 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("deploy-bp05 error:", err.message);
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.error("deploy-bp05 error:", errorMessage);
     return new Response(
-      JSON.stringify({ success: false, status: "error", error: err.message }),
+      JSON.stringify({ success: false, status: "error", error: errorMessage }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
