@@ -423,7 +423,7 @@ export default function SmartProductCard({
           {state === "recommended" && (
             <Button
               size="sm"
-              className={`w-full text-xs border ${catTokens.ctaSolid} shadow-md`}
+              className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`}
               onClick={onBuild}
             >
               <Sparkles className="h-3 w-3 mr-1.5" /> Build This Product →
@@ -432,19 +432,24 @@ export default function SmartProductCard({
           {state === "available" && (
             <Button
               size="sm"
-              className={`w-full text-xs border ${catTokens.ctaAvailable}`}
+              className={`w-full text-xs border ${pendingTokens.ctaAvailable}`}
               onClick={onBuild}
             >
               <ArrowRight className="h-3 w-3 mr-1.5" /> Build This Product →
             </Button>
           )}
           {state === "in-progress" && (
-            <Button size="sm" className={`w-full text-xs border ${catTokens.ctaSolid} shadow-md`} onClick={onContinue}>
+            <Button size="sm" className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`} onClick={onContinue}>
               <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
             </Button>
           )}
           {state === "published" && (
-            <Button variant="outline" size="sm" className="w-full text-xs" onClick={onView}>
+            <Button
+              variant="outline"
+              size="sm"
+              className={`w-full text-xs bg-transparent ${catTokens.border} ${catTokens.iconText} hover:${catTokens.badgeBg}`}
+              onClick={onView}
+            >
               <Eye className="h-3 w-3 mr-1.5" /> View on Website →
             </Button>
           )}
