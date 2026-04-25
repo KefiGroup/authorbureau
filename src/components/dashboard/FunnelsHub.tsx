@@ -47,14 +47,23 @@ interface LiveNode {
   node_id: string;
   microsite_url: string | null;
   status: string;
+  archetype: "A" | "B" | "C" | "D" | null;
 }
 
-const FUNNEL_ELIGIBLE_NODES = ["BP-02", "BP-04", "BP-05", "BP-09"];
-const NODE_TO_FUNNEL_TYPE: Record<string, string> = {
-  "BP-02": "lead_magnet",
-  "BP-04": "opt_in",
-  "BP-05": "webinar_registration",
-  "BP-09": "sales",
+// Archetype-derived defaults. The edge function also resolves the archetype
+// from author_nodes server-side, so this is just the seed funnel_type string.
+const ARCHETYPE_TO_FUNNEL_TYPE: Record<"A" | "B" | "C" | "D", string> = {
+  A: "sales",
+  B: "opt_in",
+  C: "application",
+  D: "event",
+};
+
+const ARCHETYPE_LABEL: Record<"A" | "B" | "C" | "D", string> = {
+  A: "Sales",
+  B: "Opt-in",
+  C: "Application",
+  D: "Event",
 };
 
 export default function FunnelsHub() {
@@ -119,11 +128,12 @@ export default function FunnelsHub() {
   };
 
   const loadLiveNodes = async (aid: string) => {
+    // Every live node is funnel-eligible. The archetype tells the UI/edge
+    // function which template to use.
     const { data, error } = await supabase
       .from("author_nodes")
-      .select("node_id, microsite_url, status")
+      .select("node_id, microsite_url, status, archetype")
       .eq("author_id", aid)
-      .in("node_id", FUNNEL_ELIGIBLE_NODES)
       .eq("status", "live");
     if (error) console.error("[FunnelsHub] live nodes error:", error);
     setLiveNodes((data as LiveNode[]) || []);
@@ -134,12 +144,16 @@ export default function FunnelsHub() {
 
   const generateForNode = async (nodeId: string) => {
     if (!authorId) return;
+    const node = liveNodes.find((n) => n.node_id === nodeId);
+    const archetype = node?.archetype || "B";
+    const seedFunnelType = ARCHETYPE_TO_FUNNEL_TYPE[archetype] || "opt_in";
+
     setGeneratingNodeId(nodeId);
     const { error } = await supabase.functions.invoke("generate-funnel", {
       body: {
         author_id: authorId,
         node_id: nodeId,
-        funnel_type: NODE_TO_FUNNEL_TYPE[nodeId] || "opt_in",
+        funnel_type: seedFunnelType,
       },
     });
     setGeneratingNodeId(null);
@@ -286,7 +300,12 @@ export default function FunnelsHub() {
                       <h3 className="font-semibold truncate">{f.title}</h3>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {f.node_id && <Badge variant="secondary" className="text-xs">{NODE_NAMES[f.node_id] || f.node_id}</Badge>}
-                        <Badge variant="outline" className="text-xs">{f.funnel_type}</Badge>
+                        {(() => {
+                          const node = liveNodes.find((n) => n.node_id === f.node_id);
+                          const arch = node?.archetype;
+                          const label = arch ? ARCHETYPE_LABEL[arch] : f.funnel_type;
+                          return <Badge variant="outline" className="text-xs">{label}</Badge>;
+                        })()}
                         <Badge
                           variant={f.status === "live" ? "default" : "secondary"}
                           className={f.status === "live" ? "bg-green-600 text-xs" : "text-xs"}
