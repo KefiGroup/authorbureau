@@ -72,14 +72,30 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               {displayName}
             </motion.h1>
 
-            {/* Dynamic one-liner */}
+            {/* Dynamic one-liner — prefer the curated short bio; fall back to a
+                book/genre summary only when no bio is set. Genres are sanitized
+                so Amazon category breadcrumbs (e.g. "Kindle Store › ...") never
+                leak into the hero. */}
             <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
               className="text-lg md:text-xl mb-5" style={{ color: `${v.primaryText}D9` }}
             >
               {(() => {
+                const bio = (author.bio_short || "").trim();
+                if (bio) return bio;
                 const hasBestseller = booksWithProducts.some(b => b.badges && b.badges.length > 0);
-                const uGenres = [...new Set(booksWithProducts.map(b => b.genre).filter(Boolean))] as string[];
-                const gStr = uGenres.length > 0 ? ` in ${uGenres.join(", ")}` : "";
+                const cleanGenres = [
+                  ...new Set(
+                    booksWithProducts
+                      .map(b => b.genre)
+                      .filter(Boolean)
+                      .filter((g): g is string =>
+                        typeof g === "string" &&
+                        g.length <= 60 &&
+                        !/›|kindle|amazon/i.test(g)
+                      )
+                  ),
+                ];
+                const gStr = cleanGenres.length > 0 ? ` in ${cleanGenres.join(", ")}` : "";
                 const prefix = hasBestseller ? "a bestselling author" : "an author";
                 return totalBooks > 0
                   ? `${displayName} is ${prefix} of ${totalBooks} book${totalBooks !== 1 ? "s" : ""}${gStr}.`

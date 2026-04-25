@@ -1,4 +1,4 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, ExternalLink, Headphones, Mic, Newspaper, Handshake } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ProductCTA from "@/components/commerce/ProductCTA";
 import type { ThemeVars } from "@/pages/author-site/types";
@@ -85,7 +85,8 @@ function formatPrice(price: number | null | undefined, currency?: string | null)
   if (price == null || price <= 0) return null;
   const code = (currency || "USD").toUpperCase();
   const formatted = Number.isInteger(price) ? `${price}` : price.toFixed(2);
-  return `$${formatted} ${code}`;
+  if (code === "USD") return `$${formatted} USD`;
+  return `${code} ${formatted}`;
 }
 
 /**
@@ -137,6 +138,23 @@ export default function AuthorProductCard({
   // ProductCTA's 4-state matrix (live / coming-soon / owner-no-price / owner-no-stripe).
   const isHighTouchInquiry =
     !hasPrice && !!authorContactEmail && /^(YR-|BA-13|BA-12)/.test(node.node_id);
+
+  // INFORMATIONAL nodes — non-transactional revenue surfaces (Podcast,
+  // Media Kit, Affiliate Programme, JV/Revenue Share). They are LIVE products,
+  // just not paid via Stripe. They must NEVER show "Coming Soon" — instead
+  // route readers straight to the relevant microsite via delivery_url.
+  const INFORMATIONAL_CTAS: Record<string, { label: string; Icon: typeof ArrowRight; replacePriceLabel?: string }> = {
+    "BA-14": { label: "Listen Now",        Icon: Headphones,  replacePriceLabel: "Free to listen" },
+    "BA-15": { label: "View Media Kit",    Icon: Newspaper,   replacePriceLabel: "Press resources" },
+    "BA-16": { label: "Join Programme",    Icon: Handshake,   replacePriceLabel: "Apply to join" },
+    "BA-18": { label: "Partner With Us",   Icon: Handshake,   replacePriceLabel: "By application" },
+  };
+  const informational =
+    !hasPrice && (node.delivery_url || node.payment_link || node.third_party_url)
+      ? INFORMATIONAL_CTAS[node.node_id.substring(0, 5)]
+      : undefined;
+  const informationalHref =
+    node.delivery_url || node.payment_link || node.third_party_url || `/${authorSlug}`;
 
   return (
     <article
@@ -193,14 +211,36 @@ export default function AuthorProductCard({
             className="text-base font-semibold"
             style={{ color: v.mutedText }}
           >
-            Pricing on request
+            {informational?.replacePriceLabel || "Pricing on request"}
           </span>
         )}
       </div>
 
-      {/* CTA — unified through ProductCTA (4-state matrix) */}
+      {/* CTA — informational nodes (Podcast, Media Kit, Affiliate, JV) get a
+          direct link; high-touch services get Contact; everything else routes
+          through ProductCTA's 4-state matrix. */}
       <div className="mt-auto">
-        {isHighTouchInquiry && !isOwnerViewing ? (
+        {informational && !isOwnerViewing ? (
+          <Button
+            asChild
+            className="w-full"
+            style={{ background: v.accent, color: v.accentText }}
+          >
+            <a
+              href={informationalHref}
+              target={informationalHref.startsWith("http") ? "_blank" : undefined}
+              rel={informationalHref.startsWith("http") ? "noopener noreferrer" : undefined}
+            >
+              <informational.Icon className="mr-2 h-4 w-4" />
+              {informational.label}
+              {informationalHref.startsWith("http") ? (
+                <ExternalLink className="ml-2 h-3.5 w-3.5" />
+              ) : (
+                <ArrowRight className="ml-2 h-3.5 w-3.5" />
+              )}
+            </a>
+          </Button>
+        ) : isHighTouchInquiry && !isOwnerViewing ? (
           <Button
             asChild
             variant="outline"
