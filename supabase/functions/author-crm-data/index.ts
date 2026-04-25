@@ -288,14 +288,18 @@ Deno.serve(async (req) => {
       });
     }
 
-    // ── PIPELINE SUMMARY ──
+    // ── PIPELINE SUMMARY (archetype-aware) ──
     if (action === "pipeline-summary") {
+      const archetype = body.archetype as string | undefined; // 'A' | 'B' | 'C' | 'D' | undefined (= all)
       const summaries = await Promise.all(
         STAGES.map(async (stage) => {
-          const [countRes, top3Res] = await Promise.all([
-            sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", authorContactKey).eq("stage", stage),
-            sb.from("crm_contacts").select("id, full_name, abby_score").eq("author_id", authorContactKey).eq("stage", stage).order("abby_score", { ascending: false }).limit(3),
-          ]);
+          let countQ = sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", authorContactKey).eq("stage", stage);
+          let top3Q = sb.from("crm_contacts").select("id, full_name, abby_score, archetype, last_node_id").eq("author_id", authorContactKey).eq("stage", stage).order("abby_score", { ascending: false }).limit(3);
+          if (archetype && ['A','B','C','D'].includes(archetype)) {
+            countQ = countQ.eq("archetype", archetype);
+            top3Q = top3Q.eq("archetype", archetype);
+          }
+          const [countRes, top3Res] = await Promise.all([countQ, top3Q]);
           return {
             stage,
             count: countRes.count || 0,
@@ -303,7 +307,7 @@ Deno.serve(async (req) => {
           };
         })
       );
-      return ok({ summary: summaries });
+      return ok({ summary: summaries, archetype: archetype || null });
     }
 
     // ── ADD ──
