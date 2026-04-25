@@ -44,9 +44,9 @@ function getHubPath(nodeId: string, bookId: string | null, from: string | null):
     if (nodeId.startsWith("BA-")) return `/book-hub/${bookId}?tab=marketing-channels`;
     return `/book-hub/${bookId}?tab=authority-builders`;
   }
-  // No active book — send to My Books Hub so the user can pick one,
-  // not the legacy /brand-products etc. routes that just bounce to dashboard.
-  return "/my-books-hub";
+  // No active book — go back to dashboard rather than the legacy
+  // /brand-products etc. routes that just bounce here.
+  return "/dashboard";
 }
 
 function getHubLabel(nodeId: string, bookId: string | null, from: string | null): string {
