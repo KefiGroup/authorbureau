@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import ConnectedAccountsTab from "@/components/settings/ConnectedAccountsTab";
 import PayoutsSettings from "@/components/dashboard/PayoutsSettings";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { getActiveToken } from "@/lib/get-active-token";
 
 export default function AccountSettings() {
   const [searchParams] = useSearchParams();
