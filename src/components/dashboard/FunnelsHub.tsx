@@ -128,11 +128,12 @@ export default function FunnelsHub() {
   };
 
   const loadLiveNodes = async (aid: string) => {
+    // Every live node is funnel-eligible. The archetype tells the UI/edge
+    // function which template to use.
     const { data, error } = await supabase
       .from("author_nodes")
-      .select("node_id, microsite_url, status")
+      .select("node_id, microsite_url, status, archetype")
       .eq("author_id", aid)
-      .in("node_id", FUNNEL_ELIGIBLE_NODES)
       .eq("status", "live");
     if (error) console.error("[FunnelsHub] live nodes error:", error);
     setLiveNodes((data as LiveNode[]) || []);
@@ -143,12 +144,16 @@ export default function FunnelsHub() {
 
   const generateForNode = async (nodeId: string) => {
     if (!authorId) return;
+    const node = liveNodes.find((n) => n.node_id === nodeId);
+    const archetype = node?.archetype || "B";
+    const seedFunnelType = ARCHETYPE_TO_FUNNEL_TYPE[archetype] || "opt_in";
+
     setGeneratingNodeId(nodeId);
     const { error } = await supabase.functions.invoke("generate-funnel", {
       body: {
         author_id: authorId,
         node_id: nodeId,
-        funnel_type: NODE_TO_FUNNEL_TYPE[nodeId] || "opt_in",
+        funnel_type: seedFunnelType,
       },
     });
     setGeneratingNodeId(null);
