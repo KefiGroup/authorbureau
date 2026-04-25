@@ -450,7 +450,7 @@ export default function SmartProductCard({
               className={`w-full text-xs bg-transparent ${catTokens.border} ${catTokens.iconText} hover:${catTokens.badgeBg}`}
               onClick={onView}
             >
-              <Eye className="h-3 w-3 mr-1.5" /> View on Website →
+              <Eye className="h-3 w-3 mr-1.5" /> Open & Manage →
             </Button>
           )}
           {state === "coming-soon" && (
