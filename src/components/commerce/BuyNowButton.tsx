@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
-import { toast } from "@/hooks/use-toast";
+
 
 interface BuyNowButtonProps {
   authorNodeId: string;
@@ -35,6 +35,11 @@ export default function BuyNowButton({
   const [leadEmail, setLeadEmail] = useState("");
   const [leadCaptured, setLeadCaptured] = useState(false);
 
+  const isLikelyCheckoutUrl = (url?: string | null): boolean => {
+    if (!url) return false;
+    return /(checkout\.stripe\.com|buy\.stripe\.com|stripe\.com\/pay)/i.test(url);
+  };
+
   const handleClick = async () => {
     setLoading(true);
     try {
@@ -54,23 +59,22 @@ export default function BuyNowButton({
         return;
       }
 
-      // No URL and no known error → try fallback static payment link
-      if (fallbackUrl) {
-        window.location.href = fallbackUrl;
+      // No URL returned. Only redirect to fallback if it's a known checkout URL —
+      // never silently navigate to an arbitrary stale link.
+      if (isLikelyCheckoutUrl(fallbackUrl)) {
+        window.location.href = fallbackUrl as string;
         return;
       }
-      throw new Error("No checkout URL returned");
+      // Graceful waitlist instead of a technical error
+      setPaymentsModal(true);
     } catch (err) {
       console.error("[BuyNowButton]", err);
-      if (fallbackUrl) {
-        window.location.href = fallbackUrl;
+      if (isLikelyCheckoutUrl(fallbackUrl)) {
+        window.location.href = fallbackUrl as string;
         return;
       }
-      toast({
-        title: "Checkout unavailable",
-        description: "Please try again in a moment.",
-        variant: "destructive",
-      });
+      // Show friendly modal — never leave the reader with a dead-end error toast
+      setPaymentsModal(true);
     } finally {
       setLoading(false);
     }

@@ -1,7 +1,6 @@
-import { Link } from "react-router-dom";
-import { ArrowRight, Lock, AlertCircle } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import BuyNowButton from "@/components/commerce/BuyNowButton";
+import ProductCTA from "@/components/commerce/ProductCTA";
 import type { ThemeVars } from "@/pages/author-site/types";
 
 export interface StorefrontNode {
@@ -129,15 +128,15 @@ export default function AuthorProductCard({
   const priceDisplay = formatPrice(effectivePrice, node.currency);
   const hasPrice = effectivePrice != null && effectivePrice > 0;
 
-  // Determine which CTA branch to render
-  // 1. Stripe connected AND price set → BuyNowButton
-  // 2. Stripe NOT connected → owner sees disabled "Payments not set up", reader sees Contact
-  // 3. Stripe connected but no price → owner sees "Set price", reader sees Contact
-  const canSell = stripeReady && hasPrice;
-
   const contactHref = authorContactEmail
     ? `mailto:${authorContactEmail}?subject=${encodeURIComponent(`Enquiry: ${title}`)}`
     : `/${authorSlug}#contact`;
+
+  // For high-touch service nodes (coaching, retreats, etc.) where there's a contact email
+  // and no price set, prefer "Contact" over "Notify me". Everything else routes through
+  // ProductCTA's 4-state matrix (live / coming-soon / owner-no-price / owner-no-stripe).
+  const isHighTouchInquiry =
+    !hasPrice && !!authorContactEmail && /^(YR-|BA-13|BA-12)/.test(node.node_id);
 
   return (
     <article
@@ -199,53 +198,9 @@ export default function AuthorProductCard({
         )}
       </div>
 
-      {/* CTA — branch on stripeReady + hasPrice + viewer */}
+      {/* CTA — unified through ProductCTA (4-state matrix) */}
       <div className="mt-auto">
-        {canSell ? (
-          <BuyNowButton
-            authorNodeId={node.id}
-            authorId={authorId}
-            label="Enroll Now"
-            fallbackUrl={node.payment_link || node.third_party_url || null}
-            className="w-full"
-            style={{ background: v.accent, color: v.accentText }}
-          />
-        ) : isOwnerViewing ? (
-          <div className="space-y-2">
-            <div
-              className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold cursor-not-allowed"
-              style={{
-                background: v.secondaryBg || v.cardBg,
-                color: v.mutedText,
-                border: `1px dashed ${v.cardBorder}`,
-              }}
-              role="status"
-              aria-label={hasPrice ? "Payments not set up" : "Price not set"}
-            >
-              {hasPrice ? (
-                <>
-                  <Lock className="h-3.5 w-3.5" /> Payments not set up
-                </>
-              ) : (
-                <>
-                  <AlertCircle className="h-3.5 w-3.5" /> Price not set
-                </>
-              )}
-            </div>
-            <Link
-              to={
-                hasPrice
-                  ? "/account-settings?tab=connections"
-                  : "/build-authority"
-              }
-              className="block text-xs text-center underline hover:no-underline"
-              style={{ color: v.accent }}
-            >
-              {hasPrice ? "Set up payments →" : "Set a price →"}
-            </Link>
-          </div>
-        ) : (
-          // Reader view, payments not available — never show a dead Enroll button
+        {isHighTouchInquiry && !isOwnerViewing ? (
           <Button
             asChild
             variant="outline"
@@ -256,6 +211,27 @@ export default function AuthorProductCard({
               Contact <ArrowRight className="ml-2 h-3.5 w-3.5" />
             </a>
           </Button>
+        ) : (
+          <ProductCTA
+            authorNodeId={node.id}
+            authorId={authorId}
+            effectivePrice={effectivePrice}
+            stripeReady={stripeReady}
+            isOwnerViewing={isOwnerViewing}
+            label="Enroll Now"
+            productTitle={title}
+            fallbackUrl={node.delivery_url || node.payment_link || node.third_party_url || null}
+            className="w-full"
+            style={{ background: v.accent, color: v.accentText }}
+            theme={{
+              cardBg: v.cardBg,
+              cardBorder: v.cardBorder,
+              mutedText: v.mutedText,
+              accent: v.accent,
+              bodyText: v.bodyText,
+              secondaryBg: v.secondaryBg,
+            }}
+          />
         )}
       </div>
     </article>
