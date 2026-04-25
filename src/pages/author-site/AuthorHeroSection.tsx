@@ -18,13 +18,15 @@ interface Props {
   displayName: string;
   booksWithProducts: BookWithProducts[];
   allProducts: { type: string }[];
+  testimonialsCount?: number;
+  liveProductsCount?: number;
   theme: AuthorTheme;
   v: ThemeVars;
 }
 
-export default function AuthorHeroSection({ author, displayName, booksWithProducts, allProducts, theme, v }: Props) {
+export default function AuthorHeroSection({ author, displayName, booksWithProducts, allProducts, testimonialsCount = 0, liveProductsCount = 0, theme, v }: Props) {
   const totalBooks = booksWithProducts.length;
-  const totalProducts = allProducts.length;
+  const totalProducts = Math.max(allProducts.length, liveProductsCount);
 
   const socialLinks = SOCIAL_LINKS.filter(
     (s) => (author as unknown as Record<string, unknown>)[s.key]
