@@ -62,14 +62,50 @@ export class YRSafeBoundary extends Component<BoundaryProps, BoundaryState> {
  * Renders any value safely as text. Coerces objects/arrays to JSON.
  * Use for AI-generated fields where the shape is not guaranteed.
  */
-export function SafeText({ value }: { value: unknown }) {
+export function SafeText({ value, className }: { value: unknown; className?: string }) {
   if (value == null) return null;
+  let text: string;
   if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    return <>{String(value)}</>;
+    text = String(value);
+  } else {
+    try {
+      text = JSON.stringify(value);
+    } catch {
+      return null;
+    }
   }
-  try {
-    return <>{JSON.stringify(value)}</>;
-  } catch {
-    return null;
+  if (className) return <span className={className}>{text}</span>;
+  return <>{text}</>;
+}
+
+/**
+ * Renders any value as a block with safe coercion.
+ * Arrays render as a bulleted list; objects render as labeled key/value rows.
+ */
+export function SafeBlock({ value, className }: { value: unknown; className?: string }) {
+  if (value == null) return null;
+  if (Array.isArray(value)) {
+    return (
+      <ul className={`list-disc pl-5 space-y-1 ${className ?? ""}`}>
+        {value.map((item, i) => (
+          <li key={i}>
+            <SafeText value={item} />
+          </li>
+        ))}
+      </ul>
+    );
   }
+  if (typeof value === "object") {
+    return (
+      <div className={`space-y-1 ${className ?? ""}`}>
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+          <div key={k} className="text-sm">
+            <span className="font-semibold capitalize">{k.replace(/_/g, " ")}: </span>
+            <SafeText value={v} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return <SafeText value={value} className={className} />;
 }
