@@ -7,45 +7,87 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const log = (step: string, details?: any) => {
+  const d = details ? ` - ${JSON.stringify(details)}` : "";
+  console.log(`[customer-portal] ${step}${d}`);
+};
+
+function decodeJwt(token: string): any | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    let p = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    while (p.length % 4) p += "=";
+    return JSON.parse(atob(p));
+  } catch (e) {
+    log("JWT decode failed", { error: String(e) });
+    return null;
+  }
+}
+
 async function resolveUserEmail(req: Request): Promise<string> {
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) throw new Error("No authorization header provided");
-  const token = authHeader.replace("Bearer ", "");
+  const token = authHeader.replace("Bearer ", "").trim();
+  if (!token) throw new Error("Empty bearer token");
 
-  // Try local Cloud auth first
-  const localClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-  const { data: localUser } = await localClient.auth.getUser(token);
-  if (localUser?.user?.email) {
-    console.log("[customer-portal] Resolved via local auth:", localUser.user.email);
-    return localUser.user.email;
+  const decoded = decodeJwt(token);
+  log("Token received", {
+    prefix: token.slice(0, 12),
+    hasDecoded: !!decoded,
+    hasEmail: !!decoded?.email,
+    sub: decoded?.sub,
+    iss: decoded?.iss,
+  });
+
+  // 1) JWT claim email (fastest, works for both backends)
+  if (decoded?.email && typeof decoded.email === "string") {
+    log("Resolved via JWT email claim", { email: decoded.email });
+    return decoded.email;
   }
 
-  // Fallback: shared backend
+  // 2) Local Cloud auth
+  try {
+    const localClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+    const { data: localUser } = await localClient.auth.getUser(token);
+    if (localUser?.user?.email) {
+      log("Resolved via local auth.getUser", { email: localUser.user.email });
+      return localUser.user.email;
+    }
+  } catch (e) {
+    log("local auth.getUser threw", { error: String(e) });
+  }
+
+  // 3) Shared backend auth.getUser
   const sharedUrl = "https://wuftdpnekscrsghqtssd.supabase.co";
   const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
   if (sharedKey) {
-    const sharedClient = createClient(sharedUrl, sharedKey, { auth: { persistSession: false } });
-    const { data: sharedUser } = await sharedClient.auth.getUser(token);
-    if (sharedUser?.user?.email) {
-      console.log("[customer-portal] Resolved via shared backend:", sharedUser.user.email);
-      return sharedUser.user.email;
+    try {
+      const sharedClient = createClient(sharedUrl, sharedKey, { auth: { persistSession: false } });
+      const { data: sharedUser } = await sharedClient.auth.getUser(token);
+      if (sharedUser?.user?.email) {
+        log("Resolved via shared backend auth.getUser", { email: sharedUser.user.email });
+        return sharedUser.user.email;
+      }
+
+      // 4) Final fallback: lookup by sub against shared auth.users via admin API
+      if (decoded?.sub) {
+        const { data: byId } = await sharedClient.auth.admin.getUserById(decoded.sub);
+        if (byId?.user?.email) {
+          log("Resolved via shared admin.getUserById", { email: byId.user.email });
+          return byId.user.email;
+        }
+      }
+    } catch (e) {
+      log("shared backend lookup threw", { error: String(e) });
     }
   }
 
-  // Fallback: decode JWT claims
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.email) {
-      console.log("[customer-portal] Resolved via JWT decode:", payload.email);
-      return payload.email;
-    }
-  } catch { /* ignore */ }
-
-  throw new Error("Could not resolve user email from token");
+  throw new Error("Could not resolve user email from token. Please sign out and sign back in.");
 }
 
 serve(async (req) => {
@@ -62,14 +104,16 @@ serve(async (req) => {
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email, limit: 1 });
     if (customers.data.length === 0) {
-      throw new Error("No Stripe customer found for this user");
+      throw new Error(`No Stripe customer found for ${email}`);
     }
 
     const origin = req.headers.get("origin") || "http://localhost:3000";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customers.data[0].id,
-      return_url: `${origin}/dashboard`,
+      return_url: `${origin}/account-settings?tab=billing`,
     });
+
+    log("Portal session created", { customerId: customers.data[0].id });
 
     return new Response(JSON.stringify({ url: portalSession.url }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -77,7 +121,7 @@ serve(async (req) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("[customer-portal] Error:", errorMessage);
+    log("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
