@@ -1,59 +1,30 @@
-# Fix "ABBY couldn't build that funnel" + Redesign My Funnels Page
+# Make the newly-generated funnel impossible to miss
 
-## Part 1 — Fix the 401 Error (root cause)
+Right now ABBY says "Funnel generated!" but the new card is silently appended to the bottom of the list. If a filter is active or the list is long, the author can't tell what happened or where it went.
 
-The `generate-funnel` edge function returns **401 Unauthorized**, which surfaces as the red toast.
+The `generate-funnel` edge function already returns `{ success, funnel: { id, slug, title, ... }, archetype }`, so all the data we need is already there — the frontend just isn't using it.
 
-**Root cause:** The function has `verify_jwt = false` in `supabase/config.toml`, but its handler still manually requires an `Authorization: Bearer ...` header and calls `userClient.auth.getUser()` to validate the user. When `supabase.functions.invoke()` is called and the session token isn't reliably forwarded (or is stale), the manual gate rejects the request — even though all the data the function needs (`author_id`) is in the body, and all DB writes use the service role.
+## Fix in `src/components/dashboard/FunnelsHub.tsx`
 
-The other lead-capture / data functions in the project don't do this manual gate; they trust the body and authorize by ownership.
+1. **Capture the response** from `supabase.functions.invoke("generate-funnel", ...)` instead of discarding it.
 
-**Fix:** Remove the manual JWT-validation block from `supabase/functions/generate-funnel/index.ts`. Keep CORS + the rest of the logic untouched. Authorization remains correct because:
-- `author_id` comes from the frontend, which resolved it from the user's session
-- All inserts/updates use `service_role` against rows scoped to that `author_id`
-- `verify_jwt = false` is already declared in config
+2. **Richer toast** with the actual funnel title and an "Open" action button:
+   - Title: `Funnel created: <title>`
+   - Description: "Scroll down to preview, copy the link, or edit the copy."
+   - Action: an "Open" button that launches the live URL in a new tab.
 
-## Part 2 — Page UX Redesign
+3. **Auto-reset the filter** to `"all"` after generation so the new card is never hidden by an active filter.
 
-The current page dumps **22 large dark-blue "Generate funnel for ..." buttons in a wall** above the funnels list. It looks like spam, hides the actual funnels below the fold, and gives no sense of which products matter most.
+4. **Highlight + scroll the new card into view:**
+   - Add `highlightId` state and a `cardRefs` ref map.
+   - Set `highlightId` to the new funnel's id.
+   - Smooth-scroll its card into view after the next render.
+   - Apply a temporary ring (`ring-2 ring-primary ring-offset-2`) plus a soft shadow on the highlighted card; clear it after ~4 seconds.
 
-### New layout
+5. **Same treatment for regeneration** (`regenerate()`) — flash the same card so the author sees the refreshed copy land.
 
-```text
-┌─ My Funnels ────────────────────────────────────────────┐
-│  Header + short description                              │
-│                                                           │
-│  ┌─ Stats strip ─────────────────────────────────────┐  │
-│  │  3 Live · 2 Drafts · 247 Views · 18 Leads · 7.3% │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                           │
-│  ┌─ ABBY suggestion (collapsed by default) ──────────┐  │
-│  │  ✨ ABBY can build 19 more funnels for your live  │  │
-│  │     products.    [ Show suggestions ▾ ]           │  │
-│  └───────────────────────────────────────────────────┘  │
-│                                                           │
-│  Filter chips: [All] [Sales] [Opt-in] [Application]      │
-│                [Event] [Live] [Paused]                   │
-│                                                           │
-│  Existing funnel cards (2-col grid, unchanged design)    │
-└──────────────────────────────────────────────────────────┘
-```
+## Files
 
-### Specifics
+- `src/components/dashboard/FunnelsHub.tsx` — wire response data, toast action, scroll-and-highlight, attach refs to each funnel card, conditional ring class.
 
-1. **Stats strip** (new, top of page): Live count, Draft count, total Views, total Leads, avg conversion rate. One slim card.
-
-2. **Collapsible ABBY suggestions:** Replace the wall of 22 buttons with a single collapsed banner. When expanded, group the suggestions by archetype with small section headers — Sales, Opt-in, Application, Event — so authors see *why* each funnel exists, not just a list of names. Each suggestion is a compact pill with archetype color accent, not a full-width dark button.
-
-3. **Filter chips** above the funnel grid (All / by archetype / by status). Filters the cards below.
-
-4. **Empty-state copy** stays.
-
-5. **Funnel card polish:** Keep current card structure. Move the URL line to be clickable (opens in new tab) and tighten the action row by collapsing rarely-used actions (Pause, Edit) into a small overflow menu, leaving "View Funnel · Copy link · View in CRM" as primary.
-
-## Files to change
-
-- `supabase/functions/generate-funnel/index.ts` — remove the manual auth block (≈10 lines deleted near the top of the handler)
-- `src/components/dashboard/FunnelsHub.tsx` — restructure the suggestion banner, add stats strip + filter chips, tighten card action row
-
-No DB migrations, no new dependencies.
+No edge function changes needed — the response already includes everything.

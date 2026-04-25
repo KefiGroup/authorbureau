@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -87,6 +87,17 @@ export default function FunnelsHub() {
   const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+  const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+  const flashFunnel = (id: string) => {
+    setHighlightId(id);
+    setTimeout(() => {
+      const el = cardRefs.current[id];
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+    setTimeout(() => setHighlightId((cur) => (cur === id ? null : cur)), 4000);
+  };
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
