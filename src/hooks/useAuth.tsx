@@ -182,6 +182,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      const { data, error } = await supabase.functions.invoke("check-subscription");
+      if (error) throw error;
+      setSubscription({
+        subscribed: !!data?.subscribed,
+        productId: (data?.product_id as string | null) ?? null,
+        subscriptionEnd: (data?.subscription_end as string | null) ?? null,
+        loading: false,
+        checked: true,
+      });
+    } catch (error) {
+      console.warn("[useAuth] check-subscription failed:", error);
+      // Fall back to free, but mark as checked so the app doesn't hang on loading
       setSubscription({
         subscribed: false,
         productId: null,
@@ -189,8 +201,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading: false,
         checked: true,
       });
-    } catch (error) {
-      setSubscription(signedOutSubscriptionState);
     }
   }, [user]);
 
