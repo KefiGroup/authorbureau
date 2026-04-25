@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
-import { toast } from "@/hooks/use-toast";
+
 
 interface BuyNowButtonProps {
   authorNodeId: string;
