@@ -330,44 +330,71 @@ Deno.serve(async (req) => {
       const existingNodes = new Set((existingFlows || []).filter((f: any) => f.node_id).map((f: any) => f.node_id));
       const hasMaster = (existingFlows || []).some((f: any) => f.flow_type === 'master_nurture');
 
-      const results: Array<{ target: string; status: string; flow_id?: string; error?: string }> = [];
-
       // Master first so node sequences can roll into it on completion.
       const targets: Array<{ kind: 'master' | 'node'; node_id?: string }> = [];
       if (includeMaster && !hasMaster) targets.push({ kind: 'master' });
       for (const n of NODES) if (!existingNodes.has(n)) targets.push({ kind: 'node', node_id: n });
 
-      for (const t of targets) {
-        try {
-          const payload: Record<string, unknown> = { author_id: authorProfile.id };
-          if (t.kind === 'master') payload.sequence_type = 'master_nurture';
-          else payload.node_id = t.node_id;
+      const skipped = NODES.filter((n) => existingNodes.has(n)).length + (hasMaster ? 1 : 0);
 
-          const resp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-email-sequence`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-            },
-            body: JSON.stringify(payload),
-          });
-          const data = await resp.json().catch(() => ({}));
-          results.push({
-            target: t.kind === 'master' ? 'master_nurture' : t.node_id!,
-            status: resp.ok ? 'created' : 'failed',
-            flow_id: data?.flow_id,
-            error: resp.ok ? undefined : (data?.message || `HTTP ${resp.status}`),
-          });
-        } catch (e) {
-          results.push({ target: t.kind === 'master' ? 'master_nurture' : t.node_id!, status: 'error', error: (e as Error).message });
+      // Run generations in the background — each AI call can take 5-15s and 29
+      // sequential calls would exceed any reasonable client timeout. Respond
+      // immediately so the UI doesn't abort, and let the worker fan-out.
+      const runBackground = async () => {
+        const results: Array<{ target: string; status: string; flow_id?: string; error?: string }> = [];
+        for (const t of targets) {
+          try {
+            const payload: Record<string, unknown> = { author_id: authorProfile.id };
+            if (t.kind === 'master') payload.sequence_type = 'master_nurture';
+            else payload.node_id = t.node_id;
+
+            const resp = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/generate-email-sequence`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              },
+              body: JSON.stringify(payload),
+            });
+            const data = await resp.json().catch(() => ({}));
+            results.push({
+              target: t.kind === 'master' ? 'master_nurture' : t.node_id!,
+              status: resp.ok ? 'created' : 'failed',
+              flow_id: data?.flow_id,
+              error: resp.ok ? undefined : (data?.message || `HTTP ${resp.status}`),
+            });
+          } catch (e) {
+            results.push({ target: t.kind === 'master' ? 'master_nurture' : t.node_id!, status: 'error', error: (e as Error).message });
+          }
         }
+
+        const created = results.filter((r) => r.status === 'created').length;
+        const failed = results.length - created;
+        try {
+          await cloudAdmin.from('notifications').insert({
+            user_id: authorProfile.user_id,
+            title: `Email sequences ready`,
+            message: `${created} sequence${created === 1 ? '' : 's'} generated${failed ? ` · ${failed} failed` : ''}. Open Marketing Hub → Sequences to review.`,
+            link: `/marketing-hub?tab=sequences`,
+          });
+        } catch (_) { /* ignore notification errors */ }
+      };
+
+      // @ts-ignore — EdgeRuntime is available in Supabase Edge Functions
+      if (typeof EdgeRuntime !== 'undefined' && typeof EdgeRuntime.waitUntil === 'function') {
+        // @ts-ignore
+        EdgeRuntime.waitUntil(runBackground());
+      } else {
+        // Fallback: don't await
+        runBackground().catch((e) => console.error('background generation error:', e));
       }
 
       return respond({
         success: true,
-        skipped_existing: NODES.filter((n) => existingNodes.has(n)).length + (hasMaster ? 1 : 0),
-        attempted: results.length,
-        results,
+        background: true,
+        skipped_existing: skipped,
+        attempted: targets.length,
+        results: [],
       });
     }
 
