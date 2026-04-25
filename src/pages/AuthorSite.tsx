@@ -180,14 +180,17 @@ export default function AuthorSite() {
       const fromInsights = insights.map((i: any) => typeof i === "string" ? i : (i?.insight || i?.text || i?.title || "")).filter(Boolean);
       highlights = [...fromFrameworks, ...fromInsights];
     }
+    let sourceBookId: string | null = null;
     if (highlights.length === 0 && enriched[0]?.description) {
       highlights = enriched[0].description
         .split(/\n+|•|·|✓|\*|—|-{2,}/)
         .map(s => s.trim())
         .filter(s => s.length > 18 && s.length < 220)
         .slice(0, 6);
+      if (highlights.length > 0) sourceBookId = enriched[0].id;
     }
     setWhatsInsideHighlights(highlights.slice(0, 8));
+    setWhatsInsideSourceBookId(sourceBookId);
 
     // Related Authors
     const authorGenres = profile.genres || [];
