@@ -137,7 +137,7 @@ export default function AuthorSite() {
       supabase.from("coaching_packages").select("id, title, price, currency, description, duration_minutes, sessions_count").eq("author_id", profile.user_id).eq("status", "active"),
       supabase.from("audiobooks").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("podcasts").select("id, title, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
-      supabase.from("author_nodes").select("id, node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url, delivery_url, price_usd, currency").eq("author_id", profile.id).eq("status", "live"),
+      supabase.from("author_nodes").select("id, node_id, node_name, personalised_name, content_json, microsite_url, payment_link, third_party_url, delivery_url, price_usd, currency, book_id").eq("author_id", profile.id).eq("status", "live"),
       supabase.from("author_testimonials").select("id, name, role, quote, avatar_url").eq("author_id", profile.user_id).order("sort_order", { ascending: true }).order("created_at", { ascending: true }),
       supabase.from("author_context").select("key_frameworks, unique_insights").eq("author_id", profile.id).maybeSingle(),
     ]);
