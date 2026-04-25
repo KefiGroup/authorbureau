@@ -85,6 +85,8 @@ export default function FunnelsHub() {
   const [regenerating, setRegenerating] = useState(false);
   const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+  const [filter, setFilter] = useState<FilterKey>("all");
   const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
