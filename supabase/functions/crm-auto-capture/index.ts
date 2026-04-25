@@ -11,7 +11,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { email, name, source, source_detail, author_id, message } = await req.json();
+    const { email, name, source, source_detail, author_id, message, node_id } = await req.json();
 
     if (!email || !source) {
       return new Response(JSON.stringify({ error: "email and source required" }), {
@@ -55,9 +55,11 @@ Deno.serve(async (req) => {
 
     if (existing) {
       contactId = existing.id;
-      // Update name if we have a better one
-      if (name && name !== email) {
-        await sb.from("crm_contacts").update({ full_name: name }).eq("id", contactId);
+      const updateFields: Record<string, any> = {};
+      if (name && name !== email) updateFields.full_name = name;
+      if (node_id) updateFields.last_node_id = node_id;
+      if (Object.keys(updateFields).length) {
+        await sb.from("crm_contacts").update(updateFields).eq("id", contactId);
       }
     } else {
       const { data: newContact, error: insertErr } = await sb
@@ -67,6 +69,7 @@ Deno.serve(async (req) => {
           full_name: name || email,
           email: email.toLowerCase().trim(),
           source,
+          last_node_id: node_id || null,
         })
         .select("id")
         .single();

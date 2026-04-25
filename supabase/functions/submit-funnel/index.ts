@@ -161,6 +161,7 @@ Deno.serve(async (req) => {
             full_name: name || cleanEmail,
             last_activity_at: new Date().toISOString(),
             abby_score: Math.max(existingContact.abby_score || 0, 2),
+            ...(funnel.node_id ? { last_node_id: funnel.node_id } : {}),
             ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
           }).eq('id', existingContact.id);
         } else {
@@ -173,6 +174,7 @@ Deno.serve(async (req) => {
             stage: 'new_lead',
             abby_score: 2,
             last_activity_at: new Date().toISOString(),
+            last_node_id: funnel.node_id || null,
             ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
           }).select('id').single();
           contactId = newContact?.id;

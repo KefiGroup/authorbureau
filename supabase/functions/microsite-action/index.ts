@@ -164,6 +164,7 @@ serve(async (req) => {
         authorContactId = existing.id;
         await supabaseAdmin.from("crm_contacts").update({
           ...(fullName !== email ? { full_name: fullName } : {}),
+          ...(node_id ? { last_node_id: node_id } : {}),
           ...quizFields,
         }).eq("id", authorContactId);
       } else {
@@ -177,6 +178,7 @@ serve(async (req) => {
             notes: extra.message || extra.budget ? JSON.stringify(extra) : null,
             company: extra.company || null,
             abby_score: isQuizCapture ? 2 : 0,
+            last_node_id: node_id || null,
             ...quizFields,
           })
           .select("id")
