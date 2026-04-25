@@ -55,8 +55,8 @@ export default function AuthorAboutSection({ author, displayName, podcastNodes =
             </div>
           )}
 
-          {/* Podcast embed */}
-          {podcastNodes.length > 0 && (
+          {/* Podcast section — shows when author has podcast nodes OR has linked external streaming */}
+          {(podcastNodes.length > 0 || hasPodcastStreams) && (
             <div className="mt-10">
               <h3 className="text-lg font-bold mb-4 flex items-center gap-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
                 <Mic className="h-5 w-5" style={{ color: v.accent }} /> Podcast
