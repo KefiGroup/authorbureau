@@ -212,55 +212,95 @@ export default function SmartProductCard({
             <p className="text-[9px] text-secondary font-medium text-right">{progressPercent}%</p>
           </div>
         )}
-        <div className="grid grid-cols-3 gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="rounded-lg bg-muted/50 p-2 text-center">
-                  <TrendingUp className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-                  {id === "microsite" ? (
-                    <>
-                      <p className="text-[10px] font-semibold leading-tight">Revenue Enabler</p>
-                      <p className="text-[8px] text-muted-foreground leading-tight">unlocks all other streams</p>
-                    </>
-                  ) : id === "lead-magnet" ? (
-                    <>
-                      <p className="text-[10px] font-semibold leading-tight">Revenue Enabler</p>
-                      <p className="text-[8px] text-muted-foreground leading-tight">feeds your email list</p>
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xs font-semibold">
-                        {rev.annual > 0 ? `$${(rev.annual).toLocaleString()}/yr` : "Indirect"}
-                      </p>
-                      <p className="text-[9px] text-muted-foreground">estimated</p>
-                    </>
-                  )}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p className="text-xs max-w-[200px]">
-                  Based on industry averages{genre ? ` for ${genre} authors` : ""}. Your actual revenue depends on audience size, pricing, and marketing effort.
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <div className="rounded-lg bg-muted/50 p-2 text-center">
-            <Clock className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-            <p className="text-xs font-semibold">{rev.timeToBuild}</p>
-            <p className="text-[9px] text-muted-foreground">to build</p>
+        {showEconomics && (
+          <div className="grid grid-cols-3 gap-2">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className={`rounded-lg p-2 text-center ${isPublished ? "bg-success/10" : "bg-muted/50"}`}>
+                    <TrendingUp className={`h-3 w-3 mx-auto mb-0.5 ${isPublished ? "text-success" : "text-muted-foreground"}`} />
+                    {isPublished ? (
+                      <>
+                        <p className="text-xs font-semibold">
+                          {liveRevenue && liveRevenue > 0
+                            ? `$${liveRevenue.toLocaleString()}`
+                            : "—"}
+                        </p>
+                        <p className="text-[9px] text-success/80">earned</p>
+                      </>
+                    ) : isInProgress ? (
+                      <>
+                        <p className="text-[10px] font-semibold leading-tight">In progress</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">
+                          {progressPercent ? `${progressPercent}% done` : "draft"}
+                        </p>
+                      </>
+                    ) : id === "microsite" ? (
+                      <>
+                        <p className="text-[10px] font-semibold leading-tight">Revenue Enabler</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">unlocks all other streams</p>
+                      </>
+                    ) : id === "lead-magnet" ? (
+                      <>
+                        <p className="text-[10px] font-semibold leading-tight">Revenue Enabler</p>
+                        <p className="text-[8px] text-muted-foreground leading-tight">feeds your email list</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-xs font-semibold">
+                          {rev.annual > 0 ? `$${rev.annual.toLocaleString()}/yr` : "Indirect"}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground">
+                          {state === "locked" ? "potential" : "estimated"}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs max-w-[200px]">
+                    {isPublished
+                      ? "Live revenue tracked from your activated checkout."
+                      : `Based on industry averages${genre ? ` for ${genre} authors` : ""}. Your actual revenue depends on audience size, pricing, and marketing effort.`}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <div className={`rounded-lg p-2 text-center ${isPublished ? "bg-success/10" : "bg-muted/50"}`}>
+              <Clock className={`h-3 w-3 mx-auto mb-0.5 ${isPublished ? "text-success" : "text-muted-foreground"}`} />
+              {isPublished && lastActivityAt ? (
+                <>
+                  <p className="text-xs font-semibold">{formatRelative(lastActivityAt)}</p>
+                  <p className="text-[9px] text-muted-foreground">last update</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold">{rev.timeToBuild}</p>
+                  <p className="text-[9px] text-muted-foreground">to build</p>
+                </>
+              )}
+            </div>
+            <div className={`rounded-lg p-2 text-center ${isPublished ? "bg-success/10" : "bg-muted/50"}`}>
+              <BarChart3 className={`h-3 w-3 mx-auto mb-0.5 ${isPublished ? "text-success" : "text-muted-foreground"}`} />
+              {isPublished ? (
+                <>
+                  <p className="text-xs font-semibold text-success">Live</p>
+                  <p className="text-[9px] text-muted-foreground">status</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold leading-none mt-0.5">
+                    {getDifficultyStars(rev.difficulty)}
+                  </p>
+                  <p className="text-[9px] text-muted-foreground">{difficultyLabels[rev.difficulty]}</p>
+                </>
+              )}
+            </div>
           </div>
-          <div className="rounded-lg bg-muted/50 p-2 text-center">
-            <BarChart3 className="h-3 w-3 mx-auto mb-0.5 text-muted-foreground" />
-            <p className="text-xs font-semibold leading-none mt-0.5">
-              {getDifficultyStars(rev.difficulty)}
-            </p>
-            <p className="text-[9px] text-muted-foreground">{difficultyLabels[rev.difficulty]}</p>
-          </div>
-        </div>
+        )}
 
-        {/* Published stats */}
-        {state === "published" && stats && (
+        {/* Published stats (optional, supplemental) */}
+        {isPublished && stats && (stats.views !== undefined || stats.sales !== undefined) && (
           <div className="flex gap-3 text-[10px] text-muted-foreground">
             {stats.views !== undefined && <span>{stats.views} views</span>}
             {stats.sales !== undefined && <span>{stats.sales} sales</span>}
