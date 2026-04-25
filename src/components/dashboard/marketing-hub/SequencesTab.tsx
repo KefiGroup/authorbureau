@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
-import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle } from "lucide-react";
+import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle, ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -196,7 +196,7 @@ export default function SequencesTab() {
           </div>
           {!highlightFlow && (
             <Button size="sm" className="h-8 text-xs shrink-0" onClick={() => navigate(`/node-builder/${highlightNodeId}`)}>
-              Open {highlightNodeId} <ArrowRightIcon />
+              Open {highlightNodeId} <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           )}
         </div>
