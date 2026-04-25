@@ -36,27 +36,27 @@ import YR27Builder from "@/components/dashboard/builders/yr27/YR27Builder";
 import YR28Builder from "@/components/dashboard/builders/yr28/YR28Builder";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
-function getHubPath(nodeId: string, bookId: string | null): string {
+function getHubPath(nodeId: string, bookId: string | null, from: string | null): string {
+  if (from === "marketing-hub") return "/marketing-hub?tab=sequences";
   // Prefer the Book Hub tab the user came from when a book is in scope.
   if (bookId) {
     if (nodeId.startsWith("BP-")) return `/book-hub/${bookId}?tab=revenue-streams`;
     if (nodeId.startsWith("BA-")) return `/book-hub/${bookId}?tab=marketing-channels`;
     return `/book-hub/${bookId}?tab=authority-builders`;
   }
-  if (nodeId.startsWith("BP-")) return "/brand-products";
-  if (nodeId.startsWith("BA-")) return "/build-authority";
-  return "/yield-revenue";
+  // No active book — send to My Books Hub so the user can pick one,
+  // not the legacy /brand-products etc. routes that just bounce to dashboard.
+  return "/my-books-hub";
 }
 
-function getHubLabel(nodeId: string, bookId: string | null): string {
+function getHubLabel(nodeId: string, bookId: string | null, from: string | null): string {
+  if (from === "marketing-hub") return "Marketing Hub";
   if (bookId) {
     if (nodeId.startsWith("BP-")) return "Book Hub · Brand";
     if (nodeId.startsWith("BA-")) return "Book Hub · Build";
     return "Book Hub · Yield";
   }
-  if (nodeId.startsWith("BP-")) return "Brand Products";
-  if (nodeId.startsWith("BA-")) return "Build Authority";
-  return "Yield Revenue";
+  return "My Books";
 }
 
 export default function NodeBuilder() {
