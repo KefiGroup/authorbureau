@@ -473,7 +473,28 @@ export default function FunnelsHub() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <>
+          {highlightId && (() => {
+            const just = funnels.find((f) => f.id === highlightId);
+            if (!just) return null;
+            const justUrl = liveUrl(just.slug);
+            return (
+              <div className="mb-4 flex items-center gap-3 p-3 rounded-lg border-2 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-2">
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-primary uppercase tracking-wider">Just created</div>
+                  <div className="text-sm font-medium truncate">{just.title}</div>
+                </div>
+                <Button size="sm" variant="default" onClick={() => window.open(justUrl, "_blank")}>
+                  <Eye className="h-3.5 w-3.5 mr-1" />Open
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing({ ...just })}>
+                  <Edit className="h-3.5 w-3.5 mr-1" />Edit copy
+                </Button>
+              </div>
+            );
+          })()}
+          <div className="grid gap-4 md:grid-cols-2">
           {filtered.map((f) => {
             const rate = f.page_views > 0 ? ((f.conversions / f.page_views) * 100).toFixed(1) : "0.0";
             const url = liveUrl(f.slug);
