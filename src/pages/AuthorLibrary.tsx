@@ -8,7 +8,9 @@ import { invokeWithTimeout } from "@/lib/invoke-with-timeout";
 import { NODE_NAMES, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
 import { getAvailableAssets, describeAssetSize, type NodeAsset } from "@/lib/nodeAssetRegistry";
 import AssetRow from "@/components/library/AssetRow";
+import MarketingPackCard from "@/components/library/MarketingPackCard";
 import { useNavigate } from "react-router-dom";
+import { parseAssetType } from "@/lib/assetPackRegistry";
 
 interface NodeRow {
   id: string;
@@ -19,6 +21,16 @@ interface NodeRow {
   content_json: any;
   microsite_url: string | null;
   created_at: string;
+  book_id?: string | null;
+}
+
+interface MarketingAssetRow {
+  id: string;
+  book_id: string | null;
+  asset_type: string;
+  content: any;
+  status: string;
+  updated_at: string;
 }
 
 interface ProfileSummary {
