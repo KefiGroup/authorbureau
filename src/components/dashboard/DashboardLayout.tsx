@@ -177,18 +177,7 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           hasMicrosite={stats.liveMicrosites > 0}
           stripeConnected={stats.stripeConnected}
           pendingReviewCount={stats.products?.totalReadyForReview || 0}
-          buildUnlocked={0}
-          buildAuthorityUnlocked={0}
-          yieldUnlocked={0}
-          currentBook={currentBook}
           bookCount={stats.bookCount}
-          books={books}
-          perBookStats={stats.products?.perBook}
-          onPickBookForSection={handlePickBookForSection}
-          buildAuthorityCategoryOpen={
-            gating.length > 0 ? !isCategoryFullyClosed("marketing-channels") : true
-          }
-          yieldCategoryOpen={gating.length > 0 ? !isCategoryFullyClosed("authority-builders") : true}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0 h-[100dvh] overflow-hidden">
