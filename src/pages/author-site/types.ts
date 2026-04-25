@@ -26,6 +26,10 @@ export interface AuthorData {
   stripe_connected_account_id?: string | null;
   stripe_account_id?: string | null;
   stripe_onboarding_complete?: boolean | null;
+  facebook_url?: string | null;
+  podcast_spotify_url?: string | null;
+  podcast_apple_url?: string | null;
+  podcast_rss_url?: string | null;
 }
 
 export interface BookWithProducts {
