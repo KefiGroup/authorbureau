@@ -79,8 +79,24 @@ const PLANS = [
 export default function Pricing() {
   const { user, tier, isPremium } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState<string | null>(null);
   const [billingCycle, setBillingCycle] = useState<"monthly" | "annual">("monthly");
+
+  // Upgrade-context params: ?upgrade=brand|build|yield&node=<id>&nodeLabel=<label>&bookId=<id>&bookTitle=<title>
+  const upgradeTier = (searchParams.get("upgrade") || "").toLowerCase();
+  const nodeLabel = searchParams.get("nodeLabel");
+  const bookId = searchParams.get("bookId");
+  const bookTitle = searchParams.get("bookTitle");
+  const fromBookHub = searchParams.get("from") === "book-hub";
+  const highlightedPlan = useMemo(() => PLANS.find((p) => p.key === upgradeTier), [upgradeTier]);
+  const cardsRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (highlightedPlan && cardsRef.current) {
+      cardsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [highlightedPlan]);
 
   const handleCheckout = async (plan: typeof PLANS[number]) => {
     if (!user) {
