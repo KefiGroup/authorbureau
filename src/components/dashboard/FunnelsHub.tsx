@@ -300,7 +300,12 @@ export default function FunnelsHub() {
                       <h3 className="font-semibold truncate">{f.title}</h3>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {f.node_id && <Badge variant="secondary" className="text-xs">{NODE_NAMES[f.node_id] || f.node_id}</Badge>}
-                        <Badge variant="outline" className="text-xs">{f.funnel_type}</Badge>
+                        {(() => {
+                          const node = liveNodes.find((n) => n.node_id === f.node_id);
+                          const arch = node?.archetype;
+                          const label = arch ? ARCHETYPE_LABEL[arch] : f.funnel_type;
+                          return <Badge variant="outline" className="text-xs">{label}</Badge>;
+                        })()}
                         <Badge
                           variant={f.status === "live" ? "default" : "secondary"}
                           className={f.status === "live" ? "bg-green-600 text-xs" : "text-xs"}
