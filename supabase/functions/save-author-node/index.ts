@@ -10,7 +10,7 @@
 // Authorization: server-side ownership check — the resolved sub must match author_profiles.user_id
 // for the requested authorId.
 
-import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

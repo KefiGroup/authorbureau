@@ -5,9 +5,9 @@
 // 4) Sends the audiobook-distribution-ready email (non-blocking)
 // 5) Returns { success, audiobookId, chapterCount, channels, zipUrl, micrositeUrl, publicAuthorPageUrl }
 
-import { createClient } from "npm:@supabase/supabase-js@2.45.4";
+import { createClient } from "npm:@supabase/supabase-js@2.57.2";
 import JSZip from "npm:jszip@3.10.1";
-import Stripe from "npm:stripe@17.7.0";
+import Stripe from "https://esm.sh/stripe@18.5.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

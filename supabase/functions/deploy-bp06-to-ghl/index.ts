@@ -31,7 +31,7 @@ serve(async (req) => {
       const STRIPE_SECRET_KEY = Deno.env.get("STRIPE_SECRET_KEY");
       if (STRIPE_SECRET_KEY) {
         try {
-          const { default: Stripe } = await import("npm:stripe@17.7.0");
+          const { default: Stripe } = await import("https://esm.sh/stripe@18.5.0");
           const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
           const product = await stripe.products.create({ name: title, description: content.transformation_promise || content.tagline || "", metadata: { author_id, node_id: "BP-06" } });
           const stripePrice = await stripe.prices.create({ product: product.id, unit_amount: Math.round(price * 100), currency: "usd" });
