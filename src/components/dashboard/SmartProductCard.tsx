@@ -311,11 +311,11 @@ export default function SmartProductCard({
           <div className="space-y-1">
             <div className="h-1.5 w-full rounded-full bg-muted">
               <div
-                className={`h-full rounded-full transition-all ${catTokens.strip}`}
+                className={`h-full rounded-full transition-all ${pendingTokens.strip}`}
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-            <p className={`text-[9px] font-medium text-right ${catTokens.iconText}`}>{progressPercent}%</p>
+            <p className={`text-[9px] font-medium text-right ${pendingTokens.iconText}`}>{progressPercent}%</p>
           </div>
         )}
         {showEconomics && (
