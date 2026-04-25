@@ -55,17 +55,19 @@ export default function AuthorLibrary() {
   const [error, setError] = useState<string | null>(null);
   const [nodes, setNodes] = useState<NodeRow[]>([]);
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
+  const [marketingAssets, setMarketingAssets] = useState<MarketingAssetRow[]>([]);
 
   const load = async () => {
     setLoading(true);
     setError(null);
-    const { data, error } = await invokeWithTimeout<{ nodes: NodeRow[]; profile: ProfileSummary | null }>(
+    const { data, error } = await invokeWithTimeout<{ nodes: NodeRow[]; profile: ProfileSummary | null; marketing_assets?: MarketingAssetRow[] }>(
       "get-author-library", {}
     );
     if (error) setError(error.message);
     else if (data) {
       setNodes(data.nodes || []);
       setProfile(data.profile);
+      setMarketingAssets(data.marketing_assets || []);
     }
     setLoading(false);
   };
