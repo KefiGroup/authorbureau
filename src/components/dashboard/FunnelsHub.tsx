@@ -181,19 +181,38 @@ export default function FunnelsHub() {
       return;
     }
 
-    const newFunnel = data?.funnel;
-    const newId: string | undefined = newFunnel?.id;
-    const newSlug: string | undefined = newFunnel?.slug;
-    const newTitle: string = newFunnel?.title || NODE_NAMES[nodeId] || "your funnel";
+    const newFunnel = data?.funnel as Funnel | undefined;
+    if (!newFunnel?.id) {
+      toast({ title: "ABBY couldn't build that funnel", description: "No funnel data returned. Please try again.", variant: "destructive" });
+      return;
+    }
+    const newId = newFunnel.id;
+    const newSlug = newFunnel.slug;
+    const newTitle = newFunnel.title || NODE_NAMES[nodeId] || "your funnel";
     const url = newSlug && authorSlug ? `${window.location.origin}/${authorSlug}/${newSlug}` : null;
 
-    // Make sure the new card is visible regardless of active filter
+    // OPTIMISTIC: prepend the new funnel immediately so the card appears
+    setFunnels((prev) => [newFunnel, ...prev.filter((f) => f.id !== newId)]);
+    // Reset filter so it can't be hidden
     setFilter("all");
-    await loadFunnels(authorId);
+    // Reconcile in background (best-effort; if it returns stale rows, we keep the optimistic insert)
+    (async () => {
+      const { data: refreshed } = await supabase
+        .from("funnels")
+        .select("*")
+        .eq("author_id", authorId)
+        .order("created_at", { ascending: false });
+      if (refreshed && refreshed.length > 0) {
+        const merged = refreshed.some((r) => r.id === newId)
+          ? (refreshed as Funnel[])
+          : ([newFunnel, ...refreshed] as Funnel[]);
+        setFunnels(merged);
+      }
+    })();
 
     toast({
       title: `Funnel created: ${newTitle}`,
-      description: url ? "Scroll down to preview, copy the link, or edit the copy." : "Your new funnel is ready below.",
+      description: url ? "See the preview below — open it, copy the link, or edit the copy." : "Your new funnel is ready below.",
       action: url ? (
         <button
           onClick={() => window.open(url, "_blank")}
@@ -204,7 +223,7 @@ export default function FunnelsHub() {
       ) : undefined,
     });
 
-    if (newId) flashFunnel(newId);
+    flashFunnel(newId);
   };
 
   const toggleStatus = async (f: Funnel) => {
