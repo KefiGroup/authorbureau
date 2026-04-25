@@ -12,9 +12,15 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2, Users } from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2, Users, ChevronDown, ChevronUp, MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
+
+type ArchetypeKey = "A" | "B" | "C" | "D";
+type FilterKey = "all" | ArchetypeKey | "live" | "paused";
 
 interface Funnel {
   id: string;
