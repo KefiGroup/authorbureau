@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Loader2, Star, Target, BarChart3, Users, TrendingUp, BookOpen } from "lucide-react";
+import { Loader2, Star, Target, BarChart3, Users, TrendingUp, BookOpen, ArrowRight, Sparkles } from "lucide-react";
+
+interface CrossSellSuggestion {
+  contact_id: string;
+  contact_name: string;
+  contact_email: string | null;
+  contact_stage: string;
+  contact_score: number;
+  from_archetype_label: string;
+  from_node_id: string;
+  to_archetype_label: string;
+  to_node_id: string;
+  to_product_title: string;
+  to_product_url: string | null;
+}
 
 interface Props {
   crmFetch: (action: string, extra?: Record<string, any>) => Promise<any>;
