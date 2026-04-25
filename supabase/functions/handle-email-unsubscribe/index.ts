@@ -124,7 +124,40 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
-  console.log('Email unsubscribed', { email: tokenRecord.email })
+  // Flag subscriber row(s) and unenroll from all active flows.
+  // The same email may appear under multiple author_subscribers rows.
+  const lowerEmail = tokenRecord.email.toLowerCase()
+  const { data: subs } = await supabase
+    .from('author_subscribers')
+    .select('id')
+    .eq('email', lowerEmail)
+
+  if (subs && subs.length > 0) {
+    const subIds = subs.map((s: any) => s.id)
+    await supabase
+      .from('author_subscribers')
+      .update({
+        status: 'unsubscribed',
+        unsubscribed_at: new Date().toISOString(),
+      })
+      .in('id', subIds)
+
+    await supabase
+      .from('email_flow_enrollments')
+      .update({ status: 'unsubscribed', next_send_at: null })
+      .in('subscriber_id', subIds)
+      .eq('status', 'active')
+  }
+
+  // Audit log entry
+  await supabase.from('email_send_log').insert({
+    template_name: 'unsubscribe_event',
+    recipient_email: lowerEmail,
+    status: 'unsubscribed',
+    metadata: { source: 'one_click_unsubscribe' },
+  })
+
+  console.log('Email unsubscribed', { email: lowerEmail, subscribers_affected: subs?.length || 0 })
 
   return jsonResponse({ success: true })
 })
