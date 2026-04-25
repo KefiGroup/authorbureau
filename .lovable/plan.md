@@ -1,79 +1,85 @@
-## Codebase Cleanup Audit
+# Rebuild BA-11 Audiobook Studio (ElevenLabs)
 
-I scanned the repo for duplicated and orphaned code. The biggest wins are: a parallel set of legacy "named" builder folders that no longer feed any route, two near-identical BA/YR shared wrappers, three tiny redirect-only hub pages, and 30 essentially identical edge functions. None of this affects user-facing behavior — it's pure dead weight.
+The backend, BA11Builder shell, and storage are already intact. Only the 5 step UIs (currently a stub) need to be rebuilt and wired to the existing edge functions.
 
-Below is what I propose to remove or consolidate, in priority order.
+## What stays as-is
 
----
+- `BA11Builder.tsx` — stepper, gating, autosave, blob-URL healing (already correct)
+- All edge functions: `get-manuscript-source`, `ba11-voice-preview`, `ba11-audiobook-generate`, `ba11-publish-audiobook`, `distribute-audiobook`
+- Storage bucket `audiobook-audio`, path convention `{user_id}/{book_id}/chapter-NNN.mp3`
+- `listAudiobookChapters` helper in `src/lib/builder-autosave.ts`
+- `DistributeAudiobookModal` (already exists at `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`)
 
-### 1. Delete legacy "named" builder folders (~110 files / ~836 KB)
+## What gets built
 
-`NodeBuilder.tsx` exclusively imports the prefixed builders (`bp01/BP01Builder`, `ba12/BA12Builder`, `yr19/YR19Builder`, etc.). The older "named" folders (`lead-magnet/`, `email-marketing/`, `social-media/`, `website/`, `course/`, `workbook/`, `home-study/`, `coaching/`, `membership/`, `webinar/`, `masterminds/`, `keynotes/`, `podcast-scripts/`, `community/`, `special-editions/`, `affiliates/`, `retreats/`, `audiobook/`, `book-sales/`, `certification/`, `conventions/`, `events/`, `exhibitors/`, `franchise/`, `fundraising/`, `group-coaching/`, `in-house-speaker/`, `jv-partnerships/`, `licensing/`, `revenue-share/`, `training-programs/`, `upsell/`, `white-label/`, `big-ticket/`) are no longer wired to any route.
+Replace the stub `src/components/dashboard/builders/audiobook/AudiobookStepRenderer.tsx` with a real renderer that delegates to 5 new step components in the same folder:
 
-Three small files inside these folders ARE still imported elsewhere and must be moved to a kept location before deletion:
-- `social-media/socialKitHelpers.ts` → move to `builders/shared/socialKitHelpers.ts` (used by `bp03/BP03Builder.tsx` and `marketing-hub/SocialCalendarTab.tsx`)
-- `home-study/types.ts` → move to `builders/shared/homeStudyTypes.ts` (used by `review/HomeStudyReviewView.tsx`)
+### 1. `AudiobookSetupStep.tsx` — `stepId="setup"`
+- Form fields written to `stepData.setup`:
+  - Narration style (select): Conversational / Authoritative / Warm-storyteller / Energetic
+  - Narrator credit (text, defaults to author's pen name)
+  - Suggested retail price USD (number, default $14.99)
+  - Short description (textarea, prefilled from book description if available)
+- Calls `onMarkEdited("setup")` on change. Gate satisfied when `setup.narration` is set.
 
-Then delete the 33 folders.
+### 2. `ManuscriptOptimizationStep.tsx` — `stepId="optimize"`
+- Single button: **"Split Manuscript into Chapters"**
+- Calls `supabase.functions.invoke("get-manuscript-source", { body: { bookId } })`
+- Splits returned text into chapters using existing heuristic: detect `^Chapter \d+`, `^CHAPTER`, `^# ` headings; fall back to ~3500-char paragraph chunks.
+- Writes `stepData.chapters = [{ index, title, text, status: "script-ready", audioUrl: "" }]`
+- Shows resulting chapter list (title + char count + status badge), with inline title/text edit per chapter.
+- Gate satisfied when `chapters.length > 0`.
 
-### 2. Merge `BABuilderShared.tsx` and `YRBuilderShared.tsx`
+### 3. `VoiceSelectionStep.tsx` — `stepId="voice"`
+- Grid of 10 ElevenLabs voices (using the canonical IDs from the TTS knowledge file: Roger, Sarah, Laura, Charlie, George, Callum, River, Liam, Alice, Matilda).
+- Each voice card: name, short style descriptor, **Preview** button.
+- Preview calls `supabase.functions.invoke("ba11-voice-preview", { body: { voiceId, text? } })` and plays the returned MP3 (handle base64 or URL response).
+- Selecting a voice writes `stepData.selectedVoiceId` and `stepData.selectedVoiceName`.
+- Gate satisfied when `selectedVoiceId` is set.
 
-The two files are 95% identical (StepHeader, AbbyCard, LoadingStep, PaymentLinkCard, SummaryCard, SuccessCheckmark). Differences: YR adds `MultiPaymentLinks` and `HighTicketPrice`, and the default category. Consolidate into a single `builders/shared/CategoryBuilderShared.tsx` with `category` prop driving defaults. Update the 12 importing builders (BA10–11, YR19–28) to the new path.
+### 4. `ChapterProductionStep.tsx` — `stepId="production"`
+- Lists `stepData.chapters` with per-chapter controls:
+  - **Generate Audio** button — calls `ba11-audiobook-generate` with `{ voiceId: selectedVoiceId, chapterText: chapter.text, chapterIndex: i, bookId }`. On success, store `audioUrl` from response and set `status: "audio-generated"`.
+  - **Generate All** button at top — sequentially generates pending chapters with a small delay (1.5s) between calls to avoid rate limiting; shows live progress bar.
+  - Inline `<audio controls src={audioUrl}>` once available, plus **Regenerate** button.
+- Persists each completed chapter via `onMarkEdited("production")` so blob-URL healing isn't needed (we store the public storage URL directly).
+- Gate satisfied when ≥1 chapter has `status === "audio-generated"`.
 
-### 3. Collapse three redirect-only hub pages
+### 5. `AudiobookPublishStep.tsx` — `stepId="publish"`
+- Shows summary card: voice, # chapters generated, total runtime estimate (chars / 14 ≈ seconds).
+- **Publish & Open Distribution** button:
+  1. Calls `supabase.functions.invoke("ba11-publish-audiobook", { body: { bookId, voiceId, chapters: [...], setup, retailPriceUsd } })` to mark the audiobook live in the registry.
+  2. On success, opens `DistributeAudiobookModal` (already built) for ACX/Spotify/Apple/Findaway/Platform package generation via `distribute-audiobook`.
+- Shows `PublishSuccessScreen` (shared) once published.
 
-`BrandProductsHub.tsx`, `BuildAuthorityHub.tsx`, `YieldRevenueHub.tsx` are now identical 35-line redirect shells (post the recent hub-consolidation work). Replace them with inline `<Navigate>` wrappers in `App.tsx` (or one shared `<HubRedirect category="brand|build|yield" />` component). Delete the three page files.
+### 6. `AudiobookStepRenderer.tsx` — switch on `stepId`
+Plain `switch` returning the right step component, forwarding props (`stepData`, `setStepData`, `onMarkEdited`, `bookId`, `bookTitle`, `userId`, `generationState`, `setGenerationState`).
 
-### 4. Remove 38 other unused components
+## Bug-fixes baked in from history
 
-After the named-builder folders are gone, these top-level orphans remain (no inbound imports):
-- `src/pages/GetFeatured.tsx`
-- `src/components/dashboard/AbbyAdvisorPanel.tsx`
-- `src/components/dashboard/AbbyExecutionDashboard.tsx`
-- `src/components/dashboard/BookChooserPopover.tsx`
-- `src/components/dashboard/ROIBanner.tsx`
-- `src/components/dashboard/builders/AbbyProposal.tsx`
-- `src/components/dashboard/builders/CrossBuilderNotifications.tsx`
-- `src/components/dashboard/builders/CrossBuilderPushSummary.tsx`
+- **Never persist `blob:` URLs** — only store the public `audioUrl` returned from the edge function (which uploads to `audiobook-audio` bucket).
+- **Use `supabase.functions.invoke()`** everywhere — not raw `fetch` to `/api/...` paths.
+- **Manuscript step gates production** — production button disabled until chapters exist (already enforced by `canAdvance` in BA11Builder).
+- **Session healing on reload** — already handled by BA11Builder's `listAudiobookChapters` effect; new components must read `chapter.audioUrl` and treat empty as "needs generation".
+- **ElevenLabs 4500-char cap** — UI shows a warning when a chapter exceeds the cap so the author can split it before generating.
 
-Each will be re-verified with a fresh import scan immediately before deletion (in case anything is referenced via dynamic import or a string).
+## Files to create
 
-### 5. Consolidate 30 near-identical generate-* edge functions
+- `src/components/dashboard/builders/audiobook/AudiobookSetupStep.tsx`
+- `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`
+- `src/components/dashboard/builders/audiobook/VoiceSelectionStep.tsx`
+- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
+- `src/components/dashboard/builders/audiobook/voices.ts` (the 10-voice catalogue)
 
-Functions `generate-yr19-coaching` through `generate-yr28-sponsors` (and the parallel BA10–18 set) are all ~60 lines following the exact same shape: parse author_id → snapshot → buildAuthorContext → call AI gateway with one prompt → upsertAuthorNode → restore on error. Only the NODE_ID, NODE_NAME, model, prompt template, and final field mapping differ.
+## Files to replace
 
-Refactor approach:
-- Add a new helper `runNodeGenerator()` in `_shared/builder-helpers.ts` that takes `{ nodeId, nodeName, model, buildPrompt(ctx), mapResult(content) }` and handles the entire boilerplate (snapshot, context check, AI call, upsert, error restore).
-- Each per-node function becomes ~10–15 lines: only the prompt and result mapping.
-- This is a refactor, not a deletion — the function endpoints stay so frontend calls keep working.
+- `src/components/dashboard/builders/audiobook/AudiobookStepRenderer.tsx` — swap stub for real switch.
 
-This drops ~1,800 lines of duplicated edge-function boilerplate to ~400.
+## Out of scope (can ship later)
 
----
+- Multi-chunk stitching for chapters longer than 4500 chars (current behavior: server truncates; UI warns).
+- Custom voice cloning (ElevenLabs Voice Library connect).
+- Background music bed / chapter intro stings.
 
-### What I will NOT touch
-
-- Per-node `BPxxBuilder.tsx` / `BAxxBuilder.tsx` / `YRxxBuilder.tsx` files — these are the active builders.
-- The `_shared`, `shared`, `ba-shared`, `yr-shared` helper folders (after the BA/YR merge in step 2).
-- Routes wired to actual UI.
-- Anything under `supabase/functions/` other than the 30 listed generate-* functions.
-
-### Verification plan
-
-After each step:
-1. Re-run import scans (`rg`) against the project to confirm nothing references deleted files.
-2. Run the typecheck to catch broken imports.
-3. Spot-check the navigation flow you previously fixed (Book Hub tabs, builder back links).
-
-### Estimated impact
-
-| Area | Files removed | Lines removed |
-|---|---|---|
-| Legacy builder folders | ~107 | ~12,000 |
-| BA/YR shared merge | 1 | ~100 |
-| Hub redirect pages | 2 | ~70 |
-| Orphan components | 8 | ~600 |
-| Edge function refactor | 0 (refactor) | ~1,400 net |
-| **Total** | **~118** | **~14,000** |
-
-No functional changes for the user. Approve and I'll execute steps 1–4 immediately, then step 5 as a focused refactor.
+Approve to proceed and I'll implement all 6 files in one pass.
