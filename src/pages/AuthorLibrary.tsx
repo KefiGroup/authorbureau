@@ -8,7 +8,9 @@ import { invokeWithTimeout } from "@/lib/invoke-with-timeout";
 import { NODE_NAMES, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
 import { getAvailableAssets, describeAssetSize, type NodeAsset } from "@/lib/nodeAssetRegistry";
 import AssetRow from "@/components/library/AssetRow";
+import MarketingPackCard from "@/components/library/MarketingPackCard";
 import { useNavigate } from "react-router-dom";
+import { parseAssetType } from "@/lib/assetPackRegistry";
 
 interface NodeRow {
   id: string;
@@ -19,6 +21,16 @@ interface NodeRow {
   content_json: any;
   microsite_url: string | null;
   created_at: string;
+  book_id?: string | null;
+}
+
+interface MarketingAssetRow {
+  id: string;
+  book_id: string | null;
+  asset_type: string;
+  content: any;
+  status: string;
+  updated_at: string;
 }
 
 interface ProfileSummary {
@@ -43,17 +55,19 @@ export default function AuthorLibrary() {
   const [error, setError] = useState<string | null>(null);
   const [nodes, setNodes] = useState<NodeRow[]>([]);
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
+  const [marketingAssets, setMarketingAssets] = useState<MarketingAssetRow[]>([]);
 
   const load = async () => {
     setLoading(true);
     setError(null);
-    const { data, error } = await invokeWithTimeout<{ nodes: NodeRow[]; profile: ProfileSummary | null }>(
+    const { data, error } = await invokeWithTimeout<{ nodes: NodeRow[]; profile: ProfileSummary | null; marketing_assets?: MarketingAssetRow[] }>(
       "get-author-library", {}
     );
     if (error) setError(error.message);
     else if (data) {
       setNodes(data.nodes || []);
       setProfile(data.profile);
+      setMarketingAssets(data.marketing_assets || []);
     }
     setLoading(false);
   };
@@ -125,12 +139,53 @@ export default function AuthorLibrary() {
         </Button>
       </div>
 
-      <Tabs defaultValue="by-node">
+      <Tabs defaultValue="marketing-packs">
         <TabsList>
+          <TabsTrigger value="marketing-packs">Marketing Packs</TabsTrigger>
           <TabsTrigger value="by-node">By node</TabsTrigger>
           <TabsTrigger value="by-format">By format</TabsTrigger>
           <TabsTrigger value="recent">Recent</TabsTrigger>
         </TabsList>
+
+        {/* ── Marketing Packs ── */}
+        <TabsContent value="marketing-packs" className="space-y-4">
+          {(() => {
+            // Group marketing assets by node_id (parsed from asset_type)
+            const byNode = new Map<string, MarketingAssetRow[]>();
+            for (const a of marketingAssets) {
+              const { node_id } = parseAssetType(a.asset_type);
+              if (!node_id) continue;
+              const list = byNode.get(node_id) || [];
+              list.push(a);
+              byNode.set(node_id, list);
+            }
+            const liveNodes = nodes.filter(n => n.status === "live");
+            if (!byNode.size) {
+              return (
+                <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
+                  Marketing packs are auto-generated when you publish a node. Build & publish your first node to see your sales copy, social posts, email announcement and bonus asset here.
+                </CardContent></Card>
+              );
+            }
+            return liveNodes
+              .filter(n => byNode.has(n.node_id))
+              .map(n => {
+                const assets = byNode.get(n.node_id)!;
+                return (
+                  <MarketingPackCard
+                    key={n.id}
+                    nodeId={n.node_id}
+                    nodeName={n.personalised_name || NODE_NAMES[n.node_id] || n.node_name}
+                    authorId={profile?.id || ""}
+                    bookId={n.book_id ?? null}
+                    assets={assets}
+                    onRegenerated={load}
+                  />
+                );
+              });
+          })()}
+        </TabsContent>
+
 
         {/* ── By Node ── */}
         <TabsContent value="by-node" className="space-y-4">
