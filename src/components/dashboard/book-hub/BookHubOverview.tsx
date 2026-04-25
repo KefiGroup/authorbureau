@@ -311,7 +311,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
             <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-success/15 text-success text-xs font-bold">✓</span>
             <p className="text-sm flex-1 min-w-0">
               <strong className="text-success">{planLabel}</strong>
-              <span className="text-muted-foreground"> — {unlockedCount} builder{unlockedCount === "1" ? "" : "s"} unlocked.</span>
+              <span className="text-muted-foreground"> — {unlockedCount} builders unlocked.</span>
               {progress.overallTotal > 0 && (
                 <span className="text-muted-foreground"> · {progress.overallCompleted} of {progress.overallTotal} built.</span>
               )}
