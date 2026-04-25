@@ -73,20 +73,25 @@ export default function BookHubHeroStrip({ bookId, bookTitle, progress, onJumpTa
           </div>
         </div>
 
-        {/* Right: Continue CTA */}
-        {next && (
-          <div className="lg:w-[320px] shrink-0 rounded-xl border border-secondary/30 bg-card p-4">
-            <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-secondary mb-1">
-              <Sparkles className="h-3 w-3" /> Continue Where You Left Off
+        {/* Right: Continue CTA — colored by destination stage */}
+        {next && (() => {
+          const nextAccent = stages.find((s) => s.id === next.category)?.accent || ACCENT_CLASSES.brand;
+          return (
+            <div className={`lg:w-[320px] shrink-0 rounded-xl border ${nextAccent.borderSoft} bg-card p-4`}>
+              <div className={`flex items-center gap-1.5 text-[10px] font-black uppercase tracking-[0.2em] ${nextAccent.text} mb-1`}>
+                <Sparkles className="h-3 w-3" /> Continue Where You Left Off
+              </div>
+              <div className="text-sm font-semibold text-foreground truncate">{next.label}</div>
+              <div className="text-[11px] text-muted-foreground font-mono">
+                {next.code} · {stages.find((s) => s.id === next.category)?.label}
+              </div>
+              <Button size="sm" className={`mt-2 w-full ${nextAccent.buttonBg} gap-1.5`} onClick={handleContinue}>
+                {next.state === "in-progress" ? "Resume Building" : "Start Building"}
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
             </div>
-            <div className="text-sm font-semibold text-foreground truncate">{next.label}</div>
-            <div className="text-[11px] text-muted-foreground font-mono">{next.code}</div>
-            <Button size="sm" className="mt-2 w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 gap-1.5" onClick={handleContinue}>
-              {next.state === "in-progress" ? "Resume Building" : "Start Building"}
-              <ArrowRight className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

@@ -20,13 +20,13 @@ export default function NextStepCard({ node, bookId, bookTitle, accent, onUpgrad
 
   if (!node) {
     return (
-      <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50/60 p-6 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+      <div className={`rounded-2xl border-2 ${accent.borderSoft} ${accent.gradientCard} p-6 flex items-center gap-4`}>
+        <div className={`w-12 h-12 rounded-full ${accent.bg} text-white flex items-center justify-center shrink-0`}>
           <CheckCircle2 className="h-6 w-6" />
         </div>
         <div>
-          <h3 className="font-heading text-lg font-bold text-emerald-800">All caught up</h3>
-          <p className="text-sm text-emerald-700/80">{emptyMessage || "You've built everything in this category. Move to the next stage to keep growing."}</p>
+          <h3 className={`font-heading text-lg font-bold ${accent.text}`}>All caught up</h3>
+          <p className="text-sm text-foreground/70">{emptyMessage || "You've built everything in this category. Move to the next stage to keep growing."}</p>
         </div>
       </div>
     );

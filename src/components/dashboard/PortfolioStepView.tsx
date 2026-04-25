@@ -7,10 +7,12 @@ import { ABBY_CATEGORIES, getStudioPath, type AbbyCategory } from "@/config/abby
 import { isSuperAdmin } from "@/lib/superadmin";
 import { useNodeGating } from "@/hooks/useNodeGating";
 import { useBookNodeProgress, type NodeWithProgress, type NodeStatus } from "@/hooks/useBookNodeProgress";
+import { useNodeLiveStats } from "@/hooks/useNodeLiveStats";
 import { ACCENT_CLASSES, categoryToAccent } from "@/components/dashboard/book-hub/categoryAccent";
 import NextStepCard from "@/components/dashboard/book-hub/NextStepCard";
 import CategoryProgressDots from "@/components/dashboard/book-hub/CategoryProgressDots";
-import SmartProductCard, { type ProductCardState } from "@/components/dashboard/SmartProductCard";
+import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
+import { buildRecommendationCopy } from "@/lib/recommendation-copy";
 
 interface BookSummary { id: string; title: string; }
 
@@ -21,20 +23,17 @@ interface Props {
   analyzedBooks?: BookSummary[];
 }
 
-const CATEGORY_HEADLINES: Record<string, { title: string; revenue: string; intro: string }> = {
+const CATEGORY_HEADLINES: Record<string, { title: string; intro: string }> = {
   "revenue-streams": {
     title: "Build Your Brand",
-    revenue: "$5,520 – $15,480 /yr potential",
     intro: "Foundation first. These 9 products turn your book into a recognizable brand. Start at #1 and work down — each step amplifies the next.",
   },
   "marketing-channels": {
     title: "Build Your Authority",
-    revenue: "$13,500 – $39,480 /yr potential",
     intro: "Scale your reach. Now that your brand is in place, these 9 products turn followers into students, clients, and partners.",
   },
   "authority-builders": {
     title: "Yield Premium Revenue",
-    revenue: "$68,400 – $215,520 /yr potential",
     intro: "High-ticket services. Unlike Brand and Build, these 10 don't require sequence — pursue the ones that match your strengths and audience demand.",
   },
 };
@@ -50,6 +49,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
   const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
   const progress = useBookNodeProgress(effectiveTier, openNodeIds);
+  const { byCode: liveStats } = useNodeLiveStats();
 
   useEffect(() => {
     async function fetchBooks() {
@@ -79,6 +79,21 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const primaryBookId = analyzedBooks?.[0]?.id || books[0]?.id || "";
   const primaryBookTitle = analyzedBooks?.[0]?.title || books[0]?.title || "";
 
+  // Dynamic category economics — derived from actual unlocked nodes + live revenue.
+  const earnedInCategory = catProgress
+    ? catProgress.nodes.reduce((sum, n) => sum + (liveStats[n.code]?.revenueToDate || 0), 0)
+    : 0;
+  const potentialInCategory = catProgress
+    ? catProgress.nodes
+        .filter((n) => n.state !== "locked" && n.state !== "coming-soon")
+        .reduce((sum, n) => sum + (BASELINE_REVENUE[n.id]?.annual || 0), 0)
+    : 0;
+  const lockedPotential = catProgress
+    ? catProgress.nodes
+        .filter((n) => n.state === "locked")
+        .reduce((sum, n) => sum + (BASELINE_REVENUE[n.id]?.annual || 0), 0)
+    : 0;
+
   if (progress.loading || bookLoading) {
     return (
       <div className="space-y-4 animate-pulse">
@@ -104,7 +119,26 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
             <div className="flex items-center gap-3 mt-1 text-xs text-foreground/70 flex-wrap">
               <span><strong>{catProgress.completed}</strong> of {catProgress.total} built</span>
               {catProgress.inProgress > 0 && <span>· {catProgress.inProgress} in progress</span>}
-              <span className="flex items-center gap-1"><TrendingUp className="h-3 w-3" /> {headline?.revenue}</span>
+              <span className="flex items-center gap-1">
+                <TrendingUp className="h-3 w-3" />
+                {earnedInCategory > 0 ? (
+                  <>
+                    <strong>${earnedInCategory.toLocaleString()}</strong> earned
+                    {potentialInCategory > 0 && (
+                      <span className="text-muted-foreground"> · ${potentialInCategory.toLocaleString()}/yr potential</span>
+                    )}
+                  </>
+                ) : potentialInCategory > 0 ? (
+                  <>
+                    <strong>${potentialInCategory.toLocaleString()}/yr</strong> potential
+                    {lockedPotential > 0 && (
+                      <span className="text-muted-foreground"> · +${lockedPotential.toLocaleString()} locked</span>
+                    )}
+                  </>
+                ) : (
+                  <span className="text-muted-foreground">Unlock to see potential</span>
+                )}
+              </span>
             </div>
           </div>
           <div className="hidden sm:block shrink-0">
@@ -181,11 +215,24 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                     <div className={`h-px flex-1 ${accent.divider}`} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {group.nodes.map((n) => {
+                    {group.nodes.map((n, idx) => {
                       const isNext = catProgress.nextStep?.id === n.id;
                       const cardState: ProductCardState = isNext && (n.state === "available" || n.state === "in-progress")
                         ? "recommended"
                         : stateMap[n.state];
+                      const live = liveStats[n.code];
+                      const prevPublished = group.nodes
+                        .slice(0, idx)
+                        .reverse()
+                        .find((p) => p.state === "completed");
+                      const personalized = isNext
+                        ? buildRecommendationCopy(n, {
+                            completedInCategory: catProgress.completed,
+                            totalInCategory: catProgress.total,
+                            livePercent: live?.progressPercent,
+                            previousNodeLabel: prevPublished?.label,
+                          })
+                        : undefined;
                       return (
                         <SmartProductCard
                           key={n.id}
@@ -193,9 +240,13 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                           label={n.label}
                           icon={n.icon}
                           description={n.description || ""}
+                          personalizedDescription={personalized}
                           state={cardState}
                           tierRequired={n.tierRequired}
                           code={n.code}
+                          progressPercent={live?.progressPercent}
+                          liveRevenue={live?.revenueToDate}
+                          lastActivityAt={live?.activatedAt}
                           onBuild={() => handleNav(n)}
                           onContinue={() => handleNav(n)}
                           onView={() => handleNav(n)}
