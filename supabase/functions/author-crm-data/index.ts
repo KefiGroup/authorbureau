@@ -570,6 +570,93 @@ Deno.serve(async (req) => {
       return ok({ recommendation });
     }
 
+    // ── CROSS-SELL SUGGEST ──
+    // Reads each contact's last_node_id + archetype and recommends the next-best
+    // live product from author_nodes using the archetype ladder: B → A → C → D.
+    // No AI call — deterministic, fast, runs on every CRM open.
+    if (action === "cross-sell-suggest") {
+      const ARCHETYPE_LADDER: Record<string, string[]> = {
+        B: ["A", "C", "D"], // opt-in subscriber → push to a sale, then high-ticket, then event
+        A: ["C", "D", "B"], // buyer → upsell to high-ticket, then event
+        C: ["D", "A", "B"], // client → event, then more sales
+        D: ["A", "C", "B"], // event attendee → sales, then high-ticket
+      };
+      const ARCHETYPE_LABEL: Record<string, string> = {
+        A: "Sales", B: "Opt-in", C: "Application", D: "Event",
+      };
+
+      // Pull contacts that have any node engagement
+      const { data: contacts } = await sb
+        .from("crm_contacts")
+        .select("id, full_name, email, stage, abby_score, archetype, last_node_id")
+        .eq("author_id", authorContactKey)
+        .not("last_node_id", "is", null)
+        .order("abby_score", { ascending: false })
+        .limit(50);
+
+      // Pull all live products for this author (the catalogue we can suggest from)
+      const { data: liveNodes } = await sb
+        .from("author_nodes")
+        .select("node_id, archetype, delivery_url, payment_link, third_party_url, content_json")
+        .eq("author_id", authorContactKey)
+        .eq("status", "live");
+
+      const catalogueByArchetype: Record<string, any[]> = { A: [], B: [], C: [], D: [] };
+      for (const n of liveNodes || []) {
+        if (n.archetype && catalogueByArchetype[n.archetype]) {
+          catalogueByArchetype[n.archetype].push(n);
+        }
+      }
+
+      const suggestions = (contacts || [])
+        .map((c: any) => {
+          const currentArchetype = c.archetype as string | null;
+          if (!currentArchetype || !ARCHETYPE_LADDER[currentArchetype]) return null;
+          const ladder = ARCHETYPE_LADDER[currentArchetype];
+
+          // Walk the ladder to the first archetype with a live product the contact hasn't already engaged with
+          for (const targetArchetype of ladder) {
+            const candidates = (catalogueByArchetype[targetArchetype] || [])
+              .filter((n: any) => n.node_id !== c.last_node_id);
+            if (candidates.length === 0) continue;
+
+            const nextProduct = candidates[0];
+            const title =
+              nextProduct.content_json?.title ||
+              nextProduct.content_json?.headline ||
+              nextProduct.node_id;
+
+            return {
+              contact_id: c.id,
+              contact_name: c.full_name,
+              contact_email: c.email,
+              contact_stage: c.stage,
+              contact_score: c.abby_score,
+              from_archetype: currentArchetype,
+              from_archetype_label: ARCHETYPE_LABEL[currentArchetype],
+              from_node_id: c.last_node_id,
+              to_archetype: targetArchetype,
+              to_archetype_label: ARCHETYPE_LABEL[targetArchetype],
+              to_node_id: nextProduct.node_id,
+              to_product_title: title,
+              to_product_url: nextProduct.delivery_url || nextProduct.payment_link || nextProduct.third_party_url || null,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      return ok({
+        suggestions,
+        catalogueCounts: {
+          A: catalogueByArchetype.A.length,
+          B: catalogueByArchetype.B.length,
+          C: catalogueByArchetype.C.length,
+          D: catalogueByArchetype.D.length,
+        },
+      });
+    }
+
     return err("Unknown action");
   } catch (err) {
     const errMessage = err instanceof Error ? err.message : String(err);
