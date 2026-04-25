@@ -183,7 +183,13 @@ export default function AuthorSite() {
     // first by created_at. Falls back to the first enriched book only when
     // there's no author_context row.
     const ctx = (contextRes as any)?.data;
-    const preferredBookId = (ctx?.book_id as string | undefined) || null;
+    // Public-safe RPC result is the source of truth; fall back to the
+    // owner-only author_context row when the RPC is unavailable.
+    const rpcCuratedBookId = (curatedBookIdRes as any)?.data as string | null | undefined;
+    const preferredBookId =
+      (typeof rpcCuratedBookId === "string" && rpcCuratedBookId) ||
+      (ctx?.book_id as string | undefined) ||
+      null;
     const sourceBook =
       (preferredBookId && enriched.find(b => b.id === preferredBookId)) ||
       enriched[0] ||
