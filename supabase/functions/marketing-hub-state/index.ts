@@ -277,13 +277,24 @@ Deno.serve(async (req) => {
 
       if (flowsErr) throw flowsErr;
 
-      const flowList = flows ?? [];
+      // Sort in framework order: master_nurture first, then BP-01 → BP-09 → BA-10 → ... → YR-28.
+      const NODE_ORDER: Record<string, number> = {};
+      ["BP-01","BP-02","BP-03","BP-04","BP-05","BP-06","BP-07","BP-08","BP-09",
+       "BA-10","BA-11","BA-12","BA-13","BA-14","BA-15","BA-16","BA-17","BA-18",
+       "YR-19","YR-20","YR-21","YR-22","YR-23","YR-24","YR-25","YR-26","YR-27","YR-28"]
+        .forEach((id, i) => { NODE_ORDER[id] = i + 1; });
+      const orderRank = (f: any) => {
+        if (f.flow_type === "master_nurture") return 0;
+        if (f.node_id && NODE_ORDER[f.node_id]) return NODE_ORDER[f.node_id];
+        return 999;
+      };
+      const flowList = (flows ?? []).slice().sort((a, b) => orderRank(a) - orderRank(b));
       let stepsByFlow: Record<string, any[]> = {};
 
       if (flowList.length > 0) {
         const { data: steps, error: stepsErr } = await cloudAdmin
           .from("email_flow_steps")
-          .select("id, flow_id, step_number, subject, trigger_delay_days")
+          .select("id, flow_id, step_number, subject, trigger_delay_days, body_markdown, preview_text")
           .in("flow_id", flowList.map((f) => f.id))
           .order("step_number", { ascending: true });
 
@@ -314,6 +325,61 @@ Deno.serve(async (req) => {
         steps_by_flow: stepsByFlow,
         active_enrollments_by_flow: enrollmentCounts,
       });
+    }
+
+    if (action === "update_sequence") {
+      const flowId = typeof body?.flow_id === "string" ? body.flow_id : "";
+      if (!flowId) return respond({ success: false, error: "flow_id is required." });
+
+      // Verify ownership
+      const { data: ownFlow } = await cloudAdmin
+        .from("email_flows")
+        .select("id")
+        .eq("id", flowId)
+        .eq("author_id", authorProfile.id)
+        .maybeSingle();
+      if (!ownFlow) return respond({ success: false, error: "Sequence not found." });
+
+      // Optional flow-level updates
+      const flowPatch: Record<string, unknown> = {};
+      if (typeof body?.title === "string") flowPatch.title = body.title.slice(0, 250);
+      if (typeof body?.description === "string") flowPatch.description = body.description.slice(0, 2000);
+      if (Object.keys(flowPatch).length > 0) {
+        const { error: upFlowErr } = await cloudAdmin
+          .from("email_flows")
+          .update(flowPatch)
+          .eq("id", flowId);
+        if (upFlowErr) throw upFlowErr;
+      }
+
+      // Replace steps if provided
+      if (Array.isArray(body?.steps)) {
+        const incoming = body.steps as any[];
+        // Delete existing then insert (avoids unique-constraint conflicts on step_number)
+        const { error: delErr } = await cloudAdmin
+          .from("email_flow_steps")
+          .delete()
+          .eq("flow_id", flowId);
+        if (delErr) throw delErr;
+
+        if (incoming.length > 0) {
+          const rows = incoming.map((s, idx) => ({
+            flow_id: flowId,
+            step_number: Number.isFinite(s.step_number) ? Number(s.step_number) : idx + 1,
+            trigger_delay_days: Number.isFinite(s.trigger_delay_days) ? Number(s.trigger_delay_days) : 0,
+            subject: typeof s.subject === "string" ? s.subject.slice(0, 500) : "",
+            body_markdown: typeof s.body_markdown === "string" ? s.body_markdown : (typeof s.body === "string" ? s.body : ""),
+            preview_text: typeof s.preview_text === "string" ? s.preview_text.slice(0, 500) : null,
+            status: "active",
+          }));
+          const { error: insErr } = await cloudAdmin
+            .from("email_flow_steps")
+            .insert(rows);
+          if (insErr) throw insErr;
+        }
+      }
+
+      return respond({ success: true });
     }
 
     if (action === "generate_all_sequences") {
