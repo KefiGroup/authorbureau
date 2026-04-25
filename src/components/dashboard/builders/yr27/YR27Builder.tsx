@@ -14,7 +14,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText } from "../shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your fundraising campaign...", "Creating donation tiers...", "Building your communication plan...", "Finalising your campaign..."];
 const ACT_MSGS = ["Creating donation payment links...", "Almost ready..."];

@@ -13,7 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary, SafeText } from "../yr-shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText } from "../shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your conference concept...", "Building the programme...", "Creating sponsorship packages...", "Finalising your event plan..."];
 const ACT_MSGS = ["Setting up ticket sales...", "Creating sponsorship pipeline...", "Almost ready..."];

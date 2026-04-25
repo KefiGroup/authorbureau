@@ -13,7 +13,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary, SafeText, SafeBlock } from "../yr-shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText, SafeBlock } from "../shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your exclusive mastermind...", "Crafting membership tiers...", "Building your application process...", "Finalising your mastermind programme..."];
 const ACT_MSGS = ["Setting up your membership tiers...", "Creating payment pages...", "Almost ready..."];
