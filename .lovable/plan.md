@@ -1,107 +1,118 @@
 ## Goal
 
-Make the dashboard explicitly state-aware so the user always sees the right "next move" based on whether they have **(A) no profile**, **(B) profile but no book**, **(C) one book**, or **(D) multiple books** — and rework the left sidebar so the per-book builders (BP / BA / YR / Review & Publish) cannot be entered without first picking which book they apply to.
+Drastically simplify the left sidebar. Per-book builders (Brand Products, Build Authority, Yield Revenue, Review & Publish) are no longer top-level navigation. They live **inside each book** — reached by clicking a book in My Books Hub, then navigating its tabs in Book Hub.
+
+This eliminates the multi-book chooser problem at the sidebar level: the user always picks a book first via My Books Hub, so there is never an ambiguous "which book is this for?" click.
 
 ---
 
-## The 4 dashboard states
+## New sidebar structure
 
-### State A — Brand new user (no profile, no book)
-**Main panel:**
-- Hero: "Welcome — let's set up your author profile first"
-- Single primary CTA: **Create my profile on PublishNow**
-- Secondary: **I've done it — Sync now**
-- Hide everything below (Abby, Framework, books grid)
+```text
+HOME
+  Dashboard
+  Ask ABBY                 (locked until 1+ book exists)
 
-**Sidebar:**
-- Show only: Dashboard, Ask ABBY (greyed w/ tooltip "Add a book first"), Author Profile
-- BP / BA / YR / Review & Publish / My Books Hub / My Funnels → locked with tooltip "Add a book to unlock"
+BUILD MY BUSINESS
+  My Business Plan         (author-level — the ABBY analysis & plan)
+  My Books Hub             (entry point to every book's builders)
 
----
+YOUR BRAND
+  Author Profile
+  My Author's Page
+  My Funnels
+  My CRM                   (tier-gated)
+  Messages
 
-### State B — Profile complete, 0 books
-**Main panel:**
-- Profile-complete confirmation strip (green)
-- Big card: **"Add your first book to unlock your business plan"**
-  - Primary CTA: **Add a book** (→ My Books Hub → add flow)
-  - Sub-text: "Each book gets its own 28-revenue-stream business plan"
-- Below: muted preview of the ABBY framework (visual only, not interactive)
+REVENUE & TOOLS
+  Marketing Hub
+  My Library
+  Revenue Dashboard
+  Connect Stripe
+  Payout Settings
+  Connect Settings
+```
 
-**Sidebar:**
-- Unlock: My Books Hub
-- BP / BA / YR / Review & Publish remain locked w/ tooltip "Add a book first"
-
----
-
-### State C — Exactly 1 book
-**Main panel — auto-focuses on that one book:**
-- "Working on: *[Book Title]*" context header (no picker needed)
-- Show the existing **Meet Abby — Analyze Your Book** card *only if* the book hasn't been analyzed
-- After analysis: show book progress bar `X/28 revenue streams built` + 3 quick-jump cards (Brand 0/9, Build 0/9, Yield 0/10)
-
-**Sidebar:**
-- The current book is auto-selected (the existing currentBook pill shows it)
-- BP / BA / YR / Review & Publish are clickable and route directly with the book context attached (`?bookId=...`)
-- No book switcher needed (only 1 book)
+Removed from sidebar entirely:
+- "Get Started" section header
+- Brand Products
+- Build Authority
+- Yield Revenue
+- Review & Publish
+- The current-book pill, the multi-book chooser popover, and the collapsible "Build Your Business" group
 
 ---
 
-### State D — Multiple books
-This is the key new behaviour. **Builders are book-scoped — the user must always pick which book they're working on.**
+## Where the builders live now
 
-**Main panel:**
-- Header: "You have N books" + small "Add another book" link
-- **Book picker grid** (cards, one per book):
-  ```
-  ┌─────────────────────┐  ┌─────────────────────┐
-  │ Cover               │  │ Cover               │
-  │ Title               │  │ Title               │
-  │ ▓▓▓▓░░░░ 12/28      │  │ ▓░░░░░░░ 2/28       │
-  │ Brand 5/9 Build 4/9 │  │ Brand 2/9 Build 0/9 │
-  │ Yield 3/10          │  │ Yield 0/10          │
-  │ [Open this book →]  │  │ [Open this book →]  │
-  └─────────────────────┘  └─────────────────────┘
-  ```
-- "Open this book" sets the active bookId and lands on that book's hub view (same UX as State C for that book)
+All four book-scoped builders are reached **only via Book Hub**:
 
-**Sidebar — new behaviour when user has >1 book and no active book selected:**
-- BP / BA / YR / Review & Publish are **visible but show a "Choose a book" state** instead of locked
-- Clicking them does NOT navigate to the builder; instead it opens a small **book chooser popover** ("Which book is this for?") listing all books → on pick, it sets `?bookId=...` and navigates to the builder
-- Once a book is active (`?bookId` present), the existing currentBook pill appears at the top of the Build Your Business section showing `[Book Title] — 12/28` with a "Switch book" affordance
-- My Books Hub stays the canonical place to switch/add books
+```text
+Sidebar → My Books Hub
+        → [click a book card]
+        → Book Hub (/book-hub/:bookId)
+            ├── Analysis tab          (was: dashboard overview content)
+            ├── 💰 Brand tab          (Brand Products — 9 nodes)
+            ├── 📈 Build tab          (Build Authority — 9 nodes)
+            ├── 🏆 Yield tab          (Yield Revenue — 10 nodes)
+            ├── ✅ Review & Publish   (NEW tab — replaces sidebar item)
+            └── Analytics tab
+```
+
+Book Hub already has Brand / Build / Yield tabs and routes individual node builders with `?bookId=...` attached, so the plumbing is in place. We add one new tab for **Review & Publish**.
 
 ---
 
-## Sidebar changes summary
+## Flow by user state
 
-| Item | No book | 1 book | Multiple books, no active | Multiple books, active book |
-|------|---------|--------|---------------------------|------------------------------|
-| Dashboard | ✓ | ✓ | ✓ | ✓ |
-| Ask ABBY | locked | ✓ | ✓ | ✓ |
-| My Books Hub | locked | ✓ | ✓ | ✓ |
-| My Business Plan | locked | ✓ (auto-book) | "Pick a book" chooser | ✓ (current book) |
-| Brand Products | locked | ✓ (auto-book) | "Pick a book" chooser | ✓ + per-book badge |
-| Build Authority | locked | ✓ | "Pick a book" chooser | ✓ + per-book badge |
-| Yield Revenue | locked | ✓ | "Pick a book" chooser | ✓ + per-book badge |
-| Review & Publish | locked | ✓ | "Pick a book" chooser | ✓ |
-| Author Profile / Microsite / Funnels / CRM / Messages | ✓ (author-level, no book scope) |
-| Marketing Hub / Library / Revenue / Stripe / Payouts / Connect | ✓ (author-level) |
+| State | Dashboard main panel | Sidebar behaviour |
+|---|---|---|
+| **A — No profile, no book** | "Create your profile on PublishNow" CTA | Ask ABBY locked; My Business Plan and My Books Hub visible but show "Add a book first" toast on click for My Business Plan |
+| **B — Profile, 0 books** | "Add your first book" CTA → My Books Hub | My Books Hub unlocked; My Business Plan locked until 1 book |
+| **C — 1 book** | Quick card: "Continue working on *[Book Title]*" → opens that Book Hub. ABBY analysis nudge if not yet analyzed | All sidebar items active. Per-book work happens inside Book Hub |
+| **D — Multiple books** | Multi-book picker grid (existing `MultiBookPicker.tsx`) — each card jumps into that book's Book Hub | Sidebar identical to State C — no per-book ambiguity because builders aren't in the sidebar |
 
 ---
 
 ## Files to change
 
-1. **`src/components/dashboard/DashboardOverview.tsx`** — add the 4-state branching (states A/B/C/D). Replace the current "Get Started" 3-step grid with state-specific content. Keep the sync-from-publishnow plumbing.
-2. **`src/components/dashboard/DashboardSidebar.tsx`** — add `bookCount` prop; make BP/BA/YR/Review locked when `bookCount === 0`; when `bookCount > 1` and no active book, intercept clicks on those items and open a new `<BookChooserPopover>`.
-3. **New `src/components/dashboard/BookChooserPopover.tsx`** — small list of the user's books that, on pick, navigates to `<intendedSection>?bookId=<picked>`.
-4. **`src/components/dashboard/DashboardLayout.tsx`** — pass `bookCount` from `stats` into the sidebar; pass the books list (or fetch on demand inside the popover via the existing `get-author-book` / a new `list-author-books` shape — reuse what `useAuthorStats` already returns where possible).
-5. **`src/pages/AuthorDashboard.tsx`** — when entering BP/BA/YR/Review without a `bookId` and the user has >1 book, render a **"Pick a book to continue"** chooser instead of the builder list (defence in depth in case a user types the URL directly).
-6. **`src/components/dashboard/MyBooks.tsx`** — add the multi-book picker grid (card per book with B/B/Y progress) used by State D's main panel.
+1. **`src/components/dashboard/DashboardSidebar.tsx`**
+   - Remove `businessItems` array (Brand / Build / Yield / Review & Publish), the collapsible "Build Your Business" section, the current-book pill, and `BookChooserPopover` integration.
+   - Rename "GET STARTED" → "BUILD MY BUSINESS"; keep only `My Business Plan` + `My Books Hub` in it.
+   - Remove props no longer needed: `currentBook`, `bookCount`, `books`, `perBookStats`, `onPickBookForSection`, `buildAuthorityCategoryOpen`, `yieldCategoryOpen`, `buildUnlocked`, `buildAuthorityUnlocked`, `yieldUnlocked`, `pendingReviewCount` (the badge moves to My Books Hub item only).
+   - `My Business Plan` shown locked with "Add a book first" when `bookCount === 0`.
 
-No edge function or DB changes — `author-stats` already returns `bookCount` and `products.perBook` with brand/build/yield/total per book, which is everything the new UI needs.
+2. **`src/components/dashboard/DashboardLayout.tsx`** & **`src/pages/AuthorDashboard.tsx`**
+   - Stop passing the removed props to `DashboardSidebar`.
+   - Keep the `?bookId=` query handling for deep links from Book Hub into individual node builders (still needed).
+   - Remove the "Pick a book to continue" guard for sidebar-driven entry into BP/BA/YR/Review (no longer reachable that way). Keep it as a safety net only for direct URL access (`/dashboard?section=revenue-streams`) — redirect such URLs to `My Books Hub` if no `bookId` is present.
+
+3. **`src/components/dashboard/DashboardOverview.tsx`** (and the framework dashboard wrapper)
+   - State A: profile creation CTA only.
+   - State B: "Add your first book" CTA only.
+   - State C: single-book quick-resume card linking to that book's Book Hub.
+   - State D: keep `MultiBookPicker` grid as the primary surface.
+   - Remove any inline "Brand / Build / Yield quick-jump" sections that bypass Book Hub.
+
+4. **`src/pages/BookHub.tsx`**
+   - Add a 5th tab `Review & Publish` between `🏆 Yield` and `Analytics`.
+   - Render the existing review-products view (the same component used today by the sidebar's "Review & Publish") inside that tab, scoped to the current `bookId`.
+   - Show a numeric badge on the tab when the book has pending review items.
+
+5. **`src/components/dashboard/MyBooks.tsx`**
+   - Each book card's primary action navigates to `/book-hub/:bookId` (already does for some flows — make uniform).
+   - Surface per-book progress (Brand X/9, Build X/9, Yield X/10) on the card so users see status before entering.
+
+6. **Delete or stop importing**:
+   - `src/components/dashboard/BookChooserPopover.tsx` (no longer needed at sidebar level — can be kept if used elsewhere; otherwise remove import in sidebar).
+   - `useMyBooks` calls inside `DashboardSidebar` (still used by dashboard overview).
+
+No edge function or DB changes required. `author-stats` already supplies `bookCount` and per-book progress.
 
 ---
 
-## Out of scope (call out, not doing now)
-- Author-level vs book-level node split (e.g. some BP nodes today are tracked on `author_nodes` with no book_id and get attributed to the oldest book). That attribution stays as-is; we just surface it cleanly per book in the new UI.
-- Changing how builders themselves consume `bookId` — they already accept it via route/query param.
+## Out of scope
+
+- Renaming Book Hub tabs or reordering them beyond adding "Review & Publish".
+- Changing how individual node builders consume `bookId` — they still accept it via route/query param.
+- Tier gating logic (Brand/Build/Yield plan tiers) — still enforced inside Book Hub tabs themselves, not at the sidebar.

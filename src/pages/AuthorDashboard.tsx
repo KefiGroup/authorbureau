@@ -556,16 +556,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           hasMicrosite={hasMicrosite}
           stripeConnected={stripeConnected}
           pendingReviewCount={pendingReviewCount}
-          buildUnlocked={stats.nodesBuilt?.brand || 0}
-          buildAuthorityUnlocked={stats.nodesBuilt?.buildAuthority || 0}
-          yieldUnlocked={stats.nodesBuilt?.yield || 0}
-          buildAuthorityCategoryOpen={!isCategoryFullyClosed("marketing-channels")}
-          yieldCategoryOpen={!isCategoryFullyClosed("authority-builders")}
-          currentBook={sidebarCurrentBook}
           bookCount={stats.bookCount}
-          books={myBooks}
-          perBookStats={stats.products?.perBook}
-          onPickBookForSection={handlePickBookForSection}
         />
       </div>
       <div className="flex flex-1 flex-col min-w-0 h-[100dvh] overflow-hidden">
