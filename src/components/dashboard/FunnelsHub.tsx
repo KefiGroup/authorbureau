@@ -181,19 +181,38 @@ export default function FunnelsHub() {
       return;
     }
 
-    const newFunnel = data?.funnel;
-    const newId: string | undefined = newFunnel?.id;
-    const newSlug: string | undefined = newFunnel?.slug;
-    const newTitle: string = newFunnel?.title || NODE_NAMES[nodeId] || "your funnel";
+    const newFunnel = data?.funnel as Funnel | undefined;
+    if (!newFunnel?.id) {
+      toast({ title: "ABBY couldn't build that funnel", description: "No funnel data returned. Please try again.", variant: "destructive" });
+      return;
+    }
+    const newId = newFunnel.id;
+    const newSlug = newFunnel.slug;
+    const newTitle = newFunnel.title || NODE_NAMES[nodeId] || "your funnel";
     const url = newSlug && authorSlug ? `${window.location.origin}/${authorSlug}/${newSlug}` : null;
 
-    // Make sure the new card is visible regardless of active filter
+    // OPTIMISTIC: prepend the new funnel immediately so the card appears
+    setFunnels((prev) => [newFunnel, ...prev.filter((f) => f.id !== newId)]);
+    // Reset filter so it can't be hidden
     setFilter("all");
-    await loadFunnels(authorId);
+    // Reconcile in background (best-effort; if it returns stale rows, we keep the optimistic insert)
+    (async () => {
+      const { data: refreshed } = await supabase
+        .from("funnels")
+        .select("*")
+        .eq("author_id", authorId)
+        .order("created_at", { ascending: false });
+      if (refreshed && refreshed.length > 0) {
+        const merged = refreshed.some((r) => r.id === newId)
+          ? (refreshed as Funnel[])
+          : ([newFunnel, ...refreshed] as Funnel[]);
+        setFunnels(merged);
+      }
+    })();
 
     toast({
       title: `Funnel created: ${newTitle}`,
-      description: url ? "Scroll down to preview, copy the link, or edit the copy." : "Your new funnel is ready below.",
+      description: url ? "See the preview below — open it, copy the link, or edit the copy." : "Your new funnel is ready below.",
       action: url ? (
         <button
           onClick={() => window.open(url, "_blank")}
@@ -204,7 +223,7 @@ export default function FunnelsHub() {
       ) : undefined,
     });
 
-    if (newId) flashFunnel(newId);
+    flashFunnel(newId);
   };
 
   const toggleStatus = async (f: Funnel) => {
@@ -249,7 +268,7 @@ export default function FunnelsHub() {
     if (!regenerateTarget) return;
     const targetId = regenerateTarget.id;
     setRegenerating(true);
-    const { error } = await supabase.functions.invoke("generate-funnel", {
+    const { data, error } = await supabase.functions.invoke("generate-funnel", {
       body: {
         node_id: regenerateTarget.node_id,
         funnel_type: regenerateTarget.funnel_type,
@@ -260,8 +279,12 @@ export default function FunnelsHub() {
     setRegenerating(false);
     setRegenerateTarget(null);
     if (error) { toast({ title: "Regeneration failed", description: error.message, variant: "destructive" }); return; }
+    const refreshed = data?.funnel as Funnel | undefined;
+    if (refreshed?.id) {
+      setFunnels((prev) => prev.map((f) => (f.id === refreshed.id ? { ...f, ...refreshed } : f)));
+    }
     toast({ title: "ABBY regenerated your funnel", description: "Fresh copy is loaded below — review and tweak as needed." });
-    if (authorId) await loadFunnels(authorId);
+    if (authorId) loadFunnels(authorId);
     flashFunnel(targetId);
   };
 
@@ -450,7 +473,28 @@ export default function FunnelsHub() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2">
+        <>
+          {highlightId && (() => {
+            const just = funnels.find((f) => f.id === highlightId);
+            if (!just) return null;
+            const justUrl = liveUrl(just.slug);
+            return (
+              <div className="mb-4 flex items-center gap-3 p-3 rounded-lg border-2 border-primary bg-primary/5 animate-in fade-in slide-in-from-top-2">
+                <Sparkles className="h-5 w-5 text-primary shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-xs font-semibold text-primary uppercase tracking-wider">Just created</div>
+                  <div className="text-sm font-medium truncate">{just.title}</div>
+                </div>
+                <Button size="sm" variant="default" onClick={() => window.open(justUrl, "_blank")}>
+                  <Eye className="h-3.5 w-3.5 mr-1" />Open
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing({ ...just })}>
+                  <Edit className="h-3.5 w-3.5 mr-1" />Edit copy
+                </Button>
+              </div>
+            );
+          })()}
+          <div className="grid gap-4 md:grid-cols-2">
           {filtered.map((f) => {
             const rate = f.page_views > 0 ? ((f.conversions / f.page_views) * 100).toFixed(1) : "0.0";
             const url = liveUrl(f.slug);
@@ -464,7 +508,38 @@ export default function FunnelsHub() {
                     : ""
                 }`}
               >
-                <div className="h-2" style={{ backgroundColor: f.accent_color }} />
+                {/* Hero preview — shows the actual designed funnel copy */}
+                <div
+                  className="relative px-5 pt-5 pb-4"
+                  style={{
+                    backgroundColor: f.background_color || "#0B1220",
+                    color: "#fff",
+                  }}
+                >
+                  <div
+                    className="absolute top-0 left-0 right-0 h-1"
+                    style={{ backgroundColor: f.accent_color }}
+                  />
+                  {f.headline && (
+                    <h4 className="text-base font-bold leading-snug mb-1.5 line-clamp-2">
+                      {f.headline}
+                    </h4>
+                  )}
+                  {f.subheadline && (
+                    <p className="text-xs opacity-80 leading-relaxed mb-3 line-clamp-2">
+                      {f.subheadline}
+                    </p>
+                  )}
+                  {f.cta_text && (
+                    <div
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-black"
+                      style={{ backgroundColor: f.accent_color || "#D4AF37" }}
+                    >
+                      {f.cta_text}
+                      <span aria-hidden>→</span>
+                    </div>
+                  )}
+                </div>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
                     <div className="min-w-0 flex-1">
@@ -551,7 +626,8 @@ export default function FunnelsHub() {
               </Card>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {/* Inline editor */}
