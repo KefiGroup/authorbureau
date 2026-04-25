@@ -1,71 +1,60 @@
-# Fix: "What's inside the book" still shows wrong book on /pauline-teo
+# Step 3 — Funnel Template Family (4 Archetypes)
 
-## Root cause (verified)
+Refactor `generate-funnel` so a single generator produces archetype-tailored copy for all 28 revenue nodes, replacing the current 5 ad-hoc `funnel_type` prompts.
 
-The previous "anchor to `author_context.book_id`" fix is in `AuthorSite.tsx`, but it never runs for public visitors.
+## Why
 
-`AuthorSite.tsx` queries `public.author_context` directly from the browser. RLS on that table only allows the *owner* (`auth.uid() = author_profiles.user_id`) to SELECT. For everyone else — including anonymous visitors landing on `authorsbureau.com/pauline-teo` — the query returns no rows.
+Today `generate-funnel` has one generic prompt with five `funnel_type` strings, and `FunnelsHub` only allows generating funnels for 4 nodes (`BP-02`, `BP-04`, `BP-05`, `BP-09`). Step 1 already tagged every node with an archetype (A/B/C/D). This step uses that tag so every node — including high-touch services (C) and events (D) — gets a tailored funnel page.
 
-When `ctx` is null:
-- `preferredBookId` is null
-- `sourceBook` falls back to `enriched[0]`, the most recently created published book
-- For Pauline, that is "Invest Like Buffett for Parents" (created 2026-04-24), not "Be SUCKcessful" (created 2026-04-11)
-- `highlights` then come from that book's `description`, producing the "rich/poor dad/mum / Buffett formula" bullets the user is seeing
+## Changes
 
-DB state confirms the data is correct — only the read path is broken:
-- `author_context` row for Pauline has `book_id = e5b857ac...` (Be SUCKcessful)
-- `key_frameworks` and `unique_insights` are both `[]` (so highlights will always come from the book's `description`)
-- Be SUCKcessful's description starts with "Every Master Was Once a Disaster…" — exactly the content we want shown
+### 1. `supabase/functions/generate-funnel/index.ts` — refactor
+- Add `funnelTypeToArchetype()` mapper for backward compatibility with existing strings (`opt_in`, `lead_magnet`, `webinar`, `webinar_registration`, `sales`) plus new ones (`application`, `event`).
+- When `node_id` is provided, look up `author_nodes.archetype` and prefer it over the funnel_type mapping (single source of truth).
+- Replace the single prompt with `archetypeTemplate(archetype, ctx)` returning `{system, user, focus}` per archetype:
+  - **A — Digital Sales**: long-form sales structure (hook → promise → product → outcomes → objections → CTA)
+  - **B — Opt-in**: short, frictionless (one-line promise → 3 bullets → social proof → reassurance), <180 words
+  - **C — Application**: pre-qualifying ("for you if" / "not for you if" / what's included / apply step)
+  - **D — Event**: vibe + experience bullets + audience + logistics + scarcity
+- All 4 templates emit the same JSON shape (`title`, `slug`, `headline`, `subheadline`, `body_copy`, `cta_text`) so the existing `funnels` table and `FunnelPage.tsx` renderer work unchanged.
+- Response includes `archetype` so callers can show a badge.
 
-## Fix
+### 2. `src/components/dashboard/FunnelsHub.tsx` — expand coverage
+- Remove the hardcoded `FUNNEL_ELIGIBLE_NODES` whitelist.
+- Drive eligibility from live `author_nodes` (any node with `status='live'` is eligible).
+- Replace `NODE_TO_FUNNEL_TYPE` lookup with archetype-derived defaults:
+  - A → `sales` · B → `opt_in` · C → `application` · D → `event`
+- Show the archetype letter as a badge next to each funnel row.
 
-Add a small, read-only public surface for the curated book pointer, then use it.
+### 3. No DB migration needed
+Schema already supports it — `funnels.funnel_type` is free text and we keep it backward-compatible.
 
-### 1. New SQL migration
+## Architecture
 
-Create a SECURITY DEFINER function that returns just the curated `book_id` for a given `author_profile_id`. No other `author_context` columns are exposed (the curated frameworks/insights remain private until the team is ready to publish them).
-
-```sql
-create or replace function public.get_author_curated_book_id(_author_id uuid)
-returns uuid
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select book_id
-  from public.author_context
-  where author_id = _author_id
-    and book_id is not null
-  order by created_at desc
-  limit 1
-$$;
-
-grant execute on function public.get_author_curated_book_id(uuid) to anon, authenticated;
+```text
+                    ┌─────────────────┐
+   node_id ───────► │ author_nodes    │ ── archetype (A/B/C/D) ──┐
+                    └─────────────────┘                          │
+   funnel_type ──── funnelTypeToArchetype() ────── fallback ─────┤
+                                                                 ▼
+                                                  archetypeTemplate(archetype, ctx)
+                                                                 │
+                                          ┌──────────┬───────────┼───────────┬──────────┐
+                                          ▼          ▼           ▼           ▼
+                                       A·Sales    B·Opt-in   C·Application  D·Event
+                                          └──────────┴───────────┴───────────┴──────────┘
+                                                              │
+                                                  Lovable AI gateway (gpt-5.2)
+                                                              │
+                                                       funnels row inserted
 ```
 
-### 2. `src/pages/AuthorSite.tsx`
+## Out of scope
+- FunnelPage.tsx visual layout (still one template — copy differs by archetype).
+- A/B/C/D-specific page sections (e.g. application form embed, ticket grid). Those are Step 3.5 / future polish.
+- Backfilling existing funnels to the new copy structure (existing rows untouched; authors can click "Regenerate" to upgrade).
 
-Replace the direct `author_context` SELECT with an RPC call that works for anonymous visitors:
-
-- Drop `contextRes` from the `Promise.all` and instead call `supabase.rpc('get_author_curated_book_id', { _author_id: profile.id })` — keeps the public-vs-owner code path identical.
-- Keep `preferredBookId` logic as-is. For owners we can still optionally read `key_frameworks` / `unique_insights` (currently empty for Pauline anyway), but to keep the change minimal and unblock the live bug, this plan only restores the `preferredBookId`. Highlights continue to come from `sourceBook.description`, which is the path actually rendering on Pauline's site today.
-- Result: `sourceBook` resolves to Be SUCKcessful, the subtitle reads "From Be SUCKcessful", and the bullets come from the SUCKCESS description ("Every Master Was Once a Disaster…", "From a girl who didn't know how to cut her nails…", etc.).
-
-### 3. Verify
-
-After deploy, on `authorsbureau.com/pauline-teo` the "What's inside the book" section should show:
-- Subtitle: *From Be SUCKcessful*
-- 4–6 bullets sourced from the SUCKcessful description
-
-No other sections / behaviour change.
-
-## Files touched
-
-- `supabase/migrations/<timestamp>_expose_curated_book_id.sql` (new)
-- `src/pages/AuthorSite.tsx` (swap one query, ~10 lines)
-
-## Out of scope (intentionally)
-
-- Populating `key_frameworks` / `unique_insights` for Be SUCKcessful — those are empty in the DB; even if we exposed them publicly there would be nothing to render. Can be a follow-up once Abby analysis runs.
-- Touching the `author_profiles_public` view, hero bio, CTAs, currency formatting, or any other previously-fixed area.
+## Verification
+- Deploy `generate-funnel`.
+- For one node from each archetype (e.g. BP-09 / BP-02 / YR-19 / YR-24), call `generate-funnel` and confirm copy structure matches the template + `archetype` is returned.
+- Open FunnelsHub and confirm previously-uneligible nodes (e.g. YR-19, YR-24) now appear and generate correctly.
