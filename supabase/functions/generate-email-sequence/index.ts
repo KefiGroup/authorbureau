@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
         : Promise.resolve({ data: null }),
     ]);
 
-    const nodeCtx = getNodeContext(node_id);
+    const nodeCtx = getNodeContext(node_id || '');
 
     const cadenceLine = preset.cadence
       ? `Use this exact cadence (trigger_delay_days for each step in order): ${JSON.stringify(preset.cadence)}.`
