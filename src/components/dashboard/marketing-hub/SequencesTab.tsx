@@ -78,15 +78,24 @@ export default function SequencesTab() {
   const generateAll = async () => {
     setGeneratingAll(true);
     try {
-      const res = await callMarketingHubState<{ attempted: number; skipped_existing: number; results: any[] }>(
+      const res = await callMarketingHubState<{ attempted: number; skipped_existing: number; background?: boolean }>(
         "generate_all_sequences", { include_master: true }
       );
-      const created = (res.results || []).filter((r) => r.status === "created").length;
-      const failed = (res.results || []).filter((r) => r.status !== "created").length;
-      toast({
-        title: `Generated ${created} sequence${created === 1 ? "" : "s"}`,
-        description: `${res.skipped_existing} existing skipped${failed ? ` · ${failed} failed` : ""}.`,
-      });
+      if (res.attempted === 0) {
+        toast({
+          title: "All sequences already generated",
+          description: `${res.skipped_existing} existing sequence${res.skipped_existing === 1 ? "" : "s"} found — nothing to do.`,
+        });
+      } else {
+        toast({
+          title: `Generating ${res.attempted} sequence${res.attempted === 1 ? "" : "s"} in the background`,
+          description: `This takes a few minutes. We'll notify you when it's done. ${res.skipped_existing} existing skipped.`,
+        });
+        // Poll a few times so new sequences appear without a manual refresh.
+        setTimeout(() => { load(); }, 15000);
+        setTimeout(() => { load(); }, 45000);
+        setTimeout(() => { load(); }, 90000);
+      }
       await load();
     } catch (err: any) {
       toast({ title: "Couldn't generate sequences", description: err.message, variant: "destructive" });
