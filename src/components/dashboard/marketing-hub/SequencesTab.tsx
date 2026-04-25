@@ -37,17 +37,21 @@ export default function SequencesTab() {
   const navigate = useNavigate();
   const [flows, setFlows] = useState<FlowRow[]>([]);
   const [steps, setSteps] = useState<Record<string, Step[]>>({});
+  const [enrollments, setEnrollments] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [generatingAll, setGeneratingAll] = useState(false);
 
   const load = async () => {
     try {
       const res = await callMarketingHubState<{
         flows: FlowRow[];
         steps_by_flow: Record<string, Step[]>;
+        active_enrollments_by_flow?: Record<string, number>;
       }>("sequences");
       setFlows(res.flows || []);
       setSteps(res.steps_by_flow || {});
+      setEnrollments(res.active_enrollments_by_flow || {});
     } catch (err: any) {
       toast({ title: "Couldn't load sequences", description: err.message, variant: "destructive" });
     } finally {
@@ -71,18 +75,57 @@ export default function SequencesTab() {
     }
   };
 
+  const generateAll = async () => {
+    setGeneratingAll(true);
+    try {
+      const res = await callMarketingHubState<{ attempted: number; skipped_existing: number; results: any[] }>(
+        "generate_all_sequences", { include_master: true }
+      );
+      const created = (res.results || []).filter((r) => r.status === "created").length;
+      const failed = (res.results || []).filter((r) => r.status !== "created").length;
+      toast({
+        title: `Generated ${created} sequence${created === 1 ? "" : "s"}`,
+        description: `${res.skipped_existing} existing skipped${failed ? ` · ${failed} failed` : ""}.`,
+      });
+      await load();
+    } catch (err: any) {
+      toast({ title: "Couldn't generate sequences", description: err.message, variant: "destructive" });
+    } finally {
+      setGeneratingAll(false);
+    }
+  };
+
+  const totalActiveEnrollments = Object.values(enrollments).reduce((a, b) => a + b, 0);
+
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
 
+  const Header = (
+    <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+      <div className="text-xs text-muted-foreground">
+        <span className="font-medium text-foreground">{flows.length}</span> sequence{flows.length === 1 ? "" : "s"}
+        {" · "}
+        <span className="font-medium text-foreground">{totalActiveEnrollments}</span> active enrollment{totalActiveEnrollments === 1 ? "" : "s"}
+      </div>
+      <Button size="sm" variant="outline" className="h-8 text-xs" onClick={generateAll} disabled={generatingAll}>
+        {generatingAll ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+        Generate sequences for all 28 nodes
+      </Button>
+    </div>
+  );
+
   if (flows.length === 0) {
     return (
-      <div className="text-center py-16 rounded-xl border border-dashed border-border bg-card">
-        <Sparkles className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-        <h3 className="text-base font-semibold">No email sequences yet</h3>
-        <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
-          Abby will write your first sequence the moment you publish a lead magnet, email campaign, or webinar.
-        </p>
+      <div>
+        {Header}
+        <div className="text-center py-16 rounded-xl border border-dashed border-border bg-card">
+          <Sparkles className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+          <h3 className="text-base font-semibold">No email sequences yet</h3>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+            Click "Generate sequences for all 28 nodes" to have Abby write a tailored nurture flow for every revenue node, plus an always-on master nurture sequence.
+          </p>
+        </div>
       </div>
     );
   }
