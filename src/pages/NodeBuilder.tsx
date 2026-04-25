@@ -145,11 +145,11 @@ export default function NodeBuilder() {
         {/* Back link */}
         <div className="max-w-5xl mx-auto px-4 pt-4">
           <Link
-            to={getHubPath(nodeId!, bookId)}
+            to={getHubPath(nodeId!, bookId, from)}
             className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to {getHubLabel(nodeId!, bookId)}
+            Back to {getHubLabel(nodeId!, bookId, from)}
           </Link>
         </div>
         <Builder authorId={authorId} bookId={bookId} />
