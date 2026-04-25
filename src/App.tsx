@@ -148,9 +148,9 @@ const AppRoutes = () => (
       <Route path="/book-hub/:bookId" element={<BookHub />} />
       <Route path="/my-books" element={<AuthorDashboard initialSection="my-books" />} />
       <Route path="/my-contacts" element={<AuthorDashboard initialSection={"author-crm" as any} />} />
-      <Route path="/brand-products" element={<ProtectedRoute><BrandProductsHub /></ProtectedRoute>} />
-      <Route path="/build-authority" element={<ProtectedRoute><BuildAuthorityHub /></ProtectedRoute>} />
-      <Route path="/yield-revenue" element={<ProtectedRoute><YieldRevenueHub /></ProtectedRoute>} />
+      <Route path="/brand-products" element={<ProtectedRoute><HubRedirect kind="brand" /></ProtectedRoute>} />
+      <Route path="/build-authority" element={<ProtectedRoute><HubRedirect kind="build" /></ProtectedRoute>} />
+      <Route path="/yield-revenue" element={<ProtectedRoute><HubRedirect kind="yield" /></ProtectedRoute>} />
       <Route path="/revenue-dashboard" element={<ProtectedRoute><RevenueFullDashboard /></ProtectedRoute>} />
       <Route path="/abby-coach" element={<ProtectedRoute><AbbyCoachPage /></ProtectedRoute>} />
       <Route path="/special-editions-calendar" element={<ProtectedRoute><SpecialEditionCalendarPage /></ProtectedRoute>} />
