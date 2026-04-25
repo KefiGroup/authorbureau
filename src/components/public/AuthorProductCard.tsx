@@ -216,9 +216,31 @@ export default function AuthorProductCard({
         )}
       </div>
 
-      {/* CTA — unified through ProductCTA (4-state matrix) */}
+      {/* CTA — informational nodes (Podcast, Media Kit, Affiliate, JV) get a
+          direct link; high-touch services get Contact; everything else routes
+          through ProductCTA's 4-state matrix. */}
       <div className="mt-auto">
-        {isHighTouchInquiry && !isOwnerViewing ? (
+        {informational && !isOwnerViewing ? (
+          <Button
+            asChild
+            className="w-full"
+            style={{ background: v.accent, color: v.accentText }}
+          >
+            <a
+              href={informationalHref}
+              target={informationalHref.startsWith("http") ? "_blank" : undefined}
+              rel={informationalHref.startsWith("http") ? "noopener noreferrer" : undefined}
+            >
+              <informational.Icon className="mr-2 h-4 w-4" />
+              {informational.label}
+              {informationalHref.startsWith("http") ? (
+                <ExternalLink className="ml-2 h-3.5 w-3.5" />
+              ) : (
+                <ArrowRight className="ml-2 h-3.5 w-3.5" />
+              )}
+            </a>
+          </Button>
+        ) : isHighTouchInquiry && !isOwnerViewing ? (
           <Button
             asChild
             variant="outline"
