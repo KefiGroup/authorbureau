@@ -626,7 +626,8 @@ export default function FunnelsHub() {
               </Card>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {/* Inline editor */}
