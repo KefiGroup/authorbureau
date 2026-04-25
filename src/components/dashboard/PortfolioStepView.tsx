@@ -7,10 +7,12 @@ import { ABBY_CATEGORIES, getStudioPath, type AbbyCategory } from "@/config/abby
 import { isSuperAdmin } from "@/lib/superadmin";
 import { useNodeGating } from "@/hooks/useNodeGating";
 import { useBookNodeProgress, type NodeWithProgress, type NodeStatus } from "@/hooks/useBookNodeProgress";
+import { useNodeLiveStats } from "@/hooks/useNodeLiveStats";
 import { ACCENT_CLASSES, categoryToAccent } from "@/components/dashboard/book-hub/categoryAccent";
 import NextStepCard from "@/components/dashboard/book-hub/NextStepCard";
 import CategoryProgressDots from "@/components/dashboard/book-hub/CategoryProgressDots";
-import SmartProductCard, { type ProductCardState } from "@/components/dashboard/SmartProductCard";
+import SmartProductCard, { type ProductCardState, BASELINE_REVENUE } from "@/components/dashboard/SmartProductCard";
+import { buildRecommendationCopy } from "@/lib/recommendation-copy";
 
 interface BookSummary { id: string; title: string; }
 
@@ -21,20 +23,17 @@ interface Props {
   analyzedBooks?: BookSummary[];
 }
 
-const CATEGORY_HEADLINES: Record<string, { title: string; revenue: string; intro: string }> = {
+const CATEGORY_HEADLINES: Record<string, { title: string; intro: string }> = {
   "revenue-streams": {
     title: "Build Your Brand",
-    revenue: "$5,520 – $15,480 /yr potential",
     intro: "Foundation first. These 9 products turn your book into a recognizable brand. Start at #1 and work down — each step amplifies the next.",
   },
   "marketing-channels": {
     title: "Build Your Authority",
-    revenue: "$13,500 – $39,480 /yr potential",
     intro: "Scale your reach. Now that your brand is in place, these 9 products turn followers into students, clients, and partners.",
   },
   "authority-builders": {
     title: "Yield Premium Revenue",
-    revenue: "$68,400 – $215,520 /yr potential",
     intro: "High-ticket services. Unlike Brand and Build, these 10 don't require sequence — pursue the ones that match your strengths and audience demand.",
   },
 };
