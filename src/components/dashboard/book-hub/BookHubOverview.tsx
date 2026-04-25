@@ -349,7 +349,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
       )}
 
       {/* 4. Tier upgrade CTA — free only */}
-      {tier === "free" && (
+      {effectiveTier === "free" && (
         <div className="rounded-2xl border-2 border-secondary/30 bg-secondary/5 p-5">
           <p className="text-sm font-medium mb-3">Ready to start building? Unlock the AI builders to create these products automatically.</p>
           <div className="flex flex-wrap gap-2">
