@@ -68,6 +68,7 @@ export default function SequencesTab() {
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingSingle, setGeneratingSingle] = useState(false);
   const [pulseId, setPulseId] = useState<string | null>(null);
+  const [editingFlow, setEditingFlow] = useState<FlowRow | null>(null);
 
   const load = async () => {
     try {
