@@ -47,14 +47,23 @@ interface LiveNode {
   node_id: string;
   microsite_url: string | null;
   status: string;
+  archetype: "A" | "B" | "C" | "D" | null;
 }
 
-const FUNNEL_ELIGIBLE_NODES = ["BP-02", "BP-04", "BP-05", "BP-09"];
-const NODE_TO_FUNNEL_TYPE: Record<string, string> = {
-  "BP-02": "lead_magnet",
-  "BP-04": "opt_in",
-  "BP-05": "webinar_registration",
-  "BP-09": "sales",
+// Archetype-derived defaults. The edge function also resolves the archetype
+// from author_nodes server-side, so this is just the seed funnel_type string.
+const ARCHETYPE_TO_FUNNEL_TYPE: Record<"A" | "B" | "C" | "D", string> = {
+  A: "sales",
+  B: "opt_in",
+  C: "application",
+  D: "event",
+};
+
+const ARCHETYPE_LABEL: Record<"A" | "B" | "C" | "D", string> = {
+  A: "Sales",
+  B: "Opt-in",
+  C: "Application",
+  D: "Event",
 };
 
 export default function FunnelsHub() {
