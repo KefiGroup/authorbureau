@@ -250,9 +250,9 @@ export default function SmartProductCard({
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
-            state === "locked" ? "bg-muted" : state === "coming-soon" ? "bg-muted/60" : "bg-gradient-to-br from-secondary/20 to-secondary/5"
+            state === "locked" ? "bg-muted" : state === "coming-soon" ? "bg-muted/60" : catTokens.iconBg
           }`}>
-            <Icon className={`h-5 w-5 ${state === "locked" || state === "coming-soon" ? "text-muted-foreground/40" : "text-secondary"}`} />
+            <Icon className={`h-5 w-5 ${state === "locked" || state === "coming-soon" ? "text-muted-foreground/40" : catTokens.iconText}`} />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
