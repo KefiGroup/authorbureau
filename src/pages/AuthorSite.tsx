@@ -22,6 +22,7 @@ import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
 import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
 import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
+import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
 import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
