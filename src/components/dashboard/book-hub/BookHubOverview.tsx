@@ -77,12 +77,19 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
 
   useEffect(() => {
     async function checkData() {
-      const { data: { session: sharedSession } } = await sharedSupabase.auth.getSession();
-      const { data: { session: cloudSession } } = await supabase.auth.getSession();
-      const session = sharedSession || cloudSession;
-      const token = session?.access_token;
-      const userId = session?.user?.id;
-      if (!userId) { setDataReady(true); return; }
+      const token = await getActiveToken();
+      let userId: string | null = null;
+      if (token) {
+        try {
+          const parts = token.split(".");
+          if (parts.length >= 2) {
+            let p = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+            while (p.length % 4) p += "=";
+            userId = JSON.parse(atob(p))?.sub ?? null;
+          }
+        } catch { /* ignore */ }
+      }
+      if (!token || !userId) { setDataReady(true); return; }
 
       try {
         const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
