@@ -165,50 +165,59 @@ function getDifficultyStars(level: number) {
 
 const difficultyLabels = ["", "Expert", "Hard", "Medium", "Easy", "Easy"];
 
-const stateConfig: Record<ProductCardState, { badge: string; badgeClass: string; borderClass: string; cardBg: string; stripColor: string }> = {
-  recommended: {
-    badge: "⭐ Recommended",
-    badgeClass: "bg-secondary/15 text-secondary border-secondary/30",
-    borderClass: "border-secondary/40 shadow-[0_0_24px_-4px_hsl(var(--secondary)/0.25)]",
-    cardBg: "bg-gradient-to-br from-secondary/[0.06] via-card to-card",
-    stripColor: "bg-secondary",
-  },
-  available: {
-    badge: "Ready to Build",
-    badgeClass: "bg-primary/5 text-primary border-primary/20 dark:bg-primary/10 dark:text-primary-foreground/80",
-    borderClass: "border-border hover:border-secondary/40",
-    cardBg: "bg-card",
-    stripColor: "bg-primary/40",
-  },
-  locked: {
-    badge: "",
-    badgeClass: "bg-muted text-muted-foreground border-border",
-    borderClass: "border-border opacity-55",
-    cardBg: "bg-muted/30",
-    stripColor: "bg-muted-foreground/30",
-  },
-  "in-progress": {
-    badge: "🔨 Building",
-    badgeClass: "bg-secondary/15 text-secondary border-secondary/30",
-    borderClass: "border-secondary/40 shadow-[0_0_16px_-4px_hsl(var(--secondary)/0.2)]",
-    cardBg: "bg-gradient-to-br from-secondary/[0.06] via-card to-card",
-    stripColor: "bg-secondary",
-  },
-  published: {
-    badge: "✅ Live",
-    badgeClass: "bg-success/15 text-success border-success/30",
-    borderClass: "border-success/40 shadow-[0_0_16px_-4px_hsl(var(--success)/0.2)]",
-    cardBg: "bg-gradient-to-br from-success/[0.06] via-card to-card",
-    stripColor: "bg-success",
-  },
-  "coming-soon": {
-    badge: "Coming Soon",
-    badgeClass: "bg-muted text-muted-foreground/60 border-border",
-    borderClass: "border-border",
-    cardBg: "bg-muted/20",
-    stripColor: "bg-muted-foreground/20",
-  },
-};
+function buildStateConfig(state: ProductCardState, cat: BuilderCategory) {
+  const c = categoryCard[cat];
+  switch (state) {
+    case "recommended":
+      return {
+        badge: "⭐ Recommended",
+        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
+        borderClass: `${c.border} ${c.glow} ${c.ring}`,
+        cardBg: c.gradient,
+        stripColor: c.strip,
+      };
+    case "available":
+      return {
+        badge: "Ready to Build",
+        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
+        borderClass: c.borderHover,
+        cardBg: "bg-card",
+        stripColor: c.stripSoft,
+      };
+    case "locked":
+      return {
+        badge: "",
+        badgeClass: "bg-muted text-muted-foreground border-border",
+        borderClass: "border-border opacity-55",
+        cardBg: "bg-muted/30",
+        stripColor: "bg-muted-foreground/30",
+      };
+    case "in-progress":
+      return {
+        badge: "🔨 Building",
+        badgeClass: `${c.badgeBg} ${c.badgeText} ${c.badgeBorder}`,
+        borderClass: `${c.border} ${c.glow}`,
+        cardBg: c.gradient,
+        stripColor: c.strip,
+      };
+    case "published":
+      return {
+        badge: "✅ Live",
+        badgeClass: "bg-success/15 text-success border-success/30",
+        borderClass: "border-success/40 shadow-[0_0_16px_-4px_hsl(var(--success)/0.2)]",
+        cardBg: "bg-gradient-to-br from-success/[0.06] via-card to-card",
+        stripColor: "bg-success",
+      };
+    case "coming-soon":
+      return {
+        badge: "Coming Soon",
+        badgeClass: "bg-muted text-muted-foreground/60 border-border",
+        borderClass: "border-border",
+        cardBg: "bg-muted/20",
+        stripColor: "bg-muted-foreground/20",
+      };
+  }
+}
 
 export default function SmartProductCard({
   id, label, icon: Icon, description, personalizedDescription,
@@ -216,7 +225,9 @@ export default function SmartProductCard({
   stats, liveRevenue, lastActivityAt,
   onBuild, onContinue, onView, onUpgrade, genre, code,
 }: SmartProductCardProps) {
-  const config = stateConfig[state];
+  const category = getBuilderCategory(code ?? "");
+  const catTokens = categoryCard[category];
+  const config = buildStateConfig(state, category);
   const rev = revenue || BASELINE_REVENUE[id] || { annual: 0, timeToBuild: "~2 hours", difficulty: 2 };
   const showEconomics = state !== "coming-soon";
   const isPublished = state === "published";
