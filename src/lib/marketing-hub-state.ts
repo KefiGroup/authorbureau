@@ -7,6 +7,7 @@ type MarketingHubAction =
   | "reschedule_social_post"
   | "sequences"
   | "toggle_sequence_status"
+  | "generate_all_sequences"
   | "activate_node"
   | "pause_node"
   | "email_settings"
