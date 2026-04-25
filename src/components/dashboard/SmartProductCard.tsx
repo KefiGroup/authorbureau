@@ -7,8 +7,77 @@ import {
   Star, Lock, Wrench, CheckCircle2, ArrowRight, Clock, BarChart3,
   TrendingUp, Sparkles, Eye,
 } from "lucide-react";
+import { getBuilderCategory, type BuilderCategory } from "./builders/shared/BuilderTheme";
 
 export type ProductCardState = "recommended" | "available" | "locked" | "in-progress" | "published" | "coming-soon";
+
+// Per-category visual tokens for SmartProductCard. Mirrors BuilderTheme but
+// shaped to the card's specific surfaces (strip, badge, glow, CTA).
+const categoryCard: Record<BuilderCategory, {
+  iconBg: string;
+  iconText: string;
+  strip: string;
+  stripSoft: string;
+  border: string;
+  borderHover: string;
+  glow: string;
+  gradient: string;
+  badgeBg: string;
+  badgeText: string;
+  badgeBorder: string;
+  ctaSolid: string;       // recommended / in-progress
+  ctaAvailable: string;   // available — solid but slightly muted
+  ring: string;
+}> = {
+  brand: {
+    iconBg: "bg-teal-500/15",
+    iconText: "text-teal-600 dark:text-teal-400",
+    strip: "bg-teal-500",
+    stripSoft: "bg-teal-500/40",
+    border: "border-teal-400/40",
+    borderHover: "border-border hover:border-teal-400/40",
+    glow: "shadow-[0_0_24px_-4px_hsl(172_55%_40%_/_0.30)]",
+    gradient: "bg-gradient-to-br from-teal-500/[0.07] via-card to-card",
+    badgeBg: "bg-teal-500/15",
+    badgeText: "text-teal-700 dark:text-teal-300",
+    badgeBorder: "border-teal-500/30",
+    ctaSolid: "bg-teal-600 hover:bg-teal-700 text-white border-teal-600",
+    ctaAvailable: "bg-teal-500 hover:bg-teal-600 text-white border-teal-500",
+    ring: "ring-2 ring-teal-400/40",
+  },
+  build: {
+    iconBg: "bg-indigo-500/15",
+    iconText: "text-indigo-600 dark:text-indigo-400",
+    strip: "bg-indigo-500",
+    stripSoft: "bg-indigo-500/40",
+    border: "border-indigo-400/40",
+    borderHover: "border-border hover:border-indigo-400/40",
+    glow: "shadow-[0_0_24px_-4px_hsl(240_55%_50%_/_0.30)]",
+    gradient: "bg-gradient-to-br from-indigo-500/[0.07] via-card to-card",
+    badgeBg: "bg-indigo-500/15",
+    badgeText: "text-indigo-700 dark:text-indigo-300",
+    badgeBorder: "border-indigo-500/30",
+    ctaSolid: "bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-600",
+    ctaAvailable: "bg-indigo-500 hover:bg-indigo-600 text-white border-indigo-500",
+    ring: "ring-2 ring-indigo-400/40",
+  },
+  yield: {
+    iconBg: "bg-amber-500/15",
+    iconText: "text-amber-600 dark:text-amber-400",
+    strip: "bg-amber-500",
+    stripSoft: "bg-amber-500/40",
+    border: "border-amber-400/40",
+    borderHover: "border-border hover:border-amber-400/40",
+    glow: "shadow-[0_0_24px_-4px_hsl(38_75%_50%_/_0.30)]",
+    gradient: "bg-gradient-to-br from-amber-500/[0.08] via-card to-card",
+    badgeBg: "bg-amber-500/15",
+    badgeText: "text-amber-700 dark:text-amber-300",
+    badgeBorder: "border-amber-500/30",
+    ctaSolid: "bg-amber-600 hover:bg-amber-700 text-white border-amber-600",
+    ctaAvailable: "bg-amber-500 hover:bg-amber-600 text-white border-amber-500",
+    ring: "ring-2 ring-amber-400/40",
+  },
+};
 
 interface RevenueEstimate {
   annual: number;

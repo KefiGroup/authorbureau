@@ -1,58 +1,57 @@
-## Problem
+## Goal
 
-Book Hub now shows only the "Analyze with Abby — Free" empty state for Pauline, even though her data is intact (manuscript, consultation, plan, 23/28 nodes built — visible in earlier screenshots).
+Make `SmartProductCard` honor the B-B-Y category color scheme (Brand=Teal, Build=Indigo, Yield=Amber) and make the "available" outline Build button much more visually obvious.
 
-## Root cause
+## Current State
 
-`src/components/dashboard/book-hub/BookHubOverview.tsx` (line 78-126) hydrates its data inside a `useEffect` that starts with:
+- `SmartProductCard.tsx` uses a single `secondary` (gold) accent for icons, strips, badges, and the "Recommended" CTA — regardless of whether the node is BP-, BA-, or YR-.
+- `available` cards render a faint outline button (`<Button variant="outline">`) which the user finds too subtle next to the bold gold "Recommended" CTA.
+- The category color tokens already exist in `src/components/dashboard/builders/shared/BuilderTheme.ts` (teal / indigo / amber), but `SmartProductCard` does not consume them.
+- The screenshot is the BA section ("SCALE YOUR CONTENT") — those cards should read indigo, not gold.
 
-```ts
-const { data: { session: sharedSession } } = await sharedSupabase.auth.getSession();
-const { data: { session: cloudSession } } = await supabase.auth.getSession();
-const session = sharedSession || cloudSession;
-const token = session?.access_token;
-const userId = session?.user?.id;
-if (!userId) { setDataReady(true); return; }
-```
+## Changes
 
-Both `getSession()` calls go through the gotrue web lock `lock:authorsbureau-shared-auth`. The console logs in the previous turn show this lock is timing out repeatedly (`acquisition timed out after 0ms`/`10000ms`). When the lock is contended, `getSession()` resolves to `null`, `userId` is null, the effect early-returns, and `hasConsultation`/`planSections`/`plan` all stay false — so `isAnalyzed === false` and only State A renders.
+### 1. Wire category into `SmartProductCard.tsx`
 
-This is the same auth-lock contention pattern we already fixed for `getActiveToken()` and `customer-portal`.
+- Import `getBuilderCategory` + `categoryStyles` from `BuilderTheme.ts`.
+- Derive `category = getBuilderCategory(code ?? "")` (the `code` prop already carries `BA-10`, `BP-09`, `YR-22` etc.).
+- Replace hard-coded `secondary` usages in `stateConfig` with category-driven equivalents:
+  - `recommended` / `in-progress`: border, glow, gradient bg, left strip, badge bg, icon background and icon color all sourced from `categoryStyles[category]`.
+  - `available`: hover border + left strip use category color (lighter opacity).
+  - `published`: keep success green (status, not category).
+  - `locked` / `coming-soon`: keep neutral muted.
+- Icon tile (lines 158–163) and Icon color use `categoryStyles[category].iconBg` / `iconText`.
 
-## Fix
+### 2. Category-colored CTAs
 
-Apply the same lock-resilient pattern in `BookHubOverview.tsx`:
+Replace the single `bg-secondary text-secondary-foreground` button styling with category-specific buttons:
 
-1. Replace the two `getSession()` calls with `getActiveToken()` (already races a 2s timeout and falls back to localStorage).
-2. Decode `userId` from the JWT (`payload.sub`) instead of waiting for a full session object.
-3. If still no token after the fallback, do **not** early-return into State A — leave `dataReady` false a bit longer and try one short retry, OR render the existing populated state if `useAbbyPlan(book.id)` already has data (the `plan` from `useAbbyPlan` is independent of session and will hydrate State B by itself).
+- `recommended` CTA → `categoryStyles[category].buttonAccent` (solid teal / indigo / amber).
+- `in-progress` "Continue Building" CTA → same solid category color.
+- `available` CTA — the user's main complaint. Upgrade from a flat outline to a **prominent solid filled button** in the category color at slightly reduced intensity to still differentiate from "Recommended":
+  - Use `bg-{category}-500/90 hover:bg-{category}-600 text-white border border-{category}-500` (full solid, not outline).
+  - Keep "Recommended" visually dominant via the badge, glow shadow, gradient card background, and a subtle ring (`ring-2 ring-{category}-400/40`) — not via being the only colored button.
 
-Concretely:
+This way every Build button is obviously clickable and color-coded, while "Recommended" still pops through the card-level treatment.
 
-```ts
-const token = await getActiveToken();
-let userId: string | null = null;
-if (token) {
-  try {
-    const parts = token.split(".");
-    if (parts.length >= 2) {
-      let p = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-      while (p.length % 4) p += "=";
-      userId = JSON.parse(atob(p))?.sub ?? null;
-    }
-  } catch { /* ignore */ }
-}
-if (!token || !userId) { setDataReady(true); return; }
-// ... rest unchanged, using `token` for the Authorization header
-```
+### 3. Differentiation hierarchy (so Recommended still stands out)
 
-Also remove the now-unused `sharedSupabase` import if nothing else in the file references it.
+| State | Card | Button |
+|-------|------|--------|
+| Recommended | Glow + gradient + ring + ⭐ badge | Solid category color, Sparkles icon |
+| Available | Plain card, category left strip | Solid category color (slightly muted), arrow icon |
+| In progress | Gradient + 🔨 badge + progress bar | Solid category color, wrench icon |
+| Published | Green border + ✅ Live | Outline (View on Website) |
+| Locked | Muted, dimmed | Outline upgrade |
 
-## File to change
+### 4. Files touched
 
-- `src/components/dashboard/book-hub/BookHubOverview.tsx` — swap session lookups for `getActiveToken()` + JWT decode.
+- `src/components/dashboard/SmartProductCard.tsx` — only file changed.
 
-## Verification
+No DB / edge function / route changes. Existing `code` prop already supplies the BA-/BP-/YR- prefix needed for category detection.
 
-1. Reload Book Hub for `pl@paulineteo.com`. Hero strip with "23 of 28 products built", Yield Plan banner, Next 3 Steps, and tabs content render again.
-2. Auth-lock console warnings remain (separate concern) but no longer break the Book Hub.
+## Out of scope
+
+- Recoloring the builder pages themselves (already category-themed via `BuilderTheme`).
+- Changing the Hub headers or `PortfolioStepView` layout.
+- Modifying the "Your Next Step" hero card at the top (it sits above the grid and uses its own styling).
