@@ -45,15 +45,23 @@ serve(async (req) => {
 
     const { data: nodes, error: nodesErr } = await admin
       .from("author_nodes")
-      .select("id, node_id, node_name, personalised_name, status, content_json, microsite_url, activated_at, created_at")
+      .select("id, node_id, node_name, personalised_name, status, content_json, microsite_url, activated_at, created_at, book_id")
       .eq("author_id", profile.id)
       .order("created_at", { ascending: false });
 
     if (nodesErr) throw nodesErr;
 
+    // Marketing asset packs (sales_copy / social_pack / email_announcement / bonus per node)
+    const { data: assets } = await admin
+      .from("marketing_assets")
+      .select("id, book_id, asset_type, content, status, created_at, updated_at")
+      .eq("author_id", profile.id)
+      .order("updated_at", { ascending: false });
+
     return new Response(JSON.stringify({
       profile: { id: profile.id, pen_name: profile.pen_name, author_slug: profile.author_slug },
       nodes: nodes || [],
+      marketing_assets: assets || [],
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err: any) {
     console.error("get-author-library error:", err.message);
