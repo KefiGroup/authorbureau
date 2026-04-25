@@ -268,7 +268,7 @@ export default function FunnelsHub() {
     if (!regenerateTarget) return;
     const targetId = regenerateTarget.id;
     setRegenerating(true);
-    const { error } = await supabase.functions.invoke("generate-funnel", {
+    const { data, error } = await supabase.functions.invoke("generate-funnel", {
       body: {
         node_id: regenerateTarget.node_id,
         funnel_type: regenerateTarget.funnel_type,
@@ -279,8 +279,12 @@ export default function FunnelsHub() {
     setRegenerating(false);
     setRegenerateTarget(null);
     if (error) { toast({ title: "Regeneration failed", description: error.message, variant: "destructive" }); return; }
+    const refreshed = data?.funnel as Funnel | undefined;
+    if (refreshed?.id) {
+      setFunnels((prev) => prev.map((f) => (f.id === refreshed.id ? { ...f, ...refreshed } : f)));
+    }
     toast({ title: "ABBY regenerated your funnel", description: "Fresh copy is loaded below — review and tweak as needed." });
-    if (authorId) await loadFunnels(authorId);
+    if (authorId) loadFunnels(authorId);
     flashFunnel(targetId);
   };
 
