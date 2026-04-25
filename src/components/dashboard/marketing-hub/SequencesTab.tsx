@@ -43,6 +43,8 @@ interface Step {
   step_number: number;
   subject: string;
   trigger_delay_days: number;
+  body_markdown?: string;
+  preview_text?: string | null;
 }
 
 const statusBadge: Record<string, string> = {
