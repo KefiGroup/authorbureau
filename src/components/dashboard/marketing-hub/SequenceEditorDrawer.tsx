@@ -13,7 +13,7 @@ export interface SequenceStepDraft {
   step_number: number;
   subject: string;
   trigger_delay_days: number;
-  body_markdown: string;
+  body_markdown?: string;
   preview_text?: string | null;
 }
 
