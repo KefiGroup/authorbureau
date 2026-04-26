@@ -1,80 +1,50 @@
-## Goal
-Show every node's funnel as a **visual, editable flow chart** (Level 1 editability). Author clicks any stage → side drawer opens → edits the copy/config for that stage → flow chart updates. ABBY's original generated copy is preserved; the author's edits are stored as **layered overrides** so a "Reset to ABBY's version" is always possible per stage.
+## What's broken
 
-Visible in two surfaces only: each node builder's success screen, and the Funnels Hub.
+You're seeing two real issues from the screenshots and DB:
 
-## What the user sees
+**1. The Sales funnel never resolves publicly because it's still `draft`.**
+- DB confirms: `Be SUCKcessful Instant Digital Book` (Sales funnel) → `status: draft`
+- The public router `AuthorSubpageResolver` only serves a funnel when `status = 'live'`. Drafts silently fall back to the book page.
+- That's why the URL `https://authorsbureau.com/pauline-teo/be-suckcessful-digital-book` "doesn't go anywhere obvious" — it's quietly serving the generic book page instead of the funnel you just edited.
+- The Opt-in funnel (`free-gift`) IS `live`, which is why that one renders correctly.
 
-### Flow chart (per archetype)
-Horizontal row of stage cards with chevrons between them.
+**2. "Page not saved" in the Stage Editor.**
+- The drawer writes to `funnel_stage_overrides` but doesn't update the `funnels` row itself, and there's no visible toast/feedback when save succeeds or fails. So edits to the Sales Page stage feel like they vanish.
+- Even when the override IS saved, `FunnelPage.tsx` reads from `funnels` columns directly (headline, body_copy, cta_text…) and ignores the overrides table — so edits never appear on the live page.
 
-- **A — Sales:** Traffic → Sales Page → Checkout → Thank You → Onboarding Email
-- **B — Opt-in:** Traffic → Opt-in Page → Confirm Email → Deliver Magnet → Nurture → Upsell
-- **C — Application:** Traffic → Application Page → Form Submit → Review (48h) → Discovery Call → Close
-- **D — Event:** Traffic → Event Page → Register → Confirmation → Reminder Sequence → Event Day
+## The fix
 
-Each stage shows: name, 1-line description, status dot (green = filled, amber = using ABBY default / incomplete, grey = not built), stat when available (Views · Opt-ins · Conversions), and a small **"Edited"** badge when an author override exists.
+### A. Make funnel saves actually reach the public page
+- In `StageEditorDrawer`, when a Sales/Opt-in stage's core fields are edited (headline, subheadline, body, CTA text, CTA URL), also update the matching column on the `funnels` row — not just the overrides table.
+- Keep the override row as the audit trail / "edited" badge source, but the live page reads `funnels.*`.
+- Add a success toast ("Saved — changes are live" or "Saved to draft — publish to go live") and an error toast on failure.
 
-### Stage editor drawer (Level 1 edit)
-Click a stage → right-side drawer opens with **only that stage's editable fields**. Examples:
-- *Opt-in Page* → Headline, Subheadline, CTA text, CTA color
-- *Confirm Email* → Subject, Body, From-name
-- *Nurture (each email)* → Delay (days), Subject, Body
-- *Thank You* → Headline, Redirect URL
-- *Discovery Call* → Calendar URL, pre-call questions
+### B. Surface draft vs live clearly + give a one-click Publish
+- On each funnel card in `FunnelsHub` and in `NodeFunnelFlow`, when status is `draft`, show:
+  - A yellow banner: "This funnel is a draft. Your edits are saved but the public URL still shows your book page."
+  - A primary **Publish funnel** button that flips `status` to `live`.
+- Replace the current "Open landing page" button on draft funnels with **Preview draft** (opens a `?preview=funnel-id` URL that bypasses the live-only check using the author's session).
 
-Each field shows ABBY's generated value as the placeholder/baseline. A small **"Reset to ABBY's version"** link appears next to any field the author has overridden. Save persists the override; flow chart re-renders with the green dot + "Edited" badge.
+### C. Add draft preview support in the resolver
+- `AuthorSubpageResolver`: if `?preview=<funnel_id>` is present AND the viewer is the funnel owner (checked via `supabase.auth.getUser()` → `author_profiles.user_id`), serve the draft funnel instead of falling through.
+- Public visitors without the preview param + ownership still see the book page fallback. No leak.
 
-### Below the flow chart
-Compact metadata strip — no mock landing-page render:
-- Archetype badge · Status · Public URL (copyable) · Last updated
-- Buttons: **Open landing page** (real public URL, new tab) · **Regenerate funnel** (warns about overrides) · **View in Funnels Hub**
-- Empty state: **Generate funnel for this node** button.
+### D. Small clarity fixes
+- In `FunnelPage`, merge `funnel_stage_overrides` on top of base `funnels` columns at render time so the layered model actually shows on the public page.
+- In the Funnels Hub URL row, append a small "(draft — not public yet)" hint when status is draft so it's obvious why opening the URL shows the book page.
 
-## Where it appears
-1. `PublishSuccessScreen.tsx` — embedded under the success headline (skipped for `NO_MICROSITE_NODES`).
-2. `FunnelsHub.tsx` — each card replaces its hero-preview block with the same flow chart + drawer.
+## Files touched
 
-No other surfaces.
+- `src/pages/AuthorSubpageResolver.tsx` — add owner-gated `?preview=` support
+- `src/pages/FunnelPage.tsx` — merge overrides into rendered content
+- `src/components/dashboard/builders/shared/StageEditorDrawer.tsx` — dual-write to `funnels` + toasts
+- `src/components/dashboard/builders/shared/NodeFunnelFlow.tsx` — Publish button + draft banner
+- `src/components/dashboard/FunnelsHub.tsx` — Publish button, draft hint on URL, Preview vs Open
 
-## Technical plan
+No DB migration needed — `funnels` already has all the columns we need and `funnel_stage_overrides` stays as-is.
 
-### Database — new `funnel_stage_overrides` table
-Layered storage: keep `funnels` row as the ABBY-generated baseline; store author edits separately so reset is trivial.
+## Outcome
 
-```text
-funnel_stage_overrides (
-  id uuid pk,
-  funnel_id uuid fk → funnels.id on delete cascade,
-  author_id uuid not null,           -- denormalized for RLS
-  stage_id text not null,            -- e.g. 'optin_page', 'nurture_email_2'
-  field_overrides jsonb not null,    -- { headline?: string, body?: string, delay_days?: number, ... }
-  updated_at timestamptz default now(),
-  unique (funnel_id, stage_id)
-)
-```
-
-RLS: author can select/insert/update/delete rows where `author_id = auth.uid()`'s author_profile id (same pattern as existing `funnels` policy). Standard `update_updated_at_column` trigger on `updated_at`.
-
-### New files
-- `src/lib/funnel-flow-stages.ts` — `getStagesForArchetype(archetype, funnel, overrides, ctx)` returns `{ id, label, description, status, stat?, fields: FieldDef[], values: Record<string,string>, isEdited: boolean }[]`. Field definitions per stage type live here.
-- `src/lib/funnel-archetype.ts` — extract `ARCHETYPE_TO_FUNNEL_TYPE`, `ARCHETYPE_LABEL`, color presets from `FunnelsHub.tsx`.
-- `src/lib/funnel-overrides.ts` — `loadOverrides(funnelId)`, `saveStageOverride(funnelId, stageId, fields)`, `resetStageField(funnelId, stageId, fieldKey)`, `mergeWithBase(baseFunnel, overrides)`.
-- `src/components/dashboard/builders/shared/FunnelFlowChart.tsx` — pure presentational. Props `{ stages, onStageClick }`. Flex row + chevrons; stacks vertically <768px; status dots + "Edited" badge.
-- `src/components/dashboard/builders/shared/StageEditorDrawer.tsx` — uses `Sheet` from ui/sheet. Renders the field list for the selected stage with placeholders showing ABBY's baseline value and per-field reset link.
-- `src/components/dashboard/builders/shared/NodeFunnelFlow.tsx` — top-level panel. Loads funnel + overrides for `(author_id, node_id)`, resolves archetype, renders flow chart + metadata strip + drawer + empty/generate state. Used by both surfaces below.
-
-### Edited files
-- `src/components/dashboard/builders/shared/PublishSuccessScreen.tsx` — embed `<NodeFunnelFlow nodeId={...} authorId={...} />` after the success card (skip for `NO_MICROSITE_NODES`).
-- `src/components/dashboard/FunnelsHub.tsx` — remove hero-preview block from each card; render `<NodeFunnelFlow />` per funnel. Keep filters, regenerate, leads count.
-
-### No edge-function changes
-- `generate-funnel` keeps writing to `funnels` (the ABBY baseline). Overrides are pure client-side writes via Supabase SDK.
-- "Reset stage to ABBY's version" deletes the per-field key from `field_overrides` (or the whole row if empty).
-- "Regenerate funnel" updates `funnels` row; overrides remain attached to the same `funnel_id` and continue to win — drawer surfaces a banner "ABBY regenerated this funnel — review your overrides" when `funnels.updated_at > overrides.updated_at`.
-
-## Out of scope
-- Toggling stages on/off or reordering (Level 2) — deferred.
-- Drag-drop free-form funnel canvas, branching, conditional logic (Level 3) — not planned.
-- Mock landing-page render in dashboard (real page lives at public URL).
-- Funnel widget on Author Dashboard overview or per-node manager pages.
+- You hit Save in the editor → see a confirmation toast → changes appear on the live URL (if live) or the preview URL (if draft).
+- Sales funnel for "Be SUCKcessful" gets a clear **Publish funnel** button. One click and `authorsbureau.com/pauline-teo/be-suckcessful-digital-book` serves the funnel instead of the book page.
+- Drafts get a private preview link so you can QA before publishing.

@@ -13,6 +13,7 @@ import { Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { FunnelStage } from "@/lib/funnel-flow-stages";
 import { saveStageOverride } from "@/lib/funnel-overrides";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -20,13 +21,31 @@ interface Props {
   stage: FunnelStage | null;
   funnelId: string;
   authorId: string;
+  /** Status of the parent funnel — drives the "saved → live" vs "saved → draft" toast. */
+  funnelStatus?: string | null;
   /** Map of fieldKey → current override (so we know which fields to show "Reset" on). */
   currentOverrides: Record<string, string>;
   onSaved: () => void;
 }
 
+/**
+ * Field keys on a "page" stage (sales_page / optin_page / application_page / event_page)
+ * that map directly to columns on the `funnels` row. Saving these dual-writes so
+ * the public landing page actually reflects the edits.
+ */
+const HERO_PAGE_STAGE_IDS = new Set([
+  "sales_page", "optin_page", "application_page", "event_page",
+]);
+const HERO_FIELD_TO_FUNNEL_COL: Record<string, string> = {
+  headline: "headline",
+  subheadline: "subheadline",
+  body_copy: "body_copy",
+  cta_text: "cta_text",
+  cta_url: "cta_url",
+};
+
 export default function StageEditorDrawer({
-  open, onOpenChange, stage, funnelId, authorId, currentOverrides, onSaved,
+  open, onOpenChange, stage, funnelId, authorId, funnelStatus, currentOverrides, onSaved,
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [overridden, setOverridden] = useState<Record<string, boolean>>({});
@@ -67,12 +86,42 @@ export default function StageEditorDrawer({
     const { error } = await saveStageOverride({
       funnelId, authorId, stageId: stage.id, fields: toPersist,
     });
+
+    // Dual-write: if this is a hero "page" stage, also patch the funnels row so
+    // the public landing page actually shows the updated copy.
+    let funnelWriteError: string | null = null;
+    if (!error && HERO_PAGE_STAGE_IDS.has(stage.id)) {
+      const patch: Record<string, string> = {};
+      for (const [fieldKey, col] of Object.entries(HERO_FIELD_TO_FUNNEL_COL)) {
+        if (overridden[fieldKey]) patch[col] = values[fieldKey] ?? "";
+      }
+      if (Object.keys(patch).length > 0) {
+        const { error: e } = await supabase
+          .from("funnels")
+          .update(patch)
+          .eq("id", funnelId);
+        if (e) funnelWriteError = e.message;
+      }
+    }
+
     setSaving(false);
-    if (error) {
-      toast({ title: "Save failed", description: error, variant: "destructive" });
+    if (error || funnelWriteError) {
+      toast({
+        title: "Couldn't save changes",
+        description: error || funnelWriteError || "Please try again.",
+        variant: "destructive",
+      });
       return;
     }
-    toast({ title: "Stage updated", description: `${stage.label} saved.` });
+
+    const isHeroStage = HERO_PAGE_STAGE_IDS.has(stage.id);
+    if (isHeroStage && funnelStatus === "live") {
+      toast({ title: "Saved — changes are live", description: `${stage.label} updated on your public page.` });
+    } else if (isHeroStage) {
+      toast({ title: "Saved to draft", description: `${stage.label} updated. Publish the funnel to make it live.` });
+    } else {
+      toast({ title: "Stage updated", description: `${stage.label} saved.` });
+    }
     onSaved();
     onOpenChange(false);
   };
