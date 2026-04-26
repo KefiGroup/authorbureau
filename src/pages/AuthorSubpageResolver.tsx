@@ -42,6 +42,33 @@ export default function AuthorSubpageResolver() {
     const authorSlug = window.location.pathname.split("/")[1];
 
     (async () => {
+      const previewId = new URLSearchParams(window.location.search).get("preview");
+
+      // 0. Owner-gated draft preview — bypasses live-only check.
+      if (previewId) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: funnel } = await supabase
+              .from("funnels")
+              .select("id, title, headline, subheadline, body_copy, cta_text, cta_url, hero_image_url, background_color, accent_color, author_id")
+              .eq("id", previewId)
+              .maybeSingle();
+            if (funnel) {
+              const { data: ownerProfile } = await supabase
+                .from("author_profiles")
+                .select("id, pen_name, user_id")
+                .eq("id", funnel.author_id)
+                .maybeSingle();
+              if (!cancelled && ownerProfile && ownerProfile.user_id === user.id) {
+                setResolution({ kind: "funnel", funnel: { ...funnel, author_name: ownerProfile.pen_name } });
+                return;
+              }
+            }
+          }
+        } catch { /* fall through to normal resolution */ }
+      }
+
       // 1. Probe dynamic microsite node
       try {
         const nodeRes = await fetch(
