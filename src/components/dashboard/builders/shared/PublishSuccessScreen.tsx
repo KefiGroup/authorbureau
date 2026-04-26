@@ -149,6 +149,16 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
         </Card>
       )}
 
+      {/* Visual funnel flow chart for this node — click any stage to edit */}
+      {hasPublicPage && authorId && (
+        <NodeFunnelFlow
+          authorId={authorId}
+          nodeId={nodeId}
+          publicUrl={micrositeUrl}
+          bookId={bookId}
+        />
+      )}
+
       {/* ABBY says card */}
       <Card className="p-4 border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30">
         <div className="flex gap-3">
