@@ -234,6 +234,20 @@ export default function NodeFunnelFlow({
           )}
         </div>
 
+        {/* Draft warning — explains why the public URL doesn't show this funnel yet */}
+        {funnel.status !== "live" && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2">
+            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+            <div className="flex-1 text-xs text-amber-900 dark:text-amber-200">
+              <strong>Draft — not public yet.</strong> Your edits are saved, but the public URL still shows your default book page. Click <em>Publish funnel</em> to go live.
+            </div>
+            <Button size="sm" onClick={handlePublish} disabled={generating} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
+              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Power className="h-3.5 w-3.5 mr-1" />}
+              Publish funnel
+            </Button>
+          </div>
+        )}
+
         {/* Flow chart */}
         <FunnelFlowChart stages={stages} onStageClick={(id) => setEditStageId(id)} />
 
@@ -248,13 +262,33 @@ export default function NodeFunnelFlow({
             >
               <Copy className="h-3 w-3" />
               <span className="truncate max-w-[260px]">{publicUrl}</span>
+              {funnel.status !== "live" && (
+                <span className="text-amber-600 dark:text-amber-400 font-medium">(draft — not public)</span>
+              )}
             </button>
           )}
           <div className="ml-auto flex gap-2">
-            {publicUrl && (
+            {funnel.status === "live" ? (
+              <Button size="sm" variant="ghost" onClick={handlePublish} disabled={generating} title="Pause this funnel">
+                <Power className="h-3.5 w-3.5 mr-1" />Pause
+              </Button>
+            ) : (
+              <Button size="sm" onClick={handlePublish} disabled={generating}>
+                {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Power className="h-3.5 w-3.5 mr-1" />}
+                Publish funnel
+              </Button>
+            )}
+            {publicUrl && funnel.status === "live" && (
               <Button size="sm" variant="outline" asChild>
                 <a href={publicUrl} target="_blank" rel="noopener noreferrer">
                   <ExternalLink className="h-3.5 w-3.5 mr-1" />Open landing page
+                </a>
+              </Button>
+            )}
+            {publicUrl && funnel.status !== "live" && (
+              <Button size="sm" variant="outline" asChild title="Preview the draft (only visible to you)">
+                <a href={`${publicUrl}?preview=${funnel.id}`} target="_blank" rel="noopener noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5 mr-1" />Preview draft
                 </a>
               </Button>
             )}
@@ -277,6 +311,7 @@ export default function NodeFunnelFlow({
         stage={editingStage}
         funnelId={funnel.id}
         authorId={authorId}
+        funnelStatus={funnel.status}
         currentOverrides={editingStage ? (overrides[editingStage.id] || {}) : {}}
         onSaved={async () => { await fetchAll(); onChanged?.(); }}
       />
