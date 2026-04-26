@@ -212,7 +212,7 @@ export default function FunnelsHub() {
     })();
 
     toast({
-      title: `Funnel created: ${newTitle}`,
+      title: data?.skipped ? `Funnel already exists: ${newTitle}` : `Funnel created: ${newTitle}`,
       description: url ? "See the preview below — open it, copy the link, or edit the copy." : "Your new funnel is ready below.",
       action: url ? (
         <button

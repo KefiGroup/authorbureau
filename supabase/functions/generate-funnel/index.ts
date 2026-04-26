@@ -166,7 +166,14 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
       if (existing) {
-        return new Response(JSON.stringify({ skipped: true, funnel_id: existing.id, slug: existing.slug }), {
+        // Return the full funnel row so the client can render it immediately
+        // instead of throwing "No funnel data returned".
+        const { data: full } = await supabase
+          .from('funnels')
+          .select('*')
+          .eq('id', existing.id)
+          .maybeSingle();
+        return new Response(JSON.stringify({ skipped: true, funnel: full, funnel_id: existing.id, slug: existing.slug }), {
           status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
