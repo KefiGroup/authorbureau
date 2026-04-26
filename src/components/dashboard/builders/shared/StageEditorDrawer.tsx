@@ -45,7 +45,7 @@ const HERO_FIELD_TO_FUNNEL_COL: Record<string, string> = {
 };
 
 export default function StageEditorDrawer({
-  open, onOpenChange, stage, funnelId, authorId, currentOverrides, onSaved,
+  open, onOpenChange, stage, funnelId, authorId, funnelStatus, currentOverrides, onSaved,
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [overridden, setOverridden] = useState<Record<string, boolean>>({});
