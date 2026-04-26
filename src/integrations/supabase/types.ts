@@ -2603,6 +2603,44 @@ export type Database = {
         }
         Relationships: []
       }
+      funnel_stage_overrides: {
+        Row: {
+          author_id: string
+          created_at: string
+          field_overrides: Json
+          funnel_id: string
+          id: string
+          stage_id: string
+          updated_at: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          field_overrides?: Json
+          funnel_id: string
+          id?: string
+          stage_id: string
+          updated_at?: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          field_overrides?: Json
+          funnel_id?: string
+          id?: string
+          stage_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "funnel_stage_overrides_funnel_id_fkey"
+            columns: ["funnel_id"]
+            isOneToOne: false
+            referencedRelation: "funnels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funnel_submissions: {
         Row: {
           author_id: string
