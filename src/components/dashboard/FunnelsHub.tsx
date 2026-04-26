@@ -18,6 +18,8 @@ import {
 import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2, Users, ChevronDown, ChevronUp, MoreHorizontal } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
+import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
+import type { ArchetypeKey } from "@/lib/funnel-archetype";
 
 type ArchetypeKey = "A" | "B" | "C" | "D";
 type FilterKey = "all" | ArchetypeKey | "live" | "paused";
