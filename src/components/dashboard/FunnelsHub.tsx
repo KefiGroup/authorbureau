@@ -21,7 +21,6 @@ import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
 
-type ArchetypeKey = "A" | "B" | "C" | "D";
 type FilterKey = "all" | ArchetypeKey | "live" | "paused";
 
 interface Funnel {
