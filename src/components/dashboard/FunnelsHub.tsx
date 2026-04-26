@@ -584,12 +584,15 @@ export default function FunnelsHub() {
 
                   {authorSlug && (
                     <a
-                      href={url}
+                      href={f.status === "live" ? url : `${url}?preview=${f.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="mb-3 flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 hover:bg-muted/60 rounded px-2 py-1.5 transition group"
                     >
                       <span className="truncate flex-1">{url}</span>
+                      {f.status !== "live" && (
+                        <span className="text-amber-600 dark:text-amber-400 font-medium shrink-0">draft — not public</span>
+                      )}
                       <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition" />
                     </a>
                   )}
