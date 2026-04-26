@@ -159,6 +159,32 @@ export default function NodeFunnelFlow({
     onChanged?.();
   };
 
+  const handlePublish = async () => {
+    if (!funnel?.id) return;
+    setGenerating(true);
+    const goingLive = funnel.status !== "live";
+    const { error } = await supabase
+      .from("funnels")
+      .update({
+        status: goingLive ? "live" : "paused",
+        published_at: goingLive ? new Date().toISOString() : null,
+      })
+      .eq("id", funnel.id);
+    setGenerating(false);
+    if (error) {
+      toast({ title: "Couldn't update status", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({
+      title: goingLive ? "Funnel is live" : "Funnel paused",
+      description: goingLive
+        ? "Your public landing page now serves this funnel."
+        : "Visitors will see your default book page again.",
+    });
+    await fetchAll();
+    onChanged?.();
+  };
+
   if (loading) {
     return (
       <Card><CardContent className="py-8 flex justify-center">
