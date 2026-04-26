@@ -13,6 +13,7 @@ import { Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { FunnelStage } from "@/lib/funnel-flow-stages";
 import { saveStageOverride } from "@/lib/funnel-overrides";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -20,10 +21,28 @@ interface Props {
   stage: FunnelStage | null;
   funnelId: string;
   authorId: string;
+  /** Status of the parent funnel — drives the "saved → live" vs "saved → draft" toast. */
+  funnelStatus?: string | null;
   /** Map of fieldKey → current override (so we know which fields to show "Reset" on). */
   currentOverrides: Record<string, string>;
   onSaved: () => void;
 }
+
+/**
+ * Field keys on a "page" stage (sales_page / optin_page / application_page / event_page)
+ * that map directly to columns on the `funnels` row. Saving these dual-writes so
+ * the public landing page actually reflects the edits.
+ */
+const HERO_PAGE_STAGE_IDS = new Set([
+  "sales_page", "optin_page", "application_page", "event_page",
+]);
+const HERO_FIELD_TO_FUNNEL_COL: Record<string, string> = {
+  headline: "headline",
+  subheadline: "subheadline",
+  body_copy: "body_copy",
+  cta_text: "cta_text",
+  cta_url: "cta_url",
+};
 
 export default function StageEditorDrawer({
   open, onOpenChange, stage, funnelId, authorId, currentOverrides, onSaved,
