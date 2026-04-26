@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Copy, ExternalLink, Link2, ArrowRight, Sparkles, Library, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { NODE_NAMES, getMicrositeUrl, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import NodeFunnelFlow from "./NodeFunnelFlow";
 
 /** Per-node override for the success-screen headline (avoids "Your Email Marketing are saved..."). */
 const NODE_SAVED_HEADLINE: Record<string, string> = {
