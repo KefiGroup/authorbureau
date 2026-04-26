@@ -508,37 +508,19 @@ export default function FunnelsHub() {
                     : ""
                 }`}
               >
-                {/* Hero preview — shows the actual designed funnel copy */}
-                <div
-                  className="relative px-5 pt-5 pb-4"
-                  style={{
-                    backgroundColor: f.background_color || "#0B1220",
-                    color: "#fff",
-                  }}
-                >
-                  <div
-                    className="absolute top-0 left-0 right-0 h-1"
-                    style={{ backgroundColor: f.accent_color }}
+                {/* Visual funnel flow chart — replaces the static hero preview.
+                    Renders the reader's journey as a clickable, editable flow. */}
+                <div className="px-5 pt-5">
+                  <NodeFunnelFlow
+                    authorId={authorId!}
+                    nodeId={f.node_id || ""}
+                    funnel={f}
+                    archetype={(liveNodes.find((n) => n.node_id === f.node_id)?.archetype || undefined) as ArchetypeKey | undefined}
+                    publicUrl={url}
+                    leadsCount={leadsCount}
+                    onChanged={() => authorId && loadFunnels(authorId)}
+                    hideHubLink
                   />
-                  {f.headline && (
-                    <h4 className="text-base font-bold leading-snug mb-1.5 line-clamp-2">
-                      {f.headline}
-                    </h4>
-                  )}
-                  {f.subheadline && (
-                    <p className="text-xs opacity-80 leading-relaxed mb-3 line-clamp-2">
-                      {f.subheadline}
-                    </p>
-                  )}
-                  {f.cta_text && (
-                    <div
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold text-black"
-                      style={{ backgroundColor: f.accent_color || "#D4AF37" }}
-                    >
-                      {f.cta_text}
-                      <span aria-hidden>→</span>
-                    </div>
-                  )}
                 </div>
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between gap-2 mb-3">
