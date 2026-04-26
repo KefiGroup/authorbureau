@@ -87,6 +87,23 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
   const bookHubPath = bookId ? `/book-hub/${bookId}?tab=${tabForPrefix[prefix] || "revenue-streams"}` : null;
   const savedHeadline = NODE_SAVED_HEADLINE[nodeId] || `Your ${nodeName} is saved to your library!`;
 
+  // Resolve author_profile.id so we can render the funnel flow chart for this node.
+  const { user } = useAuth();
+  const [authorId, setAuthorId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user || !hasPublicPage) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled && data?.id) setAuthorId(data.id);
+    })();
+    return () => { cancelled = true; };
+  }, [user, hasPublicPage]);
+
   const handleCopy = () => {
     if (micrositeUrl) {
       copyToClipboard(micrositeUrl);
