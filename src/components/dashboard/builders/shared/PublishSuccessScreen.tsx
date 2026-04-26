@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Copy, ExternalLink, Link2, ArrowRight, Sparkles, Library, BookOpen } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { NODE_NAMES, getMicrositeUrl, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import NodeFunnelFlow from "./NodeFunnelFlow";
 
 /** Per-node override for the success-screen headline (avoids "Your Email Marketing are saved..."). */
 const NODE_SAVED_HEADLINE: Record<string, string> = {
@@ -84,6 +87,23 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
   const bookHubPath = bookId ? `/book-hub/${bookId}?tab=${tabForPrefix[prefix] || "revenue-streams"}` : null;
   const savedHeadline = NODE_SAVED_HEADLINE[nodeId] || `Your ${nodeName} is saved to your library!`;
 
+  // Resolve author_profile.id so we can render the funnel flow chart for this node.
+  const { user } = useAuth();
+  const [authorId, setAuthorId] = useState<string | null>(null);
+  useEffect(() => {
+    if (!user || !hasPublicPage) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled && data?.id) setAuthorId(data.id);
+    })();
+    return () => { cancelled = true; };
+  }, [user, hasPublicPage]);
+
   const handleCopy = () => {
     if (micrositeUrl) {
       copyToClipboard(micrositeUrl);
@@ -127,6 +147,16 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
             </Button>
           </div>
         </Card>
+      )}
+
+      {/* Visual funnel flow chart for this node — click any stage to edit */}
+      {hasPublicPage && authorId && (
+        <NodeFunnelFlow
+          authorId={authorId}
+          nodeId={nodeId}
+          publicUrl={micrositeUrl}
+          bookId={bookId}
+        />
       )}
 
       {/* ABBY says card */}
