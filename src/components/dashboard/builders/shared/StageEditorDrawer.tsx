@@ -82,7 +82,7 @@ export default function StageEditorDrawer({
     for (const f of stage.fields) {
       if (overridden[f.key]) toPersist[f.key] = values[f.key] ?? "";
     }
-    const { error } = await saveStageOverride({
+    const { error } = await saveStageOverrideViaFn({
       funnelId, authorId, stageId: stage.id, fields: toPersist,
     });
 
@@ -95,11 +95,8 @@ export default function StageEditorDrawer({
         if (overridden[fieldKey]) patch[col] = values[fieldKey] ?? "";
       }
       if (Object.keys(patch).length > 0) {
-        const { error: e } = await supabase
-          .from("funnels")
-          .update(patch)
-          .eq("id", funnelId);
-        if (e) funnelWriteError = e.message;
+        const { error: e } = await saveFunnelCopy({ funnelId, authorId, patch });
+        if (e) funnelWriteError = e;
       }
     }
 
