@@ -229,7 +229,7 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
               </p>
             )}
             <p className="text-sm text-gray-500 flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5" /> Source: {getSourceLabel(contact.source)}
+              <Mail className="h-3.5 w-3.5" /> Source: {getSourceLabel(contact.source || "")}
             </p>
           </div>
 
