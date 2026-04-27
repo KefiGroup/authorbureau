@@ -3,6 +3,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Funnel {
   id: string;
@@ -32,13 +33,29 @@ export default function FunnelPage({ funnel }: FunnelPageProps) {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Track view once
+  // Track view once per page load.
+  // Uses supabase.functions.invoke (proper headers) with sendBeacon fallback so
+  // the request still fires if the user navigates away immediately. Errors are
+  // logged to the console — no longer silently swallowed.
   useEffect(() => {
-    fetch(`https://${PROJECT_ID}.supabase.co/functions/v1/track-funnel-view`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: ANON_KEY },
-      body: JSON.stringify({ funnel_id: funnel.id }),
-    }).catch(() => {});
+    let cancelled = false;
+    (async () => {
+      try {
+        const { error } = await supabase.functions.invoke("track-funnel-view", {
+          body: { funnel_id: funnel.id },
+        });
+        if (cancelled) return;
+        if (error) {
+          console.warn("[funnel-view] invoke failed, falling back to beacon", error);
+          const url = `https://${PROJECT_ID}.supabase.co/functions/v1/track-funnel-view`;
+          const blob = new Blob([JSON.stringify({ funnel_id: funnel.id })], { type: "application/json" });
+          navigator.sendBeacon?.(url, blob);
+        }
+      } catch (e) {
+        console.warn("[funnel-view] tracking failed", e);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [funnel.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
