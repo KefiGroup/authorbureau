@@ -82,29 +82,33 @@ export default function StageEditorDrawer({
     for (const f of stage.fields) {
       if (overridden[f.key]) toPersist[f.key] = values[f.key] ?? "";
     }
-    const { error } = await saveStageOverrideViaFn({
-      funnelId, authorId, stageId: stage.id, fields: toPersist,
-    });
 
-    // Dual-write: if this is a hero "page" stage, also patch the funnels row so
-    // the public landing page actually shows the updated copy.
-    let funnelWriteError: string | null = null;
-    if (!error && HERO_PAGE_STAGE_IDS.has(stage.id)) {
-      const patch: Record<string, string> = {};
-      for (const [fieldKey, col] of Object.entries(HERO_FIELD_TO_FUNNEL_COL)) {
-        if (overridden[fieldKey]) patch[col] = values[fieldKey] ?? "";
+    let saveError: string | null = null;
+    try {
+      await saveStageOverrideViaFn({
+        funnelId, stageId: stage.id, fields: toPersist,
+      });
+
+      // Dual-write: if this is a hero "page" stage, also patch the funnels row so
+      // the public landing page actually shows the updated copy.
+      if (HERO_PAGE_STAGE_IDS.has(stage.id)) {
+        const patch: Record<string, string> = {};
+        for (const [fieldKey, col] of Object.entries(HERO_FIELD_TO_FUNNEL_COL)) {
+          if (overridden[fieldKey]) patch[col] = values[fieldKey] ?? "";
+        }
+        if (Object.keys(patch).length > 0) {
+          await saveFunnelCopy(funnelId, patch);
+        }
       }
-      if (Object.keys(patch).length > 0) {
-        const { error: e } = await saveFunnelCopy({ funnelId, authorId, patch });
-        if (e) funnelWriteError = e;
-      }
+    } catch (e: any) {
+      saveError = e?.message || "Please try again.";
     }
 
     setSaving(false);
-    if (error || funnelWriteError) {
+    if (saveError) {
       toast({
         title: "Couldn't save changes",
-        description: error || funnelWriteError || "Please try again.",
+        description: saveError,
         variant: "destructive",
       });
       return;
