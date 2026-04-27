@@ -72,16 +72,19 @@ export default function NodeFunnelFlow({
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Funnel row (unless caller supplied one).
+      // 1. Funnel row — prefer caller-supplied; otherwise fetch via the
+      //    edge function (avoids shared-auth/RLS blind spot for owner reads).
       let baseFunnel: BaseFunnel | null = funnelProp ?? null;
       if (!baseFunnel) {
-        const { data } = await supabase
-          .from("funnels")
-          .select("id, headline, subheadline, body_copy, cta_text, cta_url, page_views, conversions, status")
-          .eq("author_id", authorId)
-          .eq("node_id", nodeId)
-          .maybeSingle();
-        baseFunnel = (data as BaseFunnel | null) ?? null;
+        try {
+          const { funnels } = await listFunnels();
+          const match = (funnels || []).find(
+            (f: any) => f.node_id === nodeId,
+          );
+          baseFunnel = (match as BaseFunnel | undefined) ?? null;
+        } catch (e) {
+          console.warn("[NodeFunnelFlow] listFunnels failed:", (e as Error).message);
+        }
       }
       setFunnel(baseFunnel);
 
