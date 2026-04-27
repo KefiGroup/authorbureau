@@ -301,7 +301,7 @@ export default function FunnelsHub() {
       setFunnels((prev) => prev.map((f) => (f.id === refreshed.id ? { ...f, ...refreshed } : f)));
     }
     toast({ title: "ABBY regenerated your funnel", description: "Fresh copy is loaded below — review and tweak as needed." });
-    if (authorId) loadFunnels(authorId);
+    await loadFunnels();
     flashFunnel(targetId);
   };
 
