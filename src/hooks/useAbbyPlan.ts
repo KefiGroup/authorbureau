@@ -34,7 +34,34 @@ export function useAbbyPlan(bookId: string | undefined): UseAbbyPlanReturn {
       });
       const data = await resp.json();
       if (data.plan) setPlan(data.plan);
-      if (data.completedAssets) setCompletedAssets(data.completedAssets);
+
+      // Source of truth for "built" count is `author_nodes` (status in live/content_ready)
+      // — same query Revenue Dashboard uses. We merge with anything abby-execute returned
+      // so the Books Hub counter never under-reports vs Revenue Dashboard. (M2 fix)
+      const merged = new Set<string>(Array.isArray(data.completedAssets) ? data.completedAssets : []);
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const userId = sess?.session?.user?.id;
+        if (userId) {
+          const { data: profile } = await supabase
+            .from("author_profiles")
+            .select("id")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (profile?.id) {
+            const { data: nodes } = await supabase
+              .from("author_nodes")
+              .select("node_id, status")
+              .eq("author_id", profile.id)
+              .eq("book_id", bookId)
+              .in("status", ["live", "content_ready"]);
+            (nodes || []).forEach((n: any) => n?.node_id && merged.add(n.node_id));
+          }
+        }
+      } catch (e) {
+        console.warn("[useAbbyPlan] author_nodes merge failed:", (e as Error).message);
+      }
+      setCompletedAssets(Array.from(merged));
     } catch (err) {
       console.error("Failed to load plan:", err);
     }
