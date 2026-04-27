@@ -1,68 +1,67 @@
-# Audit review + fix plan
+# Marketing Funnel + Hub Audit — Fix Plan
 
-## Verdict on the audit
+The audit identified 10 issues across My Funnels and Marketing Hub. The content engine works well; the activation, publishing, and lead-capture wiring is broken. Below is a tight fix plan grouped by severity.
 
-I verified the highest-impact claims against the actual codebase and database. The audit is **substantially correct**. Confirmed in code/DB:
+## Critical fixes (must ship first)
 
-- **BUG-04 / BUG-05 (Stripe not connected)** — `author_profiles` for `pauline-teo` has empty `stripe_account_id`, `stripe_onboarding_complete=false`. The dashboard is telling the truth — Stripe Connect was never finished. This is a user action, not a code bug.
-- **BUG-14 (sales funnels in Draft)** — Only the `BP-02 free-gift` funnel is `live`. `BP-01`, `BP-07`, `BP-09`, `BA-14` are all `draft`. Confirmed in `funnels` table.
-- **BUG-21 (Workbook link skips Stripe)** — Confirmed in `src/pages/author-site/AuthorBookFormatsList.tsx`. The Workbook and Bundle rows use `microsite_url` as the link target. They never route through `ProductCTA` / `BuyNowButton`, so Stripe checkout is impossible from the author page formats list.
-- **BUG-18 (Thank-you page has no Buy button)** — Confirmed in `src/pages/ThankYouPage.tsx`. It only renders an "Amazon" CTA, and only if `book.amazon_url` is set. No Workbook / Home Study upsell.
-- **BUG-19 (Thank-you blank flash)** — Confirmed: full-screen spinner with no skeleton during initial fetch.
-- **BUG-22 / BUG-23 (book slug and missing products)** — Confirmed `books` table has no row for `pauline-teo`. The trailing-hyphen slug and the "only Amazon button" symptoms are downstream of that.
-- **BUG-11 / BUG-20 (email sender unverified)** — Platform/domain action by Pauline, not a code change.
+**1. Stop authors from publishing broken funnels** *(Bug #1)*
+- In `NodeFunnelFlow.tsx` and the funnel card in `FunnelsHub.tsx`, compute `isComplete = required steps all !== "missing"`.
+- If incomplete: disable the **Publish funnel** button, change tooltip to *"Complete all steps to publish"*, and show a small inline checklist of missing steps under the button.
 
-I do **not** agree with one framing point: BUG-04 is described as possibly a "display bug." It is not — the DB confirms Stripe is not connected. The Connect Settings UI is correct.
+**2. Guided step setup in funnel editor** *(Bug #2)*
+- Update step editor drawers (Traffic, Checkout, Thank You, Onboarding Email) to:
+  - Add a **"Step N of 5"** progress indicator at the top.
+  - **Checkout**: detect Stripe connection via `author_profiles.stripe_onboarding_complete`. If false, show a primary **"Go to Connect Settings"** button that opens `/account-settings?tab=connections`.
+  - **Traffic**: add a text field to paste a traffic source URL/note, persisted to the funnel step config.
+  - **Thank You**: auto-prefill a default thank-you page from book metadata if empty.
+  - **Onboarding Email**: deep-link to the matching sequence in Marketing Hub via `/dashboard?section=marketing-hub&tab=sequences&sequence=<id>`.
 
-## What I will fix in code (this sprint)
+**3. Replace UUIDs with human-readable campaign labels** *(Bug #5)*
+- In `MarketingHub.tsx` (line ~704), the "Activated …" line currently appears to surface a raw id when the date is missing. Guard the render: only show the date string when `marketing_activated_at` parses successfully; otherwise fall back to *"Activated"* with no UUID. Audit the campaign card to ensure no other field renders a raw UUID.
 
-Five focused changes that unblock the revenue loop end-to-end:
+**4. Wire opt-in submissions into CRM + campaigns** *(Bug #6 — root cause of "0 leads captured")*
+- In the public funnel opt-in submit edge function (the handler behind `/:authorSlug/free-gift` form):
+  - Insert/upsert into `author_contacts` with `author_id`, `book_id`, `last_node_id`, `source_funnel_id`.
+  - Find the active opt-in campaign for that `author_id` + node and increment `lead_count`.
+  - Stamp `marketing_activated_at` if it was the campaign's first lead.
+- Backfill: one-time edge function pass to attach the 2 existing free-gift conversions to the matching campaign, so Pauline sees real numbers immediately.
+- Verify `ContactsTab.tsx` reads from `author_contacts` and shows the lead.
 
-### 1. Workbook + Bundle must open Stripe checkout (BUG-21)
-**File:** `src/pages/author-site/AuthorBookFormatsList.tsx`
+## High-priority fixes
 
-Replace the plain `<Link>` rows for `BP-06` (Workbook) and `BA-17` (Bundle) with `ProductCTA` so they go through the same 4-state matrix as the product cards (live → BuyNowButton → Stripe checkout). Keep Kindle / Paperback / Audiobook as-is.
+**5. Make sender-domain "Pending" a blocking banner** *(Bug #7)*
+- In Marketing Hub Overview, if `reply_to_confirmed_at IS NULL`, render a sticky red banner: *"Email delivery is paused. Confirm your reply-to email to start sending."* with a one-click **Resend confirmation email** button. Persist dismiss state per session only.
 
-This single change makes the $2.99 Workbook actually purchasable.
+**6. Funnel suggestions banner — clearer CTA** *(Bug #3)*
+- In `FunnelsHub.tsx` suggestions block (line ~384–440), replace the small chip pills with cards showing: product name, type badge (Sales / Opt-in / Application), expected funnel length, and a primary **Generate funnel** button. Add header text *"N products without funnels"*. Show per-product loading state while generating.
 
-### 2. Thank-you page upsell (BUG-18)
-**File:** `src/pages/ThankYouPage.tsx`
+## Medium / low fixes
 
-After opt-in, fetch the author's live `BP-06` (Workbook) and `BP-07` (Home Study) nodes and render a `ProductCTA` for the cheapest live one as the primary "next step." Keep the Amazon CTA as a secondary link if `amazon_url` exists. This gives every opt-in a direct path to a paid product.
+**7. "Activate All Sequences" button** *(Bug #8)*
+- In `SequencesTab.tsx` add a button next to "Generate sequences for all 28 nodes" that bulk-activates every Draft sequence with one confirmation. Show a per-row spinner while the batch runs.
 
-### 3. Thank-you skeleton (BUG-19)
-**File:** `src/pages/ThankYouPage.tsx`
+**8. Social calendar regeneration prompt** *(Bug #9)*
+- In `SocialCalendarTab.tsx` (line ~437), if `lastScheduled - today < 7 days`, show a prominent banner *"Your calendar runs out in N days — generate 30 more posts"* with a one-click **Generate next 30 days** button. Toast on success.
 
-Replace the full-screen spinner with an inline skeleton that matches the final layout (avatar, headline, CTA shape) so first paint is not blank.
+**9. Draft-funnel URL label** *(Bug #4)*
+- In `NodeFunnelFlow.tsx` line ~265, change *"(draft — not public)"* → *"(draft — preview only)"*. Clicking the link should open `?preview=<funnelId>` (already implemented for the preview button — apply same to the URL chip).
 
-### 4. Book detail page must surface products (BUG-23)
-**File:** `src/pages/author-site/AuthorBookFormatsList.tsx` is already where formats render. I will additionally extend the book detail page (`AuthorSubpageResolver` book route) to render the same product strip used on the author home — Workbook, Home Study, Audiobook, Bundle — using `AuthorProductCard` so a reader landing on `/pauline-teo/be-suckcessful` sees and can buy every Be SUCKcessful product, not just Amazon.
+## Technical notes
 
-### 5. Trailing-hyphen slug (BUG-22)
-**File:** the slug-generation utility used when a book row is created.
+- All funnel writes continue to go through the `funnels-manage` edge function (already in place from prior fix).
+- New edge function or update existing public opt-in handler — confirm name during implementation; likely `funnel-public-submit` or similar.
+- No schema changes required if `author_contacts.source_funnel_id` already exists; otherwise add a nullable column via migration.
+- Keep memory rule: lead capture must always go through edge functions, never direct browser inserts.
 
-Trim leading/trailing hyphens after slugifying. One-line fix in the slug helper. (Will also offer to backfill the existing bad slug once Pauline's book row exists in `books`.)
+## Out of scope
 
-## What I will NOT change in code (and why)
+- Stripe onboarding itself (BUG-21 already addressed in prior pass).
+- Verifying Pauline's actual reply-to email — that's a manual user action; we only make the UX unmissable.
+- Generating new social posts beyond May 1 — handled by the regeneration button users will click.
 
-These need Pauline / platform action, not a code edit:
+## Suggested ship order
 
-- **BUG-11 / BUG-20** — Verify sender domain. This must be done in Marketing Hub → Settings; no code change will bypass the domain verification requirement.
-- **BUG-04 / BUG-05** — Connect Stripe. The DB shows it isn't connected. Pauline must complete Stripe Connect onboarding from Connect Settings.
-- **BUG-14** — Publish the sales funnels. They are deliberately in Draft; only the author can publish.
-- **BUG-15 (view counter)**, **BUG-08 (CRM stage progression)**, **BUG-12 (0 leads despite Active)** — These are real but separate engine bugs. I will queue them as a follow-up sprint rather than bundle them here, because they each need their own investigation (analytics events, ABBY pipeline cron, opt-in form linkage). Including them in this sprint would dilute the revenue-loop fix.
-- **BUG-03 / BUG-10 (wrong book attribution on products and Author's Page campaign)** — Real, but the root cause is data (which `book_id` is stamped on `author_nodes` / campaign rows), not UI logic. Needs a targeted data audit + a `book_id` reconciliation pass. Queued as a follow-up.
-- **BUG-01, 02, 06, 07, 09, 13, 16, 17** — Medium/low priority counters, copy, and missing-stage prompts. Worth fixing, but not revenue blockers. Queued.
-
-## Order of operations
-
-1. Fix files 1–5 above.
-2. Tell Pauline the exact 3 platform actions she must take (verify sender, finish Stripe Connect, publish the BP-07 funnel) — without those, the code fixes still won't transact money.
-3. After she confirms Stripe + sender are done, run a live end-to-end test (opt-in → thank-you → buy Workbook) and report the result.
-
-## Expected outcome
-
-- Workbook and Bundle become buyable from the author page.
-- Thank-you page becomes a real conversion surface, not a dead end.
-- Book detail page stops being an Amazon-only page.
-- Once Pauline finishes Stripe Connect and verifies her sender, the loop is end-to-end functional.
+1. Bugs #1, #2 (publish gating + guided steps) — unblocks publishing.
+2. Bug #6 (lead capture wiring) — fixes the analytics void.
+3. Bugs #5, #7 (UUID + sender-domain banner) — visible polish.
+4. Bug #3 (suggestions cards), then #8, #9, #4 — friction reducers.
