@@ -604,7 +604,7 @@ export default function MarketingHub({ onNavigate }: Props) {
                     isHighlighted={isHighlighted}
                     nodeRows={nodeRows}
                     isActivating={activatingCampaign === campaign.id}
-                    totalLeads={totalLeads}
+                    totalLeads={campaign.nodeIds.reduce((sum, nid) => sum + (leadCounts[nid] || 0), 0)}
                     onActivate={() => handleActivate(campaign)}
                     onPause={() => handlePause(campaign)}
                   />
