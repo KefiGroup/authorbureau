@@ -167,26 +167,21 @@ export default function NodeFunnelFlow({
     if (!funnel?.id) return;
     setGenerating(true);
     const goingLive = funnel.status !== "live";
-    const { error } = await supabase
-      .from("funnels")
-      .update({
-        status: goingLive ? "live" : "paused",
-        published_at: goingLive ? new Date().toISOString() : null,
-      })
-      .eq("id", funnel.id);
-    setGenerating(false);
-    if (error) {
-      toast({ title: "Couldn't update status", description: error.message, variant: "destructive" });
-      return;
+    try {
+      await setFunnelStatus(funnel.id, goingLive ? "live" : "paused");
+      toast({
+        title: goingLive ? "Funnel is live" : "Funnel paused",
+        description: goingLive
+          ? "Your public landing page now serves this funnel."
+          : "Visitors will see your default book page again.",
+      });
+      await fetchAll();
+      onChanged?.();
+    } catch (e: any) {
+      toast({ title: "Couldn't update status", description: e?.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
     }
-    toast({
-      title: goingLive ? "Funnel is live" : "Funnel paused",
-      description: goingLive
-        ? "Your public landing page now serves this funnel."
-        : "Visitors will see your default book page again.",
-    });
-    await fetchAll();
-    onChanged?.();
   };
 
   if (loading) {
