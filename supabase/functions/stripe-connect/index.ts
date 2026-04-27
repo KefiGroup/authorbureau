@@ -97,10 +97,13 @@ serve(async (req) => {
         const transfersActive = account.capabilities?.transfers === "active";
         const isComplete = transfersActive && account.details_submitted;
 
-        if (isComplete && !profile.stripe_onboarding_complete) {
+        // Sync flag in BOTH directions so a later capability loss
+        // (e.g. Stripe disables transfers) immediately removes the green check
+        // and re-prompts the author to finish onboarding.
+        if (isComplete !== !!profile.stripe_onboarding_complete) {
           await supabaseAdmin
             .from("author_profiles")
-            .update({ stripe_onboarding_complete: true })
+            .update({ stripe_onboarding_complete: isComplete })
             .eq("user_id", user.id);
         }
 
