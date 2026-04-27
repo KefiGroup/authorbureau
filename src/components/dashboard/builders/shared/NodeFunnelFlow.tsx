@@ -11,7 +11,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, Copy, ExternalLink, Loader2, Power, RefreshCw, Sparkles } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Copy, ExternalLink, Loader2, Power, RefreshCw, Sparkles, XCircle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -211,6 +212,11 @@ export default function NodeFunnelFlow({
     );
   }
 
+  // Determine which stages are still missing — used to gate publish.
+  const missingStages = stages.filter((s) => s.status === "missing");
+  const isComplete = missingStages.length === 0 && stages.length > 0;
+  const canPublish = isComplete || funnel.status === "live";
+
   const editingStage = stages.find((s) => s.id === editStageId) ?? null;
 
   return (
@@ -235,17 +241,52 @@ export default function NodeFunnelFlow({
 
         {/* Draft warning — explains why the public URL doesn't show this funnel yet */}
         {funnel.status !== "live" && (
-          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
-            <div className="flex-1 text-xs text-amber-900 dark:text-amber-200">
-              <strong>Draft — not public yet.</strong> Your edits are saved, but the public URL still shows your default book page. Click <em>Publish funnel</em> to go live.
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex-1 text-xs text-amber-900 dark:text-amber-200">
+                <strong>Draft — preview only.</strong> Your edits are saved, but the public URL still shows your default page. {isComplete ? "Click Publish funnel to go live." : "Complete every step before you can publish."}
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        size="sm"
+                        onClick={handlePublish}
+                        disabled={generating || !canPublish}
+                        className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 disabled:opacity-50"
+                      >
+                        {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Power className="h-3.5 w-3.5 mr-1" />}
+                        Publish funnel
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!canPublish && (
+                    <TooltipContent>Complete all steps to publish</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
             </div>
-            <Button size="sm" onClick={handlePublish} disabled={generating} className="bg-amber-600 hover:bg-amber-700 text-white shrink-0">
-              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Power className="h-3.5 w-3.5 mr-1" />}
-              Publish funnel
-            </Button>
+            {!isComplete && (
+              <ul className="mt-2 ml-6 space-y-0.5 text-[11px] text-amber-900 dark:text-amber-200">
+                {missingStages.map((s) => (
+                  <li key={s.id} className="flex items-center gap-1.5">
+                    <XCircle className="h-3 w-3" /> {s.label} — needs setup
+                  </li>
+                ))}
+              </ul>
+            )}
+            {isComplete && (
+              <p className="mt-2 ml-6 text-[11px] text-amber-900 dark:text-amber-200 inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3" /> All {stages.length} steps complete — ready to publish.
+              </p>
+            )}
           </div>
         )}
+
+        {/* (legacy draft banner removed — gated banner above handles this) */}
+
 
         {/* Flow chart */}
         <FunnelFlowChart stages={stages} onStageClick={(id) => setEditStageId(id)} />
@@ -253,18 +294,24 @@ export default function NodeFunnelFlow({
         {/* Metadata + actions strip */}
         <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
           {publicUrl && (
-            <button
-              type="button"
-              onClick={() => { navigator.clipboard.writeText(publicUrl); toast({ title: "Link copied" }); }}
+            <a
+              href={funnel.status === "live" ? publicUrl : `${publicUrl}?preview=${funnel.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey) return;
+                navigator.clipboard.writeText(publicUrl);
+                toast({ title: "Link copied" });
+              }}
               className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition px-2 py-1 rounded bg-muted/40 hover:bg-muted/70"
-              title="Copy public link"
+              title="Click to copy · ⌘-click to open"
             >
               <Copy className="h-3 w-3" />
               <span className="truncate max-w-[260px]">{publicUrl}</span>
               {funnel.status !== "live" && (
-                <span className="text-amber-600 dark:text-amber-400 font-medium">(draft — not public)</span>
+                <span className="text-amber-600 dark:text-amber-400 font-medium">(draft — preview only)</span>
               )}
-            </button>
+            </a>
           )}
           <div className="ml-auto flex gap-2">
             {funnel.status === "live" ? (
@@ -272,7 +319,7 @@ export default function NodeFunnelFlow({
                 <Power className="h-3.5 w-3.5 mr-1" />Pause
               </Button>
             ) : (
-              <Button size="sm" onClick={handlePublish} disabled={generating}>
+              <Button size="sm" onClick={handlePublish} disabled={generating || !canPublish} title={!canPublish ? "Complete all steps to publish" : undefined}>
                 {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Power className="h-3.5 w-3.5 mr-1" />}
                 Publish funnel
               </Button>

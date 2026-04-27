@@ -145,7 +145,9 @@ Deno.serve(async (req) => {
         cloudAdmin
           .from("crm_contacts")
           .select("id", { count: "exact", head: true })
-          .eq("author_id", authorProfile.id),
+          // crm_contacts.author_id is keyed by auth.users.id (matches RLS auth.uid()=author_id),
+          // not author_profiles.id. submit-funnel resolves authorUserId before insert.
+          .eq("author_id", (authorProfile as any).user_id),
         cloudAdmin
           .from("author_email_settings")
           .select("domain_verified")
