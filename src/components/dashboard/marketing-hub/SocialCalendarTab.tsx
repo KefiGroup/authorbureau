@@ -208,6 +208,40 @@ export default function SocialCalendarTab({ authorId }: Props) {
     }
   };
 
+  // ── Manual social-calendar refill (BUG-M3 follow-up) ──
+  // Calls the same edge function the nightly cron uses, scoped to this author.
+  // Generates 30 more days of posts on top of whatever is already queued.
+  const [refilling, setRefilling] = useState(false);
+  const refillCalendar = async () => {
+    if (!authorId) return;
+    setRefilling(true);
+    try {
+      const token = await getActiveToken();
+      if (!token) {
+        toast.error("Session expired. Please sign in again.");
+        return;
+      }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-refill-social-calendar`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ author_id: authorId, force: true }),
+        },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || "Couldn't generate more posts. Please try again in a few minutes.");
+        return;
+      }
+      toast.success("Generating 30 more days of posts — they'll appear shortly.");
+      // Allow a brief moment for the generator to write before we re-fetch.
+      setTimeout(() => { load(); }, 4000);
+    } finally {
+      setRefilling(false);
+    }
+  };
+
   const filteredPosts = useMemo(() => {
     if (filter === "all") return posts;
     return posts.filter(p => {
