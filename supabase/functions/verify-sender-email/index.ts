@@ -7,9 +7,11 @@ const corsHeaders = {
 
 function htmlPage(title: string, message: string, success: boolean) {
   const accent = success ? "#10b981" : "#ef4444";
+  const icon = success ? "&#10003;" : "&#33;";
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>${title}</title>
 <style>
