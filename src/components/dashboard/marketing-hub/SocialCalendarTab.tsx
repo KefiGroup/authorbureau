@@ -208,6 +208,40 @@ export default function SocialCalendarTab({ authorId }: Props) {
     }
   };
 
+  // ── Manual social-calendar refill (BUG-M3 follow-up) ──
+  // Calls the same edge function the nightly cron uses, scoped to this author.
+  // Generates 30 more days of posts on top of whatever is already queued.
+  const [refilling, setRefilling] = useState(false);
+  const refillCalendar = async () => {
+    if (!authorId) return;
+    setRefilling(true);
+    try {
+      const token = await getActiveToken();
+      if (!token) {
+        toast.error("Session expired. Please sign in again.");
+        return;
+      }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-refill-social-calendar`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ author_id: authorId, force: true }),
+        },
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        toast.error(json?.error || "Couldn't generate more posts. Please try again in a few minutes.");
+        return;
+      }
+      toast.success("Generating 30 more days of posts — they'll appear shortly.");
+      // Allow a brief moment for the generator to write before we re-fetch.
+      setTimeout(() => { load(); }, 4000);
+    } finally {
+      setRefilling(false);
+    }
+  };
+
   const filteredPosts = useMemo(() => {
     if (filter === "all") return posts;
     return posts.filter(p => {
@@ -228,6 +262,12 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const lastScheduled = posts
     .filter(p => p.scheduled_at)
     .reduce<string | null>((acc, p) => (!acc || (p.scheduled_at! > acc) ? p.scheduled_at! : acc), null);
+
+  // Days of runway remaining — used to surface the auto-refill banner.
+  const daysRemaining = lastScheduled
+    ? Math.max(0, Math.ceil((new Date(lastScheduled).getTime() - Date.now()) / 86400000))
+    : 0;
+  const lowRunway = totalCount > 0 && daysRemaining <= 7;
 
   const shiftCursor = (delta: number) => {
     const next = new Date(cursor);
@@ -412,6 +452,20 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
+      {/* Low-runway banner — auto-refill is overnight, but offer manual now */}
+      {lowRunway && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4 shrink-0" />
+          <span className="flex-1">
+            <strong>Calendar runs out in {daysRemaining} day{daysRemaining === 1 ? "" : "s"}.</strong>{" "}
+            Auto-refill is scheduled overnight, or generate 30 more days right now.
+          </span>
+          <Button size="sm" variant="outline" onClick={refillCalendar} disabled={refilling || !authorId}>
+            {refilling ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+            Generate now
+          </Button>
+        </div>
+      )}
       {/* Progress tracker header */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -457,6 +511,10 @@ export default function SocialCalendarTab({ authorId }: Props) {
         </div>
         <div className="flex-1 text-center font-semibold text-foreground">{headerLabel}</div>
         <div className="flex items-center gap-1 flex-wrap justify-end">
+          <Button size="sm" variant="outline" onClick={refillCalendar} disabled={refilling || !authorId}>
+            {refilling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            Generate 30 more days
+          </Button>
           <Button size="sm" variant="outline" onClick={repairCalendar} disabled={repairing}>
             {repairing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh Calendar"}
           </Button>

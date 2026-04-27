@@ -314,14 +314,12 @@ export default function NodeFunnelFlow({
             </a>
           )}
           <div className="ml-auto flex gap-2">
-            {funnel.status === "live" ? (
+            {/* Publish action lives in the amber draft banner above; the footer
+                only carries Pause for live funnels so authors can't bypass the
+                gating by clicking a duplicate Publish button here. */}
+            {funnel.status === "live" && (
               <Button size="sm" variant="ghost" onClick={handlePublish} disabled={generating} title="Pause this funnel">
                 <Power className="h-3.5 w-3.5 mr-1" />Pause
-              </Button>
-            ) : (
-              <Button size="sm" onClick={handlePublish} disabled={generating || !canPublish} title={!canPublish ? "Complete all steps to publish" : undefined}>
-                {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Power className="h-3.5 w-3.5 mr-1" />}
-                Publish funnel
               </Button>
             )}
             {publicUrl && funnel.status === "live" && (

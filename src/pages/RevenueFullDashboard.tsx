@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X, Flame } from "lucide-react";
+import { Sparkles, Users, Mail, TrendingUp, DollarSign, ArrowLeft, CheckCircle2, Eye, ExternalLink, CreditCard, Info, X, Flame, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
@@ -63,6 +63,10 @@ export default function RevenueFullDashboard() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [penName, setPenName] = useState("");
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  // New Stripe Connect (Express) flow — flag flipped by stripe-connect edge function.
+  const [stripeConnectId, setStripeConnectId] = useState<string | null>(null);
+  const [stripeOnboardingComplete, setStripeOnboardingComplete] = useState(false);
+  const [stripeRefreshing, setStripeRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Data states
@@ -75,7 +79,7 @@ export default function RevenueFullDashboard() {
   const [nodesLive, setNodesLive] = useState(0);
   const [hotLeads, setHotLeads] = useState<Array<{ id: string; full_name: string; email: string | null; abby_score: number; last_activity_at: string | null }>>([]);
 
-  // Connect Stripe modal
+  // Connect Stripe modal (legacy manual-paste flow — kept for advanced users)
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [stripeInput, setStripeInput] = useState("");
   const [saving, setSaving] = useState(false);
@@ -89,7 +93,7 @@ export default function RevenueFullDashboard() {
       // 1. Resolve author profile
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("id, pen_name, stripe_connected_account_id")
+        .select("id, pen_name, stripe_connected_account_id, stripe_account_id, stripe_onboarding_complete")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -102,6 +106,8 @@ export default function RevenueFullDashboard() {
       setAuthorId(profile.id);
       setPenName(profile.pen_name || "Author");
       setStripeAccountId(profile.stripe_connected_account_id || null);
+      setStripeConnectId(profile.stripe_account_id || null);
+      setStripeOnboardingComplete(!!profile.stripe_onboarding_complete);
 
       // 2. Parallel direct DB queries — fast, no edge functions
       const [contactsRes, hotRes, nodesRes, snapsRes, purchasesRes] = await Promise.all([
@@ -159,7 +165,7 @@ export default function RevenueFullDashboard() {
         revenueMtd: monthRevenue,
       });
       // Real data — not projected
-      setProjected({ ghl: false, stripe: !profile.stripe_connected_account_id });
+      setProjected({ ghl: false, stripe: !(profile.stripe_onboarding_complete || profile.stripe_connected_account_id) });
       setLoading(false);
     })();
 
@@ -256,6 +262,77 @@ export default function RevenueFullDashboard() {
     }
   };
 
+  // ── New: Stripe Connect (Express) onboarding lifecycle ──
+  // Three states for the header:
+  //   not_started      → no stripe_account_id at all (must click "Start onboarding")
+  //   in_progress      → account exists but onboarding not finished
+  //   connected        → onboarding_complete = true; revenue is real, not projected
+  const stripeConnectState: "not_started" | "in_progress" | "connected" =
+    stripeOnboardingComplete ? "connected" : (stripeConnectId ? "in_progress" : "not_started");
+
+  // "Start onboarding" / "Resume onboarding" — calls stripe-connect edge fn
+  const startStripeOnboarding = async () => {
+    setStripeRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "onboard" },
+      });
+      if (error || !data?.url) {
+        toast.error("Couldn't start Stripe onboarding. Please try again.");
+        return;
+      }
+      // Hand off to Stripe — they'll redirect back via the configured return_url.
+      window.location.href = data.url;
+    } catch {
+      toast.error("Couldn't start Stripe onboarding. Please try again.");
+    } finally {
+      setStripeRefreshing(false);
+    }
+  };
+
+  // "Refresh Stripe status" — re-pings Stripe and bi-directionally syncs the
+  // stripe_onboarding_complete flag. Useful when a webhook hasn't fired yet
+  // or the author finished onboarding in another tab.
+  const refreshStripeStatus = async () => {
+    setStripeRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "status" },
+      });
+      if (error) {
+        toast.error("Couldn't reach Stripe. Please try again.");
+        return;
+      }
+      const connected = !!data?.connected;
+      const complete = !!data?.onboarding_complete;
+      setStripeOnboardingComplete(complete);
+      // Re-pull the row to get the canonical stripe_account_id we just synced.
+      if (authorId) {
+        const { data: profile } = await supabase
+          .from("author_profiles")
+          .select("stripe_account_id, stripe_onboarding_complete")
+          .eq("id", authorId)
+          .maybeSingle();
+        if (profile) {
+          setStripeConnectId(profile.stripe_account_id || null);
+          setStripeOnboardingComplete(!!profile.stripe_onboarding_complete);
+        }
+      }
+      if (complete) {
+        toast.success("Stripe connected — your revenue is now tracked.");
+        syncMetrics();
+      } else if (connected) {
+        toast.message("Stripe onboarding still in progress.");
+      } else {
+        toast.message("No Stripe account linked yet — click Start onboarding.");
+      }
+    } catch {
+      toast.error("Couldn't reach Stripe. Please try again.");
+    } finally {
+      setStripeRefreshing(false);
+    }
+  };
+
   // Build chart data (last 6 months)
   const chartData = (() => {
     const months: { month: string; actual: number | null; projected: number | null }[] = [];
@@ -300,16 +377,54 @@ export default function RevenueFullDashboard() {
             <h1 className="text-lg font-semibold">Revenue Dashboard</h1>
             <p className="text-xs text-muted-foreground">Track your earnings across all 28 nodes</p>
           </div>
-          {!stripeAccountId && (
-            <Button variant="outline" size="sm" onClick={() => setShowStripeModal(true)} className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              Connect Payment Account
+          {/* Stripe Connect — three-state header control */}
+          <div className="flex items-center gap-2">
+            {stripeConnectState === "connected" ? (
+              <Badge variant="outline" className="gap-1.5 border-emerald-500/40 text-emerald-700 bg-emerald-500/10">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Stripe Connected
+              </Badge>
+            ) : stripeConnectState === "in_progress" ? (
+              <>
+                <Badge variant="outline" className="gap-1.5 border-amber-500/40 text-amber-700 bg-amber-500/10">
+                  <Info className="h-3.5 w-3.5" /> Onboarding in progress
+                </Badge>
+                <Button variant="outline" size="sm" onClick={startStripeOnboarding} disabled={stripeRefreshing} className="gap-2">
+                  <CreditCard className="h-4 w-4" /> Resume onboarding
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={startStripeOnboarding} disabled={stripeRefreshing} className="gap-2">
+                <CreditCard className="h-4 w-4" /> Start Stripe onboarding
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshStripeStatus}
+              disabled={stripeRefreshing}
+              title="Re-check Stripe status"
+              className="gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${stripeRefreshing ? "animate-spin" : ""}`} />
+              {stripeRefreshing ? "Checking…" : "Refresh status"}
             </Button>
-          )}
+          </div>
         </div>
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Stripe explainer — only when no Stripe Connect account exists yet */}
+        {stripeConnectState === "not_started" && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+            <Info className="h-4 w-4 mt-0.5 shrink-0" />
+            <p>
+              <strong>Heads up:</strong> completing Stripe onboarding directly on stripe.com does
+              not link to Authors Bureau. Click <strong>Start Stripe onboarding</strong> above so
+              we can create your payout-only Express account. Already finished? Click{" "}
+              <strong>Refresh status</strong>.
+            </p>
+          </div>
+        )}
         {/* SECTION 1: ABBY Daily Insight */}
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
