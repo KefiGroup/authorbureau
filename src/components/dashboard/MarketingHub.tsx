@@ -274,8 +274,24 @@ export default function MarketingHub({ onNavigate }: Props) {
       setAuthorProfileId(snapshot.author_profile_id || null);
       setNodeRows(snapshot.node_rows || []);
       setBp03PostsCount(snapshot.bp03_posts_count || 0);
-      setLeadCounts({ all: snapshot.lead_count || 0 });
       setCrossCounts(snapshot.cross_counts || { sequences: 0, socialQueued: 0, contacts: 0, domainPending: false });
+
+      // Per-campaign lead attribution: group crm_contacts by last_node_id.
+      // Falls back to global count under the "all" key for the header stat.
+      const counts: Record<string, number> = { all: snapshot.lead_count || 0 };
+      try {
+        const { data: contacts } = await supabase
+          .from("crm_contacts")
+          .select("last_node_id")
+          .eq("author_id", user.id);
+        for (const row of contacts || []) {
+          const nid = (row as any).last_node_id as string | null;
+          if (nid) counts[nid] = (counts[nid] || 0) + 1;
+        }
+      } catch (e) {
+        console.warn("[MarketingHub] per-campaign lead attribution failed", e);
+      }
+      setLeadCounts(counts);
     } catch (err) {
       console.error("Failed to fetch nodes:", err);
     } finally {
