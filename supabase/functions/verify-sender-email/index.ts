@@ -23,7 +23,7 @@ function htmlPage(title: string, message: string, success: boolean) {
   a{display:inline-block;background:#0f172a;color:#fff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:500;font-size:14px}
 </style></head><body>
 <div class="card">
-  <div class="badge">${success ? "✓" : "!"}</div>
+  <div class="badge">${icon}</div>
   <h1>${title}</h1>
   <p>${message}</p>
   <a href="https://authorsbureau.com/dashboard">Go to dashboard</a>
