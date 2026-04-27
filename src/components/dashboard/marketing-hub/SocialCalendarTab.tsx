@@ -452,6 +452,20 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
+      {/* Low-runway banner — auto-refill is overnight, but offer manual now */}
+      {lowRunway && (
+        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
+          <CalendarIcon className="h-4 w-4 shrink-0" />
+          <span className="flex-1">
+            <strong>Calendar runs out in {daysRemaining} day{daysRemaining === 1 ? "" : "s"}.</strong>{" "}
+            Auto-refill is scheduled overnight, or generate 30 more days right now.
+          </span>
+          <Button size="sm" variant="outline" onClick={refillCalendar} disabled={refilling || !authorId}>
+            {refilling ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+            Generate now
+          </Button>
+        </div>
+      )}
       {/* Progress tracker header */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
