@@ -739,7 +739,10 @@ const CampaignRow = forwardRef<HTMLDivElement, {
           <div className="flex items-center gap-2 mt-2 text-xs text-emerald-600">
             <CheckCircle2 className="h-3 w-3" />
             <span>
-              {activatedAt ? `Activated ${activatedAt}` : "Activated"} · {totalLeads} leads captured
+              {activatedAt ? `Activated ${activatedAt}` : "Activated"} ·{" "}
+              {totalLeads > 0
+                ? `${totalLeads} lead${totalLeads === 1 ? "" : "s"} from this campaign`
+                : "No leads from this campaign yet"}
             </span>
           </div>
         )}
