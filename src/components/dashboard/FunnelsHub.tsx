@@ -210,18 +210,19 @@ export default function FunnelsHub() {
     setFunnels((prev) => [newFunnel, ...prev.filter((f) => f.id !== newId)]);
     // Reset filter so it can't be hidden
     setFilter("all");
-    // Reconcile in background (best-effort; if it returns stale rows, we keep the optimistic insert)
+    // Reconcile via the edge function so the refresh state matches what is
+    // actually persisted (no shared-auth/RLS blind spots).
     (async () => {
-      const { data: refreshed } = await supabase
-        .from("funnels")
-        .select("*")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false });
-      if (refreshed && refreshed.length > 0) {
-        const merged = refreshed.some((r) => r.id === newId)
-          ? (refreshed as Funnel[])
-          : ([newFunnel, ...refreshed] as Funnel[]);
-        setFunnels(merged);
+      try {
+        const { funnels: refreshed } = await listFunnels();
+        if (refreshed && refreshed.length > 0) {
+          const merged = refreshed.some((r) => r.id === newId)
+            ? (refreshed as Funnel[])
+            : ([newFunnel, ...refreshed] as Funnel[]);
+          setFunnels(merged);
+        }
+      } catch (e) {
+        console.warn("[FunnelsHub] reconcile after generate failed:", (e as Error).message);
       }
     })();
 
