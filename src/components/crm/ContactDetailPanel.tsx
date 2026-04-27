@@ -283,10 +283,10 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">Tags</label>
             <div className="flex flex-wrap gap-1 mb-2">
-              {contact.tags.map((tag) => (
+              {(contact.tags ?? []).map((tag) => (
                 <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-[#14B8A6]/15 text-[#14B8A6] font-medium">{tag}</span>
               ))}
-              {contact.tags.length === 0 && <span className="text-[11px] text-gray-400">No tags yet</span>}
+              {(contact.tags ?? []).length === 0 && <span className="text-[11px] text-gray-400">No tags yet</span>}
             </div>
             <div className="flex gap-2">
               <Input id="crm-tag-input" value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Add tag..." className="text-xs h-8"
