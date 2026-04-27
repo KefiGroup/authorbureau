@@ -26,6 +26,7 @@ import {
   type OverridesMap,
 } from "@/lib/funnel-flow-stages";
 import { loadOverrides } from "@/lib/funnel-overrides";
+import { setFunnelStatus, listFunnels } from "@/lib/funnels-api";
 import FunnelFlowChart from "./FunnelFlowChart";
 import StageEditorDrawer from "./StageEditorDrawer";
 
@@ -71,16 +72,19 @@ export default function NodeFunnelFlow({
   const fetchAll = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Funnel row (unless caller supplied one).
+      // 1. Funnel row — prefer caller-supplied; otherwise fetch via the
+      //    edge function (avoids shared-auth/RLS blind spot for owner reads).
       let baseFunnel: BaseFunnel | null = funnelProp ?? null;
       if (!baseFunnel) {
-        const { data } = await supabase
-          .from("funnels")
-          .select("id, headline, subheadline, body_copy, cta_text, cta_url, page_views, conversions, status")
-          .eq("author_id", authorId)
-          .eq("node_id", nodeId)
-          .maybeSingle();
-        baseFunnel = (data as BaseFunnel | null) ?? null;
+        try {
+          const { funnels } = await listFunnels();
+          const match = (funnels || []).find(
+            (f: any) => f.node_id === nodeId,
+          );
+          baseFunnel = (match as BaseFunnel | undefined) ?? null;
+        } catch (e) {
+          console.warn("[NodeFunnelFlow] listFunnels failed:", (e as Error).message);
+        }
       }
       setFunnel(baseFunnel);
 
@@ -163,26 +167,21 @@ export default function NodeFunnelFlow({
     if (!funnel?.id) return;
     setGenerating(true);
     const goingLive = funnel.status !== "live";
-    const { error } = await supabase
-      .from("funnels")
-      .update({
-        status: goingLive ? "live" : "paused",
-        published_at: goingLive ? new Date().toISOString() : null,
-      })
-      .eq("id", funnel.id);
-    setGenerating(false);
-    if (error) {
-      toast({ title: "Couldn't update status", description: error.message, variant: "destructive" });
-      return;
+    try {
+      await setFunnelStatus(funnel.id, goingLive ? "live" : "paused");
+      toast({
+        title: goingLive ? "Funnel is live" : "Funnel paused",
+        description: goingLive
+          ? "Your public landing page now serves this funnel."
+          : "Visitors will see your default book page again.",
+      });
+      await fetchAll();
+      onChanged?.();
+    } catch (e: any) {
+      toast({ title: "Couldn't update status", description: e?.message, variant: "destructive" });
+    } finally {
+      setGenerating(false);
     }
-    toast({
-      title: goingLive ? "Funnel is live" : "Funnel paused",
-      description: goingLive
-        ? "Your public landing page now serves this funnel."
-        : "Visitors will see your default book page again.",
-    });
-    await fetchAll();
-    onChanged?.();
   };
 
   if (loading) {

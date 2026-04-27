@@ -1,50 +1,94 @@
-## What's broken
+<final-text>## What I found
 
-You're seeing two real issues from the screenshots and DB:
+This does not look like the funnel row is being deleted.
 
-**1. The Sales funnel never resolves publicly because it's still `draft`.**
-- DB confirms: `Be SUCKcessful Instant Digital Book` (Sales funnel) → `status: draft`
-- The public router `AuthorSubpageResolver` only serves a funnel when `status = 'live'`. Drafts silently fall back to the book page.
-- That's why the URL `https://authorsbureau.com/pauline-teo/be-suckcessful-digital-book` "doesn't go anywhere obvious" — it's quietly serving the generic book page instead of the funnel you just edited.
-- The Opt-in funnel (`free-gift`) IS `live`, which is why that one renders correctly.
+I checked the database and the latest “missing” funnel is still there:
+- `Be SUCKcessful Instant Digital Book`
+- node `BP-09`
+- slug `be-suckcessful-instant-book`
+- status `draft`
 
-**2. "Page not saved" in the Stage Editor.**
-- The drawer writes to `funnel_stage_overrides` but doesn't update the `funnels` row itself, and there's no visible toast/feedback when save succeeds or fails. So edits to the Sales Page stage feel like they vanish.
-- Even when the override IS saved, `FunnelPage.tsx` reads from `funnels` columns directly (headline, body_copy, cta_text…) and ignores the overrides table — so edits never appear on the live page.
+There are currently 5 funnel rows for this author in the database, so the main failure is not creation itself — it is visibility/persistence in the dashboard after refresh.
 
-## The fix
+## Root cause
 
-### A. Make funnel saves actually reach the public page
-- In `StageEditorDrawer`, when a Sales/Opt-in stage's core fields are edited (headline, subheadline, body, CTA text, CTA URL), also update the matching column on the `funnels` row — not just the overrides table.
-- Keep the override row as the audit trail / "edited" badge source, but the live page reads `funnels.*`.
-- Add a success toast ("Saved — changes are live" or "Saved to draft — publish to go live") and an error toast on failure.
+The funnel UI is using the direct project database client for owner-only reads/writes:
+- `FunnelsHub.tsx`
+- `NodeFunnelFlow.tsx`
+- `StageEditorDrawer.tsx`
+- `funnel-hook.ts`
+- parts of `AuthorSubpageResolver.tsx`
 
-### B. Surface draft vs live clearly + give a one-click Publish
-- On each funnel card in `FunnelsHub` and in `NodeFunnelFlow`, when status is `draft`, show:
-  - A yellow banner: "This funnel is a draft. Your edits are saved but the public URL still shows your book page."
-  - A primary **Publish funnel** button that flips `status` to `live`.
-- Replace the current "Open landing page" button on draft funnels with **Preview draft** (opens a `?preview=funnel-id` URL that bypasses the live-only check using the author's session).
+But this app’s sign-in/session is primarily established on the separate shared auth client (`src/lib/shared-backend.ts`, `Auth.tsx`, `SSO.tsx`).
 
-### C. Add draft preview support in the resolver
-- `AuthorSubpageResolver`: if `?preview=<funnel_id>` is present AND the viewer is the funnel owner (checked via `supabase.auth.getUser()` → `author_profiles.user_id`), serve the draft funnel instead of falling through.
-- Public visitors without the preview param + ownership still see the book page fallback. No leak.
+That means:
+- the funnel gets created by the backend function and appears optimistically in the UI
+- then the dashboard re-queries `funnels` with the direct client
+- on refresh or reload, RLS/auth can treat that client as signed out or mismatched
+- result: the row “disappears” from the dashboard even though it still exists in the database
 
-### D. Small clarity fixes
-- In `FunnelPage`, merge `funnel_stage_overrides` on top of base `funnels` columns at render time so the layered model actually shows on the public page.
-- In the Funnels Hub URL row, append a small "(draft — not public yet)" hint when status is draft so it's obvious why opening the URL shows the book page.
+This same pattern is already acknowledged elsewhere in the codebase:
+- `builder-autosave.ts`
+- `publish-node.ts`
+- `save-author-node` edge function
 
-## Files touched
+Those files already document the shared-auth vs direct-client mismatch as the reason direct owner-scoped database writes/reads become unreliable.
 
-- `src/pages/AuthorSubpageResolver.tsx` — add owner-gated `?preview=` support
-- `src/pages/FunnelPage.tsx` — merge overrides into rendered content
-- `src/components/dashboard/builders/shared/StageEditorDrawer.tsx` — dual-write to `funnels` + toasts
-- `src/components/dashboard/builders/shared/NodeFunnelFlow.tsx` — Publish button + draft banner
-- `src/components/dashboard/FunnelsHub.tsx` — Publish button, draft hint on URL, Preview vs Open
+## Plan
 
-No DB migration needed — `funnels` already has all the columns we need and `funnel_stage_overrides` stays as-is.
+1. **Move funnel owner operations behind a backend function**
+   - Add a funnel management function that follows the same pattern as `save-author-node`:
+     - accept shared auth JWT
+     - decode/verify ownership server-side
+     - use service-role access for the actual DB read/write
+   - Support actions for:
+     - list funnels for the signed-in author
+     - read one funnel + overrides
+     - save copy edits
+     - save stage overrides
+     - publish/pause funnel
+     - regenerate funnel safely
 
-## Outcome
+2. **Refactor funnel UI to stop querying `funnels` directly from the browser**
+   - Update `FunnelsHub.tsx`, `NodeFunnelFlow.tsx`, `StageEditorDrawer.tsx`, and `funnel-hook.ts`
+   - Replace direct `.from("funnels")` reads/writes with the backend function
+   - Keep optimistic UI only as temporary feedback, but always reconcile from the backend function response so refresh matches reality
 
-- You hit Save in the editor → see a confirmation toast → changes appear on the live URL (if live) or the preview URL (if draft).
-- Sales funnel for "Be SUCKcessful" gets a clear **Publish funnel** button. One click and `authorsbureau.com/pauline-teo/be-suckcessful-digital-book` serves the funnel instead of the book page.
-- Drafts get a private preview link so you can QA before publishing.
+3. **Keep public funnel viewing separate**
+   - Public live pages can continue to read live funnel data publicly
+   - Owner-only draft preview should also use the shared-auth-safe backend path so preview does not depend on the direct client having a session
+
+4. **Audit the same pattern in nearby dashboard flows**
+   - Check other “created but missing after refresh” areas that still use the direct client for owner-scoped RLS data
+   - Patch the obvious repeats while touching this area, so this does not keep resurfacing in adjacent builders
+
+5. **Validation**
+   - Create funnel → refresh → confirm still visible
+   - Edit funnel copy → refresh → confirm saved
+   - Publish/pause → refresh → confirm status persists
+   - Draft preview works for owner, hidden for public
+
+## Technical details
+
+Recommended architecture:
+
+```text
+Browser (shared auth JWT)
+  -> backend function (ownership check)
+    -> service-role DB read/write
+      -> return canonical funnel state
+```
+
+Why this is the right fix:
+- I cannot safely fix this by editing `src/integrations/supabase/client.ts`
+- the existing codebase already uses backend-function proxies for this exact auth mismatch pattern
+- the database rows are present, so the most reliable fix is to change the access path, not just add more frontend retries
+
+## Expected outcome
+
+After this change:
+- funnel creation will survive refresh
+- saved funnel edits will not “disappear”
+- draft/live state will stay consistent
+- the broader portal will be less prone to the same “it saved, then vanished” behavior
+</final-text>

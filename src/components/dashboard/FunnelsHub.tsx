@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
+import { listFunnels, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
 
 type FilterKey = "all" | ArchetypeKey | "live" | "paused";
 
@@ -106,7 +107,9 @@ export default function FunnelsHub() {
     if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
-      console.log("[FunnelsHub] 🔑 Resolving profile for user_id:", user.id);
+      console.log("[FunnelsHub] 🔑 Resolving profile via funnels-manage for user_id:", user.id);
+      // Resolve author_slug locally (still works publicly), but funnel data
+      // comes through the edge function so RLS / shared-auth never hides it.
       const { data: profile, error: profileErr } = await supabase
         .from("author_profiles")
         .select("id, author_slug")
@@ -114,15 +117,28 @@ export default function FunnelsHub() {
         .maybeSingle();
       if (cancelled) return;
       if (profileErr) console.error("[FunnelsHub] profile lookup error:", profileErr);
-      if (!profile) {
-        console.warn("[FunnelsHub] No author_profile found for user_id:", user.id);
-        setLoading(false);
-        return;
+      if (profile) {
+        setAuthorSlug(profile.author_slug);
       }
-      console.log("[FunnelsHub] ✅ Resolved author_profile.id:", profile.id);
-      setAuthorId(profile.id);
-      setAuthorSlug(profile.author_slug);
-      await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id), loadLeadsCount(user.id)]);
+      try {
+        const { funnels: list, authorId: aid } = await listFunnels();
+        if (cancelled) return;
+        // Prefer the edge-resolved authorId (works even if direct profile read fails).
+        const effectiveAuthorId = aid || profile?.id || null;
+        setAuthorId(effectiveAuthorId);
+        setFunnels(list as Funnel[]);
+        await Promise.all([
+          effectiveAuthorId ? loadLiveNodes(effectiveAuthorId) : Promise.resolve(),
+          loadLeadsCount(user.id),
+        ]);
+      } catch (e: any) {
+        console.error("[FunnelsHub] listFunnels failed:", e?.message);
+        toast({
+          title: "Couldn't load your funnels",
+          description: e?.message || "Please refresh and try again.",
+          variant: "destructive",
+        });
+      }
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -136,15 +152,13 @@ export default function FunnelsHub() {
     setLeadsCount(count || 0);
   };
 
-  const loadFunnels = async (aid: string) => {
-    const { data, error } = await supabase
-      .from("funnels")
-      .select("*")
-      .eq("author_id", aid)
-      .order("created_at", { ascending: false });
-    if (error) console.error("[FunnelsHub] funnels query error:", error);
-    console.log("[FunnelsHub] funnels loaded for author_id", aid, "→", (data || []).length, "rows");
-    setFunnels((data as Funnel[]) || []);
+  const loadFunnels = async (_aid?: string) => {
+    try {
+      const { funnels: list } = await listFunnels();
+      setFunnels(list as Funnel[]);
+    } catch (e: any) {
+      console.error("[FunnelsHub] reload failed:", e?.message);
+    }
   };
 
   const loadLiveNodes = async (aid: string) => {
@@ -196,18 +210,19 @@ export default function FunnelsHub() {
     setFunnels((prev) => [newFunnel, ...prev.filter((f) => f.id !== newId)]);
     // Reset filter so it can't be hidden
     setFilter("all");
-    // Reconcile in background (best-effort; if it returns stale rows, we keep the optimistic insert)
+    // Reconcile via the edge function so the refresh state matches what is
+    // actually persisted (no shared-auth/RLS blind spots).
     (async () => {
-      const { data: refreshed } = await supabase
-        .from("funnels")
-        .select("*")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false });
-      if (refreshed && refreshed.length > 0) {
-        const merged = refreshed.some((r) => r.id === newId)
-          ? (refreshed as Funnel[])
-          : ([newFunnel, ...refreshed] as Funnel[]);
-        setFunnels(merged);
+      try {
+        const { funnels: refreshed } = await listFunnels();
+        if (refreshed && refreshed.length > 0) {
+          const merged = refreshed.some((r) => r.id === newId)
+            ? (refreshed as Funnel[])
+            : ([newFunnel, ...refreshed] as Funnel[]);
+          setFunnels(merged);
+        }
+      } catch (e) {
+        console.warn("[FunnelsHub] reconcile after generate failed:", (e as Error).message);
       }
     })();
 
@@ -229,13 +244,13 @@ export default function FunnelsHub() {
 
   const toggleStatus = async (f: Funnel) => {
     const newStatus = f.status === "live" ? "paused" : "live";
-    const { error } = await supabase
-      .from("funnels")
-      .update({ status: newStatus, published_at: newStatus === "live" ? new Date().toISOString() : null })
-      .eq("id", f.id);
-    if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
-    toast({ title: newStatus === "live" ? "Funnel is live" : "Funnel paused" });
-    if (authorId) loadFunnels(authorId);
+    try {
+      await setFunnelStatus(f.id, newStatus);
+      toast({ title: newStatus === "live" ? "Funnel is live" : "Funnel paused" });
+      await loadFunnels();
+    } catch (e: any) {
+      toast({ title: "Failed", description: e?.message, variant: "destructive" });
+    }
   };
 
   const copyLink = (slug: string) => {
@@ -246,9 +261,8 @@ export default function FunnelsHub() {
   const saveEdit = async () => {
     if (!editing) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("funnels")
-      .update({
+    try {
+      await saveFunnelCopy(editing.id, {
         headline: editing.headline,
         subheadline: editing.subheadline,
         body_copy: editing.body_copy,
@@ -256,13 +270,15 @@ export default function FunnelsHub() {
         cta_url: editing.cta_url,
         background_color: editing.background_color,
         accent_color: editing.accent_color,
-      })
-      .eq("id", editing.id);
-    setSaving(false);
-    if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Funnel updated" });
-    setEditing(null);
-    if (authorId) loadFunnels(authorId);
+      });
+      toast({ title: "Funnel updated" });
+      setEditing(null);
+      await loadFunnels();
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const regenerate = async () => {
@@ -285,7 +301,7 @@ export default function FunnelsHub() {
       setFunnels((prev) => prev.map((f) => (f.id === refreshed.id ? { ...f, ...refreshed } : f)));
     }
     toast({ title: "ABBY regenerated your funnel", description: "Fresh copy is loaded below — review and tweak as needed." });
-    if (authorId) loadFunnels(authorId);
+    await loadFunnels();
     flashFunnel(targetId);
   };
 
@@ -519,7 +535,7 @@ export default function FunnelsHub() {
                     archetype={(liveNodes.find((n) => n.node_id === f.node_id)?.archetype || undefined) as ArchetypeKey | undefined}
                     publicUrl={url}
                     leadsCount={leadsCount}
-                    onChanged={() => authorId && loadFunnels(authorId)}
+                    onChanged={() => loadFunnels()}
                     hideHubLink
                   />
                 </div>

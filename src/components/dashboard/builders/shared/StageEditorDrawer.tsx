@@ -12,8 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, RotateCcw, Sparkles } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { FunnelStage } from "@/lib/funnel-flow-stages";
-import { saveStageOverride } from "@/lib/funnel-overrides";
-import { supabase } from "@/integrations/supabase/client";
+import { saveStageOverrideViaFn, saveFunnelCopy } from "@/lib/funnels-api";
 
 interface Props {
   open: boolean;
