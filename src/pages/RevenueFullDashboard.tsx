@@ -413,6 +413,18 @@ export default function RevenueFullDashboard() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Stripe explainer — only when no Stripe Connect account exists yet */}
+        {stripeConnectState === "not_started" && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-start gap-2">
+            <Info className="h-4 w-4 mt-0.5 shrink-0" />
+            <p>
+              <strong>Heads up:</strong> completing Stripe onboarding directly on stripe.com does
+              not link to Authors Bureau. Click <strong>Start Stripe onboarding</strong> above so
+              we can create your payout-only Express account. Already finished? Click{" "}
+              <strong>Refresh status</strong>.
+            </p>
+          </div>
+        )}
         {/* SECTION 1: ABBY Daily Insight */}
         <Card className="border-primary/20 bg-primary/5">
           <CardContent className="pt-6">
