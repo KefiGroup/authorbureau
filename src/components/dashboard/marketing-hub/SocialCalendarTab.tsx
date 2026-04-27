@@ -263,6 +263,12 @@ export default function SocialCalendarTab({ authorId }: Props) {
     .filter(p => p.scheduled_at)
     .reduce<string | null>((acc, p) => (!acc || (p.scheduled_at! > acc) ? p.scheduled_at! : acc), null);
 
+  // Days of runway remaining — used to surface the auto-refill banner.
+  const daysRemaining = lastScheduled
+    ? Math.max(0, Math.ceil((new Date(lastScheduled).getTime() - Date.now()) / 86400000))
+    : 0;
+  const lowRunway = totalCount > 0 && daysRemaining <= 7;
+
   const shiftCursor = (delta: number) => {
     const next = new Date(cursor);
     if (view === "month") next.setMonth(next.getMonth() + delta);
