@@ -607,7 +607,7 @@ export default function FunnelsHub() {
                     >
                       <span className="truncate flex-1">{url}</span>
                       {f.status !== "live" && (
-                        <span className="text-amber-600 dark:text-amber-400 font-medium shrink-0">draft — not public</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium shrink-0">draft — preview only</span>
                       )}
                       <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition" />
                     </a>

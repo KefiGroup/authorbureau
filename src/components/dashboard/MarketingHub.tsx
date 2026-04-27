@@ -625,11 +625,15 @@ const CampaignRow = forwardRef<HTMLDivElement, {
   const firstNodeRow = nodeRows.find(r => campaign.nodeIds.includes(r.node_id));
   const preview = status !== "not_built" ? getContentPreview(firstNodeRow?.content_json) : "";
 
-  // Activation date
-  const activatedAt = firstNodeRow?.marketing_activated_at
-    ? new Date(firstNodeRow.marketing_activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : firstNodeRow?.activated_at
-    ? new Date(firstNodeRow.activated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  // Activation date — guard against rendering raw UUID/garbage if column holds non-date data.
+  const parseDate = (v: string | null | undefined) => {
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d.getTime()) ? null : d;
+  };
+  const activatedDate = parseDate(firstNodeRow?.marketing_activated_at) || parseDate(firstNodeRow?.activated_at);
+  const activatedAt = activatedDate
+    ? activatedDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
     : null;
 
   const borderClass = isHighlighted
@@ -698,10 +702,12 @@ const CampaignRow = forwardRef<HTMLDivElement, {
         )}
 
         {/* Active stats row */}
-        {status === "active" && activatedAt && (
+        {status === "active" && (
           <div className="flex items-center gap-2 mt-2 text-xs text-emerald-600">
             <CheckCircle2 className="h-3 w-3" />
-            <span>Activated {activatedAt} · {totalLeads} leads captured</span>
+            <span>
+              {activatedAt ? `Activated ${activatedAt}` : "Activated"} · {totalLeads} leads captured
+            </span>
           </div>
         )}
 
