@@ -244,13 +244,13 @@ export default function FunnelsHub() {
 
   const toggleStatus = async (f: Funnel) => {
     const newStatus = f.status === "live" ? "paused" : "live";
-    const { error } = await supabase
-      .from("funnels")
-      .update({ status: newStatus, published_at: newStatus === "live" ? new Date().toISOString() : null })
-      .eq("id", f.id);
-    if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
-    toast({ title: newStatus === "live" ? "Funnel is live" : "Funnel paused" });
-    if (authorId) loadFunnels(authorId);
+    try {
+      await setFunnelStatus(f.id, newStatus);
+      toast({ title: newStatus === "live" ? "Funnel is live" : "Funnel paused" });
+      await loadFunnels();
+    } catch (e: any) {
+      toast({ title: "Failed", description: e?.message, variant: "destructive" });
+    }
   };
 
   const copyLink = (slug: string) => {
@@ -261,9 +261,8 @@ export default function FunnelsHub() {
   const saveEdit = async () => {
     if (!editing) return;
     setSaving(true);
-    const { error } = await supabase
-      .from("funnels")
-      .update({
+    try {
+      await saveFunnelCopy(editing.id, {
         headline: editing.headline,
         subheadline: editing.subheadline,
         body_copy: editing.body_copy,
@@ -271,13 +270,15 @@ export default function FunnelsHub() {
         cta_url: editing.cta_url,
         background_color: editing.background_color,
         accent_color: editing.accent_color,
-      })
-      .eq("id", editing.id);
-    setSaving(false);
-    if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Funnel updated" });
-    setEditing(null);
-    if (authorId) loadFunnels(authorId);
+      });
+      toast({ title: "Funnel updated" });
+      setEditing(null);
+      await loadFunnels();
+    } catch (e: any) {
+      toast({ title: "Save failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const regenerate = async () => {
