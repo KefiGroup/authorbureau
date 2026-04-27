@@ -139,9 +139,15 @@ Make everything specific to this author's book, niche, and audience. Never use g
       promptLength: userPrompt.length,
     });
 
-    let aiResponse: Response;
-    try {
-      aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const callGateway = async (extraReminder?: string) => {
+      const messages = [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ];
+      if (extraReminder) {
+        messages.push({ role: "system", content: extraReminder });
+      }
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${LOVABLE_API_KEY}`,
@@ -149,13 +155,45 @@ Make everything specific to this author's book, niche, and audience. Never use g
         },
         body: JSON.stringify({
           model: "openai/gpt-5.2",
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt },
-          ],
+          messages,
           max_completion_tokens: 6000,
         }),
       });
+      return r;
+    };
+
+    const parseAIJson = (raw: string): Record<string, unknown> => {
+      const cleaned = raw
+        .replace(/^```(?:json)?\s*\n?/i, "")
+        .replace(/\n?```\s*$/i, "")
+        .trim();
+      try {
+        return JSON.parse(cleaned);
+      } catch {
+        const match = cleaned.match(/\{[\s\S]*\}/);
+        if (match) return JSON.parse(match[0].replace(/,\s*([}\]])/g, "$1"));
+        throw new Error("Could not parse AI response as JSON");
+      }
+    };
+
+    // Validate that generated content actually references THIS book.
+    const validatesAgainstBook = (parsed: Record<string, unknown>): boolean => {
+      const titleNeedle = bookTitle.trim().toLowerCase();
+      if (!titleNeedle) return true; // no title to check
+      const blob = JSON.stringify(parsed).toLowerCase();
+      const siteName = String((parsed as any)?.site_name || "").toLowerCase();
+      const bookPage = JSON.stringify((parsed as any)?.book_page || {}).toLowerCase();
+      // Title must appear somewhere in the book_page section AND somewhere in the overall blob.
+      if (!blob.includes(titleNeedle)) return false;
+      if (!bookPage.includes(titleNeedle)) return false;
+      // Author pen name must appear in site_name.
+      if (authorName && authorName !== "Author" && !siteName.includes(authorName.toLowerCase())) return false;
+      return true;
+    };
+
+    let aiResponse: Response;
+    try {
+      aiResponse = await callGateway();
     } catch (fetchErr) {
       console.error("[generate-bp04] Network error calling AI gateway:", fetchErr);
       throw new Error("Network error reaching AI gateway");
@@ -169,23 +207,30 @@ Make everything specific to this author's book, niche, and audience. Never use g
       throw new Error(`AI generation failed (status ${aiResponse.status})`);
     }
 
-    const aiData = await aiResponse.json();
-    const rawContent = aiData.choices?.[0]?.message?.content || "";
+    let aiData = await aiResponse.json();
+    let rawContent = aiData.choices?.[0]?.message?.content || "";
+    let parsedContent = parseAIJson(rawContent);
 
-    const cleaned = rawContent
-      .replace(/^```(?:json)?\s*\n?/i, "")
-      .replace(/\n?```\s*$/i, "")
-      .trim();
-
-    let parsedContent: Record<string, unknown>;
-    try {
-      parsedContent = JSON.parse(cleaned);
-    } catch {
-      const match = cleaned.match(/\{[\s\S]*\}/);
-      if (match) {
-        parsedContent = JSON.parse(match[0].replace(/,\s*([}\]])/g, "$1"));
-      } else {
-        throw new Error("Could not parse AI response as JSON");
+    // If the model drifted off-topic, retry once with a stricter reminder.
+    if (!validatesAgainstBook(parsedContent)) {
+      console.warn("[generate-bp04] First attempt failed book-title validation — retrying with stricter reminder.");
+      const reminder = `STRICT REMINDER: The book title is exactly "${bookTitle}" by ${authorName}. The previous response did not include the title verbatim or referenced the wrong author/topic. Regenerate the JSON now and ensure: (a) site_name includes "${authorName}", (b) book_page.headline and book_page.book_description both contain "${bookTitle}" verbatim, (c) all content reflects the actual core thesis: ${coreThesis || "(see user prompt)"}.`;
+      const retry = await callGateway(reminder);
+      if (retry.ok) {
+        aiData = await retry.json();
+        rawContent = aiData.choices?.[0]?.message?.content || "";
+        try {
+          const retried = parseAIJson(rawContent);
+          if (validatesAgainstBook(retried)) {
+            parsedContent = retried;
+          } else {
+            console.error("[generate-bp04] Retry still failed validation; returning retry output anyway with warning flag.");
+            (retried as any)._abby_validation_warning = `Generated content may not fully match book title "${bookTitle}". Please review before publishing.`;
+            parsedContent = retried;
+          }
+        } catch (e) {
+          console.error("[generate-bp04] Retry parse failed, keeping original output.", e);
+        }
       }
     }
 
