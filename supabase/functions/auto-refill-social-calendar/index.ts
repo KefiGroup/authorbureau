@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
       .gte("scheduled_at", new Date().toISOString())
       .lte("scheduled_at", horizonCutoff);
 
-    if ((count || 0) >= REFILL_THRESHOLD_DAYS) {
+    if (!force && (count || 0) >= REFILL_THRESHOLD_DAYS) {
       skipped.push(a.author_id);
       continue;
     }
