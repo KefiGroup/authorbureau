@@ -16,15 +16,15 @@ import { getSourceLabel } from "@/lib/crm-utils";
 
 interface CRMContact {
   id: string;
-  full_name: string;
+  full_name: string | null;
   email: string | null;
   phone?: string | null;
   company?: string | null;
   stage: string;
   abby_score: number;
-  source: string;
+  source: string | null;
   last_activity_at: string | null;
-  tags: string[];
+  tags?: string[] | null;
   notes?: string | null;
   quiz_stage?: string | null;
   quiz_score?: number | null;
