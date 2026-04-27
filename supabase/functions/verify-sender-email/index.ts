@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
   if (!token) {
     return new Response(htmlPage("Invalid link", "This verification link is missing its token.", false), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "text/html" },
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     });
   }
 
@@ -62,14 +62,14 @@ Deno.serve(async (req) => {
     if (!row) {
       return new Response(htmlPage("Link expired", "This verification link is invalid or has already been used.", false), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "text/html" },
+        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
       });
     }
 
     if (row.domain_verified) {
       return new Response(htmlPage("Already verified", "Your sender email is already confirmed. You're good to go!", true), {
         status: 200,
-        headers: { ...corsHeaders, "Content-Type": "text/html" },
+        headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
       });
     }
 
@@ -86,13 +86,13 @@ Deno.serve(async (req) => {
 
     return new Response(htmlPage("Email verified", "Thanks! Your sender email is confirmed and your emails are ready to send.", true), {
       status: 200,
-      headers: { ...corsHeaders, "Content-Type": "text/html" },
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     });
   } catch (err) {
     console.error("verify-sender-email error:", err);
     return new Response(htmlPage("Something went wrong", "We couldn't verify your email. Please try again from the dashboard.", false), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "text/html" },
+      headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" },
     });
   }
 });
