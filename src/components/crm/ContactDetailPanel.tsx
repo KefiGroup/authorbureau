@@ -159,10 +159,10 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0"
               style={{ backgroundColor: stageColor }}
             >
-              {getInitials(contact.full_name)}
+              {getInitials(contact.full_name || contact.email || "?")}
             </div>
             <div className="min-w-0">
-              <h3 className="text-lg font-bold text-white truncate">{contact.full_name}</h3>
+              <h3 className="text-lg font-bold text-white truncate">{contact.full_name || contact.email || "Unnamed contact"}</h3>
               {contact.email && (
                 <p className="text-white/70 text-sm truncate">{contact.email}</p>
               )}
