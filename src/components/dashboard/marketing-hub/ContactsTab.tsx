@@ -43,11 +43,18 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [lists, setLists] = useState<ListRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!authorId) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
     (async () => {
-      const [{ data: l }, { data: lst }] = await Promise.all([
+      setLoading(true);
+      setErrorMsg(null);
+      const [leadsRes, listsRes] = await Promise.all([
         supabase
           .from("crm_contacts")
           .select("id, email, full_name, abby_score, stage, source, last_activity_at")
@@ -60,10 +67,13 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
           .eq("author_id", authorId)
           .order("created_at", { ascending: false }),
       ]);
-      setLeads((l as Lead[]) || []);
-      setLists((lst as ListRow[]) || []);
+      if (cancelled) return;
+      if (leadsRes.error) setErrorMsg(leadsRes.error.message);
+      setLeads((leadsRes.data as Lead[]) || []);
+      setLists((listsRes.data as ListRow[]) || []);
       setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [authorId]);
 
   if (loading) {
