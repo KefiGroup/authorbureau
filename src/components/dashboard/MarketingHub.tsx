@@ -594,7 +594,7 @@ export default function MarketingHub({ onNavigate }: Props) {
         </TabsContent>
 
         <TabsContent value="contacts" className="mt-6">
-          <ContactsTab authorId={authorProfileId} />
+          <ContactsTab authorId={user?.id ?? null} />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">
