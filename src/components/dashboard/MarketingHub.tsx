@@ -172,21 +172,38 @@ interface Props {
   onNavigate?: (section: string) => void;
 }
 
-/** Extract a short text preview from content_json */
+/** Extract a short text preview from content_json — never returns UUIDs or internal keys. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const SKIP_KEYS = new Set([
+  "book_id", "author_id", "node_id", "id",
+  "_currentStep", "pending_connections", "publishChannels",
+  "activated", "marketing_activated_at",
+]);
+const PREFERRED_KEYS = [
+  "abby_summary", "tagline", "campaign_name", "funnel_name",
+  "site_name", "membership_name", "practice_title", "list_name",
+  "description", "summary", "headline", "intro",
+];
+
 function getContentPreview(contentJson: any): string {
   if (!contentJson) return "";
   try {
     const obj = typeof contentJson === "string" ? JSON.parse(contentJson) : contentJson;
-    // Try common fields
-    for (const key of ["description", "summary", "title", "headline", "intro", "content"]) {
-      if (typeof obj[key] === "string" && obj[key].length > 0) {
-        return obj[key].slice(0, 100) + (obj[key].length > 100 ? "…" : "");
+    if (!obj || typeof obj !== "object") return "";
+    const isRenderableString = (v: unknown): v is string =>
+      typeof v === "string" && v.length > 0 && !UUID_RE.test(v.trim());
+
+    for (const key of PREFERRED_KEYS) {
+      if (isRenderableString(obj[key])) {
+        const s = obj[key] as string;
+        return s.slice(0, 100) + (s.length > 100 ? "…" : "");
       }
     }
-    // Try first string value
-    for (const val of Object.values(obj)) {
-      if (typeof val === "string" && val.length > 10) {
-        return (val as string).slice(0, 100) + ((val as string).length > 100 ? "…" : "");
+    for (const [k, v] of Object.entries(obj)) {
+      if (SKIP_KEYS.has(k)) continue;
+      if (isRenderableString(v) && (v as string).length > 10) {
+        const s = v as string;
+        return s.slice(0, 100) + (s.length > 100 ? "…" : "");
       }
     }
   } catch { /* ignore */ }
