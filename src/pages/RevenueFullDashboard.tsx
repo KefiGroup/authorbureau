@@ -93,7 +93,7 @@ export default function RevenueFullDashboard() {
       // 1. Resolve author profile
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("id, pen_name, stripe_connected_account_id")
+        .select("id, pen_name, stripe_connected_account_id, stripe_account_id, stripe_onboarding_complete")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -106,6 +106,8 @@ export default function RevenueFullDashboard() {
       setAuthorId(profile.id);
       setPenName(profile.pen_name || "Author");
       setStripeAccountId(profile.stripe_connected_account_id || null);
+      setStripeConnectId(profile.stripe_account_id || null);
+      setStripeOnboardingComplete(!!profile.stripe_onboarding_complete);
 
       // 2. Parallel direct DB queries — fast, no edge functions
       const [contactsRes, hotRes, nodesRes, snapsRes, purchasesRes] = await Promise.all([
