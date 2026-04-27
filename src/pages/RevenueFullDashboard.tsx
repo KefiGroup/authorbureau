@@ -165,7 +165,7 @@ export default function RevenueFullDashboard() {
         revenueMtd: monthRevenue,
       });
       // Real data — not projected
-      setProjected({ ghl: false, stripe: !profile.stripe_connected_account_id });
+      setProjected({ ghl: false, stripe: !(profile.stripe_onboarding_complete || profile.stripe_connected_account_id) });
       setLoading(false);
     })();
 
