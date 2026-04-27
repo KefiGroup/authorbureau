@@ -23,9 +23,15 @@ interface Props {
   liveNodes?: LiveNode[];
   theme: AuthorTheme;
   v: ThemeVars;
+  /** Author profile id — required for ProductCTA in the formats list. */
+  authorId: string;
+  /** Whether Stripe is connected (Authors Bureau platform default: true). */
+  stripeReady?: boolean;
+  /** Whether the viewer is the owning author. */
+  isOwnerViewing?: boolean;
 }
 
-export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v }: Props) {
+export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v, authorId, stripeReady = true, isOwnerViewing = false }: Props) {
   if (booksWithProducts.length === 0) return null;
   const totalBooks = booksWithProducts.length;
 
@@ -145,6 +151,9 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                     liveNodes={liveNodes as unknown as BookFormatNode[]}
                     theme={theme}
                     v={v}
+                    authorId={authorId}
+                    stripeReady={stripeReady}
+                    isOwnerViewing={isOwnerViewing}
                   />
                   {/* Collector's editions for this book */}
                   <AuthorBookCollectorsStrip

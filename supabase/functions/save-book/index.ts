@@ -36,7 +36,9 @@ function generateSlug(title: string): string {
     .toLowerCase()
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-")
-    .slice(0, 50);
+    .replace(/-+/g, "-")
+    .slice(0, 50)
+    .replace(/^-+|-+$/g, ""); // strip leading/trailing hyphens (BUG-22 fix)
 }
 
 serve(async (req) => {
