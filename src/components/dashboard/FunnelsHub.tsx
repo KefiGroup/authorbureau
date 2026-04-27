@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
+import { listFunnels, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
 
 type FilterKey = "all" | ArchetypeKey | "live" | "paused";
 
