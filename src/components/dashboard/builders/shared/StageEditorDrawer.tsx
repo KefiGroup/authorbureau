@@ -82,32 +82,38 @@ export default function StageEditorDrawer({
     for (const f of stage.fields) {
       if (overridden[f.key]) toPersist[f.key] = values[f.key] ?? "";
     }
-    const { error } = await saveStageOverride({
-      funnelId, authorId, stageId: stage.id, fields: toPersist,
-    });
+
+    let overrideError: string | null = null;
+    let funnelWriteError: string | null = null;
+    try {
+      await saveStageOverrideViaFn({
+        funnelId, stageId: stage.id, fields: toPersist,
+      });
+    } catch (e) {
+      overrideError = e instanceof Error ? e.message : String(e);
+    }
 
     // Dual-write: if this is a hero "page" stage, also patch the funnels row so
     // the public landing page actually shows the updated copy.
-    let funnelWriteError: string | null = null;
-    if (!error && HERO_PAGE_STAGE_IDS.has(stage.id)) {
+    if (!overrideError && HERO_PAGE_STAGE_IDS.has(stage.id)) {
       const patch: Record<string, string> = {};
       for (const [fieldKey, col] of Object.entries(HERO_FIELD_TO_FUNNEL_COL)) {
         if (overridden[fieldKey]) patch[col] = values[fieldKey] ?? "";
       }
       if (Object.keys(patch).length > 0) {
-        const { error: e } = await supabase
-          .from("funnels")
-          .update(patch)
-          .eq("id", funnelId);
-        if (e) funnelWriteError = e.message;
+        try {
+          await saveFunnelCopy(funnelId, patch as Parameters<typeof saveFunnelCopy>[1]);
+        } catch (e) {
+          funnelWriteError = e instanceof Error ? e.message : String(e);
+        }
       }
     }
 
     setSaving(false);
-    if (error || funnelWriteError) {
+    if (overrideError || funnelWriteError) {
       toast({
         title: "Couldn't save changes",
-        description: error || funnelWriteError || "Please try again.",
+        description: overrideError || funnelWriteError || "Please try again.",
         variant: "destructive",
       });
       return;
