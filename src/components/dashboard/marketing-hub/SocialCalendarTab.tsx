@@ -497,6 +497,10 @@ export default function SocialCalendarTab({ authorId }: Props) {
         </div>
         <div className="flex-1 text-center font-semibold text-foreground">{headerLabel}</div>
         <div className="flex items-center gap-1 flex-wrap justify-end">
+          <Button size="sm" variant="outline" onClick={refillCalendar} disabled={refilling || !authorId}>
+            {refilling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            Generate 30 more days
+          </Button>
           <Button size="sm" variant="outline" onClick={repairCalendar} disabled={repairing}>
             {repairing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh Calendar"}
           </Button>
