@@ -2465,6 +2465,45 @@ export type Database = {
         }
         Relationships: []
       }
+      email_sync_log: {
+        Row: {
+          auth_updated: boolean | null
+          books_updated_count: number | null
+          error_message: string | null
+          id: string
+          new_email: string
+          old_email: string | null
+          settings_updated: boolean | null
+          source: string
+          synced_at: string
+          user_id: string | null
+        }
+        Insert: {
+          auth_updated?: boolean | null
+          books_updated_count?: number | null
+          error_message?: string | null
+          id?: string
+          new_email: string
+          old_email?: string | null
+          settings_updated?: boolean | null
+          source?: string
+          synced_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          auth_updated?: boolean | null
+          books_updated_count?: number | null
+          error_message?: string | null
+          id?: string
+          new_email?: string
+          old_email?: string | null
+          settings_updated?: boolean | null
+          source?: string
+          synced_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           author_id: string
