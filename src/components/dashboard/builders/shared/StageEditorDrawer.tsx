@@ -174,6 +174,7 @@ export default function StageEditorDrawer({
             const isOverridden = overridden[f.key];
             const baseStr = f.baseValue == null ? "" : String(f.baseValue);
             const showResetLink = isOverridden && baseStr.length > 0;
+            const hint = FIELD_HINT[f.key];
             return (
               <div key={f.key}>
                 <div className="flex items-center justify-between mb-1.5">
@@ -189,6 +190,11 @@ export default function StageEditorDrawer({
                     </button>
                   )}
                 </div>
+                {hint && (
+                  <p className="mb-1.5 text-[11px] leading-snug text-muted-foreground">
+                    {hint}
+                  </p>
+                )}
                 {f.type === "textarea" ? (
                   <Textarea
                     rows={f.rows ?? 4}
