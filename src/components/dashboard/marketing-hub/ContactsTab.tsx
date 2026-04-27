@@ -136,7 +136,7 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
                     <td className="px-4 py-2">
                       <Badge variant="outline" className={`text-[10px] ${stageColor[l.stage] || stageColor.new}`}>
                         {l.stage === "hot" && <Flame className="h-2.5 w-2.5 mr-1" />}
-                        {l.stage}
+                        {stageLabel[l.stage] || l.stage}
                       </Badge>
                     </td>
                     <td className="px-4 py-2 text-xs font-mono">{l.abby_score}</td>
