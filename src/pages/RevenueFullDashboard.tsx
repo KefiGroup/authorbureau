@@ -262,6 +262,77 @@ export default function RevenueFullDashboard() {
     }
   };
 
+  // ── New: Stripe Connect (Express) onboarding lifecycle ──
+  // Three states for the header:
+  //   not_started      → no stripe_account_id at all (must click "Start onboarding")
+  //   in_progress      → account exists but onboarding not finished
+  //   connected        → onboarding_complete = true; revenue is real, not projected
+  const stripeConnectState: "not_started" | "in_progress" | "connected" =
+    stripeOnboardingComplete ? "connected" : (stripeConnectId ? "in_progress" : "not_started");
+
+  // "Start onboarding" / "Resume onboarding" — calls stripe-connect edge fn
+  const startStripeOnboarding = async () => {
+    setStripeRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "onboard" },
+      });
+      if (error || !data?.url) {
+        toast.error("Couldn't start Stripe onboarding. Please try again.");
+        return;
+      }
+      // Hand off to Stripe — they'll redirect back via the configured return_url.
+      window.location.href = data.url;
+    } catch {
+      toast.error("Couldn't start Stripe onboarding. Please try again.");
+    } finally {
+      setStripeRefreshing(false);
+    }
+  };
+
+  // "Refresh Stripe status" — re-pings Stripe and bi-directionally syncs the
+  // stripe_onboarding_complete flag. Useful when a webhook hasn't fired yet
+  // or the author finished onboarding in another tab.
+  const refreshStripeStatus = async () => {
+    setStripeRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("stripe-connect", {
+        body: { action: "status" },
+      });
+      if (error) {
+        toast.error("Couldn't reach Stripe. Please try again.");
+        return;
+      }
+      const connected = !!data?.connected;
+      const complete = !!data?.onboarding_complete;
+      setStripeOnboardingComplete(complete);
+      // Re-pull the row to get the canonical stripe_account_id we just synced.
+      if (authorId) {
+        const { data: profile } = await supabase
+          .from("author_profiles")
+          .select("stripe_account_id, stripe_onboarding_complete")
+          .eq("id", authorId)
+          .maybeSingle();
+        if (profile) {
+          setStripeConnectId(profile.stripe_account_id || null);
+          setStripeOnboardingComplete(!!profile.stripe_onboarding_complete);
+        }
+      }
+      if (complete) {
+        toast.success("Stripe connected — your revenue is now tracked.");
+        syncMetrics();
+      } else if (connected) {
+        toast.message("Stripe onboarding still in progress.");
+      } else {
+        toast.message("No Stripe account linked yet — click Start onboarding.");
+      }
+    } catch {
+      toast.error("Couldn't reach Stripe. Please try again.");
+    } finally {
+      setStripeRefreshing(false);
+    }
+  };
+
   // Build chart data (last 6 months)
   const chartData = (() => {
     const months: { month: string; actual: number | null; projected: number | null }[] = [];
