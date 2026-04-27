@@ -377,12 +377,38 @@ export default function RevenueFullDashboard() {
             <h1 className="text-lg font-semibold">Revenue Dashboard</h1>
             <p className="text-xs text-muted-foreground">Track your earnings across all 28 nodes</p>
           </div>
-          {!stripeAccountId && (
-            <Button variant="outline" size="sm" onClick={() => setShowStripeModal(true)} className="gap-2">
-              <CreditCard className="h-4 w-4" />
-              Connect Payment Account
+          {/* Stripe Connect — three-state header control */}
+          <div className="flex items-center gap-2">
+            {stripeConnectState === "connected" ? (
+              <Badge variant="outline" className="gap-1.5 border-emerald-500/40 text-emerald-700 bg-emerald-500/10">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Stripe Connected
+              </Badge>
+            ) : stripeConnectState === "in_progress" ? (
+              <>
+                <Badge variant="outline" className="gap-1.5 border-amber-500/40 text-amber-700 bg-amber-500/10">
+                  <Info className="h-3.5 w-3.5" /> Onboarding in progress
+                </Badge>
+                <Button variant="outline" size="sm" onClick={startStripeOnboarding} disabled={stripeRefreshing} className="gap-2">
+                  <CreditCard className="h-4 w-4" /> Resume onboarding
+                </Button>
+              </>
+            ) : (
+              <Button variant="outline" size="sm" onClick={startStripeOnboarding} disabled={stripeRefreshing} className="gap-2">
+                <CreditCard className="h-4 w-4" /> Start Stripe onboarding
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refreshStripeStatus}
+              disabled={stripeRefreshing}
+              title="Re-check Stripe status"
+              className="gap-1.5"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 ${stripeRefreshing ? "animate-spin" : ""}`} />
+              {stripeRefreshing ? "Checking…" : "Refresh status"}
             </Button>
-          )}
+          </div>
         </div>
       </div>
 
