@@ -25,12 +25,23 @@ Deno.serve(async (req) => {
   });
   const horizonCutoff = new Date(Date.now() + REFILL_THRESHOLD_DAYS * 86400_000).toISOString();
 
-  // 1. Find all authors with active BP-03 nodes.
-  const { data: nodes } = await admin
+  // Optional per-author force call (from the Social Calendar "Generate 30 more days" button).
+  let forceAuthorId: string | null = null;
+  let force = false;
+  try {
+    const body = await req.json().catch(() => ({}));
+    forceAuthorId = body?.author_id ?? null;
+    force = !!body?.force;
+  } catch { /* ignore */ }
+
+  // 1. Find target authors. If a force call, only that author; else every active BP-03 author.
+  let nodesQuery = admin
     .from("author_nodes")
     .select("author_id, book_id")
     .eq("node_id", "BP-03")
     .in("status", ["live", "content_ready"]);
+  if (forceAuthorId) nodesQuery = nodesQuery.eq("author_id", forceAuthorId);
+  const { data: nodes } = await nodesQuery;
 
   const authors = Array.from(
     new Map((nodes || []).map((n) => [n.author_id, n])).values()
