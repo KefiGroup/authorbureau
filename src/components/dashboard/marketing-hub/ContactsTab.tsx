@@ -24,9 +24,18 @@ interface ListRow {
 
 const stageColor: Record<string, string> = {
   new: "bg-muted text-muted-foreground border-border",
-  engaged: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  new_lead: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  engaged: "bg-teal-500/10 text-teal-600 border-teal-500/20",
   warm: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   hot: "bg-red-500/10 text-red-600 border-red-500/20",
+  customer: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  vip: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+  cold: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+};
+
+const stageLabel: Record<string, string> = {
+  new_lead: "New Lead", engaged: "Engaged", warm: "Warm",
+  hot: "Hot", customer: "Customer", vip: "VIP", cold: "Cold", new: "New",
 };
 
 export default function ContactsTab({ authorId }: { authorId: string | null }) {
@@ -34,11 +43,18 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [lists, setLists] = useState<ListRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!authorId) {
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
     (async () => {
-      const [{ data: l }, { data: lst }] = await Promise.all([
+      setLoading(true);
+      setErrorMsg(null);
+      const [leadsRes, listsRes] = await Promise.all([
         supabase
           .from("crm_contacts")
           .select("id, email, full_name, abby_score, stage, source, last_activity_at")
@@ -51,10 +67,13 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
           .eq("author_id", authorId)
           .order("created_at", { ascending: false }),
       ]);
-      setLeads((l as Lead[]) || []);
-      setLists((lst as ListRow[]) || []);
+      if (cancelled) return;
+      if (leadsRes.error) setErrorMsg(leadsRes.error.message);
+      setLeads((leadsRes.data as Lead[]) || []);
+      setLists((listsRes.data as ListRow[]) || []);
       setLoading(false);
     })();
+    return () => { cancelled = true; };
   }, [authorId]);
 
   if (loading) {
@@ -99,7 +118,11 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
         </div>
         {leads.length === 0 ? (
           <div className="text-center py-8 rounded-xl border border-dashed border-border bg-card">
-            <p className="text-sm text-muted-foreground">No leads captured yet. Activate a campaign to start collecting.</p>
+            <p className="text-sm text-muted-foreground">
+              {errorMsg
+                ? `Couldn't load leads: ${errorMsg}`
+                : "No leads captured yet. Activate a campaign to start collecting."}
+            </p>
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
@@ -127,7 +150,7 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
                     <td className="px-4 py-2">
                       <Badge variant="outline" className={`text-[10px] ${stageColor[l.stage] || stageColor.new}`}>
                         {l.stage === "hot" && <Flame className="h-2.5 w-2.5 mr-1" />}
-                        {l.stage}
+                        {stageLabel[l.stage] || l.stage}
                       </Badge>
                     </td>
                     <td className="px-4 py-2 text-xs font-mono">{l.abby_score}</td>

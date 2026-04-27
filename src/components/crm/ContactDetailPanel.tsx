@@ -16,15 +16,15 @@ import { getSourceLabel } from "@/lib/crm-utils";
 
 interface CRMContact {
   id: string;
-  full_name: string;
+  full_name: string | null;
   email: string | null;
   phone?: string | null;
   company?: string | null;
   stage: string;
   abby_score: number;
-  source: string;
+  source: string | null;
   last_activity_at: string | null;
-  tags: string[];
+  tags?: string[] | null;
   notes?: string | null;
   quiz_stage?: string | null;
   quiz_score?: number | null;
@@ -159,10 +159,10 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
               className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold shrink-0"
               style={{ backgroundColor: stageColor }}
             >
-              {getInitials(contact.full_name)}
+              {getInitials(contact.full_name || contact.email || "?")}
             </div>
             <div className="min-w-0">
-              <h3 className="text-lg font-bold text-white truncate">{contact.full_name}</h3>
+              <h3 className="text-lg font-bold text-white truncate">{contact.full_name || contact.email || "Unnamed contact"}</h3>
               {contact.email && (
                 <p className="text-white/70 text-sm truncate">{contact.email}</p>
               )}
@@ -229,7 +229,7 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
               </p>
             )}
             <p className="text-sm text-gray-500 flex items-center gap-1.5">
-              <Mail className="h-3.5 w-3.5" /> Source: {getSourceLabel(contact.source)}
+              <Mail className="h-3.5 w-3.5" /> Source: {getSourceLabel(contact.source || "")}
             </p>
           </div>
 
@@ -283,10 +283,10 @@ export default function ContactDetailPanel({ contact, open, onClose, crmFetch, o
           <div>
             <label className="text-xs font-bold text-gray-500 uppercase tracking-wide block mb-1.5">Tags</label>
             <div className="flex flex-wrap gap-1 mb-2">
-              {contact.tags.map((tag) => (
+              {(contact.tags ?? []).map((tag) => (
                 <span key={tag} className="text-[11px] px-2 py-0.5 rounded-full bg-[#14B8A6]/15 text-[#14B8A6] font-medium">{tag}</span>
               ))}
-              {contact.tags.length === 0 && <span className="text-[11px] text-gray-400">No tags yet</span>}
+              {(contact.tags ?? []).length === 0 && <span className="text-[11px] text-gray-400">No tags yet</span>}
             </div>
             <div className="flex gap-2">
               <Input id="crm-tag-input" value={newTag} onChange={(e) => setNewTag(e.target.value)} placeholder="Add tag..." className="text-xs h-8"
