@@ -151,6 +151,9 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                     liveNodes={liveNodes as unknown as BookFormatNode[]}
                     theme={theme}
                     v={v}
+                    authorId={authorId}
+                    stripeReady={stripeReady}
+                    isOwnerViewing={isOwnerViewing}
                   />
                   {/* Collector's editions for this book */}
                   <AuthorBookCollectorsStrip
