@@ -24,9 +24,18 @@ interface ListRow {
 
 const stageColor: Record<string, string> = {
   new: "bg-muted text-muted-foreground border-border",
-  engaged: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  new_lead: "bg-blue-500/10 text-blue-600 border-blue-500/20",
+  engaged: "bg-teal-500/10 text-teal-600 border-teal-500/20",
   warm: "bg-amber-500/10 text-amber-600 border-amber-500/20",
   hot: "bg-red-500/10 text-red-600 border-red-500/20",
+  customer: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  vip: "bg-yellow-500/10 text-yellow-700 border-yellow-500/20",
+  cold: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+};
+
+const stageLabel: Record<string, string> = {
+  new_lead: "New Lead", engaged: "Engaged", warm: "Warm",
+  hot: "Hot", customer: "Customer", vip: "VIP", cold: "Cold", new: "New",
 };
 
 export default function ContactsTab({ authorId }: { authorId: string | null }) {
