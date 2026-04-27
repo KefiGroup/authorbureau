@@ -107,7 +107,9 @@ export default function FunnelsHub() {
     if (!user) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
-      console.log("[FunnelsHub] 🔑 Resolving profile for user_id:", user.id);
+      console.log("[FunnelsHub] 🔑 Resolving profile via funnels-manage for user_id:", user.id);
+      // Resolve author_slug locally (still works publicly), but funnel data
+      // comes through the edge function so RLS / shared-auth never hides it.
       const { data: profile, error: profileErr } = await supabase
         .from("author_profiles")
         .select("id, author_slug")
@@ -115,15 +117,28 @@ export default function FunnelsHub() {
         .maybeSingle();
       if (cancelled) return;
       if (profileErr) console.error("[FunnelsHub] profile lookup error:", profileErr);
-      if (!profile) {
-        console.warn("[FunnelsHub] No author_profile found for user_id:", user.id);
-        setLoading(false);
-        return;
+      if (profile) {
+        setAuthorSlug(profile.author_slug);
       }
-      console.log("[FunnelsHub] ✅ Resolved author_profile.id:", profile.id);
-      setAuthorId(profile.id);
-      setAuthorSlug(profile.author_slug);
-      await Promise.all([loadFunnels(profile.id), loadLiveNodes(profile.id), loadLeadsCount(user.id)]);
+      try {
+        const { funnels: list, authorId: aid } = await listFunnels();
+        if (cancelled) return;
+        // Prefer the edge-resolved authorId (works even if direct profile read fails).
+        const effectiveAuthorId = aid || profile?.id || null;
+        setAuthorId(effectiveAuthorId);
+        setFunnels(list as Funnel[]);
+        await Promise.all([
+          effectiveAuthorId ? loadLiveNodes(effectiveAuthorId) : Promise.resolve(),
+          loadLeadsCount(user.id),
+        ]);
+      } catch (e: any) {
+        console.error("[FunnelsHub] listFunnels failed:", e?.message);
+        toast({
+          title: "Couldn't load your funnels",
+          description: e?.message || "Please refresh and try again.",
+          variant: "destructive",
+        });
+      }
       if (!cancelled) setLoading(false);
     })();
     return () => { cancelled = true; };
@@ -137,15 +152,13 @@ export default function FunnelsHub() {
     setLeadsCount(count || 0);
   };
 
-  const loadFunnels = async (aid: string) => {
-    const { data, error } = await supabase
-      .from("funnels")
-      .select("*")
-      .eq("author_id", aid)
-      .order("created_at", { ascending: false });
-    if (error) console.error("[FunnelsHub] funnels query error:", error);
-    console.log("[FunnelsHub] funnels loaded for author_id", aid, "→", (data || []).length, "rows");
-    setFunnels((data as Funnel[]) || []);
+  const loadFunnels = async (_aid?: string) => {
+    try {
+      const { funnels: list } = await listFunnels();
+      setFunnels(list as Funnel[]);
+    } catch (e: any) {
+      console.error("[FunnelsHub] reload failed:", e?.message);
+    }
   };
 
   const loadLiveNodes = async (aid: string) => {
