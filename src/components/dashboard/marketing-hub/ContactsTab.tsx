@@ -108,7 +108,11 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
         </div>
         {leads.length === 0 ? (
           <div className="text-center py-8 rounded-xl border border-dashed border-border bg-card">
-            <p className="text-sm text-muted-foreground">No leads captured yet. Activate a campaign to start collecting.</p>
+            <p className="text-sm text-muted-foreground">
+              {errorMsg
+                ? `Couldn't load leads: ${errorMsg}`
+                : "No leads captured yet. Activate a campaign to start collecting."}
+            </p>
           </div>
         ) : (
           <div className="rounded-xl border border-border bg-card overflow-hidden">
