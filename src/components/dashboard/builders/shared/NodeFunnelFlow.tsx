@@ -212,6 +212,11 @@ export default function NodeFunnelFlow({
     );
   }
 
+  // Determine which stages are still missing — used to gate publish.
+  const missingStages = stages.filter((s) => s.status === "missing");
+  const isComplete = missingStages.length === 0 && stages.length > 0;
+  const canPublish = isComplete || funnel.status === "live";
+
   const editingStage = stages.find((s) => s.id === editStageId) ?? null;
 
   return (
@@ -233,6 +238,52 @@ export default function NodeFunnelFlow({
             </Badge>
           )}
         </div>
+
+        {/* Draft warning — explains why the public URL doesn't show this funnel yet */}
+        {funnel.status !== "live" && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-800 px-3 py-2">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+              <div className="flex-1 text-xs text-amber-900 dark:text-amber-200">
+                <strong>Draft — preview only.</strong> Your edits are saved, but the public URL still shows your default page. {isComplete ? "Click Publish funnel to go live." : "Complete every step before you can publish."}
+              </div>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span>
+                      <Button
+                        size="sm"
+                        onClick={handlePublish}
+                        disabled={generating || !canPublish}
+                        className="bg-amber-600 hover:bg-amber-700 text-white shrink-0 disabled:opacity-50"
+                      >
+                        {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Power className="h-3.5 w-3.5 mr-1" />}
+                        Publish funnel
+                      </Button>
+                    </span>
+                  </TooltipTrigger>
+                  {!canPublish && (
+                    <TooltipContent>Complete all steps to publish</TooltipContent>
+                  )}
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            {!isComplete && (
+              <ul className="mt-2 ml-6 space-y-0.5 text-[11px] text-amber-900 dark:text-amber-200">
+                {missingStages.map((s) => (
+                  <li key={s.id} className="flex items-center gap-1.5">
+                    <XCircle className="h-3 w-3" /> {s.label} — needs setup
+                  </li>
+                ))}
+              </ul>
+            )}
+            {isComplete && (
+              <p className="mt-2 ml-6 text-[11px] text-amber-900 dark:text-amber-200 inline-flex items-center gap-1.5">
+                <CheckCircle2 className="h-3 w-3" /> All {stages.length} steps complete — ready to publish.
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Draft warning — explains why the public URL doesn't show this funnel yet */}
         {funnel.status !== "live" && (
