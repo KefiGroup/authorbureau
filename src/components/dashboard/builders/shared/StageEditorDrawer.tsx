@@ -43,6 +43,36 @@ const HERO_FIELD_TO_FUNNEL_COL: Record<string, string> = {
   cta_url: "cta_url",
 };
 
+/**
+ * One-line guidance shown under each step-editor input. Keyed on field.key
+ * so every funnel archetype that reuses the same field gets the same hint.
+ */
+const FIELD_HINT: Record<string, string> = {
+  // Page copy
+  headline: "The single biggest promise on the page. Keep it under 12 words.",
+  subheadline: "One supporting line that explains *who it's for* and *what they get*.",
+  body_copy: "A short paragraph or 3–5 bullets. This is what convinces them to opt in or buy.",
+  cta_text: "Action verb + outcome. e.g. 'Get the free guide' beats 'Submit'.",
+  cta_url: "Where the button sends them. Leave blank to use the funnel's next step automatically.",
+  // Traffic / source
+  traffic_source: "Where readers are coming from (email, social, ads). Used to personalise copy.",
+  utm_campaign: "A short label so you can tell campaigns apart in your reports.",
+  // Checkout
+  price_id: "The Stripe price ID for the product being sold (starts with 'price_').",
+  product_id: "The Stripe product ID (starts with 'prod_'). Optional if you set price_id.",
+  redirect_url: "Where buyers land after a successful payment — usually your Thank-you page.",
+  // Thank-you / confirmation
+  confirmation_message: "Shown immediately after submission. Set expectations: what arrives next, and when.",
+  next_step_url: "Optional next click — e.g. a tripwire offer, calendar booking, or community link.",
+  // Email follow-up
+  email_subject: "First subject line. Personal, specific, under 50 characters performs best.",
+  email_body: "First nurture email. Deliver the promise from the opt-in, then preview what's coming next.",
+  // Application / event
+  application_questions: "One question per line. Keep it to 3–5 — every extra question drops conversion ~10%.",
+  event_date: "Event start in your local timezone. The page will show a live countdown.",
+  event_url: "Zoom / livestream link sent to registrants. They'll only see this after they register.",
+};
+
 export default function StageEditorDrawer({
   open, onOpenChange, stage, funnelId, authorId, funnelStatus, currentOverrides, onSaved,
 }: Props) {
@@ -144,6 +174,7 @@ export default function StageEditorDrawer({
             const isOverridden = overridden[f.key];
             const baseStr = f.baseValue == null ? "" : String(f.baseValue);
             const showResetLink = isOverridden && baseStr.length > 0;
+            const hint = FIELD_HINT[f.key];
             return (
               <div key={f.key}>
                 <div className="flex items-center justify-between mb-1.5">
@@ -159,6 +190,11 @@ export default function StageEditorDrawer({
                     </button>
                   )}
                 </div>
+                {hint && (
+                  <p className="mb-1.5 text-[11px] leading-snug text-muted-foreground">
+                    {hint}
+                  </p>
+                )}
                 {f.type === "textarea" ? (
                   <Textarea
                     rows={f.rows ?? 4}
