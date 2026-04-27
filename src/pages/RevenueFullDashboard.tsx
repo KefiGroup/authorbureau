@@ -63,6 +63,10 @@ export default function RevenueFullDashboard() {
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [penName, setPenName] = useState("");
   const [stripeAccountId, setStripeAccountId] = useState<string | null>(null);
+  // New Stripe Connect (Express) flow — flag flipped by stripe-connect edge function.
+  const [stripeConnectId, setStripeConnectId] = useState<string | null>(null);
+  const [stripeOnboardingComplete, setStripeOnboardingComplete] = useState(false);
+  const [stripeRefreshing, setStripeRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Data states
@@ -75,7 +79,7 @@ export default function RevenueFullDashboard() {
   const [nodesLive, setNodesLive] = useState(0);
   const [hotLeads, setHotLeads] = useState<Array<{ id: string; full_name: string; email: string | null; abby_score: number; last_activity_at: string | null }>>([]);
 
-  // Connect Stripe modal
+  // Connect Stripe modal (legacy manual-paste flow — kept for advanced users)
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [stripeInput, setStripeInput] = useState("");
   const [saving, setSaving] = useState(false);
