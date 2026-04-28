@@ -361,6 +361,44 @@ export default function DynamicBookMicrosite() {
                 </div>
               )}
 
+              {/* Get the Full Experience — live Authors Bureau products tied to this book */}
+              {products.length > 0 && (
+                <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="h-5 w-5 text-secondary" />
+                    <h3 className="font-heading text-xl font-bold">Get the Full Experience</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Workbooks, courses, coaching, and more from {book.author_name || "this author"} — built around the ideas in this book.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {products.map((p) => {
+                      const title = p.personalised_name || p.node_name || "Product";
+                      const price = p.price_usd != null
+                        ? `${(p.currency || "USD").toUpperCase() === "USD" ? "$" : ""}${Number(p.price_usd).toFixed(2)}`
+                        : null;
+                      return (
+                        <div key={p.id} className="rounded-lg bg-background border border-border p-4 flex flex-col">
+                          <p className="font-semibold text-sm mb-1 line-clamp-2">{title}</p>
+                          {price && (
+                            <p className="text-secondary font-bold text-sm mb-3">{price}</p>
+                          )}
+                          <div className="mt-auto">
+                            <BuyNowButton
+                              authorNodeId={p.id}
+                              authorId={book.author_id}
+                              fallbackUrl={p.delivery_url}
+                              label="Buy Now"
+                              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full text-xs h-9 font-semibold"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Newsletter Signup */}
               <NewsletterSignup bookId={book.id} authorName={book.author_name || "this author"} />
 
