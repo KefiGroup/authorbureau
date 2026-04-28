@@ -21,6 +21,9 @@ import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
 import { listFunnels, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
+import { loadOverrides } from "@/lib/funnel-overrides";
+import { getStagesForArchetype, type OverridesMap } from "@/lib/funnel-flow-stages";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 type FilterKey = "all" | ArchetypeKey | "live" | "paused";
 
@@ -90,6 +93,7 @@ export default function FunnelsHub() {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [overridesByFunnel, setOverridesByFunnel] = useState<Record<string, OverridesMap>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const flashFunnel = (id: string) => {
@@ -173,6 +177,38 @@ export default function FunnelsHub() {
     setLiveNodes((data as LiveNode[]) || []);
   };
 
+  // Load per-funnel stage overrides whenever the funnel list changes,
+  // so we can gate the "Go Live" action on stage completeness.
+  useEffect(() => {
+    if (funnels.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        funnels.map(async (f) => [f.id, await loadOverrides(f.id)] as const),
+      );
+      if (cancelled) return;
+      const map: Record<string, OverridesMap> = {};
+      for (const [id, ov] of entries) map[id] = ov;
+      setOverridesByFunnel(map);
+    })();
+    return () => { cancelled = true; };
+  }, [funnels]);
+
+  /**
+   * Returns the labels of stages that aren't `ready`. Empty array means
+   * the funnel is safe to go live.
+   */
+  const getIncompleteStageLabels = (f: Funnel): string[] => {
+    const arch = (liveNodes.find((n) => n.node_id === f.node_id)?.archetype || "B") as ArchetypeKey;
+    const overrides = overridesByFunnel[f.id] || {};
+    const stages = getStagesForArchetype(arch, f as any, overrides, {
+      publicUrl: liveUrl(f.slug),
+      leadsCount,
+      authorSlug,
+    });
+    return stages.filter((s) => s.status !== "ready").map((s) => s.label);
+  };
+
   const liveUrl = (slug: string) =>
     authorSlug ? `${window.location.origin}/${authorSlug}/${slug}` : "";
 
@@ -244,6 +280,17 @@ export default function FunnelsHub() {
 
   const toggleStatus = async (f: Funnel) => {
     const newStatus = f.status === "live" ? "paused" : "live";
+    if (newStatus === "live") {
+      const incomplete = getIncompleteStageLabels(f);
+      if (incomplete.length > 0) {
+        toast({
+          title: "Finish setup before going live",
+          description: `These stages still need attention: ${incomplete.join(", ")}. Open the funnel flow above to fill them in.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     try {
       await setFunnelStatus(f.id, newStatus);
       toast({ title: newStatus === "live" ? "Funnel is live" : "Funnel paused" });
@@ -570,9 +617,50 @@ export default function FunnelsHub() {
                         <DropdownMenuItem onClick={() => setEditing({ ...f })}>
                           <Edit className="h-3.5 w-3.5 mr-2" />Edit copy
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleStatus(f)}>
-                          <Power className="h-3.5 w-3.5 mr-2" />{f.status === "live" ? "Pause" : "Go Live"}
-                        </DropdownMenuItem>
+                        {(() => {
+                          const incomplete = f.status === "live" ? [] : getIncompleteStageLabels(f);
+                          const isBlocked = f.status !== "live" && incomplete.length > 0;
+                          const item = (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                if (isBlocked) {
+                                  e.preventDefault();
+                                  toast({
+                                    title: "Finish setup before going live",
+                                    description: `Still incomplete: ${incomplete.join(", ")}.`,
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                toggleStatus(f);
+                              }}
+                              className={isBlocked ? "text-muted-foreground" : undefined}
+                            >
+                              <Power className="h-3.5 w-3.5 mr-2" />
+                              {f.status === "live"
+                                ? "Pause"
+                                : isBlocked
+                                  ? `Go Live (${incomplete.length} to finish)`
+                                  : "Go Live"}
+                            </DropdownMenuItem>
+                          );
+                          if (!isBlocked) return item;
+                          return (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>{item}</TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <div className="text-xs">
+                                    <div className="font-semibold mb-1">Complete these stages first:</div>
+                                    <ul className="list-disc pl-4 space-y-0.5">
+                                      {incomplete.map((s) => <li key={s}>{s}</li>)}
+                                    </ul>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                         <DropdownMenuItem onClick={() => setRegenerateTarget(f)}>
                           <Sparkles className="h-3.5 w-3.5 mr-2" />Regenerate with ABBY
                         </DropdownMenuItem>
