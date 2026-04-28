@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, ExternalLink, Loader2, ArrowLeft } from "lucide-react";
+import { BookOpen, ExternalLink, Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import NewsletterSignup from "@/components/NewsletterSignup";
+import BuyNowButton from "@/components/commerce/BuyNowButton";
+import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 interface Book {
