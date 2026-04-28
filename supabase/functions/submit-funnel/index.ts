@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     const { data: funnel, error: fErr } = await supabase
       .from('funnels')
-      .select('id, author_id, node_id, conversions, cta_url')
+      .select('id, author_id, node_id, conversions, cta_url, title')
       .eq('id', funnel_id)
       .eq('status', 'live')
       .maybeSingle();
@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Build a human-friendly source label so CRM doesn't show "Unknown".
+    // Examples: "SUCKCESS Stage Quiz — BP-02", "Free Webinar — BP-05".
+    const sourceLabel = funnel.title
+      ? `${funnel.title}${funnel.node_id ? ` — ${funnel.node_id}` : ''}`
+      : 'funnel';
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
     const cleanEmail = email.toLowerCase().trim();
