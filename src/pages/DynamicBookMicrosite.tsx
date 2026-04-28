@@ -42,10 +42,21 @@ const fadeUp = {
   }),
 };
 
+interface LiveProduct {
+  id: string;
+  node_id: string;
+  node_name: string | null;
+  personalised_name: string | null;
+  price_usd: number | null;
+  currency: string | null;
+  delivery_url: string | null;
+}
+
 export default function DynamicBookMicrosite() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [book, setBook] = useState<Book | null>(null);
+  const [products, setProducts] = useState<LiveProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
