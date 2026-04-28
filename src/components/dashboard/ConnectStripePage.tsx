@@ -21,7 +21,7 @@ const steps = [
     icon: Zap,
     title: "Start Earning",
     description:
-      "Products on your microsite will have a 'Buy Now' button. Payments go directly to your Stripe account.",
+      "Products on your microsite will have a 'Buy Now' button. Readers pay Authors Bureau, we keep a 5% platform fee, and your 95% share is paid out to your connected Stripe account on Stripe's standard payout schedule.",
   },
 ];
 
