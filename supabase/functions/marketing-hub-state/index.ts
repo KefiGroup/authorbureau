@@ -490,6 +490,20 @@ Deno.serve(async (req) => {
       return respond({ success: true, flow: updatedFlow });
     }
 
+    if (action === "activate_all_sequences") {
+      // Bulk-activate every draft (and optionally paused) sequence for this author.
+      const includePaused = body?.include_paused === true;
+      const statuses = includePaused ? ["draft", "paused"] : ["draft"];
+      const { data: updated, error } = await cloudAdmin
+        .from("email_flows")
+        .update({ status: "active" })
+        .eq("author_id", authorProfile.id)
+        .in("status", statuses)
+        .select("id");
+      if (error) throw error;
+      return respond({ success: true, activated_count: updated?.length ?? 0 });
+    }
+
     if (action === "activate_node" || action === "pause_node") {
       const nodeIds = Array.isArray(body?.node_ids) ? body.node_ids.filter((n: any) => typeof n === "string") : [];
       if (nodeIds.length === 0) {
