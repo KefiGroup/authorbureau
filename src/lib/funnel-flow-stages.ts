@@ -85,7 +85,7 @@ function stageTemplates(
         ] },
         { id: "sales_page", label: "Sales Page", description: "Pitch the product", fields: heroFields },
         { id: "checkout", label: "Checkout", description: "Stripe payment", fields: [
-          { key: "redirect_url", label: "Post-purchase redirect URL", type: "url", baseValue: base.cta_url },
+          { key: "redirect_url", label: "Post-purchase redirect URL", type: "url", baseValue: checkoutRedirectDefault, placeholder: defaultThankYou ?? undefined },
         ] },
         { id: "thank_you", label: "Thank You", description: "Confirm + next step", fields: [
           { key: "headline", label: "Thank-you headline", type: "text" },
