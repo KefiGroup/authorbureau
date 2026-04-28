@@ -617,9 +617,50 @@ export default function FunnelsHub() {
                         <DropdownMenuItem onClick={() => setEditing({ ...f })}>
                           <Edit className="h-3.5 w-3.5 mr-2" />Edit copy
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => toggleStatus(f)}>
-                          <Power className="h-3.5 w-3.5 mr-2" />{f.status === "live" ? "Pause" : "Go Live"}
-                        </DropdownMenuItem>
+                        {(() => {
+                          const incomplete = f.status === "live" ? [] : getIncompleteStageLabels(f);
+                          const isBlocked = f.status !== "live" && incomplete.length > 0;
+                          const item = (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                if (isBlocked) {
+                                  e.preventDefault();
+                                  toast({
+                                    title: "Finish setup before going live",
+                                    description: `Still incomplete: ${incomplete.join(", ")}.`,
+                                    variant: "destructive",
+                                  });
+                                  return;
+                                }
+                                toggleStatus(f);
+                              }}
+                              className={isBlocked ? "text-muted-foreground" : undefined}
+                            >
+                              <Power className="h-3.5 w-3.5 mr-2" />
+                              {f.status === "live"
+                                ? "Pause"
+                                : isBlocked
+                                  ? `Go Live (${incomplete.length} to finish)`
+                                  : "Go Live"}
+                            </DropdownMenuItem>
+                          );
+                          if (!isBlocked) return item;
+                          return (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>{item}</TooltipTrigger>
+                                <TooltipContent side="left" className="max-w-xs">
+                                  <div className="text-xs">
+                                    <div className="font-semibold mb-1">Complete these stages first:</div>
+                                    <ul className="list-disc pl-4 space-y-0.5">
+                                      {incomplete.map((s) => <li key={s}>{s}</li>)}
+                                    </ul>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          );
+                        })()}
                         <DropdownMenuItem onClick={() => setRegenerateTarget(f)}>
                           <Sparkles className="h-3.5 w-3.5 mr-2" />Regenerate with ABBY
                         </DropdownMenuItem>
