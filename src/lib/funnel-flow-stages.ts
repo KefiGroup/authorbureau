@@ -66,7 +66,10 @@ const fmt = (n?: number | null) =>
 function stageTemplates(
   archetype: ArchetypeKey,
   base: BaseFunnel,
+  ctx: StageContext = {},
 ): Omit<FunnelStage, "values" | "isEdited" | "status">[] {
+  const defaultThankYou = ctx.authorSlug ? `/${ctx.authorSlug}/thank-you` : null;
+  const checkoutRedirectDefault = base.cta_url || defaultThankYou;
   const heroFields: FieldDef[] = [
     { key: "headline", label: "Headline", type: "text", baseValue: base.headline },
     { key: "subheadline", label: "Subheadline", type: "text", baseValue: base.subheadline },
