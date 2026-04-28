@@ -401,6 +401,20 @@ export default function AuthorBookPage() {
       existingRoutes.add(mapping.route);
     });
 
+    // Buyable live nodes (priced) tied to this specific book — for the
+    // "Get the Full Experience" Buy-Now panel rendered on the book page.
+    if (profile?.id) {
+      const { data: buyable } = await supabase
+        .from("author_nodes")
+        .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url")
+        .eq("author_id", profile.id)
+        .eq("book_id", bookId)
+        .eq("status", "live")
+        .not("price_usd", "is", null)
+        .gt("price_usd", 0);
+      setBuyableNodes((buyable as any[]) || []);
+    }
+
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
     setAllAuthorBooks((allBooksRes.data || []) as any[]);
     setCoachingServices(coachRes.data || []);
