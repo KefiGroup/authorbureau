@@ -1,51 +1,71 @@
-# Sprint E — Re-check follow-up
+# Fix: Stale Stripe Email Causing "Free" Tag After Email Change
 
-Fixes the 5 outstanding items from the April 27 re-check. Plan reflects evidence verified against the live database and source code.
+## Root Cause (confirmed)
 
-## Verified findings
+You're right — it IS tagged to the wrong place, but not the user_id.
 
-- **Stripe (C4):** Pauline's `author_profiles` row has `stripe_account_id = NULL` and `stripe_onboarding_complete = false`. She has not started onboarding from inside Authors Bureau. Whatever she completed on stripe.com is a separate account our platform doesn't know about.
-- **Publish gating (H1):** Both Publish buttons are `disabled` when steps are missing. The bottom one only lacks a tooltip — but visually still looks active to non-technical users.
-- **View counter (M1):** `track-funnel-view` edge function is healthy and the schema is correct (`funnels.page_views`). However the function has zero log entries — the client call is silently failing (the `.catch(() => {})` swallows errors). All 5 of Pauline's funnels show `page_views = 0`.
-- **Social cron (M3):** `auto-refill-social-calendar-daily` cron job IS installed (runs 03:00 UTC). It just hasn't ticked yet because we deployed it the same day. No code fix needed for the cron itself, but no manual trigger button exists.
-- **Lead attribution (NEW-2):** Confirmed in `MarketingHub.tsx` — every campaign card renders `{totalLeads}` (the global count) instead of a per-campaign count.
+**`check-subscription` looks up Stripe by EMAIL**, not by user_id:
 
-## Fix plan
+```ts
+const customers = await stripe.customers.list({ email, limit: 1 });
+```
 
-### 1. Stripe onboarding visibility (BUG-C4) — P0
-- Update `RevenueFullDashboard` and the Stripe sidebar tile to show three distinct states: **Not started** (no `stripe_account_id`), **In progress** (account created, onboarding incomplete), **Connected** (transfers active).
-- Add a **"Refresh Stripe status"** button on the Revenue Dashboard that calls the existing `stripe-connect` `status` action. This forces the bi-directional sync we already wrote in Sprint B.
-- When `stripe_account_id` is NULL, the prompt copy changes from "Connect Payment Account" to **"Start Stripe onboarding"** with a one-line explainer that completing onboarding on stripe.com directly does not link to Authors Bureau — they must start from this button.
+Pauline's records right now:
 
-### 2. Funnel view counter (NEW-1 / BUG-M1) — P0
-- Replace the silent `.catch(() => {})` in `FunnelPage.tsx` with a `console.warn` + `sendBeacon` fallback so we can see why calls are failing.
-- Switch the call from raw `fetch` to `supabase.functions.invoke()` so it carries the standard headers and gets retried correctly.
-- Add a guard in the dashboard render so displayed `page_views` is always `Math.max(page_views, conversions)` — prevents the impossible "0 views, 2 conv" display while real tracking flows in.
-- Backfill existing live funnels: set `page_views = GREATEST(page_views, conversions)` once, via migration.
+| System | Email |
+|---|---|
+| Authors Bureau `auth.users` (id `ef23c521…`) | ✅ `support@paulineteo.com` (correct, just synced) |
+| Stripe customer `cus_UJUky0qgRpdVKc` | ❌ `pl@paulineteo.com` (stale) |
 
-### 3. Per-campaign lead attribution (NEW-2) — P1
-- In `MarketingHub.tsx`, replace the single `totalLeads` per card with a `leadsByNodeId` map computed from `crm_contacts.last_node_id` grouped against each campaign's `nodeIds`.
-- Header stat ("X of 8 campaigns active · Y leads captured") keeps the global count.
-- Empty-state copy on each card: "No leads from this campaign yet."
+So when she logs in:
+1. Auth resolves her as `support@paulineteo.com` ✓
+2. `check-subscription` queries Stripe for that email → 0 results
+3. Returns `subscribed: false` → UI shows **Free**
 
-### 4. Bottom Publish button cleanup (BUG-H1) — P1
-- In `NodeFunnelFlow.tsx` (lines 316–326): hide the bottom Publish button entirely when `funnel.status !== 'live'`. Drafts will only have the gated Publish button inside the amber banner. Live funnels keep the bottom Pause button.
-- Keeps the Preview/Open buttons in their current spot.
+The Stripe customer (with the active subscription) is still indexed under her old email.
 
-### 5. Manual social calendar refill (BUG-M3 follow-up) — P2
-- Add a **"Generate 30 more days"** button to the Social Calendar tab header that calls the existing `auto-refill-social-calendar` function for the current author.
-- Show an amber banner when `<= 7 days` of queued posts remain: "Calendar runs out in N days — auto-refill scheduled overnight, or generate now."
+The previous Sprint F sync function only updated `auth.users`, `books`, and `author_email_settings`. **It did not touch Stripe.** That's the gap.
 
-## Out of scope
-- Renaming `crm_contacts` keys or changing how `submit-funnel` writes leads (working as designed).
-- Touching the existing nightly social cron — it's correct, just hasn't ticked yet.
-- Building a real Stripe webhook listener; the polling "Refresh status" button is sufficient until Pauline confirms onboarding works.
+## Fix — Two Parts
 
-## Files I'll touch
-- `src/pages/RevenueFullDashboard.tsx` — three-state Stripe block + refresh button
-- `src/pages/FunnelPage.tsx` — view-tracking via `supabase.functions.invoke`
-- `src/components/dashboard/MarketingHub.tsx` — per-campaign lead counts, view-counter guard, social refill button
-- `src/components/dashboard/builders/shared/NodeFunnelFlow.tsx` — hide bottom Publish on drafts
-- One small SQL migration to backfill `page_views` on live funnels
+### Part 1: Immediate — update Pauline's Stripe customer email
 
-Ready to implement on approval.
+Update `cus_UJUky0qgRpdVKc` email from `pl@paulineteo.com` → `support@paulineteo.com` via Stripe API. After that, `check-subscription` will find her active sub and the badge will flip to her real tier within ~60s (or immediately on next refresh).
+
+### Part 2: Permanent — extend `sync-author-email` to also sync Stripe
+
+Add a Stripe step to the existing `sync-author-email` edge function so this never happens again:
+
+```ts
+// after auth + books + settings updates:
+const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
+const customers = await stripe.customers.list({ email: resolvedOldEmail, limit: 10 });
+for (const c of customers.data) {
+  await stripe.customers.update(c.id, { email: newEmailRaw });
+}
+```
+
+Also log `stripe_customers_updated_count` to `email_sync_log` so you can audit it.
+
+The same trigger on `auth.users` won't call Stripe (DB triggers can't make HTTP calls reliably here), but the **edge function** path (PublishNow webhook) will. The DB trigger remains the safety net for `books` + `author_email_settings`.
+
+### Part 3 (optional hardening): teach `check-subscription` to fall back to user_id
+
+Right now if email lookup fails, we give up. We can add a fallback: if no customer matches by email, look up customer by `metadata.supabase_user_id`. Going forward, `create-checkout` should stamp this metadata so we're never email-dependent again.
+
+This is a nice-to-have — Part 1 + Part 2 fully resolves the immediate problem.
+
+## Verification After Fix
+
+1. Pauline reloads the dashboard within 60s → badge shows her actual tier (not Free)
+2. `email_sync_log` row appears with `stripe_customers_updated_count >= 1`
+3. Future PublishNow email-change webhooks automatically sync Stripe too
+
+## Files Touched
+
+- `supabase/functions/sync-author-email/index.ts` (add Stripe block + log column)
+- New migration: add `stripe_customers_updated_count INT DEFAULT 0` to `email_sync_log`
+- One-time Stripe API call to fix `cus_UJUky0qgRpdVKc`
+- (Optional Part 3) `supabase/functions/check-subscription/index.ts` + `create-checkout`
+
+No frontend changes. No memory updates needed beyond appending one line to the existing Cross-Platform Email Sync memory noting that Stripe is now in scope.
