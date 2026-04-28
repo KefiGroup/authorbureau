@@ -77,7 +77,7 @@ const FIELD_HINT: Record<string, string> = {
 };
 
 export default function StageEditorDrawer({
-  open, onOpenChange, stage, funnelId, authorId, funnelStatus, currentOverrides, onSaved,
+  open, onOpenChange, stage, funnelId, authorId, funnelStatus, currentOverrides, nodeId, onSaved,
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [overridden, setOverridden] = useState<Record<string, boolean>>({});
