@@ -280,6 +280,17 @@ export default function FunnelsHub() {
 
   const toggleStatus = async (f: Funnel) => {
     const newStatus = f.status === "live" ? "paused" : "live";
+    if (newStatus === "live") {
+      const incomplete = getIncompleteStageLabels(f);
+      if (incomplete.length > 0) {
+        toast({
+          title: "Finish setup before going live",
+          description: `These stages still need attention: ${incomplete.join(", ")}. Open the funnel flow above to fill them in.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     try {
       await setFunnelStatus(f.id, newStatus);
       toast({ title: newStatus === "live" ? "Funnel is live" : "Funnel paused" });
