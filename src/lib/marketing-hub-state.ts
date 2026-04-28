@@ -5,6 +5,7 @@ type MarketingHubAction =
   | "social_calendar"
   | "update_social_post"
   | "reschedule_social_post"
+  | "post_social_now"
   | "sequences"
   | "update_sequence"
   | "toggle_sequence_status"
