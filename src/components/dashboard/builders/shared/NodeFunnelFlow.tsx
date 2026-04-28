@@ -42,6 +42,8 @@ interface Props {
   bookId?: string | null;
   /** Optional — leads count to surface in the form/register stage stat. */
   leadsCount?: number;
+  /** Optional — author slug, used to default the checkout redirect URL. */
+  authorSlug?: string | null;
   /** Called whenever the funnel or its overrides change (so callers can refresh lists). */
   onChanged?: () => void;
   /** Hides the "View in Funnels Hub" button (already on that page). */
