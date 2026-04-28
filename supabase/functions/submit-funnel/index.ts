@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     const { data: funnel, error: fErr } = await supabase
       .from('funnels')
-      .select('id, author_id, node_id, conversions, cta_url')
+      .select('id, author_id, node_id, conversions, cta_url, title')
       .eq('id', funnel_id)
       .eq('status', 'live')
       .maybeSingle();
@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
         status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    // Build a human-friendly source label so CRM doesn't show "Unknown".
+    // Examples: "SUCKCESS Stage Quiz — BP-02", "Free Webinar — BP-05".
+    const sourceLabel = funnel.title
+      ? `${funnel.title}${funnel.node_id ? ` — ${funnel.node_id}` : ''}`
+      : 'funnel';
 
     const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || null;
     const cleanEmail = email.toLowerCase().trim();
@@ -104,14 +110,14 @@ Deno.serve(async (req) => {
         author_id: funnel.author_id,
         email: cleanEmail,
         name: name || null,
-        source: 'funnel',
+        source: sourceLabel,
         status: 'active',
         nurture_stage: 'welcome',
         stage: 'new',
         abby_score: 10,
         captured_at: new Date().toISOString(),
         last_activity_at: new Date().toISOString(),
-        metadata: { funnel_id: funnel.id, node_id: funnel.node_id },
+        metadata: { funnel_id: funnel.id, funnel_title: funnel.title, node_id: funnel.node_id },
       }).select('id').single();
       if (leadErr) console.error('lead insert error', leadErr);
       leadId = newLead?.id;
@@ -170,7 +176,7 @@ Deno.serve(async (req) => {
             full_name: name || cleanEmail,
             email: cleanEmail,
             phone: phone || null,
-            source: 'funnel',
+            source: sourceLabel,
             stage: 'new_lead',
             abby_score: 2,
             last_activity_at: new Date().toISOString(),
@@ -217,7 +223,7 @@ Deno.serve(async (req) => {
           name: name || null,
           author_profile_id: funnel.author_id,
           node_id: funnel.node_id || null,
-          source: 'funnel',
+          source: sourceLabel,
           source_detail: funnel.id,
         }),
       });

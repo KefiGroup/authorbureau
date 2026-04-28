@@ -197,18 +197,6 @@ export default function SequencesTab() {
         <span className="font-medium text-foreground">{totalActiveEnrollments}</span> active enrollment{totalActiveEnrollments === 1 ? "" : "s"}
       </div>
       <div className="flex items-center gap-2">
-        {draftCount > 0 && (
-          <Button
-            size="sm"
-            className="h-8 text-xs"
-            onClick={activateAll}
-            disabled={activatingAll}
-            title={senderVerified === false ? "Verify your sender email in Settings first" : undefined}
-          >
-            {activatingAll ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <PlayIcon className="h-3 w-3 mr-1" />}
-            Activate all ({draftCount})
-          </Button>
-        )}
         <Button size="sm" variant="outline" className="h-8 text-xs" onClick={generateAll} disabled={generatingAll}>
           {generatingAll ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
           Generate sequences for all 28 nodes
@@ -218,18 +206,28 @@ export default function SequencesTab() {
   );
 
   const DraftBanner = draftCount > 0 ? (
-    <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 flex items-start gap-3">
-      <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+    <div className="mb-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 flex items-start gap-4">
+      <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold">
+        <p className="text-sm font-semibold text-foreground">
           {draftCount} sequence{draftCount === 1 ? " is" : "s are"} ready but not sending
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
           {senderVerified === false
-            ? "Verify your sender email in the Settings tab, then click \"Activate all\" to switch the email engine on."
-            : "Click \"Activate all\" above to start delivering to enrolled subscribers."}
+            ? "Verify your sender email in the Settings tab first, then activate to start delivering."
+            : "Click Activate all to switch the email engine on for every enrolled subscriber."}
         </p>
       </div>
+      <Button
+        size="lg"
+        onClick={activateAll}
+        disabled={activatingAll}
+        className="shrink-0 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+        title={senderVerified === false ? "Verify your sender email in Settings first" : undefined}
+      >
+        {activatingAll ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlayIcon className="h-4 w-4 mr-2" />}
+        Activate all ({draftCount})
+      </Button>
     </div>
   ) : null;
 

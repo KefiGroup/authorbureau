@@ -60,7 +60,7 @@ const FIELD_HINT: Record<string, string> = {
   // Checkout
   price_id: "The Stripe price ID for the product being sold (starts with 'price_').",
   product_id: "The Stripe product ID (starts with 'prod_'). Optional if you set price_id.",
-  redirect_url: "Where buyers land after a successful payment — usually your Thank-you page.",
+  redirect_url: "This is where buyers land after payment. Your thank-you page is pre-set — only change if you have a custom page.",
   // Thank-you / confirmation
   confirmation_message: "Shown immediately after submission. Set expectations: what arrives next, and when.",
   next_step_url: "Optional next click — e.g. a tripwire offer, calendar booking, or community link.",

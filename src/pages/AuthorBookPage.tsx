@@ -7,6 +7,7 @@ import {
   Megaphone, Trophy, Calendar, Briefcase, Award, Globe, Heart, Handshake
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import BuyNowButton from "@/components/commerce/BuyNowButton";
 import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { toast } from "@/hooks/use-toast";
@@ -170,6 +171,7 @@ export default function AuthorBookPage() {
   const navigate = useNavigate();
   const [book, setBook] = useState<Book | null>(null);
   const [products, setProducts] = useState<ProductLink[]>([]);
+  const [buyableNodes, setBuyableNodes] = useState<Array<{ id: string; node_id: string; node_name: string; personalised_name: string | null; price_usd: number; currency: string | null; delivery_url: string | null }>>([]);
   const [otherBooks, setOtherBooks] = useState<OtherBook[]>([]);
   const [allAuthorBooks, setAllAuthorBooks] = useState<{ slug: string; title: string; cover_image_url?: string; genre?: string }[]>([]);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
@@ -398,6 +400,20 @@ export default function AuthorBookPage() {
       });
       existingRoutes.add(mapping.route);
     });
+
+    // Buyable live nodes (priced) tied to this specific book — for the
+    // "Get the Full Experience" Buy-Now panel rendered on the book page.
+    if (profile?.id) {
+      const { data: buyable } = await supabase
+        .from("author_nodes")
+        .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url")
+        .eq("author_id", profile.id)
+        .eq("book_id", bookId)
+        .eq("status", "live")
+        .not("price_usd", "is", null)
+        .gt("price_usd", 0);
+      setBuyableNodes((buyable as any[]) || []);
+    }
 
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
     setAllAuthorBooks((allBooksRes.data || []) as any[]);
@@ -750,6 +766,55 @@ export default function AuthorBookPage() {
                 {book.title} reached #1 on Amazon Best Sellers
               </p>
             </motion.div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== SECTION 3.5: GET THE FULL EXPERIENCE — buyable live nodes ===== */}
+      {buyableNodes.length > 0 && (
+        <section className="py-14 md:py-16" style={{ background: v.cardBg }}>
+          <div className="container max-w-5xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5" style={{ color: v.accent }} />
+              <h2 className="text-2xl md:text-[2rem] font-bold" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                Get the Full Experience
+              </h2>
+            </div>
+            <p className="text-base mb-8" style={{ color: v.mutedText }}>
+              Workbooks, courses, coaching, and more from {authorName} — built around the ideas in this book.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {buyableNodes.map((n) => {
+                const title = n.personalised_name || n.node_name || "Product";
+                const currency = (n.currency || "USD").toUpperCase();
+                const symbol = currency === "USD" ? "$" : "";
+                const price = `${symbol}${Number(n.price_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                return (
+                  <div
+                    key={n.id}
+                    className="rounded-xl p-5 flex flex-col"
+                    style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+                  >
+                    <p className="font-semibold text-sm mb-1 line-clamp-2" style={{ color: v.headingText }}>
+                      {title}
+                    </p>
+                    <p className="font-bold text-lg mb-4" style={{ color: v.accent }}>
+                      {price}
+                    </p>
+                    <div className="mt-auto">
+                      <BuyNowButton
+                        authorNodeId={n.id}
+                        authorId={book.author_id}
+                        fallbackUrl={n.delivery_url}
+                        label="Buy Now"
+                        className="w-full rounded-full text-xs h-9 font-semibold"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </section>
       )}

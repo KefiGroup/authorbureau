@@ -55,6 +55,8 @@ export type OverridesMap = Record<string, Record<string, string>>;
 interface StageContext {
   publicUrl?: string | null;
   leadsCount?: number;
+  /** Author slug — used to default checkout redirect_url to /[author-slug]/thank-you. */
+  authorSlug?: string | null;
 }
 
 const fmt = (n?: number | null) =>
@@ -64,7 +66,10 @@ const fmt = (n?: number | null) =>
 function stageTemplates(
   archetype: ArchetypeKey,
   base: BaseFunnel,
+  ctx: StageContext = {},
 ): Omit<FunnelStage, "values" | "isEdited" | "status">[] {
+  const defaultThankYou = ctx.authorSlug ? `/${ctx.authorSlug}/thank-you` : null;
+  const checkoutRedirectDefault = base.cta_url || defaultThankYou;
   const heroFields: FieldDef[] = [
     { key: "headline", label: "Headline", type: "text", baseValue: base.headline },
     { key: "subheadline", label: "Subheadline", type: "text", baseValue: base.subheadline },
@@ -80,7 +85,7 @@ function stageTemplates(
         ] },
         { id: "sales_page", label: "Sales Page", description: "Pitch the product", fields: heroFields },
         { id: "checkout", label: "Checkout", description: "Stripe payment", fields: [
-          { key: "redirect_url", label: "Post-purchase redirect URL", type: "url", baseValue: base.cta_url },
+          { key: "redirect_url", label: "Post-purchase redirect URL", type: "url", baseValue: checkoutRedirectDefault, placeholder: defaultThankYou ?? undefined },
         ] },
         { id: "thank_you", label: "Thank You", description: "Confirm + next step", fields: [
           { key: "headline", label: "Thank-you headline", type: "text" },
@@ -169,7 +174,7 @@ export function getStagesForArchetype(
   overrides: OverridesMap,
   ctx: StageContext = {},
 ): FunnelStage[] {
-  const templates = stageTemplates(archetype, base);
+  const templates = stageTemplates(archetype, base, ctx);
 
   return templates.map((tpl) => {
     const stageOverrides = overrides[tpl.id] || {};

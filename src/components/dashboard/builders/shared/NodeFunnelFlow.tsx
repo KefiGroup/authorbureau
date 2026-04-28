@@ -42,6 +42,8 @@ interface Props {
   bookId?: string | null;
   /** Optional — leads count to surface in the form/register stage stat. */
   leadsCount?: number;
+  /** Optional — author slug, used to default the checkout redirect URL. */
+  authorSlug?: string | null;
   /** Called whenever the funnel or its overrides change (so callers can refresh lists). */
   onChanged?: () => void;
   /** Hides the "View in Funnels Hub" button (already on that page). */
@@ -60,7 +62,7 @@ const NORMALIZE_FUNNEL_TYPE_TO_ARCH: Record<string, ArchetypeKey> = {
 
 export default function NodeFunnelFlow({
   authorId, nodeId, funnel: funnelProp, archetype: archetypeProp,
-  publicUrl: publicUrlProp, bookId, leadsCount, onChanged, hideHubLink,
+  publicUrl: publicUrlProp, bookId, leadsCount, authorSlug, onChanged, hideHubLink,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [funnel, setFunnel] = useState<BaseFunnel | null>(funnelProp ?? null);
@@ -128,8 +130,9 @@ export default function NodeFunnelFlow({
     return getStagesForArchetype(effectiveArchetype, funnel, overrides, {
       publicUrl,
       leadsCount,
+      authorSlug,
     });
-  }, [funnel, effectiveArchetype, overrides, publicUrl, leadsCount]);
+  }, [funnel, effectiveArchetype, overrides, publicUrl, leadsCount, authorSlug]);
 
   const handleGenerate = async () => {
     setGenerating(true);
