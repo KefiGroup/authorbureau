@@ -78,7 +78,29 @@ export default function DynamicBookMicrosite() {
           setError(result.error || "Book not found");
           return;
         }
-        setBook(result.book as Book);
+        const loadedBook = result.book as Book;
+        setBook(loadedBook);
+
+        // Load published Authors Bureau products tied to this book.
+        // book.author_id is the user_id; author_nodes.author_id is the author_profiles.id row.
+        try {
+          const { data: prof } = await supabase
+            .from("author_profiles")
+            .select("id")
+            .eq("user_id", loadedBook.author_id)
+            .maybeSingle();
+          if (prof?.id) {
+            const { data: nodes } = await supabase
+              .from("author_nodes")
+              .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url")
+              .eq("author_id", prof.id)
+              .eq("book_id", loadedBook.id)
+              .eq("status", "live");
+            setProducts((nodes ?? []) as LiveProduct[]);
+          }
+        } catch (e) {
+          console.warn("Failed to load author products", e);
+        }
       } catch (err) {
         console.error("Failed to fetch book:", err);
         setError("Failed to load book");
