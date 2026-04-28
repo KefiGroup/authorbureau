@@ -130,8 +130,9 @@ export default function NodeFunnelFlow({
     return getStagesForArchetype(effectiveArchetype, funnel, overrides, {
       publicUrl,
       leadsCount,
+      authorSlug,
     });
-  }, [funnel, effectiveArchetype, overrides, publicUrl, leadsCount]);
+  }, [funnel, effectiveArchetype, overrides, publicUrl, leadsCount, authorSlug]);
 
   const handleGenerate = async () => {
     setGenerating(true);
