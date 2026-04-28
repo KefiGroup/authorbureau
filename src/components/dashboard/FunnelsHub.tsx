@@ -535,6 +535,7 @@ export default function FunnelsHub() {
                     archetype={(liveNodes.find((n) => n.node_id === f.node_id)?.archetype || undefined) as ArchetypeKey | undefined}
                     publicUrl={url}
                     leadsCount={leadsCount}
+                    authorSlug={authorSlug}
                     onChanged={() => loadFunnels()}
                     hideHubLink
                   />
