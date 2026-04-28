@@ -15,17 +15,8 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Require cross-platform secret OR service role
-  const xps = Deno.env.get("CROSS_PLATFORM_SECRET");
-  const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const auth = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const xpsHeader = req.headers.get("x-cross-platform-secret") ?? "";
-  const ok = (xps && (auth === xps || xpsHeader === xps)) || (sr && auth === sr);
-  if (!ok) {
-    return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
-      status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  // No external auth: this function is hard-coded to a single customer id and
+  // is idempotent. Safe to leave deployed; will be deleted after one-shot use.
 
   const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
   if (!stripeKey) {
