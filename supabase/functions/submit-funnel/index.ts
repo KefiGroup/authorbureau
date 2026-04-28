@@ -110,14 +110,14 @@ Deno.serve(async (req) => {
         author_id: funnel.author_id,
         email: cleanEmail,
         name: name || null,
-        source: 'funnel',
+        source: sourceLabel,
         status: 'active',
         nurture_stage: 'welcome',
         stage: 'new',
         abby_score: 10,
         captured_at: new Date().toISOString(),
         last_activity_at: new Date().toISOString(),
-        metadata: { funnel_id: funnel.id, node_id: funnel.node_id },
+        metadata: { funnel_id: funnel.id, funnel_title: funnel.title, node_id: funnel.node_id },
       }).select('id').single();
       if (leadErr) console.error('lead insert error', leadErr);
       leadId = newLead?.id;
