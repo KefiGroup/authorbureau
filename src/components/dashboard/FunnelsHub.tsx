@@ -177,6 +177,38 @@ export default function FunnelsHub() {
     setLiveNodes((data as LiveNode[]) || []);
   };
 
+  // Load per-funnel stage overrides whenever the funnel list changes,
+  // so we can gate the "Go Live" action on stage completeness.
+  useEffect(() => {
+    if (funnels.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = await Promise.all(
+        funnels.map(async (f) => [f.id, await loadOverrides(f.id)] as const),
+      );
+      if (cancelled) return;
+      const map: Record<string, OverridesMap> = {};
+      for (const [id, ov] of entries) map[id] = ov;
+      setOverridesByFunnel(map);
+    })();
+    return () => { cancelled = true; };
+  }, [funnels]);
+
+  /**
+   * Returns the labels of stages that aren't `ready`. Empty array means
+   * the funnel is safe to go live.
+   */
+  const getIncompleteStageLabels = (f: Funnel): string[] => {
+    const arch = (liveNodes.find((n) => n.node_id === f.node_id)?.archetype || "B") as ArchetypeKey;
+    const overrides = overridesByFunnel[f.id] || {};
+    const stages = getStagesForArchetype(arch, f as any, overrides, {
+      publicUrl: liveUrl(f.slug),
+      leadsCount,
+      authorSlug,
+    });
+    return stages.filter((s) => s.status !== "ready").map((s) => s.label);
+  };
+
   const liveUrl = (slug: string) =>
     authorSlug ? `${window.location.origin}/${authorSlug}/${slug}` : "";
 
