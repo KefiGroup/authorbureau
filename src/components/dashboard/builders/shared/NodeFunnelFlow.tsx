@@ -62,7 +62,7 @@ const NORMALIZE_FUNNEL_TYPE_TO_ARCH: Record<string, ArchetypeKey> = {
 
 export default function NodeFunnelFlow({
   authorId, nodeId, funnel: funnelProp, archetype: archetypeProp,
-  publicUrl: publicUrlProp, bookId, leadsCount, onChanged, hideHubLink,
+  publicUrl: publicUrlProp, bookId, leadsCount, authorSlug, onChanged, hideHubLink,
 }: Props) {
   const [loading, setLoading] = useState(true);
   const [funnel, setFunnel] = useState<BaseFunnel | null>(funnelProp ?? null);
