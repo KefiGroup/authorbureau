@@ -67,6 +67,8 @@ export default function SequencesTab() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [generatingAll, setGeneratingAll] = useState(false);
   const [generatingSingle, setGeneratingSingle] = useState(false);
+  const [activatingAll, setActivatingAll] = useState(false);
+  const [senderVerified, setSenderVerified] = useState<boolean | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [editingFlow, setEditingFlow] = useState<FlowRow | null>(null);
 
