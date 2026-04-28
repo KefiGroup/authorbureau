@@ -172,6 +172,10 @@ export default function StageEditorDrawer({
           <SheetDescription>{stage.description}</SheetDescription>
         </SheetHeader>
 
+        {stage.id === "checkout" && (
+          <CheckoutStagePanel authorId={authorId} nodeId={nodeId ?? null} />
+        )}
+
         <div className="mt-6 space-y-5">
           {stage.fields.map((f) => {
             const isOverridden = overridden[f.key];
