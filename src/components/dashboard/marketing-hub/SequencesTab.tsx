@@ -254,6 +254,7 @@ export default function SequencesTab() {
   return (
     <div>
       {Header}
+      {DraftBanner}
 
       {highlightNodeId && highlightLabel && (
         <div className="mb-4 rounded-xl border border-primary/30 bg-primary/5 p-4 flex items-start gap-3">
