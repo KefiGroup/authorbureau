@@ -223,7 +223,7 @@ Deno.serve(async (req) => {
           name: name || null,
           author_profile_id: funnel.author_id,
           node_id: funnel.node_id || null,
-          source: 'funnel',
+          source: sourceLabel,
           source_detail: funnel.id,
         }),
       });
