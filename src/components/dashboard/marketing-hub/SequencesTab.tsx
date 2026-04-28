@@ -91,6 +91,16 @@ export default function SequencesTab() {
 
   useEffect(() => { load(); }, []);
 
+  // Check sender-email verification so we can warn before activating sequences.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await callMarketingHubState<{ settings?: { domain_verified?: boolean } }>("email_settings");
+        setSenderVerified(!!res?.settings?.domain_verified);
+      } catch { setSenderVerified(false); }
+    })();
+  }, []);
+
   // After flows load, if a highlight node is requested, scroll to it and pulse.
   useEffect(() => {
     if (loading || !highlightNodeId) return;
