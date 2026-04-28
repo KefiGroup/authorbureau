@@ -15,6 +15,7 @@ type Action =
   | "social_calendar"
   | "update_social_post"
   | "reschedule_social_post"
+  | "post_social_now"
   | "sequences"
   | "toggle_sequence_status"
   | "activate_all_sequences"
