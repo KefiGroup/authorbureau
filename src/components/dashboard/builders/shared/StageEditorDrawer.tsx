@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { Loader2, RotateCcw, Sparkles, CheckCircle2, AlertTriangle, ExternalLink, Pencil } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import type { FunnelStage } from "@/lib/funnel-flow-stages";
 import { saveStageOverrideViaFn, saveFunnelCopy } from "@/lib/funnels-api";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   open: boolean;
@@ -24,6 +25,8 @@ interface Props {
   funnelStatus?: string | null;
   /** Map of fieldKey → current override (so we know which fields to show "Reset" on). */
   currentOverrides: Record<string, string>;
+  /** Funnel's node_id — used by the Checkout stage to look up product + Stripe status. */
+  nodeId?: string | null;
   onSaved: () => void;
 }
 
