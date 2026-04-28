@@ -158,6 +158,31 @@ export default function SequencesTab() {
     }
   };
 
+  const draftCount = flows.filter((f) => f.status === "draft").length;
+
+  const activateAll = async () => {
+    if (draftCount === 0) return;
+    if (!senderVerified) {
+      toast({
+        title: "Verify your sender email first",
+        description: "Activating sequences won't deliver until your reply-to email is confirmed. Visit the Settings tab to send the verification link.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!confirm(`Activate all ${draftCount} draft sequence${draftCount === 1 ? "" : "s"} now? They will start sending to enrolled subscribers immediately.`)) return;
+    setActivatingAll(true);
+    try {
+      const res = await callMarketingHubState<{ activated_count: number }>("activate_all_sequences");
+      toast({ title: `${res.activated_count} sequence${res.activated_count === 1 ? "" : "s"} activated`, description: "Your nurture engine is live." });
+      await load();
+    } catch (err: any) {
+      toast({ title: "Couldn't activate sequences", description: err.message, variant: "destructive" });
+    } finally {
+      setActivatingAll(false);
+    }
+  };
+
   const totalActiveEnrollments = Object.values(enrollments).reduce((a, b) => a + b, 0);
 
   if (loading) {
