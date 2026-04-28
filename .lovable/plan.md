@@ -1,76 +1,76 @@
 ## Goal
 
-Give Pauline (and every author) full control over WHEN each AI-generated social post goes live. Posts come out of the AI generator as **Unscheduled drafts**. The author chooses a date+time per post (or "Post Now"). Nothing is auto-dated.
+Replace the bare "Post-purchase redirect URL" panel for STEP 3 (Checkout) of the Funnels Hub with an author-friendly Stripe-aware view: connection badge, product/price summary, redirect URL, Test Checkout button, and a plain-English explanation of how money flows.
 
-## What changes (author-visible)
+## Where this lives
 
-1. **Generator output** — When ABBY produces 20 posts (or "Generate 30 more"), each post lands as **Unscheduled / Draft**. No date is assigned.
-2. **New "Unscheduled" tray** — Below the calendar, a section listing every post without a date, grouped by platform with filter chips. Each card shows:
-   - Platform icon + caption preview
-   - **Schedule** button → opens date + time picker (default 9:00 AM)
-   - **Post Now** button → marks `posted` immediately with current timestamp + opens platform composer with caption pre-copied
-   - **Copy caption** button (kept from today)
-   - Stays visible until the author either schedules it, posts it, or deletes it
-3. **Calendar grid** — Only shows posts the author has actually scheduled. Today still highlighted as a blue dot. Clicking a date opens the day panel (already exists) with the same Schedule/Post Now/Reschedule controls.
-4. **Drag-and-drop** — Author can drag an Unscheduled card onto any future calendar cell. Drop sets `scheduled_at` to that day at 9:00 AM. (Date-picker is the always-available fallback.)
-5. **Top counter** — `X of Y posted` where Y = total posts generated, X = posts with `status='posted'`. (Today already does this; we just confirm it counts correctly when nothing is scheduled.)
-6. **Banner copy swap** — Replace "Calendar runs out in N days" with **"You have N unscheduled posts ready to go — pick your dates."** Only show when N > 0. If N = 0 and scheduled posts also = 0, hide.
-7. **Generate 30 more days button** — Stays. New behavior: it generates **post copy only** and inserts as Unscheduled (no dates).
-8. **Auto-refill removed** — The nightly `auto-refill-social-calendar` cron behavior that silently extends the calendar is disabled (the function will no longer self-schedule; it can still be invoked manually but only inserts unscheduled posts via the "Generate 30 more" button).
+- Stage definition: `src/lib/funnel-flow-stages.ts` (archetype A, `id: "checkout"`).
+- Drawer that renders the panel: `src/components/dashboard/builders/shared/StageEditorDrawer.tsx`.
+- Drawer is opened from `NodeFunnelFlow.tsx`, which already has `funnel.author_id` and `funnel.node_id` — we'll pass these through so the drawer can fetch product + Stripe status.
 
-## Technical changes
+## Data model already in place (no migrations needed)
 
-### Edge functions
+- `funnels.node_id` + `funnels.author_id` → look up the matching product in `author_nodes (author_id, node_id)` to get `node_name` / `personalised_name`, `price_usd`, `delivery_url`, `stripe_price_id`.
+- Stripe connection status is stored on `author_profiles.stripe_connected_account_id` (and `stripe_onboarding_complete`). Same pattern used in `RevenueFullDashboard.tsx`.
+- "Test this checkout" can call the existing `create-checkout-session` edge function with the `author_node_id` (same path `BuyNowButton` uses), opened in a new tab.
 
-- **`supabase/functions/bp03-node-state/index.ts`** — `rebuildSocialPosts()` currently spreads posts on dates 1, 4, 7… every 3 days at 9 AM. Change so every inserted row has `scheduled_at: null` and `status: 'draft'`. Keep idempotency (delete previous `draft`/`ready` rows that have no `posted_at`). Removes `computeScheduleDates` usage.
-- **`supabase/functions/marketing-hub-state/index.ts`**
-  - Loosen `reschedule_social_post`: accept either a date-only string (apply 09:00) or a full ISO timestamp (use as-is). Keep author-scoped `eq("author_id", authorProfile.id)` guard.
-  - Add new action `post_social_now`: sets `status='posted'`, `posted_at=now()`, leaves `scheduled_at` as today if null. Returns updated row.
-  - Existing `update_social_post` and `social_calendar` action stay.
-- **`supabase/functions/auto-refill-social-calendar/index.ts`** — Remove the cron self-trigger logic that pushes 30 more days onto the calendar with auto-dates. The "force" branch (called from the UI button) just kicks `generate-bp03-social-media` which now writes Unscheduled posts via the `bp03-node-state` rebuild path. Optionally short-circuit cron-mode (no `force`) to a no-op.
+## Changes
 
-### Frontend — `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
+### 1. `StageEditorDrawer.tsx`
 
-- Add `unscheduledPosts = posts.filter(p => !p.scheduled_at && p.status !== 'posted')`.
-- Replace the amber **lowRunway** banner block with a teal **"You have N unscheduled posts ready to go — pick your dates."** banner driven by `unscheduledPosts.length`.
-- Add a new **`<UnscheduledTray>`** section between the platform-filter row and the calendar grid:
-  - Heading + count + "Schedule all evenly across N days" optional helper (out of scope for this sprint)
-  - Card list (uses same row UI as the day-panel cards) with: Schedule (opens existing date input drawer, now also accepting time), Post Now (calls `post_social_now` + opens composer), Copy caption.
-  - Drag handle on each card; cards are `draggable`. Calendar cells become drop targets that call `reschedule_social_post` with the dropped date.
-- Upgrade reschedule UI from date-only `<Input type="date">` to date + time (`<Input type="datetime-local">`) so authors can pick the exact go-live moment. Send full ISO to the edge function.
-- Update top counter label: `{postedCount} of {totalCount} posted` (already correct — verify wording).
-- Add a `postNow(post)` helper that calls the new `post_social_now` action, then opens the composer URL like `copyAndOpen` already does.
-- Remove `lowRunway` / `daysRemaining` math (no longer relevant).
+Add two new props so the drawer can render a checkout-specific header without breaking other stages:
 
-### Database
-
-No schema migration needed — `scheduled_at` is already nullable, and `status='draft'` is already a supported value used in queries today.
-
-### Behavior matrix
-
-```text
-Generated post           → status=draft,  scheduled_at=null  (Unscheduled tray)
-Schedule clicked         → status=ready,  scheduled_at=picked timestamp
-Drag-drop on day         → status=ready,  scheduled_at=that day @ 09:00
-Post Now clicked         → status=posted, posted_at=now,  scheduled_at=now if null
-Mark as Posted (panel)   → status=posted, posted_at=now   (existing)
-Undo                     → status=ready,  posted_at=null  (existing)
+```ts
+authorNodeId?: string | null;     // funnel's node_id
+authorProfileId?: string | null;  // funnel's author_id (for Stripe lookup)
 ```
 
-## Test plan (Pauline scenario)
+When `stage.id === "checkout"`, render a new `<CheckoutStagePanel>` block above the field list:
 
-1. Sign in as `support@paulineteo.com`.
-2. Open Marketing Hub → Social Calendar.
-3. If she already has scheduled posts: those remain on the calendar (no migration needed).
-4. Click **Generate 30 more days** → posts appear in the new **Unscheduled** tray, calendar cells unchanged.
-5. On one card, click **Schedule**, pick a date+time, save → card moves to that calendar cell with a blue dot.
-6. Drag another card onto a future date → same effect.
-7. Click **Post Now** on a third card → status flips to Posted ✓, composer opens, counter increments.
-8. Top banner now reads "You have N unscheduled posts ready to go — pick your dates." with N decreasing as she schedules.
-9. The amber "Calendar runs out in X days" banner is gone.
+- On mount: query `author_nodes` for `(author_id = authorProfileId, node_id = authorNodeId)` → get `personalised_name || node_name`, `price_usd`, `stripe_price_id`, `id` (author_node row id). In parallel, query `author_profiles` for `stripe_connected_account_id, stripe_onboarding_complete`.
+- Header row:
+  - Green `CheckCircle2` + "Your Stripe Checkout is ready" if `stripe_connected_account_id` is set AND `stripe_price_id` is present.
+  - Amber `AlertTriangle` + "Connect Stripe first to activate this checkout" if not connected. Show a `Button` linking to `/dashboard?section=connect-stripe`.
+  - If Stripe is connected but the product has no `stripe_price_id`, amber "Add a price for this product" link to the matching product builder route.
+- Product summary card (`bg-muted/30` rounded card):
+  - Product name (bold)
+  - Price formatted as `$XX.XX USD` from `price_usd`
+  - Small "Edit price" link → product builder for that node (route map already used in `BookHub`; default to `/dashboard?section=brand-products`).
+- "Test this checkout" `Button` (only enabled when Stripe is connected): calls `supabase.functions.invoke("create-checkout-session", { body: { author_node_id, test_mode: true } })`, then `window.open(data.url, "_blank")`. Falls back to the existing `delivery_url` if the function returns `AUTHOR_PAYMENTS_NOT_SET_UP`.
+- Plain-English explanation paragraph (muted text):
+  > "When a reader clicks 'Buy Now' on your sales page, they're taken to a secure Stripe checkout page. After payment, they're redirected to your Thank You page. Authors Bureau keeps 5% and pays you 95% on Stripe's standard schedule."
 
-## Out of scope (deferred)
+The existing redirect-URL `Input` continues to render unchanged below this header (current loop over `stage.fields`).
 
-- Buffer auto-publish — UI here is "copy + open composer" today; we keep that.
-- Bulk "Schedule all across N days" helper — easy follow-up but not in this sprint.
-- Migrating existing auto-scheduled posts back to Unscheduled — leave Pauline's current rows alone; only new generations will be Unscheduled.
+### 2. `NodeFunnelFlow.tsx`
+
+Pass the two new props through when mounting `StageEditorDrawer`:
+
+```tsx
+authorNodeId={funnel.node_id ?? null}
+authorProfileId={authorId}
+```
+
+### 3. `funnel-flow-stages.ts`
+
+No structural change required — `redirect_url` field stays. Optionally tighten the `checkout` stage `description` from "Stripe payment" to "Secure Stripe checkout — 5% platform fee".
+
+## Test plan
+
+1. Log in as `support@paulineteo.com`.
+2. Open `/dashboard?section=funnels-hub`.
+3. Click STEP 3 Checkout on the SUCKcessful sales funnel. Drawer should show:
+   - Green "Your Stripe Checkout is ready" header (Stripe is connected for this account).
+   - Product summary: "Be SUCKcessful Instant Digital Book" + "$27.00 USD" + Edit price link.
+   - Plain-English paragraph.
+   - "Test this checkout" button opens a real Stripe checkout in a new tab.
+   - Existing Post-purchase redirect URL field with ABBY's value pre-filled.
+4. Temporarily simulate a disconnected author (or test on an unconnected account): header switches to amber with "Connect Stripe" CTA pointing to `/dashboard?section=connect-stripe`.
+
+## Files touched
+
+- `src/components/dashboard/builders/shared/StageEditorDrawer.tsx` (extend)
+- `src/components/dashboard/builders/shared/NodeFunnelFlow.tsx` (pass 2 props)
+- `src/lib/funnel-flow-stages.ts` (minor description tweak — optional)
+
+No DB migrations, no new edge functions.

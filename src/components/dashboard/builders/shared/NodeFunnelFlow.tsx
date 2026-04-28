@@ -360,6 +360,7 @@ export default function NodeFunnelFlow({
         authorId={authorId}
         funnelStatus={funnel.status}
         currentOverrides={editingStage ? (overrides[editingStage.id] || {}) : {}}
+        nodeId={nodeId}
         onSaved={async () => { await fetchAll(); onChanged?.(); }}
       />
     </Card>
