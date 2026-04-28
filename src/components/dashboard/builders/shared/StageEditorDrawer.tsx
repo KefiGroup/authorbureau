@@ -240,3 +240,198 @@ export default function StageEditorDrawer({
     </Sheet>
   );
 }
+
+// =====================================================================
+// CheckoutStagePanel — Stripe-aware header for the Checkout funnel stage
+// =====================================================================
+interface CheckoutPanelProps {
+  authorId: string;
+  nodeId: string | null;
+}
+
+function formatPrice(price: number | null | undefined, currency?: string | null): string {
+  if (price == null || isNaN(Number(price))) return "—";
+  const cur = (currency || "USD").toUpperCase();
+  try {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency: cur }).format(Number(price));
+  } catch {
+    return `$${Number(price).toFixed(2)} ${cur}`;
+  }
+}
+
+function CheckoutStagePanel({ authorId, nodeId }: CheckoutPanelProps) {
+  const [loading, setLoading] = useState(true);
+  const [product, setProduct] = useState<{
+    id: string;
+    name: string;
+    price_usd: number | null;
+    currency: string | null;
+    stripe_price_id: string | null;
+  } | null>(null);
+  const [stripeConnected, setStripeConnected] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        const [nodeRes, profileRes] = await Promise.all([
+          nodeId
+            ? supabase
+                .from("author_nodes")
+                .select("id, node_name, personalised_name, price_usd, currency, stripe_price_id")
+                .eq("author_id", authorId)
+                .eq("node_id", nodeId)
+                .maybeSingle()
+            : Promise.resolve({ data: null, error: null } as any),
+          supabase
+            .from("author_profiles")
+            .select("stripe_connected_account_id, stripe_onboarding_complete")
+            .eq("id", authorId)
+            .maybeSingle(),
+        ]);
+        if (cancelled) return;
+        if (nodeRes?.data) {
+          const row: any = nodeRes.data;
+          setProduct({
+            id: row.id,
+            name: row.personalised_name || row.node_name || "Your product",
+            price_usd: row.price_usd ?? null,
+            currency: row.currency ?? "USD",
+            stripe_price_id: row.stripe_price_id ?? null,
+          });
+        } else {
+          setProduct(null);
+        }
+        const prof: any = profileRes?.data;
+        setStripeConnected(Boolean(prof?.stripe_connected_account_id));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, [authorId, nodeId]);
+
+  const handleTestCheckout = async () => {
+    if (!product) return;
+    setTesting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-checkout-session", {
+        body: { author_node_id: product.id },
+      });
+      if (error) throw error;
+      if (data?.error === "AUTHOR_PAYMENTS_NOT_SET_UP") {
+        toast({
+          title: "Stripe not connected yet",
+          description: "Connect Stripe first to test checkout.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (data?.url) {
+        window.open(data.url, "_blank", "noopener,noreferrer");
+      } else {
+        throw new Error("No checkout URL returned.");
+      }
+    } catch (e) {
+      toast({
+        title: "Couldn't open test checkout",
+        description: e instanceof Error ? e.message : String(e),
+        variant: "destructive",
+      });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="mt-6 rounded-lg border bg-muted/20 p-4 flex items-center gap-2 text-sm text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading checkout details…
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-6 space-y-4">
+      {/* Header */}
+      {stripeConnected ? (
+        <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+          <CheckCircle2 className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" />
+          <div className="text-sm">
+            <p className="font-semibold">Your Stripe Checkout is ready</p>
+            <p className="text-muted-foreground text-xs mt-0.5">
+              Readers can pay securely. Authors Bureau handles the transaction.
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-3">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="text-sm flex-1">
+              <p className="font-semibold">Connect Stripe first to activate this checkout</p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Without Stripe connected, the Buy Now button cannot accept payments.
+              </p>
+            </div>
+          </div>
+          <Button asChild size="sm" className="mt-3 w-full">
+            <a href="/dashboard?section=connect-stripe">Connect Stripe</a>
+          </Button>
+        </div>
+      )}
+
+      {/* Product summary */}
+      {product ? (
+        <div className="rounded-lg border bg-muted/30 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Product</p>
+              <p className="text-sm font-semibold truncate">{product.name}</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Price</p>
+              <p className="text-sm font-semibold">{formatPrice(product.price_usd, product.currency)}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex items-center justify-between">
+            <a
+              href="/dashboard?section=brand-products"
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"
+            >
+              <Pencil className="h-3 w-3" /> Edit price
+            </a>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleTestCheckout}
+              disabled={testing || !stripeConnected}
+              title={!stripeConnected ? "Connect Stripe first" : "Open Stripe checkout in a new tab"}
+            >
+              {testing ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" />
+              ) : (
+                <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              Test this checkout
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="rounded-lg border border-dashed bg-muted/10 p-3 text-xs text-muted-foreground">
+          No product is linked to this funnel yet. Create or assign a product to enable checkout.
+        </div>
+      )}
+
+      {/* Plain-English explanation */}
+      <p className="text-[11px] leading-relaxed text-muted-foreground bg-muted/20 rounded-md p-3 border">
+        When a reader clicks "Buy Now" on your sales page, they're taken to a secure Stripe checkout page.
+        After payment, they're redirected to your Thank You page. Authors Bureau keeps 5% and pays you 95%
+        on Stripe's standard schedule.
+      </p>
+    </div>
+  );
+}
