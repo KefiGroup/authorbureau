@@ -1,73 +1,76 @@
-## Sprint 4 — Marketing Funnel Activation Fixes
+## Goal
 
-Five surgical fixes. No bundling of medium/low items.
+Give Pauline (and every author) full control over WHEN each AI-generated social post goes live. Posts come out of the AI generator as **Unscheduled drafts**. The author chooses a date+time per post (or "Post Now"). Nothing is auto-dated.
 
----
+## What changes (author-visible)
 
-### BUG 1 — "Get the Full Experience" missing on book detail page
+1. **Generator output** — When ABBY produces 20 posts (or "Generate 30 more"), each post lands as **Unscheduled / Draft**. No date is assigned.
+2. **New "Unscheduled" tray** — Below the calendar, a section listing every post without a date, grouped by platform with filter chips. Each card shows:
+   - Platform icon + caption preview
+   - **Schedule** button → opens date + time picker (default 9:00 AM)
+   - **Post Now** button → marks `posted` immediately with current timestamp + opens platform composer with caption pre-copied
+   - **Copy caption** button (kept from today)
+   - Stays visible until the author either schedules it, posts it, or deletes it
+3. **Calendar grid** — Only shows posts the author has actually scheduled. Today still highlighted as a blue dot. Clicking a date opens the day panel (already exists) with the same Schedule/Post Now/Reschedule controls.
+4. **Drag-and-drop** — Author can drag an Unscheduled card onto any future calendar cell. Drop sets `scheduled_at` to that day at 9:00 AM. (Date-picker is the always-available fallback.)
+5. **Top counter** — `X of Y posted` where Y = total posts generated, X = posts with `status='posted'`. (Today already does this; we just confirm it counts correctly when nothing is scheduled.)
+6. **Banner copy swap** — Replace "Calendar runs out in N days" with **"You have N unscheduled posts ready to go — pick your dates."** Only show when N > 0. If N = 0 and scheduled posts also = 0, hide.
+7. **Generate 30 more days button** — Stays. New behavior: it generates **post copy only** and inserts as Unscheduled (no dates).
+8. **Auto-refill removed** — The nightly `auto-refill-social-calendar` cron behavior that silently extends the calendar is disabled (the function will no longer self-schedule; it can still be invoked manually but only inserts unscheduled posts via the "Generate 30 more" button).
 
-**Root cause:** Sprint 3C added the products section to `src/pages/DynamicBookMicrosite.tsx`, but the live route `/pauline-teo/[book-slug]` is served by `src/pages/AuthorBookPage.tsx` (resolved via `AuthorSubpageResolver`). The Sprint 3C code never renders.
+## Technical changes
 
-**Verification:** Pauline has 22 `author_nodes` rows with `status='live'` linked to her book (Workbook $2.99, Audiobook $14.99, Coaching $2997, etc.). RLS allows anon read of `live` nodes.
+### Edge functions
 
-**Fix (in `AuthorBookPage.tsx`):**
-- Add a new state `liveBuyableNodes` next to existing `products`.
-- In `loadProductsAndOtherBooks`, fetch all `author_nodes` for this author + this book where `status='live'` AND `price_usd IS NOT NULL AND price_usd > 0`, selecting `id, node_id, node_name, personalised_name, price_usd, currency, delivery_url`.
-- Add a new "Get the Full Experience" panel below the book description (above SECTION 4 "GO DEEPER") that renders these nodes as compact cards with `<BuyNowButton authorNodeId={...} authorId={book.author_id} fallbackUrl={...} />`.
-- Hide the panel only when there are zero buyable nodes.
+- **`supabase/functions/bp03-node-state/index.ts`** — `rebuildSocialPosts()` currently spreads posts on dates 1, 4, 7… every 3 days at 9 AM. Change so every inserted row has `scheduled_at: null` and `status: 'draft'`. Keep idempotency (delete previous `draft`/`ready` rows that have no `posted_at`). Removes `computeScheduleDates` usage.
+- **`supabase/functions/marketing-hub-state/index.ts`**
+  - Loosen `reschedule_social_post`: accept either a date-only string (apply 09:00) or a full ISO timestamp (use as-is). Keep author-scoped `eq("author_id", authorProfile.id)` guard.
+  - Add new action `post_social_now`: sets `status='posted'`, `posted_at=now()`, leaves `scheduled_at` as today if null. Returns updated row.
+  - Existing `update_social_post` and `social_calendar` action stay.
+- **`supabase/functions/auto-refill-social-calendar/index.ts`** — Remove the cron self-trigger logic that pushes 30 more days onto the calendar with auto-dates. The "force" branch (called from the UI button) just kicks `generate-bp03-social-media` which now writes Unscheduled posts via the `bp03-node-state` rebuild path. Optionally short-circuit cron-mode (no `force`) to a no-op.
 
----
+### Frontend — `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
 
-### BUG 2 — "Activate All" button not prominent enough
+- Add `unscheduledPosts = posts.filter(p => !p.scheduled_at && p.status !== 'posted')`.
+- Replace the amber **lowRunway** banner block with a teal **"You have N unscheduled posts ready to go — pick your dates."** banner driven by `unscheduledPosts.length`.
+- Add a new **`<UnscheduledTray>`** section between the platform-filter row and the calendar grid:
+  - Heading + count + "Schedule all evenly across N days" optional helper (out of scope for this sprint)
+  - Card list (uses same row UI as the day-panel cards) with: Schedule (opens existing date input drawer, now also accepting time), Post Now (calls `post_social_now` + opens composer), Copy caption.
+  - Drag handle on each card; cards are `draggable`. Calendar cells become drop targets that call `reschedule_social_post` with the dropped date.
+- Upgrade reschedule UI from date-only `<Input type="date">` to date + time (`<Input type="datetime-local">`) so authors can pick the exact go-live moment. Send full ISO to the edge function.
+- Update top counter label: `{postedCount} of {totalCount} posted` (already correct — verify wording).
+- Add a `postNow(post)` helper that calls the new `post_social_now` action, then opens the composer URL like `copyAndOpen` already does.
+- Remove `lowRunway` / `daysRemaining` math (no longer relevant).
 
-**Status:** The button + handler already exist in `SequencesTab.tsx` (top-right of header). User reports it isn't visible — most likely because it sits subtly to the right of the "Generate sequences" button, or because `senderVerified === false` makes it look greyed out.
+### Database
 
-**Fix (in `src/components/dashboard/marketing-hub/SequencesTab.tsx`):**
-- Promote the "Activate all (N)" button into the amber `DraftBanner` as the primary CTA on the right side of that banner (large, gold/primary color, full visibility).
-- Keep a smaller mirror in the header for users who scrolled past the banner.
-- When `senderVerified === false`, keep the button enabled but show inline helper "Verify sender email first → Settings tab" and route the click to a toast (already implemented). Add a small "Verify now" link in the banner pointing to the Settings tab.
+No schema migration needed — `scheduled_at` is already nullable, and `status='draft'` is already a supported value used in queries today.
 
----
+### Behavior matrix
 
-### BUG 3 — Publish gating on FunnelsHub card dropdown
+```text
+Generated post           → status=draft,  scheduled_at=null  (Unscheduled tray)
+Schedule clicked         → status=ready,  scheduled_at=picked timestamp
+Drag-drop on day         → status=ready,  scheduled_at=that day @ 09:00
+Post Now clicked         → status=posted, posted_at=now,  scheduled_at=now if null
+Mark as Posted (panel)   → status=posted, posted_at=now   (existing)
+Undo                     → status=ready,  posted_at=null  (existing)
+```
 
-**Root cause:** `NodeFunnelFlow` already gates publish properly via `isComplete` (missing stages → button disabled with tooltip). However, `FunnelsHub.tsx` exposes a separate "Go Live" entry in each card's dropdown (`toggleStatus`) that calls `setFunnelStatus` with no stage check, bypassing the gate.
+## Test plan (Pauline scenario)
 
-**Fix (in `src/components/dashboard/FunnelsHub.tsx`):**
-- For each funnel card, compute `stages` using `getStagesForArchetype(archetype, funnel, overrides, …)` from `@/lib/funnel-flow-stages` (need to also load `funnel_overrides` per funnel — add a single batched fetch alongside `loadFunnels`).
-- Compute `isComplete = stages.every(s => s.status !== 'missing')`.
-- In the dropdown: when `funnel.status !== 'live'`, render the "Go Live" item with `disabled={!isComplete}` and wrap in a Tooltip "Complete all required steps to publish."
-- Also disable the dropdown's "Go Live" with `cursor-not-allowed` styling.
+1. Sign in as `support@paulineteo.com`.
+2. Open Marketing Hub → Social Calendar.
+3. If she already has scheduled posts: those remain on the calendar (no migration needed).
+4. Click **Generate 30 more days** → posts appear in the new **Unscheduled** tray, calendar cells unchanged.
+5. On one card, click **Schedule**, pick a date+time, save → card moves to that calendar cell with a blue dot.
+6. Drag another card onto a future date → same effect.
+7. Click **Post Now** on a third card → status flips to Posted ✓, composer opens, counter increments.
+8. Top banner now reads "You have N unscheduled posts ready to go — pick your dates." with N decreasing as she schedules.
+9. The amber "Calendar runs out in X days" banner is gone.
 
----
+## Out of scope (deferred)
 
-### BUG 4 — Checkout step editor is blank/unguided
-
-**Fix (in `src/lib/funnel-flow-stages.ts` + `StageEditorDrawer.tsx`):**
-- In `funnel-flow-stages.ts` checkout stage, change the `redirect_url` field's `baseValue` to default to `/${authorSlug}/thank-you` when no `cta_url` is set. Pass `authorSlug` through `getStagesForArchetype` (extend the options arg) — `NodeFunnelFlow` already has `authorSlug` available.
-- Update `FIELD_HINT.redirect_url` in `StageEditorDrawer.tsx` to: *"This is where buyers land after payment. Your thank-you page is pre-set — only change if you have a custom page."*
-- The drawer already shows the field's `baseValue` as placeholder — confirm placeholder uses `field.baseValue` so the auto-default is visible.
-
----
-
-### BUG 5 — Contact source = "Unknown"
-
-**Root cause:** `submit-funnel/index.ts` writes `crm_contacts.source = 'funnel'` (generic). The CRM contact panel reads this raw value and shows "Unknown" because nothing matches its known source labels.
-
-**Fix (in `supabase/functions/submit-funnel/index.ts`):**
-- After loading the funnel record, also select `title` from the `funnels` table.
-- Build `sourceLabel = funnel.title ? `${funnel.title} — ${funnel.node_id || 'funnel'}` : 'funnel'` (e.g. `"SUCKCESS Stage Quiz — BP-02"`).
-- Use `sourceLabel` when inserting into `leads.source`, `crm_contacts.source`, and `crm_contact_tags.tag` (sanitized).
-- Also store `metadata.funnel_id` and `metadata.funnel_title` on `crm_contacts` (extend select to include `metadata` column) so the contact detail panel can render a clickable link back to the source funnel.
-- In the CRM contact detail panel (`src/components/crm/ContactDetailPanel.tsx`), display the raw `source` string verbatim if it doesn't match a known label, instead of falling back to "Unknown".
-
----
-
-### Files touched
-- `src/pages/AuthorBookPage.tsx` (BUG 1)
-- `src/components/dashboard/marketing-hub/SequencesTab.tsx` (BUG 2)
-- `src/components/dashboard/FunnelsHub.tsx` (BUG 3)
-- `src/lib/funnel-flow-stages.ts`, `src/components/dashboard/builders/shared/StageEditorDrawer.tsx` (BUG 4)
-- `supabase/functions/submit-funnel/index.ts`, `src/components/crm/ContactDetailPanel.tsx` (BUG 5)
-
-No DB migrations required. No new edge functions. No new secrets.
+- Buffer auto-publish — UI here is "copy + open composer" today; we keep that.
+- Bulk "Schedule all across N days" helper — easy follow-up but not in this sprint.
+- Migrating existing auto-scheduled posts back to Unscheduled — leave Pauline's current rows alone; only new generations will be Unscheduled.

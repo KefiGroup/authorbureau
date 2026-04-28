@@ -43,14 +43,6 @@ function flattenPosts(content: any): Array<{
   return flat;
 }
 
-function computeScheduleDates(start: Date, count: number, stepDays: number): Date[] {
-  return Array.from({ length: count }, (_, i) => {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i * stepDays);
-    return d;
-  });
-}
-
 async function rebuildSocialPosts(
   cloudAdmin: ReturnType<typeof createClient>,
   authorId: string,
@@ -59,7 +51,8 @@ async function rebuildSocialPosts(
   const flat = flattenPosts(content);
   if (flat.length === 0) return 0;
 
-  // Idempotent: wipe previous BP-03 ready/draft posts, keep posted ones
+  // Idempotent: wipe previous BP-03 draft/ready posts that the author has not yet posted.
+  // Posts already marked posted are preserved for the "X of Y posted" counter.
   await cloudAdmin
     .from("social_posts")
     .delete()
@@ -67,30 +60,20 @@ async function rebuildSocialPosts(
     .eq("node_id", "BP-03")
     .in("status", ["draft", "ready"]);
 
-  const start = new Date();
-  start.setDate(start.getDate() + 1);
-  const uniqueDays = Array.from(new Set(flat.map((p) => p.day))).sort((a, b) => a - b);
-  const dayDates = computeScheduleDates(start, uniqueDays.length, 3);
-  const dayToDate = new Map<number, Date>();
-  uniqueDays.forEach((d, i) => dayToDate.set(d, dayDates[i]));
-
-  const rows = flat.map((p) => {
-    const date = dayToDate.get(p.day) || start;
-    const scheduled = new Date(date);
-    scheduled.setHours(9, 0, 0, 0);
-    return {
-      author_id: authorId,
-      node_id: "BP-03",
-      platform: p.platform,
-      content: [p.caption, p.hashtags.length ? p.hashtags.map((h: string) => `#${h}`).join(" ") : ""]
-        .filter(Boolean)
-        .join("\n\n"),
-      scheduled_at: scheduled.toISOString(),
-      status: "ready",
-      post_index: p.index,
-      post_type: p.post_type,
-    };
-  });
+  // Author-driven scheduling: every newly-generated post starts as an Unscheduled draft.
+  // The author picks a date+time per post (or "Post Now") from the Social Calendar UI.
+  const rows = flat.map((p) => ({
+    author_id: authorId,
+    node_id: "BP-03",
+    platform: p.platform,
+    content: [p.caption, p.hashtags.length ? p.hashtags.map((h: string) => `#${h}`).join(" ") : ""]
+      .filter(Boolean)
+      .join("\n\n"),
+    scheduled_at: null as string | null,
+    status: "draft",
+    post_index: p.index,
+    post_type: p.post_type,
+  }));
 
   for (let i = 0; i < rows.length; i += 50) {
     const batch = rows.slice(i, i + 50);
