@@ -770,6 +770,55 @@ export default function AuthorBookPage() {
         </section>
       )}
 
+      {/* ===== SECTION 3.5: GET THE FULL EXPERIENCE — buyable live nodes ===== */}
+      {buyableNodes.length > 0 && (
+        <section className="py-14 md:py-16" style={{ background: v.cardBg }}>
+          <div className="container max-w-5xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-5 w-5" style={{ color: v.accent }} />
+              <h2 className="text-2xl md:text-[2rem] font-bold" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                Get the Full Experience
+              </h2>
+            </div>
+            <p className="text-base mb-8" style={{ color: v.mutedText }}>
+              Workbooks, courses, coaching, and more from {authorName} — built around the ideas in this book.
+            </p>
+
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {buyableNodes.map((n) => {
+                const title = n.personalised_name || n.node_name || "Product";
+                const currency = (n.currency || "USD").toUpperCase();
+                const symbol = currency === "USD" ? "$" : "";
+                const price = `${symbol}${Number(n.price_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                return (
+                  <div
+                    key={n.id}
+                    className="rounded-xl p-5 flex flex-col"
+                    style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+                  >
+                    <p className="font-semibold text-sm mb-1 line-clamp-2" style={{ color: v.headingText }}>
+                      {title}
+                    </p>
+                    <p className="font-bold text-lg mb-4" style={{ color: v.accent }}>
+                      {price}
+                    </p>
+                    <div className="mt-auto">
+                      <BuyNowButton
+                        authorNodeId={n.id}
+                        authorId={book.author_id}
+                        fallbackUrl={n.delivery_url}
+                        label="Buy Now"
+                        className="w-full rounded-full text-xs h-9 font-semibold"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ===== SECTION 4: GO DEEPER — Products Showcase ===== */}
       {products.length > 0 && (
         <section className="py-16 md:py-20" style={{ background: v.secondaryBg }}>
