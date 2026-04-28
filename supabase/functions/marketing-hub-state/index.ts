@@ -17,6 +17,7 @@ type Action =
   | "reschedule_social_post"
   | "sequences"
   | "toggle_sequence_status"
+  | "activate_all_sequences"
   | "update_sequence"
   | "generate_all_sequences"
   | "activate_node"
@@ -488,6 +489,20 @@ Deno.serve(async (req) => {
       }
 
       return respond({ success: true, flow: updatedFlow });
+    }
+
+    if (action === "activate_all_sequences") {
+      // Bulk-activate every draft (and optionally paused) sequence for this author.
+      const includePaused = body?.include_paused === true;
+      const statuses = includePaused ? ["draft", "paused"] : ["draft"];
+      const { data: updated, error } = await cloudAdmin
+        .from("email_flows")
+        .update({ status: "active" })
+        .eq("author_id", authorProfile.id)
+        .in("status", statuses)
+        .select("id");
+      if (error) throw error;
+      return respond({ success: true, activated_count: updated?.length ?? 0 });
     }
 
     if (action === "activate_node" || action === "pause_node") {

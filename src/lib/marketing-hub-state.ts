@@ -8,6 +8,7 @@ type MarketingHubAction =
   | "sequences"
   | "update_sequence"
   | "toggle_sequence_status"
+  | "activate_all_sequences"
   | "generate_all_sequences"
   | "activate_node"
   | "pause_node"

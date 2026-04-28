@@ -1,71 +1,76 @@
-# Fix: Stale Stripe Email Causing "Free" Tag After Email Change
+# AB Audit (Apr 28) — Fix Plan
 
-## Root Cause (confirmed)
+The audit confirms 7 fixes from last sprint and lists 8 remaining bugs. I'll tackle them in the audit's recommended sprint order so each unlock builds on the previous one.
 
-You're right — it IS tagged to the wrong place, but not the user_id.
+## Sprint 3A — Email Engine Goes Live
 
-**`check-subscription` looks up Stripe by EMAIL**, not by user_id:
+**BUG-R5: 11 sequences stuck in Draft**
+- In `SequencesTab.tsx`, add an "Activate all sequences" button at the top (next to "Generate sequences for all 28 nodes") that flips every `draft` row to `active` via the existing `toggleStatus` path in one bulk call.
+- Add a top-of-tab callout when ≥1 sequence is `draft`: "X sequences ready to send — Activate all".
+- Confirmation modal lists how many will turn on.
 
-```ts
-const customers = await stripe.customers.list({ email, limit: 1 });
-```
+**BUG-R6: Sender email verification unclear**
+- In Marketing Hub → Settings, surface the Resend domain/sender verification status with a clear pill: `Verified` / `Pending verification` / `Not sent`.
+- Add a "Send confirmation email" button (calls existing Resend verification endpoint, or add one if missing) and an inline banner instructing Pauline to check her inbox.
+- Block the "Activate all sequences" action with a tooltip if sender isn't verified, so we never silently fail to send.
 
-Pauline's records right now:
+## Sprint 3B — Revenue Dashboard Goes Live
 
-| System | Email |
-|---|---|
-| Authors Bureau `auth.users` (id `ef23c521…`) | ✅ `support@paulineteo.com` (correct, just synced) |
-| Stripe customer `cus_UJUky0qgRpdVKc` | ❌ `pl@paulineteo.com` (stale) |
+**BUG-R2: Revenue Dashboard shows $0 despite Stripe connected**
+- Diagnose the `process-purchase` webhook: the function exists and reads `STRIPE_WEBHOOK_SECRET`, so the most likely causes are (a) webhook endpoint not registered in Stripe, (b) secret missing/mismatched, or (c) `verify-purchase` runs but rows aren't landing in the revenue table the dashboard reads from.
+- I'll: (1) check `STRIPE_WEBHOOK_SECRET` is set, (2) verify the Connect webhook endpoint exists in Stripe pointing to `…/functions/v1/process-purchase`, (3) inspect recent function logs + the table the Revenue Dashboard queries, (4) re-run a test purchase end-to-end.
+- Fix whatever is broken (register endpoint via Stripe API, correct secret, or patch the insert/aggregation query).
+- Remove the "Projected" label from cards once real data is wired; show "Actual" when revenue rows exist, "Projected" only when zero.
 
-So when she logs in:
-1. Auth resolves her as `support@paulineteo.com` ✓
-2. `check-subscription` queries Stripe for that email → 0 results
-3. Returns `subscribed: false` → UI shows **Free**
+**BUG-R8: Connect Stripe page misleading copy**
+- Update copy on the Connect Stripe page: replace "Payments go directly to your Stripe account" with the accurate destination-charge model: "Readers pay Authors Bureau. We collect a 5% platform fee and pay out the remaining 95% to your connected Stripe account on Stripe's standard payout schedule."
 
-The Stripe customer (with the active subscription) is still indexed under her old email.
+## Sprint 3C — Book Detail Becomes a Storefront
 
-The previous Sprint F sync function only updated `auth.users`, `books`, and `author_email_settings`. **It did not touch Stripe.** That's the gap.
+**BUG-R1: Book detail page has no AB products**
+- `DynamicBookMicrosite.tsx` currently renders only Amazon CTAs + newsletter. Add a "Get the Full Experience" section between the hero and "Also by" that lists this book's published, paid Authors Bureau products (Workbook, Home Study, Course, Coaching, etc.) sourced from `author_nodes` filtered by `book_id` and `is_live = true`.
+- Reuse `<AuthorProductCard>` / `<BuyNowButton>` so checkout, Stripe gating, and analytics already work.
+- Hide the section cleanly when no products are live (per public-microsite rules).
 
-## Fix — Two Parts
+**BUG-R7: Funnel views = 0 but conversions = 2**
+- Funnels overview aggregate and per-card stats read from different sources. Unify them: switch the per-card card to read from the same aggregate query (likely `track-funnel-view` rollup) the overview uses, or recompute the overview from per-funnel rows. One source of truth either way.
 
-### Part 1: Immediate — update Pauline's Stripe customer email
+## Sprint 3D — Funnels & Social Calendar Self-Drive
 
-Update `cus_UJUky0qgRpdVKc` email from `pl@paulineteo.com` → `support@paulineteo.com` via Stripe API. After that, `check-subscription` will find her active sub and the badge will flip to her real tier within ~60s (or immediately on next refresh).
+**BUG-R3: 4 funnels stuck in Draft, no guided setup**
+- For each step (Traffic / Checkout / Thank You / Onboarding Email), replace the blank editor with a guided card showing: what this step does, what's required, a primary "Set up now" CTA that pre-fills sensible defaults from the book + author profile, and a "Skip for now" link.
+- A funnel becomes Publishable when all 4 steps are green; show a single "Publish funnel" button at the top.
 
-### Part 2: Permanent — extend `sync-author-email` to also sync Stripe
+**BUG-R4: Social calendar auto-refill never runs**
+- The banner promises overnight auto-refill but no scheduled job exists. Add a `pg_cron` job that calls `auto-refill-social-calendar` daily for any author whose runway is ≤7 days.
+- Update the banner to show last refill timestamp and next scheduled run, so it stops lying when the job is queued.
 
-Add a Stripe step to the existing `sync-author-email` edge function so this never happens again:
+## Action Checklist for Pauline (no code)
 
-```ts
-// after auth + books + settings updates:
-const stripe = new Stripe(STRIPE_SECRET_KEY, { apiVersion: "2025-08-27.basil" });
-const customers = await stripe.customers.list({ email: resolvedOldEmail, limit: 10 });
-for (const c of customers.data) {
-  await stripe.customers.update(c.id, { email: newEmailRaw });
-}
-```
+I'll surface these as dashboard nudges (non-blocking cards) so she sees them on next login:
+1. Verify sender email
+2. Activate 4 paused campaigns
+3. Generate 30 more days of social content (until cron lands)
+4. Complete Linny Teo $2.99 test purchase
+5. Activate all 11 email sequences (becomes one click after Sprint 3A)
 
-Also log `stripe_customers_updated_count` to `email_sync_log` so you can audit it.
+## Technical Notes
 
-The same trigger on `auth.users` won't call Stripe (DB triggers can't make HTTP calls reliably here), but the **edge function** path (PublishNow webhook) will. The DB trigger remains the safety net for `books` + `author_email_settings`.
+- Files most affected:
+  - `src/components/dashboard/marketing-hub/SequencesTab.tsx`, `…/SettingsTab.tsx` (or equivalent)
+  - `supabase/functions/process-purchase/index.ts` + Stripe webhook registration (via Stripe API)
+  - `src/pages/ConnectSettings.tsx` (Stripe copy)
+  - `src/pages/DynamicBookMicrosite.tsx` (+ small `author_nodes` query)
+  - `src/components/dashboard/FunnelsHub.tsx`, `src/pages/FunnelPage.tsx`
+  - New migration: `pg_cron` job for `auto-refill-social-calendar`
+- No schema changes expected except the cron schedule. Revenue Dashboard fix may need a tiny adjustment to the products/orders aggregation query depending on root cause.
+- Memory rules respected: BuyNowButton for paid products, public microsite hides empty sections, no emdashes, "Powered by Authors Bureau" footer untouched, gpt-5 calls keep default temperature.
 
-### Part 3 (optional hardening): teach `check-subscription` to fall back to user_id
+## Suggested Order of Execution
 
-Right now if email lookup fails, we give up. We can add a fallback: if no customer matches by email, look up customer by `metadata.supabase_user_id`. Going forward, `create-checkout` should stamp this metadata so we're never email-dependent again.
+1. Sprint 3A (email engine) — biggest immediate revenue unlock
+2. Sprint 3B (Stripe webhook + copy) — makes revenue visible
+3. Sprint 3C (book detail products + funnel stats) — turns traffic into revenue
+4. Sprint 3D (funnel wizard + social cron) — automation polish
 
-This is a nice-to-have — Part 1 + Part 2 fully resolves the immediate problem.
-
-## Verification After Fix
-
-1. Pauline reloads the dashboard within 60s → badge shows her actual tier (not Free)
-2. `email_sync_log` row appears with `stripe_customers_updated_count >= 1`
-3. Future PublishNow email-change webhooks automatically sync Stripe too
-
-## Files Touched
-
-- `supabase/functions/sync-author-email/index.ts` (add Stripe block + log column)
-- New migration: add `stripe_customers_updated_count INT DEFAULT 0` to `email_sync_log`
-- One-time Stripe API call to fix `cus_UJUky0qgRpdVKc`
-- (Optional Part 3) `supabase/functions/check-subscription/index.ts` + `create-checkout`
-
-No frontend changes. No memory updates needed beyond appending one line to the existing Cross-Platform Email Sync memory noting that Stripe is now in scope.
+Approve and I'll start with Sprint 3A.
