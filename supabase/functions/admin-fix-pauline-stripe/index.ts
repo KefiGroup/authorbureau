@@ -15,10 +15,13 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  // Require service-role key in Authorization header
-  const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const provided = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  if (!expected || provided !== expected) {
+  // Require cross-platform secret OR service role
+  const xps = Deno.env.get("CROSS_PLATFORM_SECRET");
+  const sr = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const auth = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  const xpsHeader = req.headers.get("x-cross-platform-secret") ?? "";
+  const ok = (xps && (auth === xps || xpsHeader === xps)) || (sr && auth === sr);
+  if (!ok) {
     return new Response(JSON.stringify({ ok: false, error: "unauthorized" }), {
       status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
