@@ -198,17 +198,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, admin: 
   }
 
   // Sprint 41: write per-sale row to author_earnings ledger (source of truth for monthly payouts)
+  // Idempotent: skip if verify-purchase (called from the thank-you page) already inserted one.
   if (purchaseRow?.id) {
     try {
-      await admin.from("author_earnings").insert({
-        author_id: authorRowId,
-        purchase_id: purchaseRow.id,
-        gross_usd: amount,
-        stripe_fee_usd: stripeFee,
-        platform_fee_usd: platformFee,
-        net_usd: netForAuthor > 0 ? netForAuthor : 0,
-        earned_at: new Date().toISOString(),
-      });
+      const { data: existingEarning } = await admin
+        .from("author_earnings").select("id").eq("purchase_id", purchaseRow.id).maybeSingle();
+      if (!existingEarning) {
+        await admin.from("author_earnings").insert({
+          author_id: authorRowId,
+          purchase_id: purchaseRow.id,
+          gross_usd: amount,
+          stripe_fee_usd: stripeFee,
+          platform_fee_usd: platformFee,
+          net_usd: netForAuthor > 0 ? netForAuthor : 0,
+          earned_at: new Date().toISOString(),
+        });
+      }
     } catch (e) {
       console.error("[process-purchase] author_earnings insert failed", e);
     }
