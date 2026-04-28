@@ -171,6 +171,7 @@ export default function AuthorBookPage() {
   const navigate = useNavigate();
   const [book, setBook] = useState<Book | null>(null);
   const [products, setProducts] = useState<ProductLink[]>([]);
+  const [buyableNodes, setBuyableNodes] = useState<Array<{ id: string; node_id: string; node_name: string; personalised_name: string | null; price_usd: number; currency: string | null; delivery_url: string | null }>>([]);
   const [otherBooks, setOtherBooks] = useState<OtherBook[]>([]);
   const [allAuthorBooks, setAllAuthorBooks] = useState<{ slug: string; title: string; cover_image_url?: string; genre?: string }[]>([]);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
