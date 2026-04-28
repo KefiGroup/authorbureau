@@ -157,6 +157,31 @@ Deno.serve(async (req) => {
     }
   }
 
+  // --- Update Stripe customer email(s) so check-subscription (which looks up by email) finds the right customer ---
+  let stripeCustomersUpdated = 0;
+  let stripeError: string | null = null;
+  const stripeKey = Deno.env.get("STRIPE_SECRET_KEY");
+  if (stripeKey && resolvedOldEmail) {
+    try {
+      const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
+      const customers = await stripe.customers.list({ email: resolvedOldEmail, limit: 10 });
+      for (const c of customers.data) {
+        try {
+          await stripe.customers.update(c.id, {
+            email: newEmailRaw,
+            metadata: { ...(c.metadata || {}), supabase_user_id: userId, synced_from: resolvedOldEmail },
+          });
+          stripeCustomersUpdated += 1;
+        } catch (perCustErr: any) {
+          console.error(`stripe update failed for ${c.id}:`, perCustErr?.message ?? perCustErr);
+        }
+      }
+    } catch (err: any) {
+      stripeError = err?.message ?? String(err);
+      console.error("stripe sync failed:", stripeError);
+    }
+  }
+
   await supabase.from("email_sync_log").insert({
     user_id: userId,
     old_email: resolvedOldEmail || null,
@@ -165,6 +190,8 @@ Deno.serve(async (req) => {
     auth_updated: authUpdated,
     books_updated_count: booksCount,
     settings_updated: settingsUpdated,
+    stripe_customers_updated_count: stripeCustomersUpdated,
+    error_message: stripeError,
   });
 
   return ok({
@@ -172,5 +199,6 @@ Deno.serve(async (req) => {
     auth_updated: authUpdated,
     books_updated_count: booksCount,
     settings_updated: settingsUpdated,
+    stripe_customers_updated_count: stripeCustomersUpdated,
   });
 });
