@@ -176,7 +176,7 @@ Deno.serve(async (req) => {
             full_name: name || cleanEmail,
             email: cleanEmail,
             phone: phone || null,
-            source: 'funnel',
+            source: sourceLabel,
             stage: 'new_lead',
             abby_score: 2,
             last_activity_at: new Date().toISOString(),
