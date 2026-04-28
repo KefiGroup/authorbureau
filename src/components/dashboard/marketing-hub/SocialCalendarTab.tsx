@@ -28,6 +28,9 @@ import {
   Copy,
   Check,
   ExternalLink,
+  Send,
+  GripVertical,
+  Inbox,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -82,8 +85,8 @@ function platformIcon(p: string) {
 
 function statusBadge(status: string) {
   const map: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-    draft: { label: "Draft", variant: "outline" },
-    ready: { label: "Ready to post", variant: "secondary" },
+    draft: { label: "Unscheduled", variant: "outline" },
+    ready: { label: "Scheduled", variant: "secondary" },
     posted: { label: "Posted ✓", variant: "default" },
   };
   const s = map[status] || { label: status, variant: "outline" as const };
@@ -136,18 +139,26 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const [cursor, setCursor] = useState<Date>(new Date());
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [reschedulingPostId, setReschedulingPostId] = useState<string | null>(null);
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const [savingReschedule, setSavingReschedule] = useState(false);
+  const [schedulingPostId, setSchedulingPostId] = useState<string | null>(null);
+  const [scheduleValue, setScheduleValue] = useState(""); // datetime-local string
+  const [savingSchedule, setSavingSchedule] = useState(false);
+  const [draggingPostId, setDraggingPostId] = useState<string | null>(null);
+  const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
+  const [refilling, setRefilling] = useState(false);
 
-  const formatDateInput = (value: string | null) => {
+  const formatDateTimeInput = (value: string | null) => {
     if (!value) return "";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    const year = date.getFullYear();
-    const month = `${date.getMonth() + 1}`.padStart(2, "0");
-    const day = `${date.getDate()}`.padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    const pad = (n: number) => `${n}`.padStart(2, "0");
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
+  const defaultScheduleValue = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(9, 0, 0, 0);
+    return formatDateTimeInput(d.toISOString());
   };
 
   const load = async () => {
@@ -198,20 +209,17 @@ export default function SocialCalendarTab({ authorId }: Props) {
       );
       const json = await res.json().catch(() => null);
       if (!res.ok || !json?.success) {
-        toast.error(json?.error || "Couldn't rebuild your calendar. Open the Social Media builder and try again.");
+        toast.error(json?.error || "Couldn't rebuild your posts. Open the Social Media builder and try again.");
         return;
       }
-      toast.success(`${json.saved || 0} posts loaded into your Social Calendar.`);
+      toast.success(`${json.saved || 0} posts loaded — ready for you to schedule.`);
       await load();
     } finally {
       setRepairing(false);
     }
   };
 
-  // ── Manual social-calendar refill (BUG-M3 follow-up) ──
-  // Calls the same edge function the nightly cron uses, scoped to this author.
-  // Generates 30 more days of posts on top of whatever is already queued.
-  const [refilling, setRefilling] = useState(false);
+  // Manual social refill — generates fresh post copy as Unscheduled drafts. No auto-dating.
   const refillCalendar = async () => {
     if (!authorId) return;
     setRefilling(true);
@@ -234,8 +242,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
         toast.error(json?.error || "Couldn't generate more posts. Please try again in a few minutes.");
         return;
       }
-      toast.success("Generating 30 more days of posts — they'll appear shortly.");
-      // Allow a brief moment for the generator to write before we re-fetch.
+      toast.success("Generating fresh post copy — they'll appear as Unscheduled below.");
       setTimeout(() => { load(); }, 4000);
     } finally {
       setRefilling(false);
@@ -252,22 +259,18 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   const postsByDay = useMemo(() => groupPostsByDay(filteredPosts), [filteredPosts]);
 
+  const unscheduledPosts = useMemo(
+    () => filteredPosts.filter(p => !p.scheduled_at && p.status !== "posted"),
+    [filteredPosts],
+  );
+
   const totalCount = posts.length;
   const postedCount = posts.filter(p => p.status === "posted").length;
-  const remainingCount = totalCount - postedCount;
+  const unscheduledCount = posts.filter(p => !p.scheduled_at && p.status !== "posted").length;
+  const scheduledCount = posts.filter(p => p.scheduled_at && p.status !== "posted").length;
   const nextUp = posts
     .filter(p => p.status === "ready" && p.scheduled_at && new Date(p.scheduled_at) >= new Date())
     .sort((a, b) => (a.scheduled_at! < b.scheduled_at! ? -1 : 1))[0];
-
-  const lastScheduled = posts
-    .filter(p => p.scheduled_at)
-    .reduce<string | null>((acc, p) => (!acc || (p.scheduled_at! > acc) ? p.scheduled_at! : acc), null);
-
-  // Days of runway remaining — used to surface the auto-refill banner.
-  const daysRemaining = lastScheduled
-    ? Math.max(0, Math.ceil((new Date(lastScheduled).getTime() - Date.now()) / 86400000))
-    : 0;
-  const lowRunway = totalCount > 0 && daysRemaining <= 7;
 
   const shiftCursor = (delta: number) => {
     const next = new Date(cursor);
@@ -340,30 +343,47 @@ export default function SocialCalendarTab({ authorId }: Props) {
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: "ready", posted_at: null } : p));
   };
 
-  const startReschedule = (post: SocialPost) => {
-    setReschedulingPostId(post.id);
-    setRescheduleDate(formatDateInput(post.scheduled_at));
+  const postNow = async (post: SocialPost) => {
+    try {
+      const result = await callMarketingHubState<{ post: Pick<SocialPost, "id" | "scheduled_at" | "status" | "posted_at"> }>(
+        "post_social_now",
+        { post_id: post.id },
+      );
+      const nowIso = result.post?.posted_at ?? new Date().toISOString();
+      setPosts(prev => prev.map(p => p.id === post.id
+        ? { ...p, status: "posted", posted_at: nowIso, scheduled_at: result.post?.scheduled_at ?? p.scheduled_at ?? nowIso }
+        : p));
+      // Open the composer so the author can actually publish on the platform.
+      copyAndOpen(post);
+    } catch (_error) {
+      toast.error("Couldn't post now");
+    }
   };
 
-  const cancelReschedule = () => {
-    setReschedulingPostId(null);
-    setRescheduleDate("");
+  const startSchedule = (post: SocialPost) => {
+    setSchedulingPostId(post.id);
+    setScheduleValue(post.scheduled_at ? formatDateTimeInput(post.scheduled_at) : defaultScheduleValue());
   };
 
-  const saveReschedule = async (post: SocialPost) => {
-    if (!rescheduleDate) {
-      toast.error("Choose a new posting date first");
+  const cancelSchedule = () => {
+    setSchedulingPostId(null);
+    setScheduleValue("");
+  };
+
+  const saveSchedule = async (post: SocialPost) => {
+    if (!scheduleValue) {
+      toast.error("Pick a date and time first");
       return;
     }
 
-    setSavingReschedule(true);
+    setSavingSchedule(true);
     try {
       const result = await callMarketingHubState<{ post: Pick<SocialPost, "id" | "scheduled_at" | "status" | "posted_at"> }>(
         "reschedule_social_post",
-        { post_id: post.id, scheduled_at: rescheduleDate },
+        { post_id: post.id, scheduled_at: scheduleValue },
       );
 
-      const nextScheduledAt = result.post?.scheduled_at ?? new Date(`${rescheduleDate}T09:00:00`).toISOString();
+      const nextScheduledAt = result.post?.scheduled_at ?? new Date(scheduleValue).toISOString();
       setPosts(prev =>
         [...prev]
           .map((p) => p.id === post.id
@@ -372,13 +392,36 @@ export default function SocialCalendarTab({ authorId }: Props) {
           .sort((a, b) => (a.scheduled_at || "").localeCompare(b.scheduled_at || ""))
       );
       setCursor(new Date(nextScheduledAt));
-      setExpandedDay(formatDateInput(nextScheduledAt));
-      toast.success("Post rescheduled");
-      cancelReschedule();
+      setExpandedDay(dayKey(new Date(nextScheduledAt)));
+      toast.success("Post scheduled");
+      cancelSchedule();
     } catch (_error) {
-      toast.error("Couldn't reschedule this post");
+      toast.error("Couldn't schedule this post");
     } finally {
-      setSavingReschedule(false);
+      setSavingSchedule(false);
+    }
+  };
+
+  // Drag-and-drop: drop an Unscheduled card on a calendar cell → schedule for that day at 09:00.
+  const dropOnDay = async (post: SocialPost, day: Date) => {
+    const dayOnly = `${day.getFullYear()}-${`${day.getMonth() + 1}`.padStart(2, "0")}-${`${day.getDate()}`.padStart(2, "0")}`;
+    try {
+      const result = await callMarketingHubState<{ post: Pick<SocialPost, "id" | "scheduled_at" | "status" | "posted_at"> }>(
+        "reschedule_social_post",
+        { post_id: post.id, scheduled_at: dayOnly },
+      );
+      const nextScheduledAt = result.post?.scheduled_at ?? new Date(`${dayOnly}T09:00:00`).toISOString();
+      setPosts(prev =>
+        [...prev]
+          .map((p) => p.id === post.id
+            ? { ...p, scheduled_at: nextScheduledAt, status: "ready", posted_at: null }
+            : p)
+          .sort((a, b) => (a.scheduled_at || "").localeCompare(b.scheduled_at || ""))
+      );
+      setExpandedDay(dayKey(new Date(nextScheduledAt)));
+      toast.success(`Scheduled for ${day.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" })} at 9:00 AM`);
+    } catch (_error) {
+      toast.error("Couldn't schedule that post");
     }
   };
 
@@ -403,7 +446,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] font-extrabold text-amber-700 uppercase tracking-[0.15em] mb-1">Almost there</p>
                 <p className="text-sm text-foreground mb-1">
-                  Your Social Media kit is activated, but the calendar didn't load. This usually clears after a quick refresh.
+                  Your Social Media kit is activated, but your posts didn't load. This usually clears after a quick refresh.
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">
                   If it persists, sign out and back in — your saved kit is safe.
@@ -411,7 +454,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
                 <div className="flex flex-wrap gap-2">
                   <Button onClick={repairCalendar} disabled={repairing}>
                     {repairing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Loader2 className="h-4 w-4 mr-1" />}
-                    {repairing ? "Rebuilding…" : "Refresh Calendar"}
+                    {repairing ? "Rebuilding…" : "Refresh Posts"}
                   </Button>
                   <Button variant="outline" onClick={() => navigate("/node-builder/BP-03")}>
                     Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
@@ -433,7 +476,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-extrabold text-secondary uppercase tracking-[0.15em] mb-1">Abby</p>
               <p className="text-sm text-foreground mb-4">
-                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll send your 20 posts straight here.
+                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll write 20 posts and drop them here for you to schedule.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => navigate("/node-builder/BP-03")}>
@@ -452,20 +495,17 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Low-runway banner — auto-refill is overnight, but offer manual now */}
-      {lowRunway && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-900 dark:text-amber-200 flex items-center gap-2">
-          <CalendarIcon className="h-4 w-4 shrink-0" />
+      {/* Unscheduled-posts banner — author-driven scheduling */}
+      {unscheduledCount > 0 && (
+        <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-3 text-xs text-foreground flex items-center gap-2">
+          <Inbox className="h-4 w-4 shrink-0 text-secondary" />
           <span className="flex-1">
-            <strong>Calendar runs out in {daysRemaining} day{daysRemaining === 1 ? "" : "s"}.</strong>{" "}
-            Auto-refill is scheduled overnight, or generate 30 more days right now.
+            <strong>You have {unscheduledCount} unscheduled post{unscheduledCount === 1 ? "" : "s"} ready to go</strong>{" "}
+            — pick your dates below.
           </span>
-          <Button size="sm" variant="outline" onClick={refillCalendar} disabled={refilling || !authorId}>
-            {refilling ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Sparkles className="h-3.5 w-3.5 mr-1" />}
-            Generate now
-          </Button>
         </div>
       )}
+
       {/* Progress tracker header */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -474,8 +514,12 @@ export default function SocialCalendarTab({ authorId }: Props) {
             <span className="text-muted-foreground"> of {totalCount} posted</span>
           </div>
           <div>
-            <span className="text-muted-foreground">Remaining: </span>
-            <strong className="text-foreground">{remainingCount}</strong>
+            <span className="text-muted-foreground">Scheduled: </span>
+            <strong className="text-foreground">{scheduledCount}</strong>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Unscheduled: </span>
+            <strong className="text-foreground">{unscheduledCount}</strong>
           </div>
           {nextUp && (
             <div>
@@ -486,11 +530,6 @@ export default function SocialCalendarTab({ authorId }: Props) {
               <span className="text-muted-foreground">({PLATFORM_LABELS[nextUp.platform] || nextUp.platform})</span>
             </div>
           )}
-          {lastScheduled && (
-            <div className="ml-auto text-xs text-muted-foreground">
-              Calendar runs until {new Date(lastScheduled).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -498,8 +537,8 @@ export default function SocialCalendarTab({ authorId }: Props) {
       <div className="rounded-lg border border-border bg-muted/30 p-3 text-xs text-muted-foreground flex items-start gap-2">
         <span className="text-base leading-none">💡</span>
         <div className="space-y-1">
-          <p><strong className="text-foreground">How to use this calendar:</strong> Each blue dot is a scheduled post. <strong className="text-foreground">Click any day with a dot</strong> to view the post copy, copy it to your clipboard, mark it as posted, or reschedule to a different date.</p>
-          <p>Switch to <strong className="text-foreground">Week view</strong> for a more detailed look, or filter by platform above.</p>
+          <p><strong className="text-foreground">How this works:</strong> Each unscheduled post below shows the AI-written copy. <strong className="text-foreground">Click Schedule</strong> to pick the exact date and time it should go live, <strong className="text-foreground">drag it</strong> onto a calendar day, or click <strong className="text-foreground">Post Now</strong> to publish immediately.</p>
+          <p>Once scheduled, posts appear on the calendar as blue dots. Click any day with a dot to view, edit, or reschedule.</p>
         </div>
       </div>
 
@@ -513,10 +552,10 @@ export default function SocialCalendarTab({ authorId }: Props) {
         <div className="flex items-center gap-1 flex-wrap justify-end">
           <Button size="sm" variant="outline" onClick={refillCalendar} disabled={refilling || !authorId}>
             {refilling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
-            Generate 30 more days
+            Generate 30 more days of content
           </Button>
           <Button size="sm" variant="outline" onClick={repairCalendar} disabled={repairing}>
-            {repairing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh Calendar"}
+            {repairing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
           </Button>
           <Button size="sm" variant="outline" onClick={() => shiftCursor(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button size="sm" variant="outline" onClick={goToday}>Today</Button>
@@ -553,17 +592,38 @@ export default function SocialCalendarTab({ authorId }: Props) {
               const inMonth = view === "week" || d.getMonth() === cursorMonth;
               const isToday = k === todayKey;
               const isExpanded = expandedDay === k;
+              const isDropTarget = dropTargetKey === k && !!draggingPostId;
               return (
                 <button
                   key={i}
                   type="button"
                   onClick={() => setExpandedDay(isExpanded ? null : k)}
+                  onDragOver={(e) => {
+                    if (draggingPostId) {
+                      e.preventDefault();
+                      e.dataTransfer.dropEffect = "move";
+                      if (dropTargetKey !== k) setDropTargetKey(k);
+                    }
+                  }}
+                  onDragLeave={() => {
+                    if (dropTargetKey === k) setDropTargetKey(null);
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDropTargetKey(null);
+                    const id = e.dataTransfer.getData("text/post-id") || draggingPostId;
+                    setDraggingPostId(null);
+                    if (!id) return;
+                    const post = posts.find((p) => p.id === id);
+                    if (post) dropOnDay(post, d);
+                  }}
                   className={cn(
                     "relative text-left rounded-md border bg-background p-1.5 transition-colors",
                     view === "month" ? "min-h-[68px]" : "min-h-[120px]",
                     !inMonth && "opacity-40",
                     isExpanded && "border-primary ring-1 ring-primary",
-                    !isExpanded && "hover:border-primary/40",
+                    !isExpanded && !isDropTarget && "hover:border-primary/40",
+                    isDropTarget && "border-secondary ring-2 ring-secondary bg-secondary/10",
                   )}
                 >
                   <div className="flex items-center justify-between">
@@ -619,6 +679,103 @@ export default function SocialCalendarTab({ authorId }: Props) {
         </CardContent>
       </Card>
 
+      {/* Unscheduled tray — author-driven scheduling */}
+      <Card className="border-secondary/30">
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Inbox className="h-4 w-4 text-secondary" />
+              <h3 className="font-semibold text-foreground">Unscheduled posts</h3>
+              <Badge variant="outline" className="text-[10px]">{unscheduledPosts.length}</Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Drag a card onto a calendar day or click <strong className="text-foreground">Schedule</strong> to pick a date and time.
+            </p>
+          </div>
+
+          {unscheduledPosts.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              All your generated posts are scheduled. Click <strong className="text-foreground">Generate 30 more days of content</strong> for fresh copy.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {unscheduledPosts.map((post) => (
+                <div
+                  key={post.id}
+                  draggable
+                  onDragStart={(e) => {
+                    setDraggingPostId(post.id);
+                    e.dataTransfer.effectAllowed = "move";
+                    e.dataTransfer.setData("text/post-id", post.id);
+                  }}
+                  onDragEnd={() => {
+                    setDraggingPostId(null);
+                    setDropTargetKey(null);
+                  }}
+                  className={cn(
+                    "border border-border rounded-md p-3 hover:border-primary/40 transition-colors bg-background",
+                    draggingPostId === post.id && "opacity-50 border-secondary",
+                  )}
+                >
+                  <div className="flex items-start gap-2 mb-2">
+                    <GripVertical className="h-4 w-4 text-muted-foreground/60 mt-0.5 cursor-grab shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
+                          {platformIcon(post.platform)}
+                          <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
+                          {post.post_type && <Badge variant="outline" className="text-[10px]">{post.post_type}</Badge>}
+                        </div>
+                        {statusBadge(post.status)}
+                      </div>
+                      <p className="text-sm text-foreground whitespace-pre-line mb-2 line-clamp-3">
+                        {post.content}
+                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button size="sm" onClick={() => startSchedule(post)}>
+                          <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Schedule
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => postNow(post)}>
+                          <Send className="h-3.5 w-3.5 mr-1" /> Post Now
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => copyCaption(post)}>
+                          {copiedId === post.id ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {schedulingPostId === post.id && (
+                    <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
+                      <p className="text-xs font-medium text-foreground mb-2">Pick the exact date and time this should go live</p>
+                      <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+                        <Input
+                          type="datetime-local"
+                          value={scheduleValue}
+                          onChange={(e) => setScheduleValue(e.target.value)}
+                          className="sm:max-w-[260px]"
+                        />
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => saveSchedule(post)} disabled={savingSchedule || !scheduleValue}>
+                            {savingSchedule ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                            Save
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={cancelSchedule} disabled={savingSchedule}>
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Expanded day panel */}
       {expandedDay && (
         <Card>
@@ -632,7 +789,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
               </Button>
             </div>
             {expandedPosts.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No posts scheduled for this day.</p>
+              <p className="text-sm text-muted-foreground">No posts scheduled for this day. Drag an unscheduled post here, or click Schedule on any post above.</p>
             ) : (
               <div className="space-y-2">
                 {expandedPosts.map(post => (
@@ -643,6 +800,11 @@ export default function SocialCalendarTab({ authorId }: Props) {
                         {platformIcon(post.platform)}
                         <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
                         {post.post_type && <Badge variant="outline" className="text-[10px]">{post.post_type}</Badge>}
+                        {post.scheduled_at && (
+                          <span className="text-[10px] text-muted-foreground">
+                            · {new Date(post.scheduled_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {statusBadge(post.status)}
@@ -673,38 +835,39 @@ export default function SocialCalendarTab({ authorId }: Props) {
                           Undo
                         </Button>
                       ) : (
-                        <Button size="sm" onClick={() => markAsPosted(post)}>
-                          <Check className="h-3.5 w-3.5 mr-1" /> Mark as Posted
-                        </Button>
+                        <>
+                          <Button size="sm" variant="secondary" onClick={() => postNow(post)}>
+                            <Send className="h-3.5 w-3.5 mr-1" /> Post Now
+                          </Button>
+                          <Button size="sm" onClick={() => markAsPosted(post)}>
+                            <Check className="h-3.5 w-3.5 mr-1" /> Mark as Posted
+                          </Button>
+                        </>
                       )}
-                      <Button size="sm" variant="ghost" onClick={() => startReschedule(post)}>
+                      <Button size="sm" variant="ghost" onClick={() => startSchedule(post)}>
                         Reschedule
                       </Button>
                     </div>
-                    {reschedulingPostId === post.id && (
+                    {schedulingPostId === post.id && (
                       <div className="mt-3 rounded-md border border-border bg-muted/20 p-3">
-                        <p className="text-xs font-medium text-foreground mb-2">Choose a new live date</p>
+                        <p className="text-xs font-medium text-foreground mb-2">Pick a new date and time</p>
                         <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
                           <Input
-                            type="date"
-                            value={rescheduleDate}
-                            min={formatDateInput(new Date().toISOString())}
-                            onChange={(e) => setRescheduleDate(e.target.value)}
-                            className="sm:max-w-[220px]"
+                            type="datetime-local"
+                            value={scheduleValue}
+                            onChange={(e) => setScheduleValue(e.target.value)}
+                            className="sm:max-w-[260px]"
                           />
                           <div className="flex gap-2">
-                            <Button size="sm" onClick={() => saveReschedule(post)} disabled={savingReschedule || !rescheduleDate}>
-                              {savingReschedule ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
-                              Save Date
+                            <Button size="sm" onClick={() => saveSchedule(post)} disabled={savingSchedule || !scheduleValue}>
+                              {savingSchedule ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : null}
+                              Save
                             </Button>
-                            <Button size="sm" variant="outline" onClick={cancelReschedule} disabled={savingReschedule}>
+                            <Button size="sm" variant="outline" onClick={cancelSchedule} disabled={savingSchedule}>
                               Cancel
                             </Button>
                           </div>
                         </div>
-                        <p className="mt-2 text-[11px] text-muted-foreground">
-                          Rescheduling keeps this post active in your calendar and moves it to the new date.
-                        </p>
                       </div>
                     )}
                   </div>

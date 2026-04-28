@@ -15,6 +15,7 @@ type Action =
   | "social_calendar"
   | "update_social_post"
   | "reschedule_social_post"
+  | "post_social_now"
   | "sequences"
   | "toggle_sequence_status"
   | "activate_all_sequences"
@@ -244,12 +245,16 @@ Deno.serve(async (req) => {
         return respond({ success: false, error: "A valid post id and scheduled date are required." });
       }
 
-      const parsedDate = new Date(scheduledAt);
+      // Accept either a date-only string ("YYYY-MM-DD" → default 09:00 local time) or a full ISO/datetime-local
+      // string ("YYYY-MM-DDTHH:mm" or full ISO). Author chooses the precise go-live moment.
+      const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(scheduledAt);
+      const parsedDate = isDateOnly
+        ? new Date(`${scheduledAt}T09:00:00`)
+        : new Date(scheduledAt);
+
       if (Number.isNaN(parsedDate.getTime())) {
         return respond({ success: false, error: "The new scheduled date is invalid." });
       }
-
-      parsedDate.setHours(9, 0, 0, 0);
 
       const { data: updatedPost, error } = await cloudAdmin
         .from("social_posts")
@@ -257,6 +262,41 @@ Deno.serve(async (req) => {
           scheduled_at: parsedDate.toISOString(),
           status: "ready",
           posted_at: null,
+        })
+        .eq("id", postId)
+        .eq("author_id", authorProfile.id)
+        .select("id, status, posted_at, scheduled_at")
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!updatedPost) {
+        return respond({ success: false, error: "Post not found." });
+      }
+
+      return respond({ success: true, post: updatedPost });
+    }
+
+    if (action === "post_social_now") {
+      const postId = typeof body?.post_id === "string" ? body.post_id : "";
+      if (!postId) {
+        return respond({ success: false, error: "A valid post id is required." });
+      }
+
+      const nowIso = new Date().toISOString();
+      // Look up the post first so we can preserve any existing scheduled_at; if none, stamp it as now.
+      const { data: existing } = await cloudAdmin
+        .from("social_posts")
+        .select("scheduled_at")
+        .eq("id", postId)
+        .eq("author_id", authorProfile.id)
+        .maybeSingle();
+
+      const { data: updatedPost, error } = await cloudAdmin
+        .from("social_posts")
+        .update({
+          status: "posted",
+          posted_at: nowIso,
+          scheduled_at: existing?.scheduled_at ?? nowIso,
         })
         .eq("id", postId)
         .eq("author_id", authorProfile.id)

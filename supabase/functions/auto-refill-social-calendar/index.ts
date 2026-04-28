@@ -34,14 +34,30 @@ Deno.serve(async (req) => {
     force = !!body?.force;
   } catch { /* ignore */ }
 
-  // 1. Find target authors. If a force call, only that author; else every active BP-03 author.
-  let nodesQuery = admin
+  // Author-driven scheduling: when called by the nightly cron (no `force`), this is now a no-op.
+  // The author chooses when each post goes live from the Social Calendar UI — we never silently
+  // extend the calendar in the background. The "Generate 30 more days" button still works because
+  // it always sets `force: true` and a specific `author_id`.
+  if (!force || !forceAuthorId) {
+    return new Response(
+      JSON.stringify({
+        success: true,
+        skipped_reason: "author_driven_scheduling",
+        authors_checked: 0,
+        refilled: 0,
+        skipped: 0,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  // Forced manual refill — only generate copy for the requesting author.
+  const { data: nodes } = await admin
     .from("author_nodes")
     .select("author_id, book_id")
     .eq("node_id", "BP-03")
-    .in("status", ["live", "content_ready"]);
-  if (forceAuthorId) nodesQuery = nodesQuery.eq("author_id", forceAuthorId);
-  const { data: nodes } = await nodesQuery;
+    .in("status", ["live", "content_ready"])
+    .eq("author_id", forceAuthorId);
 
   const authors = Array.from(
     new Map((nodes || []).map((n) => [n.author_id, n])).values()
@@ -51,20 +67,6 @@ Deno.serve(async (req) => {
   const skipped: string[] = [];
 
   for (const a of authors) {
-    // 2. Count queued posts in the next 7 days.
-    const { count } = await admin
-      .from("social_posts")
-      .select("id", { count: "exact", head: true })
-      .eq("author_id", a.author_id)
-      .in("status", ["draft", "ready"])
-      .gte("scheduled_at", new Date().toISOString())
-      .lte("scheduled_at", horizonCutoff);
-
-    if (!force && (count || 0) >= REFILL_THRESHOLD_DAYS) {
-      skipped.push(a.author_id);
-      continue;
-    }
-
     // 3. Trigger the existing BP-03 generator for the next 30 days.
     try {
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/generate-bp03-social-media`, {
