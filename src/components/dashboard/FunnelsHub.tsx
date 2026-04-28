@@ -93,6 +93,7 @@ export default function FunnelsHub() {
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [overridesByFunnel, setOverridesByFunnel] = useState<Record<string, OverridesMap>>({});
   const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const flashFunnel = (id: string) => {
