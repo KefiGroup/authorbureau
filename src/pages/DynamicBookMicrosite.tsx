@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, ExternalLink, Loader2, ArrowLeft } from "lucide-react";
+import { BookOpen, ExternalLink, Loader2, ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import NewsletterSignup from "@/components/NewsletterSignup";
+import BuyNowButton from "@/components/commerce/BuyNowButton";
+import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 interface Book {
@@ -40,10 +42,21 @@ const fadeUp = {
   }),
 };
 
+interface LiveProduct {
+  id: string;
+  node_id: string;
+  node_name: string | null;
+  personalised_name: string | null;
+  price_usd: number | null;
+  currency: string | null;
+  delivery_url: string | null;
+}
+
 export default function DynamicBookMicrosite() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const [book, setBook] = useState<Book | null>(null);
+  const [products, setProducts] = useState<LiveProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,7 +78,29 @@ export default function DynamicBookMicrosite() {
           setError(result.error || "Book not found");
           return;
         }
-        setBook(result.book as Book);
+        const loadedBook = result.book as Book;
+        setBook(loadedBook);
+
+        // Load published Authors Bureau products tied to this book.
+        // book.author_id is the user_id; author_nodes.author_id is the author_profiles.id row.
+        try {
+          const { data: prof } = await supabase
+            .from("author_profiles")
+            .select("id")
+            .eq("user_id", loadedBook.author_id)
+            .maybeSingle();
+          if (prof?.id) {
+            const { data: nodes } = await supabase
+              .from("author_nodes")
+              .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url")
+              .eq("author_id", prof.id)
+              .eq("book_id", loadedBook.id)
+              .eq("status", "live");
+            setProducts((nodes ?? []) as LiveProduct[]);
+          }
+        } catch (e) {
+          console.warn("Failed to load author products", e);
+        }
       } catch (err) {
         console.error("Failed to fetch book:", err);
         setError("Failed to load book");
@@ -323,6 +358,44 @@ export default function DynamicBookMicrosite() {
                     alt={`${book.title} Amazon Bestseller ranking`}
                     className="w-full rounded-lg shadow-md"
                   />
+                </div>
+              )}
+
+              {/* Get the Full Experience — live Authors Bureau products tied to this book */}
+              {products.length > 0 && (
+                <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Sparkles className="h-5 w-5 text-secondary" />
+                    <h3 className="font-heading text-xl font-bold">Get the Full Experience</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-5">
+                    Workbooks, courses, coaching, and more from {book.author_name || "this author"} — built around the ideas in this book.
+                  </p>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {products.map((p) => {
+                      const title = p.personalised_name || p.node_name || "Product";
+                      const price = p.price_usd != null
+                        ? `${(p.currency || "USD").toUpperCase() === "USD" ? "$" : ""}${Number(p.price_usd).toFixed(2)}`
+                        : null;
+                      return (
+                        <div key={p.id} className="rounded-lg bg-background border border-border p-4 flex flex-col">
+                          <p className="font-semibold text-sm mb-1 line-clamp-2">{title}</p>
+                          {price && (
+                            <p className="text-secondary font-bold text-sm mb-3">{price}</p>
+                          )}
+                          <div className="mt-auto">
+                            <BuyNowButton
+                              authorNodeId={p.id}
+                              authorId={book.author_id}
+                              fallbackUrl={p.delivery_url}
+                              label="Buy Now"
+                              className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full text-xs h-9 font-semibold"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
