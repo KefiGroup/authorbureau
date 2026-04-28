@@ -56,8 +56,12 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!existing) {
+      // Estimated Stripe processing fee (2.9% + $0.30 for US cards) — matches process-purchase.
+      const stripeFee = Math.round(((amount * 0.029) + 0.30) * 100) / 100;
+      const netForAuthor = Math.max(0, Math.round((amount - stripeFee - platformFee) * 100) / 100);
+
       // Record the purchase
-      const { error: insertError } = await cloudAdmin.from("purchases").insert({
+      const { data: purchaseRow, error: insertError } = await cloudAdmin.from("purchases").insert({
         author_id: metadata.author_id,
         product_id: metadata.product_id,
         product_type: metadata.product_type,
@@ -72,10 +76,30 @@ serve(async (req) => {
         stripe_payment_intent_id: typeof session.payment_intent === "string" ? session.payment_intent : null,
         payout_status: "pending",
         refund_status: "none",
-      });
+      }).select("id").maybeSingle();
 
       if (insertError) {
         console.error("[verify-purchase] Insert error:", insertError);
+      }
+
+      // Mirror into author_earnings ledger so the Revenue Dashboard (which reads
+      // from author_earnings) updates immediately, without relying on the
+      // process-purchase Stripe webhook to fire.
+      if (purchaseRow?.id && metadata.author_id) {
+        try {
+          const { error: earnErr } = await cloudAdmin.from("author_earnings").insert({
+            author_id: metadata.author_id,
+            purchase_id: purchaseRow.id,
+            gross_usd: amount,
+            stripe_fee_usd: stripeFee,
+            platform_fee_usd: platformFee,
+            net_usd: netForAuthor,
+            earned_at: new Date().toISOString(),
+          });
+          if (earnErr) console.error("[verify-purchase] author_earnings insert failed:", earnErr.message);
+        } catch (e) {
+          console.error("[verify-purchase] author_earnings insert exception:", e);
+        }
       }
 
       // Send confirmation email via Resend
