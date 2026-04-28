@@ -2475,6 +2475,7 @@ export type Database = {
           old_email: string | null
           settings_updated: boolean | null
           source: string
+          stripe_customers_updated_count: number
           synced_at: string
           user_id: string | null
         }
@@ -2487,6 +2488,7 @@ export type Database = {
           old_email?: string | null
           settings_updated?: boolean | null
           source?: string
+          stripe_customers_updated_count?: number
           synced_at?: string
           user_id?: string | null
         }
@@ -2499,6 +2501,7 @@ export type Database = {
           old_email?: string | null
           settings_updated?: boolean | null
           source?: string
+          stripe_customers_updated_count?: number
           synced_at?: string
           user_id?: string | null
         }
