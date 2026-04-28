@@ -55,6 +55,8 @@ export type OverridesMap = Record<string, Record<string, string>>;
 interface StageContext {
   publicUrl?: string | null;
   leadsCount?: number;
+  /** Author slug — used to default checkout redirect_url to /[author-slug]/thank-you. */
+  authorSlug?: string | null;
 }
 
 const fmt = (n?: number | null) =>
