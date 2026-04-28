@@ -174,7 +174,7 @@ export function getStagesForArchetype(
   overrides: OverridesMap,
   ctx: StageContext = {},
 ): FunnelStage[] {
-  const templates = stageTemplates(archetype, base);
+  const templates = stageTemplates(archetype, base, ctx);
 
   return templates.map((tpl) => {
     const stageOverrides = overrides[tpl.id] || {};
