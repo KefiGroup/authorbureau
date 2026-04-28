@@ -214,7 +214,7 @@ export default function SequencesTab() {
         </p>
         <p className="text-xs text-muted-foreground mt-0.5">
           {senderVerified === false
-            ? <>Verify your sender email in the <button type="button" onClick={() => onJumpToSettings?.()} className="underline font-medium hover:text-foreground">Settings tab</button> first, then activate to start delivering.</>
+            ? "Verify your sender email in the Settings tab first, then activate to start delivering."
             : "Click Activate all to switch the email engine on for every enrolled subscriber."}
         </p>
       </div>
