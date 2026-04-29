@@ -43,6 +43,7 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
   const bookFilterId = searchParams.get("bookId");
+  const bookTitleParam = searchParams.get("bookTitle") || "";
   const [webinars, setWebinars] = useState<Webinar[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -57,6 +58,8 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   const [saving, setSaving] = useState(false);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [authorSlug, setAuthorSlug] = useState<string>("");
+  const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
+  const [aiNodeContent, setAiNodeContent] = useState<any | null>(null);
 
   const fetchWebinars = useCallback(async () => {
     setLoading(true);
@@ -71,12 +74,36 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
     setLoading(false);
   }, [user, bookFilterId]);
 
+  // Load AI-generated BP-05 content from author_nodes when no webinars row exists yet,
+  // so the "Live" badge in the Brand tab is reflected here with a Promote CTA.
+  const fetchAINodeContent = useCallback(async () => {
+    if (!user) { setAiNodeContent(null); return; }
+    const { data: profile } = await supabase
+      .from("author_profiles")
+      .select("id, author_slug")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!profile?.id) { setAiNodeContent(null); return; }
+    setAuthorProfileId(profile.id);
+    if (profile.author_slug && !authorSlug) setAuthorSlug(profile.author_slug);
+    let q = supabase
+      .from("author_nodes")
+      .select("content_json, status")
+      .eq("author_id", profile.id)
+      .eq("node_id", "BP-05")
+      .in("status", ["live", "content_ready"]);
+    if (bookFilterId) q = q.eq("book_id", bookFilterId);
+    const { data } = await q.maybeSingle();
+    setAiNodeContent(data?.content_json || null);
+  }, [user, bookFilterId, authorSlug]);
+
   useEffect(() => {
     if (!user) return;
     fetchWebinars();
+    fetchAINodeContent();
     supabase.from("author_profiles").select("author_slug").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => setAuthorSlug((data as any)?.author_slug || ""));
-  }, [user, bookFilterId, fetchWebinars]);
+  }, [user, bookFilterId, fetchWebinars, fetchAINodeContent]);
 
   const selected = webinars.find(w => w.id === selectedId);
 
