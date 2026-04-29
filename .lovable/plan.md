@@ -1,59 +1,104 @@
-## Plan: Rectify contaminated business plan + add Refresh button
+# Audit 1 — Author Onboarding Experience (8-Level QA)
 
-### Scope (verified from DB)
+## Objective
 
-- **Per-node `author_nodes` content**: ✅ already correct, no action needed.
-- **Business plans (`generated_assets` where `asset_type = 'business_plan'`)**: only 1 of 3 plans (`0f6bd0b5-6c8c-4e6b-a10b-a4868b334406`, owned by `ef23c521…` / support@paulineteo.com) contains wrong YR-25/27/28 + BA-15 labels.
+Verify a non-technical author can sign up, upload their book, and have ABBY build their entire business — without contacting support. Then fix every failure found.
 
-### Step 1 — Surgical SQL fix (data update via insert tool)
+## Test setup (locked)
 
-Run a single `UPDATE` on `generated_assets` row `0f6bd0b5…` that does pure string replacement on `content` for the drifted node labels only. Surrounding personalised text remains intact (the per-node *recommendation paragraph* under each line will still sound off-topic — Step 2 covers that).
+- **Auth path under test:** local `/auth` email-password signup (the supported path on this preview). SSO from publishnow.io will be **spot-checked once** at the end with an existing account, since both entry points create unified accounts.
+- **No Google auth.** Removed from every level.
+- **Test email:** `audit+{timestamp}@…` alias on a domain I can read for verification.
+- **Test manuscript:** the file you upload. I'll copy it once to a stable path and re-upload it for every fresh test account so results are comparable across runs.
+- **Re-using the same book:** yes — same file, but each fresh signup creates its own `books` row + manuscript copy + `author_nodes`. The book is the input, not a shared record.
 
-Replacements (token → canonical):
+## Scope (the journey under test)
 
 ```text
-"BA-14 Podcast Tour"            → "BA-14 Podcast"
-"BA-15 Affiliates & Partnerships" → "BA-15 Media & PR"
-"BA-16 Speaking Engagements"    → "BA-16 Affiliate Programme"
-"BA-17 Upsells & Downsells"     → "BA-17 Upsells & Bundles"
-"BA-18 Revenue Sharing"         → "BA-18 JV Partnerships"
-"YR-20 Consulting"              → "YR-20 Big Ticket Offers"
-"YR-21 Keynote Speaking"        → "YR-21 Keynote Speaking"  (already correct, skip)
-"YR-25 Licensing & IP"          → "YR-25 Certification Programme"
-"YR-26 Conferences & Events"    → "YR-26 Conference"
-"YR-27 Media & Publishing"      → "YR-27 Fundraising Campaign"
-"YR-28 Legacy & Philanthropy"   → "YR-28 Sponsors & Exhibitors"
+/auth (email + password sign-up)
+   ↓ email verification
+/dashboard (NewUserOnboarding 3-step card)
+   ↓ Step 1: profile  → Step 2: add book  → Step 3: "Build My Business"
+/dashboard?section=manuscript (ManuscriptUpload — PDF/DOCX)
+   ↓ parse-manuscript  → generate-bp00-analysis  → business-consultant
+/dashboard?section=plan (Business Plan with all 28 nodes)
+   ↓ open BP-01 Email Marketing
+BP-01 builder → generate → publish → "Live ✓"
 ```
 
-Also bump `updated_at = now()` so the UI shows it as freshly synced.
+## Method — run all 8 levels against this exact journey
 
-### Step 2 — Add "Refresh with latest ABBY" button
+### Level 1 — Console / Network
+Walk every page; capture console + network. Pass = zero red errors, zero 401/403/404/500 from our origin.
 
-Edit `src/components/dashboard/SavedBusinessPlan.tsx`:
+### Level 2 — Every interactive element
+Click every CTA on `/auth` (Sign in, Sign up, Forgot password, tab switches — **no Google button expected**), every step button in NewUserOnboarding, every button on ManuscriptUpload (file picker, upload, "use published book" fallback), every button on the plan page + BP-01 builder (Generate, Save, Publish, Refresh). Pass = every button produces a visible result.
 
-1. Add a `Refresh` button next to the existing `.docx` download button (uses lucide `RefreshCw` icon).
-2. Click → confirms via toast → calls existing edge function `business-consultant` with `action: "regenerate-plan"` (or `"create-plan"` if regenerate not supported — will check before wiring).
-3. While running, show spinner + disable. On success, replace `plan` state with the new content and toast "Business plan refreshed with the latest ABBY framework."
-4. Add a small one-line caption under the title: "Want fully on-topic recommendations? Refresh to regenerate with the updated framework."
+### Level 3 — Empty states
+Brand-new user with no profile, no book → Step 1 highlighted. Profile only → Step 2. Book added, no analysis → Step 3 CTA. BP-01 with no content → AnalyseBookGate appears. Pass = no blank screens.
 
-### Step 3 — Verify business-consultant supports regeneration
+### Level 4 — Data flow (DB verification)
+For each form, confirm the row lands in the correct table:
+- Signup → `auth.users` + `profiles` (via `handle_new_user`)
+- Profile save → `author_profiles` (slug auto-generated)
+- Book add → `books` (owner_email, title, author_id linkage)
+- Manuscript upload → `manuscripts` storage bucket + `books.manuscript_url`
+- BP-00 → `generated_assets` (kind=`book_analysis`)
+- Business plan → `generated_assets` (kind=`business_plan`) with **canonical** node labels (BA-15 Media & PR, YR-25 Certification, YR-27 Fundraising, YR-28 Sponsors, BA-18 JV Partnerships)
+- BP-01 generate → `author_nodes` row, status transitions to `live`
 
-Read `supabase/functions/business-consultant/index.ts` to confirm which `action` value triggers a fresh write to `generated_assets`. If only `"create-plan"` exists, reuse it (function already upserts on `(author_id, book_id, asset_type='business_plan')`). No edge-function code changes expected.
+### Level 5 — Mobile (375 × 812)
+Re-walk the journey at 375px. Pass = no horizontal scroll, no clipped CTAs, ≥44px tap targets.
 
-### Step 4 — No memory updates required
+### Level 6 — Auth states
+Incognito → `/dashboard` redirects to `/auth?redirect=/dashboard`. `/auth` loads cleanly. BP-01 builder route requires login. Pass = no protected page leaks.
 
-Existing core memory already pins canonical node names and the gpt-5 temperature ban. Nothing to add.
+### Level 7 — Error handling
+Invalid email / weak password on signup → friendly inline error. Wrong file type on manuscript → friendly rejection. `parse-manuscript` with no file → graceful error. `generate-bp00-analysis` for a book with no manuscript → falls back to `parse-published-book` or shows clear message. AI gateway failure → toast with retry. Pass = no raw JSON, no blank screens.
 
-### What this delivers
+### Level 8 — Navigation
+Every page has ≥2 next actions. Browser back works. Pass = no dead ends.
 
-- The one contaminated plan immediately shows correct node labels in the table view, eliminating user-facing confusion.
-- Author keeps full control: they can opt in to a clean regeneration whenever they want.
-- All future plans are already safe (master prompt was fixed in the previous step).
-- Zero risk to per-node deliverables (workbooks, fundraising kits, etc.) — they were never affected.
+## Specific issues I already suspect from the code
 
-### Out of scope
+1. **gotrue lock timeouts** — console shows repeated `Lock "lock:authorsbureau-shared-auth" acquisition timed out after 2000ms`. Will check if it delays first dashboard render.
+2. **Email verification UX** — confirm `Auth.tsx` sets `emailRedirectTo: window.location.origin` and that the post-verify landing is `/dashboard`, not `/`.
+3. **NewUserOnboarding `hasBook` detection** — confirm it queries `books` by `owner_email` (not just `author_id`), since email-sync is in play.
+4. **BP-00 → 28 nodes contract** — confirm `business-consultant` upserts an `author_nodes` row per node with status `ready`, otherwise the dashboard looks empty after analysis.
+5. **Refresh button** (just added) — confirm it actually triggers regeneration end-to-end on a real plan.
+6. **Placeholder leakage** — grep generated content for `[AUTHOR NAME]`, `undefined`, `{{`, `__BOOK__` after a real run.
+7. **Canonical labels** — verify all 28 node labels in the freshly-generated business plan match `builderNodeConfig.ts` exactly.
 
-- Bulk-regenerating any plan without the author's click.
-- Touching `author_nodes`, chat history, or other authors' data.
+## Fix policy
 
-Reply **YES** to apply Step 1 (SQL fix) + Step 2 (Refresh button), or tell me to skip either step.
+For each FAIL: file a task, fix in code or prompt, redeploy the affected edge function, re-test the failed level. Audit is **not** marked complete until every level reports PASS for the full journey on a fresh account.
+
+## Final report format
+
+```text
+LEVEL 1 (Console/Network):  PASS | FAIL — <details>
+LEVEL 2 (Buttons):          PASS | FAIL — <details>
+LEVEL 3 (Empty States):     PASS | FAIL — <details>
+LEVEL 4 (Data Flow):        PASS | FAIL — <details>
+LEVEL 5 (Mobile 375px):     PASS | FAIL — <details>
+LEVEL 6 (Auth States):      PASS | FAIL — <details>
+LEVEL 7 (Error Handling):   PASS | FAIL — <details>
+LEVEL 8 (Navigation):       PASS | FAIL — <details>
+SSO spot-check:             PASS | FAIL — <details>
+OVERALL:                    PASS | NEEDS FIXES
+
+Failures found & fixed:
+1. <symptom> → <root cause> → <fix> → <re-test result>
+```
+
+## What I need from you
+
+Approve this plan and **drop your test manuscript file (PDF or DOCX) into the chat**. Once I have it, I'll:
+
+1. Save the manuscript at `/tmp/audit-manuscript.{pdf,docx}` for reuse
+2. Spin up the browser, sign up a fresh account, walk the full journey
+3. Capture every Level 1–8 result with logs + screenshots + DB checks
+4. Fix every FAIL inline (code + edge-function redeploys)
+5. Re-walk the journey end-to-end on another fresh account to confirm
+6. Spot-check SSO from publishnow.io once with an existing account
+7. Deliver the final report
