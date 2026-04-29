@@ -24,6 +24,18 @@ serve(async (req) => {
 
     const content = node.content_json as any;
 
+    // Server-side readiness gate: require core press assets before going live
+    const hasPressRelease = !!(content?.press_release || content?.press_release_html || content?.assets?.press_release);
+    const hasMediaList = Array.isArray(content?.media_list) ? content.media_list.length > 0
+      : Array.isArray(content?.outlets) ? content.outlets.length > 0 : false;
+    if (!hasPressRelease || !hasMediaList) {
+      return new Response(JSON.stringify({
+        success: false,
+        status: "not_ready",
+        message: "Press kit is not ready to go live. Please generate a press release and media outlet list before publishing.",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     let locationId = author.ghl_sub_account_id;
     if (!locationId) {
       try {
