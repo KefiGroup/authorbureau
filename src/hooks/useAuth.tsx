@@ -152,10 +152,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Hydrate from cache (5-min TTL) so admin gating renders instantly on
+    // subsequent navigations instead of waiting for the RPC round-trip.
+    const ADMIN_CACHE_KEY = `ab_admin_cache:${userId}`;
+    try {
+      const raw = window.localStorage.getItem(ADMIN_CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        const fresh = cached?.checkedAt && Date.now() - cached.checkedAt < 5 * 60_000;
+        if (fresh && typeof cached?.isAdmin === "boolean") {
+          setIsAdmin(cached.isAdmin || isAdminSession);
+          setAuthLoading(false);
+          // Refresh in background — fall through to RPC below
+        }
+      }
+    } catch { /* ignore */ }
+
     window.setTimeout(() => {
       Promise.resolve(supabase.rpc("has_role", { _user_id: userId, _role: "admin" }))
         .then(({ data: hasAdminRole }) => {
           setIsAdmin(!!hasAdminRole || isAdminSession);
+          try {
+            window.localStorage.setItem(
+              ADMIN_CACHE_KEY,
+              JSON.stringify({ isAdmin: !!hasAdminRole, checkedAt: Date.now() })
+            );
+          } catch { /* ignore */ }
         })
         .catch(() => {
           setIsAdmin(isAdminSession);
