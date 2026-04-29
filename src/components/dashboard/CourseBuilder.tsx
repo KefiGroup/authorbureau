@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useSearchParams, Navigate } from "react-router-dom";
+import { useSearchParams, Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/shared-backend";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, GraduationCap, Sparkles, Trash2, Edit, ArrowRight } from "lucide-react";
+import { Loader2, GraduationCap, Sparkles, Trash2, Edit, ArrowRight, ArrowLeft } from "lucide-react";
 
 interface Course {
   id: string;
@@ -21,6 +21,7 @@ interface Course {
 export default function CourseBuilder() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
@@ -101,6 +102,16 @@ export default function CourseBuilder() {
 
   return (
     <div className="max-w-4xl space-y-6">
+      {bookId && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="-ml-2 text-muted-foreground hover:text-foreground"
+          onClick={() => navigate(`/book-hub/${bookId}?tab=marketing-channels`)}
+        >
+          <ArrowLeft className="h-4 w-4 mr-1.5" /> Back to Book Hub · Build
+        </Button>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-heading text-2xl font-bold">Course Builder</h2>
