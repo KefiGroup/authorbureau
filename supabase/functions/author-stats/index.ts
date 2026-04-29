@@ -37,13 +37,22 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve user identity. Try shared backend first (with timeout so the
-    // gotrue lock contention can't hang the function), fall back to local
-    // Cloud auth, and finally fall back to a JWT-claim decode so we always
-    // surface SOMETHING useful even when both auth APIs are slow.
+    // Resolve user identity using the SAME strategy as list-my-books so that
+    // both endpoints converge on the same canonical user_id even when the
+    // shared-backend auth API is slow or rotated. Strategy:
+    //   1. Cloud admin auth.getUser(token)         (local Cloud auth)
+    //   2. Shared backend auth.getUser(token)      (PublishNow auth)
+    //   3. JWT claim decode (last-resort safety)
+    //   4. Map email -> canonical Cloud user (so books linked by either
+    //      auth-system end up reachable).
     let userId: string | null = null;
     let userEmail = "";
     let resolvedVia = "none";
+
+    const cloudAdmin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
 
     const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
       Promise.race<T | null>([
@@ -51,52 +60,47 @@ Deno.serve(async (req) => {
         new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
       ]);
 
+    // 1) Cloud auth via service role
     try {
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const sharedRes = await withTimeout(sharedClient.auth.getUser(token), 3000);
-      const sharedUser = (sharedRes as any)?.data?.user;
-      if (sharedUser) {
-        userId = sharedUser.id;
-        userEmail = sharedUser.email || "";
-        resolvedVia = "shared";
+      const cloudRes = await withTimeout(cloudAdmin.auth.getUser(token), 3000);
+      const cloudUser = (cloudRes as any)?.data?.user;
+      if (cloudUser) {
+        userId = cloudUser.id;
+        userEmail = cloudUser.email || "";
+        resolvedVia = "cloud";
       }
     } catch (e) {
-      console.warn("[author-stats] shared auth failed:", (e as Error).message);
+      console.warn("[author-stats] cloud auth failed:", (e as Error).message);
     }
 
+    // 2) Shared backend
     if (!userId) {
       try {
-        const localClient = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_ANON_KEY")!,
-          { global: { headers: { Authorization: `Bearer ${token}` } } }
-        );
-        const localRes = await withTimeout(localClient.auth.getUser(), 3000);
-        const localUser = (localRes as any)?.data?.user;
-        if (localUser) {
-          userId = localUser.id;
-          userEmail = localUser.email || "";
-          resolvedVia = "local";
+        const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+        const sharedRes = await withTimeout(sharedClient.auth.getUser(token), 3000);
+        const sharedUser = (sharedRes as any)?.data?.user;
+        if (sharedUser) {
+          userId = sharedUser.id;
+          userEmail = sharedUser.email || "";
+          resolvedVia = "shared";
         }
       } catch (e) {
-        console.warn("[author-stats] local auth failed:", (e as Error).message);
+        console.warn("[author-stats] shared auth failed:", (e as Error).message);
       }
     }
 
-    // Last-resort: decode the JWT payload and use the `sub`/`email` claims.
-    // This rescues the response when shared+local auth APIs are both slow.
+    // 3) JWT decode safety net
     if (!userId) {
       try {
         const parts = token.split(".");
         if (parts.length === 3) {
+          const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
           const payload = JSON.parse(
-            new TextDecoder().decode(
-              Uint8Array.from(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0))
-            )
+            atob(padded + "=".repeat((4 - (padded.length % 4)) % 4))
           );
           if (payload?.sub) {
             userId = payload.sub;
-            userEmail = payload.email || "";
+            userEmail = payload.email || userEmail;
             resolvedVia = "jwt-decode";
           }
         }
@@ -105,14 +109,35 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`[author-stats] resolved userId=${userId} email=${userEmail} via=${resolvedVia}`);
-
     if (!userId) {
       return new Response(JSON.stringify({ error: "Invalid session" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // 4) Map the resolved email back to the canonical Cloud user, so that
+    // sessions issued by the shared backend (different sub) still land on the
+    // local user_id that owns the books / author_profile / nodes.
+    if (userEmail) {
+      try {
+        const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+        const localMatch = users?.find(
+          (u: any) => u.email?.toLowerCase() === userEmail.toLowerCase()
+        );
+        if (localMatch && localMatch.id !== userId) {
+          console.log(`[author-stats] mapped ${userId} -> ${localMatch.id} via email ${userEmail}`);
+          userId = localMatch.id;
+          resolvedVia += "+email-map";
+        }
+      } catch (e) {
+        console.warn("[author-stats] email->user map failed:", (e as Error).message);
+      }
+    }
+
+    console.log(`[author-stats] resolved userId=${userId} email=${userEmail} via=${resolvedVia}`);
+
+    const admin = cloudAdmin;
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
