@@ -443,7 +443,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "home-study":
         return <Navigate to="/node-builder/BP-07" replace />;
       case "workbooks":
-        return gate("Workbooks", <WorkbooksManager onNavigate={handleNavigate} />);
+        return <Navigate to="/node-builder/BP-06" replace />;
       case "webinars":
         return gate("Webinars", <WebinarsManager onNavigate={handleNavigate} />, "build");
       case "social-media":
