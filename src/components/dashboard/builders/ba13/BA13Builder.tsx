@@ -32,6 +32,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [authorSlug, setAuthorSlug] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
