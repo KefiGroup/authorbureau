@@ -27,24 +27,24 @@ const accordionData = [
   {
     title: "Workbook vs. Home Study vs. Online Course: What's the Difference?",
     items: [
-      { term: "Workbook", desc: "A downloadable PDF exercise book ($19–$47). Think of it like a homework packet." },
-      { term: "Home Study", desc: "A self-paced multimedia kit with videos, worksheets, and templates ($97–$497). Think of it like a box set." },
-      { term: "Online Course", desc: "A structured learning experience with modules, quizzes, and community ($97–$997). Think of it like a semester of school." },
+      { term: "Workbook", desc: "A downloadable PDF exercise book ($19-$47). Think of it like a homework packet." },
+      { term: "Home Study", desc: "A self-paced multimedia kit with videos, worksheets, and templates ($97-$497). Think of it like a box set." },
+      { term: "Online Course", desc: "A structured learning experience with modules, quizzes, and community ($97-$997). Think of it like a semester of school." },
     ],
   },
   {
     title: "1-on-1 Coaching vs. Group Coaching vs. Mastermind: What's the Difference?",
     items: [
-      { term: "1-on-1 Coaching", desc: "Private sessions with one client ($150–$500/hr). Like a personal trainer." },
-      { term: "Group Coaching", desc: "One coach, 10–30 students in live group calls ($97–$497/mo). Like a group fitness class." },
-      { term: "Mastermind", desc: "A peer group of 5–12 high-achievers who meet regularly ($5K–$25K/yr). Like a private advisory board." },
+      { term: "1-on-1 Coaching", desc: "Private sessions with one client ($150-$500/hr). Like a personal trainer." },
+      { term: "Group Coaching", desc: "One coach, 10-30 students in live group calls ($97-$497/mo). Like a group fitness class." },
+      { term: "Mastermind", desc: "A peer group of 5-12 high-achievers who meet regularly ($5K-$25K/yr). Like a private advisory board." },
     ],
   },
   {
     title: "Keynote vs. In-House Speaker vs. Training Program: What's the Difference?",
     items: [
-      { term: "In-House Speaker", desc: "A customized presentation for a company's team ($2K–$10K). Like a corporate workshop." },
-      { term: "Training Program", desc: "A multi-session skills program for organizations ($5K–$50K). Like a corporate university course." },
+      { term: "In-House Speaker", desc: "A customized presentation for a company's team ($2K-$10K). Like a corporate workshop." },
+      { term: "Training Program", desc: "A multi-session skills program for organizations ($5K-$50K). Like a corporate university course." },
     ],
   },
 ];
@@ -54,8 +54,8 @@ const pricingCards = [
     title: "The Side Hustler",
     price: "$49/mo",
     tier: "BRAND",
-    streams: "9 Brand Products · 4–8 hrs/week",
-    revenue: "Projected: $5,500–$15,500 in Year 1",
+    streams: "9 Brand Products · 4-8 hrs/week",
+    revenue: "Projected: $5,500-$15,500 in Year 1",
     desc: "Create digital products from your book that sell on autopilot while you keep your day job.",
     border: "border-emerald-500",
     bg: "bg-emerald-500/10",
@@ -65,8 +65,8 @@ const pricingCards = [
     title: "The Serious Author",
     price: "$199/mo",
     tier: "BRAND + BUILD",
-    streams: "18 revenue streams · 15–25 hrs/week",
-    revenue: "Projected: $19,000–$55,000 in Year 1",
+    streams: "18 revenue streams · 15-25 hrs/week",
+    revenue: "Projected: $19,000-$55,000 in Year 1",
     desc: "Passive income from Brand Products plus active audience building with Build Authority tools.",
     border: "border-orange-500",
     bg: "bg-orange-500/10",
@@ -77,7 +77,7 @@ const pricingCards = [
     price: "$499/mo",
     tier: "BRAND + BUILD + YIELD",
     streams: "All 28 revenue streams · Full-time (leveraged)",
-    revenue: "Projected: $68,500–$215,500 in Year 1",
+    revenue: "Projected: $68,500-$215,500 in Year 1",
     desc: "Your book is the entry point to a multi-million dollar business with premium Yield Revenue services.",
     border: "border-[hsl(45,50%,54%)]",
     bg: "bg-[hsl(45,50%,54%)]/10",
@@ -123,7 +123,7 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* The Journey — Staircase */}
+      {/* The Journey - Staircase */}
       <section className="py-20 md:py-28 bg-[hsl(38,60%,96%)]">
         <div className="container max-w-5xl mx-auto">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} className="text-center mb-12">
@@ -172,7 +172,7 @@ export default function HowItWorks() {
             className="mt-16 space-y-10"
           >
             <div>
-              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Brand Products — 9 revenue streams</h3>
+              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Brand Products - 9 revenue streams</h3>
               <p className="text-sm text-muted-foreground mb-4">Build your foundation with products that attract, nurture, and monetize readers.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
@@ -195,7 +195,7 @@ export default function HowItWorks() {
             </div>
 
             <div>
-              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Build Authority — 9 revenue streams</h3>
+              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Build Authority - 9 revenue streams</h3>
               <p className="text-sm text-muted-foreground mb-4">Scale your reach with premium content, partnerships, and audience growth tools.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
@@ -218,7 +218,7 @@ export default function HowItWorks() {
             </div>
 
             <div>
-              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Yield Revenue — 10 revenue streams</h3>
+              <h3 className="font-heading text-xl md:text-2xl font-bold text-foreground mb-1">Yield Revenue - 10 revenue streams</h3>
               <p className="text-sm text-muted-foreground mb-4">Unlock premium high-ticket services, events, and long-term business growth.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[

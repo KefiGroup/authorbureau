@@ -14,7 +14,7 @@ import Footer from "@/components/Footer";
 import heroBg from "@/assets/hero-bg.jpg";
 import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
-// getPublishNowAuthUrl no longer used — CTAs link to /auth directly
+// getPublishNowAuthUrl no longer used - CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
 
 const SIGNUP_URL = "/auth";
@@ -46,9 +46,9 @@ const pricingPaths = [
     tagline: "Build passive income while keeping your day job",
     streams: 9,
     category: "BRAND",
-    time: "4–8 hours/week",
-    year1: "$5,500–$15,500/year",
-    roi: "9x–26x return",
+    time: "4-8 hours/week",
+    year1: "$5,500-$15,500/year",
+    roi: "9x-26x return",
     cta: "Start Building →",
     badge: null,
     accent: false,
@@ -60,9 +60,9 @@ const pricingPaths = [
     tagline: "Turn your book into a real business",
     streams: 18,
     category: "BRAND + BUILD",
-    time: "15–25 hours/week",
-    year1: "$13,500–$39,500/year",
-    roi: "6x–16x return",
+    time: "15-25 hours/week",
+    year1: "$13,500-$39,500/year",
+    roi: "6x-16x return",
     cta: "Build My Authority →",
     badge: "MOST POPULAR",
     accent: true,
@@ -75,8 +75,8 @@ const pricingPaths = [
     streams: 28,
     category: "BRAND + BUILD + YIELD",
     time: "Full-time (leveraged)",
-    year1: "$68,500–$215,500/year",
-    roi: "23x–72x return",
+    year1: "$68,500-$215,500/year",
+    roi: "23x-72x return",
     cta: "Unlock Full Platform →",
     badge: "BEST VALUE",
     accent: false,
@@ -184,7 +184,7 @@ export default function Index() {
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-6">
               Most authors spend years writing their book, only to discover that royalties barely cover the cost of publishing.
-              The average self-published author earns just $1,000–$5,000 per year from book sales.
+              The average self-published author earns just $1,000-$5,000 per year from book sales.
             </motion.p>
             <motion.p variants={fadeUp} custom={3} className="text-lg text-muted-foreground leading-relaxed mb-8">
               But the top 3% of authors? They don't rely on royalties. They build businesses around their books with courses, coaching, speaking, and memberships, earning{" "}
@@ -197,7 +197,7 @@ export default function Index() {
         </div>
       </section>
 
-      {/* ===== WHY AUTHORS BUREAU — Comparison Table ===== */}
+      {/* ===== WHY AUTHORS BUREAU - Comparison Table ===== */}
       <section className="py-24 bg-muted/50 border-y border-border">
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
@@ -265,7 +265,7 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/journey-flow-diagram.webp"
-            alt="How your 28 revenue streams connect — BRAND, BUILD, YIELD ecosystem"
+            alt="How your 28 revenue streams connect - BRAND, BUILD, YIELD ecosystem"
             className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-2"
             loading="lazy"
           />
@@ -339,7 +339,7 @@ export default function Index() {
       {/* ===== SECTION 5: FEATURED AUTHORS ===== */}
       <DynamicMeetOurAuthors />
 
-      {/* ===== SECTION 6: FREE TIER — BOOK PAGE SHOWCASE ===== */}
+      {/* ===== SECTION 6: FREE TIER - BOOK PAGE SHOWCASE ===== */}
       <section className="py-24">
         <div className="container">
           <div className="grid gap-12 lg:grid-cols-2 items-center">
@@ -355,7 +355,7 @@ export default function Index() {
                 Every author starts here, free. Your professional book page is your foundation for everything that follows.
               </motion.p>
               <motion.p variants={fadeUp} custom={2.5} className="text-muted-foreground leading-relaxed mb-8">
-                Every listed author gets a dedicated landing page for their book — designed to showcase your Amazon bestseller status, drive purchases, and build your reader community.
+                Every listed author gets a dedicated landing page for their book - designed to showcase your Amazon bestseller status, drive purchases, and build your reader community.
               </motion.p>
 
               <div className="space-y-4 mb-8">
@@ -396,7 +396,7 @@ export default function Index() {
                 </div>
                 <div className="bg-primary p-8 text-primary-foreground">
                   <div className="flex flex-col sm:flex-row items-center gap-6">
-                    <img src={besuckcessfulCover} alt="Be SUCKcessful book cover — author monetization platform showcase" className="h-40 rounded-lg shadow-2xl object-contain" loading="lazy" />
+                    <img src={besuckcessfulCover} alt="Be SUCKcessful book cover - author monetization platform showcase" className="h-40 rounded-lg shadow-2xl object-contain" loading="lazy" />
                     <div className="text-center sm:text-left">
                       <h3 className="font-heading text-xl font-bold italic">Be SUCKcessful</h3>
                       <p className="text-sm text-primary-foreground/70 italic">We SUCK Before We SUCCEED</p>
@@ -450,7 +450,7 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/journey-staircase.webp"
-            alt="The ABBY Journey Framework — FREE to BRAND to BUILD to YIELD"
+            alt="The ABBY Journey Framework - FREE to BRAND to BUILD to YIELD"
             className="w-full max-w-5xl mx-auto rounded-2xl shadow-xl mb-2"
             loading="lazy"
           />

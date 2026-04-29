@@ -281,7 +281,7 @@ export default function Auth() {
               <p className="text-sm text-muted-foreground mt-1">Enter your email to continue</p>
             </div>
 
-            {/* Mode toggle — only show on initial email step */}
+            {/* Mode toggle - only show on initial email step */}
             {flow === "email" && (
               <Tabs value={mode} onValueChange={(v) => switchMode(v as SignInMode)} className="w-full">
                 <TabsList className="w-full grid grid-cols-2">
@@ -523,7 +523,7 @@ export default function Auth() {
             <div className="text-center pt-2 border-t border-border/50">
               <p className="text-sm text-muted-foreground">
                 Don't have an account?{" "}
-                <span className="text-secondary font-medium">Sign up — just enter your email above.</span>
+                <span className="text-secondary font-medium">Sign up - just enter your email above.</span>
               </p>
             </div>
           </div>
