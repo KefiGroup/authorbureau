@@ -186,7 +186,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
-        <BuilderHeader nodeId="BP-06" title="Workbook" subtitle="A printable companion workbook with chapter exercises" icon={FileText} onBack={() => navigate("/brand-products")} />
+        <BuilderHeader nodeId="BP-06" title="Workbook" subtitle="A printable companion workbook with chapter exercises" icon={FileText} onBack={() => navigate(bookId ? `/book-hub/${bookId}?tab=revenue-streams` : "/dashboard?section=my-books")} />
         <UnifiedStepper nodeId="BP-06" steps={STEPS} current={step} onStepClick={(i) => { if (i <= step) setStep(i); }} />
       </div>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">

@@ -204,7 +204,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
           title="Book Sales"
           subtitle="Live Audience Conversion Toolkit · Webinars · Workshops · Book signings · Corporate lunches"
           icon={Mic}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(bookId ? `/book-hub/${bookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
         <UnifiedStepper nodeId="BP-09" steps={STEPS} current={step} onStepClick={(i) => { if (i <= step) setStep(i); }} />
       </div>

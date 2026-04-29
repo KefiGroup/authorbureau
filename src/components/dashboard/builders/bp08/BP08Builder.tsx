@@ -174,7 +174,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-3xl mx-auto px-4 pt-4 pb-2 space-y-3">
-        <BuilderHeader nodeId="BP-08" title="Special Editions" subtitle="Premium tiers + collector bundles for your book" icon={Gift} onBack={() => navigate("/brand-products")} />
+        <BuilderHeader nodeId="BP-08" title="Special Editions" subtitle="Premium tiers + collector bundles for your book" icon={Gift} onBack={() => navigate(bookId ? `/book-hub/${bookId}?tab=revenue-streams` : "/dashboard?section=my-books")} />
         <UnifiedStepper
           nodeId="BP-08"
           steps={STEPS}
