@@ -568,9 +568,9 @@ export default function RevenueFullDashboard() {
             <h3 className="text-sm font-semibold mb-4">Node Performance</h3>
             {liveNodes.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground text-sm mb-3">No live nodes yet. Head to Brand Products to build your first node.</p>
-                <Button variant="outline" size="sm" onClick={() => navigate("/brand-products")} className="gap-2">
-                  <ExternalLink className="h-4 w-4" /> Go to Brand Products
+                <p className="text-muted-foreground text-sm mb-3">No live nodes yet. Head to your books to build your first revenue stream.</p>
+                <Button variant="outline" size="sm" onClick={() => navigate("/dashboard?section=my-books")} className="gap-2">
+                  <ExternalLink className="h-4 w-4" /> Go to My Books
                 </Button>
               </div>
             ) : (
