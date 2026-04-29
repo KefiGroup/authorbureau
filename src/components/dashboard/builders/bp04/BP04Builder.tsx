@@ -184,7 +184,7 @@ export default function BP04Builder({ authorId, bookId }: Props) {
           title="Author Website"
           subtitle="Hero, about, books, testimonials + lead capture"
           icon={Home}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(activeBookId ? `/book-hub/${activeBookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
         <UnifiedStepper
           nodeId="BP-04"
