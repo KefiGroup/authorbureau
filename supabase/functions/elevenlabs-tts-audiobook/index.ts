@@ -114,9 +114,9 @@ serve(async (req) => {
       }
 
       const { data: book } = await supabase
-        .from("books").select("id, author_id, title").eq("id", bookId).single();
-      if (!book || book.author_id !== user.id) {
-        return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
+        .from("books").select("id, author_id, owner_email, title").eq("id", bookId).single();
+      if (!book || !ownsBook(book, user)) {
+        return new Response(JSON.stringify({ error: "Book not found or unauthorized", code: "forbidden" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
