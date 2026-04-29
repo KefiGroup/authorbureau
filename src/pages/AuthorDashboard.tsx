@@ -479,7 +479,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           }
         }
         if (!bookIdParam) {
-          return <Navigate to="/my-books?returnTo=/dashboard?section=audiobook-studio" replace />;
+          return <Navigate to={`/my-books?returnTo=${encodeURIComponent("/dashboard?section=audiobook-studio")}`} replace />;
         }
         return gate("Audiobook Studio", <AudiobookStudio bookId={bookIdParam} bookTitle={bookTitleParam} userId={user.id} />, "build");
       }
