@@ -248,11 +248,45 @@ export function getNodeSection(nodeId: string): { section: string; extraParams?:
 }
 
 /**
+ * Direct-route map for nodes that have a dedicated /node-builder/<NODE_ID>
+ * builder and should bypass the legacy /dashboard?section= gating.
+ *
+ * Bug fix (Apr 2026): BA-14..BA-18 had no NODE_TO_SECTION entries (or were
+ * gated as "Coming Soon" via the section gate), so clicking "Open & Manage"
+ * on those cards was a no-op. Each builder file already exists under
+ * src/components/dashboard/builders/ba14..ba18, so we route straight there.
+ */
+const NODE_TO_NODE_BUILDER: Record<string, string> = {
+  "group-coaching": "BA-13",
+  "podcast-guest": "BA-14",
+  "in-house-speaker": "BA-15",
+  affiliates: "BA-16",
+  upsells: "BA-17",
+  "revenue-sharing": "BA-18",
+};
+
+/**
  * Map from nodeId to its dashboard studio path.
- * Prefers the nested /dashboard/book/:bookId/build/:node URL when bookId is provided,
- * falling back to the legacy /dashboard?section= URL otherwise.
+ * Prefers /node-builder/<NODE_ID> for nodes with dedicated builders,
+ * then the nested /dashboard/book/:bookId/build/:node URL when bookId is
+ * provided, falling back to the legacy /dashboard?section= URL otherwise.
  */
 export function getStudioPath(nodeId: string, bookId: string, titleParam: string): string | null {
+  // Direct node-builder route (skips dashboard section gating)
+  const directCode = NODE_TO_NODE_BUILDER[nodeId];
+  if (directCode) {
+    const qs = new URLSearchParams();
+    if (bookId) qs.set("bookId", bookId);
+    // titleParam arrives as e.g. "&bookTitle=foo" — strip the leading "&"
+    const cleanedTitle = (titleParam || "").replace(/^&/, "");
+    if (cleanedTitle) {
+      const [k, v] = cleanedTitle.split("=");
+      if (k && v !== undefined) qs.set(k, decodeURIComponent(v));
+    }
+    const search = qs.toString();
+    return `/node-builder/${directCode}${search ? `?${search}` : ""}`;
+  }
+
   const entry = NODE_TO_SECTION[nodeId];
   if (!entry) return null;
   const extra = entry.extraParams
