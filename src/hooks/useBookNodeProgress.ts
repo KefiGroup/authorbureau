@@ -132,7 +132,7 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
     }
     load();
     return () => { cancelled = true; };
-  }, [user, tick]);
+  }, [user, tick, bookId]);
 
   const result = useMemo<BookNodeProgress>(() => {
     const byCategory = {} as Record<AbbyCategory, CategoryProgress>;
