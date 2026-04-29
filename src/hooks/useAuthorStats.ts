@@ -64,7 +64,13 @@ export function useAuthorStats(userId: string | undefined) {
     if (!cachedStats) setLoading(true);
     try {
       const token = await getActiveToken();
-      if (!token) return;
+      // Auth not ready (shared session still restoring, or session expired):
+      // do NOT reset to DEFAULT_STATS — keep cached stats so the dashboard
+      // doesn't flip back to a "new user / no books" state mid-session.
+      if (!token) {
+        setLoading(false);
+        return;
+      }
       const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-stats`,
         {
@@ -78,6 +84,7 @@ export function useAuthorStats(userId: string | undefined) {
         cacheTimestamp = Date.now();
         setStats(data);
       }
+      // 401 / 5xx: keep prior stats; surface no error so cached state stays visible.
     } catch (err) {
       console.error("useAuthorStats error:", err);
     } finally {
