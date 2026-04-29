@@ -91,15 +91,28 @@ export default function AuthorLibrary() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="max-w-6xl mx-auto py-8 px-4 sm:px-6 lg:px-8 space-y-6">
+        <div className="space-y-2">
+          <div className="h-7 w-40 rounded bg-muted animate-pulse" />
+          <div className="h-4 w-72 max-w-full rounded bg-muted/60 animate-pulse" />
+        </div>
+        <div className="flex gap-2 overflow-x-auto">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-9 w-28 shrink-0 rounded bg-muted animate-pulse" />
+          ))}
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-28 rounded-lg bg-muted/50 animate-pulse" />
+          ))}
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center">
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center">
         <p className="text-destructive mb-4">{error}</p>
         <Button onClick={load}><RefreshCw className="h-4 w-4 mr-2" />Try again</Button>
       </div>
@@ -108,16 +121,16 @@ export default function AuthorLibrary() {
 
   if (!nodes.length) {
     return (
-      <div className="max-w-2xl mx-auto py-16 text-center space-y-4">
+      <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
           <Library className="h-8 w-8 text-primary" />
         </div>
         <h2 className="font-heading text-2xl font-bold">Your library is empty</h2>
         <p className="text-muted-foreground text-sm">
-          Build any node in Brand Products, Build Authority, or Yield Revenue and your downloadable
-          slides, PDFs, and copy will appear here.
+          Build any revenue stream in Brand, Build, or Yield and your downloadable slides, PDFs, and
+          copy will appear here.
         </p>
-        <Button onClick={() => navigate("/brand-products")}>Start with Brand Products</Button>
+        <Button onClick={() => navigate("/dashboard?section=my-books")}>Go to My Books</Button>
       </div>
     );
   }
@@ -141,12 +154,14 @@ export default function AuthorLibrary() {
       </div>
 
       <Tabs defaultValue="marketing-packs">
-        <TabsList>
-          <TabsTrigger value="marketing-packs">Marketing Packs</TabsTrigger>
-          <TabsTrigger value="by-node">By node</TabsTrigger>
-          <TabsTrigger value="by-format">By format</TabsTrigger>
-          <TabsTrigger value="recent">Recent</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+          <TabsList className="w-max sm:w-auto">
+            <TabsTrigger value="marketing-packs">Marketing Packs</TabsTrigger>
+            <TabsTrigger value="by-node">By node</TabsTrigger>
+            <TabsTrigger value="by-format">By format</TabsTrigger>
+            <TabsTrigger value="recent">Recent</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ── Marketing Packs ── */}
         <TabsContent value="marketing-packs" className="space-y-4">
