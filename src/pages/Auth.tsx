@@ -299,6 +299,9 @@ export default function Auth() {
             {/* ─── Step 1: Email + Continue (both modes) ─── */}
             {flow === "email" && (
               <form onSubmit={handleContinue} className="space-y-4">
+                <div className="rounded-md border border-secondary/30 bg-secondary/5 px-3 py-2 text-xs text-muted-foreground">
+                  <strong className="text-foreground">New here?</strong> Just enter your email — we'll create your account and send a 6-character code. No separate sign-up needed.
+                </div>
                 <div>
                   <Label htmlFor="email">Email address</Label>
                   <Input
