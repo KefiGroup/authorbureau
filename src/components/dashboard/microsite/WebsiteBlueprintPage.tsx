@@ -77,10 +77,10 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
     // Fetch profile (local Cloud table) and books (via edge function for proper ownership)
     const [profileRes, booksResult] = await Promise.all([
       supabase.from("author_profiles").select("*").eq("user_id", user!.id).maybeSingle(),
-      (async () => {
+      (async (): Promise<{ books: any[]; liveNodesByBook: Record<string, Array<{ node_id: string; node_name: string | null; microsite_url: string | null; delivery_url: string | null }>> }> => {
         try {
           const token = await getActiveToken();
-          if (!token) return { books: [] };
+          if (!token) return { books: [], liveNodesByBook: {} };
           const response = await fetchWithTimeout(
             `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
             {
@@ -89,10 +89,10 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
             }
           );
           const result = await response.json();
-          if (!response.ok) return { books: [] };
-          return { books: result.books || [] };
+          if (!response.ok) return { books: [], liveNodesByBook: {} };
+          return { books: result.books || [], liveNodesByBook: result.liveNodesByBook || {} };
         } catch (error) {
-          return { books: [] };
+          return { books: [], liveNodesByBook: {} };
         }
       })(),
     ]);
