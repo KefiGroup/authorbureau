@@ -4,6 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface NodeLiveStats {
   status: string | null;
+  /**
+   * Effective status reflects true readiness. A node may be marked `live` in the DB,
+   * but if required assets are missing it will be downgraded to `content_ready` here
+   * so dashboard cards don't show a misleading "Live" badge.
+   */
+  effectiveStatus: string | null;
   progressPercent: number; // 0-100, derived
   revenueToDate: number;
   activatedAt: string | null;
@@ -19,6 +25,38 @@ const STATUS_PROGRESS: Record<string, number> = {
   published_pending_ghl: 85,
   live: 100,
 };
+
+/**
+ * Mirror of server-side readiness gates in deploy-ba14-to-transistor /
+ * deploy-ba15-to-ghl. If a node's `status === 'live'` but the required assets
+ * are absent, we surface `content_ready` so the UI doesn't show a false Live badge.
+ */
+function hasRequiredAssets(nodeId: string, content: any): boolean {
+  if (!content || typeof content !== "object") return false;
+  switch (nodeId) {
+    case "BA-14": {
+      const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
+      const episodes = Array.isArray(content.episodes) ? content.episodes : [];
+      return rssReady && episodes.length > 0;
+    }
+    case "BA-15": {
+      const hasPressRelease = !!(content.press_release || content.press_release_html || content?.assets?.press_release);
+      const hasMediaList = Array.isArray(content.media_list)
+        ? content.media_list.length > 0
+        : Array.isArray(content.outlets)
+        ? content.outlets.length > 0
+        : false;
+      return hasPressRelease && hasMediaList;
+    }
+    case "BA-13": {
+      // Group coaching needs at least a session schedule or cohort config
+      const hasSchedule = Array.isArray(content.sessions) ? content.sessions.length > 0 : !!content.schedule;
+      return hasSchedule;
+    }
+    default:
+      return true; // No extra gate beyond DB status
+  }
+}
 
 export function useNodeLiveStats(): {
   loading: boolean;
@@ -53,7 +91,7 @@ export function useNodeLiveStats(): {
         }
         const { data: rows } = await supabase
           .from("author_nodes")
-          .select("node_id, status, revenue_to_date, activated_at, current_step, book_id, microsite_url")
+          .select("node_id, status, revenue_to_date, activated_at, current_step, book_id, microsite_url, content_json")
           .eq("author_id", profile.id);
 
         const map: Record<string, NodeLiveStats> = {};
@@ -62,9 +100,16 @@ export function useNodeLiveStats(): {
           s === "live" ? 4 : s === "published_pending_ghl" ? 3 : s === "content_ready" ? 2 : s === "draft" ? 1 : 0;
         (rows || []).forEach((r: any) => {
           const code = r.node_id;
+          const rawStatus: string | null = r.status ?? null;
+          // Downgrade Live → content_ready if the node lacks required assets
+          const effective =
+            rawStatus === "live" && !hasRequiredAssets(code, r.content_json)
+              ? "content_ready"
+              : rawStatus;
           const incoming: NodeLiveStats = {
-            status: r.status ?? null,
-            progressPercent: STATUS_PROGRESS[r.status] ?? 0,
+            status: rawStatus,
+            effectiveStatus: effective,
+            progressPercent: STATUS_PROGRESS[effective ?? ""] ?? 0,
             revenueToDate: Number(r.revenue_to_date || 0),
             activatedAt: r.activated_at ?? null,
             currentStep: r.current_step ?? null,
@@ -72,9 +117,9 @@ export function useNodeLiveStats(): {
             micrositeUrl: r.microsite_url ?? null,
           };
           const existing = map[code];
-          if (!existing || rank(r.status) > rank(existing.status)) {
+          if (!existing || rank(effective) > rank(existing.effectiveStatus)) {
             map[code] = incoming;
-          } else if (rank(r.status) === rank(existing.status)) {
+          } else if (rank(effective) === rank(existing.effectiveStatus)) {
             // Sum revenue across books for the same node.
             existing.revenueToDate += incoming.revenueToDate;
           }
