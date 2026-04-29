@@ -33,10 +33,10 @@ serve(async (req) => {
 
     // Load author profile + book + node content
     const [{ data: author }, { data: book }, { data: node }, { data: ctx }] = await Promise.all([
-      admin.from("author_profiles").select("id, user_id, pen_name").eq("id", author_id).maybeSingle(),
+      admin.from("author_profiles").select("id, user_id, pen_name, methodology_name").eq("id", author_id).maybeSingle(),
       book_id ? admin.from("books").select("id, title, subtitle, author_name").eq("id", book_id).maybeSingle() : Promise.resolve({ data: null }),
       admin.from("author_nodes").select("content_json, personalised_name").eq("author_id", author_id).eq("node_id", node_id).maybeSingle(),
-      admin.from("author_context").select("methodology_summary, signature_framework, tone_of_voice").eq("author_id", author_id).maybeSingle(),
+      admin.from("author_context").select("core_thesis, key_frameworks").eq("author_id", author_id).eq("book_id", book_id).maybeSingle(),
     ]);
 
     if (!author) return json(404, { error: "Author profile not found" });
@@ -53,9 +53,9 @@ serve(async (req) => {
 AUTHOR: ${penName}
 BOOK: "${bookTitle}"${book?.subtitle ? ` — ${book.subtitle}` : ""}
 NODE: ${spec.node_id} — ${personalisedNodeName} (${spec.node_name})
-METHODOLOGY: ${ctx?.methodology_summary || "(not provided)"}
-SIGNATURE FRAMEWORK: ${ctx?.signature_framework || "(not provided)"}
-TONE OF VOICE: ${ctx?.tone_of_voice || "warm, expert, plain-spoken"}
+METHODOLOGY: ${author?.methodology_name || ctx?.core_thesis || "(not provided)"}
+SIGNATURE FRAMEWORK: ${Array.isArray(ctx?.key_frameworks) && ctx.key_frameworks.length ? ctx.key_frameworks[0] : "(not provided)"}
+TONE OF VOICE: warm, expert, plain-spoken
 EXISTING NODE CONTENT (excerpt): ${JSON.stringify(nodeContent).slice(0, 1500)}
 
 Produce ONE JSON object with these exact keys:
