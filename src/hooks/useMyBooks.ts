@@ -25,8 +25,19 @@ export function useMyBooks(userId: string | undefined) {
       return;
     }
     try {
-      const token = await getActiveToken();
-      if (!token) return;
+      // Wait briefly for the shared-backend session to restore before failing.
+      let token = await getActiveToken();
+      if (!token) {
+        for (let i = 0; i < 6 && !token; i++) {
+          await new Promise(r => setTimeout(r, 300));
+          token = await getActiveToken();
+        }
+      }
+      if (!token) {
+        // Auth still not ready: keep cached books visible, do NOT clear.
+        setLoading(false);
+        return;
+      }
       const resp = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
         {
@@ -35,7 +46,10 @@ export function useMyBooks(userId: string | undefined) {
         },
         15000
       );
-      if (!resp.ok) return;
+      if (!resp.ok) {
+        // Transient auth/server failure: preserve cached books.
+        return;
+      }
       const data = await resp.json();
       const list: MyBook[] = (data?.books ?? []).map((b: any) => ({
         id: b.id,
@@ -48,6 +62,7 @@ export function useMyBooks(userId: string | undefined) {
       setBooks(list);
     } catch (err) {
       console.error("useMyBooks error:", err);
+      // Preserve cached books on error.
     } finally {
       setLoading(false);
     }
