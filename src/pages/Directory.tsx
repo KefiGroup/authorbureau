@@ -1,6 +1,6 @@
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Search, BookOpen, Mic, Loader2, ArrowUpDown } from "lucide-react";
+import { Search, BookOpen, Mic, ArrowUpDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { authors as staticAuthors } from "@/data/authors";
 
@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import DirectoryGridSkeleton from "@/components/DirectoryGridSkeleton";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.webp";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
@@ -222,13 +223,9 @@ export default function Directory() {
             )}
           </div>
 
-          {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-secondary mr-2" />
-              <span className="text-muted-foreground text-sm">Loading authors...</span>
-            </div>
-          )}
+          {isLoading && <DirectoryGridSkeleton count={8} />}
 
+          {!isLoading && (
           <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {sorted.map((author, i) => (
               <motion.div
@@ -301,6 +298,7 @@ export default function Directory() {
               </motion.div>
             ))}
           </div>
+          )}
 
           {!isLoading && filtered.length === 0 && (
             <p className="py-12 text-center text-muted-foreground">
