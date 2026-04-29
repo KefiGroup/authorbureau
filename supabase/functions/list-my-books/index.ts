@@ -110,10 +110,13 @@ Deno.serve(async (req) => {
 
     console.log("[list-my-books] Resolved userId:", userId, "email:", userEmail, "via:", source);
 
-    // Build ownership filter: author_id matches OR owner_email matches
-    const ownershipFilter = userEmail
-      ? `author_id.eq.${userId},owner_email.eq.${userEmail}`
-      : `author_id.eq.${userId}`;
+    // Build ownership filter: author_id matches OR owner_email matches.
+    // Both forms are tolerated independently so we can still load books even
+    // if userId resolution failed (email-only fallback).
+    const filterParts: string[] = [];
+    if (userId) filterParts.push(`author_id.eq.${userId}`);
+    if (userEmail) filterParts.push(`owner_email.eq.${userEmail}`);
+    const ownershipFilter = filterParts.join(",");
 
     // Parse request body for action
     let action = "list";
