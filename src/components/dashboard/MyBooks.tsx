@@ -100,9 +100,6 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       return;
     }
     try {
-      const token = await getActiveToken();
-      if (!token) { setFetchError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
-
       const response = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`,
         {
