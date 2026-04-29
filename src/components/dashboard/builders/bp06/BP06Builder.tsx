@@ -197,7 +197,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-06")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-06${bookId ? `?bookId=${bookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : (
               <>
