@@ -161,7 +161,7 @@ export interface PortfolioAnalysis {
   subscriptionCost: number;
   /** ROI multiplier (projected revenue / subscription cost) */
   roiMultiplier: number;
-  /** Platform fee total (5%) */
+  /** Platform fee total (8%) */
   platformFees: number;
   /** Net after fees */
   netMonthlyRevenue: number;
