@@ -74,7 +74,9 @@ export default function CourseSalesPage() {
 
   const promises: string[] = Array.isArray(course.transformation_promises)
     ? (course.transformation_promises as string[]) : [];
-  const isLive = course.status === "live" || course.status === "published";
+  // Treat any post-draft status as purchasable so previously-published courses
+  // (whose status flip never propagated) still show the buy button.
+  const isLive = course.status !== "draft";
 
   return (
     <div className="min-h-screen bg-background">
