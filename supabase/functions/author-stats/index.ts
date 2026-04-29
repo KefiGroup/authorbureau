@@ -326,6 +326,15 @@ Deno.serve(async (req) => {
       };
     }
 
+    // Bug 3 fix: aggregate totalBuilt from per-book distinct node sets so it
+    // includes author_nodes rows (BP/BA/YR), matching the per-book chip totals.
+    // Falls back to product-table sum for safety if perBookNodeSets is empty.
+    const aggregatedFromNodeSets = Object.values(perBookNodeSets)
+      .reduce((sum, set) => sum + set.size, 0);
+    if (aggregatedFromNodeSets > 0) {
+      totalBuilt = aggregatedFromNodeSets;
+    }
+
     const result = {
       bookCount,
       liveMicrosites,
