@@ -71,7 +71,7 @@ export const NODE_NAMES: Record<string, string> = {
   "BP-06": "Workbook",
   "BP-07": "Home Study Course",
   "BP-08": "Special Editions",
-  "BP-09": "Live Audience Conversion Toolkit",
+  "BP-09": "Book Sales",
   "BA-10": "Online Course",
   "BA-11": "Audiobook",
   "BA-12": "Membership Site",
