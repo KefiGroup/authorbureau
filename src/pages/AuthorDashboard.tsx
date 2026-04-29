@@ -433,11 +433,15 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       );
     }
 
-    // Legacy ?builder=<id> → redirect to dedicated /node-builder/<NODE_ID>
+    // Legacy ?builder=<id> → redirect to dedicated /node-builder/<NODE_ID>.
+    // CRITICAL: preserve bookId/bookTitle (and pull bookId from the nested
+    // /dashboard/book/:bookId/build/:node path when search params are empty)
+    // so the destination builder receives book context and the back link
+    // resolves to "Back to Book Hub · Brand" instead of "Back to Dashboard".
     const legacyBuilderId = searchParams.get("builder");
     const legacyRedirect = resolveLegacyBuilderRoute(legacyBuilderId);
     if (legacyRedirect) {
-      return <Navigate to={legacyRedirect} replace />;
+      return <Navigate to={`${legacyRedirect}${buildNodeBuilderSearch(location)}`} replace />;
     }
 
     switch (activeSection) {
