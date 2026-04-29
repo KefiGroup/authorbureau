@@ -78,3 +78,4 @@ No DB migrations. No edge function changes (existing `save-author-node` `load` a
 | Click "Promote to live webinar" | New row in `webinars`, Manager reloads showing the editable webinar |
 | Brand tab → Workbook tile | URL = `/node-builder/BP-06?bookId=…&bookTitle=…`; top link = `← Back to Book Hub · Brand`; clicking it returns to Brand tab |
 | BP-06 "Complete Book Profile" button (no profile) | Return URL retains `?bookId=…` |
+Edits done at 2026-04-29T10:50:13Z
