@@ -95,3 +95,16 @@ This is correct SPA behaviour (the React shell renders 200 then mounts the resol
 
 ## Verification
 After implementation I will hit `/pauline-teo/online-course`, `/pauline-teo/membership`, `/pauline-teo/podcast`, `/pauline-teo/press` via `browser--navigate_to_sandbox` and screenshot each to confirm the buy/enquiry buttons render. I will also run `supabase--curl_edge_functions` against `get-microsite-page?author=pauline-teo&slug=podcast` to confirm 200 responses.
+
+---
+
+## Sprint 7 — Deferred items resolution (Apr 29, 2026)
+
+| Finding | Resolution |
+| --- | --- |
+| BA-11 missing-bookId fallback | `AuthorDashboard` now redirects `?section=audiobook-studio` without `bookId` to `/my-books` (book picker). Empty-state copy updated to "Open Book Hub" + "Upload Manuscript Here". |
+| BA-11 false "Live" badge | Already enforced server-side: `ba11-publish-audiobook` will not flip status to `live` unless ≥1 chapter MP3 exists in `audiobook-audio/{userId}/{bookId}/`. No client change needed. |
+| BA-13 publish split | Already split — `generate-ba13-group-coaching` writes content_ready; `save-author-node:publish` flips status (no Stripe/GHL cascade). Tight DB update completes in <2s. No change needed. |
+| Built-counter flash to 0 | `useAuthorStats` and `useBookNodeProgress` now keep previous data during refetch (no `setLoading(true)` after first load). Counter never visibly drops. |
+| Stripe banner accuracy | `StripeConnectBanner` is already a no-op (Sprint 41 — Authors Bureau is Merchant of Record). No banner to gate. |
+
