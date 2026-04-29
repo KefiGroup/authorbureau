@@ -781,7 +781,7 @@ export default function AuthorBookPage() {
               </h2>
             </div>
             <p className="text-base mb-8" style={{ color: v.mutedText }}>
-              Workbooks, courses, coaching, and more from {authorName} — built around the ideas in this book.
+              Workbooks, courses, coaching, and more from {authorName}, built around the ideas in this book.
             </p>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
