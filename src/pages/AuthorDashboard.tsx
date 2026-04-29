@@ -13,7 +13,7 @@ import CoachingCRM from "@/components/dashboard/CoachingCRM";
 // DashboardOverview removed — replaced by ABBYFrameworkDashboard
 import ABBYFrameworkDashboard from "@/components/dashboard/ABBYFrameworkDashboard";
 import PortfolioStepView from "@/components/dashboard/PortfolioStepView";
-import WorkbooksManager from "@/components/dashboard/WorkbooksManager";
+
 import WebinarsManager from "@/components/dashboard/WebinarsManager";
 import SocialMediaManager from "@/components/dashboard/SocialMediaManager";
 import PodcastManager from "@/components/dashboard/PodcastManager";

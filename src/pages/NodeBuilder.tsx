@@ -165,10 +165,10 @@ export default function NodeBuilder() {
           The builder for node {nodeId} is not available yet.
         </p>
         <button
-          onClick={() => navigate("/brand-products")}
+          onClick={() => navigate("/dashboard")}
           className="text-primary underline"
         >
-          Back to Brand Products
+          Back to Dashboard
         </button>
       </div>
     </DashboardLayout>
