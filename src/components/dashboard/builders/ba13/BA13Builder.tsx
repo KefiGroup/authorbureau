@@ -55,9 +55,19 @@ export default function BA13Builder({ authorId, bookId }: Props) {
         const wasLegacy = isLegacyGroupCoaching(__draft.content);
         const normalised = normaliseGroupCoaching(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
+        const savedStep = __draft.currentStep ?? 0;
+        // Half-published recovery: if a previous publish wrote step=3 but the
+        // row never reached the live state (no microsite_url), drop back to
+        // Step 2 so the user can re-publish. Without this guard the UI would
+        // sit on the passive "Publishing…" animation forever with no request
+        // in flight.
+        const isHalfPublished = !isActuallyLive && savedStep >= 3;
         setContent({ ...normalised, activated: isActuallyLive });
         setPriceOverride(normalised?.suggested_price_usd || null);
-        setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
+        setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : Math.max(savedStep, 2));
+        if (isHalfPublished) {
+          toast.info("Your last publish didn't complete — please click Publish again.");
+        }
         if (wasLegacy) {
           void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
