@@ -1,84 +1,80 @@
-# Audit #2 (Revised) — Live 28-Node Build Test on "Invest Like Buffett for Parents"
 
-## Why this book
+# Audit 3 + 4 — Data Integrity Follow-ups
 
-Pauline's account has two books:
+Two small, surgical fixes from Audit 2's follow-up list. Both are low-risk and isolated.
 
-| Book | Nodes built | Live | Use |
-|------|------------|------|-----|
-| Be SUCKcessful | 28 | 25 | Reference / regression check |
-| **Invest Like Buffett for Parents** | **0** | **0** | **Greenfield test bed** |
+## Audit 3 — `books.author_id` integrity
 
-The Buffett book is `published_at`-approved, has its `author_context` row from BP-00 analysis, and zero `author_nodes`. This means I can actually exercise every builder end-to-end (Open → Build → Review → Activate → Live) instead of just probing existing data.
+### Scope confirmed
+Ran a full table scan classifying every `books.author_id` as `valid_profile_id` / `is_user_id` / `orphan`:
 
-## What I will do
+- **Valid (already pointing at `author_profiles.id`)**: 0
+- **Pointing at `auth.users.id` instead** (silent bug): **7 books / 4 authors**
+- **Orphans (no profile match either way)**: 0
 
-### Phase 1 — Pre-flight (10 min)
+The 7 affected rows:
 
-Verify the launching pad before generating anything:
+| Author | Books |
+|---|---|
+| Bob Battista | Hemispheric Intelligence |
+| Fasa Husain | The Trust API: The HealthTech Bridge |
+| Felicia Tan | A Gift From Heaven, Lost And Found, To Baby With Love |
+| Pauline Teo | Be SUCKcessful, Invest Like Buffett for Parents |
 
-1. Confirm `author_context` row for the Buffett book has all 5 frameworks populated (no half-baked analysis).
-2. Confirm `BookHub` opens at `/dashboard/book/3c65a5f1-...` and the three tabs (Brand / Build / Yield) render with all 28 cards in the "Build Now" state.
-3. Confirm `bookId` propagates through the URL into each builder route.
+Every wrong value resolves cleanly through `author_profiles.user_id`, so the backfill is deterministic — no guessing, no multi-match.
 
-If any pre-flight item fails, fix before proceeding (likely a 5-line fix in `BookHub.tsx` or `useBookNodeProgress.ts`).
+`author_nodes.author_id` is **100% clean** (59/59 rows already store `author_profiles.id`). Only `books` is affected.
 
-### Phase 2 — Build all 28 nodes against the Buffett book (the real audit)
+### Fix
+1. Backfill all 7 rows in one statement:
+   ```sql
+   UPDATE public.books b
+   SET author_id = ap.id
+   FROM public.author_profiles ap
+   WHERE ap.user_id = b.author_id
+     AND ap.id <> b.author_id;
+   ```
+2. Re-run the classifier query to confirm zero `is_user_id` rows remain.
 
-For each node ID in this exact order (cheap → complex), invoke the generator edge function with `{ author_id: <Pauline>, book_id: <Buffett> }`, then the deploy function, then read back `author_nodes` to confirm `status='live'`:
+### Code-side guard (optional but cheap)
+Searched the codebase: nothing in `src/` calls generators with `books.author_id` directly today (`useAuthorBook` already passes `author_profiles.id`). The bug only fires when an external caller (or this audit's curl) uses the wrong column. No code change needed; the data fix alone is sufficient.
 
-```text
-Brand   BP-01 BP-02 BP-03 BP-04 BP-05 BP-06 BP-07 BP-08 BP-09
-Build   BA-10 BA-11 BA-12 BA-13 BA-14 BA-15 BA-16 BA-17 BA-18
-Yield   YR-19 YR-20 YR-21 YR-22 YR-23 YR-24 YR-25 YR-26 YR-27 YR-28
+---
+
+## Audit 4 — Add `updated_at` to `author_nodes`
+
+### Why
+- Audit 2's first migration failed with `column "updated_at" does not exist`.
+- Every other large table in the schema has it, and the project already has a generic `public.update_updated_at_column()` trigger function ready to attach.
+- Useful for "last modified" displays, cache invalidation, and audit trails.
+
+### Fix (one migration)
+```sql
+ALTER TABLE public.author_nodes
+  ADD COLUMN updated_at timestamp with time zone NOT NULL DEFAULT now();
+
+-- Backfill so existing rows show a sensible value
+UPDATE public.author_nodes SET updated_at = COALESCE(activated_at, created_at, now());
+
+CREATE TRIGGER trg_author_nodes_updated_at
+BEFORE UPDATE ON public.author_nodes
+FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 ```
 
-For every node, the 6 audit checks are recorded as PASS/FAIL:
+### Code impact
+Zero — `update_updated_at_column()` is the project's standard trigger and existing inserts/updates don't reference `updated_at`. New column is additive with a default.
 
-1. Builder route mounts with bookId ✓
-2. Generator returns `success:true` and writes `content_json` ✓
-3. Review step would render (verified by reading `content_json` keys against the builder's expected schema) ✓
-4. Deploy function flips `status='live'` ✓
-5. `author_nodes` row visible to `useBookNodeProgress` (so Live badge will show) ✓
-6. Back button target route exists in router ✓
+---
 
-I'll run these sequentially (not in parallel) to avoid AI gateway rate limits and to keep one failure from cascading.
+## Execution order
+1. Audit 3 SQL (data backfill via insert tool, since it's an UPDATE not a schema change).
+2. Audit 4 migration (adds column + trigger).
+3. Re-verify with the same classifier query and a `\d author_nodes` style schema check.
+4. Append a short results section to `.lovable/audit-2-report.md`.
 
-### Phase 3 — Targeted fixes for the 6 known issues
+## Out of scope (intentionally)
+- Adding a FK constraint `books.author_id → author_profiles.id`. Worth doing eventually but needs a separate audit to verify nothing inserts a `user_id` first (e.g. the upload flow). Will flag if found.
+- Renaming or restructuring the column.
+- Touching `author_nodes` data — already clean.
 
-Re-test with the Buffett book; fix only what fails:
-
-- **BA-11 Audiobook**: if generator returns 0 chapters, patch chapter detection. Check ElevenLabs voice list endpoint.
-- **BA-13 Group Coaching**: if it times out, downgrade model to `gpt-5-mini` and shrink JSON schema (matching the working BA-17 pattern).
-- **BA-14 Podcast / BA-15 Media & PR**: if `/pauline-teo/podcast` and `/pauline-teo/press` 404, add the missing slug entries in `node-slug-map.ts` and section components in `AuthorSubpageResolver.tsx`.
-- **My Books Hub "Could not load your books"**: locate the literal string, replace with the cache-preserving fallback already used in `useMyBooks`.
-- **Dashboard "Meet Abby" onboarding for returning users**: gate on a persisted profile field, not a session flag.
-
-Each fix is verified by re-running the affected node's generate→deploy cycle on the Buffett book.
-
-### Phase 4 — Eight-level QA
-
-- L1 Console / L4 Data flow / L6 Auth / L7 Error handling / L8 Navigation: covered by code review + DB queries + edge-function logs (no manual click-through needed).
-- L2 Every button / L3 Empty states / L5 Mobile: code-review only, since browser tool can't share your authenticated session. I'll flag any I cannot fully verify.
-
-### Phase 5 — Deliverable
-
-`.lovable/audit-2-report.md` containing:
-
-- 28-row scorecard for the Buffett book (node × 6 checks)
-- 8-level QA summary
-- Comparison row: Buffett (greenfield) vs SUCKcessful (existing) — flags any node that worked once but fails now
-- Every fix applied with file paths and line numbers
-- Any node still failing → marked as **BLOCKER** with root cause
-
-## What I will NOT do
-
-- Touch the existing 28 `Be SUCKcessful` rows — those are the regression baseline.
-- Run real Stripe charges or send real GHL emails (deploy functions in this codebase only flip status + write microsite URLs; they don't push real campaigns).
-- Modify `src/integrations/supabase/{client,types}.ts`, `.env`, or migration tables unless a fix demands it.
-
-## Estimated cost
-
-~28 generator calls + ~28 deploy calls against Lovable AI Gateway. Most use `gpt-5-mini`; a few use `gpt-5`. Within normal session budget.
-
-Approve and I switch to default mode and execute Phases 1 → 5 in order.
+Reply **approve** and I'll execute both in default mode.
