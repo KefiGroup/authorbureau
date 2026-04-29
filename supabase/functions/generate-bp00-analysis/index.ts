@@ -54,7 +54,7 @@ serve(async (req) => {
 
     const { data: book } = await supabase
       .from("books")
-      .select("id, title, subtitle, description, genre, isbn, amazon_url, author_id, owner_email")
+      .select("id, title, subtitle, description, genre, amazon_url, author_id, owner_email")
       .eq("id", book_id)
       .maybeSingle();
     if (!book) return fail("Book not found");
