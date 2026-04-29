@@ -219,7 +219,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
 
   // Centralized stats from author-stats edge function
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
-  const { books: myBooks } = useMyBooks(user?.id);
+  const { books: myBooks, loading: myBooksLoading } = useMyBooks(user?.id);
 
   // Active book from URL (?bookId=...) — drives sidebar's currentBook context
   const activeBookId = searchParams.get("bookId");
@@ -266,15 +266,17 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     refetchStats();
   }, [activeSection]);
 
-  // Derive journey state from centralized stats
+  // Derive journey state from centralized stats — but trust myBooks (the
+  // canonical books endpoint) for hasBooks so a transient author-stats failure
+  // can't make the dashboard flip back to "no books / new author" state.
   useEffect(() => {
-    setHasBooks(stats.bookCount > 0);
+    setHasBooks(myBooks.length > 0 || stats.bookCount > 0);
     setBooksAnalyzed(stats.analyzedCount);
     setHasAnalysis(stats.analyzedCount > 0);
     setStripeConnected(stats.stripeConnected);
     setPendingReviewCount(stats.products.totalReadyForReview);
     setHasMicrosite(stats.liveMicrosites > 0);
-  }, [stats, isPremium, isAdmin]);
+  }, [stats, isPremium, isAdmin, myBooks.length]);
 
   // Onboarding redirect state
   const [onboardingRedirect, setOnboardingRedirect] = useState<"profile" | "my-books" | null>(null);
@@ -609,14 +611,16 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onNavigate={handleNavigate}
         />
         <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "overflow-y-auto" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
-          {/* Onboarding banners — only for genuinely new authors */}
-          {activeSection === "profile" && !hasBooks && (
+          {/* Onboarding banners — only for genuinely new authors. Wait for
+              the books query to resolve so we don't briefly flash these
+              banners to existing authors during auth bootstrap. */}
+          {activeSection === "profile" && !hasBooks && !myBooksLoading && (
             <OnboardingBanner
               message="Welcome to Authors Bureau! Let's set up your author profile first - this takes about 2 minutes."
               storageKey="ab_onboarding_profile_banner"
             />
           )}
-          {activeSection === "my-books" && !hasBooks && (
+          {activeSection === "my-books" && !hasBooks && !myBooksLoading && (
             <OnboardingBanner
               message="Great profile! Now let's add your first book. You can upload a manuscript or import from PublishNow."
               storageKey="ab_onboarding_books_banner"

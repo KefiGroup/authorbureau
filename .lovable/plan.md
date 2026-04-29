@@ -1,65 +1,73 @@
-# Audit Re-verification & Fixes
+## Plan
 
-I re-tested every finding against the live preview and database before planning. Result: **4 real bugs, 3 stale audit observations, 2 already-passed.**
+### 1. Fix the real books API failure at the source
+Update the `list-my-books` backend function so it no longer depends on auth verification that fails after a session refresh for this user.
 
-## Verified working (audit was stale)
+What I’ll change:
+- Replace the fragile `auth.getUser(token)` resolution path in `supabase/functions/list-my-books/index.ts` with the same resilient identity-resolution pattern already used in other working backend functions.
+- Add a fallback chain that can resolve the signed-in author from:
+  - cloud auth,
+  - shared-backend auth,
+  - decoded JWT claims (`sub`, `email`) when direct verification fails.
+- Map shared-backend users back to the local author record by email when needed.
+- Keep the existing tolerant ownership matching on `author_id` and `owner_email`, since Pauline’s books are present and correctly linked.
+- Improve logging/response handling so auth-resolution failures return a clear error instead of a generic books failure.
 
-| # | Audit claim | Reality |
-|---|---|---|
-| BA-14 podcast 404 | `/pauline-teo/podcast` renders the full podcast microsite ("Be SUCKcessful with Pauline Teo", Notify-Me form). `get-microsite-page` returns 200. |
-| BA-15 press 404 | `/pauline-teo/press` likewise returns 200 with full press kit. |
-| BA-10 no Buy button | `/pauline-teo/online-course` shows **"Enrol Now $297"** button (verified). |
-| BA-12 "Coming Soon" | `/pauline-teo/membership` shows **"Join Now $27/month"** button (verified). |
+Expected result:
+- `My Books Hub` stops throwing “Could not load your books” after refresh.
+- The existing books for `support@paulineteo.com` load consistently.
 
-All four resolve through `SLUG_TO_NODE` → `MicrositePage` → `get-microsite-page` (status 200, content_json populated, `activated=true`). No code change needed; auditor likely tested before Sprint 6/41 deploy completed.
+### 2. Remove the false “new author” dashboard state
+Once the books endpoint is fixed, tighten the dashboard so it does not momentarily revert to “no books / no plan” for authenticated authors.
 
-## Real bugs to fix
+What I’ll change:
+- In `src/hooks/useMyBooks.ts`, make the books hook preserve last-known data on transient auth/bootstrap failures instead of falling back to an empty list.
+- In `src/components/dashboard/MyBooks.tsx`, reuse the same resilient token/bootstrap pattern so the main hub and sidebar are aligned.
+- In `src/components/dashboard/ABBYFrameworkDashboard.tsx`, stop treating missing `list-my-books` data as `bookCount = 0` during bootstrap; keep prior values until the backend settles.
+- In `src/pages/AuthorDashboard.tsx`, gate onboarding banners from real resolved state rather than temporary zero/default state.
 
-### 1. BA-11 Audiobook Studio — "No manuscript found" (Critical)
-**Root cause:** `AudiobookStudio.tsx` queries `generated_assets` directly via the project Supabase client. RLS requires `author_id = auth.uid()`, but Pauline is signed in via the **shared backend** (PublishNow JWT), so `auth.uid()` resolves to NULL on Cloud Postgres → 0 rows. DB confirms her book has `source_material` (100k chars).
+Expected result:
+- “Meet Abby” no longer shows just because the books call briefly failed.
+- “Now let’s add your first book” no longer appears for existing authors.
+- Navigation between dashboard sections won’t make the content area look like the account was reset.
 
-**Fix:** Add a new `get-book-manuscript` edge function (service-role + dual-token verification, mirroring `list-my-books`). `AudiobookStudio.loadManuscript()` calls it instead of querying the table.
+### 3. Re-verify and finish the BA-11 / BA-13 / BA-14 / BA-15 follow-up items
+After the auth/books fix is in place, verify the dependent nodes again and patch any remaining real issue.
 
-### 2. "Could not load your books" on My Books Hub (Critical)
-**Root cause:** Same auth-bridge race. `MyBooks.fetchBooks()` runs immediately on mount; if `getActiveToken()` returns null because the shared session hasn't restored yet, `list-my-books` 401s and the user sees the red error.
+What I’ll check and fix if needed:
+- BA-11 Audiobook: confirm `get-book-manuscript` now resolves correctly from the working book context and no longer shows “No manuscript found”.
+- BA-13 Group Coaching: confirm the false `Live` badge is suppressed by the effective-status logic once node data loads correctly.
+- BA-14 Podcast Tour: confirm the live page resolves from its node/microsite data and does not 404.
+- BA-15 Media Outreach: fix the remaining backend gap in `supabase/functions/deploy-ba15-to-ghl/index.ts`, which currently marks the node live without saving a `microsite_url`, then verify the live page works.
 
-**Fix:** Gate `fetchBooks` on `useAuthReady().isReady && user` (the hook already exists). Show the loading skeleton until auth is ready instead of throwing the toast.
+### 4. Validate the full author experience end-to-end
+After implementation, I’ll verify the exact recovery flow for this author:
+- refresh session,
+- load dashboard,
+- confirm books appear,
+- confirm onboarding is hidden,
+- open BA-11,
+- confirm BA-14 and BA-15 live URLs,
+- confirm BA-13 is not falsely marked live.
 
-### 3. Stale onboarding banner for existing authors (Medium)
-**Root cause:** `OnboardingBanner` at `AuthorDashboard.tsx:619` always renders for `activeSection === "my-books"` regardless of book count.
+## Findings already confirmed
+- The failing endpoint is `list-my-books`.
+- Pauline’s books do exist in the database and are correctly linked to `support@paulineteo.com` and the expected author ID.
+- The current auth token path is failing after refresh with backend auth verification errors (`bad_jwt` / unrecognized JWT kid), which explains why the books request still breaks even though the user is visibly signed in.
+- The false onboarding state is a downstream effect of the books/auth bootstrap failure.
+- BA-15 still has a concrete backend bug: its deploy function sets the node to `live` but does not persist a microsite URL, which can still produce a 404.
 
-**Fix:** Wrap it in `{!hasBooks && <OnboardingBanner ... />}`. Same conditional for the profile banner using `stats.bookCount === 0 && !profileComplete`.
+## Technical details
+Files likely to change:
+- `supabase/functions/list-my-books/index.ts`
+- `src/hooks/useMyBooks.ts`
+- `src/components/dashboard/MyBooks.tsx`
+- `src/components/dashboard/ABBYFrameworkDashboard.tsx`
+- `src/pages/AuthorDashboard.tsx`
+- `supabase/functions/deploy-ba15-to-ghl/index.ts`
 
-### 4. Session timeout shows onboarding screen instead of book hub (Medium)
-**Root cause:** `useAuthorStats` returns `DEFAULT_STATS` (bookCount=0) when the token fetch fails or the session expires mid-session. This flips `hasBooks=false` → new-user gates appear.
-
-**Fix:** In `useAuthorStats`, if `getActiveToken()` returns null OR the response is 401, **keep the cached stats** (`cachedStats`) instead of resetting; surface a `staleAuth` flag so `AuthorDashboard` renders the previous state, not the empty-state UI.
-
-### 5. Payout schedule wording (Medium)
-**Root cause:** Two strings in `ConnectStripePage.tsx` (lines 24 & 58) say "on Stripe's standard payout schedule" / "Stripe's standard schedule". Per business rule, Authors Bureau is Merchant of Record and pays out **monthly**.
-
-**Fix:** Replace both with: *"…and your 92% share is paid out **monthly by Authors Bureau** to your connected Stripe account."* Also sweep `RevenueDashboard.tsx`, `SubscriptionPricing.tsx`, `generate-annual-statements/index.ts` for the same phrase.
-
-## Already passing (no work)
-- 8% / 92% fee messaging — verified across UI + edge functions.
-- Connect Stripe page — verified.
-
-## Technical detail
-
-**New edge function** `supabase/functions/get-book-manuscript/index.ts`:
-- POST `{ book_id }`
-- Dual-token auth (Cloud → shared-backend fallback, copy pattern from `list-my-books`)
-- Verify ownership: `books.author_id = userId` OR `books.owner_email = userEmail`
-- Service-role read of `generated_assets` where `book_id = $1 AND asset_type = 'source_material'`, ordered by `updated_at DESC LIMIT 1`
-- Returns `{ content: string | null }`
-
-**Files to edit**
-- `supabase/functions/get-book-manuscript/index.ts` (new)
-- `src/components/dashboard/AudiobookStudio.tsx` — replace `loadManuscript` query with edge-function call
-- `src/components/dashboard/MyBooks.tsx` — gate fetch on `useAuthReady`
-- `src/pages/AuthorDashboard.tsx` — conditional onboarding banners
-- `src/hooks/useAuthorStats.ts` — preserve cache on auth failure
-- `src/components/dashboard/ConnectStripePage.tsx` — payout wording (lines 24, 58)
-- Sweep + minor edits for "standard schedule" elsewhere.
-
-No DB migrations required.
+Implementation pattern:
+- Reuse the already-working resilient identity resolution used by functions like `author-crm-data` / `check-subscription` instead of relying on a single `getUser(token)` path.
+- Preserve last-known good dashboard/books state during auth restoration to avoid false empty-state UI.
+- Keep BA-13’s effective-status safeguard in place and only trust `live` when required assets exist.
+- Persist the missing BA-15 microsite metadata when the node is published live.
