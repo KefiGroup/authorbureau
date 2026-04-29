@@ -285,6 +285,41 @@ Deno.serve(async (req: Request) => {
       console.error("[save-author-node:publish] update failed:", updErr.message);
       return json(500, { error: updErr.message });
     }
+
+    // ---------- Cascade publish to sister product tables ----------
+    // BA-10 → courses; BA-12 → membership_content. The public sales pages
+    // gate the Buy button on these rows being non-draft.
+    try {
+      if (nodeId === "BA-10") {
+        // courses.author_id references auth.users.id, so resolve via author_profiles.user_id.
+        const { data: ap } = await admin
+          .from("author_profiles")
+          .select("user_id")
+          .eq("id", authorId)
+          .maybeSingle();
+        const ownerUserId = ap?.user_id;
+        if (ownerUserId) {
+          let q = admin.from("courses").update({ status: "live" }).eq("author_id", ownerUserId);
+          if (bookId) q = q.eq("book_id", bookId);
+          const { error: cErr } = await q;
+          if (cErr) console.error("[save-author-node:publish] BA-10 courses cascade:", cErr.message);
+          else console.log("[save-author-node:publish] BA-10 courses cascade OK", { ownerUserId, bookId });
+        } else {
+          console.warn("[save-author-node:publish] BA-10 cascade skipped — no user_id on author_profile");
+        }
+      } else if (nodeId === "BA-12") {
+        const { error: mErr } = await admin
+          .from("membership_content")
+          .update({ status: "live" })
+          .eq("author_id", authorId);
+        if (mErr) console.error("[save-author-node:publish] BA-12 membership cascade:", mErr.message);
+        else console.log("[save-author-node:publish] BA-12 membership cascade OK", { authorId });
+      }
+    } catch (cascadeErr) {
+      console.error("[save-author-node:publish] cascade exception:", cascadeErr);
+      // Never block publish on cascade failure — author_nodes is the source of truth.
+    }
+
     console.log("[save-author-node:publish] published successfully", { rowId: node.id, nodeId, authorId, bookId, micrositeUrl });
     return json(200, { ok: true, status: "live", micrositeUrl: micrositeUrl ?? null });
   }
