@@ -1,81 +1,81 @@
-## Plan
 
-1. Re-scope the BP-06 fix to the UI shown in your screenshot
-- Treat the screenshot as the source of truth: the affected surface is the **Book Hub product tile** for BP-06, not just the builder page.
-- Confirm the visible symptoms on that tile:
-  - the BP-06 card shows a false `Live` badge
-  - the tile CTA/state is wrong for the current book
-  - clicking from that tile can still open the builder without the correct book context
+# Brand Tab — Final 2 Bug Fixes
 
-2. Fix the real root cause: Book Hub tile state is currently author-wide, not book-specific
-- Update `useBookNodeProgress` so it filters `author_nodes` by the **current `book_id`**, not all rows for the author.
-- Update its API so Book Hub passes the active book id into the hook.
-- Keep the existing `content_json` non-empty check for BP-05/BP-06 style readiness, but apply it only to the current book’s node row.
+## Diagnosis
 
-3. Fix the second state source used by the same tile
-- Update `useNodeLiveStats` to support **book-scoped** stats instead of picking the “most progressed row per node” across all books.
-- Right now it collapses all books into one record per node code, which can make BP-06 show `Live` because some other book has a live workbook.
-- Pass the active book id from `PortfolioStepView` so the Workbook tile reads the live/progress data for the current book only.
+I traced both bugs and found the **actual root causes** are different from what was suspected.
 
-4. Correct the BP-06 Book Hub tile label/badge/CTA behavior
-- Verify the BP-06 card in `PortfolioStepView` + `SmartProductCard` resolves to the right state for the current book:
-  - empty or missing content -> `Ready to Build`
-  - draft/content ready -> `Building` or equivalent in-progress state
-  - actually live for this book -> `Live`
-- Ensure the tile no longer shows `Open & Manage` / `Live` just because another workbook exists elsewhere for the same author.
+### Bug 1 — BP-05 Webinars false "Live" badge (data-store mismatch, NOT a stale row)
 
-5. Keep builder navigation aligned with the corrected tile
-- From the BP-06 tile, ensure the launch path includes the current book context:
-  - `/node-builder/BP-06?bookId=...&bookTitle=...`
-- Re-check the already-added redirect fixes so the builder page back label remains:
-  - `Back to Book Hub · Brand`
-  - target `/book-hub/{bookId}?tab=revenue-streams`
+I queried the production database. For book "Be SUCKcessful" (`e5b857ac-...`):
 
-6. Remove any remaining stale workbook wording on legacy fallback screens
-- Search for any old workbook-specific copy such as `Go back to Brand Products` that can still appear from the old manager/fallback path.
-- Update or remove it so BP-06 uses the Book Hub language consistently.
+| Table | Rows | Status | Content |
+|---|---|---|---|
+| `author_nodes` (node_id=BP-05) | 1 | `live` | 9.6 KB JSON with `webinar_topics`, `registration_page`, `follow_up_emails`, `promotion_strategy`, `recommended_webinar`, `abby_summary` |
+| `webinars` table | **0** | — | — |
 
-7. Verify the exact screenshot flow end-to-end
-- Open the current book’s Brand tab
-- Inspect the BP-06 Workbook tile
-- Confirm the tile badge/state is correct for that book only
-- Click the tile and confirm the builder URL carries `bookId`
-- Confirm the builder top back link returns to the Brand tab of that same book
-- Publish the frontend update so production matches the fix
+The Brand-tab card reads `author_nodes` via `useNodeLiveStats` and correctly shows **Live** (the row IS live with content, so the bookId-scoping fix did its job).
 
-## What I found
-The screenshot exposed a different issue than the builder-only back button. The BP-06 **tile** is driven by:
-- `src/components/dashboard/PortfolioStepView.tsx`
-- `src/hooks/useBookNodeProgress.ts`
-- `src/hooks/useNodeLiveStats.ts`
-- `src/components/dashboard/SmartProductCard.tsx`
+But `WebinarsManager.tsx` (the component the user lands on) queries the **`webinars` table**, not `author_nodes`. That table is empty for this book, so the UI shows the "Generate from AI Engine → Build My Business" empty state. The two components read from completely different data stores.
 
-Those hooks currently derive state too broadly at the author level. That means the Workbook name tile can show the wrong badge/label for the current book even if the builder redirect code was fixed.
+The previous AI-generated webinar content is sitting unused inside `author_nodes.content_json` and never gets surfaced in the Manager.
 
-## Technical details
+### Bug 2 — BP-06 Workbook back navigation (build is 9 days stale)
+
+The console reports `Build: 2026-04-20T10:18:00Z`. Today is 2026-04-29. The previously deployed code (`buildNodeBuilderSearch`, synchronous param mirroring in `BookBuilderRoute`, `bookId`-aware back link in `NodeBuilder`) is correct in source — it just hasn't been built/deployed to production. Re-running the build will resolve it.
+
+---
+
+## Fixes
+
+### Fix 1 — Surface AI-generated webinar content in WebinarsManager
+
+When the `webinars` table is empty for the active book BUT an `author_nodes` row exists for BP-05 with `status in ('live','content_ready')` and a populated `content_json`, render a **read-only summary** of that AI content with three actions:
+- **Edit content** → opens the BP-05 builder step 2 (review/edit step)
+- **Promote to live webinar** → seeds a `webinars` row from `content_json.recommended_webinar` (title, description, suggested duration) so the Manager has a real record to schedule and publish
+- **Regenerate** → re-runs the AI generator
+
+Implementation:
+- In `src/components/dashboard/WebinarsManager.tsx`, after `fetchWebinars()` returns 0 rows, also fetch the `author_nodes` BP-05 row scoped by `bookFilterId` (mirror BP-05Builder's edge-function-first approach via `save-author-node` action `load`, with a direct `author_nodes` fallback that ALSO filters by `book_id` — current fallback at lines 124–131 of `BP05Builder.tsx` does not, which is a parallel bug).
+- If `content_json` has webinar data, render a new `<AIWebinarPreviewCard>` (new file: `src/components/dashboard/webinars/AIWebinarPreviewCard.tsx`) showing topic, abstract, target outcome, and the three action buttons above.
+- "Promote to live webinar" inserts into `webinars` with `status='draft'`, `book_id=bookFilterId`, then triggers `fetchWebinars()`.
+
+### Fix 2 — Patch the BP-05 builder direct-read fallback to filter by book_id
+
+`src/components/dashboard/builders/bp05/BP05Builder.tsx` lines 124–131: the fallback `.from("author_nodes").select(...).eq("author_id", authorId).eq("node_id", "BP-05").maybeSingle()` will return ANY BP-05 row regardless of book. Add `.eq("book_id", bookId)` when `bookId` is present so a multi-book author never sees the wrong book's content.
+
+### Fix 3 — Trigger a fresh build to deploy BP-06 fixes
+
+The BP-06 routing/back-link logic is already correct in source. Force a redeploy by touching a file (no functional change) so the production bundle picks up:
+- `buildNodeBuilderSearch` in `AuthorDashboard.tsx`
+- Synchronous param mirroring in `BookBuilderRoute.tsx`
+- `bookId`-preserving "Complete Book Profile" return URL and `/book-hub/{bookId}?tab=revenue-streams` back link in `BP06Builder.tsx`
+- `bookId`-aware back link in `NodeBuilder.tsx`
+
+After deploy, expected behavior for BP-06 launched from Brand tab:
+1. URL: `/node-builder/BP-06?bookId={id}&bookTitle=...&builder=workbook`
+2. Top back link: `← Back to Book Hub · Brand` → `/book-hub/{bookId}?tab=revenue-streams`
+3. "Complete Book Profile" return URL preserves `bookId`.
+
+---
+
+## Files Changed
+
 ```text
-Current problem
-Book Hub tile
-  -> PortfolioStepView
-     -> useBookNodeProgress()   // currently not scoped to current book
-     -> useNodeLiveStats()      // currently collapses rows across books
-  -> SmartProductCard renders badge/CTA from that mixed state
-
-Required fix
-Book Hub tile
-  -> PortfolioStepView(bookId)
-     -> useBookNodeProgress(bookId)
-     -> useNodeLiveStats(bookId)
-  -> SmartProductCard now shows the correct BP-06 badge for this book only
+src/components/dashboard/WebinarsManager.tsx          (load + render AI webinar fallback)
+src/components/dashboard/webinars/AIWebinarPreviewCard.tsx  (new)
+src/components/dashboard/builders/bp05/BP05Builder.tsx (book_id filter on fallback read)
+.lovable/plan.md                                      (touch to force redeploy)
 ```
 
-## Files likely to change
-- `src/hooks/useBookNodeProgress.ts`
-- `src/hooks/useNodeLiveStats.ts`
-- `src/components/dashboard/PortfolioStepView.tsx`
-- `src/components/dashboard/book-hub/BookHubOverview.tsx` if hook props need threading
-- `src/components/dashboard/SmartProductCard.tsx` only if the badge mapping itself needs a small wording adjustment
-- plus any remaining stale fallback component if old workbook copy still surfaces
+No DB migrations. No edge function changes (existing `save-author-node` `load` action already accepts `bookId`).
 
-## Deliverable
-A BP-06 Workbook tile that matches the screenshot context: the badge/label on the Book Hub card is correct for the current book, and clicking it opens the correct builder with the correct back path.
+## Acceptance Test (after deploy)
+
+| Scenario | Expected |
+|---|---|
+| Brand tab → Webinars tile (Be SUCKcessful) | Card shows ✅ Live; clicking opens Manager with AI-generated webinar preview + "Promote to live webinar" CTA |
+| Click "Promote to live webinar" | New row in `webinars`, Manager reloads showing the editable webinar |
+| Brand tab → Workbook tile | URL = `/node-builder/BP-06?bookId=…&bookTitle=…`; top link = `← Back to Book Hub · Brand`; clicking it returns to Brand tab |
+| BP-06 "Complete Book Profile" button (no profile) | Return URL retains `?bookId=…` |
+Edits done at 2026-04-29T10:50:13Z

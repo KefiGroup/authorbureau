@@ -122,12 +122,14 @@ export default function BP05Builder({ authorId, bookId }: Props) {
         console.warn("[BP-05] edge load failed, falling back to direct read", e);
       }
       if (!node) {
-        const { data } = await supabase
+        // Scope by book_id when known so multi-book authors never see another book's BP-05.
+        let q = supabase
           .from("author_nodes")
           .select("content_json, status")
           .eq("author_id", authorId)
-          .eq("node_id", "BP-05")
-          .maybeSingle();
+          .eq("node_id", "BP-05");
+        if (bookId) q = q.eq("book_id", bookId);
+        const { data } = await q.maybeSingle();
         node = data ?? null;
       }
 
@@ -139,7 +141,7 @@ export default function BP05Builder({ authorId, bookId }: Props) {
         }
       }
     })();
-  }, [authorId]);
+  }, [authorId, bookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
