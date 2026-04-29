@@ -441,9 +441,9 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "courses":
         return gate("Course Builder", <CourseBuilder />, "build");
       case "home-study":
-        return <Navigate to="/node-builder/BP-07" replace />;
+        return <Navigate to={`/node-builder/BP-07${location.search}`} replace />;
       case "workbooks":
-        return <Navigate to="/node-builder/BP-06" replace />;
+        return <Navigate to={`/node-builder/BP-06${location.search}`} replace />;
       case "webinars":
         return gate("Webinars", <WebinarsManager onNavigate={handleNavigate} />, "build");
       case "social-media":
@@ -471,11 +471,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />, "build");
       case "group-coaching":
-        return <Navigate to="/node-builder/BA-13" replace />;
+        return <Navigate to={`/node-builder/BA-13${location.search}`} replace />;
       case "memberships":
-        return <Navigate to="/node-builder/BA-12" replace />;
+        return <Navigate to={`/node-builder/BA-12${location.search}`} replace />;
       case "email-marketing":
-        return <Navigate to="/node-builder/BP-01" replace />;
+        return <Navigate to={`/node-builder/BP-01${location.search}`} replace />;
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
@@ -528,13 +528,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
-        return <Navigate to="/node-builder/BP-09" replace />;
+        return <Navigate to={`/node-builder/BP-09${location.search}`} replace />;
       case "special-editions":
-        return <Navigate to="/node-builder/BP-08" replace />;
+        return <Navigate to={`/node-builder/BP-08${location.search}`} replace />;
       case "lead-magnet":
-        return <Navigate to="/node-builder/BP-02" replace />;
+        return <Navigate to={`/node-builder/BP-02${location.search}`} replace />;
       case "big-ticket":
-        return <Navigate to="/node-builder/YR-20" replace />;
+        return <Navigate to={`/node-builder/YR-20${location.search}`} replace />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "payout-settings":

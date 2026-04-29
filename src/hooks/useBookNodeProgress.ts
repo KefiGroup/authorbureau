@@ -95,14 +95,23 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
         if (profile?.id) {
           const { data: nodes } = await supabase
             .from("author_nodes")
-            .select("node_id, status")
+            .select("node_id, status, content_json")
             .eq("author_id", profile.id);
 
           (nodes || []).forEach((n: any) => {
-            if (n.status === "live" || n.status === "published_pending_ghl") {
+            const hasContent =
+              n.content_json &&
+              typeof n.content_json === "object" &&
+              Object.keys(n.content_json).length > 0;
+            const isLiveStatus = n.status === "live" || n.status === "published_pending_ghl";
+            if (isLiveStatus && hasContent) {
               map[n.node_id] = "completed";
-            } else if (n.status === "content_ready" || n.status === "draft") {
-              if (!map[n.node_id]) map[n.node_id] = "in-progress";
+            } else if (
+              n.status === "content_ready" ||
+              n.status === "draft" ||
+              (isLiveStatus && !hasContent)
+            ) {
+              if (map[n.node_id] !== "completed") map[n.node_id] = "in-progress";
             }
           });
         }

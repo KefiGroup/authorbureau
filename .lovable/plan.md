@@ -1,87 +1,92 @@
-# Fix node routing, back-buttons, and false "Live" badges
+# Fix the 3 bugs from the BP-05 → BP-09 audit
 
-## Root-cause findings
+I read Manus's audit report and traced each remaining bug to a single root cause in the code. Two of them are NOT what the audit prompt assumes — the back-nav code is already correct in source, and the "Products Built" counter discrepancy is a different shape of the same `bookId` plumbing problem on the backend. Findings and fixes below.
 
-While auditing the three reported bugs, I confirmed the actual builder identities by reading each builder file's own `nodeId` constant and DB writes:
+## Bug 1 (P1) — "Go back to Brand Products" lands on My Books for BP-06/07/08/09
 
-- **BP-06 = Workbook** (uses `workbook-pdf`/`workbook-docx`, writes `node_id="BP-06"`)
-- **BP-07 = Home Study Course** (writes `node_id="BP-07"`)
-- **BP-08 = Special Editions** (writes `node_id="BP-08"`)
-- **BP-09 = Book Sales** (writes `node_id="BP-09"`)
+**Audit assumption:** the `onBack` handlers in BP06/07/08/09 still hard-code `/brand-products`.
 
-Two places in the codebase contradict that ground truth:
+**Actual cause:** all four builders already use the correct
+`navigate(bookId ? \`/book-hub/${bookId}?tab=revenue-streams\` : "/dashboard?section=my-books")`
+pattern (verified in BP06Builder.tsx:189, BP07:222, BP08:177, BP09:207). The fallback is firing because **`bookId` is `null` at runtime** for these four builders — but it IS populated for BP-05.
 
-1. `src/pages/AuthorDashboard.tsx` — the `workbooks` case mounts the legacy `WorkbooksManager` instead of routing to the BP-06 builder. (`home-study`, `book-sales`, `special-editions` cases are already correctly routed to BP-07/09/08.)
-2. `src/hooks/useBookNodeProgress.ts` — `NODE_CODE_MAP` has these four nodes inverted:
-   - `workbooks` → `BP-07`  (should be `BP-06`)
-   - `home-study` → `BP-08`  (should be `BP-07`)
-   - `special-editions` → `BP-09`  (should be `BP-08`)
-   - `book-sales-events` → `BP-06`  (should be `BP-09`)
+The reason: the Brand-tab cards in `BookHub.tsx` open these nodes through dashboard sections (`/dashboard?section=workbooks&bookId=...`). `AuthorDashboard.tsx` then uses React-Router `<Navigate to="/node-builder/BP-06" replace />` for the workbooks/home-study/special-editions/book-sales cases. **`<Navigate>` drops the query string**, so by the time `NodeBuilder.tsx` reads `searchParams.get("bookId")`, it is `null`. BP-05 Webinars is unaffected because it uses `WebinarsManager` (no `<Navigate>`).
 
-This second issue is **the real cause of Bug 3**. Whenever any of these builders writes a `live`/`content_ready` row to `author_nodes`, the dashboard reads that row through the inverted map and lights up the wrong card. The "BP-05 Webinars is Live but empty" report is a symptom of this mis-attribution: a different node's status is being painted onto a neighbouring card. Fixing the map removes the false badge without changing BP-05's logic.
+**Fix — preserve `bookId` (and `bookTitle`) on the redirects in `src/pages/AuthorDashboard.tsx`:**
 
-## Bug 1 — Workbook card opens the wrong builder
-
-**File:** `src/pages/AuthorDashboard.tsx` (line ~445)
-
-Replace the `workbooks` case so it redirects to the BP-06 builder, matching the pattern already used for `home-study`, `book-sales`, and `special-editions`:
+Replace each of these five lines with a redirect that forwards the current query string:
 
 ```tsx
+case "home-study":
+  return <Navigate to={`/node-builder/BP-07${location.search}`} replace />;
 case "workbooks":
-  return <Navigate to="/node-builder/BP-06" replace />;
+  return <Navigate to={`/node-builder/BP-06${location.search}`} replace />;
+case "book-sales":
+  return <Navigate to={`/node-builder/BP-09${location.search}`} replace />;
+case "special-editions":
+  return <Navigate to={`/node-builder/BP-08${location.search}`} replace />;
+case "lead-magnet":
+  return <Navigate to={`/node-builder/BP-02${location.search}`} replace />;
 ```
 
-The legacy `WorkbooksManager` import can stay for now (other surfaces may still link to it); we're only changing the section route the Brand tab uses.
+(`useLocation()` is already imported in this file; if not, add it.) Apply the same pattern to the other `<Navigate to="/node-builder/...">` cases in this file (`group-coaching`, `memberships`, `email-marketing`, `big-ticket`) so any future Brand-card flow that depends on `bookId` works consistently.
 
-## Bug 2 — "Back to Brand Products" lands on My Books
+After this change, the existing `onBack` code in all four builders will correctly route back to `/book-hub/<bookId>?tab=revenue-streams`. No edits needed in BP06/07/08/09 themselves.
 
-**Files:** `BP06Builder.tsx`, `BP07Builder.tsx`, `BP08Builder.tsx`, `BP09Builder.tsx`
+## Bug 2 (P2) — BP-05 Webinars shows "Live" with no content
 
-Each builder currently calls `navigate("/brand-products")` in its `BuilderHeader onBack`. `/brand-products` is handled by `HubRedirect`, which falls back to `/dashboard?section=my-books` when `useBookContext` hasn't resolved a book yet (cold-session race).
+**Cause:** `deploy-bp05-to-ghl` writes `status = "live"` (or `published_pending_ghl`) on the `author_nodes` row before the actual webinar content has been generated. `useBookNodeProgress` then maps any row with those statuses to `completed`, regardless of whether `content_json` exists.
 
-Apply the BP-05 pattern to all four builders (each already receives `bookId` as a prop and has access to `useNavigate`):
+**Fix — `src/hooks/useBookNodeProgress.ts`:**
 
-```tsx
-onBack={() => navigate(
-  bookId
-    ? `/book-hub/${bookId}?tab=revenue-streams`
-    : "/dashboard?section=my-books"
-)}
-```
+Tighten the "completed" rule so that a node only counts as live when it actually has content:
 
-For BP-09 the same change applies to its second `onBack` reference at line ~207.
-
-## Bug 3 — BP-05 Webinars shows "Live" with no content
-
-The card-level status comes from `useBookNodeProgress`, which buckets `author_nodes` rows by `NODE_CODE_MAP[node.id]`. Because the map is inverted for BP-06/07/08/09, a row written by (for example) BP-09 Book Sales when the author touches it lands in the bucket the UI reads as the *Workbook* or *Home Study* card, while another row can shift onto BP-05's neighbouring tile. The user-visible result is a "Live" badge on a builder that has never been opened.
-
-**Fix:** correct `NODE_CODE_MAP` in `src/hooks/useBookNodeProgress.ts` so it matches what the builders actually write:
+1. Update the `author_nodes` select to `"node_id, status, content_json"`.
+2. In the row loop, treat `live` / `published_pending_ghl` as `"completed"` **only if** `content_json` is a non-empty object. Otherwise downgrade to `"in-progress"`:
 
 ```ts
-"book-sales-events": "BP-09",
-workbooks:           "BP-06",
-"home-study":        "BP-07",
-"special-editions":  "BP-08",
+const hasContent =
+  n.content_json &&
+  typeof n.content_json === "object" &&
+  Object.keys(n.content_json).length > 0;
+
+if ((n.status === "live" || n.status === "published_pending_ghl") && hasContent) {
+  map[n.node_id] = "completed";
+} else if (n.status === "content_ready" || n.status === "draft" ||
+           ((n.status === "live" || n.status === "published_pending_ghl") && !hasContent)) {
+  if (map[n.node_id] !== "completed") map[n.node_id] = "in-progress";
+}
 ```
 
-No other changes are needed in `useBookNodeProgress` — the `completed`/`in-progress` derivation logic is correct; it was just being fed the wrong key for these four nodes.
+This is generic — it fixes BP-05 today and prevents the same false-Live badge on any other node whose deploy step runs ahead of content generation.
 
-After this change, BP-05's badge will only flip to "Live" when an actual `BP-05` row exists with `status` of `live` or `published_pending_ghl`, which matches the requested behaviour ("Ready to Build" until content is generated and published).
+## Bug 3 (P3) — "Products Built" header shows 2 of 56 instead of 29 of 56
 
-## Verification checklist
+**Cause:** `MyBooks.tsx` reads `centralStats.products.totalBuilt` from the `author-stats` edge function. Inside that function, `totalBuilt` is summed only across the 8 `PRODUCT_TABLES` rows (courses, home_study_courses, audiobooks, podcasts, workbooks, coaching_packages, email_flows, social_media_content). It **ignores `author_nodes`** entirely, even though most BP/BA/YR nodes record their built state there. The per-book counter in the same response (`products.perBook`) DOES include `author_nodes`, which is why each book card shows the correct number (28/28, 1/28) while the aggregate shows only 2.
 
-After the edits:
+**Fix — `supabase/functions/author-stats/index.ts`:**
 
-1. Brand tab → click **Workbook** card → opens `/node-builder/BP-06` (Workbook builder, not the Home Study generator).
-2. Inside BP-06/07/08/09 → click "Back to Brand Products" → returns to `/book-hub/<bookId>?tab=revenue-streams` (not My Books).
-3. For an author with no BP-05 content, the **Webinars** card shows "Ready to Build" instead of "Live".
-4. Spot-check that an existing live workbook/home-study/special-edition/book-sales row now lights up the *correct* card (the previously-inverted map was masking this).
+Compute `totalBuilt` from the same per-book node sets that the per-book card uses, summing distinct nodes across all books:
+
+```ts
+const totalBuilt = Object.values(perBookNodeSets)
+  .reduce((sum, set) => sum + set.size, 0);
+
+// totalReadyForReview / totalPublished can stay as the existing
+// product-table sums — they are only used by ReviewProductsPage.
+```
+
+This makes the header (29/56 in this user's case) consistent with the per-book chips and with the BookHub overview, all of which already use the per-book node sets.
 
 ## Files changed
 
-- `src/pages/AuthorDashboard.tsx` — workbooks case redirects to BP-06
-- `src/hooks/useBookNodeProgress.ts` — fix four inverted entries in `NODE_CODE_MAP`
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx` — book-aware back button
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx` — book-aware back button
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — book-aware back button
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — book-aware back button (two call sites)
+- `src/pages/AuthorDashboard.tsx` — preserve query string on all `<Navigate to="/node-builder/...">` redirects (fixes back-nav for BP-06/07/08/09 and any future bookId-aware flows).
+- `src/hooks/useBookNodeProgress.ts` — require non-empty `content_json` before treating a node as "completed" (fixes BP-05 false Live badge generically).
+- `supabase/functions/author-stats/index.ts` — derive `totalBuilt` from `perBookNodeSets` so it includes `author_nodes`, matching the per-book counts.
+
+## Verification checklist
+
+1. From the Brand tab on a book, click Workbook / Home Study / Special Editions / Book Sales → builder opens AND its "Go back to Brand Products" button returns to `/book-hub/<bookId>?tab=revenue-streams`.
+2. With no webinar content generated, the BP-05 Webinars card shows "Ready to Build" / "In Progress", not "Live".
+3. After generating real BP-05 content, the badge flips to "Live" as expected.
+4. My Books header shows "29 of 56 Products Built" (matches 28 + 1 from the per-book chips).
