@@ -240,6 +240,7 @@ export default function MicrositePage() {
       {resolvedNodeId === "BA-13" && <GroupCoachingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-14" && <PodcastPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-10" && <OnlineCoursePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
+      {resolvedNodeId === "BA-12" && <MembershipPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {resolvedNodeId === "YR-19" && <CoachingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "YR-20" && <BigTicketPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "YR-21" && <SpeakingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
@@ -251,7 +252,7 @@ export default function MicrositePage() {
       {resolvedNodeId === "YR-27" && <FundraisingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
       {resolvedNodeId === "YR-28" && <SponsorsPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
-      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-10", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18", "YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"].includes(resolvedNodeId!) && (
+      {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-10", "BA-12", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18", "YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"].includes(resolvedNodeId!) && (
         <GenericPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} nodeId={resolvedNodeId!} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />
       )}
 
@@ -2644,45 +2645,112 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
         </div>
 
         <div className="md:sticky md:top-6">
-          {paymentLink ? (
-            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enroll Now</h3>
-              {price != null && (
-                <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-              )}
-              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
+          {/* BA-10 always sells via BuyNowButton (Stripe Connect destination
+              charges + 5% platform fee). The legacy `paymentLink` external-URL
+              path produced a "Notify Me" form whenever Stripe wasn't pre-wired,
+              which made every published course look pre-launch to readers.
+              BuyNowButton handles the no-Stripe case gracefully (waitlist
+              modal) so we no longer need a separate Notify form. */}
+          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enrol Now</h3>
+            {price != null && (
+              <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
+            )}
+            <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
+            {paymentLink ? (
               <a href={paymentLink} target="_blank" rel="noopener noreferrer">
                 <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
-                  Enroll Now <ArrowRight className="ml-2 h-4 w-4" />
+                  Enrol Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </a>
-            </Card>
-          ) : !submitted ? (
-            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Notify Me When Enrollment Opens</h3>
-              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Be the first to know when doors open.</p>
-              <form onSubmit={onSubmit} className="space-y-3">
-                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
-                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
-                  {submitting ? "Submitting..." : "Notify Me"} <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </form>
-            </Card>
+            ) : (
+              <BuyNowButton
+                authorNodeId={data.node.id}
+                authorId={data.author?.id}
+                label="Enrol Now"
+                className="w-full rounded-full"
+                style={{ background: v.accent, color: bgColor }}
+              />
+            )}
+          </Card>
+        </div>
+        {/* Keep unused FormPageProps fields referenced for lint hygiene. */}
+        {(() => { void onSubmit; void email; void setEmail; void firstName; void setFirstName; void submitting; void submitted; return null; })()}
+      </div>
+    </div>
+  );
+}
+
+/* ═══ BA-12 — MEMBERSHIP ═══ */
+function MembershipPage({ data, content, v, hFont, bgColor }: PageProps) {
+  // BA-12 generator stores tier objects in content_json.tiers[]. Fall back to
+  // top-level fields for older generations and to data.node.price_usd for the
+  // canonical commerce price (always wins over content for the buy button).
+  const tier = (Array.isArray(content?.tiers) && content.tiers[0]) || {};
+  const name = (typeof content?.membership_name === "string" && content.membership_name)
+    || tier.name
+    || data.node.personalised_name
+    || "Membership";
+  const tagline = typeof content?.tagline === "string" ? content.tagline : "";
+  const description = typeof tier.description === "string" ? tier.description
+    : (typeof content?.description === "string" ? content.description : "");
+  const benefits: string[] = Array.isArray(tier.benefits)
+    ? tier.benefits.filter((b: unknown) => typeof b === "string" && b.trim())
+    : (Array.isArray(content?.benefits) ? content.benefits.filter((b: unknown) => typeof b === "string") : []);
+  const monthlyPrice = typeof data.node.price_usd === "number" ? data.node.price_usd
+    : (typeof tier.price === "number" ? tier.price : (typeof content?.monthly_price === "number" ? content.monthly_price : null));
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12 sm:py-20">
+      <header className="text-center space-y-3 mb-10">
+        <p className="text-sm uppercase tracking-widest" style={{ color: v.accent }}>{name}</p>
+        <h1 className="text-3xl sm:text-5xl font-bold leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>
+          {tagline || name}
+        </h1>
+        {description && <p className="text-base leading-relaxed max-w-2xl mx-auto" style={{ color: v.bodyText }}>{description}</p>}
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div className="space-y-3">
+          <h2 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>What's included</h2>
+          {benefits.length > 0 ? (
+            <ul className="space-y-2">
+              {benefits.map((b, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                  <span className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{b}</span>
+                </li>
+              ))}
+            </ul>
           ) : (
-            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
-              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>You're on the list</h3>
-              <p className="text-sm" style={{ color: v.mutedText }}>We'll email you the moment enrollment opens.</p>
-            </Card>
+            <p className="text-sm" style={{ color: v.mutedText }}>Membership benefits will appear here.</p>
           )}
+        </div>
+
+        <div className="md:sticky md:top-6">
+          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Join Now</h3>
+            {monthlyPrice != null && (
+              <p className="my-3" style={{ color: v.accent }}>
+                <span className="text-3xl font-bold">${Number(monthlyPrice).toFixed(0)}</span>
+                <span className="text-sm" style={{ color: v.mutedText }}> /month</span>
+              </p>
+            )}
+            <p className="text-xs mb-4" style={{ color: v.mutedText }}>Cancel anytime. Instant access on payment.</p>
+            <BuyNowButton
+              authorNodeId={data.node.id}
+              authorId={data.author?.id}
+              label="Join Now"
+              className="w-full rounded-full"
+              style={{ background: v.accent, color: bgColor }}
+            />
+          </Card>
         </div>
       </div>
     </div>
   );
 }
 
-/* ═══ YR SHARED HELPERS ═══ */
 type YRPageProps = FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void };
 
 const yrStr = (v: any, fallback = ""): string => (typeof v === "string" && v.trim()) ? v : fallback;
@@ -3657,8 +3725,12 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
-  const optinNodes = ["BP-02", "BP-05", "BA-10", "BA-14", "BA-16"];
-  const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-15", "BA-18"];
+  // Optin = capture email for nurture (no transaction). BA-10 (course) and
+  // BA-12 (membership) are purchase nodes — they sell directly via Stripe
+  // through BuyNowButton; they used to be miscategorised as optin which
+  // forced the public page to render a "Notify Me" form instead of a buy CTA.
+  const optinNodes = ["BP-02", "BP-05", "BA-16"];
+  const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-14", "BA-15", "BA-18"];
   const applicationNodes = ["YR-20", "YR-23", "BA-13"];
   if (optinNodes.includes(nodeId)) return "optin";
   if (enquiryNodes.includes(nodeId)) return "enquiry";

@@ -1,76 +1,97 @@
-# Why the portal feels slow
+## What the audit actually found
 
-Looking at your live console logs, the same warning is repeating every few seconds:
+The Sprint 6 fixes I shipped touched `CourseSalesPage.tsx` and `MembershipSalesPage.tsx`. **Those pages are never reached by readers.** Pauline's URLs `/pauline-teo/online-course` and `/pauline-teo/membership` resolve through `AuthorSubpageResolver` → `MicrositePage.tsx`. That's why she still sees "Notify Me" and "Coming Soon" even though the database now says `live`.
 
-```
-@supabase/gotrue-js: Lock "lock:authorsbureau-shared-auth"
-acquisition timed out after 10000ms.
-```
+So the real fixes live in **MicrositePage**, **get-microsite-page**, the **My Books built-counter**, and the **Stripe banner gate**. Here's the plan node-by-node and finding-by-finding.
 
-This is the real cause of the slowness — not the network, not the database, not your AI generators. Here's what's happening in plain English:
+---
 
-1. Your app uses a **shared login session** with PublishNow (so users only log in once across both products).
-2. To keep that session safe across multiple browser tabs, the auth library puts a **lock** around every read of the session.
-3. When you click a button (Open My Funnels, Open BA-10, Save, Publish, etc.), the page tries to read the session **multiple times in parallel** — for the page itself, for each widget, for each data fetch.
-4. Those reads pile up behind the lock. The first one succeeds quickly, but the rest **wait up to 10 seconds each** before timing out and falling back.
-5. The result: every click feels like it freezes for 3–10 seconds before anything happens.
+## Fixes by audit finding
 
-We already partially fixed this in `getActiveToken()` (it races a 2-second timeout against the lock and falls back to the cached token). But **41 other files still call `supabase.auth.getSession()` or `auth.getUser()` directly** — those calls all hit the lock with no timeout, which is what produces the 10s warnings you see in the logs.
+### BA-10 Online Course — "Notify Me" instead of Enrol Now
+`MicrositePage.tsx` line 2647 only renders an Enrol button when `paymentLink` (an external URL) exists; otherwise it falls through to the "Notify Me" form. Our Commerce Engine v1 doesn't use external links — checkout flows through `BuyNowButton` → `create-checkout-session`.
 
-# The plan — make the portal snappy
+**Fix**: in the BA-10 branch of `MicrositePage`, render `<BuyNowButton authorNodeId={node.id} priceUsd={node.price_usd} ... />` whenever the node is live and has a `price_usd`. Keep the "Notify Me" form only as a fallback for nodes with no price.
 
-## Section 1 — What you'll notice as a user
+### BA-12 Membership — "Coming Soon" with no benefits/price
+The generic purchase branch (line 2442–2451) has the same `hasPaymentLink` gate. Same fix: route BA-12 through `<BuyNowButton mode="subscription" ...>` so readers see the membership name, monthly price, benefits, and a working Join Now button. Also surface `membership_content` benefits on this microsite view (currently only `MembershipSalesPage` reads them).
 
-- Clicking any button in the dashboard, Marketing Hub, Book Hub, My Funnels, BA/BP/YR builders feels **instant** instead of waiting 3–10 seconds.
-- The "Lock acquisition timed out" warnings disappear from the console.
-- No change to how login, security, or your data works — only how fast things respond.
+### BA-14 Podcast / BA-15 Press — 404 "Hmm, I can't find that page"
+`get-microsite-page` (line 62) does `ilike("microsite_url", %slug%)`, but the column that holds the public URL is `delivery_url`, not `microsite_url`. The lookup misses, returns 404, and `AuthorSubpageResolver` falls through to `AuthorBookPage`'s not-found state.
 
-## Section 2 — What we'll change (technical)
+**Fix**: in `get-microsite-page`, resolve slug → node by mapping `micrositeSlug` through `NODE_SLUG_MAP` (server-side copy) instead of LIKE-searching a URL column. Then load the row by `(author_id, node_id)`. This is deterministic and covers every node.
 
-### Fix 1 — Stop bypassing the timeout-protected token helper (biggest win)
+Also: BA-14 (podcast) and BA-15 (press) are *outbound* nodes — there's no purchase. `MicrositePage` already has an `actionType === "optin" / "enquiry"` branch; ensure these node IDs are mapped to the right action so readers see a "Book Pauline on your podcast" enquiry form (BA-14) and a "Press inquiry" form (BA-15), not a Buy button.
 
-Replace every direct `supabase.auth.getSession()` / `supabase.auth.getUser()` call across the 41 files with the existing safe helper `getActiveToken()` (which already times out at 2s and falls back to the cached token).
+### BA-11 Audiobook — "No manuscript found"
+The Audiobook Studio queries `generated_assets` filtered by a `book_id` query param. Both books *do* have `source_material` rows; the symptom appears when the studio is opened without a `?bookId=...` in the URL (the book-hub Build tab passes it; an old bookmark or the dashboard nav doesn't).
 
-Files to update include the high-traffic ones:
-- `src/components/dashboard/DashboardOverview.tsx`
-- `src/components/dashboard/BuildMyBusiness.tsx`, `BusinessPlanActions.tsx`, `SavedBusinessPlan.tsx`, `FullPlanDialog.tsx`
-- `src/components/dashboard/social-media/*` (4 files)
-- `src/components/dashboard/podcast/*` (3 files)
-- `src/components/dashboard/EmailMarketing.tsx`, `ManuscriptUpload.tsx`, `ProfileEditor.tsx`, `AudiobookStudio.tsx`, `SocialMediaManager.tsx`, `PodcastManager.tsx`, `FrameworkInterviewModal.tsx`
-- `src/pages/AuthorBookPage.tsx`, `AuthorProductPage.tsx`, `AuthorSite.tsx`, `AuthorSubpageResolver.tsx`, `AbbyCoachPage.tsx`, `ConnectSettings.tsx`, `PurchaseSuccess.tsx`, `ReaderPortal.tsx`, `ReaderContentViewer.tsx`, `ReadersBureau.tsx`, `OnlineCourseViewer.tsx`, `SocialAuthCallback.tsx`
-- `src/hooks/useAbbyPlan.ts`, `useBuilderGeneration.ts`, `useMarketResearch.ts`
-- `src/lib/admin-api.ts`, `src/lib/publishnow-redirect.ts`
-- `src/components/AbbyHelpChatbot.tsx`, `src/components/DualModeBookForm.tsx`
+**Fixes**:
+- In `AudiobookStudio`, when `bookId` is missing, call `get-author-book` to fetch the user's most-recent book and use its id (consistent with the Book Ownership Lookup standard).
+- Improve the empty-state copy to say "Open this audiobook from your Book Hub Build tab" instead of "Upload Manuscript Now", and link directly back to the book hub.
+- Remove the false "Live" badge: `BA-11` shows Live in the Build tab because the `author_nodes.status` was flipped on a prior test before chapters existed. Tighten the Build-tab badge so BA-11 only displays "Live" when the node's `delivery_url` points at an `audiobook-audio` storage object **and** at least one chapter MP3 row exists. (The publish function `ba11-publish-audiobook` already enforces this going forward; we just need the badge to honour the same rule.)
 
-### Fix 2 — Add a tiny in-memory user cache to the auth context
+### BA-13 Group Coaching — publish spinner hangs > 2 min
+The publish call ran past the 60s edge-function timeout but the UI never received a result. Pauline's row in the DB is `content_ready` not `live`, confirming the publish silently failed.
 
-Today, components that need the current `user.id` often re-call `auth.getUser()` even though `useAuth()` already has it. We'll expose a `getCurrentUserId()` helper that reads from the existing `AuthContext` without touching the lock at all.
+**Fixes**:
+- Wrap the BA-13 publish call in `fetchWithTimeout` (90s) with a clear failure toast: "Publishing took too long. ABBY saved your draft — try Publish again."
+- Ensure the publish function returns within timeout: it currently regenerates content as part of publish; split it so generation finishes at Step 3 (Review) and Step 4 (Activate) only updates `status='live'` + `delivery_url`. That call should complete in <2s.
+- After successful publish, refetch the node so the badge updates without a manual reload.
 
-### Fix 3 — Coalesce duplicate session reads
+---
 
-When 5 widgets mount simultaneously and each calls `getActiveToken()`, the lock contention spikes. We'll add a 250ms in-flight de-duplicator inside `getActiveToken()` so 5 concurrent callers share **one** session lookup instead of 5.
+## Systemic findings
 
-### Fix 4 — Reduce the gotrue lock timeout from 10s → 2s
+### S-1 / S-3 — Conflicting & resetting "built" counters
+`My Books Hub` shows "2 of 56" while a single book hub shows "28 of 28". They use different definitions. Pick one rule and apply it everywhere:
 
-In `src/lib/shared-backend.ts`, pass `lockAcquireTimeout: 2000` to the auth client config. If the lock can't be acquired in 2s, the call fails fast and our fallback kicks in immediately. (Worst-case wait drops from 10s to 2s.)
+**Built = author_nodes row exists with status in (`content_ready`, `live`, `published_pending_ghl`) for that book.**
 
-### Fix 5 — Cache `has_role` admin check
+- Update `useAuthorStats` / `useBookNodeProgress` to share one selector.
+- The dashboard's brief "0 of 28" flash after publish is just the loader rendering before the query resolves. Add a `previousData`-style fallback (keep last value while refetching) so the counter never visibly drops to zero during a refetch.
 
-`useAuth` calls `supabase.rpc("has_role")` on every page load. We'll cache the result in `localStorage` with a 5-minute TTL (same pattern already used for the subscription tier), so admin status is resolved instantly on subsequent navigations.
+### S-2 — False "Live" badges
+The Build tab marks any node whose `author_nodes.status='live'` as Live, even when downstream artifacts (course modules, audiobook chapters, microsite payload) are missing. Add a per-node `isPubliclyLive(node)` helper that checks the matching downstream readiness:
+- BA-10: linked `courses` row with `status='live'` and ≥1 module
+- BA-11: ≥1 row in `audiobook_chapters` with non-empty `audio_url`
+- BA-12: linked `membership_content` row with `status='live'`
+- BA-13: `content_json.activated === true` AND `delivery_url` non-null
+- BA-14 / BA-15: `delivery_url` non-null AND microsite resolves (we'll get this for free once the resolver fix lands)
 
-## Section 3 — How we'll verify the fix
+The Build tab badge calls this helper. The DB status is the source of truth for the publish action; the badge is the source of truth for what a reader sees.
 
-1. Open DevTools console, watch for `Lock ... acquisition timed out` warnings — should drop to **zero**.
-2. Click through: Dashboard → My Funnels → STEP 3 Checkout → Marketing Hub → Social Calendar → Book Hub → BA-10 builder. Each transition should feel **immediate** (<300ms perceived).
-3. Confirm login still works on a fresh browser (no cached session) and on a returning visit (cached session restored).
-4. Confirm the existing PublishNow ↔ Authors Bureau single-sign-on still flows both ways.
+### S-4 — "Connect Stripe" banner persists after connecting
+The banner reads `author_profiles.stripe_account_id` but doesn't check `stripe_charges_enabled`. Once the connection is active the flag is set but the banner doesn't re-evaluate. Replace the gate with `stripe_charges_enabled === true` and add a `queryClient.invalidateQueries(["author-profile"])` call to the Stripe OAuth callback page.
 
-## Section 4 — Out of scope (for this round)
+### S-5 — All 28 URLs return HTTP 200 but content varies
+This is correct SPA behaviour (the React shell renders 200 then mounts the resolver), so it isn't a bug per se. The audit's underlying concern — readers seeing a working URL that has no real content — is fully covered by the BA-10/12/14/15 fixes above.
 
-- No changes to how AI generation works (those are slow because the AI itself takes 30–90s — that's separate).
-- No changes to your database, edge functions, or Stripe flow.
-- No visual/UI changes.
+---
 
-## Risk
+## Implementation order
 
-Low. Every change is a drop-in replacement of one auth call with a safer version of the same call. The fallback path (cached token) is already exercised today whenever the lock times out — we're just making it the fast path instead of the 10s-later path.
+1. **`supabase/functions/get-microsite-page/index.ts`** — replace LIKE lookup with deterministic slug→node map. Unblocks BA-14/15 in one edit.
+2. **`src/pages/MicrositePage.tsx`** — replace `paymentLink`-gated buttons with `<BuyNowButton>` for BA-10 and BA-12 branches; wire BA-14/15 to enquiry form.
+3. **`src/components/dashboard/.../BuildTab` (or wherever the badge lives)** — add `isPubliclyLive()` helper and use it for the Live badge.
+4. **`src/components/AudiobookStudio.tsx`** — fallback to `get-author-book` when no `bookId`; improve empty state.
+5. **BA-13 publish** — split content generation from status flip; add 90s `fetchWithTimeout` and toast.
+6. **Built-counter unification** — single hook, keep-previous-data on refetch.
+7. **Stripe banner** — gate on `stripe_charges_enabled`; invalidate on OAuth callback.
+
+## Files I'll touch
+- `supabase/functions/get-microsite-page/index.ts`
+- `src/pages/MicrositePage.tsx`
+- `src/components/AudiobookStudio.tsx` (or actual file path once located)
+- `src/components/dashboard/...` Build tab badge component
+- `src/hooks/useAuthorStats.ts`, `src/hooks/useBookNodeProgress.ts`
+- BA-13 publish edge function
+- Stripe banner component + OAuth callback page
+
+## What I will NOT touch
+- The `courses` / `membership_content` schema (FK constraints are correct as-is)
+- `CourseSalesPage` / `MembershipSalesPage` — these become alternative direct-link pages; the primary reader path is now MicrositePage
+- The Sprint 6 cascade-publish in `save-author-node` — it stays; the audit symptoms came from the wrong renderer, not the wrong DB state
+
+## Verification
+After implementation I will hit `/pauline-teo/online-course`, `/pauline-teo/membership`, `/pauline-teo/podcast`, `/pauline-teo/press` via `browser--navigate_to_sandbox` and screenshot each to confirm the buy/enquiry buttons render. I will also run `supabase--curl_edge_functions` against `get-microsite-page?author=pauline-teo&slug=podcast` to confirm 200 responses.
