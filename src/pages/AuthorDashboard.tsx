@@ -447,8 +447,16 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "social-media":
         return gate("Social Media", <SocialMediaManager />);
       case "audiobook-studio": {
-        const bookIdParam = searchParams.get("bookId") || "";
-        const bookTitleParam = searchParams.get("bookTitle") || "";
+        // Resolve bookId with graceful fallbacks: URL param → activeBookId → most recent book
+        let bookIdParam = searchParams.get("bookId") || "";
+        let bookTitleParam = searchParams.get("bookTitle") || "";
+        if (!bookIdParam) {
+          const fallbackBook = (activeBookId && myBooks.find(b => b.id === activeBookId)) || myBooks[0];
+          if (fallbackBook) {
+            bookIdParam = fallbackBook.id;
+            bookTitleParam = bookTitleParam || fallbackBook.title || "";
+          }
+        }
         if (!bookIdParam) {
           return <Navigate to="/my-books?returnTo=/dashboard?section=audiobook-studio" replace />;
         }
