@@ -270,10 +270,16 @@ Deno.serve(async (req) => {
       social_media_content: "BP-03",
     };
 
+    // Tables that are author-scoped (no book_id column) — must NOT select book_id
+    // or the entire query silently returns null and that table's rows are lost.
+    const AUTHOR_SCOPED_TABLES = new Set<string>(["coaching_packages"]);
+
     for (const table of PRODUCT_TABLES) {
+      const isAuthorScoped = AUTHOR_SCOPED_TABLES.has(table);
+      const selectCols = isAuthorScoped ? "id, status" : "id, status, book_id";
       const { data: rows } = await admin
         .from(table)
-        .select("id, status, book_id")
+        .select(selectCols)
         .in("author_id", allUserIds);
 
       const counts: StatusCounts = { draft: 0, ready_for_review: 0, published: 0, total: 0 };
@@ -285,8 +291,10 @@ Deno.serve(async (req) => {
         else if (row.status === "ready_for_review") counts.ready_for_review++;
         else if (row.status === "published" || row.status === "active") counts.published++;
 
-        // Per-book counting — attach this row's node to its specific book
-        const bookId = (row as any).book_id;
+        // Per-book counting — attach this row's node to its specific book.
+        // Author-scoped tables (no book_id) attribute to the primary book so they
+        // still surface somewhere in the per-book breakdown.
+        const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
         if (bookId && nodeIdForTable) {
           ensureBookSet(bookId).add(nodeIdForTable);
         }
