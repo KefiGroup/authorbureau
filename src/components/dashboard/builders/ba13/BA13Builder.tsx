@@ -99,7 +99,9 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     setError(null);
+    setIsPublishing(true);
     try {
       await publishNodeToSite(authorId!, "BA-13", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
@@ -108,6 +110,8 @@ export default function BA13Builder({ authorId, bookId }: Props) {
     } catch (e: any) {
       setError(e.message);
       toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
