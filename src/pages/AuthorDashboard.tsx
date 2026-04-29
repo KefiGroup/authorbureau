@@ -609,14 +609,14 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onNavigate={handleNavigate}
         />
         <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "overflow-y-auto" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
-          {/* Onboarding banners for redirected pages */}
-          {activeSection === "profile" && (
+          {/* Onboarding banners — only for genuinely new authors */}
+          {activeSection === "profile" && !hasBooks && (
             <OnboardingBanner
               message="Welcome to Authors Bureau! Let's set up your author profile first - this takes about 2 minutes."
               storageKey="ab_onboarding_profile_banner"
             />
           )}
-          {activeSection === "my-books" && (
+          {activeSection === "my-books" && !hasBooks && (
             <OnboardingBanner
               message="Great profile! Now let's add your first book. You can upload a manuscript or import from PublishNow."
               storageKey="ab_onboarding_books_banner"
