@@ -490,11 +490,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />, "build");
       case "group-coaching":
-        return <Navigate to={`/node-builder/BA-13${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BA-13${buildNodeBuilderSearch(location)}`} replace />;
       case "memberships":
-        return <Navigate to={`/node-builder/BA-12${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BA-12${buildNodeBuilderSearch(location)}`} replace />;
       case "email-marketing":
-        return <Navigate to={`/node-builder/BP-01${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-01${buildNodeBuilderSearch(location)}`} replace />;
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
@@ -547,13 +547,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
-        return <Navigate to={`/node-builder/BP-09${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-09${buildNodeBuilderSearch(location)}`} replace />;
       case "special-editions":
-        return <Navigate to={`/node-builder/BP-08${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-08${buildNodeBuilderSearch(location)}`} replace />;
       case "lead-magnet":
-        return <Navigate to={`/node-builder/BP-02${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-02${buildNodeBuilderSearch(location)}`} replace />;
       case "big-ticket":
-        return <Navigate to={`/node-builder/YR-20${location.search}`} replace />;
+        return <Navigate to={`/node-builder/YR-20${buildNodeBuilderSearch(location)}`} replace />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "payout-settings":

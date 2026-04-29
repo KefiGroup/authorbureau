@@ -1,77 +1,58 @@
-## Plan
+## Audit #1 — Brand Tab (BP-01 → BP-09)
 
-I’ll make BP-06 follow the same book-scoped launch flow as the other working Brand builders, then remove the legacy bottom CTA so the Workbook flow always uses current Book Hub language.
+### Ground-Truth Snapshot (from `author_nodes`, current book = "Be SUCKcessful")
 
-## What I’ll change
+| BP # | Node | DB Status | Has Content | Issue |
+|------|------|-----------|-------------|-------|
+| BP-01 | Email Marketing | live | ✅ 7 keys | OK |
+| BP-02 | Lead Magnets | live | ✅ 18 keys | OK |
+| BP-03 | Social Media | content_ready | ✅ 5 keys | OK (not Live) |
+| BP-04 | Website | content_ready (this book) | ✅ 8 keys | OK on this book; **3 OTHER books have stale `live` rows with key_count=1** (data quality, not UI) |
+| BP-05 | Webinars | live | ✅ 8 keys | OK after last fix |
+| BP-06 | Workbook | live | ✅ 19 keys | OK |
+| BP-07 | Home Study | live | ✅ 18 keys | OK |
+| BP-08 | Special Editions | live | ✅ 14 keys | OK |
+| BP-09 | Book Sales | live | ✅ 10 keys | OK |
 
-### 1) Lock BP-06 to the book-scoped launch path
-Ensure the Workbook tile always carries `bookId` and `bookTitle` all the way into `/node-builder/BP-06`.
+### Findings
 
-Files to update:
-- `src/pages/AuthorDashboard.tsx`
-- `src/pages/BookBuilderRoute.tsx`
+**Finding 1 — Stale BP-04 "live" rows on 3 other books (key_count=1)**
+Three books own a BP-04 row with `status='live'` but `content_json` of only 1 key — almost certainly only `microsite_url` set by the autofill trigger. Today `useBookNodeProgress` already requires `content_json` keys > 0, so a 1-key row counts as "completed". This is the cross-cutting "isLive without real content" bug class flagged in Audit #5.
 
-Implementation:
-- Keep the BP-06 redirect using the shared `buildNodeBuilderSearch(location)` pattern so `/node-builder/BP-06` receives the same query params as BP-05/BP-07/BP-08/BP-09.
-- Verify the nested book route `/dashboard/book/:bookId/build/workbooks` mirrors params before `AuthorDashboard` mounts, so the redirect cannot fire with an empty search string.
-- If needed, tighten the BP-06 branch specifically so `bookId` from the path is injected before `<Navigate>` resolves.
+→ Tighten the **isLive gate for BP-04** specifically: require at least one substantive content field (e.g. `hero_headline`, `hero_subheadline`, `about_long`, `lead_magnet_id`, `sections`) — not just the autofilled `microsite_url`. Apply the same gate in both `useBookNodeProgress` and `useNodeLiveStats`.
 
-Result:
-- Workbook opens as:
-  `/node-builder/BP-06?bookId={id}&bookTitle=...&builder=workbook`
-- `NodeBuilder` will then automatically show:
-  `Back to Book Hub · Brand`
-  and navigate to:
-  `/book-hub/{bookId}?tab=revenue-streams`
+**Finding 2 — Workbook (BP-06) launch path uses `location.search` (not `buildNodeBuilderSearch`)**
+Line 465 in `AuthorDashboard.tsx`:
+```
+case "workbooks":
+  return <Navigate to={`/node-builder/BP-06${buildNodeBuilderSearch(location)}`} replace />;
+```
+This *is* now using the helper (good — last sprint's fix is in). But sibling nodes still use raw `location.search` (BP-08, BP-09, BP-02, BA-12, BA-13, YR-20, BP-01). When a user lands on these via `?section=...` without `bookId` in the query, the back link falls back to "Back to Dashboard". Standardize all 8 redirects on `buildNodeBuilderSearch(location)` to guarantee `bookId` is mirrored from path/context.
 
-### 2) Keep BP-06 return URLs book-aware
-Update the Workbook builder so all internal return paths preserve the active book context.
+**Finding 3 — All Brand-tab Live badges currently match content (no false positives) for the active book.** No changes needed in `hasRequiredAssets` for BP-01..BP-09 today, **but** add a strict-content gate for BP-04 to future-proof.
 
-File to update:
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx`
+### Fixes (Audit #1 only)
 
-Implementation:
-- Preserve `bookId` in the `Complete Book Profile` return URL.
-- Verify any BP-06 navigation that can bounce the user out of the builder retains the current book scope.
+1. **`src/hooks/useBookNodeProgress.ts`** — Add a per-node strict-content predicate so BP-04 with only an autofilled `microsite_url` does not count as completed/in-progress mistakenly. Use it instead of the generic `Object.keys(...).length > 0` gate for nodes in the gate registry.
 
-Result:
-- If the author must complete book setup first, returning lands back in the same Workbook flow for the same book.
+2. **`src/hooks/useNodeLiveStats.ts`** — Extend `hasRequiredAssets` to include a BP-04 case checking for at least one of: `hero_headline`, `hero_subheadline`, `about_long`, `sections`, `lead_magnet_id`, `cta_label`. Other Brand nodes default-pass (their builders write rich content_json on save).
 
-### 3) Remove the legacy bottom “Brand Products” button from BP-06
-The old bottom CTA appears when `bookId` is missing and falls back to legacy wording. I’ll remove that legacy behavior for the Workbook success flow.
+3. **`src/pages/AuthorDashboard.tsx`** — Standardize all node-section redirects (BP-01, BP-02, BP-08, BP-09, BA-12, BA-13, YR-20) to use `buildNodeBuilderSearch(location)` instead of raw `location.search`. This guarantees `bookId` is mirrored from `?bookId=`/path params even when the user lands via legacy `?section=...` URLs.
 
-Primary file to update:
-- `src/components/dashboard/builders/shared/PublishSuccessScreen.tsx`
+4. **Data hygiene SQL migration** — Mark the three orphan BP-04 rows (`book_id` ∈ the 3 IDs above, `status='live'`, `key_count=1`) as `status='content_ready'` so the dashboard reflects truth. Confirmed before edit.
 
-Implementation:
-- Replace the BP-06 fallback secondary action so it no longer says `Go back to Brand Products`.
-- Prefer either:
-  - `Back to Book Hub` when `bookId` is present, or
-  - a modern non-legacy fallback such as `Back to My Books` when no book context exists.
+### Re-Test Plan (after fixes)
 
-Result:
-- The Workbook page will no longer show the outdated Brand Products wording at the bottom.
+For each BP-01 → BP-09:
+1. Open Book Hub Brand tab for "Be SUCKcessful".
+2. Confirm badge matches the ground-truth table above.
+3. Click tile → URL must contain `?bookId=...&bookTitle=...`.
+4. Top header reads exactly "← Back to Book Hub · Brand".
+5. Click back → lands on `/book-hub/<id>?tab=revenue-streams`.
+6. Switch to a book where BP-04 was a stale `live` row → badge must now be "Recommended" / "In progress", not "Live".
 
-### 4) Trigger a fresh deploy
-Because similar BP-06 logic already exists in source, I’ll make a small real code change in the affected files so the updated bundle is definitely rebuilt and published.
+Pass/fail report posted before moving to Audit #2.
 
-## Technical notes
+### Then proceed in sequence
 
-- The top back label is controlled by `NodeBuilder.tsx`, not by the deprecated `onBack` prop passed into `BuilderHeader`.
-- `NodeBuilder` already renders the correct label when `bookId` exists:
-  - BP node + `bookId` -> `Back to Book Hub · Brand`
-  - no `bookId` -> `Back to Dashboard`
-- So the real fix is to guarantee BP-06 arrives with `bookId` in the query string every time.
-- The bottom legacy button comes from `PublishSuccessScreen.tsx`, where the no-`bookId` fallback still uses older Brand Products terminology.
-
-## Acceptance criteria
-
-1. Clicking Workbook from the Brand tab opens:
-   `/node-builder/BP-06?bookId=...&bookTitle=...`
-2. The top back link reads:
-   `Back to Book Hub · Brand`
-3. That back link returns to:
-   `/book-hub/{bookId}?tab=revenue-streams`
-4. `Complete Book Profile` preserves `bookId` in the return URL.
-5. The bottom legacy `Go back to Brand Products` button is gone from the BP-06 flow.
-6. BP-05, BP-07, BP-08, and BP-09 behavior remains unchanged.
+Per your direction: only after Audit #1 is fully green do we move to **Audit #2 (Build tab)**, and so on through the menu.
