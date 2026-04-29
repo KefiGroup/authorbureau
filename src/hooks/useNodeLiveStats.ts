@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { hasRequiredAssets } from "@/lib/node-readiness";
 
 export interface NodeLiveStats {
   status: string | null;
