@@ -154,12 +154,14 @@ export default function AuthorLibrary() {
       </div>
 
       <Tabs defaultValue="marketing-packs">
-        <TabsList>
-          <TabsTrigger value="marketing-packs">Marketing Packs</TabsTrigger>
-          <TabsTrigger value="by-node">By node</TabsTrigger>
-          <TabsTrigger value="by-format">By format</TabsTrigger>
-          <TabsTrigger value="recent">Recent</TabsTrigger>
-        </TabsList>
+        <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
+          <TabsList className="w-max sm:w-auto">
+            <TabsTrigger value="marketing-packs">Marketing Packs</TabsTrigger>
+            <TabsTrigger value="by-node">By node</TabsTrigger>
+            <TabsTrigger value="by-format">By format</TabsTrigger>
+            <TabsTrigger value="recent">Recent</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* ── Marketing Packs ── */}
         <TabsContent value="marketing-packs" className="space-y-4">
