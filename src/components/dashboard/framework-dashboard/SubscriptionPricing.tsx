@@ -372,7 +372,7 @@ export default function SubscriptionPricing({ currentTier, onSubscribe, onManage
             Authors Bureau includes everything — plus AI that builds your products for you.
           </p>
           <p className="text-[10px] text-muted-foreground">
-            All plans include a 5% platform fee on sales. Standard Stripe fees (2.9% + $0.30) apply separately. You keep ~92%.
+            All plans include an 8% platform fee on sales (covers Stripe and other payment-gateway processing). You keep 92%.
           </p>
         </div>
       </div>
