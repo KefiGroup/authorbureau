@@ -69,7 +69,7 @@ export interface BookNodeProgress {
   refresh: () => void;
 }
 
-export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<string>): BookNodeProgress {
+export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<string>, bookId?: string | null): BookNodeProgress {
   const { user } = useAuth();
   const [statusByCode, setStatusByCode] = useState<Record<string, "completed" | "in-progress">>({});
   const [hasAuthorSlug, setHasAuthorSlug] = useState(false);
@@ -93,10 +93,14 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
 
         const map: Record<string, "completed" | "in-progress"> = {};
         if (profile?.id) {
-          const { data: nodes } = await supabase
+          // Scope to the current book when provided so the Book Hub tile state
+          // reflects ONLY this book — not other books the author also owns.
+          let q = supabase
             .from("author_nodes")
-            .select("node_id, status, content_json")
+            .select("node_id, status, content_json, book_id")
             .eq("author_id", profile.id);
+          if (bookId) q = q.eq("book_id", bookId);
+          const { data: nodes } = await q;
 
           (nodes || []).forEach((n: any) => {
             const hasContent =
@@ -128,7 +132,7 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
     }
     load();
     return () => { cancelled = true; };
-  }, [user, tick]);
+  }, [user, tick, bookId]);
 
   const result = useMemo<BookNodeProgress>(() => {
     const byCategory = {} as Record<AbbyCategory, CategoryProgress>;

@@ -58,7 +58,7 @@ function hasRequiredAssets(nodeId: string, content: any): boolean {
   }
 }
 
-export function useNodeLiveStats(): {
+export function useNodeLiveStats(bookId?: string | null): {
   loading: boolean;
   byCode: Record<string, NodeLiveStats>;
   refresh: () => void;
@@ -89,10 +89,12 @@ export function useNodeLiveStats(): {
           }
           return;
         }
-        const { data: rows } = await supabase
+        let q = supabase
           .from("author_nodes")
           .select("node_id, status, revenue_to_date, activated_at, current_step, book_id, microsite_url, content_json")
           .eq("author_id", profile.id);
+        if (bookId) q = q.eq("book_id", bookId);
+        const { data: rows } = await q;
 
         const map: Record<string, NodeLiveStats> = {};
         // Pick the most-progressed row per node_id (in case multiple books).
@@ -137,7 +139,7 @@ export function useNodeLiveStats(): {
     return () => {
       cancelled = true;
     };
-  }, [user, tick]);
+  }, [user, tick, bookId]);
 
   return { loading, byCode, refresh: () => setTick((t) => t + 1) };
 }

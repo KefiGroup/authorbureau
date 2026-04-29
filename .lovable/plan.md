@@ -1,72 +1,81 @@
-# Fix BP-06 Workbook builder losing `bookId` on entry
+## Plan
 
-## Root cause (confirmed by code trace)
+1. Re-scope the BP-06 fix to the UI shown in your screenshot
+- Treat the screenshot as the source of truth: the affected surface is the **Book Hub product tile** for BP-06, not just the builder page.
+- Confirm the visible symptoms on that tile:
+  - the BP-06 card shows a false `Live` badge
+  - the tile CTA/state is wrong for the current book
+  - clicking from that tile can still open the builder without the correct book context
 
-The Book Hub correctly builds the URL `/dashboard/book/{bookId}/build/workbooks?bookId={bookId}&bookTitle=...&builder=workbook` via `getStudioPath` (`abbyFrameworkConfig.ts:296-298`). But that URL goes through this chain:
+2. Fix the real root cause: Book Hub tile state is currently author-wide, not book-specific
+- Update `useBookNodeProgress` so it filters `author_nodes` by the **current `book_id`**, not all rows for the author.
+- Update its API so Book Hub passes the active book id into the hook.
+- Keep the existing `content_json` non-empty check for BP-05/BP-06 style readiness, but apply it only to the current book’s node row.
 
+3. Fix the second state source used by the same tile
+- Update `useNodeLiveStats` to support **book-scoped** stats instead of picking the “most progressed row per node” across all books.
+- Right now it collapses all books into one record per node code, which can make BP-06 show `Live` because some other book has a live workbook.
+- Pass the active book id from `PortfolioStepView` so the Workbook tile reads the live/progress data for the current book only.
+
+4. Correct the BP-06 Book Hub tile label/badge/CTA behavior
+- Verify the BP-06 card in `PortfolioStepView` + `SmartProductCard` resolves to the right state for the current book:
+  - empty or missing content -> `Ready to Build`
+  - draft/content ready -> `Building` or equivalent in-progress state
+  - actually live for this book -> `Live`
+- Ensure the tile no longer shows `Open & Manage` / `Live` just because another workbook exists elsewhere for the same author.
+
+5. Keep builder navigation aligned with the corrected tile
+- From the BP-06 tile, ensure the launch path includes the current book context:
+  - `/node-builder/BP-06?bookId=...&bookTitle=...`
+- Re-check the already-added redirect fixes so the builder page back label remains:
+  - `Back to Book Hub · Brand`
+  - target `/book-hub/{bookId}?tab=revenue-streams`
+
+6. Remove any remaining stale workbook wording on legacy fallback screens
+- Search for any old workbook-specific copy such as `Go back to Brand Products` that can still appear from the old manager/fallback path.
+- Update or remove it so BP-06 uses the Book Hub language consistently.
+
+7. Verify the exact screenshot flow end-to-end
+- Open the current book’s Brand tab
+- Inspect the BP-06 Workbook tile
+- Confirm the tile badge/state is correct for that book only
+- Click the tile and confirm the builder URL carries `bookId`
+- Confirm the builder top back link returns to the Brand tab of that same book
+- Publish the frontend update so production matches the fix
+
+## What I found
+The screenshot exposed a different issue than the builder-only back button. The BP-06 **tile** is driven by:
+- `src/components/dashboard/PortfolioStepView.tsx`
+- `src/hooks/useBookNodeProgress.ts`
+- `src/hooks/useNodeLiveStats.ts`
+- `src/components/dashboard/SmartProductCard.tsx`
+
+Those hooks currently derive state too broadly at the author level. That means the Workbook name tile can show the wrong badge/label for the current book even if the builder redirect code was fixed.
+
+## Technical details
+```text
+Current problem
+Book Hub tile
+  -> PortfolioStepView
+     -> useBookNodeProgress()   // currently not scoped to current book
+     -> useNodeLiveStats()      // currently collapses rows across books
+  -> SmartProductCard renders badge/CTA from that mixed state
+
+Required fix
+Book Hub tile
+  -> PortfolioStepView(bookId)
+     -> useBookNodeProgress(bookId)
+     -> useNodeLiveStats(bookId)
+  -> SmartProductCard now shows the correct BP-06 badge for this book only
 ```
-/dashboard/book/:bookId/build/workbooks
-  → BookBuilderRoute (mounts AuthorDashboard, queues setSearchParams in useEffect to mirror :bookId into ?bookId=)
-    → AuthorDashboard section="workbooks"
-      → <Navigate to={`/node-builder/BP-06${location.search}`} replace />   // AuthorDashboard.tsx:446
-```
 
-The `<Navigate>` runs on the **first render**, *before* `BookBuilderRoute`'s `useEffect` calls `setSearchParams` to copy `:bookId` from the path into the search string. So `location.search` is whatever the original URL had (which from a Book Hub click is `?bookId=...&bookTitle=...&builder=workbook` and **does** include bookId — that case works).
+## Files likely to change
+- `src/hooks/useBookNodeProgress.ts`
+- `src/hooks/useNodeLiveStats.ts`
+- `src/components/dashboard/PortfolioStepView.tsx`
+- `src/components/dashboard/book-hub/BookHubOverview.tsx` if hook props need threading
+- `src/components/dashboard/SmartProductCard.tsx` only if the badge mapping itself needs a small wording adjustment
+- plus any remaining stale fallback component if old workbook copy still surfaces
 
-The case that **breaks** is any entry that has bookId only in the path segment (`/dashboard/book/:bookId/build/workbooks` with no query string), which then redirects to `/node-builder/BP-06` with no `?bookId=`. Inside BP-06 the `bookId` prop is `null`, so `<BuilderHeader onBack={...}>` falls back to `/dashboard?section=my-books`, the top NodeBuilder back link uses `getHubPath("BP-06", null, null)` → `/dashboard` with label "Back to Dashboard", and the "Complete Book Profile" button (line 200) navigates to `/my-books?returnTo=/node-builder/BP-06` (also without bookId). All three reported symptoms collapse into this single root cause.
-
-BP-07/08/09 work today because they're either entered with bookId already in the query string, or because their flows didn't hit this path-only entry pattern.
-
-## Fix
-
-### 1. AuthorDashboard `workbooks` redirect — preserve bookId from `useParams()`
-
-In `src/pages/AuthorDashboard.tsx` around line 444-446, change the `home-study` and `workbooks` (and any sibling `<Navigate>` redirects to `/node-builder/...`) so they merge `bookId`/`bookTitle`/`builder` from BOTH `location.search` and any path param / context that's currently in scope.
-
-Concretely, build the search string like:
-
-```ts
-const params = new URLSearchParams(location.search);
-// If the route is /dashboard/book/:bookId/build/:node, mirror bookId in
-const pathBookId = /\/dashboard\/book\/([^/]+)\/build\//.exec(location.pathname)?.[1];
-if (pathBookId && !params.get("bookId")) params.set("bookId", pathBookId);
-const search = params.toString() ? `?${params.toString()}` : "";
-return <Navigate to={`/node-builder/BP-06${search}`} replace />;
-```
-
-Apply the same pattern to the `home-study` (BP-07) Navigate so it never regresses either.
-
-### 2. `BookBuilderRoute` — mirror search params synchronously
-
-In `src/pages/BookBuilderRoute.tsx`, move the `setSearchParams` mirror out of `useEffect` into the render path: if `bookId` (or any `entry.extraParams`) is missing from `searchParams`, call `setSearchParams(next, { replace: true })` and return `null` (or a small loader) for that one render. This guarantees AuthorDashboard never mounts with empty search params.
-
-### 3. `BP06Builder` — preserve bookId on the "Complete Book Profile" CTA
-
-`src/components/dashboard/builders/bp06/BP06Builder.tsx` line 200:
-
-```tsx
-onClick={() => navigate(`/my-books?returnTo=/node-builder/BP-06${bookId ? `?bookId=${bookId}` : ""}`)}
-```
-
-So returning from My Books restores book context.
-
-### 4. Verify BP-06's own back-button label
-
-`BP06Builder.tsx:189` already passes `onBack` to `BuilderHeader`, but `BuilderHeader` ignores it. The visible top "Back to …" link comes from `NodeBuilder.tsx:144-150` via `getHubPath`, which already returns `"Back to Book Hub · Brand"` and `/book-hub/{bookId}?tab=revenue-streams` when `bookId` is present. After fix #1 + #2 this will show correctly. No code change needed in `NodeBuilder.tsx`.
-
-## Why not "rebuild BP-06"
-
-BP-06's builder logic, generation prompt, and Abby integration are correct and identical in pattern to BP-07/08/09. The bug is purely in the navigation/redirect chain (`AuthorDashboard` → `Navigate` → `NodeBuilder`), not in the builder itself. No regeneration of BP-06 is required.
-
-## Verification after implementation
-
-1. From Book Hub Brand tab → click Workbook card → URL becomes `/node-builder/BP-06?bookId=...&bookTitle=...&builder=workbook`.
-2. Top back link reads "← Back to Book Hub · Brand" and goes to `/book-hub/{bookId}?tab=revenue-streams`.
-3. If book profile is incomplete, "Complete Book Profile" returns to BP-06 with bookId intact.
-4. BP-07/08/09 unaffected (same fix #1/#2 applied to home-study redirect).
-
-## Files to edit
-
-- `src/pages/AuthorDashboard.tsx` (workbooks + home-study Navigate redirects)
-- `src/pages/BookBuilderRoute.tsx` (synchronous param mirror)
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx` (line 200 returnTo bookId)
+## Deliverable
+A BP-06 Workbook tile that matches the screenshot context: the badge/label on the Book Hub card is correct for the current book, and clicking it opens the correct builder with the correct back path.
