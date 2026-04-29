@@ -545,8 +545,18 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Unscheduled-posts banner — author-driven scheduling */}
-      {unscheduledCount > 0 && (
+      {/* Runway / unscheduled banner — author-driven scheduling */}
+      {scheduledCount > 0 && daysOfRunway > 0 && daysOfRunway <= 7 ? (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground flex items-center gap-2">
+          <Sparkles className="h-4 w-4 shrink-0 text-amber-600" />
+          <span className="flex-1">
+            <strong>Your scheduled posts run out in {daysOfRunway} day{daysOfRunway === 1 ? "" : "s"}.</strong>{" "}
+            {autoRefilling
+              ? "ABBY is topping up your queue with 30 more post ideas…"
+              : "ABBY is preparing 30 more — they'll appear as Unscheduled below."}
+          </span>
+        </div>
+      ) : unscheduledCount > 0 ? (
         <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-3 text-xs text-foreground flex items-center gap-2">
           <Inbox className="h-4 w-4 shrink-0 text-secondary" />
           <span className="flex-1">
@@ -554,7 +564,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
             — pick your dates below.
           </span>
         </div>
-      )}
+      ) : null}
 
       {/* Progress tracker header */}
       <Card className="border-primary/20 bg-primary/5">
