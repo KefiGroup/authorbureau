@@ -51,7 +51,8 @@ serve(async (req) => {
       } catch (e) { console.error("GHL opportunity error:", e); }
     }
 
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: "media-outreach-" + author_id.slice(0, 8), content_json: content, activated_at: new Date().toISOString() }).eq("author_id", author_id).eq("node_id", "BA-15");
+    const micrositeUrl = `https://authorsbureau.com/${authorSlug}/press`;
+    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: "media-outreach-" + author_id.slice(0, 8), content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl }).eq("author_id", author_id).eq("node_id", "BA-15");
 
     return new Response(JSON.stringify({ success: true }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
