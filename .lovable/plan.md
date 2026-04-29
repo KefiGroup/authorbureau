@@ -1,68 +1,103 @@
-## Goal
+## Sprint 6 — Make BA-10, BA-11, BA-12 Revenue-Ready
 
-When Pauline opens the Social Calendar and her **scheduled** runway drops to **7 days or fewer**, ABBY automatically generates 30 more days of post copy and drops them into the **Unscheduled queue** — with a toast confirming the refill. This replaces the old fixed-overnight cron model with an on-demand, author-aligned trigger.
+The platform's biggest single gap: ABBY publishes great content, but the public pages still say "Coming Soon" / "Notify Me" with no Buy button. The Stripe checkout function actually already supports courses, memberships, and nodes — the bug is **upstream**: publish never flips the right rows to `live`, and the lookup uses the wrong author id.
 
-## Why this approach
+---
 
-Sprint 5A already disabled the nightly `auto-refill-social-calendar` cron (it now early-exits unless `force: true` is passed) because the author controls scheduling. That means the legacy "overnight job" the user is worried about will never fire. The reliable trigger point is the moment the author opens the Social Calendar tab — we evaluate runway then and call the existing forced-refill path if needed. No new cron, no schema changes, no new edge function.
+### Root causes (verified against the database)
 
-## Changes
+**BA-10 Online Course — "Notify Me When Enrollment Opens"**
+- `generate-ba10-online-course` writes into `courses` with `status: 'draft'` and uses the **shared-backend user id** as `courses.author_id` (Pauline's row is under `ef23c521…`, not her `author_profiles.id` `92326a2f…`).
+- `CourseSalesPage.tsx` queries `courses` by `author_id = author_profiles.id` → **0 rows** → falls through to `ComingSoonScreen`.
+- "Publish to My Site" only flips `author_nodes.status` to `live`. It never touches the matching `courses` row, so even when the row is found it stays `draft` and the buy button is hidden.
 
-### 1. `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
+**BA-12 Memberships — "Coming Soon" badge**
+- `membership_content` row exists for Pauline, but `status = 'draft'`. Same publish-gap as above: publish flips `author_nodes` only, the `membership_content.status` stays `draft`.
+- `MembershipSalesPage.tsx` requires `status === 'live'` to show the "Join Now" button, otherwise it shows a disabled "Coming Soon".
 
-**Add a runway calculation** (after `scheduledCount` is computed, ~line 270):
-- `latestScheduledAt` = max `scheduled_at` among posts where `status !== 'posted'`.
-- `daysOfRunway` = days between today and `latestScheduledAt` (0 if none scheduled).
+**BA-11 Audiobook — "No manuscript found"**
+- `ba11-audiobook-generate` does not load the manuscript from the parent `books` row the way other BA/BP nodes do via `bookId`. The Audiobook Studio expects its own separate manuscript.
+- The Build tab shows a hard-coded `Live` badge before generation has actually succeeded.
 
-**Add an auto-regen effect** that fires once per session per author when:
-- `bp03Activated` is true,
-- `loading` is false,
-- `daysOfRunway <= 7`,
-- `unscheduledCount < 10` (so we don't pile on if she already has plenty of drafts ready),
-- and we haven't already auto-fired in this session (guarded by a `useRef<Set<string>>` keyed by `authorId`).
+The good news: `create-checkout-session` already accepts `course_id`, `membership_author_id`, and `author_node_id`, and dispatches `payment` vs `subscription` correctly. No checkout-side rewrite is needed.
 
-The effect calls the same `force: true` path `refillCalendar()` already uses, but in a quiet variant `autoRefillCalendar()` that:
-- Shows an inline "ABBY is topping up your post queue…" hint while running.
-- On success: `toast.success("ABBY has added 30 new post ideas to your Unscheduled queue.")` and reloads.
-- On failure: silent (logs to console) — the manual "Generate 30 more days" button is still visible.
+---
 
-**Update the banner** (~line 498). Replace the current single banner with two states:
+### What I'll change
 
-- If `daysOfRunway <= 7` AND `daysOfRunway > 0`:
-  amber tone: *"Your scheduled posts run out in {daysOfRunway} day(s). ABBY is preparing 30 more — they'll appear as Unscheduled below."*
-- Else if `unscheduledCount > 0` (existing behavior):
-  *"You have {unscheduledCount} unscheduled posts ready to go — pick your dates below."*
+**1. Fix the publish handoff (`save-author-node`, action `publish`)**
 
-This satisfies requirement #3 (7-day threshold) without re-introducing the misleading "overnight" copy.
+After flipping `author_nodes` to `live`, also flip the sister product row, scoped by `author_profiles.id` AND by `user_id` (covers the dual-id case):
 
-### 2. `supabase/functions/auto-refill-social-calendar/index.ts`
+- `BA-10` → `UPDATE courses SET status='live' WHERE (author_id = author_profiles.id OR author_id = author_profiles.user_id) AND book_id = bookId`
+- `BA-12` → `UPDATE membership_content SET status='live' WHERE author_id = author_profiles.id OR author_id = author_profiles.user_id`
+- `BA-11` → set `audiobook_*` row to `live` only when audio assets are confirmed present (otherwise return `404 audiobook_not_generated`).
 
-No behavior change required — the forced path already:
-- accepts `{ author_id, force: true }`,
-- bypasses the early-exit,
-- calls `generate-bp03-social-media` for 30 days,
-- which (per Sprint 5A) inserts new rows as `status: 'draft'` / `scheduled_at: null` (Unscheduled queue). Requirement #2 is already satisfied.
+This is additive — existing call sites unchanged.
 
-We will add one small comment update to the file header so the next reader understands the new client-driven trigger model. No logic change.
+**2. Normalise the author id used by BA-10 / BA-12 generators**
 
-## Edge cases handled
+Update `generate-ba10-online-course` and `generate-ba12-membership` so the row they create/update uses **`author_profiles.id`** as the canonical `author_id` (matches what `CourseSalesPage` / `MembershipSalesPage` already query). Backfill the two existing Pauline rows in a one-shot migration.
 
-- **Author with 0 scheduled posts but many unscheduled drafts**: `daysOfRunway === 0` but `unscheduledCount >= 10` → no auto-fire (she has plenty of copy to schedule).
-- **Author with 0 scheduled and 0 unscheduled**: auto-fires on first open.
-- **Repeat opens in the same session**: guarded by ref, won't double-fire.
-- **Refill fails**: silent fallback, manual button still works.
+**3. Public page status tolerance**
 
-## Testing checklist
+Both pages currently treat anything other than `'live'` as Coming Soon. Update them to accept `'live' | 'published' | 'content_ready'` (the three states the publish flow can leave behind), so a previously-published row that was never re-flipped still shows the buy button. Belt-and-braces for backfill.
 
-1. Log in as `support@paulineteo.com`, open Marketing Hub → Social Calendar.
-2. With current state (scheduled posts ending May 1, today April 29 → runway = 2 days), confirm:
-   - amber banner reads "Your scheduled posts run out in 2 days…"
-   - auto-refill fires, toast appears: *"ABBY has added 30 new post ideas to your Unscheduled queue."*
-   - Unscheduled count jumps by ~80 posts (20 days × 4 platforms).
-3. Reload the page — auto-refill does NOT fire again (session guard) and unscheduled count is unchanged.
-4. With a fresh author who has runway > 7 days, confirm no auto-refill and no amber banner.
+**4. BA-10 sales page → existing checkout**
 
-## Files touched
+`CourseSalesPage` already has a working `CourseBuyButton` that calls `create-checkout-session` with `course_id`. No code change needed once the data flow is fixed — the button will simply appear because `isLive` becomes true.
 
-- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` (add runway calc, effect, updated banner)
-- `supabase/functions/auto-refill-social-calendar/index.ts` (header comment only)
+**5. BA-12 sales page → existing checkout**
+
+Same story: `MembershipSalesPage` already calls `create-checkout-session` with `membership_author_id` + `mode: "subscription"`. Just needs the `status='live'` flip.
+
+**6. BA-11 Audiobook — manuscript inheritance + honest "Live" badge**
+
+- Update `ba11-audiobook-generate` to load `books.manuscript_text` (or the parsed manuscript_url payload) the same way other generators do, keyed on `bookId`. Drop the separate-upload requirement.
+- Remove the optimistic "Live" badge on the Build tab; derive it from `author_nodes.status === 'live' AND audiobook_chapters_count > 0`.
+- After generation completes, the audiobook public page already supports a Buy button via the shared `BuyNowButton` (BA-11 has `price_usd = 14.99` in `author_nodes`); we just need publish to flip the row honestly.
+
+**7. One-shot backfill migration (Pauline + any other affected authors)**
+
+```sql
+UPDATE courses c
+   SET status = 'live'
+  FROM author_nodes n
+ WHERE n.node_id = 'BA-10'
+   AND n.status  = 'live'
+   AND n.book_id = c.book_id
+   AND (c.author_id = n.author_id
+        OR c.author_id = (SELECT user_id FROM author_profiles WHERE id = n.author_id));
+
+UPDATE membership_content m
+   SET status = 'live'
+  FROM author_nodes n
+ WHERE n.node_id = 'BA-12'
+   AND n.status  = 'live'
+   AND (m.author_id = n.author_id
+        OR m.author_id = (SELECT user_id FROM author_profiles WHERE id = n.author_id));
+```
+
+Plus a UPDATE that reassigns `courses.author_id` and `membership_content.author_id` from the shared-backend user_id to the canonical `author_profiles.id`, so future selects in the public pages work without OR-clauses.
+
+---
+
+### Files to edit
+
+- `supabase/functions/save-author-node/index.ts` — publish action: cascade status to sister tables
+- `supabase/functions/generate-ba10-online-course/index.ts` — write `author_profiles.id`
+- `supabase/functions/generate-ba12-membership/index.ts` — write `author_profiles.id`
+- `supabase/functions/ba11-audiobook-generate/index.ts` — inherit manuscript from `books`
+- `src/pages/CourseSalesPage.tsx` — accept `live | published | content_ready`
+- `src/pages/MembershipSalesPage.tsx` — same status tolerance
+- Audiobook Build tab component — derive `Live` badge from real state
+- One migration for the backfill
+
+### Test plan (Pauline, support@paulineteo.com)
+
+1. Visit `/pauline-teo/online-course` → see the **Enrol Now** button at $297; click it → Stripe checkout opens with the right amount.
+2. Visit `/pauline-teo/membership` → see benefits + **Join Now** at $27/month; click it → Stripe checkout opens in subscription mode.
+3. Open Audiobook Studio for "Be SUCKcessful" → no "No manuscript found" error; generation proceeds. Build tab `Live` badge only appears after generation finishes.
+4. Re-publish each node → confirm `author_nodes`, `courses`, and `membership_content` all show `status='live'` in one round-trip.
+
+After approval I'll switch to build mode, run the migration, ship the edge-function changes, and re-test against Pauline's live data.
