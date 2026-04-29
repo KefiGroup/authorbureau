@@ -201,8 +201,8 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       <div className="max-w-3xl mx-auto px-4 pt-4 space-y-4">
         <BuilderHeader
           nodeId="BP-09"
-          title="Live Audience Conversion Toolkit"
-          subtitle="Workshops · Book signings · Corporate lunches"
+          title="Book Sales"
+          subtitle="Live Audience Conversion Toolkit · Webinars · Workshops · Book signings · Corporate lunches"
           icon={Mic}
           onBack={() => navigate("/brand-products")}
         />
