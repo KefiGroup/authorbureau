@@ -430,7 +430,7 @@ function CheckoutStagePanel({ authorId, nodeId }: CheckoutPanelProps) {
       <p className="text-[11px] leading-relaxed text-muted-foreground bg-muted/20 rounded-md p-3 border">
         When a reader clicks "Buy Now" on your sales page, they're taken to a secure Stripe checkout page.
         After payment, they're redirected to your Thank You page. Authors Bureau keeps 8% and pays you 92%
-        on Stripe's standard schedule.
+        monthly to your connected Stripe account.
       </p>
     </div>
   );
