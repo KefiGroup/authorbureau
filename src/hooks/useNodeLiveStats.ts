@@ -139,7 +139,7 @@ export function useNodeLiveStats(bookId?: string | null): {
     return () => {
       cancelled = true;
     };
-  }, [user, tick]);
+  }, [user, tick, bookId]);
 
   return { loading, byCode, refresh: () => setTick((t) => t + 1) };
 }
