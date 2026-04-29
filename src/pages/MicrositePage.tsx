@@ -2644,39 +2644,38 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
         </div>
 
         <div className="md:sticky md:top-6">
-          {paymentLink ? (
-            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enroll Now</h3>
-              {price != null && (
-                <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-              )}
-              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
+          {/* BA-10 always sells via BuyNowButton (Stripe Connect destination
+              charges + 5% platform fee). The legacy `paymentLink` external-URL
+              path produced a "Notify Me" form whenever Stripe wasn't pre-wired,
+              which made every published course look pre-launch to readers.
+              BuyNowButton handles the no-Stripe case gracefully (waitlist
+              modal) so we no longer need a separate Notify form. */}
+          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enrol Now</h3>
+            {price != null && (
+              <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
+            )}
+            <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
+            {paymentLink ? (
               <a href={paymentLink} target="_blank" rel="noopener noreferrer">
                 <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
-                  Enroll Now <ArrowRight className="ml-2 h-4 w-4" />
+                  Enrol Now <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </a>
-            </Card>
-          ) : !submitted ? (
-            <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-              <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Notify Me When Enrollment Opens</h3>
-              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Be the first to know when doors open.</p>
-              <form onSubmit={onSubmit} className="space-y-3">
-                <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
-                <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
-                <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
-                  {submitting ? "Submitting..." : "Notify Me"} <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </form>
-            </Card>
-          ) : (
-            <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-              <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
-              <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>You're on the list</h3>
-              <p className="text-sm" style={{ color: v.mutedText }}>We'll email you the moment enrollment opens.</p>
-            </Card>
-          )}
+            ) : (
+              <BuyNowButton
+                authorNodeId={data.node.id}
+                authorId={data.author?.id}
+                label="Enrol Now"
+                className="w-full rounded-full"
+                style={{ background: v.accent, color: bgColor }}
+              />
+            )}
+          </Card>
         </div>
+        {/* Suppress unused-prop warnings — these props are kept for the shared
+            FormPageProps signature even though we no longer render the form. */}
+        {void onSubmit, void email, void setEmail, void firstName, void setFirstName, void submitting, void submitted, null}
       </div>
     </div>
   );
