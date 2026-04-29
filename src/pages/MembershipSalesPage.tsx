@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import ComingSoonScreen from "@/components/public/ComingSoonScreen";
+import MicrositePoweredByFooter from "@/components/public/MicrositePoweredByFooter";
 
 export default function MembershipSalesPage() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
@@ -113,6 +114,7 @@ export default function MembershipSalesPage() {
           <p className="text-[11px] text-center text-muted-foreground">Secure checkout · Stripe</p>
         </CardContent></Card>
       </section>
+      <MicrositePoweredByFooter displayName={data?.author_name} />
     </div>
   );
 }

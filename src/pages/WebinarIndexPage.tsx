@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Video, Loader2, Clock } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import MicrositePoweredByFooter from "@/components/public/MicrositePoweredByFooter";
 
 interface Author {
   id: string;
@@ -69,7 +70,7 @@ export default function WebinarIndexPage() {
 
   useEffect(() => {
     document.title = author?.pen_name
-      ? `Webinars — ${author.pen_name}`
+      ? `Webinars · ${author.pen_name}`
       : "Webinars";
   }, [author]);
 
@@ -212,6 +213,7 @@ export default function WebinarIndexPage() {
           </div>
         )}
       </main>
+      <MicrositePoweredByFooter displayName={displayName} />
     </div>
   );
 }

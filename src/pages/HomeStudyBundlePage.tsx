@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Printer, ArrowLeft } from "lucide-react";
+import MicrositePoweredByFooter from "@/components/public/MicrositePoweredByFooter";
 
 /**
  * Public, print-friendly Home Study Course bundle.
@@ -147,9 +148,10 @@ export default function HomeStudyBundlePage() {
         ))}
 
         <footer className="mt-12 pt-6 border-t border-border text-xs text-muted-foreground">
-          <p>© {author?.pen_name || "Author"} — Distributed via Authors Bureau. For your personal use only.</p>
+          <p>© {author?.pen_name || "Author"}. Distributed via Authors Bureau. For your personal use only.</p>
         </footer>
       </div>
+      <MicrositePoweredByFooter displayName={author?.pen_name} />
     </div>
   );
 }

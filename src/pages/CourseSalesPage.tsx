@@ -7,6 +7,7 @@ import { Loader2, Lock, BookOpen, CheckCircle2 } from "lucide-react";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import ComingSoonScreen from "@/components/public/ComingSoonScreen";
+import MicrositePoweredByFooter from "@/components/public/MicrositePoweredByFooter";
 
 interface CourseData {
   id: string;
@@ -150,6 +151,7 @@ export default function CourseSalesPage() {
           </Card>
         </aside>
       </section>
+      <MicrositePoweredByFooter displayName={authorName} />
     </div>
   );
 }

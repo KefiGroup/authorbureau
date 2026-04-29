@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, Video, Loader2, CheckCircle2, Clock } from "lucide-react";
+import MicrositePoweredByFooter from "@/components/public/MicrositePoweredByFooter";
 import { toast } from "sonner";
 
 interface Webinar {
@@ -142,7 +143,7 @@ export default function WebinarRegistrationPage() {
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">
                 <h2 className="font-heading text-xl font-bold mb-2">Save your spot</h2>
-                <p className="text-sm text-muted-foreground mb-4">Free registration — get the room link plus reminders.</p>
+                <p className="text-sm text-muted-foreground mb-4">Free registration. Get the room link plus reminders.</p>
                 <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} required />
                 <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                 <Button type="submit" className="w-full" disabled={submitting}>
@@ -166,6 +167,7 @@ export default function WebinarRegistrationPage() {
           </div>
         )}
       </div>
+      <MicrositePoweredByFooter displayName={author?.pen_name} />
     </div>
   );
 }
