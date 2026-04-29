@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FileText, Upload, Loader2, CheckCircle2, Trash2 } from "lucide-react";
-import { supabase } from "@/lib/shared-backend";
 import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const EDGE_FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/parse-manuscript`;
 
@@ -74,8 +74,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
   const fakeProgress = uploading ? Math.min(95, (elapsedSeconds / (elapsedSeconds + 30)) * 100) : 0;
 
   const getToken = async () => {
-    const { data } = await supabase.auth.getSession();
-    const token = data?.session?.access_token;
+    const token = await getActiveToken();
     if (!token) throw new Error("Please sign in again.");
     return token;
   };
