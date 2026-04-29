@@ -126,7 +126,6 @@ Return JSON with these exact keys:
 Be specific. Never default to generic finance, business, or self-help content unless that is exactly what THIS book is about.`,
           },
         ],
-        temperature: 0.7,
       }),
     });
 

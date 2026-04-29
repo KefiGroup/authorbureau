@@ -141,7 +141,6 @@ Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the
           { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Generate social media content that is warm, expert, and specific to the author's book. Return valid JSON only." },
           { role: "user", content: prompt },
         ],
-        temperature: 0.7,
         max_completion_tokens: 5000,
       }),
     });
