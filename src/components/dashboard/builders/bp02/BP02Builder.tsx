@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { useNodeBuilderNavigate } from "@/lib/node-builder-nav";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
@@ -476,8 +477,8 @@ export default function BP02Builder({ authorId, bookId }: Props) {
           title="Lead Magnets"
           subtitle="A complete lead magnet + opt-in microsite + nurture sequence"
           icon={Gift}
-          onBack={() => navigate("/brand-products")}
         />
+        {/* Back navigation handled by NodeBuilder page wrapper — preserves bookId/bookTitle. */}
         <UnifiedStepper
           nodeId="BP-02"
           steps={STEPS}
@@ -1529,6 +1530,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
   publishChannels: PublishChannels;
 }) {
   const navigate = useNavigate();
+  const goToNode = useNodeBuilderNavigate();
   const [showQR, setShowQR] = useState(false);
   const [socialPack, setSocialPack] = useState<any>(null);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
@@ -1639,7 +1641,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
           {publishChannels.emailNurture && (
             <div
               className="flex items-center gap-3 p-3 rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50/50 dark:bg-indigo-950/20 cursor-pointer hover:ring-1 hover:ring-indigo-400/40 transition-all"
-              onClick={() => navigate("/node-builder/BP-01")}
+              onClick={() => goToNode("BP-01")}
             >
               <div className="w-7 h-7 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center shrink-0">
                 <ArrowRight className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
@@ -1656,7 +1658,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
           {anySocial && (
             <div
               className="flex items-center gap-3 p-3 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-950/20 cursor-pointer hover:ring-1 hover:ring-purple-400/40 transition-all"
-              onClick={() => navigate("/node-builder/BP-03")}
+              onClick={() => goToNode("BP-03")}
             >
               <div className="w-7 h-7 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center shrink-0">
                 <ArrowRight className="h-4 w-4 text-purple-600 dark:text-purple-400" />
@@ -1673,11 +1675,11 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
 
       {/* Primary CTA — Continue to next step */}
       {publishChannels.emailNurture ? (
-        <Button className="w-full" size="lg" onClick={() => navigate("/node-builder/BP-01")}>
+        <Button className="w-full" size="lg" onClick={() => goToNode("BP-01")}>
           Continue to Email Nurture <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       ) : anySocial ? (
-        <Button className="w-full" size="lg" onClick={() => navigate("/node-builder/BP-03")}>
+        <Button className="w-full" size="lg" onClick={() => goToNode("BP-03")}>
           Continue to Social Media <ArrowRight className="h-4 w-4 ml-2" />
         </Button>
       ) : (

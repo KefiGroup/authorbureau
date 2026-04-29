@@ -231,8 +231,8 @@ export default function BP01Builder({ authorId, bookId }: Props) {
           title="Email Marketing"
           subtitle="Welcome sequence + lead magnet offer + first broadcast"
           icon={Mail}
-          onBack={() => navigate("/brand-products")}
         />
+        {/* Back navigation handled by NodeBuilder page wrapper — preserves bookId/bookTitle. */}
         <UnifiedStepper
           nodeId="BP-01"
           steps={STEPS}
