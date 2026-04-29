@@ -70,7 +70,8 @@ export default function MembershipSalesPage() {
   if (authorMissing) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Author not found.</p></div>;
   if (notFound || !data) return <ComingSoonScreen authorSlug={authorSlug || ""} authorName={authorName} pageLabel="The membership" />;
 
-  const isLive = data.status === "live";
+  // Any post-draft status counts as purchasable.
+  const isLive = data.status !== "draft";
   const headline = (data.sales_copy.headline as string) || data.name;
   const subheadline = (data.sales_copy.subheadline as string) || data.tagline;
 
