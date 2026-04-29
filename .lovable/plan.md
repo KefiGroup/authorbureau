@@ -1,81 +1,63 @@
-## Findings
+## Diagnosis
 
-I verified the backend data for **Be SUCKcessful** (`bookId = e5b857ac-48ce-4ffc-a761-3c09e95a318e`) and the manuscript is present.
+The red **"Unauthorized"** is **NOT** an ElevenLabs 401. ElevenLabs is never called.
 
-- The manuscript is stored in the backend table **`generated_assets`**.
-- The lookup key is:
-  - **`book_id = e5b857ac-48ce-4ffc-a761-3c09e95a318e`**
-  - **`asset_type = 'source_material'`**
-- The manuscript text is stored in the **`content`** column.
-- The stored manuscript row currently has about **100,589 characters**, so this is not a missing-data issue.
-- The book row is owned by **support@paulineteo.com** and its `author_id` matches the authenticated user id already seen elsewhere in the logs.
+The error is thrown by our own `resolveUser()` inside `supabase/functions/elevenlabs-tts-audiobook/index.ts` (line 50), confirmed in edge logs:
 
-I also confirmed an important implementation mismatch:
-
-- The **old Audiobook Studio** (`src/components/dashboard/AudiobookStudio.tsx`) calls **`get-book-manuscript`**.
-- The **current BA-11 builder flow** (`src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`) calls **`get-manuscript-source`**.
-- The failing UI text **"No manuscript found for this book"** comes from the **old `AudiobookStudio` component**.
-
-The strongest root-cause signal is that there were **no request logs** for `get-book-manuscript` during the failing session snapshot, while the manuscript row definitely exists. That points to the client failing **before or during auth token resolution**, not to missing manuscript data.
-
-## Plan
-
-1. **Fix the BA-11 client bootstrap path in `AudiobookStudio`**
-   - Make manuscript loading wait for shared auth restoration instead of treating a missing token as “no manuscript”.
-   - Reuse the same retry pattern already used in `useMyBooks` so the studio survives refresh/navigation timing issues.
-   - Distinguish these states in UI:
-     - auth not ready
-     - loading manuscript
-     - manuscript not found
-     - backend request failed
-   - Prevent the current false-negative state where `token === null` immediately falls through to the “No manuscript found” card.
-
-2. **Add explicit diagnostics to the manuscript edge function**
-   - Instrument `get-book-manuscript` to log:
-     - received `book_id`
-     - how the user was resolved
-     - book ownership result
-     - whether a `source_material` asset was found
-     - matched `author_id`
-     - content length returned
-   - Return a clearer structured error payload when the request is unauthorized, the book is not owned, or the asset query returns empty.
-   - This will make the next failure unambiguous instead of looking like deleted content.
-
-3. **Normalize the manuscript read path across BA-11**
-   - Align the old `AudiobookStudio` manuscript fetch with the same ownership/data rules already used in `get-manuscript-source`, or extract a shared backend helper so both BA-11 experiences read manuscripts the same way.
-   - Remove the current situation where two BA-11 UIs depend on two different functions and produce different failure modes.
-
-4. **Verify the fix against the real book record**
-   - Re-test `bookId = e5b857ac-48ce-4ffc-a761-3c09e95a318e` specifically.
-   - Confirm the studio auto-loads the stored manuscript instead of showing the fallback card.
-   - Confirm the edge logs now show the actual lookup and returned content length.
-
-## Technical details
-
-Relevant files to update:
-
-- `src/components/dashboard/AudiobookStudio.tsx`
-- `supabase/functions/get-book-manuscript/index.ts`
-- potentially `supabase/functions/get-manuscript-source/index.ts` if I consolidate the lookup logic
-
-Confirmed backend data for this bug:
-
-```text
-books.id = e5b857ac-48ce-4ffc-a761-3c09e95a318e
-generated_assets.book_id = e5b857ac-48ce-4ffc-a761-3c09e95a318e
-generated_assets.asset_type = source_material
-generated_assets.content_length ≈ 100589
+```
+ERROR elevenlabs-tts-audiobook error: Error: Unauthorized
+    at resolveUser (.../elevenlabs-tts-audiobook/index.ts:86:9)
 ```
 
-Most likely failure sequence today:
+`ELEVENLABS_API_KEY` is present in secrets (Connector-managed) and works fine for other functions — credits/key are not the issue.
 
-```text
-AudiobookStudio mounts
--> getActiveToken() returns null during shared-auth restoration / lock contention
--> component stops loading
--> no backend request is made
--> manuscript stays empty string
--> UI renders "No manuscript found for this book"
+### Two real root causes
+
+**1. Wrong token source in the client (violates project Core rule).**
+`AudiobookStudio.handleGenerateSingle` does:
+```ts
+const session = (await supabase.auth.getSession()).data.session;
+const authToken = session?.access_token || "";
 ```
+For `support@paulineteo.com`, the user only exists in the **shared backend** (confirmed: no row in local `auth.users`). The local `supabase.auth.getSession()` returns nothing, so an empty/invalid bearer is sent → `resolveUser` fails all three branches → throws "Unauthorized".
 
-This is why the earlier fix did not resolve the bug: the manuscript row exists, but the old studio is still vulnerable to the refresh-time auth bootstrap race before it ever reaches the backend lookup.
+The Sprint 8 manuscript fix already standardised on `getActiveToken()` (in fact lines 78–84 of the same file use it for manuscript loading). The chapter-generate path was missed.
+
+**2. Ownership check uses `author_id` only, no email fallback.**
+The edge function does:
+```ts
+if (!book || book.author_id !== user.id) return 404
+```
+DB shows `books.author_id = ef23c521…` (a shared-backend uid) and `owner_email = support@paulineteo.com`. Even after we fix the token, if `resolveUser` returns the *local* uid, the strict `author_id` compare will 404. The proven pattern in `get-book-manuscript` is `ownsByEmail` (compare `book.owner_email` to `user.email`).
+
+## Fix
+
+### A. `src/components/dashboard/AudiobookStudio.tsx`
+- In `handleGenerateSingle` (and any other call site that still uses `supabase.auth.getSession()`), replace with the standard `getActiveToken()` retry pattern already used at lines 78–84:
+  ```ts
+  const { getActiveToken } = await import("@/lib/get-active-token");
+  let token = await getActiveToken();
+  if (!token) { await new Promise(r => setTimeout(r, 800)); token = await getActiveToken(); }
+  if (!token) throw new Error("Not signed in");
+  ```
+- Pass that token into `generateChapter`. Also use it for the "Generate All" loop if applicable.
+
+### B. `supabase/functions/elevenlabs-tts-audiobook/index.ts`
+- Replace the strict `book.author_id !== user.id` check in the `generate-chunk` and `finalize-chapter` branches with the dual ownership pattern used by `get-book-manuscript`:
+  ```ts
+  const owns =
+    book.author_id === user.id ||
+    (book.owner_email &&
+     book.owner_email.toLowerCase() === user.email.toLowerCase());
+  if (!owns) return 404;
+  ```
+- Improve the top-level catch so the client gets a structured response distinguishing `no_token` / `forbidden` / `elevenlabs_error` instead of a bare "Unauthorized" — easier diagnostics next time.
+- Add a one-line `console.log` of `{ user.email, book.id, action }` so future failures are traceable.
+
+### C. Quick verification
+- Reload Audiobook Studio for "Be SUCKcessful" while logged in as support@paulineteo.com.
+- Click Generate on Chapter 1 — expect chunks to upload to `audiobook-audio` bucket and the chapter to flip to ✅ done.
+- Tail `elevenlabs-tts-audiobook` logs to confirm no more `Unauthorized` and that ElevenLabs returns 200.
+
+### Out of scope
+- No changes to `ELEVENLABS_API_KEY` (it's valid). No Stripe/credit changes. No UI redesign.
