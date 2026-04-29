@@ -547,13 +547,13 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
-        return <Navigate to={`/node-builder/BP-09${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-09${buildNodeBuilderSearch(location)}`} replace />;
       case "special-editions":
-        return <Navigate to={`/node-builder/BP-08${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-08${buildNodeBuilderSearch(location)}`} replace />;
       case "lead-magnet":
-        return <Navigate to={`/node-builder/BP-02${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-02${buildNodeBuilderSearch(location)}`} replace />;
       case "big-ticket":
-        return <Navigate to={`/node-builder/YR-20${location.search}`} replace />;
+        return <Navigate to={`/node-builder/YR-20${buildNodeBuilderSearch(location)}`} replace />;
       case "connect-stripe":
         return <ConnectStripePage />;
       case "payout-settings":
