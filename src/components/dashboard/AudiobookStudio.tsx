@@ -69,22 +69,30 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     loadVoices();
   }, []);
 
-  // Auto-load manuscript from generated_assets
+  // Auto-load manuscript via edge function (handles shared-backend auth + service-role read).
   const loadManuscript = useCallback(async () => {
     setLoadingManuscript(true);
     try {
-      const { data } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("book_id", bookId)
-        .eq("asset_type", "source_material")
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (data?.content) {
-        setManuscript(data.content);
-        setShowUploadFallback(false);
+      const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+      const token = await getActiveToken();
+      if (!token) { setLoadingManuscript(false); return; }
+      const resp = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-book-manuscript`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ book_id: bookId }),
+        },
+        20000
+      );
+      if (resp.ok) {
+        const data = await resp.json();
+        if (data?.content) {
+          setManuscript(data.content);
+          setShowUploadFallback(false);
+        }
+      } else {
+        console.warn("get-book-manuscript non-ok:", resp.status);
       }
     } catch (e) {
       console.error("No manuscript found:", e);
