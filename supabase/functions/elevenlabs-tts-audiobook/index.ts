@@ -66,15 +66,23 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Not signed in", code: "no_token" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const token = authHeader.replace("Bearer ", "");
-    const user = await resolveUser(token);
+    let user: { id: string; email: string };
+    try {
+      user = await resolveUser(token);
+    } catch (_e) {
+      return new Response(JSON.stringify({ error: "Session not recognised", code: "no_token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const body = await req.json();
     const { action } = body;
+    console.log("[elevenlabs-tts-audiobook]", { action, email: user.email });
 
     // === LIST VOICES ===
     if (action === "list-voices") {
