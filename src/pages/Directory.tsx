@@ -48,6 +48,7 @@ export default function Directory() {
   const [selectedGenre, setSelectedGenre] = useState<string | null>(searchParams.get("genre") || null);
   const [sortBy, setSortBy] = useState<string>(searchParams.get("sort") || "featured");
   const [dynamicAuthors, setDynamicAuthors] = useState<DirectoryAuthor[]>([]);
+  const [showAllGenres, setShowAllGenres] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch dynamic authors from DB
@@ -100,17 +101,22 @@ export default function Directory() {
 
   const allAuthors = [...staticMapped, ...dynamicNew];
 
-  // Normalize genres: title-case and dedupe case-insensitively
+  // Normalize genres: title-case + count frequency for Top 8 ordering
   const normalizeGenre = (g: string) =>
     g.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-  const genreMap = new Map<string, string>();
+  const genreCounts = new Map<string, { label: string; count: number }>();
   allAuthors.forEach((a) => {
     a.genres.forEach((g) => {
       const norm = normalizeGenre(g);
-      if (!genreMap.has(norm.toLowerCase())) genreMap.set(norm.toLowerCase(), norm);
+      const key = norm.toLowerCase();
+      const existing = genreCounts.get(key);
+      if (existing) existing.count += 1;
+      else genreCounts.set(key, { label: norm, count: 1 });
     });
   });
-  const allGenres = Array.from(genreMap.values()).sort();
+  const allGenres = Array.from(genreCounts.values())
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+    .map((g) => g.label);
 
   const handleGenreFilter = (genre: string | null) => {
     setSelectedGenre(genre);
@@ -193,7 +199,7 @@ export default function Directory() {
             >
               All
             </button>
-            {allGenres.map((g) => (
+            {(showAllGenres ? allGenres : allGenres.slice(0, 8)).map((g) => (
               <button
                 key={g}
                 onClick={() => handleGenreFilter(g === selectedGenre ? null : g)}
@@ -206,6 +212,14 @@ export default function Directory() {
                 {g}
               </button>
             ))}
+            {allGenres.length > 8 && (
+              <button
+                onClick={() => setShowAllGenres((v) => !v)}
+                className="rounded-full px-3 py-1.5 text-xs font-medium bg-card border border-border text-secondary hover:bg-secondary/10 transition-colors"
+              >
+                {showAllGenres ? "Show less" : `+ ${allGenres.length - 8} more`}
+              </button>
+            )}
           </div>
 
           {isLoading && (
