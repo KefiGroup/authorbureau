@@ -10,6 +10,65 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+function jsonResp(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+async function resolveUser(token: string, cloudAdmin: ReturnType<typeof createClient>) {
+  let userId: string | null = null;
+  let userEmail: string | null = null;
+  let via = "none";
+
+  // 1) JWT decode (works for both backends)
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload?.sub) {
+      userId = payload.sub;
+      userEmail = payload.email || payload.user_metadata?.email || null;
+      via = "jwt";
+    }
+  } catch (_) { /* ignore */ }
+
+  // 2) Try cloud auth verification
+  try {
+    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+    if (cloudUser) {
+      userId = cloudUser.id;
+      userEmail = cloudUser.email ?? userEmail;
+      via = "cloud";
+    }
+  } catch (_) { /* ignore */ }
+
+  // 3) Shared backend
+  if (!userId || !userEmail) {
+    try {
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+      if (sharedUser) {
+        userEmail = sharedUser.email ?? userEmail;
+        userId = userId || sharedUser.id;
+        via = via === "none" ? "shared" : `${via}+shared`;
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  // 4) Map shared id -> local id by email
+  if (userEmail) {
+    try {
+      const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+      const match = users?.find(
+        (u: any) => u.email?.toLowerCase() === userEmail!.toLowerCase()
+      );
+      if (match) userId = match.id;
+    } catch (_) { /* ignore */ }
+  }
+
+  return { userId, userEmail, via };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -17,51 +76,37 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("authorization") ?? "";
     const token = authHeader.replace("Bearer ", "");
     if (!token) {
-      return new Response(JSON.stringify({ error: "No auth token" }), {
-        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResp({ success: false, code: "no_token", error: "No auth token" }, 401);
     }
 
     const { book_id } = await req.json().catch(() => ({}));
     if (!book_id) {
-      return new Response(JSON.stringify({ error: "Missing book_id" }), {
-        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResp({ success: false, code: "missing_book_id", error: "Missing book_id" }, 400);
     }
 
     const cloudAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Dual-token resolve (Cloud first, then shared backend)
-    let userId: string | null = null;
-    let userEmail: string | null = null;
+    const { userId, userEmail, via } = await resolveUser(token, cloudAdmin);
+    console.log("[get-book-manuscript] resolveUser:", { book_id, userId, userEmail, via });
 
-    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-    if (cloudUser) {
-      userId = cloudUser.id;
-      userEmail = cloudUser.email ?? null;
-    } else {
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-      if (!sharedUser) {
-        return new Response(JSON.stringify({ error: "Invalid session" }), {
-          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      userEmail = sharedUser.email ?? null;
-      userId = sharedUser.id;
-      if (sharedUser.email) {
-        const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
-        const localMatch = users?.find(
-          (u: any) => u.email?.toLowerCase() === sharedUser.email?.toLowerCase()
-        );
-        if (localMatch) userId = localMatch.id;
-      }
+    if (!userId && !userEmail) {
+      return jsonResp({ success: false, code: "unauthorized", error: "Could not resolve user from token" }, 401);
     }
 
-    // Verify ownership of book
+    // Build candidate author_ids: userId + author_profiles.id where user_id = userId
+    const candidates = new Set<string>();
+    if (userId) candidates.add(userId);
+    if (userId) {
+      const { data: profiles } = await cloudAdmin
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", userId);
+      (profiles ?? []).forEach((p: any) => candidates.add(p.id));
+    }
+
     const { data: book } = await cloudAdmin
       .from("books")
       .select("id, author_id, owner_email")
@@ -69,39 +114,62 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!book) {
-      return new Response(JSON.stringify({ error: "Book not found" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.log("[get-book-manuscript] Book not found:", book_id);
+      return jsonResp({ success: false, code: "book_not_found", error: "Book not found" }, 404);
     }
 
-    const ownsBook =
-      book.author_id === userId ||
-      (userEmail && book.owner_email && book.owner_email.toLowerCase() === userEmail.toLowerCase());
+    const ownsByAuthor = book.author_id && candidates.has(book.author_id);
+    const ownsByEmail =
+      !!userEmail && !!book.owner_email &&
+      book.owner_email.toLowerCase() === userEmail.toLowerCase();
 
-    if (!ownsBook) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), {
-        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    console.log("[get-book-manuscript] ownership:", {
+      bookAuthorId: book.author_id,
+      ownerEmail: book.owner_email,
+      candidates: Array.from(candidates),
+      ownsByAuthor, ownsByEmail,
+    });
+
+    if (!ownsByAuthor && !ownsByEmail) {
+      return jsonResp({ success: false, code: "forbidden", error: "Not authorized for this book" }, 403);
     }
 
-    // Service-role read of latest source_material
-    const { data: asset } = await cloudAdmin
+    // Service-role read of latest source_material — try ALL author_ids that
+    // ever wrote a source_material row for this book, not just current user's.
+    const { data: assets } = await cloudAdmin
       .from("generated_assets")
-      .select("content, updated_at")
+      .select("content, author_id, updated_at, created_at")
       .eq("book_id", book_id)
       .eq("asset_type", "source_material")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order("updated_at", { ascending: false });
 
-    return new Response(
-      JSON.stringify({ content: asset?.content ?? null, updated_at: asset?.updated_at ?? null }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    const match = (assets ?? []).find(
+      (a: any) => typeof a?.content === "string" && a.content.trim().length > 0,
     );
+
+    if (!match) {
+      console.log("[get-book-manuscript] No source_material asset found for book:", book_id, "rows:", assets?.length ?? 0);
+      return jsonResp({
+        success: false,
+        code: "no_manuscript",
+        error: "No manuscript stored for this book yet.",
+        content: null,
+      });
+    }
+
+    const content = (match.content as string).trim();
+    console.log("[get-book-manuscript] Returning manuscript:", {
+      book_id, asset_author_id: match.author_id, length: content.length,
+    });
+
+    return jsonResp({
+      success: true,
+      content,
+      characterCount: content.length,
+      updated_at: match.updated_at ?? match.created_at ?? null,
+    });
   } catch (err: any) {
     console.error("get-book-manuscript error:", err?.message || err);
-    return new Response(JSON.stringify({ error: err?.message || "Internal error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResp({ success: false, code: "internal_error", error: err?.message || "Internal error" }, 500);
   }
 });

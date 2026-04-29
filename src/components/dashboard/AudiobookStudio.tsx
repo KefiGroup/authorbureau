@@ -70,32 +70,67 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   }, []);
 
   // Auto-load manuscript via edge function (handles shared-backend auth + service-role read).
+  // Resilient to refresh-time auth bootstrap: retries token resolution and falls
+  // back to get-manuscript-source if the primary endpoint can't find the asset.
   const loadManuscript = useCallback(async () => {
     setLoadingManuscript(true);
     try {
       const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
-      const token = await getActiveToken();
-      if (!token) { setLoadingManuscript(false); return; }
-      const resp = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-book-manuscript`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ book_id: bookId }),
-        },
-        20000
-      );
-      if (resp.ok) {
-        const data = await resp.json();
-        if (data?.content) {
-          setManuscript(data.content);
-          setShowUploadFallback(false);
+
+      // Wait for shared-auth restoration before treating "no token" as failure.
+      let token = await getActiveToken();
+      for (let i = 0; i < 8 && !token; i++) {
+        await new Promise(r => setTimeout(r, 300));
+        token = await getActiveToken();
+      }
+      if (!token) {
+        console.warn("[AudiobookStudio] No auth token after retries — keeping prior manuscript state.");
+        setLoadingManuscript(false);
+        return;
+      }
+
+      const tryEndpoint = async (path: string, payload: Record<string, unknown>) => {
+        const resp = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${path}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(payload),
+          },
+          25000
+        );
+        const text = await resp.text();
+        let data: any = null;
+        try { data = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+        return { ok: resp.ok, status: resp.status, data };
+      };
+
+      // Primary path
+      const primary = await tryEndpoint("get-book-manuscript", { book_id: bookId });
+      console.log("[AudiobookStudio] get-book-manuscript:", primary.status, primary.data?.code, primary.data?.characterCount);
+
+      let content: string | null =
+        (primary.ok && typeof primary.data?.content === "string" && primary.data.content.length > 0)
+          ? primary.data.content
+          : null;
+
+      // Fallback to legacy endpoint if primary returned no content (proven path).
+      if (!content) {
+        const fallback = await tryEndpoint("get-manuscript-source", { bookId });
+        console.log("[AudiobookStudio] get-manuscript-source fallback:", fallback.status, fallback.data?.success, fallback.data?.error);
+        if (fallback.data?.success && typeof fallback.data?.content === "string") {
+          content = fallback.data.content;
         }
+      }
+
+      if (content) {
+        setManuscript(content);
+        setShowUploadFallback(false);
       } else {
-        console.warn("get-book-manuscript non-ok:", resp.status);
+        console.warn("[AudiobookStudio] No manuscript returned for book:", bookId);
       }
     } catch (e) {
-      console.error("No manuscript found:", e);
+      console.error("[AudiobookStudio] manuscript load error:", e);
     }
     setLoadingManuscript(false);
   }, [bookId]);
