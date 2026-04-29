@@ -84,11 +84,11 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
       setChecking(true);
       try {
         const token = await getToken();
-        const resp = await fetch(EDGE_FN_URL, {
+        const resp = await fetchWithTimeout(EDGE_FN_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action: "check", bookId }),
-        });
+        }, 15000);
         const result = await resp.json();
         if (resp.ok && result.exists) {
           setHasManuscript(true);
