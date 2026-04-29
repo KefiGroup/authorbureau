@@ -110,7 +110,11 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         setProfileState(isListed && hasName && hasPhoto && hasBio ? "live" : (hasName || hasPhoto ? "incomplete" : "none"));
       }
 
-      setBookCount(state?.bookCount || 0);
+      // Trust the canonical books endpoint over dashboard-state when it
+      // returned a non-empty list — prevents flashing the "Meet Abby / no
+      // book" empty state when only the dashboard-state call failed.
+      const booksLen = Array.isArray(booksData?.books) ? booksData.books.length : 0;
+      setBookCount(booksLen > 0 ? booksLen : (state?.bookCount || myBooks.length || 0));
       if (slugRes?.data?.author_slug) setAuthorSlug(slugRes.data.author_slug);
 
       if (booksData?.books) {
