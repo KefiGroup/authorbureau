@@ -50,6 +50,21 @@ import { useNodeGating } from "@/hooks/useNodeGating";
 
 // Legacy builder ?builder=<id> values still supported via legacyBuilderRedirect.
 
+/**
+ * Build the search-string portion for a redirect to /node-builder/<NODE>,
+ * preserving bookId/bookTitle from either the current search params OR the
+ * nested route path (/dashboard/book/:bookId/build/:node). This guards
+ * against the race where BookBuilderRoute hasn't yet mirrored :bookId
+ * into search params before AuthorDashboard renders the <Navigate>.
+ */
+function buildNodeBuilderSearch(location: { pathname: string; search: string }): string {
+  const params = new URLSearchParams(location.search);
+  const pathBookId = /\/dashboard\/book\/([^/]+)\/build\//.exec(location.pathname)?.[1];
+  if (pathBookId && !params.get("bookId")) params.set("bookId", pathBookId);
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export type DashboardSection =
   | "overview" | "profile" | "my-books"
   | "build-business"
