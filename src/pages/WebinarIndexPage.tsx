@@ -213,6 +213,7 @@ export default function WebinarIndexPage() {
           </div>
         )}
       </main>
+      <MicrositePoweredByFooter displayName={displayName} />
     </div>
   );
 }
