@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { FileText, Download, Loader2, ChevronDown, ChevronUp } from "lucide-react";
+import { FileText, Download, Loader2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { printExportHtml } from "@/lib/print-export";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -58,7 +58,47 @@ export default function SavedBusinessPlan({ bookId, bookTitle, authorId }: Saved
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState(false);
   const [downloading, setDownloading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const { toast } = useToast();
+
+  const handleRefresh = async () => {
+    if (!plan) return;
+    if (!confirm("Regenerate this business plan using the latest ABBY framework? Your current plan will be replaced.")) return;
+    setRefreshing(true);
+    try {
+      const { data: { session } } = await sharedSupabase.auth.getSession();
+      const token = session?.access_token;
+      const baseHeaders = {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+      };
+      const fnUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`;
+
+      const expandResp = await fetch(fnUrl, {
+        method: "POST",
+        headers: baseHeaders,
+        body: JSON.stringify({ action: "expand-plan", bookId, summaryPlan: plan }),
+      });
+      if (!expandResp.ok) throw new Error("Regeneration failed");
+      const expandResult = await expandResp.json();
+      const newContent: string = expandResult.content || expandResult.expandedContent || "";
+      if (!newContent) throw new Error("Empty plan returned");
+
+      const saveResp = await fetch(fnUrl, {
+        method: "POST",
+        headers: baseHeaders,
+        body: JSON.stringify({ action: "save-plan", bookId, content: newContent }),
+      });
+      if (!saveResp.ok) throw new Error("Failed to save refreshed plan");
+
+      setPlan(newContent);
+      toast({ title: "Business plan refreshed", description: "Regenerated with the latest ABBY framework." });
+    } catch (err: any) {
+      console.error("Refresh failed:", err);
+      toast({ title: "Refresh failed", description: err?.message || "Please try again.", variant: "destructive" });
+    }
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     (async () => {
@@ -128,7 +168,18 @@ export default function SavedBusinessPlan({ bookId, bookTitle, authorId }: Saved
             <h3 className="font-heading font-bold text-sm">Your ABBY Business Plan</h3>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={handleDownload} disabled={downloading}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 text-xs h-7"
+              onClick={handleRefresh}
+              disabled={refreshing || downloading}
+              title="Regenerate with the latest ABBY framework"
+            >
+              {refreshing ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={handleDownload} disabled={downloading || refreshing}>
               {downloading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Download className="h-3 w-3" />}
               .docx
             </Button>
@@ -137,6 +188,9 @@ export default function SavedBusinessPlan({ bookId, bookTitle, authorId }: Saved
             </Button>
           </div>
         </div>
+        <p className="text-[11px] text-muted-foreground -mt-1">
+          Want fully on-topic recommendations? Refresh to regenerate with the updated framework.
+        </p>
 
         {/* Collapsed: show section chips */}
         {!expanded && (
