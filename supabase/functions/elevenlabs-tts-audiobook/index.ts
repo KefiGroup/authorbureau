@@ -50,6 +50,16 @@ async function resolveUser(token: string): Promise<{ id: string; email: string }
   throw new Error("Unauthorized");
 }
 
+function ownsBook(
+  book: { author_id?: string | null; owner_email?: string | null },
+  user: { id: string; email: string }
+): boolean {
+  if (book.author_id && book.author_id === user.id) return true;
+  if (book.owner_email && user.email &&
+      book.owner_email.toLowerCase() === user.email.toLowerCase()) return true;
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
