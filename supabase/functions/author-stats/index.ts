@@ -230,13 +230,14 @@ Deno.serve(async (req) => {
       totalPublished += counts.published;
     }
 
-    // Attribute every built author_node to the author's primary (oldest) book.
-    // author_nodes has no book_id column, so we attribute author-level nodes to the first book.
-    if (primaryBookId) {
-      const primarySet = ensureBookSet(primaryBookId);
-      for (const nodeId of builtNodeIds) {
-        primarySet.add(nodeId);
-      }
+    // Attribute each built author_node to its specific book when book_id is set;
+    // fall back to the primary (oldest) book for legacy author-level rows.
+    for (const n of authorNodes || []) {
+      const bid = (n as any).book_id || primaryBookId;
+      if (bid) ensureBookSet(bid).add(n.node_id);
+    }
+    if (profile?.author_slug && primaryBookId) {
+      ensureBookSet(primaryBookId).add("BP-04");
     }
 
     // Materialise structured perBook output with brand/build/yield bucket counts
