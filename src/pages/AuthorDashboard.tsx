@@ -441,7 +441,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "courses":
         return gate("Course Builder", <CourseBuilder />, "build");
       case "home-study":
-        return <Navigate to="/node-builder/BA-11" replace />;
+        return <Navigate to="/node-builder/BP-07" replace />;
       case "workbooks":
         return gate("Workbooks", <WorkbooksManager onNavigate={handleNavigate} />);
       case "webinars":
