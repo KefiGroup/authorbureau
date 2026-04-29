@@ -608,6 +608,7 @@ export type Database = {
           stripe_price_id: string | null
           stripe_product_id: string | null
           third_party_url: string | null
+          updated_at: string
           workbook_pdf_url: string | null
         }
         Insert: {
@@ -636,6 +637,7 @@ export type Database = {
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           third_party_url?: string | null
+          updated_at?: string
           workbook_pdf_url?: string | null
         }
         Update: {
@@ -664,6 +666,7 @@ export type Database = {
           stripe_price_id?: string | null
           stripe_product_id?: string | null
           third_party_url?: string | null
+          updated_at?: string
           workbook_pdf_url?: string | null
         }
         Relationships: [
