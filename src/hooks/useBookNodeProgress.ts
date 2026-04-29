@@ -74,13 +74,16 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
   const [statusByCode, setStatusByCode] = useState<Record<string, "completed" | "in-progress">>({});
   const [hasAuthorSlug, setHasAuthorSlug] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       if (!user) { setLoading(false); return; }
-      setLoading(true);
+      // Only show the loading shimmer the first time. On refetch, keep showing the
+      // previous counters so the badge never flashes "0 of 28".
+      if (!hasLoadedOnce) setLoading(true);
       try {
         const { data: profile } = await supabase
           .from("author_profiles")
