@@ -41,14 +41,15 @@ export default function CourseSalesPage() {
     (async () => {
       if (!authorSlug || !courseSlug) { setAuthorMissing(true); setLoading(false); return; }
       const { data: author } = await supabase
-        .from("author_profiles").select("id, pen_name").eq("author_slug", authorSlug).maybeSingle();
+        .from("author_profiles").select("id, user_id, pen_name").eq("author_slug", authorSlug).maybeSingle();
       if (!author) { setAuthorMissing(true); setLoading(false); return; }
       setAuthorName(author.pen_name || "");
 
+      // courses.author_id references auth.users.id (the user_id), not author_profiles.id.
       const { data: c } = await supabase
         .from("courses")
         .select("id, author_id, title, subtitle, tagline, description, cover_image_url, price, currency, target_student, transformation_promises, status")
-        .eq("author_id", author.id)
+        .eq("author_id", author.user_id)
         .eq("course_slug", courseSlug)
         .maybeSingle();
       if (!c) { setNotFound(true); setLoading(false); return; }
