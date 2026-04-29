@@ -77,7 +77,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const catProgress = progress.byCategory[categoryId as AbbyCategory];
   const HeaderIcon = cat.headerIcon;
   const headline = CATEGORY_HEADLINES[categoryId];
-  const primaryBookId = analyzedBooks?.[0]?.id || books[0]?.id || "";
+  const primaryBookId = primaryBookIdEarly;
   const primaryBookTitle = analyzedBooks?.[0]?.title || books[0]?.title || "";
 
   // Dynamic category economics — derived from actual unlocked nodes + live revenue.
