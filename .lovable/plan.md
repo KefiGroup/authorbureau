@@ -1,76 +1,68 @@
 ## Goal
 
-Replace the bare "Post-purchase redirect URL" panel for STEP 3 (Checkout) of the Funnels Hub with an author-friendly Stripe-aware view: connection badge, product/price summary, redirect URL, Test Checkout button, and a plain-English explanation of how money flows.
+When Pauline opens the Social Calendar and her **scheduled** runway drops to **7 days or fewer**, ABBY automatically generates 30 more days of post copy and drops them into the **Unscheduled queue** — with a toast confirming the refill. This replaces the old fixed-overnight cron model with an on-demand, author-aligned trigger.
 
-## Where this lives
+## Why this approach
 
-- Stage definition: `src/lib/funnel-flow-stages.ts` (archetype A, `id: "checkout"`).
-- Drawer that renders the panel: `src/components/dashboard/builders/shared/StageEditorDrawer.tsx`.
-- Drawer is opened from `NodeFunnelFlow.tsx`, which already has `funnel.author_id` and `funnel.node_id` — we'll pass these through so the drawer can fetch product + Stripe status.
-
-## Data model already in place (no migrations needed)
-
-- `funnels.node_id` + `funnels.author_id` → look up the matching product in `author_nodes (author_id, node_id)` to get `node_name` / `personalised_name`, `price_usd`, `delivery_url`, `stripe_price_id`.
-- Stripe connection status is stored on `author_profiles.stripe_connected_account_id` (and `stripe_onboarding_complete`). Same pattern used in `RevenueFullDashboard.tsx`.
-- "Test this checkout" can call the existing `create-checkout-session` edge function with the `author_node_id` (same path `BuyNowButton` uses), opened in a new tab.
+Sprint 5A already disabled the nightly `auto-refill-social-calendar` cron (it now early-exits unless `force: true` is passed) because the author controls scheduling. That means the legacy "overnight job" the user is worried about will never fire. The reliable trigger point is the moment the author opens the Social Calendar tab — we evaluate runway then and call the existing forced-refill path if needed. No new cron, no schema changes, no new edge function.
 
 ## Changes
 
-### 1. `StageEditorDrawer.tsx`
+### 1. `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
 
-Add two new props so the drawer can render a checkout-specific header without breaking other stages:
+**Add a runway calculation** (after `scheduledCount` is computed, ~line 270):
+- `latestScheduledAt` = max `scheduled_at` among posts where `status !== 'posted'`.
+- `daysOfRunway` = days between today and `latestScheduledAt` (0 if none scheduled).
 
-```ts
-authorNodeId?: string | null;     // funnel's node_id
-authorProfileId?: string | null;  // funnel's author_id (for Stripe lookup)
-```
+**Add an auto-regen effect** that fires once per session per author when:
+- `bp03Activated` is true,
+- `loading` is false,
+- `daysOfRunway <= 7`,
+- `unscheduledCount < 10` (so we don't pile on if she already has plenty of drafts ready),
+- and we haven't already auto-fired in this session (guarded by a `useRef<Set<string>>` keyed by `authorId`).
 
-When `stage.id === "checkout"`, render a new `<CheckoutStagePanel>` block above the field list:
+The effect calls the same `force: true` path `refillCalendar()` already uses, but in a quiet variant `autoRefillCalendar()` that:
+- Shows an inline "ABBY is topping up your post queue…" hint while running.
+- On success: `toast.success("ABBY has added 30 new post ideas to your Unscheduled queue.")` and reloads.
+- On failure: silent (logs to console) — the manual "Generate 30 more days" button is still visible.
 
-- On mount: query `author_nodes` for `(author_id = authorProfileId, node_id = authorNodeId)` → get `personalised_name || node_name`, `price_usd`, `stripe_price_id`, `id` (author_node row id). In parallel, query `author_profiles` for `stripe_connected_account_id, stripe_onboarding_complete`.
-- Header row:
-  - Green `CheckCircle2` + "Your Stripe Checkout is ready" if `stripe_connected_account_id` is set AND `stripe_price_id` is present.
-  - Amber `AlertTriangle` + "Connect Stripe first to activate this checkout" if not connected. Show a `Button` linking to `/dashboard?section=connect-stripe`.
-  - If Stripe is connected but the product has no `stripe_price_id`, amber "Add a price for this product" link to the matching product builder route.
-- Product summary card (`bg-muted/30` rounded card):
-  - Product name (bold)
-  - Price formatted as `$XX.XX USD` from `price_usd`
-  - Small "Edit price" link → product builder for that node (route map already used in `BookHub`; default to `/dashboard?section=brand-products`).
-- "Test this checkout" `Button` (only enabled when Stripe is connected): calls `supabase.functions.invoke("create-checkout-session", { body: { author_node_id, test_mode: true } })`, then `window.open(data.url, "_blank")`. Falls back to the existing `delivery_url` if the function returns `AUTHOR_PAYMENTS_NOT_SET_UP`.
-- Plain-English explanation paragraph (muted text):
-  > "When a reader clicks 'Buy Now' on your sales page, they're taken to a secure Stripe checkout page. After payment, they're redirected to your Thank You page. Authors Bureau keeps 5% and pays you 95% on Stripe's standard schedule."
+**Update the banner** (~line 498). Replace the current single banner with two states:
 
-The existing redirect-URL `Input` continues to render unchanged below this header (current loop over `stage.fields`).
+- If `daysOfRunway <= 7` AND `daysOfRunway > 0`:
+  amber tone: *"Your scheduled posts run out in {daysOfRunway} day(s). ABBY is preparing 30 more — they'll appear as Unscheduled below."*
+- Else if `unscheduledCount > 0` (existing behavior):
+  *"You have {unscheduledCount} unscheduled posts ready to go — pick your dates below."*
 
-### 2. `NodeFunnelFlow.tsx`
+This satisfies requirement #3 (7-day threshold) without re-introducing the misleading "overnight" copy.
 
-Pass the two new props through when mounting `StageEditorDrawer`:
+### 2. `supabase/functions/auto-refill-social-calendar/index.ts`
 
-```tsx
-authorNodeId={funnel.node_id ?? null}
-authorProfileId={authorId}
-```
+No behavior change required — the forced path already:
+- accepts `{ author_id, force: true }`,
+- bypasses the early-exit,
+- calls `generate-bp03-social-media` for 30 days,
+- which (per Sprint 5A) inserts new rows as `status: 'draft'` / `scheduled_at: null` (Unscheduled queue). Requirement #2 is already satisfied.
 
-### 3. `funnel-flow-stages.ts`
+We will add one small comment update to the file header so the next reader understands the new client-driven trigger model. No logic change.
 
-No structural change required — `redirect_url` field stays. Optionally tighten the `checkout` stage `description` from "Stripe payment" to "Secure Stripe checkout — 5% platform fee".
+## Edge cases handled
 
-## Test plan
+- **Author with 0 scheduled posts but many unscheduled drafts**: `daysOfRunway === 0` but `unscheduledCount >= 10` → no auto-fire (she has plenty of copy to schedule).
+- **Author with 0 scheduled and 0 unscheduled**: auto-fires on first open.
+- **Repeat opens in the same session**: guarded by ref, won't double-fire.
+- **Refill fails**: silent fallback, manual button still works.
 
-1. Log in as `support@paulineteo.com`.
-2. Open `/dashboard?section=funnels-hub`.
-3. Click STEP 3 Checkout on the SUCKcessful sales funnel. Drawer should show:
-   - Green "Your Stripe Checkout is ready" header (Stripe is connected for this account).
-   - Product summary: "Be SUCKcessful Instant Digital Book" + "$27.00 USD" + Edit price link.
-   - Plain-English paragraph.
-   - "Test this checkout" button opens a real Stripe checkout in a new tab.
-   - Existing Post-purchase redirect URL field with ABBY's value pre-filled.
-4. Temporarily simulate a disconnected author (or test on an unconnected account): header switches to amber with "Connect Stripe" CTA pointing to `/dashboard?section=connect-stripe`.
+## Testing checklist
+
+1. Log in as `support@paulineteo.com`, open Marketing Hub → Social Calendar.
+2. With current state (scheduled posts ending May 1, today April 29 → runway = 2 days), confirm:
+   - amber banner reads "Your scheduled posts run out in 2 days…"
+   - auto-refill fires, toast appears: *"ABBY has added 30 new post ideas to your Unscheduled queue."*
+   - Unscheduled count jumps by ~80 posts (20 days × 4 platforms).
+3. Reload the page — auto-refill does NOT fire again (session guard) and unscheduled count is unchanged.
+4. With a fresh author who has runway > 7 days, confirm no auto-refill and no amber banner.
 
 ## Files touched
 
-- `src/components/dashboard/builders/shared/StageEditorDrawer.tsx` (extend)
-- `src/components/dashboard/builders/shared/NodeFunnelFlow.tsx` (pass 2 props)
-- `src/lib/funnel-flow-stages.ts` (minor description tweak — optional)
-
-No DB migrations, no new edge functions.
+- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` (add runway calc, effect, updated banner)
+- `supabase/functions/auto-refill-social-calendar/index.ts` (header comment only)
