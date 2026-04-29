@@ -103,17 +103,31 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
           const { data: nodes } = await q;
 
           (nodes || []).forEach((n: any) => {
+            const content = n.content_json;
             const hasContent =
-              n.content_json &&
-              typeof n.content_json === "object" &&
-              Object.keys(n.content_json).length > 0;
+              content && typeof content === "object" && Object.keys(content).length > 0;
+            // Per-node strict gate: BP-04 must have real microsite content,
+            // not just the autofilled microsite_url / book_id stub.
+            const passesStrictGate = (() => {
+              if (!hasContent) return false;
+              if (n.node_id === "BP-04") {
+                const fields = ["hero_headline", "hero_subheadline", "about_long", "about_short", "cta_label", "lead_magnet_id"];
+                const hasField = fields.some((k) => {
+                  const v = content[k];
+                  return typeof v === "string" ? v.trim().length > 0 : !!v;
+                });
+                const hasSections = Array.isArray(content.sections) && content.sections.length > 0;
+                return hasField || hasSections;
+              }
+              return true;
+            })();
             const isLiveStatus = n.status === "live" || n.status === "published_pending_ghl";
-            if (isLiveStatus && hasContent) {
+            if (isLiveStatus && passesStrictGate) {
               map[n.node_id] = "completed";
             } else if (
               n.status === "content_ready" ||
               n.status === "draft" ||
-              (isLiveStatus && !hasContent)
+              (isLiveStatus && !passesStrictGate)
             ) {
               if (map[n.node_id] !== "completed") map[n.node_id] = "in-progress";
             }
