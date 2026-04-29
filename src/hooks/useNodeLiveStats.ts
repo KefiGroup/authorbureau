@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { hasRequiredAssets } from "@/lib/node-readiness";
 
 export interface NodeLiveStats {
   status: string | null;
@@ -25,53 +26,6 @@ const STATUS_PROGRESS: Record<string, number> = {
   published_pending_ghl: 85,
   live: 100,
 };
-
-/**
- * Mirror of server-side readiness gates in deploy-ba14-to-transistor /
- * deploy-ba15-to-ghl. If a node's `status === 'live'` but the required assets
- * are absent, we surface `content_ready` so the UI doesn't show a false Live badge.
- */
-function hasRequiredAssets(nodeId: string, content: any): boolean {
-  if (!content || typeof content !== "object") return false;
-  switch (nodeId) {
-    case "BA-14": {
-      const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
-      const episodes = Array.isArray(content.episodes) ? content.episodes : [];
-      return rssReady && episodes.length > 0;
-    }
-    case "BA-15": {
-      const hasPressRelease = !!(content.press_release || content.press_release_html || content?.assets?.press_release);
-      const hasMediaList = Array.isArray(content.media_list)
-        ? content.media_list.length > 0
-        : Array.isArray(content.outlets)
-        ? content.outlets.length > 0
-        : false;
-      return hasPressRelease && hasMediaList;
-    }
-    case "BA-13": {
-      // Group coaching needs at least a session schedule or cohort config
-      const hasSchedule = Array.isArray(content.sessions) ? content.sessions.length > 0 : !!content.schedule;
-      return hasSchedule;
-    }
-    case "BP-04": {
-      // Author Website: must have at least one substantive content field —
-      // not just the autofilled microsite_url / book_id stub written by the
-      // author_nodes_autofill_delivery_url trigger.
-      const fields = [
-        "hero_headline", "hero_subheadline", "about_long", "about_short",
-        "cta_label", "lead_magnet_id",
-      ];
-      const hasField = fields.some((k) => {
-        const v = content[k];
-        return typeof v === "string" ? v.trim().length > 0 : !!v;
-      });
-      const hasSections = Array.isArray(content.sections) && content.sections.length > 0;
-      return hasField || hasSections;
-    }
-    default:
-      return true; // No extra gate beyond DB status
-  }
-}
 
 export function useNodeLiveStats(bookId?: string | null): {
   loading: boolean;
