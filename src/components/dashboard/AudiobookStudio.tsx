@@ -483,7 +483,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     <div className="space-y-6">
       {/* Header with back navigation */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navigate(`/dashboard/book/${bookId}?tab=automate`)}>
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => navigate(`/book-hub/${bookId}?tab=marketing-channels`)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-sm">
