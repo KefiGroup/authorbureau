@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ABBY_CATEGORIES, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
+import { hasRequiredAssets } from "@/lib/node-readiness";
 
 export type NodeStatus = "completed" | "in-progress" | "available" | "locked" | "coming-soon";
 
@@ -103,31 +104,17 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
           const { data: nodes } = await q;
 
           (nodes || []).forEach((n: any) => {
-            const content = n.content_json;
-            const hasContent =
-              content && typeof content === "object" && Object.keys(content).length > 0;
-            // Per-node strict gate: BP-04 must have real microsite content,
-            // not just the autofilled microsite_url / book_id stub.
-            const passesStrictGate = (() => {
-              if (!hasContent) return false;
-              if (n.node_id === "BP-04") {
-                const fields = ["hero_headline", "hero_subheadline", "about_long", "about_short", "cta_label", "lead_magnet_id"];
-                const hasField = fields.some((k) => {
-                  const v = content[k];
-                  return typeof v === "string" ? v.trim().length > 0 : !!v;
-                });
-                const hasSections = Array.isArray(content.sections) && content.sections.length > 0;
-                return hasField || hasSections;
-              }
-              return true;
-            })();
+            // Use the shared readiness gate so Book Hub tile state matches
+            // the Live-badge logic in useNodeLiveStats. Adding a new gated
+            // node? Update src/lib/node-readiness.ts in one place.
+            const passesGate = hasRequiredAssets(n.node_id, n.content_json);
             const isLiveStatus = n.status === "live" || n.status === "published_pending_ghl";
-            if (isLiveStatus && passesStrictGate) {
+            if (isLiveStatus && passesGate) {
               map[n.node_id] = "completed";
             } else if (
               n.status === "content_ready" ||
               n.status === "draft" ||
-              (isLiveStatus && !passesStrictGate)
+              (isLiveStatus && !passesGate)
             ) {
               if (map[n.node_id] !== "completed") map[n.node_id] = "in-progress";
             }
