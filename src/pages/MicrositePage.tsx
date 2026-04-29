@@ -2673,9 +2673,8 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
             )}
           </Card>
         </div>
-        {/* Suppress unused-prop warnings — these props are kept for the shared
-            FormPageProps signature even though we no longer render the form. */}
-        {void onSubmit, void email, void setEmail, void firstName, void setFirstName, void submitting, void submitted, null}
+        {/* Keep unused FormPageProps fields referenced for lint hygiene. */}
+        {(() => { void onSubmit; void email; void setEmail; void firstName; void setFirstName; void submitting; void submitted; return null; })()}
       </div>
     </div>
   );
