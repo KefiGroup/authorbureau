@@ -428,7 +428,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
           title="Social Media"
           subtitle="20 branded posts + 4-week calendar + outreach kit"
           icon={Share2}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(bookId ? `/book-hub/${bookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
         <UnifiedStepper
           nodeId="BP-03"
