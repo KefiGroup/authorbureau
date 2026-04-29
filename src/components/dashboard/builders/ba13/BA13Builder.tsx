@@ -76,13 +76,13 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   }, [authorId]);
 
   useEffect(() => {
-    if (step === 1 || (step === 3 && !content?.activated)) {
+    if (step === 1 || (isPublishing && !content?.activated)) {
       const msgs = step === 1 ? GEN_MSGS : ACT_MSGS;
       setMsgIndex(0);
       intervalRef.current = setInterval(() => setMsgIndex((i) => (i + 1) % msgs.length), 3000);
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
-  }, [step]);
+  }, [step, isPublishing, content?.activated]);
 
   const handleGenerate = async () => {
     setStep(1); setError(null);
