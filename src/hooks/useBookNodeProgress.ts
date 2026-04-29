@@ -109,6 +109,7 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
         if (!cancelled) {
           setStatusByCode(map);
           setHasAuthorSlug(!!profile?.author_slug);
+          setHasLoadedOnce(true);
           setLoading(false);
         }
       } catch (e) {
