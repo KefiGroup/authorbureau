@@ -24,6 +24,17 @@ serve(async (req) => {
 
     const content = node.content_json as any;
 
+    // Server-side readiness gate: require RSS feed config + at least one episode before going live
+    const rssReady = !!(content?.rss_url || content?.rss_feed_url || content?.transistor?.show_id);
+    const episodes = Array.isArray(content?.episodes) ? content.episodes : [];
+    if (!rssReady || episodes.length === 0) {
+      return new Response(JSON.stringify({
+        success: false,
+        status: "not_ready",
+        message: "Podcast is not ready to go live. Please configure your RSS feed and add at least one episode before publishing.",
+      }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     let locationId = author.ghl_sub_account_id;
     if (!locationId) {
       try {
