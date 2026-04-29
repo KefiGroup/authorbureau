@@ -56,7 +56,7 @@ const CHANNEL_SPECS: Record<string, { name: string; spec: string; submission_url
     name: "Authors Bureau Storefront",
     spec: "Native — no re-encode required",
     submission_url: "",
-    royalty: "95% you / 5% platform fee",
+    royalty: "92% you / 8% platform fee",
     notes: "Sells directly on your author site. Buyers stream chapter-by-chapter.",
   },
 };

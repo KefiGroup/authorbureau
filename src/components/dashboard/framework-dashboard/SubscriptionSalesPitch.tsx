@@ -56,7 +56,7 @@ const plans = [
       "All 9 B·Brand Product builders",
       "Basic author profile page",
       "1 product sales page",
-      "+ 5% platform fee on sales",
+      "+ 8% platform fee on sales",
     ],
     unlockedCategories: ["B·Brand (9)"],
     builderCount: 9,
@@ -82,7 +82,7 @@ const plans = [
       "CRM & email automation",
       "Lead capture pages",
       "Coaching booking system",
-      "+ 5% platform fee on sales",
+      "+ 8% platform fee on sales",
     ],
     unlockedCategories: ["B·Brand (9)", "B·Build (9)"],
     builderCount: 18,
@@ -107,7 +107,7 @@ const plans = [
       "White-label option (Authors Bureau branding removed)",
       "Events management system",
       "1-on-1 strategic session with Pauline Teo",
-      "+ 5% platform fee on sales",
+      "+ 8% platform fee on sales",
     ],
     unlockedCategories: ["B·Brand (9)", "B·Build (9)", "Y·Yield (10)"],
     builderCount: 28,
@@ -497,7 +497,7 @@ export default function SubscriptionSalesPitch({
             Authors Bureau includes everything — plus AI that builds your products for you.
           </p>
           <p className="text-[10px] text-muted-foreground">
-            All plans include a 5% platform fee on sales. Standard Stripe fees (2.9% + $0.30) apply separately. You keep ~92%.
+            All plans include an 8% platform fee on sales (covers Stripe and other payment-gateway processing). You keep 92%.
           </p>
         </div>
       </div>

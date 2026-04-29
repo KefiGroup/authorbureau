@@ -133,7 +133,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
                 { label: "Gross Sales This Month", value: `$${grossSales.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
-                { label: "Platform Fee (5%)", value: `$${platformFee.toFixed(2)}`, icon: Percent, color: "text-muted-foreground" },
+                { label: "Platform Fee (8%)", value: `$${platformFee.toFixed(2)}`, icon: Percent, color: "text-muted-foreground" },
                 { label: "Stripe Fees", value: `$${stripeFees.toFixed(2)}`, icon: CreditCard, color: "text-muted-foreground" },
                 { label: "Your Earnings", value: `$${earnings.toFixed(2)}`, icon: TrendingUp, color: "text-accent font-bold" },
               ].map((stat) => (
