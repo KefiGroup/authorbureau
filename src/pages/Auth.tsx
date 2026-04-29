@@ -279,7 +279,7 @@ export default function Auth() {
           <div className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] space-y-6">
             <div className="text-center">
               <h1 className="font-heading text-2xl font-bold">Sign In</h1>
-              <p className="text-sm text-muted-foreground mt-1">Enter your email to continue</p>
+              <p className="text-sm text-muted-foreground mt-1">Sign in or create your account</p>
             </div>
 
             {/* Google sign-in - only on initial email step */}
@@ -316,7 +316,7 @@ export default function Auth() {
               <Tabs value={mode} onValueChange={(v) => switchMode(v as SignInMode)} className="w-full">
                 <TabsList className="w-full grid grid-cols-2">
                   <TabsTrigger value="code" className="gap-1.5">
-                    <Mail className="h-4 w-4" /> Email Code
+                    <Mail className="h-4 w-4" /> One-time Code
                   </TabsTrigger>
                   <TabsTrigger value="password" className="gap-1.5">
                     <KeyRound className="h-4 w-4" /> Password
