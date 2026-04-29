@@ -1,0 +1,1 @@
+ALTER TABLE public.author_nodes DROP CONSTRAINT IF EXISTS author_nodes_delivery_type_check;
