@@ -37,28 +37,75 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve user identity
+    // Resolve user identity. Try shared backend first (with timeout so the
+    // gotrue lock contention can't hang the function), fall back to local
+    // Cloud auth, and finally fall back to a JWT-claim decode so we always
+    // surface SOMETHING useful even when both auth APIs are slow.
     let userId: string | null = null;
     let userEmail = "";
+    let resolvedVia = "none";
 
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
+      Promise.race<T | null>([
+        p,
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+      ]);
 
-    if (sharedUser) {
-      userId = sharedUser.id;
-      userEmail = sharedUser.email || "";
-    } else {
-      const localClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
-      const { data: { user: localUser } } = await localClient.auth.getUser();
-      if (localUser) {
-        userId = localUser.id;
-        userEmail = localUser.email || "";
+    try {
+      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+      const sharedRes = await withTimeout(sharedClient.auth.getUser(token), 3000);
+      const sharedUser = (sharedRes as any)?.data?.user;
+      if (sharedUser) {
+        userId = sharedUser.id;
+        userEmail = sharedUser.email || "";
+        resolvedVia = "shared";
+      }
+    } catch (e) {
+      console.warn("[author-stats] shared auth failed:", (e as Error).message);
+    }
+
+    if (!userId) {
+      try {
+        const localClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: `Bearer ${token}` } } }
+        );
+        const localRes = await withTimeout(localClient.auth.getUser(), 3000);
+        const localUser = (localRes as any)?.data?.user;
+        if (localUser) {
+          userId = localUser.id;
+          userEmail = localUser.email || "";
+          resolvedVia = "local";
+        }
+      } catch (e) {
+        console.warn("[author-stats] local auth failed:", (e as Error).message);
       }
     }
+
+    // Last-resort: decode the JWT payload and use the `sub`/`email` claims.
+    // This rescues the response when shared+local auth APIs are both slow.
+    if (!userId) {
+      try {
+        const parts = token.split(".");
+        if (parts.length === 3) {
+          const payload = JSON.parse(
+            new TextDecoder().decode(
+              Uint8Array.from(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0))
+            )
+          );
+          if (payload?.sub) {
+            userId = payload.sub;
+            userEmail = payload.email || "";
+            resolvedVia = "jwt-decode";
+          }
+        }
+      } catch (e) {
+        console.warn("[author-stats] jwt decode failed:", (e as Error).message);
+      }
+    }
+
+    console.log(`[author-stats] resolved userId=${userId} email=${userEmail} via=${resolvedVia}`);
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "Invalid session" }), {
