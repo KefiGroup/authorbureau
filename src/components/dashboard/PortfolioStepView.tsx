@@ -48,8 +48,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
 
   const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
   const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
-  const progress = useBookNodeProgress(effectiveTier, openNodeIds);
-  const { byCode: liveStats } = useNodeLiveStats();
+  const primaryBookIdEarly = analyzedBooks?.[0]?.id || books[0]?.id || "";
+  const progress = useBookNodeProgress(effectiveTier, openNodeIds, primaryBookIdEarly || undefined);
+  const { byCode: liveStats } = useNodeLiveStats(primaryBookIdEarly || undefined);
 
   useEffect(() => {
     async function fetchBooks() {
