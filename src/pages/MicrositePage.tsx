@@ -2681,7 +2681,76 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
   );
 }
 
-/* ═══ YR SHARED HELPERS ═══ */
+/* ═══ BA-12 — MEMBERSHIP ═══ */
+function MembershipPage({ data, content, v, hFont, bgColor }: PageProps) {
+  // BA-12 generator stores tier objects in content_json.tiers[]. Fall back to
+  // top-level fields for older generations and to data.node.price_usd for the
+  // canonical commerce price (always wins over content for the buy button).
+  const tier = (Array.isArray(content?.tiers) && content.tiers[0]) || {};
+  const name = (typeof content?.membership_name === "string" && content.membership_name)
+    || tier.name
+    || data.node.personalised_name
+    || "Membership";
+  const tagline = typeof content?.tagline === "string" ? content.tagline : "";
+  const description = typeof tier.description === "string" ? tier.description
+    : (typeof content?.description === "string" ? content.description : "");
+  const benefits: string[] = Array.isArray(tier.benefits)
+    ? tier.benefits.filter((b: unknown) => typeof b === "string" && b.trim())
+    : (Array.isArray(content?.benefits) ? content.benefits.filter((b: unknown) => typeof b === "string") : []);
+  const monthlyPrice = typeof data.node.price_usd === "number" ? data.node.price_usd
+    : (typeof tier.price === "number" ? tier.price : (typeof content?.monthly_price === "number" ? content.monthly_price : null));
+
+  return (
+    <div className="max-w-4xl mx-auto px-4 py-12 sm:py-20">
+      <header className="text-center space-y-3 mb-10">
+        <p className="text-sm uppercase tracking-widest" style={{ color: v.accent }}>{name}</p>
+        <h1 className="text-3xl sm:text-5xl font-bold leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>
+          {tagline || name}
+        </h1>
+        {description && <p className="text-base leading-relaxed max-w-2xl mx-auto" style={{ color: v.bodyText }}>{description}</p>}
+      </header>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        <div className="space-y-3">
+          <h2 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>What's included</h2>
+          {benefits.length > 0 ? (
+            <ul className="space-y-2">
+              {benefits.map((b, i) => (
+                <li key={i} className="flex items-start gap-2">
+                  <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} />
+                  <span className="text-sm leading-relaxed" style={{ color: v.bodyText }}>{b}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm" style={{ color: v.mutedText }}>Membership benefits will appear here.</p>
+          )}
+        </div>
+
+        <div className="md:sticky md:top-6">
+          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Join Now</h3>
+            {monthlyPrice != null && (
+              <p className="my-3" style={{ color: v.accent }}>
+                <span className="text-3xl font-bold">${Number(monthlyPrice).toFixed(0)}</span>
+                <span className="text-sm" style={{ color: v.mutedText }}> /month</span>
+              </p>
+            )}
+            <p className="text-xs mb-4" style={{ color: v.mutedText }}>Cancel anytime. Instant access on payment.</p>
+            <BuyNowButton
+              authorNodeId={data.node.id}
+              authorId={data.author?.id}
+              label="Join Now"
+              className="w-full rounded-full"
+              style={{ background: v.accent, color: bgColor }}
+            />
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 type YRPageProps = FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void };
 
 const yrStr = (v: any, fallback = ""): string => (typeof v === "string" && v.trim()) ? v : fallback;
