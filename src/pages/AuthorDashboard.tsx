@@ -528,7 +528,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "reading-club":
         return <AuthorReadingClub onNavigate={handleNavigate} />;
       case "book-sales":
-        return <Navigate to="/node-builder/BP-05" replace />;
+        return <Navigate to="/node-builder/BP-09" replace />;
       case "special-editions":
         return <Navigate to="/node-builder/BP-08" replace />;
       case "lead-magnet":

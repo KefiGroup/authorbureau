@@ -33,11 +33,11 @@ const META: BuilderNodeMeta[] = [
   { id: "BP-02", label: "Lead Magnet", icon: "Sparkles", emoji: "🧲", category: "build" },
   { id: "BP-03", label: "Social Media", icon: "Share2", emoji: "📱", category: "build" },
   { id: "BP-04", label: "Author Website", icon: "Globe", emoji: "🌐", category: "build" },
-  { id: "BP-05", label: "Book Sales", icon: "BookOpen", emoji: "📚", category: "build" },
+  { id: "BP-05", label: "Webinars", icon: "Video", emoji: "🎥", category: "build" },
   { id: "BP-06", label: "Workbook", icon: "FileText", emoji: "📓", category: "build" },
-  { id: "BP-07", label: "Audiobook", icon: "Headphones", emoji: "🎧", category: "build" },
-  { id: "BP-08", label: "Special Editions", icon: "Star", emoji: "✨", category: "build" },
-  { id: "BP-09", label: "Podcast", icon: "Podcast", emoji: "🎙️", category: "build" },
+  { id: "BP-07", label: "Home Study Course", icon: "BookMarked", emoji: "🏠", category: "build" },
+  { id: "BP-08", label: "Special Editions", icon: "Sparkles", emoji: "✨", category: "build" },
+  { id: "BP-09", label: "Book Sales", icon: "BookOpen", emoji: "📚", category: "build" },
 
   // Build Authority (BA) — category "bridge"
   { id: "BA-10", label: "Online Course", icon: "GraduationCap", emoji: "🎓", category: "bridge" },
