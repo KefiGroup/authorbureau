@@ -3657,8 +3657,12 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 
 /* ═══ HELPERS ═══ */
 function getActionType(nodeId: string): "optin" | "purchase" | "enquiry" | "application" {
-  const optinNodes = ["BP-02", "BP-05", "BA-10", "BA-14", "BA-16"];
-  const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-15", "BA-18"];
+  // Optin = capture email for nurture (no transaction). BA-10 (course) and
+  // BA-12 (membership) are purchase nodes — they sell directly via Stripe
+  // through BuyNowButton; they used to be miscategorised as optin which
+  // forced the public page to render a "Notify Me" form instead of a buy CTA.
+  const optinNodes = ["BP-02", "BP-05", "BA-16"];
+  const enquiryNodes = ["YR-21", "YR-22", "YR-28", "BA-14", "BA-15", "BA-18"];
   const applicationNodes = ["YR-20", "YR-23", "BA-13"];
   if (optinNodes.includes(nodeId)) return "optin";
   if (enquiryNodes.includes(nodeId)) return "enquiry";
