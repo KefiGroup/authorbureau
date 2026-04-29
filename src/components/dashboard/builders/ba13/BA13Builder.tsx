@@ -144,7 +144,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
           <div className="space-y-4">
             <AbbyCard>
               <p className="text-sm">Your content is ready, but it isn't live on your site yet. Click below to publish your Group Coaching page.</p>
-              <Button onClick={handlePublish} className="mt-3">Re-publish to My Site <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button onClick={handlePublish} className="mt-3" disabled={isPublishing}>{isPublishing ? "Publishing…" : "Re-publish to My Site"} <ArrowRight className="h-4 w-4 ml-2" /></Button>
             </AbbyCard>
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
