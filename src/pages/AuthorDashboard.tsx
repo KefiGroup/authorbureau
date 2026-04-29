@@ -490,11 +490,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "coaching":
         return gate("Coaching CRM", <CoachingCRM />, "build");
       case "group-coaching":
-        return <Navigate to={`/node-builder/BA-13${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BA-13${buildNodeBuilderSearch(location)}`} replace />;
       case "memberships":
-        return <Navigate to={`/node-builder/BA-12${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BA-12${buildNodeBuilderSearch(location)}`} replace />;
       case "email-marketing":
-        return <Navigate to={`/node-builder/BP-01${location.search}`} replace />;
+        return <Navigate to={`/node-builder/BP-01${buildNodeBuilderSearch(location)}`} replace />;
       case "subscribers":
       case "email-templates":
         return gate("Email Marketing", <EmailMarketing activeTab={activeSection} onTabChange={(s) => setActiveSection(s as DashboardSection)} />);
