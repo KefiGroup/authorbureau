@@ -400,12 +400,18 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   // Generate a single chapter
   const handleGenerateSingle = async (i: number) => {
     setIsGenerating(true);
-    const session = (await supabase.auth.getSession()).data.session;
-    const authToken = session?.access_token || "";
     try {
+      const { getActiveToken } = await import("@/lib/get-active-token");
+      let authToken = await getActiveToken();
+      if (!authToken) {
+        await new Promise(r => setTimeout(r, 800));
+        authToken = await getActiveToken();
+      }
+      if (!authToken) throw new Error("Not signed in. Please refresh and sign in again.");
+
       await generateChapter(i, authToken);
       toast({ title: `${chapters[i].title} generated!` });
-    } catch (e) {
+    } catch (e: any) {
       setChapters(prev => prev.map((ch, idx) => idx === i ? { ...ch, status: "error", error: e.message } : ch));
       toast({ title: `${chapters[i].title} failed`, description: e.message, variant: "destructive" });
     }

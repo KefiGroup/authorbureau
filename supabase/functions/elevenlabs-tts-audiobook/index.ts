@@ -50,6 +50,16 @@ async function resolveUser(token: string): Promise<{ id: string; email: string }
   throw new Error("Unauthorized");
 }
 
+function ownsBook(
+  book: { author_id?: string | null; owner_email?: string | null },
+  user: { id: string; email: string }
+): boolean {
+  if (book.author_id && book.author_id === user.id) return true;
+  if (book.owner_email && user.email &&
+      book.owner_email.toLowerCase() === user.email.toLowerCase()) return true;
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -66,15 +76,23 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      return new Response(JSON.stringify({ error: "Not signed in", code: "no_token" }), {
         status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
     const token = authHeader.replace("Bearer ", "");
-    const user = await resolveUser(token);
+    let user: { id: string; email: string };
+    try {
+      user = await resolveUser(token);
+    } catch (_e) {
+      return new Response(JSON.stringify({ error: "Session not recognised", code: "no_token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const body = await req.json();
     const { action } = body;
+    console.log("[elevenlabs-tts-audiobook]", { action, email: user.email });
 
     // === LIST VOICES ===
     if (action === "list-voices") {
@@ -106,9 +124,9 @@ serve(async (req) => {
       }
 
       const { data: book } = await supabase
-        .from("books").select("id, author_id, title").eq("id", bookId).single();
-      if (!book || book.author_id !== user.id) {
-        return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
+        .from("books").select("id, author_id, owner_email, title").eq("id", bookId).single();
+      if (!book || !ownsBook(book, user)) {
+        return new Response(JSON.stringify({ error: "Book not found or unauthorized", code: "forbidden" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -176,9 +194,9 @@ serve(async (req) => {
       }
 
       const { data: book } = await supabase
-        .from("books").select("id, author_id, title").eq("id", bookId).single();
-      if (!book || book.author_id !== user.id) {
-        return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
+        .from("books").select("id, author_id, owner_email, title").eq("id", bookId).single();
+      if (!book || !ownsBook(book, user)) {
+        return new Response(JSON.stringify({ error: "Book not found or unauthorized", code: "forbidden" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
