@@ -86,6 +86,19 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     if (!user) return;
     setLoading(true);
     setFetchError(null);
+    // Wait briefly for shared-backend session to restore before failing.
+    let token = await getActiveToken();
+    if (!token) {
+      for (let i = 0; i < 6 && !token; i++) {
+        await new Promise(r => setTimeout(r, 300));
+        token = await getActiveToken();
+      }
+    }
+    if (!token) {
+      setFetchError("Still signing you in… Please wait a moment and refresh.");
+      setLoading(false);
+      return;
+    }
     try {
       const token = await getActiveToken();
       if (!token) { setFetchError("Unable to authenticate. Please sign out and back in."); setLoading(false); return; }
