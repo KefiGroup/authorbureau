@@ -221,27 +221,36 @@ export default function SocialCalendarTab({ authorId }: Props) {
     }
   };
 
+  // Shared refill request — generates fresh post copy as Unscheduled drafts.
+  // Used by both the manual button and the automatic 7-day-runway trigger.
+  const requestRefill = async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!authorId) return { ok: false, error: "No author" };
+    const token = await getActiveToken();
+    if (!token) return { ok: false, error: "No session" };
+    const res = await fetchWithTimeout(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-refill-social-calendar`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ author_id: authorId, force: true }),
+      },
+    );
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.success) {
+      return { ok: false, error: json?.error || "refill failed" };
+    }
+    return { ok: true };
+  };
+
   // Manual social refill — generates fresh post copy as Unscheduled drafts. No auto-dating.
   const refillCalendar = async () => {
     if (!authorId) return;
     setRefilling(true);
     try {
-      const token = await getActiveToken();
-      if (!token) {
-        toast.error("Session expired. Please sign in again.");
-        return;
-      }
-      const res = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-refill-social-calendar`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ author_id: authorId, force: true }),
-        },
-      );
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) {
-        toast.error(json?.error || "Couldn't generate more posts. Please try again in a few minutes.");
+      const result = await requestRefill();
+      if (!result.ok) {
+        if (result.error === "No session") toast.error("Session expired. Please sign in again.");
+        else toast.error("Couldn't generate more posts. Please try again in a few minutes.");
         return;
       }
       toast.success("Generating fresh post copy — they'll appear as Unscheduled below.");
