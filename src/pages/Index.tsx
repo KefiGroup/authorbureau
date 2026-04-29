@@ -30,58 +30,13 @@ const fadeUp = {
 };
 
 const comparisonRows = [
-  { need: "Online Course", without: "Teachable ($149/mo) + you write it", withAB: "Abby creates it from your book" },
-  { need: "Email Marketing", without: "ConvertKit ($79/mo) + you write emails", withAB: "Abby writes your 7-email sequence" },
-  { need: "Coaching Setup", without: "Calendly + Stripe + you price it", withAB: "Abby designs your coaching packages" },
-  { need: "Author Website", without: "WordPress ($30/mo) + you build it", withAB: "Abby builds your microsite" },
-  { need: "Social Media", without: "Buffer ($15/mo) + you create content", withAB: "Abby generates 90-day content calendar" },
+  { need: "Online Course", without: "Course platform + you write it", withAB: "Abby creates it from your book" },
+  { need: "Email Marketing", without: "Email tool + you write emails", withAB: "Abby writes your 7-email sequence" },
+  { need: "Coaching Setup", without: "Calendar + payments + you price it", withAB: "Abby designs your coaching packages" },
+  { need: "Author Website", without: "Website builder + you design it", withAB: "Abby builds your microsite" },
+  { need: "Social Media", without: "Scheduler + you create content", withAB: "Abby generates a 90-day content calendar" },
   { need: "Speaking Kit", without: "You create your own pitch deck", withAB: "Abby writes your keynote proposal" },
-  { need: "Total Cost", without: "$273+/mo + 40hrs/wk of your time", withAB: "From $49/mo + Abby does the work" },
-];
-
-const pricingPaths = [
-  {
-    name: "Brand Package",
-    price: "$49",
-    tagline: "Build passive income while keeping your day job",
-    streams: 9,
-    category: "BRAND",
-    time: "4-8 hours/week",
-    year1: "$5,500-$15,500/year",
-    roi: "9x-26x return",
-    cta: "Start Building →",
-    badge: null,
-    accent: false,
-    planKey: "brand",
-  },
-  {
-    name: "Build Package",
-    price: "$99",
-    tagline: "Turn your book into a real business",
-    streams: 18,
-    category: "BRAND + BUILD",
-    time: "15-25 hours/week",
-    year1: "$13,500-$39,500/year",
-    roi: "6x-16x return",
-    cta: "Build My Authority →",
-    badge: "MOST POPULAR",
-    accent: true,
-    planKey: "build",
-  },
-  {
-    name: "Yield Package",
-    price: "$249",
-    tagline: "Build an empire around your expertise",
-    streams: 28,
-    category: "BRAND + BUILD + YIELD",
-    time: "Full-time (leveraged)",
-    year1: "$68,500-$215,500/year",
-    roi: "23x-72x return",
-    cta: "Unlock Full Platform →",
-    badge: "BEST VALUE",
-    accent: false,
-    planKey: "yield",
-  },
+  { need: "Total Effort", without: "Multiple tools + 40hrs/wk of your time", withAB: "One platform + Abby does the work" },
 ];
 
 const jsonLd = {
