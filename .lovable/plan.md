@@ -1,45 +1,84 @@
-## Finish Audit #1 — Phase 2 Walkthrough + Phase 3 Scoring
+# Audit #2 (Revised) — Live 28-Node Build Test on "Invest Like Buffett for Parents"
 
-Phase 1 (pre-flight fixes) and the BP-00 / dead-column repairs are already shipped. This plan closes out what's left: the live walkthrough on Pauline's account and the scored 8-level report.
+## Why this book
 
-### Test identity
-- Email: `support@paulineteo.com` (already signed in per auth logs at 21:50:41)
-- Books: 2 existing (audit re-uses them, no destructive changes)
-- `author_context` confirmed healthy (5 frameworks, valid `parsed_at` for both books)
+Pauline's account has two books:
 
-### Phase 2 — Live walkthrough (browser-driven)
-1. **Auth page (`/auth`)** — Verify the new "New here?" helper copy renders, no `Function components cannot be given refs` warning interferes with submission. Confirm the gotrue lock-timeout warnings already in console don't block sign-in.
-2. **Dashboard first paint (`/dashboard`)** — Confirm the page loads without errors, the user's name resolves, and the 28-node grid renders (account is already past onboarding).
-3. **28-node integrity** — Spot-check 5 canonical labels in the UI against `builderNodeConfig.ts`: BA-15 Media & PR, BA-18 JV Partnerships, YR-25 Certification, YR-27 Fundraising, YR-28 Sponsors.
-4. **BP-01 (Email Marketing)** — Open the node, click Generate, verify the sequence is book-specific (not generic), then click Activate / Go Live. Confirm the card flips to Live and no spinner hangs.
-5. **One Yield-tier node spot-check** — Open YR-25 to verify the gating UX renders correctly (either unlocked for superadmin or "Upgrade to Unlock" copy).
+| Book | Nodes built | Live | Use |
+|------|------------|------|-----|
+| Be SUCKcessful | 28 | 25 | Reference / regression check |
+| **Invest Like Buffett for Parents** | **0** | **0** | **Greenfield test bed** |
 
-### Phase 3 — 8-level pass/fail scoring
-Each level gets PASS / FAIL / PARTIAL with evidence (screenshot, DB row, network ID, console excerpt):
+The Buffett book is `published_at`-approved, has its `author_context` row from BP-00 analysis, and zero `author_nodes`. This means I can actually exercise every builder end-to-end (Open → Build → Review → Activate → Live) instead of just probing existing data.
 
-1. **Console / Network** — Zero red errors on each page touched. Note: existing `forwardRef` warnings and gotrue lock-timeout warnings are pre-existing and will be flagged separately, not as Phase 2 regressions.
-2. **Interactive elements** — Every button/link/input on the pages touched is functional with correct disabled states.
-3. **Empty / loading states** — Every screen has a sensible empty/loading state.
-4. **Database integrity** — Cross-check `auth.users`, `author_profiles`, `books`, `author_context`, `author_nodes`, `generated_assets` for Pauline. Already partially verified.
-5. **Mobile (375px)** — Spot-check `/auth`, `/dashboard`, BP-01 detail at 375×812.
-6. **Auth boundaries** — Incognito hit to `/dashboard` redirects to `/auth`; logged-in hit to `/auth` redirects to `/dashboard`.
-7. **Error handling** — Trigger one bad action (e.g. open a node that requires data we know is missing) and confirm error toast is human-readable.
-8. **Navigation** — No dead ends; every screen has a back-to-dashboard path.
+## What I will do
 
-### Phase 4 — Surgical fixes for any failures
-Any failure in Phase 3 gets a minimal fix in the same loop, then the affected level is re-tested. Likely candidates based on what's already in console:
-- The `forwardRef` warning on `Footer` (used in `Auth.tsx`) and `AbbyHelpChatbot` — wrap with `React.forwardRef` if either component is ever passed a ref. Low-risk one-line fixes.
-- The persistent gotrue lock-timeout warnings — already mitigated by `getActiveToken()`'s 2s race, but if they cause user-visible delays during the walkthrough, audit any remaining direct `supabase.auth.getSession()` callers.
+### Phase 1 — Pre-flight (10 min)
 
-### Deliverable
-A single message at the end with:
-- 8-level scorecard (PASS / FAIL / PARTIAL + evidence per level)
-- List of files changed in Phase 4 (if any)
-- Known pre-existing issues surfaced but not fixed (with recommendation)
+Verify the launching pad before generating anything:
 
-### What I will NOT do
-- No destructive changes to Pauline's books or nodes.
-- No schema migrations unless Phase 3 surfaces a missing column (will surface for approval first).
-- No Google Auth, no GHL, no Commerce changes — out of scope.
+1. Confirm `author_context` row for the Buffett book has all 5 frameworks populated (no half-baked analysis).
+2. Confirm `BookHub` opens at `/dashboard/book/3c65a5f1-...` and the three tabs (Brand / Build / Yield) render with all 28 cards in the "Build Now" state.
+3. Confirm `bookId` propagates through the URL into each builder route.
 
-Approve and I'll execute Phase 2 → 4 in one continuous pass and deliver the report.
+If any pre-flight item fails, fix before proceeding (likely a 5-line fix in `BookHub.tsx` or `useBookNodeProgress.ts`).
+
+### Phase 2 — Build all 28 nodes against the Buffett book (the real audit)
+
+For each node ID in this exact order (cheap → complex), invoke the generator edge function with `{ author_id: <Pauline>, book_id: <Buffett> }`, then the deploy function, then read back `author_nodes` to confirm `status='live'`:
+
+```text
+Brand   BP-01 BP-02 BP-03 BP-04 BP-05 BP-06 BP-07 BP-08 BP-09
+Build   BA-10 BA-11 BA-12 BA-13 BA-14 BA-15 BA-16 BA-17 BA-18
+Yield   YR-19 YR-20 YR-21 YR-22 YR-23 YR-24 YR-25 YR-26 YR-27 YR-28
+```
+
+For every node, the 6 audit checks are recorded as PASS/FAIL:
+
+1. Builder route mounts with bookId ✓
+2. Generator returns `success:true` and writes `content_json` ✓
+3. Review step would render (verified by reading `content_json` keys against the builder's expected schema) ✓
+4. Deploy function flips `status='live'` ✓
+5. `author_nodes` row visible to `useBookNodeProgress` (so Live badge will show) ✓
+6. Back button target route exists in router ✓
+
+I'll run these sequentially (not in parallel) to avoid AI gateway rate limits and to keep one failure from cascading.
+
+### Phase 3 — Targeted fixes for the 6 known issues
+
+Re-test with the Buffett book; fix only what fails:
+
+- **BA-11 Audiobook**: if generator returns 0 chapters, patch chapter detection. Check ElevenLabs voice list endpoint.
+- **BA-13 Group Coaching**: if it times out, downgrade model to `gpt-5-mini` and shrink JSON schema (matching the working BA-17 pattern).
+- **BA-14 Podcast / BA-15 Media & PR**: if `/pauline-teo/podcast` and `/pauline-teo/press` 404, add the missing slug entries in `node-slug-map.ts` and section components in `AuthorSubpageResolver.tsx`.
+- **My Books Hub "Could not load your books"**: locate the literal string, replace with the cache-preserving fallback already used in `useMyBooks`.
+- **Dashboard "Meet Abby" onboarding for returning users**: gate on a persisted profile field, not a session flag.
+
+Each fix is verified by re-running the affected node's generate→deploy cycle on the Buffett book.
+
+### Phase 4 — Eight-level QA
+
+- L1 Console / L4 Data flow / L6 Auth / L7 Error handling / L8 Navigation: covered by code review + DB queries + edge-function logs (no manual click-through needed).
+- L2 Every button / L3 Empty states / L5 Mobile: code-review only, since browser tool can't share your authenticated session. I'll flag any I cannot fully verify.
+
+### Phase 5 — Deliverable
+
+`.lovable/audit-2-report.md` containing:
+
+- 28-row scorecard for the Buffett book (node × 6 checks)
+- 8-level QA summary
+- Comparison row: Buffett (greenfield) vs SUCKcessful (existing) — flags any node that worked once but fails now
+- Every fix applied with file paths and line numbers
+- Any node still failing → marked as **BLOCKER** with root cause
+
+## What I will NOT do
+
+- Touch the existing 28 `Be SUCKcessful` rows — those are the regression baseline.
+- Run real Stripe charges or send real GHL emails (deploy functions in this codebase only flip status + write microsite URLs; they don't push real campaigns).
+- Modify `src/integrations/supabase/{client,types}.ts`, `.env`, or migration tables unless a fix demands it.
+
+## Estimated cost
+
+~28 generator calls + ~28 deploy calls against Lovable AI Gateway. Most use `gpt-5-mini`; a few use `gpt-5`. Within normal session budget.
+
+Approve and I switch to default mode and execute Phases 1 → 5 in order.
