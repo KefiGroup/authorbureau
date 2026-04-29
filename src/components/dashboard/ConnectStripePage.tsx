@@ -21,7 +21,7 @@ const steps = [
     icon: Zap,
     title: "Start Earning",
     description:
-      "Products on your microsite will have a 'Buy Now' button. Readers pay Authors Bureau, we keep an 8% platform fee (covers Stripe and other payment-gateway processing), and your 92% share is paid out to your connected Stripe account on Stripe's standard payout schedule.",
+      "Products on your microsite will have a 'Buy Now' button. Readers pay Authors Bureau, we keep an 8% platform fee (covers Stripe and other payment-gateway processing), and your 92% share is paid out monthly by Authors Bureau to your connected Stripe account.",
   },
 ];
 
@@ -55,7 +55,7 @@ export default function ConnectStripePage() {
         </div>
         <h1 className="font-heading text-3xl font-bold">Connect Your Payment Account</h1>
         <p className="text-muted-foreground max-w-md mx-auto">
-          Readers pay Authors Bureau at checkout. We keep an 8% platform fee (covers Stripe and other payment-gateway processing) and pay out the remaining 92% to your connected Stripe account on Stripe's standard schedule.
+          Readers pay Authors Bureau at checkout. We keep an 8% platform fee (covers Stripe and other payment-gateway processing) and pay out the remaining 92% monthly by Authors Bureau to your connected Stripe account.
         </p>
         <p className="text-sm text-muted-foreground/80 max-w-md mx-auto pt-1">
           You can publish your products to your microsite at any time — Stripe is only needed when a reader wants to buy.
