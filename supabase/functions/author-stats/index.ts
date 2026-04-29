@@ -159,6 +159,7 @@ Deno.serve(async (req) => {
     const allBooks = Array.from(booksMap.values());
     const bookCount = allBooks.length;
     const liveMicrosites = allBooks.filter(b => !!b.published_at).length;
+    console.log(`[author-stats] userId=${userId} email=${userEmail} bookCount=${bookCount} (byAuthor=${booksByAuthor?.length ?? 0} byEmail=${booksByEmail?.length ?? 0} byName=${booksByName?.length ?? 0})`);
 
     // Determine the "primary" book to attribute author-level nodes to (oldest book by created_at).
     // author_nodes has no book_id column, so we attribute the author's nodes to their first/original book.
