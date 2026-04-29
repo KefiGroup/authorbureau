@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import ComingSoonScreen from "@/components/public/ComingSoonScreen";
+import MicrositePoweredByFooter from "@/components/public/MicrositePoweredByFooter";
 
 export default function MembershipSalesPage() {
   const { authorSlug } = useParams<{ authorSlug: string }>();
