@@ -63,9 +63,9 @@ Workbooks, Home Study Courses, Special Editions, Book Sales
 
 IMPORTANT: Authors at Level 0 (no audience) MUST complete Sub-Phase A before moving to Sub-Phase B.
 
-ACT 3 — BUILD AUTHORITY: Online Courses, Audiobooks, Memberships, Group Coaching, Podcast Tours, Media Outreach, Affiliates, Upsells/Downsells, Revenue Sharing/JV.
+ACT 3 — BUILD AUTHORITY: Online Course, Home Study Course, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Upsells, JV Partnerships.
 
-ACT 4 — YIELD REVENUE: 1-on-1 Coaching, Big Ticket Consulting, Keynotes, Training Programs, Masterminds, Retreats & Bootcamps, Certification, Conventions, Fund Raising, Exhibitors/JV.
+ACT 4 — YIELD REVENUE: 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors & Exhibitors.
 
 CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the starting point, beginning with Branding & Marketing (Sub-Phase A). NEVER recommend Digital Products before marketing foundations are in place.
 
@@ -3232,28 +3232,28 @@ State the author's core transformation promise clearly.
 
 ## PART 3: Build Authority (9 nodes)
 - **BA-10 Online Course** — [specific recommendation with pricing]
-- **BA-11 Audiobook** — [specific recommendation with pricing]
-- **BA-12 Memberships** — [specific recommendation with pricing]
+- **BA-11 Home Study Course** — [specific recommendation with pricing]
+- **BA-12 Membership** — [specific recommendation with pricing]
 - **BA-13 Group Coaching** — [specific recommendation with pricing]
-- **BA-14 Podcast** — [specific recommendation]
-- **BA-15 Affiliates & Partnerships** — [specific recommendation]
-- **BA-16 Speaking Engagements** — [specific recommendation with fee range]
-- **BA-17 Upsells & Downsells** — [specific recommendation]
-- **BA-18 Revenue Sharing** — [specific recommendation]
+- **BA-14 Podcast Tour** — [specific recommendation]
+- **BA-15 Media & PR** — [specific recommendation]
+- **BA-16 Affiliates** — [specific recommendation with commission structure]
+- **BA-17 Upsells** — [specific recommendation]
+- **BA-18 JV Partnerships** — [specific recommendation]
 
 > **Estimated Revenue:** $X–$Y/month
 
 ## PART 4: Yield Revenue (10 nodes)
 - **YR-19 1-on-1 Coaching** — [specific recommendation with pricing]
-- **YR-20 Consulting** — [specific recommendation with pricing]
-- **YR-21 Keynote Speaking** — [specific recommendation with fee range]
+- **YR-20 Big Ticket Consulting** — [specific recommendation with pricing]
+- **YR-21 Speaking** — [specific recommendation with fee range]
 - **YR-22 Corporate Training** — [specific recommendation with pricing]
-- **YR-23 Masterminds** — [specific recommendation with pricing]
+- **YR-23 Mastermind** — [specific recommendation with pricing]
 - **YR-24 Retreats** — [specific recommendation with pricing]
-- **YR-25 Licensing & IP** — [specific recommendation]
-- **YR-26 Conferences & Events** — [specific recommendation with pricing]
-- **YR-27 Media & Publishing** — [specific recommendation]
-- **YR-28 Legacy & Philanthropy** — [specific recommendation]
+- **YR-25 Certification** — [specific recommendation with pricing]
+- **YR-26 Conference** — [specific recommendation with pricing]
+- **YR-27 Fundraising** — [specific recommendation with campaign goal]
+- **YR-28 Sponsors & Exhibitors** — [specific recommendation with sponsorship tiers]
 
 > **Estimated Revenue:** $X–$Y/month
 

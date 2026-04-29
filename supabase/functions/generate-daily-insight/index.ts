@@ -81,7 +81,6 @@ serve(async (req) => {
 Write 2-3 sentences. Be specific, positive, and suggest one concrete next action.`,
           },
         ],
-        temperature: 0.8,
         max_completion_tokens: 200,
       }),
     });

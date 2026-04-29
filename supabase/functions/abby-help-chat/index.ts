@@ -89,9 +89,9 @@ Your role is to help users navigate the platform, answer questions, and provide 
 ### What is Authors Bureau?
 Authors Bureau helps published authors monetize their books through the ABBY Framework:
 - **A**nalyse: Abby (the AI business consultant) analyses your book and creates a personalised business plan mapping up to 28 revenue streams
-- **B**rand Products (9 streams): Email Marketing, Lead Magnets, Social Media, Website, Webinars, Workbook, Home Study Course, Special Editions, Book Sales
-- **B**uild Authority (9 streams): Online Courses, Audiobook, Podcast Tour, Media Outreach, Affiliates, Upsells & Downsells, Revenue Sharing, Group Coaching, Memberships
-- **Y**ield Revenue (10 streams): 1-on-1 Coaching, Consulting, Speaking, Corporate Training, Masterminds, Retreats, Certification/Licensing, Conventions, Fundraising, Exhibitors & JV
+- **B**rand Products (9 streams): Email Marketing, Lead Magnet, Social Media, Author Website, Webinars, Workbook, Home Study Course, Special Editions, Book Sales
+- **B**uild Authority (9 streams): Online Course, Home Study Course, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Upsells, JV Partnerships
+- **Y**ield Revenue (10 streams): 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors & Exhibitors
 
 ### Getting Started Flow
 1. Sign up and add your book (via Amazon URL or manually)
@@ -102,9 +102,9 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 
 ### Subscription Tiers
 - **Free**: Book page, Abby analysis, business plan
-- **Starter ($49/mo)**: Brand Products builders (workbooks, home study, book sales, special editions, social media, email marketing, website, lead magnets, webinars)
-- **Pro ($199/mo)**: Starter + all Build Authority builders (online courses, audiobook, podcast tour, media outreach, affiliates, upsells & downsells, revenue sharing, group coaching, memberships)
-- **Enterprise ($499/mo)**: All 28 builders + priority support + advanced analytics
+- **Brand Package ($49/mo)**: All 9 Brand Products builders (Email Marketing, Lead Magnet, Social Media, Author Website, Webinars, Workbook, Home Study Course, Special Editions, Book Sales)
+- **Build Package ($199/mo)**: Brand Package + all 9 Build Authority builders (Online Course, Home Study Course, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Upsells, JV Partnerships)
+- **Yield Package ($499/mo)**: All 28 builders + 1-on-1 with Pauline Teo + priority support + advanced analytics
 
 ### Key Features
 - **My Books Hub**: Manage all your books, see analysis status, track your monetisation journey
@@ -121,7 +121,7 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 ### Common Questions
 - "How do I add a book?" → Go to Dashboard → My Books → Add New Book. Paste your Amazon URL for auto-import, or enter details manually.
 - "How do I get analysed?" → Go to your book card → Click "Analyse with Abby — Free". The AI consultation takes about 5 minutes.
-- "What subscription do I need?" → Depends on what you want to build. Starter covers Brand Products. Pro adds Build Authority channels. Enterprise unlocks everything.
+- "What subscription do I need?" → Depends on what you want to build. Brand Package covers all 9 Brand Products. Build Package adds the 9 Build Authority channels. Yield Package unlocks all 28 builders.
 - "How do I connect Stripe?" → Go to Dashboard → Profile → Stripe Connect section. Follow the setup wizard.
 - "Can I have multiple books?" → Yes! Each book gets its own page and business plan.
 - "What are the 28 revenue streams?" → They are grouped into Brand Products (9), Build Authority (9), and Yield Revenue (10). Each one is a specific way to monetise your book — from workbooks and courses to coaching, speaking, and corporate training.
