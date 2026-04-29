@@ -121,7 +121,7 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 ### Common Questions
 - "How do I add a book?" → Go to Dashboard → My Books → Add New Book. Paste your Amazon URL for auto-import, or enter details manually.
 - "How do I get analysed?" → Go to your book card → Click "Analyse with Abby — Free". The AI consultation takes about 5 minutes.
-- "What subscription do I need?" → Depends on what you want to build. Starter covers Brand Products. Pro adds Build Authority channels. Enterprise unlocks everything.
+- "What subscription do I need?" → Depends on what you want to build. Brand Package covers all 9 Brand Products. Build Package adds the 9 Build Authority channels. Yield Package unlocks all 28 builders.
 - "How do I connect Stripe?" → Go to Dashboard → Profile → Stripe Connect section. Follow the setup wizard.
 - "Can I have multiple books?" → Yes! Each book gets its own page and business plan.
 - "What are the 28 revenue streams?" → They are grouped into Brand Products (9), Build Authority (9), and Yield Revenue (10). Each one is a specific way to monetise your book — from workbooks and courses to coaching, speaking, and corporate training.
