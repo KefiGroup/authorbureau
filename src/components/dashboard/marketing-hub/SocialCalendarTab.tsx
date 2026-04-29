@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -145,6 +145,8 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const [draggingPostId, setDraggingPostId] = useState<string | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [refilling, setRefilling] = useState(false);
+  const [autoRefilling, setAutoRefilling] = useState(false);
+  const autoRefilledFor = useRef<Set<string>>(new Set());
 
   const formatDateTimeInput = (value: string | null) => {
     if (!value) return "";
@@ -219,27 +221,36 @@ export default function SocialCalendarTab({ authorId }: Props) {
     }
   };
 
+  // Shared refill request — generates fresh post copy as Unscheduled drafts.
+  // Used by both the manual button and the automatic 7-day-runway trigger.
+  const requestRefill = async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!authorId) return { ok: false, error: "No author" };
+    const token = await getActiveToken();
+    if (!token) return { ok: false, error: "No session" };
+    const res = await fetchWithTimeout(
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-refill-social-calendar`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ author_id: authorId, force: true }),
+      },
+    );
+    const json = await res.json().catch(() => null);
+    if (!res.ok || !json?.success) {
+      return { ok: false, error: json?.error || "refill failed" };
+    }
+    return { ok: true };
+  };
+
   // Manual social refill — generates fresh post copy as Unscheduled drafts. No auto-dating.
   const refillCalendar = async () => {
     if (!authorId) return;
     setRefilling(true);
     try {
-      const token = await getActiveToken();
-      if (!token) {
-        toast.error("Session expired. Please sign in again.");
-        return;
-      }
-      const res = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auto-refill-social-calendar`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ author_id: authorId, force: true }),
-        },
-      );
-      const json = await res.json().catch(() => null);
-      if (!res.ok || !json?.success) {
-        toast.error(json?.error || "Couldn't generate more posts. Please try again in a few minutes.");
+      const result = await requestRefill();
+      if (!result.ok) {
+        if (result.error === "No session") toast.error("Session expired. Please sign in again.");
+        else toast.error("Couldn't generate more posts. Please try again in a few minutes.");
         return;
       }
       toast.success("Generating fresh post copy — they'll appear as Unscheduled below.");
@@ -271,6 +282,45 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const nextUp = posts
     .filter(p => p.status === "ready" && p.scheduled_at && new Date(p.scheduled_at) >= new Date())
     .sort((a, b) => (a.scheduled_at! < b.scheduled_at! ? -1 : 1))[0];
+
+  // Runway calculation: days between today and the latest scheduled (non-posted) post.
+  // Drives the 7-day amber banner + auto-regen trigger.
+  const daysOfRunway = useMemo(() => {
+    const future = posts
+      .filter(p => p.scheduled_at && p.status !== "posted")
+      .map(p => new Date(p.scheduled_at as string).getTime());
+    if (future.length === 0) return 0;
+    const latest = Math.max(...future);
+    const diffMs = latest - Date.now();
+    if (diffMs <= 0) return 0;
+    return Math.ceil(diffMs / 86_400_000);
+  }, [posts]);
+
+  // Auto-regen trigger — fires once per session per author when scheduled runway
+  // drops to 7 days or fewer AND the unscheduled queue is also low. Aligns with
+  // Sprint 5A author-driven scheduling: new posts land as Unscheduled drafts.
+  useEffect(() => {
+    if (!authorId) return;
+    if (loading || autoRefilling || refilling) return;
+    if (!bp03Activated) return;
+    if (autoRefilledFor.current.has(authorId)) return;
+    if (daysOfRunway > 7) return;
+    if (unscheduledCount >= 10) return;
+
+    autoRefilledFor.current.add(authorId);
+    setAutoRefilling(true);
+    (async () => {
+      const result = await requestRefill();
+      if (result.ok) {
+        toast.success("ABBY has added 30 new post ideas to your Unscheduled queue.");
+        setTimeout(() => { load(); }, 4000);
+      } else {
+        console.warn("[SocialCalendar] auto-refill failed:", result.error);
+      }
+      setAutoRefilling(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorId, loading, bp03Activated, daysOfRunway, unscheduledCount]);
 
   const shiftCursor = (delta: number) => {
     const next = new Date(cursor);
@@ -495,8 +545,18 @@ export default function SocialCalendarTab({ authorId }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Unscheduled-posts banner — author-driven scheduling */}
-      {unscheduledCount > 0 && (
+      {/* Runway / unscheduled banner — author-driven scheduling */}
+      {scheduledCount > 0 && daysOfRunway > 0 && daysOfRunway <= 7 ? (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground flex items-center gap-2">
+          <Sparkles className="h-4 w-4 shrink-0 text-amber-600" />
+          <span className="flex-1">
+            <strong>Your scheduled posts run out in {daysOfRunway} day{daysOfRunway === 1 ? "" : "s"}.</strong>{" "}
+            {autoRefilling
+              ? "ABBY is topping up your queue with 30 more post ideas…"
+              : "ABBY is preparing 30 more — they'll appear as Unscheduled below."}
+          </span>
+        </div>
+      ) : unscheduledCount > 0 ? (
         <div className="rounded-lg border border-secondary/30 bg-secondary/5 p-3 text-xs text-foreground flex items-center gap-2">
           <Inbox className="h-4 w-4 shrink-0 text-secondary" />
           <span className="flex-1">
@@ -504,7 +564,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
             — pick your dates below.
           </span>
         </div>
-      )}
+      ) : null}
 
       {/* Progress tracker header */}
       <Card className="border-primary/20 bg-primary/5">

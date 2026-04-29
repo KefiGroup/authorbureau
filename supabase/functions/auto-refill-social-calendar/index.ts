@@ -1,9 +1,11 @@
 /**
  * auto-refill-social-calendar
  *
- * Sprint D BUG-M3: scheduled daily via pg_cron. For every author whose social
- * queue runs out within the next 7 days, kicks off the existing BP-03 generator
- * for the next 30 days. Idempotent — generator dedupes per (author_id, day).
+ * Sprint 5B: client-driven trigger. The Social Calendar tab calls this with
+ * `{ author_id, force: true }` whenever the author's scheduled runway drops to
+ * 7 days or fewer. The nightly cron path is a no-op (author-driven scheduling).
+ * On force, this generates 30 more days of post copy and inserts them as
+ * Unscheduled drafts (see bp03-node-state → rebuildSocialPosts).
  */
 import { createClient } from "npm:@supabase/supabase-js@2";
 
