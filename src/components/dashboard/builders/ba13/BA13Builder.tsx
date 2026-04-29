@@ -100,16 +100,27 @@ export default function BA13Builder({ authorId, bookId }: Props) {
 
   const handlePublish = async () => {
     if (isPublishing) return;
+    if (!authorId) {
+      toast.error("Author profile not loaded yet — please wait a moment and try again.");
+      return;
+    }
+    if (!authorSlug) {
+      toast.error("Your author URL slug isn't ready yet — please wait a moment and try again.");
+      return;
+    }
     setError(null);
     setIsPublishing(true);
+    console.log("[BA13] publish start", { authorId, bookId: bookId ?? null, authorSlug });
     try {
-      await publishNodeToSite(authorId!, "BA-13", authorSlug);
+      const result = await publishNodeToSite(authorId, "BA-13", authorSlug, bookId ?? null);
+      console.log("[BA13] publish ok", result);
       setContent((prev: any) => ({ ...prev, activated: true }));
       setStep(3);
       toast.success("Your Group Coaching programme is live on your site.");
     } catch (e: any) {
-      setError(e.message);
-      toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+      console.error("[BA13] publish failed", e);
+      setError(e?.message || "Unknown error");
+      toast.error(`Publish failed: ${e?.message ?? "Unknown error"}`);
     } finally {
       setIsPublishing(false);
     }
