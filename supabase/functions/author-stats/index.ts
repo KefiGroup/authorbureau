@@ -150,7 +150,7 @@ Deno.serve(async (req) => {
     const { data: authorNodes } = allProfileIds.length > 0
       ? await admin
           .from("author_nodes")
-          .select("node_id, status")
+          .select("node_id, status, book_id")
           .in("author_id", allProfileIds)
           .in("status", ["content_ready", "live", "published_pending_ghl"])
       : { data: [] };
