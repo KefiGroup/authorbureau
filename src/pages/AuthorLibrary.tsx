@@ -11,6 +11,7 @@ import AssetRow from "@/components/library/AssetRow";
 import MarketingPackCard from "@/components/library/MarketingPackCard";
 import { useNavigate } from "react-router-dom";
 import { parseAssetType } from "@/lib/assetPackRegistry";
+import { hasRequiredAssets } from "@/lib/node-readiness";
 
 interface NodeRow {
   id: string;
@@ -159,7 +160,13 @@ export default function AuthorLibrary() {
               list.push(a);
               byNode.set(node_id, list);
             }
-            const liveNodes = nodes.filter(n => n.status === "live");
+            // Strict gate: only show nodes that are truly live (status + required assets).
+            // Mirrors the gate used by useNodeLiveStats / useBookNodeProgress so a node
+            // marked status='live' with only autofilled stubs (e.g. BP-04) never leaks
+            // into the public-facing Marketing Packs tab.
+            const liveNodes = nodes.filter(
+              n => n.status === "live" && hasRequiredAssets(n.node_id, n.content_json)
+            );
             if (!byNode.size) {
               return (
                 <Card><CardContent className="py-10 text-center text-sm text-muted-foreground">
