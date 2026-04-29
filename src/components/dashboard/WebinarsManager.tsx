@@ -167,6 +167,29 @@ export default function WebinarsManager({ onNavigate }: { onNavigate?: (section:
   }
 
   if (webinars.length === 0) {
+    // If the AI engine already produced BP-05 content (Brand tab shows ✅ Live),
+    // surface it here with a Promote CTA so the two views agree.
+    if (aiNodeContent && bookFilterId) {
+      return (
+        <div className="max-w-3xl mx-auto space-y-6">
+          <BookBuilderContextBar backTab="automate" />
+          <div className="text-center pt-2">
+            <h2 className="font-heading text-2xl font-bold mb-2">Webinars</h2>
+            <p className="text-sm text-muted-foreground max-w-lg mx-auto">
+              Your AI engine has prepared a webinar for this book. Promote it to a live, schedulable webinar to start taking registrations.
+            </p>
+          </div>
+          <AIWebinarPreviewCard
+            bookId={bookFilterId}
+            bookTitle={bookTitleParam}
+            authorId={authorProfileId}
+            contentJson={aiNodeContent}
+            onPromoted={() => { fetchWebinars(); }}
+            onRegenerate={() => onNavigate?.("build-business")}
+          />
+        </div>
+      );
+    }
     return (
       <div className="max-w-2xl mx-auto py-16 text-center">
         <BookBuilderContextBar backTab="automate" />
