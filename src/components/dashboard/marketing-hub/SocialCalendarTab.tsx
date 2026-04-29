@@ -145,6 +145,8 @@ export default function SocialCalendarTab({ authorId }: Props) {
   const [draggingPostId, setDraggingPostId] = useState<string | null>(null);
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [refilling, setRefilling] = useState(false);
+  const [autoRefilling, setAutoRefilling] = useState(false);
+  const autoRefilledFor = useRef<Set<string>>(new Set());
 
   const formatDateTimeInput = (value: string | null) => {
     if (!value) return "";
