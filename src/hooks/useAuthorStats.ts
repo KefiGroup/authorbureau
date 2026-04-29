@@ -60,6 +60,8 @@ export function useAuthorStats(userId: string | undefined) {
       setLoading(false);
       return;
     }
+    // Keep showing previous stats while we refetch — no flash of zero counts
+    if (!cachedStats) setLoading(true);
     try {
       const token = await getActiveToken();
       if (!token) return;

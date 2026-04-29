@@ -479,13 +479,18 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
               <div>
                 <p className="text-sm font-semibold">No manuscript found for this book</p>
                 <p className="text-xs text-muted-foreground mt-1 max-w-md">
-                  Upload your manuscript once in the Book Hub Overview — it will automatically flow into all product studios (Audiobook, Workbooks, Social Media, etc.)
+                  Upload your manuscript once in your Book Hub — it will automatically flow into all product studios (Audiobook, Workbooks, Social Media, etc.). Or upload it here just for the audiobook.
                 </p>
               </div>
-              <Button size="sm" onClick={() => setShowUploadFallback(!showUploadFallback)}>
-                <Upload className="h-3.5 w-3.5 mr-1.5" />
-                {showUploadFallback ? "Hide Uploader" : "Upload Manuscript Now"}
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/book/${bookId}?tab=overview`)}>
+                  <ArrowLeft className="h-3.5 w-3.5 mr-1.5" /> Open Book Hub
+                </Button>
+                <Button size="sm" onClick={() => setShowUploadFallback(!showUploadFallback)}>
+                  <Upload className="h-3.5 w-3.5 mr-1.5" />
+                  {showUploadFallback ? "Hide Uploader" : "Upload Manuscript Here"}
+                </Button>
+              </div>
             </div>
             {showUploadFallback && (
               <div className="mt-4 pt-4 border-t border-border">
