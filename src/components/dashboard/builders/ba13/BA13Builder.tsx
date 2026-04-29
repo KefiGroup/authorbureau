@@ -32,6 +32,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [authorSlug, setAuthorSlug] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
@@ -54,9 +55,19 @@ export default function BA13Builder({ authorId, bookId }: Props) {
         const wasLegacy = isLegacyGroupCoaching(__draft.content);
         const normalised = normaliseGroupCoaching(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
+        const savedStep = __draft.currentStep ?? 0;
+        // Half-published recovery: if a previous publish wrote step=3 but the
+        // row never reached the live state (no microsite_url), drop back to
+        // Step 2 so the user can re-publish. Without this guard the UI would
+        // sit on the passive "Publishing…" animation forever with no request
+        // in flight.
+        const isHalfPublished = !isActuallyLive && savedStep >= 3;
         setContent({ ...normalised, activated: isActuallyLive });
         setPriceOverride(normalised?.suggested_price_usd || null);
-        setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
+        setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : Math.max(savedStep, 2));
+        if (isHalfPublished) {
+          toast.info("Your last publish didn't complete — please click Publish again.");
+        }
         if (wasLegacy) {
           void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
@@ -65,13 +76,13 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   }, [authorId]);
 
   useEffect(() => {
-    if (step === 1 || (step === 3 && !content?.activated)) {
+    if (step === 1 || (isPublishing && !content?.activated)) {
       const msgs = step === 1 ? GEN_MSGS : ACT_MSGS;
       setMsgIndex(0);
       intervalRef.current = setInterval(() => setMsgIndex((i) => (i + 1) % msgs.length), 3000);
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
-  }, [step]);
+  }, [step, isPublishing, content?.activated]);
 
   const handleGenerate = async () => {
     setStep(1); setError(null);
@@ -88,7 +99,9 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     setError(null);
+    setIsPublishing(true);
     try {
       await publishNodeToSite(authorId!, "BA-13", authorSlug);
       setContent((prev: any) => ({ ...prev, activated: true }));
@@ -97,6 +110,8 @@ export default function BA13Builder({ authorId, bookId }: Props) {
     } catch (e: any) {
       setError(e.message);
       toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -129,7 +144,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
           <div className="space-y-4">
             <AbbyCard>
               <p className="text-sm">Your content is ready, but it isn't live on your site yet. Click below to publish your Group Coaching page.</p>
-              <Button onClick={handlePublish} className="mt-3">Re-publish to My Site <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button onClick={handlePublish} className="mt-3" disabled={isPublishing}>{isPublishing ? "Publishing…" : "Re-publish to My Site"} <ArrowRight className="h-4 w-4 ml-2" /></Button>
             </AbbyCard>
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
@@ -178,12 +193,12 @@ export default function BA13Builder({ authorId, bookId }: Props) {
             />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish} disabled={isPublishing}>{isPublishing ? "Publishing…" : "Publish to My Site"}<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         )}
-        {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && (
+        {isPublishing && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
+        {step === 3 && content?.activated && !isPublishing && (
           <>
             <PublishSuccessScreen nodeId="BA-13" authorName={authorName} penNameSlug={authorSlug} />
             <BANodeDownloadCard content={content} nodeName="Group Coaching Programme" bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"} authorName={authorName} guidance="Your group coaching package is ready. Download it and use it with Teachable, Kajabi, Thinkific, or any platform of your choice to start earning revenue from your expertise." />
