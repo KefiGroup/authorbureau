@@ -100,7 +100,17 @@ export default function Directory() {
 
   const allAuthors = [...staticMapped, ...dynamicNew];
 
-  const allGenres = [...new Set(allAuthors.flatMap((a) => a.genres))];
+  // Normalize genres: title-case and dedupe case-insensitively
+  const normalizeGenre = (g: string) =>
+    g.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+  const genreMap = new Map<string, string>();
+  allAuthors.forEach((a) => {
+    a.genres.forEach((g) => {
+      const norm = normalizeGenre(g);
+      if (!genreMap.has(norm.toLowerCase())) genreMap.set(norm.toLowerCase(), norm);
+    });
+  });
+  const allGenres = Array.from(genreMap.values()).sort();
 
   const handleGenreFilter = (genre: string | null) => {
     setSelectedGenre(genre);
@@ -115,7 +125,9 @@ export default function Directory() {
       a.name.toLowerCase().includes(search.toLowerCase()) ||
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       a.shortBio.toLowerCase().includes(search.toLowerCase());
-    const matchesGenre = !selectedGenre || a.genres.includes(selectedGenre);
+    const matchesGenre =
+      !selectedGenre ||
+      a.genres.some((g) => normalizeGenre(g).toLowerCase() === selectedGenre.toLowerCase());
     return matchesSearch && matchesGenre;
   });
 

@@ -29,7 +29,7 @@ const FRAMEWORK_SECTIONS = [
   {
     icon: BarChart3,
     title: "Pricing Strategy",
-    body: "Every price point is calculated using proven pricing frameworks — not guesswork. Abby benchmarks against real market data and applies pricing psychology to maximize your revenue.",
+    body: "Every price point is calculated using proven pricing frameworks - not guesswork. Abby benchmarks against real market data and applies pricing psychology to maximize your revenue.",
     frameworks: ["Russell Brunson's Value Ladder", "Market-Based Pricing", "Anchoring", "Charm Pricing", "Decoy Effect", "Scarcity (Cialdini)"],
   },
   {
@@ -57,7 +57,7 @@ const MASTER_TABLE: { builder: string; framework: string; citation: string }[] =
   { builder: "Book Sales", framework: "Direct-to-Consumer (DTC) Sales", citation: "Warby Parker model" },
   { builder: "Audiobook", framework: "Multi-Format Content Repurposing", citation: "Audio learning research" },
   { builder: "Podcast Tour", framework: "Strategic Guest Appearance Mapping", citation: "Audience overlap analysis" },
-  { builder: "Webinars", framework: "Teach-Offer Model", citation: "5–15% conversion rate" },
+  { builder: "Webinars", framework: "Teach-Offer Model", citation: "5-15% conversion rate" },
   { builder: "Lead Magnets", framework: "Specificity Principle + 5-Minute Test", citation: "Checklists convert 3:1 over ebooks" },
   { builder: "Media Outreach", framework: "Authority Positioning (Earned Media)", citation: "PR methodology" },
   { builder: "Affiliates", framework: "Partner-Driven Revenue Sharing", citation: "Pat Flynn model" },
