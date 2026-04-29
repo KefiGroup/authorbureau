@@ -177,6 +177,13 @@ export const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 export const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
+// Wrap processLock with a 2s timeout so contended reads fail fast and our
+// cached-token fallback path kicks in immediately, instead of every concurrent
+// caller waiting up to 10s for the gotrue lock.
+const fastLock = <R>(name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => {
+  return processLock(name, 2000, fn);
+};
+
 export const sharedSupabase = createClient<Database>(
   SHARED_BACKEND_URL,
   SHARED_ANON_KEY,
@@ -185,7 +192,7 @@ export const sharedSupabase = createClient<Database>(
       storageKey: AUTH_STORAGE_KEY,
       persistSession: false,
       autoRefreshToken: true,
-      lock: processLock,
+      lock: fastLock,
     },
   }
 );
