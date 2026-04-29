@@ -1,81 +1,77 @@
+## Plan
 
-# Brand Tab — Final 2 Bug Fixes
+I’ll make BP-06 follow the same book-scoped launch flow as the other working Brand builders, then remove the legacy bottom CTA so the Workbook flow always uses current Book Hub language.
 
-## Diagnosis
+## What I’ll change
 
-I traced both bugs and found the **actual root causes** are different from what was suspected.
+### 1) Lock BP-06 to the book-scoped launch path
+Ensure the Workbook tile always carries `bookId` and `bookTitle` all the way into `/node-builder/BP-06`.
 
-### Bug 1 — BP-05 Webinars false "Live" badge (data-store mismatch, NOT a stale row)
-
-I queried the production database. For book "Be SUCKcessful" (`e5b857ac-...`):
-
-| Table | Rows | Status | Content |
-|---|---|---|---|
-| `author_nodes` (node_id=BP-05) | 1 | `live` | 9.6 KB JSON with `webinar_topics`, `registration_page`, `follow_up_emails`, `promotion_strategy`, `recommended_webinar`, `abby_summary` |
-| `webinars` table | **0** | — | — |
-
-The Brand-tab card reads `author_nodes` via `useNodeLiveStats` and correctly shows **Live** (the row IS live with content, so the bookId-scoping fix did its job).
-
-But `WebinarsManager.tsx` (the component the user lands on) queries the **`webinars` table**, not `author_nodes`. That table is empty for this book, so the UI shows the "Generate from AI Engine → Build My Business" empty state. The two components read from completely different data stores.
-
-The previous AI-generated webinar content is sitting unused inside `author_nodes.content_json` and never gets surfaced in the Manager.
-
-### Bug 2 — BP-06 Workbook back navigation (build is 9 days stale)
-
-The console reports `Build: 2026-04-20T10:18:00Z`. Today is 2026-04-29. The previously deployed code (`buildNodeBuilderSearch`, synchronous param mirroring in `BookBuilderRoute`, `bookId`-aware back link in `NodeBuilder`) is correct in source — it just hasn't been built/deployed to production. Re-running the build will resolve it.
-
----
-
-## Fixes
-
-### Fix 1 — Surface AI-generated webinar content in WebinarsManager
-
-When the `webinars` table is empty for the active book BUT an `author_nodes` row exists for BP-05 with `status in ('live','content_ready')` and a populated `content_json`, render a **read-only summary** of that AI content with three actions:
-- **Edit content** → opens the BP-05 builder step 2 (review/edit step)
-- **Promote to live webinar** → seeds a `webinars` row from `content_json.recommended_webinar` (title, description, suggested duration) so the Manager has a real record to schedule and publish
-- **Regenerate** → re-runs the AI generator
+Files to update:
+- `src/pages/AuthorDashboard.tsx`
+- `src/pages/BookBuilderRoute.tsx`
 
 Implementation:
-- In `src/components/dashboard/WebinarsManager.tsx`, after `fetchWebinars()` returns 0 rows, also fetch the `author_nodes` BP-05 row scoped by `bookFilterId` (mirror BP-05Builder's edge-function-first approach via `save-author-node` action `load`, with a direct `author_nodes` fallback that ALSO filters by `book_id` — current fallback at lines 124–131 of `BP05Builder.tsx` does not, which is a parallel bug).
-- If `content_json` has webinar data, render a new `<AIWebinarPreviewCard>` (new file: `src/components/dashboard/webinars/AIWebinarPreviewCard.tsx`) showing topic, abstract, target outcome, and the three action buttons above.
-- "Promote to live webinar" inserts into `webinars` with `status='draft'`, `book_id=bookFilterId`, then triggers `fetchWebinars()`.
+- Keep the BP-06 redirect using the shared `buildNodeBuilderSearch(location)` pattern so `/node-builder/BP-06` receives the same query params as BP-05/BP-07/BP-08/BP-09.
+- Verify the nested book route `/dashboard/book/:bookId/build/workbooks` mirrors params before `AuthorDashboard` mounts, so the redirect cannot fire with an empty search string.
+- If needed, tighten the BP-06 branch specifically so `bookId` from the path is injected before `<Navigate>` resolves.
 
-### Fix 2 — Patch the BP-05 builder direct-read fallback to filter by book_id
+Result:
+- Workbook opens as:
+  `/node-builder/BP-06?bookId={id}&bookTitle=...&builder=workbook`
+- `NodeBuilder` will then automatically show:
+  `Back to Book Hub · Brand`
+  and navigate to:
+  `/book-hub/{bookId}?tab=revenue-streams`
 
-`src/components/dashboard/builders/bp05/BP05Builder.tsx` lines 124–131: the fallback `.from("author_nodes").select(...).eq("author_id", authorId).eq("node_id", "BP-05").maybeSingle()` will return ANY BP-05 row regardless of book. Add `.eq("book_id", bookId)` when `bookId` is present so a multi-book author never sees the wrong book's content.
+### 2) Keep BP-06 return URLs book-aware
+Update the Workbook builder so all internal return paths preserve the active book context.
 
-### Fix 3 — Trigger a fresh build to deploy BP-06 fixes
+File to update:
+- `src/components/dashboard/builders/bp06/BP06Builder.tsx`
 
-The BP-06 routing/back-link logic is already correct in source. Force a redeploy by touching a file (no functional change) so the production bundle picks up:
-- `buildNodeBuilderSearch` in `AuthorDashboard.tsx`
-- Synchronous param mirroring in `BookBuilderRoute.tsx`
-- `bookId`-preserving "Complete Book Profile" return URL and `/book-hub/{bookId}?tab=revenue-streams` back link in `BP06Builder.tsx`
-- `bookId`-aware back link in `NodeBuilder.tsx`
+Implementation:
+- Preserve `bookId` in the `Complete Book Profile` return URL.
+- Verify any BP-06 navigation that can bounce the user out of the builder retains the current book scope.
 
-After deploy, expected behavior for BP-06 launched from Brand tab:
-1. URL: `/node-builder/BP-06?bookId={id}&bookTitle=...&builder=workbook`
-2. Top back link: `← Back to Book Hub · Brand` → `/book-hub/{bookId}?tab=revenue-streams`
-3. "Complete Book Profile" return URL preserves `bookId`.
+Result:
+- If the author must complete book setup first, returning lands back in the same Workbook flow for the same book.
 
----
+### 3) Remove the legacy bottom “Brand Products” button from BP-06
+The old bottom CTA appears when `bookId` is missing and falls back to legacy wording. I’ll remove that legacy behavior for the Workbook success flow.
 
-## Files Changed
+Primary file to update:
+- `src/components/dashboard/builders/shared/PublishSuccessScreen.tsx`
 
-```text
-src/components/dashboard/WebinarsManager.tsx          (load + render AI webinar fallback)
-src/components/dashboard/webinars/AIWebinarPreviewCard.tsx  (new)
-src/components/dashboard/builders/bp05/BP05Builder.tsx (book_id filter on fallback read)
-.lovable/plan.md                                      (touch to force redeploy)
-```
+Implementation:
+- Replace the BP-06 fallback secondary action so it no longer says `Go back to Brand Products`.
+- Prefer either:
+  - `Back to Book Hub` when `bookId` is present, or
+  - a modern non-legacy fallback such as `Back to My Books` when no book context exists.
 
-No DB migrations. No edge function changes (existing `save-author-node` `load` action already accepts `bookId`).
+Result:
+- The Workbook page will no longer show the outdated Brand Products wording at the bottom.
 
-## Acceptance Test (after deploy)
+### 4) Trigger a fresh deploy
+Because similar BP-06 logic already exists in source, I’ll make a small real code change in the affected files so the updated bundle is definitely rebuilt and published.
 
-| Scenario | Expected |
-|---|---|
-| Brand tab → Webinars tile (Be SUCKcessful) | Card shows ✅ Live; clicking opens Manager with AI-generated webinar preview + "Promote to live webinar" CTA |
-| Click "Promote to live webinar" | New row in `webinars`, Manager reloads showing the editable webinar |
-| Brand tab → Workbook tile | URL = `/node-builder/BP-06?bookId=…&bookTitle=…`; top link = `← Back to Book Hub · Brand`; clicking it returns to Brand tab |
-| BP-06 "Complete Book Profile" button (no profile) | Return URL retains `?bookId=…` |
-Edits done at 2026-04-29T10:50:13Z
+## Technical notes
+
+- The top back label is controlled by `NodeBuilder.tsx`, not by the deprecated `onBack` prop passed into `BuilderHeader`.
+- `NodeBuilder` already renders the correct label when `bookId` exists:
+  - BP node + `bookId` -> `Back to Book Hub · Brand`
+  - no `bookId` -> `Back to Dashboard`
+- So the real fix is to guarantee BP-06 arrives with `bookId` in the query string every time.
+- The bottom legacy button comes from `PublishSuccessScreen.tsx`, where the no-`bookId` fallback still uses older Brand Products terminology.
+
+## Acceptance criteria
+
+1. Clicking Workbook from the Brand tab opens:
+   `/node-builder/BP-06?bookId=...&bookTitle=...`
+2. The top back link reads:
+   `Back to Book Hub · Brand`
+3. That back link returns to:
+   `/book-hub/{bookId}?tab=revenue-streams`
+4. `Complete Book Profile` preserves `bookId` in the return URL.
+5. The bottom legacy `Go back to Brand Products` button is gone from the BP-06 flow.
+6. BP-05, BP-07, BP-08, and BP-09 behavior remains unchanged.
