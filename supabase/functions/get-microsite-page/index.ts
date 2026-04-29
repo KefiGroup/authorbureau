@@ -52,19 +52,47 @@ serve(async (req) => {
       );
     }
 
-    // If we have a slug instead of a node ID, resolve it
+    // If we have a slug instead of a node ID, resolve it deterministically
+    // through the canonical slug→node map. The previous LIKE-search against
+    // `author_nodes.microsite_url` was unreliable (some rows store the URL
+    // in `delivery_url` instead, and partial matches collide across nodes),
+    // which produced spurious 404s for BA-14 (podcast) and BA-15 (press).
     if (!nodeId && micrositeSlug) {
-      // Look for a node whose microsite_url contains this slug
-      const { data: matchedNode } = await supabase
-        .from("author_nodes")
-        .select("node_id, microsite_url")
-        .eq("author_id", profile.id)
-        .ilike("microsite_url", `%${micrositeSlug}%`)
-        .limit(1)
-        .maybeSingle();
+      const SLUG_TO_NODE: Record<string, string> = {
+        "free-gift": "BP-02",
+        "author-website": "BP-04",
+        "webinar": "BP-05",
+        "workbook": "BP-06",
+        "home-study": "BP-07",
+        "course": "BP-07",
+        "special-edition": "BP-08",
+        "special-editions": "BP-08",
+        "book": "BP-09",
+        "order": "BP-09",
+        "online-course": "BA-10",
+        "audiobook": "BA-11",
+        "membership": "BA-12",
+        "group-coaching": "BA-13",
+        "podcast": "BA-14",
+        "press": "BA-15",
+        "affiliates": "BA-16",
+        "bundles": "BA-17",
+        "partners": "BA-18",
+        "coaching": "YR-19",
+        "vip": "YR-20",
+        "speaking": "YR-21",
+        "corporate-training": "YR-22",
+        "mastermind": "YR-23",
+        "retreat": "YR-24",
+        "certification": "YR-25",
+        "conference": "YR-26",
+        "fundraising": "YR-27",
+        "sponsors": "YR-28",
+      };
 
-      if (matchedNode) {
-        nodeId = matchedNode.node_id;
+      const mapped = SLUG_TO_NODE[micrositeSlug];
+      if (mapped) {
+        nodeId = mapped;
       } else {
         return new Response(
           JSON.stringify({ error: "Node not found for slug" }),
