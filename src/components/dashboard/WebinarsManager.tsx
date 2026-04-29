@@ -11,6 +11,7 @@ import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
 import { Video, Loader2, Edit3, Eye, Save, X, CheckCircle2, Users, ExternalLink, Copy } from "lucide-react";
 import { toast } from "sonner";
 import BookBuilderContextBar from "./BookBuilderContextBar";
+import AIWebinarPreviewCard from "./webinars/AIWebinarPreviewCard";
 
 interface Webinar {
   id: string;
