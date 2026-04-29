@@ -53,6 +53,21 @@ function hasRequiredAssets(nodeId: string, content: any): boolean {
       const hasSchedule = Array.isArray(content.sessions) ? content.sessions.length > 0 : !!content.schedule;
       return hasSchedule;
     }
+    case "BP-04": {
+      // Author Website: must have at least one substantive content field —
+      // not just the autofilled microsite_url / book_id stub written by the
+      // author_nodes_autofill_delivery_url trigger.
+      const fields = [
+        "hero_headline", "hero_subheadline", "about_long", "about_short",
+        "cta_label", "lead_magnet_id",
+      ];
+      const hasField = fields.some((k) => {
+        const v = content[k];
+        return typeof v === "string" ? v.trim().length > 0 : !!v;
+      });
+      const hasSections = Array.isArray(content.sections) && content.sections.length > 0;
+      return hasField || hasSections;
+    }
     default:
       return true; // No extra gate beyond DB status
   }
