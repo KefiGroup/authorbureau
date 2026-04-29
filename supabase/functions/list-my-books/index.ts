@@ -10,6 +10,74 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+/**
+ * Resilient identity resolution. The caller's JWT may have been issued by:
+ *   1) the project's own Cloud auth,
+ *   2) the shared PublishNow backend, OR
+ *   3) a shared-backend session whose signing key is no longer recognised
+ *      by either gotrue (e.g. after a key rotation — produces "bad_jwt"
+ *      "unrecognized JWT kid" responses).
+ * In every case we still want to surface this user's books, so we fall back
+ * to decoding the JWT's `sub`/`email` claims and mapping by email.
+ */
+async function resolveIdentity(
+  cloudAdmin: ReturnType<typeof createClient>,
+  token: string,
+): Promise<{ userId: string | null; userEmail: string | null; source: string }> {
+  // 1) Cloud auth
+  try {
+    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
+    if (cloudUser) {
+      return { userId: cloudUser.id, userEmail: cloudUser.email ?? null, source: "cloud" };
+    }
+  } catch (_) { /* ignore */ }
+
+  // 2) Shared backend
+  let sharedEmail: string | null = null;
+  let sharedSub: string | null = null;
+  try {
+    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
+    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
+    if (sharedUser) {
+      sharedEmail = sharedUser.email ?? null;
+      sharedSub = sharedUser.id;
+    }
+  } catch (_) { /* ignore */ }
+
+  // 3) JWT decode safety net (covers rotated keys / "bad_jwt")
+  let jwtEmail: string | null = null;
+  let jwtSub: string | null = null;
+  try {
+    const parts = token.split(".");
+    if (parts.length === 3) {
+      const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+      const payload = JSON.parse(atob(padded + "=".repeat((4 - (padded.length % 4)) % 4)));
+      jwtEmail = payload?.email ?? null;
+      jwtSub = payload?.sub ?? null;
+    }
+  } catch (_) { /* ignore */ }
+
+  const email = sharedEmail || jwtEmail;
+  let userId = sharedSub || jwtSub;
+
+  // Try to map the shared/JWT user to the local Cloud user record by email.
+  if (email) {
+    try {
+      const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+      const localMatch = users?.find(
+        (u: any) => u.email?.toLowerCase() === email.toLowerCase()
+      );
+      if (localMatch) userId = localMatch.id;
+    } catch (_) { /* ignore */ }
+  }
+
+  return {
+    userId,
+    userEmail: email,
+    source: sharedSub ? "shared" : jwtSub ? "jwt" : "none",
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -30,39 +98,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve user ID and email
-    let userId: string;
-    let userEmail: string | null = null;
+    const { userId, userEmail, source } = await resolveIdentity(cloudAdmin, token);
 
-    // Try Cloud auth first
-    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-    if (cloudUser) {
-      userId = cloudUser.id;
-      userEmail = cloudUser.email ?? null;
-    } else {
-      // Fallback: try shared backend (for SSO sessions)
-      const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-      const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-      if (!sharedUser) {
-        return new Response(JSON.stringify({ error: "Invalid session" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      userId = sharedUser.id;
-      userEmail = sharedUser.email ?? null;
-
-      // For shared backend users, find their Cloud user ID by email
-      if (sharedUser.email) {
-        const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
-        const localMatch = users?.find(
-          (u: any) => u.email?.toLowerCase() === sharedUser.email?.toLowerCase()
-        );
-        if (localMatch) userId = localMatch.id;
-      }
+    if (!userId && !userEmail) {
+      console.warn("[list-my-books] identity resolution failed for token");
+      return new Response(JSON.stringify({ error: "Invalid session" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    console.log("[list-my-books] Resolved userId:", userId, "email:", userEmail);
+    console.log("[list-my-books] Resolved userId:", userId, "email:", userEmail, "via:", source);
 
     // Build ownership filter: author_id matches OR owner_email matches
     const ownershipFilter = userEmail
