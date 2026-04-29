@@ -77,7 +77,7 @@ serve(async (req) => {
       `Book title: "${book.title}"`,
       book.subtitle ? `Subtitle: ${book.subtitle}` : null,
       book.description ? `Description: ${book.description}` : null,
-      book.isbn ? `ISBN: ${book.isbn}` : null,
+      
       book.amazon_url ? `Amazon URL: ${book.amazon_url}` : null,
       author.pen_name ? `Author: ${author.pen_name}` : null,
       book.genre ? `Genre: ${book.genre}` : null,
