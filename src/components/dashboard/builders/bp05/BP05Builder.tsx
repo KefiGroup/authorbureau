@@ -96,12 +96,40 @@ export default function BP05Builder({ authorId, bookId }: Props) {
         }
       }
 
-      const { data: node } = await supabase
-        .from("author_nodes")
-        .select("content_json, status")
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-05")
-        .maybeSingle();
+      // Load via save-author-node edge function (service role) to bypass
+      // the project-local RLS/uid mismatch that left some shared-backend
+      // sessions seeing empty content despite a live row in author_nodes.
+      let node: { content_json: any; status?: string } | null = null;
+      try {
+        const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+        const token = await getActiveToken();
+        if (token) {
+          const res = await fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-node`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: "load", authorId, nodeId: "BP-05", bookId: bookId ?? undefined }),
+            },
+            15000,
+          );
+          if (res.ok) {
+            const j = await res.json();
+            if (j?.content_json) node = { content_json: j.content_json, status: j.status };
+          }
+        }
+      } catch (e) {
+        console.warn("[BP-05] edge load failed, falling back to direct read", e);
+      }
+      if (!node) {
+        const { data } = await supabase
+          .from("author_nodes")
+          .select("content_json, status")
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-05")
+          .maybeSingle();
+        node = data ?? null;
+      }
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
@@ -188,7 +216,7 @@ export default function BP05Builder({ authorId, bookId }: Props) {
           title="Webinars"
           subtitle="Webinar script + slides + promo + follow-up emails"
           icon={Video}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(activeBookId ? `/book-hub/${activeBookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
         <UnifiedStepper
           nodeId="BP-05"

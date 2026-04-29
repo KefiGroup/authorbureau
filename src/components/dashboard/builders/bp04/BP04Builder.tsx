@@ -89,12 +89,39 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       }
 
 
-      const { data: node } = await supabase
-        .from("author_nodes")
-        .select("content_json, status")
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-04")
-        .maybeSingle();
+      // Load via save-author-node edge function (service role) to bypass
+      // project-local RLS/uid mismatch on shared-backend sessions.
+      let node: { content_json: any; status?: string } | null = null;
+      try {
+        const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+        const token = await getActiveToken();
+        if (token) {
+          const res = await fetchWithTimeout(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-node`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ action: "load", authorId, nodeId: "BP-04", bookId: activeBookId ?? undefined }),
+            },
+            15000,
+          );
+          if (res.ok) {
+            const j = await res.json();
+            if (j?.content_json) node = { content_json: j.content_json, status: j.status };
+          }
+        }
+      } catch (e) {
+        console.warn("[BP-04] edge load failed, falling back to direct read", e);
+      }
+      if (!node) {
+        const { data } = await supabase
+          .from("author_nodes")
+          .select("content_json, status")
+          .eq("author_id", authorId)
+          .eq("node_id", "BP-04")
+          .maybeSingle();
+        node = data ?? null;
+      }
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         setContent(node.content_json);
@@ -184,7 +211,7 @@ export default function BP04Builder({ authorId, bookId }: Props) {
           title="Author Website"
           subtitle="Hero, about, books, testimonials + lead capture"
           icon={Home}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(activeBookId ? `/book-hub/${activeBookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
         <UnifiedStepper
           nodeId="BP-04"

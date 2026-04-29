@@ -103,51 +103,54 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
 
     const books = booksResult.books as any[];
     const bookIds = books.map((b: any) => b.id);
+    // Canonical source: live author_nodes returned by list-my-books.
+    const liveNodesByBook: Record<string, Array<{ node_id: string; node_name: string | null; microsite_url: string | null; delivery_url: string | null }>> = booksResult.liveNodesByBook || {};
 
-    // Fetch products for these books
-    let homeStudy: any[] = [];
-    let courses: any[] = [];
-    let coaching: any[] = [];
-    let audiobooks: any[] = [];
-    let podcasts: any[] = [];
-
-    if (bookIds.length > 0) {
-      const [hsRes, cRes, coachRes, abRes, podRes] = await Promise.all([
-        supabase.from("home_study_courses").select("id, title, book_id, status").eq("author_id", user!.id),
-        supabase.from("courses").select("id, title, book_id, status").eq("author_id", user!.id),
-        supabase.from("coaching_packages").select("id, title, status").eq("author_id", user!.id),
-        supabase.from("audiobooks").select("id, title, book_id, status").eq("author_id", user!.id),
-        supabase.from("podcasts").select("id, title, book_id, status").eq("author_id", user!.id),
-      ]);
-      homeStudy = hsRes.data || [];
-      courses = cRes.data || [];
-      coaching = coachRes.data || [];
-      audiobooks = abRes.data || [];
-      podcasts = podRes.data || [];
-    }
+    // Friendly labels + microsite slugs for the supported live nodes.
+    const NODE_META: Record<string, { label: string; type: string; route: string }> = {
+      "BP-02": { label: "Free Gift", type: "lead_magnet", route: "free-gift" },
+      "BP-04": { label: "Author Website", type: "website", route: "" },
+      "BP-05": { label: "Webinar", type: "webinar", route: "webinar" },
+      "BP-06": { label: "Workbook", type: "workbook", route: "workbook" },
+      "BP-07": { label: "Home Study", type: "home_study", route: "home-study" },
+      "BP-09": { label: "Book", type: "book", route: "book" },
+      "BA-10": { label: "Online Course", type: "course", route: "online-course" },
+      "BA-11": { label: "Audiobook", type: "audiobook", route: "audiobook" },
+      "BA-12": { label: "Membership", type: "membership", route: "membership" },
+      "BA-13": { label: "Group Coaching", type: "coaching", route: "group-coaching" },
+      "BA-14": { label: "Podcast", type: "podcast", route: "podcast" },
+      "BA-15": { label: "Press / Media", type: "press", route: "press" },
+      "BA-16": { label: "Affiliates", type: "affiliates", route: "affiliates" },
+      "BA-17": { label: "Bundles", type: "bundles", route: "bundles" },
+      "BA-18": { label: "Partners", type: "partners", route: "partners" },
+      "YR-19": { label: "1:1 Coaching", type: "coaching", route: "coaching" },
+      "YR-20": { label: "VIP Day", type: "vip", route: "vip" },
+      "YR-21": { label: "Speaking", type: "speaking", route: "speaking" },
+      "YR-22": { label: "Corporate Training", type: "training", route: "corporate-training" },
+      "YR-23": { label: "Mastermind", type: "mastermind", route: "mastermind" },
+      "YR-24": { label: "Retreat", type: "retreat", route: "retreat" },
+      "YR-25": { label: "Certification", type: "certification", route: "certification" },
+      "YR-26": { label: "Conference", type: "conference", route: "conference" },
+      "YR-27": { label: "Fundraising", type: "fundraising", route: "fundraising" },
+      "YR-28": { label: "Sponsors", type: "sponsors", route: "sponsors" },
+    };
 
     const enriched: BookWithStatus[] = books.map((book: any) => {
       const products: BookProduct[] = [];
-      homeStudy.filter((p) => p.book_id === book.id).forEach((p) => {
-        products.push({ id: p.id, title: p.title, type: "home_study", status: p.status, route: "homestudy" });
-      });
-      courses.filter((p) => p.book_id === book.id).forEach((p) => {
-        products.push({ id: p.id, title: p.title, type: "course", status: p.status, route: "onlinecourse" });
-      });
-      audiobooks.filter((p) => p.book_id === book.id).forEach((p) => {
-        products.push({ id: p.id, title: p.title, type: "audiobook", status: p.status, route: "audiobook" });
-      });
-      podcasts.filter((p) => p.book_id === book.id).forEach((p) => {
-        products.push({ id: p.id, title: p.title, type: "podcast", status: p.status, route: "podcast" });
-      });
+      const nodes = liveNodesByBook[book.id] || [];
+      for (const n of nodes) {
+        const meta = NODE_META[n.node_id];
+        if (!meta) continue;
+        products.push({
+          id: n.node_id,
+          title: n.node_name || meta.label,
+          type: meta.type,
+          status: "live",
+          route: meta.route,
+        });
+      }
       return { ...book, products };
     });
-
-    if (coaching.length > 0 && enriched.length > 0) {
-      coaching.forEach((p: any) => {
-        enriched[0].products.push({ id: p.id, title: p.title, type: "coaching", status: p.status, route: "coaching" });
-      });
-    }
 
     setBooksWithStatus(enriched);
     setLoading(false);

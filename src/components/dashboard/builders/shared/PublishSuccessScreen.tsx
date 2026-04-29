@@ -201,7 +201,11 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
             <BookOpen className="h-4 w-4 mr-1.5" />Back to Book Hub
           </Button>
         ) : (
-          <Button variant="link" className="text-sm text-muted-foreground" onClick={() => navigate(hub.path)}>
+          <Button
+            variant="link"
+            className="text-sm text-muted-foreground"
+            onClick={() => navigate(bookId ? `${hub.path}?bookId=${bookId}` : "/dashboard?section=my-books")}
+          >
             Go back to {hub.label}
           </Button>
         )}
