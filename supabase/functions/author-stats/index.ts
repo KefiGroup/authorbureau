@@ -139,11 +139,6 @@ Deno.serve(async (req) => {
 
     const admin = cloudAdmin;
 
-    const admin = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
-
     // Resolve all author IDs for this person
     const { data: profile } = await admin
       .from("author_profiles")
