@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Loader2, ArrowLeft, Mail, KeyRound } from "lucide-react";
-import { lovable } from "@/integrations/lovable/index";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -281,35 +281,6 @@ export default function Auth() {
               <h1 className="font-heading text-2xl font-bold">Sign In</h1>
               <p className="text-sm text-muted-foreground mt-1">Sign in or create your account</p>
             </div>
-
-            {/* Google sign-in - only on initial email step */}
-            {flow === "email" && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="lg"
-                  className="w-full rounded-full font-semibold"
-                  onClick={async () => {
-                    const result = await lovable.auth.signInWithOAuth("google", {
-                      redirect_uri: `${window.location.origin}/auth?redirect=${encodeURIComponent(redirectTo)}`,
-                    });
-                    if (result.error) {
-                      toast({ title: "Google sign-in failed", description: String(result.error.message || result.error), variant: "destructive" });
-                    }
-                  }}
-                >
-                  <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24" aria-hidden="true">
-                    <path fill="#EA4335" d="M12 10.2v3.9h5.5c-.2 1.4-1.6 4.1-5.5 4.1-3.3 0-6-2.7-6-6.2s2.7-6.2 6-6.2c1.9 0 3.1.8 3.8 1.5l2.6-2.5C16.7 3.2 14.6 2.2 12 2.2 6.9 2.2 2.8 6.3 2.8 11.4S6.9 20.6 12 20.6c6.9 0 9.4-4.8 9.4-7.3 0-.5 0-.9-.1-1.3H12z"/>
-                  </svg>
-                  Continue with Google
-                </Button>
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-border" /></div>
-                  <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground">or</span></div>
-                </div>
-              </>
-            )}
 
             {/* Mode toggle - only on initial email step */}
             {flow === "email" && (
