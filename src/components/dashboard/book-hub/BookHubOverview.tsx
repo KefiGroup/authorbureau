@@ -71,7 +71,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const { gating } = useNodeGating();
   const openNodeIds = new Set(gating.filter((r) => r.is_open).map((r) => r.node_id));
   const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
-  const progress = useBookNodeProgress(effectiveTier, openNodeIds);
+  const progress = useBookNodeProgress(effectiveTier, openNodeIds, book.id);
 
   const isAnalyzed = hasConsultation || planSections.length > 0 || !!plan;
 
