@@ -476,8 +476,8 @@ export default function BP02Builder({ authorId, bookId }: Props) {
           title="Lead Magnets"
           subtitle="A complete lead magnet + opt-in microsite + nurture sequence"
           icon={Gift}
-          onBack={() => navigate("/brand-products")}
         />
+        {/* Back navigation handled by NodeBuilder page wrapper — preserves bookId/bookTitle. */}
         <UnifiedStepper
           nodeId="BP-02"
           steps={STEPS}
