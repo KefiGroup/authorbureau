@@ -344,71 +344,82 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Count products per book — use generated_assets with builder_content_* prefix
-    // This is the canonical source since useBuilderGeneration saves here on completion
-    const brandBuilders = new Set([
-      "workbook", "social-media", "email-flows", "home-study-course", "book-sales",
-      "special-editions", "lead-magnet", "webinar", "website",
-    ]);
-    const buildAuthorityBuilders = new Set([
-      "online-course", "audiobook", "podcast", "membership",
-      "group-coaching", "affiliate", "upsell-downsell", "revenue-sharing",
-      "media-outreach",
-    ]);
-    // Everything else is yield
-
+    // ---------------------------------------------------------------
+    // Count products per book — canonical source is `author_nodes`.
+    // Each of the 28 builders writes to author_nodes (status: live |
+    // content_ready | published_pending_ghl). The legacy generated_assets
+    // "builder_content_*" prefix and the per-product tables (courses,
+    // audiobooks, etc.) are kept as a fallback for very old accounts.
+    // ---------------------------------------------------------------
     const productCounts: Record<string, number> = {};
     const categoryCounts: Record<string, { brand: number; build: number; yield: number }> = {};
+    const liveMicrositeCounts: Record<string, number> = {};
+    // Live nodes payload — used by BP-04 "Your Pages" and other surfaces
+    // that need a per-book list of live products with microsite URLs.
+    const liveNodesByBook: Record<string, { node_id: string; node_name: string | null; microsite_url: string | null; delivery_url: string | null; status: string }[]> = {};
 
     if (bookIds.length > 0) {
-      const { data: builderAssets } = await cloudAdmin
-        .from("generated_assets")
-        .select("book_id, asset_type")
+      const { data: nodeRows } = await cloudAdmin
+        .from("author_nodes")
+        .select("book_id, node_id, node_name, status, microsite_url, delivery_url")
         .in("book_id", bookIds)
-        .like("asset_type", "builder_content_%");
+        .in("status", ["live", "content_ready", "published_pending_ghl"]);
 
-      for (const a of builderAssets || []) {
-        const builderId = a.asset_type.replace("builder_content_", "");
-        productCounts[a.book_id] = (productCounts[a.book_id] || 0) + 1;
+      for (const r of nodeRows || []) {
+        if (!r.book_id || !r.node_id) continue;
+        productCounts[r.book_id] = (productCounts[r.book_id] || 0) + 1;
+        if (!categoryCounts[r.book_id]) categoryCounts[r.book_id] = { brand: 0, build: 0, yield: 0 };
+        const prefix = String(r.node_id).slice(0, 2);
+        if (prefix === "BP") categoryCounts[r.book_id].brand++;
+        else if (prefix === "BA") categoryCounts[r.book_id].build++;
+        else if (prefix === "YR") categoryCounts[r.book_id].yield++;
 
-        if (!categoryCounts[a.book_id]) {
-          categoryCounts[a.book_id] = { brand: 0, build: 0, yield: 0 };
+        if (r.status === "live" && r.microsite_url) {
+          liveMicrositeCounts[r.book_id] = (liveMicrositeCounts[r.book_id] || 0) + 1;
         }
-        if (brandBuilders.has(builderId)) {
-          categoryCounts[a.book_id].brand++;
-        } else if (buildAuthorityBuilders.has(builderId)) {
-          categoryCounts[a.book_id].build++;
-        } else {
-          categoryCounts[a.book_id].yield++;
+        if (r.status === "live") {
+          if (!liveNodesByBook[r.book_id]) liveNodesByBook[r.book_id] = [];
+          liveNodesByBook[r.book_id].push({
+            node_id: r.node_id,
+            node_name: r.node_name ?? null,
+            microsite_url: r.microsite_url ?? null,
+            delivery_url: r.delivery_url ?? null,
+            status: r.status,
+          });
         }
       }
 
-      // Also count from dedicated product tables for products that may not have builder_content_ assets
-      for (const table of ["courses", "audiobooks", "home_study_courses", "coaching_packages", "podcasts"]) {
-        const category = ["coaching_packages"].includes(table) ? "yield" : "brand";
-        const { data: rows } = await cloudAdmin
-          .from(table)
-          .select("book_id")
-          .in("book_id", bookIds);
-        for (const row of rows || []) {
-          if (!row.book_id) continue;
-          if (!categoryCounts[row.book_id]) {
-            categoryCounts[row.book_id] = { brand: 0, build: 0, yield: 0 };
-          }
-          const currentTotal = productCounts[row.book_id] || 0;
-          const catTotal = categoryCounts[row.book_id].brand + categoryCounts[row.book_id].build + categoryCounts[row.book_id].yield;
-          if (currentTotal <= catTotal) {
-            // Already counted via generated_assets — skip
-          } else {
-            categoryCounts[row.book_id][category as "brand" | "yield"]++;
-            productCounts[row.book_id] = (productCounts[row.book_id] || 0) + 1;
-          }
+      // ---------- Legacy fallback (generated_assets builder_content_*) ----------
+      // Only used when author_nodes returned nothing for a given book.
+      const booksWithoutNodes = bookIds.filter(id => !productCounts[id]);
+      if (booksWithoutNodes.length > 0) {
+        const brandBuilders = new Set([
+          "workbook", "social-media", "email-flows", "home-study-course", "book-sales",
+          "special-editions", "lead-magnet", "webinar", "website",
+        ]);
+        const buildAuthorityBuilders = new Set([
+          "online-course", "audiobook", "podcast", "membership",
+          "group-coaching", "affiliate", "upsell-downsell", "revenue-sharing",
+          "media-outreach",
+        ]);
+        const { data: builderAssets } = await cloudAdmin
+          .from("generated_assets")
+          .select("book_id, asset_type")
+          .in("book_id", booksWithoutNodes)
+          .like("asset_type", "builder_content_%");
+        for (const a of builderAssets || []) {
+          const builderId = a.asset_type.replace("builder_content_", "");
+          productCounts[a.book_id] = (productCounts[a.book_id] || 0) + 1;
+          if (!categoryCounts[a.book_id]) categoryCounts[a.book_id] = { brand: 0, build: 0, yield: 0 };
+          if (brandBuilders.has(builderId)) categoryCounts[a.book_id].brand++;
+          else if (buildAuthorityBuilders.has(builderId)) categoryCounts[a.book_id].build++;
+          else categoryCounts[a.book_id].yield++;
         }
       }
     }
 
     return new Response(
-      JSON.stringify({ books: uniqueBooks, analyzedBookIds, manuscriptBookIds, productCounts, categoryCounts }),
+      JSON.stringify({ books: uniqueBooks, analyzedBookIds, manuscriptBookIds, productCounts, categoryCounts, liveMicrositeCounts, liveNodesByBook }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
