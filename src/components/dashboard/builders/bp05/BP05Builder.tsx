@@ -188,7 +188,7 @@ export default function BP05Builder({ authorId, bookId }: Props) {
           title="Webinars"
           subtitle="Webinar script + slides + promo + follow-up emails"
           icon={Video}
-          onBack={() => navigate("/brand-products")}
+          onBack={() => navigate(activeBookId ? `/book-hub/${activeBookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
         <UnifiedStepper
           nodeId="BP-05"
