@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useBookContext } from "@/hooks/useBookContext";
 
@@ -21,19 +21,32 @@ const LABEL_BY_KIND: Record<HubKind, string> = {
  * Single redirect component for the legacy /brand-products, /build-authority,
  * and /yield-revenue routes. Sends the author to the matching tab inside the
  * unified Book Hub (or to /dashboard if no active book).
+ *
+ * Honours an explicit ?bookId= URL hint before falling back to useBookContext,
+ * so callers (PublishSuccessScreen, builder back-buttons) can preserve the
+ * active book even when author_context resolution races or returns null.
  */
 export default function HubRedirect({ kind }: { kind: HubKind }) {
   const navigate = useNavigate();
-  const { bookId, isLoading } = useBookContext();
+  const [searchParams] = useSearchParams();
+  const hintedBookId = searchParams.get("bookId");
+  const { bookId: contextBookId, isLoading } = useBookContext();
+  const bookId = hintedBookId || contextBookId;
 
   useEffect(() => {
+    // If we have an explicit hint, redirect immediately without waiting for
+    // useBookContext (which can take 5–25s on cold sessions).
+    if (hintedBookId) {
+      navigate(`/book-hub/${hintedBookId}?tab=${TAB_BY_KIND[kind]}`, { replace: true });
+      return;
+    }
     if (isLoading) return;
     if (bookId) {
       navigate(`/book-hub/${bookId}?tab=${TAB_BY_KIND[kind]}`, { replace: true });
     } else {
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard?section=my-books", { replace: true });
     }
-  }, [kind, bookId, isLoading, navigate]);
+  }, [kind, bookId, hintedBookId, isLoading, navigate]);
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center gap-3 text-muted-foreground">
@@ -42,3 +55,4 @@ export default function HubRedirect({ kind }: { kind: HubKind }) {
     </div>
   );
 }
+
