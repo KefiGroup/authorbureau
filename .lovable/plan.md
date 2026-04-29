@@ -1,73 +1,81 @@
+## Findings
+
+I verified the backend data for **Be SUCKcessful** (`bookId = e5b857ac-48ce-4ffc-a761-3c09e95a318e`) and the manuscript is present.
+
+- The manuscript is stored in the backend table **`generated_assets`**.
+- The lookup key is:
+  - **`book_id = e5b857ac-48ce-4ffc-a761-3c09e95a318e`**
+  - **`asset_type = 'source_material'`**
+- The manuscript text is stored in the **`content`** column.
+- The stored manuscript row currently has about **100,589 characters**, so this is not a missing-data issue.
+- The book row is owned by **support@paulineteo.com** and its `author_id` matches the authenticated user id already seen elsewhere in the logs.
+
+I also confirmed an important implementation mismatch:
+
+- The **old Audiobook Studio** (`src/components/dashboard/AudiobookStudio.tsx`) calls **`get-book-manuscript`**.
+- The **current BA-11 builder flow** (`src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`) calls **`get-manuscript-source`**.
+- The failing UI text **"No manuscript found for this book"** comes from the **old `AudiobookStudio` component**.
+
+The strongest root-cause signal is that there were **no request logs** for `get-book-manuscript` during the failing session snapshot, while the manuscript row definitely exists. That points to the client failing **before or during auth token resolution**, not to missing manuscript data.
+
 ## Plan
 
-### 1. Fix the real books API failure at the source
-Update the `list-my-books` backend function so it no longer depends on auth verification that fails after a session refresh for this user.
+1. **Fix the BA-11 client bootstrap path in `AudiobookStudio`**
+   - Make manuscript loading wait for shared auth restoration instead of treating a missing token as “no manuscript”.
+   - Reuse the same retry pattern already used in `useMyBooks` so the studio survives refresh/navigation timing issues.
+   - Distinguish these states in UI:
+     - auth not ready
+     - loading manuscript
+     - manuscript not found
+     - backend request failed
+   - Prevent the current false-negative state where `token === null` immediately falls through to the “No manuscript found” card.
 
-What I’ll change:
-- Replace the fragile `auth.getUser(token)` resolution path in `supabase/functions/list-my-books/index.ts` with the same resilient identity-resolution pattern already used in other working backend functions.
-- Add a fallback chain that can resolve the signed-in author from:
-  - cloud auth,
-  - shared-backend auth,
-  - decoded JWT claims (`sub`, `email`) when direct verification fails.
-- Map shared-backend users back to the local author record by email when needed.
-- Keep the existing tolerant ownership matching on `author_id` and `owner_email`, since Pauline’s books are present and correctly linked.
-- Improve logging/response handling so auth-resolution failures return a clear error instead of a generic books failure.
+2. **Add explicit diagnostics to the manuscript edge function**
+   - Instrument `get-book-manuscript` to log:
+     - received `book_id`
+     - how the user was resolved
+     - book ownership result
+     - whether a `source_material` asset was found
+     - matched `author_id`
+     - content length returned
+   - Return a clearer structured error payload when the request is unauthorized, the book is not owned, or the asset query returns empty.
+   - This will make the next failure unambiguous instead of looking like deleted content.
 
-Expected result:
-- `My Books Hub` stops throwing “Could not load your books” after refresh.
-- The existing books for `support@paulineteo.com` load consistently.
+3. **Normalize the manuscript read path across BA-11**
+   - Align the old `AudiobookStudio` manuscript fetch with the same ownership/data rules already used in `get-manuscript-source`, or extract a shared backend helper so both BA-11 experiences read manuscripts the same way.
+   - Remove the current situation where two BA-11 UIs depend on two different functions and produce different failure modes.
 
-### 2. Remove the false “new author” dashboard state
-Once the books endpoint is fixed, tighten the dashboard so it does not momentarily revert to “no books / no plan” for authenticated authors.
-
-What I’ll change:
-- In `src/hooks/useMyBooks.ts`, make the books hook preserve last-known data on transient auth/bootstrap failures instead of falling back to an empty list.
-- In `src/components/dashboard/MyBooks.tsx`, reuse the same resilient token/bootstrap pattern so the main hub and sidebar are aligned.
-- In `src/components/dashboard/ABBYFrameworkDashboard.tsx`, stop treating missing `list-my-books` data as `bookCount = 0` during bootstrap; keep prior values until the backend settles.
-- In `src/pages/AuthorDashboard.tsx`, gate onboarding banners from real resolved state rather than temporary zero/default state.
-
-Expected result:
-- “Meet Abby” no longer shows just because the books call briefly failed.
-- “Now let’s add your first book” no longer appears for existing authors.
-- Navigation between dashboard sections won’t make the content area look like the account was reset.
-
-### 3. Re-verify and finish the BA-11 / BA-13 / BA-14 / BA-15 follow-up items
-After the auth/books fix is in place, verify the dependent nodes again and patch any remaining real issue.
-
-What I’ll check and fix if needed:
-- BA-11 Audiobook: confirm `get-book-manuscript` now resolves correctly from the working book context and no longer shows “No manuscript found”.
-- BA-13 Group Coaching: confirm the false `Live` badge is suppressed by the effective-status logic once node data loads correctly.
-- BA-14 Podcast Tour: confirm the live page resolves from its node/microsite data and does not 404.
-- BA-15 Media Outreach: fix the remaining backend gap in `supabase/functions/deploy-ba15-to-ghl/index.ts`, which currently marks the node live without saving a `microsite_url`, then verify the live page works.
-
-### 4. Validate the full author experience end-to-end
-After implementation, I’ll verify the exact recovery flow for this author:
-- refresh session,
-- load dashboard,
-- confirm books appear,
-- confirm onboarding is hidden,
-- open BA-11,
-- confirm BA-14 and BA-15 live URLs,
-- confirm BA-13 is not falsely marked live.
-
-## Findings already confirmed
-- The failing endpoint is `list-my-books`.
-- Pauline’s books do exist in the database and are correctly linked to `support@paulineteo.com` and the expected author ID.
-- The current auth token path is failing after refresh with backend auth verification errors (`bad_jwt` / unrecognized JWT kid), which explains why the books request still breaks even though the user is visibly signed in.
-- The false onboarding state is a downstream effect of the books/auth bootstrap failure.
-- BA-15 still has a concrete backend bug: its deploy function sets the node to `live` but does not persist a microsite URL, which can still produce a 404.
+4. **Verify the fix against the real book record**
+   - Re-test `bookId = e5b857ac-48ce-4ffc-a761-3c09e95a318e` specifically.
+   - Confirm the studio auto-loads the stored manuscript instead of showing the fallback card.
+   - Confirm the edge logs now show the actual lookup and returned content length.
 
 ## Technical details
-Files likely to change:
-- `supabase/functions/list-my-books/index.ts`
-- `src/hooks/useMyBooks.ts`
-- `src/components/dashboard/MyBooks.tsx`
-- `src/components/dashboard/ABBYFrameworkDashboard.tsx`
-- `src/pages/AuthorDashboard.tsx`
-- `supabase/functions/deploy-ba15-to-ghl/index.ts`
 
-Implementation pattern:
-- Reuse the already-working resilient identity resolution used by functions like `author-crm-data` / `check-subscription` instead of relying on a single `getUser(token)` path.
-- Preserve last-known good dashboard/books state during auth restoration to avoid false empty-state UI.
-- Keep BA-13’s effective-status safeguard in place and only trust `live` when required assets exist.
-- Persist the missing BA-15 microsite metadata when the node is published live.
+Relevant files to update:
+
+- `src/components/dashboard/AudiobookStudio.tsx`
+- `supabase/functions/get-book-manuscript/index.ts`
+- potentially `supabase/functions/get-manuscript-source/index.ts` if I consolidate the lookup logic
+
+Confirmed backend data for this bug:
+
+```text
+books.id = e5b857ac-48ce-4ffc-a761-3c09e95a318e
+generated_assets.book_id = e5b857ac-48ce-4ffc-a761-3c09e95a318e
+generated_assets.asset_type = source_material
+generated_assets.content_length ≈ 100589
+```
+
+Most likely failure sequence today:
+
+```text
+AudiobookStudio mounts
+-> getActiveToken() returns null during shared-auth restoration / lock contention
+-> component stops loading
+-> no backend request is made
+-> manuscript stays empty string
+-> UI renders "No manuscript found for this book"
+```
+
+This is why the earlier fix did not resolve the bug: the manuscript row exists, but the old studio is still vulnerable to the refresh-time auth bootstrap race before it ever reaches the backend lookup.
