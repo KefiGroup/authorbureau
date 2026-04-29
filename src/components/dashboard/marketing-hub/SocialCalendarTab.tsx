@@ -283,6 +283,45 @@ export default function SocialCalendarTab({ authorId }: Props) {
     .filter(p => p.status === "ready" && p.scheduled_at && new Date(p.scheduled_at) >= new Date())
     .sort((a, b) => (a.scheduled_at! < b.scheduled_at! ? -1 : 1))[0];
 
+  // Runway calculation: days between today and the latest scheduled (non-posted) post.
+  // Drives the 7-day amber banner + auto-regen trigger.
+  const daysOfRunway = useMemo(() => {
+    const future = posts
+      .filter(p => p.scheduled_at && p.status !== "posted")
+      .map(p => new Date(p.scheduled_at as string).getTime());
+    if (future.length === 0) return 0;
+    const latest = Math.max(...future);
+    const diffMs = latest - Date.now();
+    if (diffMs <= 0) return 0;
+    return Math.ceil(diffMs / 86_400_000);
+  }, [posts]);
+
+  // Auto-regen trigger — fires once per session per author when scheduled runway
+  // drops to 7 days or fewer AND the unscheduled queue is also low. Aligns with
+  // Sprint 5A author-driven scheduling: new posts land as Unscheduled drafts.
+  useEffect(() => {
+    if (!authorId) return;
+    if (loading || autoRefilling || refilling) return;
+    if (!bp03Activated) return;
+    if (autoRefilledFor.current.has(authorId)) return;
+    if (daysOfRunway > 7) return;
+    if (unscheduledCount >= 10) return;
+
+    autoRefilledFor.current.add(authorId);
+    setAutoRefilling(true);
+    (async () => {
+      const result = await requestRefill();
+      if (result.ok) {
+        toast.success("ABBY has added 30 new post ideas to your Unscheduled queue.");
+        setTimeout(() => { load(); }, 4000);
+      } else {
+        console.warn("[SocialCalendar] auto-refill failed:", result.error);
+      }
+      setAutoRefilling(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorId, loading, bp03Activated, daysOfRunway, unscheduledCount]);
+
   const shiftCursor = (delta: number) => {
     const next = new Date(cursor);
     if (view === "month") next.setMonth(next.getMonth() + delta);
