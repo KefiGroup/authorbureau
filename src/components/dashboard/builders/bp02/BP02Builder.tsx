@@ -1530,6 +1530,7 @@ function PublishSuccessStep({ authorName, authorId, liveUrl, copied, onCopy, pub
   publishChannels: PublishChannels;
 }) {
   const navigate = useNavigate();
+  const goToNode = useNodeBuilderNavigate();
   const [showQR, setShowQR] = useState(false);
   const [socialPack, setSocialPack] = useState<any>(null);
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
