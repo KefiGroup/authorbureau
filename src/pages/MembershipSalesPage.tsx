@@ -114,6 +114,7 @@ export default function MembershipSalesPage() {
           <p className="text-[11px] text-center text-muted-foreground">Secure checkout · Stripe</p>
         </CardContent></Card>
       </section>
+      <MicrositePoweredByFooter displayName={data?.author_name} />
     </div>
   );
 }
