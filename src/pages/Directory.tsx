@@ -298,6 +298,7 @@ export default function Directory() {
               </motion.div>
             ))}
           </div>
+          )}
 
           {!isLoading && filtered.length === 0 && (
             <p className="py-12 text-center text-muted-foreground">

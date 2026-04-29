@@ -1,12 +1,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, ExternalLink, Loader2, ArrowLeft, Sparkles } from "lucide-react";
+import { BookOpen, ExternalLink, ArrowLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import NewsletterSignup from "@/components/NewsletterSignup";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
+import MicrositeHeroSkeleton from "@/components/public/MicrositeHeroSkeleton";
 import { supabase } from "@/integrations/supabase/client";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
@@ -140,11 +141,7 @@ export default function DynamicBookMicrosite() {
   });
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-secondary" />
-      </div>
-    );
+    return <MicrositeHeroSkeleton />;
   }
 
   if (error || !book) {
