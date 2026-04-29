@@ -180,7 +180,7 @@ export const SHARED_ANON_KEY =
 // Wrap processLock with a 2s timeout so contended reads fail fast and our
 // cached-token fallback path kicks in immediately, instead of every concurrent
 // caller waiting up to 10s for the gotrue lock.
-const fastLock: typeof processLock = async (name, _acquireTimeout, fn) => {
+const fastLock = <R>(name: string, _acquireTimeout: number, fn: () => Promise<R>): Promise<R> => {
   return processLock(name, 2000, fn);
 };
 
