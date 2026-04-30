@@ -108,18 +108,9 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
     const fetchState = async () => {
       setStateLoading(true);
       try {
-        // Try shared backend first (where user authenticates), then Cloud
-        const { data: sharedSession } = await supabase.auth.getSession();
-        let token = sharedSession?.session?.access_token || null;
-        if (!token) {
-          // Fallback: try Cloud client
-          const { createClient } = await import("@supabase/supabase-js");
-          const cloudUrl = import.meta.env.VITE_SUPABASE_URL;
-          const cloudKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-          const cloudClient = createClient(cloudUrl, cloudKey);
-          const { data: cloudSession } = await cloudClient.auth.getSession();
-          token = cloudSession?.session?.access_token || null;
-        }
+        // Use lock-safe token resolver (avoids gotrue lock contention timeouts)
+        const { getActiveToken } = await import("@/lib/get-active-token");
+        const token = await getActiveToken();
         if (!token) throw new Error("Not authenticated");
 
         const state = await fetchDashboardState(token);
@@ -135,8 +126,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const handleSyncFromPublishNow = async () => {
     setSyncLoading(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      const { getActiveToken } = await import("@/lib/get-active-token");
+      const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
       const res = await fetch(
