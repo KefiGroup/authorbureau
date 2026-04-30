@@ -44,6 +44,16 @@ function stripDashesString(input: string): string {
   return out;
 }
 
+// Short connector words that become grammatical orphans when the noun phrase
+// after them is stripped (e.g. "At [insert org] we will" -> "At  we will" ->
+// "we will"). Used by both the pricing scrubber and the placeholder scrubber.
+// Matches a connector word that's now adjacent to a double-space gap (where
+// something was removed), or to terminal punctuation.
+const ORPHAN_BEFORE_GAP_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s{2,}/gi;
+const ORPHAN_BEFORE_PUNCT_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s*(?=[.,;:!?)]|$)/gi;
+
 /**
  * Strip dollar amounts from prose strings.
  *  - "$27/month"               -> ""           (drop, may leave dangling word)
@@ -55,6 +65,7 @@ function stripDashesString(input: string): string {
 function stripPricingFromProseString(input: string): string {
   if (!input || typeof input !== "string") return input;
   let out = input;
+  const before = out;
   // "for $27/month", "for $1,997", "for $27.50"
   out = out.replace(/\s+for\s+\$\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?\/\s?\w+)?/gi, "");
   // "starting at $X", "from $X", "just $X"
@@ -63,12 +74,29 @@ function stripPricingFromProseString(input: string): string {
   out = out.replace(/\s*\(\s*\$\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?\/\s?\w+)?\s*\)/g, "");
   // Inline currency suffix "$27 USD", "$1997 usd"
   out = out.replace(/\$\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?\/\s?\w+)?\s+(?:USD|usd)\b/g, "");
-  // Catch-all for any remaining naked "$NN" / "$NN.NN" / "$NN/period"
-  out = out.replace(/\$\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?\/\s?\w+)?/g, "");
-  // Tidy double spaces and stranded punctuation left behind.
+  // Catch-all for any remaining naked "$NN" / "$NN.NN" / "$NN/period",
+  // optionally followed by a stranded comma ("$25,000, we").
+  out = out.replace(/\$\s?\d[\d,]*(?:\.\d{1,2})?(?:\s?\/\s?\w+)?,?/g, "");
+  if (out === before) {
+    return out;
+  }
+  // Peel any stranded preposition that lost its noun phrase. The double-space
+  // gap left by removal is the marker — DO NOT collapse it before this loop.
+  // ("At $25,000, we will" -> "At  we will" -> "we will").
+  for (let i = 0; i < 3; i++) {
+    const prev = out;
+    out = out.replace(ORPHAN_BEFORE_GAP_RE, "$1 ");
+    out = out.replace(ORPHAN_BEFORE_PUNCT_RE, "$1");
+    if (out === prev) break;
+  }
+  // Now collapse whitespace + capitalise sentence-initial.
   out = out.replace(/\s{2,}/g, " ");
+  out = out.replace(/^([a-z])/, (m) => m.toUpperCase());
+  out = out.replace(/([.!?]\s+)([a-z])/g, (_m, p1, p2) => p1 + p2.toUpperCase());
+  // Final tidy.
   out = out.replace(/\s+([.,;:!?])/g, "$1");
   out = out.replace(/\(\s*\)/g, "");
+  out = out.replace(/,\s*,/g, ",");
   return out.trim();
 }
 
@@ -103,17 +131,6 @@ const PLACEHOLDER_PATTERNS: RegExp[] = [
   /\bTBD\b/g,
   /\bUntitled\b/g,
 ];
-
-// Short connector words that become grammatical orphans when the noun phrase
-// after them is stripped (e.g. "At [insert org] we will" -> "At  we will" ->
-// "At we will"). We look for the double-space gap left by placeholder removal
-// and, if the word immediately before it is one of these prepositions/articles,
-// we delete that word along with the gap.
-const ORPHAN_BEFORE_GAP_RE =
-  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s{2,}/gi;
-// Also handle ". " trailing the placeholder where it ate the noun ("go to .")
-const ORPHAN_BEFORE_PUNCT_RE =
-  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[.,;:!?)])/gi;
 
 /** Drop bracketed placeholder tokens and obvious filler. */
 function stripPlaceholdersString(input: string): string {
