@@ -282,6 +282,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                           onContinue={() => handleNav(n)}
                           onView={() => handleNav(n)}
                           onUpgrade={() => onNavigate?.("build-business")}
+                          onRestart={n.state === "in-progress" ? () => handleRestart(n) : undefined}
                         />
                       );
                     })}
