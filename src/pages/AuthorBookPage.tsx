@@ -868,8 +868,8 @@ export default function AuthorBookPage() {
                         fallbackUrl={n.delivery_url}
                         label="Buy Now"
                         className="w-full rounded-full text-xs h-9 font-semibold"
-                        variant={learnMorePath ? "outline" : "default"}
                       />
+
                     </div>
                   </div>
                 );
