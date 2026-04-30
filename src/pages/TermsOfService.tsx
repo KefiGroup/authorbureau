@@ -61,9 +61,11 @@ export default function TermsOfService() {
 
           <h2 className="font-heading text-xl font-semibold text-foreground">7. Payments & Fees</h2>
           <p>
-            Authors Bureau charges a platform fee on sales made through the Platform. Current fee structures are
-            displayed in your dashboard. Payouts are processed according to the payout schedule and method you
-            configure in your account settings. All fees are subject to change with reasonable notice.
+            Authors Bureau acts as Merchant of Record on every sale. We retain an 8% platform fee on gross sales
+            to cover all payment-processing costs (including Stripe checkout fees, Wise transfer fees, and PayPal
+            transfer fees), so no extra processing fees are ever deducted from your share. You keep 92% of every
+            sale, paid out monthly according to the payout schedule and method you configure in your account
+            settings. All fees are subject to change with reasonable notice.
           </p>
 
           <h2 className="font-heading text-xl font-semibold text-foreground">8. Refund Policy</h2>
