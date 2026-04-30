@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { forwardRef, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import AuthorBreadcrumbs from "./AuthorBreadcrumbs";
 import { getThemeFontsUrl, getThemeCSSVars, type AuthorTheme } from "@/lib/author-themes";
@@ -9,20 +9,23 @@ import { getThemeFontsUrl, getThemeCSSVars, type AuthorTheme } from "@/lib/autho
  * - Loads only the required Google Fonts
  * - Renders breadcrumbs and "Powered by" footer badge
  * - NO global platform nav — author pages use AuthorBrandedNav instead
+ *
+ * Wrapped in forwardRef so React doesn't warn when parents pass refs through
+ * (e.g. via Radix Slot/asChild in framework code paths).
  */
-export default function AuthorPageLayout({
-  theme,
-  breadcrumbs,
-  children,
-  footerSlot,
-}: {
+type Props = {
   theme: AuthorTheme;
   breadcrumbs?: { label: string; to?: string }[];
   children: ReactNode;
   /** Optional richer footer (socials + legal). When provided, replaces the
    *  default "Powered by" badge. */
   footerSlot?: ReactNode;
-}) {
+};
+
+const AuthorPageLayout = forwardRef<HTMLDivElement, Props>(function AuthorPageLayout(
+  { theme, breadcrumbs, children, footerSlot },
+  ref,
+) {
   const cssVars = getThemeCSSVars(theme);
 
   return (
@@ -42,7 +45,11 @@ export default function AuthorPageLayout({
         }
       `}</style>
 
-      <div className="author-theme-root min-h-screen flex flex-col" style={{ background: "var(--theme-secondary-bg)" }}>
+      <div
+        ref={ref}
+        className="author-theme-root min-h-screen flex flex-col"
+        style={{ background: "var(--theme-secondary-bg)" }}
+      >
         {breadcrumbs && breadcrumbs.length > 0 && (
           <AuthorBreadcrumbs items={breadcrumbs} />
         )}
@@ -69,4 +76,6 @@ export default function AuthorPageLayout({
       </div>
     </>
   );
-}
+});
+
+export default AuthorPageLayout;
