@@ -758,3 +758,9 @@ function FeedbackFlow({ step, data, onUpdate, onNext, onSubmit }: {
 
   return null;
 }
+
+// forwardRef wrapper silences React dev warning when sibling components
+// (e.g. Sonner Toaster) inadvertently propagate refs through the tree.
+const AbbyHelpChatbot = forwardRef<HTMLDivElement>((_props, _ref) => <AbbyHelpChatbotImpl />);
+AbbyHelpChatbot.displayName = "AbbyHelpChatbot";
+export default AbbyHelpChatbot;
