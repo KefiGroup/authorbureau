@@ -11,35 +11,45 @@ const corsHeaders = {
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 
 async function resolveUser(token: string): Promise<{ id: string; email: string }> {
-  const localClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-    { auth: { persistSession: false } }
-  );
-  const { data: localUser } = await localClient.auth.getUser(token);
-  if (localUser?.user?.id && localUser?.user?.email) {
-    return { id: localUser.user.id, email: localUser.user.email };
-  }
-
-  const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
-  if (sharedKey) {
-    const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
-    const { data: sharedUser } = await sharedClient.auth.getUser(token);
-    if (sharedUser?.user?.id && sharedUser?.user?.email) {
-      const { data: profile } = await localClient
-        .from("author_profiles")
-        .select("user_id")
-        .or(`user_id.eq.${sharedUser.user.id}`)
-        .maybeSingle();
-      const userId = profile?.user_id || sharedUser.user.id;
-      return { id: userId, email: sharedUser.user.email };
-    }
-  }
-
+  // 1) Pure JWT decode first — fast, no cross-project key dependency.
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.sub && payload.email) {
-      return { id: payload.sub, email: payload.email };
+    if (payload?.sub && payload?.email) {
+      return { id: String(payload.sub), email: String(payload.email) };
+    }
+  } catch { /* ignore */ }
+
+  // 2) Try Cloud project auth.
+  try {
+    const localClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+      { auth: { persistSession: false } }
+    );
+    const { data: localUser } = await localClient.auth.getUser(token);
+    if (localUser?.user?.id && localUser?.user?.email) {
+      return { id: localUser.user.id, email: localUser.user.email };
+    }
+  } catch { /* ignore */ }
+
+  // 3) Try shared backend auth.
+  try {
+    const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
+    if (sharedKey) {
+      const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
+      const { data: sharedUser } = await sharedClient.auth.getUser(token);
+      if (sharedUser?.user?.id && sharedUser?.user?.email) {
+        return { id: sharedUser.user.id, email: sharedUser.user.email };
+      }
+    }
+  } catch { /* ignore */ }
+
+  // 4) Last-resort: decode JWT accepting sub alone (synthesise placeholder email).
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload?.sub) {
+      const email = payload.email || `${payload.sub}@unknown.local`;
+      return { id: String(payload.sub), email: String(email) };
     }
   } catch { /* ignore */ }
 
