@@ -104,6 +104,12 @@ const PLACEHOLDER_PATTERNS: RegExp[] = [
   /\bUntitled\b/g,
 ];
 
+// Short connector words that become grammatical orphans when the noun phrase
+// after them is stripped (e.g. "At [insert org] we will" -> "At we will").
+// We delete the orphaned preposition together with the surrounding whitespace.
+const ORPHAN_PREPOSITION_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[\s.,;:!?)]|$)/gi;
+
 /** Drop bracketed placeholder tokens and obvious filler. */
 function stripPlaceholdersString(input: string): string {
   if (!input || typeof input !== "string") return input;
@@ -111,9 +117,22 @@ function stripPlaceholdersString(input: string): string {
   for (const pattern of PLACEHOLDER_PATTERNS) {
     out = out.replace(pattern, "");
   }
+  // Tidy: collapse the gap left by the removal, *then* remove any preposition
+  // that lost its object. Run twice in case two prepositions chain ("at the").
+  out = out.replace(/\s{2,}/g, " ");
+  for (let i = 0; i < 2; i++) {
+    out = out.replace(ORPHAN_PREPOSITION_RE, "$1");
+  }
+  // Capitalise the new first letter if a leading preposition was removed.
+  out = out.replace(/^([a-z])/, (m) => m.toUpperCase());
+  // Final tidy: stranded punctuation, empty parens, double commas.
+  out = out.replace(/\(\s*\)/g, "");
+  out = out.replace(/,\s*,/g, ",");
+  out = out.replace(/\s+([.,;:!?])/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
   return out;
 }
+
 
 // ---------------------------------------------------------------------------
 // Recursive walker
