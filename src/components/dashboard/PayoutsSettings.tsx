@@ -35,6 +35,7 @@ export default function PayoutsSettings() {
   const [wiseEmail, setWiseEmail] = useState("");
   const [paypalEmail, setPaypalEmail] = useState("");
   const [agreementAck, setAgreementAck] = useState(false);
+  const [refundWindow, setRefundWindow] = useState<number>(14);
 
   useEffect(() => {
     (async () => {
@@ -45,7 +46,7 @@ export default function PayoutsSettings() {
       setAuthorId(profile.id);
       const { data: s } = await supabase
         .from("author_payout_settings")
-        .select("payout_method, wise_recipient, paypal_email_v2, tax_self_declared_at")
+        .select("payout_method, wise_recipient, paypal_email_v2, tax_self_declared_at, refund_window_days")
         .eq("author_id", profile.id).maybeSingle();
       if (s) {
         setMethod((s.payout_method as PayoutMethod) || "wise");
@@ -58,16 +59,42 @@ export default function PayoutsSettings() {
         }
         setPaypalEmail(s.paypal_email_v2 || "");
         setAgreementAck(!!s.tax_self_declared_at);
+        if (typeof (s as { refund_window_days?: number }).refund_window_days === "number") {
+          setRefundWindow((s as { refund_window_days?: number }).refund_window_days || 14);
+        }
       }
       setLoading(false);
     })();
   }, [user]);
 
+  // Audit #3: when Stripe redirects back with ?stripe_connected=true, auto-refresh
+  // status so the green "connected" state appears without a manual reload.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stripe_connected") === "true") {
+      (async () => {
+        try {
+          await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
+        } catch { /* non-fatal */ }
+        await refresh();
+        toast.success("Stripe Express onboarding completed.");
+        // Clean the URL so refreshes don't re-trigger this.
+        params.delete("stripe_connected");
+        params.delete("stripe_refresh");
+        const qs = params.toString();
+        window.history.replaceState({}, "", window.location.pathname + (qs ? `?${qs}` : ""));
+      })();
+    }
+  }, [refresh]);
+
   const connectStripe = async () => {
     setConnectingStripe(true);
     try {
+      // Audit #3: tell the edge function which page to return to so the
+      // author lands back on the same page (dashboard OR account settings).
+      const returnPath = window.location.pathname + window.location.search;
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard" },
+        body: { action: "onboard", return_path: returnPath },
       });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
