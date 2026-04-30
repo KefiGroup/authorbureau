@@ -18,16 +18,22 @@ interface LiveNode {
 }
 
 /** Prefer the branded microsite URL; treat raw asset/storage URLs as not-displayable. */
+const BRANDED_HOSTS = /(authorsbureau\.com|authorbureau\.lovable\.app|lovable\.app)$/i;
+function isBrandedUrl(url: string): boolean {
+  try {
+    const u = new URL(url);
+    return BRANDED_HOSTS.test(u.hostname);
+  } catch { return false; }
+}
 function pickPublicUrl(n: LiveNode): string | null {
   const mu = n.microsite_url?.trim();
-  if (mu && /^https?:\/\//i.test(mu)) return mu;
+  if (mu && isBrandedUrl(mu)) return mu;
   const du = n.delivery_url?.trim();
-  if (!du) return mu || null;
-  // Filter out raw asset/storage URLs — those are file delivery, not the public microsite
-  if (du.includes("supabase.co/storage") || /\.(mp3|mp4|wav|m4a|pdf|epub|zip)(\?|$)/i.test(du)) {
-    return mu || null;
+  if (du && isBrandedUrl(du) && !/\.(mp3|mp4|wav|m4a|pdf|epub|zip)(\?|$)/i.test(du)) {
+    return du;
   }
-  return du;
+  // Reject anything else (S3, signed URLs, raw storage links).
+  return null;
 }
 
 const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {

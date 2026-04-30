@@ -378,7 +378,7 @@ export default function WebsiteBlueprintPage({ onNavigate }: Props) {
                                 {isPublished ? "Live" : "Draft"}
                               </span>
                               <span className="text-[10px] text-muted-foreground">
-                                /{book.slug}/{product.route}
+                                /{book.slug}{product.route && product.route !== "-" ? `/${product.route}` : ""}
                               </span>
                             </div>
                           );

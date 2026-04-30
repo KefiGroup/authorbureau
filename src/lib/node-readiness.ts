@@ -1,4 +1,24 @@
 /**
+ * Author-level nodes: their Live status applies across every book in the
+ * author's library (one email list, one podcast show, one set of social
+ * channels per author). Book-specific products (microsite, workbook,
+ * course, audiobook, book-sales, etc.) stay scoped to a single book_id.
+ *
+ * Single source of truth — imported by both useBookNodeProgress and
+ * useNodeLiveStats so dashboards stay consistent.
+ */
+export const AUTHOR_LEVEL_NODES = new Set<string>([
+  "BP-01", // Email Marketing
+  "BP-03", // Social Media
+  "BA-14", // Podcast (one show, multi-book episodes)
+  "BA-15", // Press / Media
+  "BA-16", // Affiliates
+  "BA-18", // JV Partners
+  "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
+  "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
+]);
+
+/**
  * Single source of truth for "is a node truly ready / live?".
  *
  * A node may be marked status='live' in the DB, but if its required content
@@ -49,7 +69,15 @@ export function hasRequiredAssets(nodeId: string, content: any): boolean {
       // Media Outreach: needs a press release plus a populated outlets list.
       // The current builder writes outlets under `target_media_outlets`;
       // older generations used `media_list` / `outlets`. Accept any of the three.
-      const hasPressRelease = !!(content.press_release || content.press_release_html || content?.assets?.press_release);
+      // Press release may be a string OR an object with body/html/headline.
+      const pr = content.press_release ?? content.press_release_html ?? content?.assets?.press_release;
+      let hasPressRelease = false;
+      if (typeof pr === "string") {
+        hasPressRelease = pr.trim().length > 0;
+      } else if (pr && typeof pr === "object") {
+        const candidates = ["body", "html", "headline", "content", "text"];
+        hasPressRelease = candidates.some((k) => typeof (pr as any)[k] === "string" && (pr as any)[k].trim().length > 0);
+      }
       const outletArrays = [content.target_media_outlets, content.media_list, content.outlets];
       const hasOutlets = outletArrays.some((a: any) => Array.isArray(a) && a.length > 0);
       return hasPressRelease && hasOutlets;
