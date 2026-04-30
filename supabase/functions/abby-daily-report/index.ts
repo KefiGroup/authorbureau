@@ -48,10 +48,10 @@ serve(async (req) => {
       supabase.from("leads").select("id", { count: "exact", head: true })
         .eq("author_id", author_id)
         .gte("created_at", weekStart.toISOString()),
-      supabase.from("purchases").select("amount_usd")
+      supabase.from("purchases").select("amount")
         .eq("author_id", author_id)
         .gte("created_at", monthStart.toISOString())
-        .eq("status", "succeeded"),
+        .is("refunded_at", null),
       supabase.from("author_nodes").select("node_id, node_name", { count: "exact" })
         .eq("author_id", author_id)
         .eq("status", "live"),
@@ -63,7 +63,7 @@ serve(async (req) => {
     ]);
 
     const revenueMonth = (purchasesMonthRes.data || []).reduce(
-      (sum: number, r: any) => sum + Number(r.amount_usd || 0), 0,
+      (sum: number, r: any) => sum + Number(r.amount || 0), 0,
     );
 
     const stats = {
