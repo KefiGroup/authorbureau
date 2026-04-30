@@ -8,7 +8,32 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { usePayoutReadiness, type PayoutMethod } from "@/hooks/usePayoutReadiness";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { toast } from "sonner";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+async function callStripeConnect(body: Record<string, unknown>): Promise<{ data: any; error: Error | null }> {
+  try {
+    const token = await getActiveToken();
+    if (!token) return { data: null, error: new Error("Not signed in") };
+    const res = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/stripe-connect`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { data: null, error: new Error(json?.error || `HTTP ${res.status}`) };
+    return { data: json, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
+  }
+}
 
 export default function PayoutsSettings() {
   const { user } = useAuth();
