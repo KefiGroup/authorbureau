@@ -56,9 +56,12 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!existing) {
-      // Estimated Stripe processing fee (2.9% + $0.30 for US cards) — matches process-purchase.
+      // Estimated Stripe processing fee (2.9% + $0.30 for US cards) — recorded
+      // for INTERNAL margin tracking only. The 8% platform fee covers ALL
+      // gateway costs (Stripe / Wise / PayPal); the author always receives
+      // exactly 92% of gross. NEVER subtract stripeFee from the author's net.
       const stripeFee = Math.round(((amount * 0.029) + 0.30) * 100) / 100;
-      const netForAuthor = Math.max(0, Math.round((amount - stripeFee - platformFee) * 100) / 100);
+      const netForAuthor = Math.max(0, authorEarnings);
 
       // Record the purchase
       const { data: purchaseRow, error: insertError } = await cloudAdmin.from("purchases").insert({
