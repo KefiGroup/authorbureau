@@ -444,6 +444,40 @@ export default function AdminPayoutsDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!refundTarget} onOpenChange={(o) => { if (!o) { setRefundTarget(null); setRefundReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund purchase</DialogTitle>
+            <DialogDescription>
+              {refundTarget && (
+                <>
+                  Refund <strong>${Number(refundTarget.amount).toFixed(2)} {refundTarget.currency}</strong> to{" "}
+                  <strong>{refundTarget.customer_email}</strong> for "{refundTarget.product_title}". This calls Stripe immediately and notifies the author.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="refund-reason">Reason (required, will be shared with the author)</Label>
+            <Textarea
+              id="refund-reason"
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              placeholder="e.g., Customer requested refund within 14-day window"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRefundTarget(null); setRefundReason(""); }} disabled={refunding}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRefund} disabled={refunding || refundReason.trim().length < 3}>
+              {refunding ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Refunding…</> : "Issue refund"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
