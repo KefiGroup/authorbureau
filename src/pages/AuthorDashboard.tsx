@@ -682,6 +682,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
               <BookBuilderContextBar backTab="overview" />
             </div>
           )}
+          {!isBuilderActive && <BroadcastBanner />}
           {renderSection()}
         </main>
       </div>

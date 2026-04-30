@@ -20,10 +20,12 @@ import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
 import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
 import NodeGatingTab from "@/components/admin/NodeGatingTab";
 import AdminNotificationBell from "@/components/admin/AdminNotificationBell";
+import AuditLogTab from "@/components/admin/AuditLogTab";
+import { FileSearch } from "lucide-react";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating" | "audit";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
@@ -279,6 +281,7 @@ export default function AdminDashboard() {
     { key: "payouts", label: "Payouts", icon: Wallet },
     { key: "node-gating", label: "Node Gating", icon: ToggleRight, superOnly: true },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
+    { key: "audit", label: "Audit", icon: FileSearch, superOnly: true },
     { key: "platforms", label: "Platforms", icon: Globe, pnAdminOnly: true },
   ];
 
@@ -364,6 +367,7 @@ export default function AdminDashboard() {
           {tab === "support" && <SupportTab />}
           {tab === "payouts" && <AdminPayoutsDashboard />}
           {tab === "node-gating" && <NodeGatingTab />}
+          {tab === "audit" && <AuditLogTab />}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab

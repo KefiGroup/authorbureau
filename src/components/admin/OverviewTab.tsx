@@ -1,8 +1,9 @@
-import { Loader2, BookOpen, ShieldCheck, ArrowRight, RefreshCw, UserCheck, Contact, Package, DollarSign, Cpu, Headphones, Users } from "lucide-react";
+import { Loader2, BookOpen, ShieldCheck, ArrowRight, RefreshCw, UserCheck, Contact, Package, DollarSign, Cpu, Headphones, Users, Megaphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import SystemHealthCard from "./SystemHealthCard";
+import BroadcastDialog from "./BroadcastDialog";
 import type { AdminStats, Submission } from "@/types/admin";
 
 interface ProductCounts {
@@ -123,9 +124,14 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h2 className="font-heading text-xl font-bold">Overview</h2>
-        <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
-          <RefreshCw className="h-4 w-4 mr-1" /> Refresh
-        </Button>
+        <div className="flex gap-2">
+          <BroadcastDialog trigger={
+            <Button variant="outline" size="sm"><Megaphone className="h-4 w-4 mr-1" /> Broadcast</Button>
+          } />
+          <Button variant="outline" size="sm" onClick={onRefresh} disabled={loading}>
+            <RefreshCw className="h-4 w-4 mr-1" /> Refresh
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
