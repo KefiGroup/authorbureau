@@ -82,34 +82,54 @@ Tone for social posts: ${spec.social_tone}.
 Bonus asset instructions: ${spec.bonus_prompt}
 Personalize everything to this author's book and methodology.`;
 
-    // Call Lovable AI
-    const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        response_format: { type: "json_object" },
-      }),
-    });
+    // Helper: call gateway
+    const callAI = async (model: string) => {
+      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+          // NOTE: no `temperature` override — gpt-5* only accepts default(1).
+        }),
+      });
+      const text = await r.text();
+      let parsed: any = null;
+      try { parsed = JSON.parse(text); } catch { /* ignore */ }
+      const content = parsed?.choices?.[0]?.message?.content;
+      let pkg: any = null;
+      try { pkg = content ? JSON.parse(content) : null; } catch { pkg = null; }
+      return { ok: r.ok, status: r.status, body: text.slice(0, 400), pack: pkg };
+    };
 
-    if (!aiResp.ok) {
-      const errText = await aiResp.text();
-      console.error("AI error:", aiResp.status, errText);
-      return json(502, { error: "AI generation failed", details: errText.slice(0, 300) });
+    const isPackComplete = (p: any) =>
+      !!p &&
+      typeof p.sales_copy === "string" && p.sales_copy.trim().length > 50 &&
+      Array.isArray(p.social_posts) && p.social_posts.length > 0 &&
+      p.email_announcement && typeof p.email_announcement === "object" &&
+      (p.email_announcement.body_markdown || "").length > 50 &&
+      p.bonus_asset && typeof p.bonus_asset === "object" &&
+      (p.bonus_asset.body_markdown || "").length > 50;
+
+    // Attempt 1 — Gemini Flash (fast & cheap)
+    let attempt = await callAI("google/gemini-2.5-flash");
+    console.log(`[asset-pack] ${spec.node_id} attempt-1 gemini-flash status=${attempt.status} ok=${attempt.ok} complete=${isPackComplete(attempt.pack)}`);
+
+    // Attempt 2 — fallback to gpt-5-mini if AI errored OR returned an incomplete pack
+    if (!attempt.ok || !isPackComplete(attempt.pack)) {
+      attempt = await callAI("openai/gpt-5-mini");
+      console.log(`[asset-pack] ${spec.node_id} attempt-2 gpt-5-mini status=${attempt.status} ok=${attempt.ok} complete=${isPackComplete(attempt.pack)}`);
     }
 
-    const aiData = await aiResp.json();
-    const raw = aiData?.choices?.[0]?.message?.content || "{}";
-    let pack: any;
-    try { pack = JSON.parse(raw); } catch { pack = {}; }
-
+    const pack = attempt.pack || {};
+    const isReady = isPackComplete(pack);
     const meta = {
       node_id: spec.node_id,
       node_name: personalisedNodeName,
@@ -118,34 +138,58 @@ Personalize everything to this author's book and methodology.`;
       source: source || "manual",
     };
 
+    if (!isReady) {
+      // Mark all four rows as failed instead of writing empty placeholders.
+      const failMeta = { ...meta, error: `AI returned incomplete pack (status ${attempt.status})` };
+      const failedRows = (
+        ["sales_copy", "social_pack", "email_announcement", "bonus"] as const
+      ).map((t) => ({
+        book_id: book_id ?? null,
+        author_id,
+        asset_type: `${t}:${spec.node_id}`,
+        content: failMeta,
+        status: "failed",
+      }));
+      for (const row of failedRows) {
+        await admin.from("marketing_assets")
+          .delete()
+          .eq("author_id", row.author_id)
+          .eq("asset_type", row.asset_type)
+          .or(book_id ? `book_id.eq.${book_id}` : "book_id.is.null");
+        await admin.from("marketing_assets").insert(row);
+      }
+      console.error(`[asset-pack] ${spec.node_id} FAILED — wrote 4 failed rows. last_body=${attempt.body}`);
+      return json(200, { ok: false, status: "failed", node_id: spec.node_id });
+    }
+
     // Build the four asset rows
     const rows = [
       {
         book_id: book_id ?? null,
         author_id,
         asset_type: `sales_copy:${spec.node_id}`,
-        content: { ...meta, label: "Sales Page Copy", markdown: pack.sales_copy ?? "" },
+        content: { ...meta, label: "Sales Page Copy", markdown: pack.sales_copy },
         status: "ready",
       },
       {
         book_id: book_id ?? null,
         author_id,
         asset_type: `social_pack:${spec.node_id}`,
-        content: { ...meta, label: "3 Social Posts", posts: pack.social_posts ?? [] },
+        content: { ...meta, label: "3 Social Posts", posts: pack.social_posts },
         status: "ready",
       },
       {
         book_id: book_id ?? null,
         author_id,
         asset_type: `email_announcement:${spec.node_id}`,
-        content: { ...meta, label: "Email Announcement", email: pack.email_announcement ?? {} },
+        content: { ...meta, label: "Email Announcement", email: pack.email_announcement },
         status: "ready",
       },
       {
         book_id: book_id ?? null,
         author_id,
         asset_type: `bonus:${spec.node_id}`,
-        content: { ...meta, label: spec.bonus_label, bonus: pack.bonus_asset ?? {} },
+        content: { ...meta, label: spec.bonus_label, bonus: pack.bonus_asset },
         status: "ready",
       },
     ];

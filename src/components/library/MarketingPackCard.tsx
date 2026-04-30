@@ -42,6 +42,17 @@ export default function MarketingPackCard({ nodeId, nodeName, authorId, bookId, 
     if (type in buckets) buckets[type as PackAssetType] = a;
   }
 
+  // Real "ready" gate — the row must contain actual content, not just exist.
+  const isFilled = {
+    sales_copy: !!(buckets.sales_copy?.content?.markdown && String(buckets.sales_copy.content.markdown).trim().length > 30),
+    social_pack: Array.isArray(buckets.social_pack?.content?.posts) && buckets.social_pack!.content.posts.length > 0,
+    email_announcement: !!(buckets.email_announcement?.content?.email?.body_markdown && String(buckets.email_announcement.content.email.body_markdown).trim().length > 30),
+    bonus: !!(buckets.bonus?.content?.bonus?.body_markdown && String(buckets.bonus.content.bonus.body_markdown).trim().length > 30),
+  };
+  const readyCount = Object.values(isFilled).filter(Boolean).length;
+  const anyFailed = assets.some(a => a.status === "failed");
+  const allEmpty = readyCount === 0;
+
   const generatedAt = assets[0]?.content?.generated_at
     ? new Date(assets[0].content.generated_at).toLocaleDateString()
     : null;
@@ -74,7 +85,8 @@ export default function MarketingPackCard({ nodeId, nodeName, authorId, bookId, 
         <div>
           <CardTitle className="text-base font-bold">{nodeName}</CardTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {nodeId} · {assets.length}/4 assets {generatedAt && `· generated ${generatedAt}`}
+            {nodeId} · {readyCount}/4 ready {generatedAt && `· generated ${generatedAt}`}
+            {anyFailed && <span className="text-destructive ml-1">· generation failed</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
