@@ -1,134 +1,59 @@
-## Scope
+## Verification of Section 7 bugs on `/pauline-teo`
 
-Per your decision: keep both Core rules ("Public Microsites: No nav header, no pricing") intact. I'll fix the four bugs that don't conflict, and explicitly skip the rest.
+### Bug 19 — "26 Products Available" → "28" — **NOT A BUG (label is misleading)**
 
-### Skipping (rule conflicts)
-- **Bug 15** (coaching prices) — no inline prices on microsites.
-- **Bug 18** (membership nav header) — no nav header on microsites.
-- **Bug 19 price portion** — won't show "$14.99" inline. Will still wire the broken Buy button (see below).
-- **Bug 21** (audiobook nav header) — no nav header on microsites.
+The hero stat is **not** the platform's total node count. It's `Math.max(allProducts.length, liveProductsCount)` in `AuthorHeroSection.tsx`, where `liveProductsCount` = the number of live `author_nodes` rows for this author (excluding BP-01/BP-02 lead-magnet types). Pauline currently has 26 live products. Hard-coding "28" would falsely claim every author has every node activated.
 
-### Fixing
-- **Bug 16** — Course guarantee inconsistency.
-- **Bug 17** — "3+ structured lessons" → real daily lesson count.
-- **Bug 19 (wire-only)** — "Buy Audiobook" button currently does nothing. Replace with our standard `BuyNowButton`, which routes through `create-checkout-session` and reveals price at Stripe checkout.
-- **Bug 20** — Audiobook description renders as one wall of text. Apply paragraph + bullet rendering.
+The reporter's confusion is the **label** — "Products Available" reads as "available on the platform" rather than "this author offers". Recommended fix: rename to something unambiguous.
 
----
+**Fix:** In `src/pages/author-site/AuthorHeroSection.tsx` line 166, change copy from `Products Available` → `Products & Services` (matches the established split-audience vocabulary).
 
-## Changes
+### Bug 20 — Products show "Free" instead of real price — **CONFIRMED, CRITICAL**
 
-All changes are in `src/pages/MicrositePage.tsx`.
+Verified in DB. `AuthorLearnSection.tsx` (line 55) and `AuthorServicesSection.tsx` only read `node.content_json?.price`, but each builder writes prices under a **different key**:
 
-### Bug 16 — Course guarantee consistency
-`LongFormSalesPage` already computes a duration-aware `guaranteeText` (e.g. "14-day money-back guarantee" for a 21-day course). It's used in the FAQ and final CTA, but the hero hardcodes "30-day".
+| Node | Actual price key in `content_json` |
+|---|---|
+| BA-10 Online Course | `suggested_price_usd` |
+| BA-12 Membership | `monthly_price_usd` (+ `tiers[].price_monthly`) |
+| BP-07 Home Study | `price` ✅ (already works — Pauline = $9.90) |
+| BP-05 Webinar | typically free; no price field |
+| YR-19 1:1 Coaching | `packages[].price` (per-package) |
+| YR-23 Mastermind | `tiers[].price` |
+| YR-25 Certification | `certification_levels[].price` |
+| BA-11 Audiobook | `price` ✅ |
 
-- Line 1295: replace the literal `"… · 30-day guarantee"` with the dynamic value:
-  ```tsx
-  Secure checkout · Stripe · {guaranteeText}
-  ```
+So all of Pauline's paid products fall through to "Free". Confirmed values are missing/under different keys for: SUCKcess Circle, Practitioner Certification, SUCKCESS Blueprint, Mastermind, 1:1 Coaching.
 
-That single change makes the hero match FAQ + CTA on every course.
+**Fix:** Add a single shared helper `getNodePriceLabel(node)` in `src/pages/author-site/types.ts` (or a new `node-price.ts`) that:
 
-### Bug 17 — Real lesson count for BP-07 home study
-Today, `includedItems` (line 1271) counts `youGet.length`, which for BP-07 is the number of *weeks* (3) — yielding the misleading "3+ structured lessons". The generator stores `study_weeks[].days[]`, so the true daily-lesson count is `sum(week.days.length)` (3 × 7 = 21 for Pauline's course).
+1. Checks (in order): `content_json.price`, `suggested_price_usd`, `monthly_price_usd` (suffixed `/mo`), then min-of `tiers[]`/`packages[]`/`certification_levels[]` price → returns `"$297"`, `"$27/mo"`, `"From $1,500"`.
+2. Returns `null` when no price exists.
+3. Webinar (BP-05) and lead magnets keep showing "Free" only when the helper returns null **and** the node type is in a known-free set; otherwise show no badge instead of misleading "Free".
 
-- Add a helper near the existing `youGet` derivation:
-  ```ts
-  const dailyLessonCount = Array.isArray(content.study_weeks)
-    ? content.study_weeks.reduce(
-        (n: number, w: any) => n + (Array.isArray(w?.days) ? w.days.length : 0),
-        0,
-      )
-    : 0;
-  ```
-- In `includedItems`, replace the home-study line so it prefers daily lessons when available:
-  ```ts
-  type === "home-study" && dailyLessonCount > 0
-    ? `${dailyLessonCount} daily lessons`
-    : youGet.length > 0
-      ? `${youGet.length} structured ${type === "home-study" ? "lessons" : "modules"}`
-      : "All core content",
-  ```
-  (Also drops the misleading "+" when we have an exact count.)
+Wire the helper into:
+- `src/pages/author-site/AuthorLearnSection.tsx` (replace lines 55, 85–87)
+- `src/pages/author-site/AuthorServicesSection.tsx` (line 166 area)
 
-### Bug 19 (wire-only) — Audiobook Buy button
-BA-11 falls through to `GenericPage`. Today the purchase CTA only renders when `payment_link` or `content.stripe_checkout_url` is set; otherwise the button is missing or has no href. We already use `BuyNowButton` everywhere else (membership, coaching right card, sales pages), so use it here too — no inline price, modal grace if Stripe isn't connected.
+**Note:** This is a display-only fix. Buy Now / checkout already pulls authoritative pricing from each builder's own table via `BuyNowButton`, so checkout is unaffected.
 
-In `GenericPage` (around lines 2435–2444), replace the conditional `<a href={paymentUrl}>` block with:
+### Bug 21 — "Specialist ,who" formatting — **CONFIRMED, DATA-ONLY**
 
-```tsx
-{actionType === "purchase" && data.node.id && (
-  <BuyNowButton
-    authorNodeId={data.node.id}
-    authorId={data.author?.id}
-    fallbackUrl={paymentUrl || null}
-    label={content.cta_text || "Get Started"}
-    className="rounded-full px-8 py-3"
-    style={{ background: v.accent, color: v.accentText }}
-  />
-)}
-```
+The string lives in `author_profiles.bio_short` for Pauline (not in any component template). No code change can fix it generically without risking false-positive edits to legitimate content.
 
-This:
-- Always renders a working CTA when the node is purchasable.
-- Routes through `create-checkout-session` (price set on `author_nodes.price_usd`).
-- Falls back to `payment_link` only if it's a real Stripe URL.
-- Shows the friendly "Payments coming soon" modal if the author hasn't connected Stripe.
-- Keeps price hidden until Stripe checkout (no `content.price` block above).
+**Fix:** Two-part:
+1. **One-off data fix** for Pauline via migration: `UPDATE author_profiles SET bio_short = replace(bio_short, 'Specialist ,who', 'Specialist, who') WHERE author_slug='pauline-teo';`
+2. **Defensive sanitizer** in `src/lib/stripHtml.ts` (already used by `AuthorAboutSection.tsx`): after stripping HTML, collapse `\s+,` → `,` and `\s+\.` → `.` so future authors who paste in similar typos render cleanly. Low risk: only normalizes whitespace before punctuation.
 
-### Bug 20 — Audiobook description formatting
-Same `GenericPage` (line 2403) currently renders `content.description` as a single `<p>`, dropping all paragraph breaks from the source content.
+### Files to change
 
-The book microsite (`AuthorBookPage.tsx`) already uses `stripHtml` from `@/lib/stripHtml` (which preserves `<br>` and `<p>` boundaries as `\n`/`\n\n`).
+- `src/pages/author-site/AuthorHeroSection.tsx` — relabel stat (Bug 19)
+- `src/pages/author-site/types.ts` (or new `src/pages/author-site/node-price.ts`) — add `getNodePriceLabel` helper (Bug 20)
+- `src/pages/author-site/AuthorLearnSection.tsx` — use helper (Bug 20)
+- `src/pages/author-site/AuthorServicesSection.tsx` — use helper (Bug 20)
+- `src/lib/stripHtml.ts` — collapse stray space-before-punctuation (Bug 21)
+- New migration: one-off `bio_short` typo fix for Pauline (Bug 21)
 
-- Add at top of file: `import { stripHtml } from "@/lib/stripHtml";`
-- Replace the `content.description` paragraph with paragraph-aware rendering:
-  ```tsx
-  {content.description && (() => {
-    const text = stripHtml(String(content.description));
-    const paras = text.split(/\n{2,}/).filter(Boolean);
-    return (
-      <div className="space-y-3">
-        {paras.map((p, i) => {
-          const lines = p.split(/\n/).filter(Boolean);
-          // Bullet block: every line starts with -, *, • or "1." style
-          const isBullets = lines.length > 1 && lines.every(l => /^\s*([-*•]|\d+[.)])\s+/.test(l));
-          if (isBullets) {
-            return (
-              <ul key={i} className="space-y-1 list-disc pl-5">
-                {lines.map((l, j) => (
-                  <li key={j} className="text-base leading-relaxed" style={{ color: v.bodyText }}>
-                    {l.replace(/^\s*([-*•]|\d+[.)])\s+/, "")}
-                  </li>
-                ))}
-              </ul>
-            );
-          }
-          return (
-            <p key={i} className="text-base leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>
-              {p}
-            </p>
-          );
-        })}
-      </div>
-    );
-  })()}
-  ```
+### Out of scope (kept consistent with Core rules)
 
-This preserves paragraph breaks, renders bullet lines as `<ul><li>`, and uses the same sanitiser as the main book microsite — so BA-11 description matches the look on `/pauline-teo/<book-slug>`.
-
----
-
-## Files modified
-- `src/pages/MicrositePage.tsx` (4 localized edits)
-
-No DB changes, no new edge functions, no memory updates (Core rules unchanged).
-
-## Out of scope (per your decision)
-- Bug 15 — won't add inline prices to coaching package cards.
-- Bug 18 — won't add a nav header to the membership page.
-- Bug 19 (price portion) — won't display "$14.99" inline on the audiobook page.
-- Bug 21 — won't add a nav header to the audiobook page.
-
-If you change your mind on any of these later, ping me and I'll do them as a separate pass (and update the relevant Core memory rule at the same time so the codebase and rules stay consistent).
+No prices added to public microsite product pages — only to the author profile cards that already show prices (where rule has always allowed inline pricing on the author profile, distinct from per-product microsites).
