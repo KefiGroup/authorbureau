@@ -6,6 +6,7 @@ import type { ProductLink, CoachingService, ThemeVars } from "./types";
 import { PRODUCT_LABELS, PRODUCT_ROUTES, fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import { getNodePriceLabel } from "./node-price";
 
 const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
   home_study: BookOpen,
@@ -70,7 +71,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                 const SIcon = meta.icon;
                 const title = node.personalised_name || node.node_name;
                 const desc = node.content_json?.description as string | undefined;
-                const price = node.content_json?.price as number | undefined;
+                const { label: priceLabel } = getNodePriceLabel(node);
                 const linkTo = node.third_party_url || node.payment_link || `/${authorSlug}#subscribe-section`;
 
                 return (
@@ -88,7 +89,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                         </div>
                         {desc && <p className="text-sm leading-relaxed line-clamp-2" style={{ color: v.bodyText }}>{desc}</p>}
                         <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: v.mutedText }}>
-                          {price != null && price > 0 && <span className="font-bold" style={{ color: v.accent }}>${price}</span>}
+                          {priceLabel && <span className="font-bold" style={{ color: v.accent }}>{priceLabel}</span>}
                         </div>
                       </div>
                       <a href={linkTo} target={node.third_party_url ? "_blank" : undefined} rel={node.third_party_url ? "noopener noreferrer" : undefined}
@@ -163,7 +164,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                       <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
                         {product.price != null && product.price > 0
                           ? <span className="font-bold text-sm" style={{ color: v.accent }}>${product.price}</span>
-                          : <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>}
+                          : <span />}
                         <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
                           style={{ background: v.primary, color: v.primaryText }}>{ctaText}</span>
                       </div>

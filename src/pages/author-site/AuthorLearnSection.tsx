@@ -5,6 +5,7 @@ import type { ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import { getNodePriceLabel } from "./node-price";
 
 const NODE_META: Record<string, { icon: typeof BookOpen; label: string; order: number }> = {
   "BP-05": { icon: Video, label: "Webinar", order: 1 },
@@ -52,7 +53,7 @@ export default function AuthorLearnSection({ authorSlug, displayName, learnNodes
             const Icon = meta.icon;
             const title = node.personalised_name || node.node_name;
             const desc = node.content_json?.description as string | undefined;
-            const price = node.content_json?.price as number | undefined;
+            const { label: priceLabel, isKnownFree } = getNodePriceLabel(node);
             const slug = node.microsite_url?.replace(/^\//, "").split("/").pop();
             const linkTo = slug ? `/${authorSlug}/${slug}` : (node.third_party_url || "#");
 
@@ -82,9 +83,11 @@ export default function AuthorLearnSection({ authorSlug, displayName, learnNodes
                   {!desc && <div className="flex-1" />}
 
                   <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
-                    {price != null && price > 0
-                      ? <span className="font-bold text-sm" style={{ color: v.accent }}>${price}</span>
-                      : <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>}
+                    {priceLabel
+                      ? <span className="font-bold text-sm" style={{ color: v.accent }}>{priceLabel}</span>
+                      : isKnownFree
+                        ? <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>
+                        : <span />}
                     <span
                       className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
                       style={{ background: v.primary, color: v.primaryText }}
