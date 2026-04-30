@@ -2800,12 +2800,12 @@ function YRRightCard({
   }
 
   // Stripe checkout via BuyNowButton when a price is registered on author_nodes.
+  // Public microsite chrome MUST NOT show the dollar amount; price is revealed at Stripe checkout.
   if ((actionType === "purchase" || actionType === "donate") && commerceNodeRowId && (typeof price === "number" && price > 0)) {
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
         <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{commerceLabel || ctaLabel || "Get Started"}</h3>
-        <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>${Number(price).toLocaleString()}</p>
-        {selectedOfferLabel && <p className="text-xs mb-3" style={{ color: v.mutedText }}>{selectedOfferLabel}</p>}
+        {selectedOfferLabel && <p className="text-sm mb-3" style={{ color: v.mutedText }}>{selectedOfferLabel}</p>}
         <BuyNowButton
           authorNodeId={commerceNodeRowId}
           authorId={commerceAuthorId || undefined}
@@ -2814,6 +2814,7 @@ function YRRightCard({
           className="w-full rounded-full"
           style={{ background: v.accent, color: bgColor }}
         />
+        <p className="text-[11px] mt-3 text-center" style={{ color: v.mutedText }}>Pricing shown at secure checkout.</p>
       </Card>
     );
   }
@@ -2823,14 +2824,12 @@ function YRRightCard({
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
         <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{ctaLabel || "Get Started"}</h3>
-        {price != null && (
-          <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-        )}
         <a href={paymentLink} target="_blank" rel="noopener noreferrer">
           <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
             {ctaLabel || "Get Started"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </a>
+        <p className="text-[11px] mt-3 text-center" style={{ color: v.mutedText }}>Pricing shown at secure checkout.</p>
       </Card>
     );
   }
