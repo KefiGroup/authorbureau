@@ -40,7 +40,7 @@ export default function MicrositePage() {
   const [quizData, setQuizData] = useState<{ quiz_stage?: string; quiz_score?: number; quiz_answers?: any[] } | null>(null);
 
   const nodeId = nodeSlug ? SLUG_TO_NODE[nodeSlug] : null;
-  const isDynamicSlug = nodeSlug && !nodeId; // slug not in hardcoded map — try dynamic lookup
+  const isDynamicSlug = nodeSlug && !nodeId; // slug not in hardcoded map, try dynamic lookup
 
   useEffect(() => {
     if (!authorSlug || (!nodeId && !isDynamicSlug)) {
@@ -155,7 +155,7 @@ export default function MicrositePage() {
           <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">This page isn't public</h1>
           <p className="text-gray-500 mb-6">
-            The author's Live Audience Conversion Toolkit is a private resource used at workshops, book signings, and corporate lunches — it doesn't have a public web page.
+            The author's Live Audience Conversion Toolkit is a private resource used at workshops, book signings, and corporate lunches, it doesn't have a public web page.
           </p>
           <Button asChild variant="outline">
             <Link to={`/${authorSlug}`}>Visit {data.author.pen_name || authorSlug}'s page</Link>
@@ -222,7 +222,7 @@ export default function MicrositePage() {
       {resolvedNodeId === "BP-06" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="workbook" />}
       {resolvedNodeId === "BP-07" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="home-study" />}
       {resolvedNodeId === "BP-08" && <SalesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} type="special-edition" />}
-      {/* BP-09 is now a private author toolkit — no public microsite. */}
+      {/* BP-09 is now a private author toolkit, no public microsite. */}
       {resolvedNodeId === "BA-15" && <PressKitPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-16" && <AffiliatesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-17" && <BundlesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
@@ -315,7 +315,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
         if (totalScore >= tier.min && totalScore <= tier.max) return tier;
       }
       if (tier.range) {
-        const match = tier.range.match(/(\d+)\s*[-–]\s*(\d+)/);
+        const match = tier.range.match(/(\d+)\s*[-, ]\s*(\d+)/);
         if (match) {
           const low = parseInt(match[1]);
           const high = parseInt(match[2]);
@@ -387,7 +387,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
             You're In!
           </h1>
           <p className="text-lg mb-6" style={{ color: v.mutedText }}>
-            Check your inbox — your free resource is on its way. Thank you, {firstName || "friend"}!
+            Check your inbox, your free resource is on its way. Thank you, {firstName || "friend"}!
           </p>
           {data.book && (
             <Button asChild size="lg" className="rounded-full" style={{ background: accentColor, color: "#fff" }}>
@@ -461,7 +461,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   if (stage === "gate") {
     const teaserDescription = resultTier.description
       ? resultTier.description.split(".").slice(0, 1).join(".") + "."
-      : "You've completed the assessment — unlock your full personalised action plan.";
+      : "You've completed the assessment, unlock your full personalised action plan.";
     return (
       <div className="min-h-[80vh] py-12 px-4 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${accentColor}10 0%, ${bgColor} 100%)` }}>
         <div className="max-w-md mx-auto">
@@ -480,7 +480,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
                 <div className="h-full rounded-full transition-all" style={{ width: `${scorePercent}%`, background: accentColor }} />
               </div>
               <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>
-                Get your personalised action plan from {authorName || "the author"} — discover exactly what to do next based on your result.
+                Get your personalised action plan from {authorName || "the author"}, discover exactly what to do next based on your result.
               </p>
             </div>
             <form onSubmit={handleGateSubmit} className="space-y-3">
@@ -695,7 +695,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
         </div>
       </section>
 
-      {/* How it works — quiz specific */}
+      {/* How it works, quiz specific */}
       {isQuiz && (
         <section className="py-12 sm:py-16 px-4">
           <div className="max-w-3xl mx-auto text-center">
@@ -933,7 +933,7 @@ function WorkbookSalesPage({
         authorNodeId={data.node.id}
         authorId={data.author?.id}
         fallbackUrl={buyUrl}
-        label={`Buy Direct (PDF) — $${priceNum.toFixed(2)}`}
+        label={`Buy Direct (PDF), $${priceNum.toFixed(2)}`}
         className="w-full rounded-full text-base py-3"
         style={{ background: v.accent, color: v.accentText }}
       />
@@ -1168,7 +1168,7 @@ function LongFormSalesPage({
       `Module ${m.number ?? i + 1}: ${m.title || m.name || ""}`.trim()
     )) ||
     (Array.isArray(content.editions) && content.editions.map((e: any) =>
-      `${e.name || e.title}${e.description ? ` — ${e.description}` : ""}`
+      `${e.name || e.title}${e.description ? `, ${e.description}` : ""}`
     )) ||
     [];
   const youGet: string[] = youGetRaw
@@ -1210,7 +1210,7 @@ function LongFormSalesPage({
   const faq = faqItems.length > 0 ? faqItems : [
     {
       q: "Is there a money-back guarantee?",
-      a: `Yes — we offer a ${guaranteeText}. If this isn't the right fit for you, just email us within ${guaranteeDays} days of purchase for a full refund.`,
+      a: `Yes, we offer a ${guaranteeText}. If this isn't the right fit for you, just email us within ${guaranteeDays} days of purchase for a full refund.`,
     },
     {
       q: "How long do I have access?",
@@ -1218,7 +1218,7 @@ function LongFormSalesPage({
     },
     {
       q: "Who is this for?",
-      a: whoFor || "Anyone ready to take action and apply what they learn. No prior experience required — just a willingness to do the work.",
+      a: whoFor || "Anyone ready to take action and apply what they learn. No prior experience required, just a willingness to do the work.",
     },
     {
       q: "What format is the content delivered in?",
@@ -1229,7 +1229,7 @@ function LongFormSalesPage({
   // Final CTA
   const finalCta = sp.final_cta || content.final_cta || {};
   const finalHeadline = finalCta.headline || "Ready to take the next step?";
-  const finalUrgency = finalCta.urgency || "Limited spots available — secure yours today.";
+  const finalUrgency = finalCta.urgency || "Limited spots available, secure yours today.";
   const finalCtaLabel = finalCta.button_text || ctaLabel;
 
   // Buy URL
@@ -1556,7 +1556,7 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
                 authorNodeId={data.node.id}
                 authorId={data.author?.id}
                 fallbackUrl={stripeUrl}
-                label={priceNum > 0 ? `Buy Direct — ${currencySymbol}${priceNum.toFixed(2)}` : "Buy Direct"}
+                label={priceNum > 0 ? `Buy Direct, ${currencySymbol}${priceNum.toFixed(2)}` : "Buy Direct"}
                 className="flex-1 rounded-full"
                 style={{ background: v.accent, color: v.accentText }}
               />
@@ -1645,7 +1645,7 @@ function PressKitPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
       <header className="text-center space-y-4">
         <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Press & Media</p>
         <h1 className="text-3xl sm:text-5xl font-bold" style={{ color: v.headingText, fontFamily: hFont }}>
-          {content.headline || `${data.author.pen_name} — Media Kit`}
+          {content.headline || `${data.author.pen_name}, Media Kit`}
         </h1>
         {speakerHeadline && <p className="text-lg max-w-2xl mx-auto" style={{ color: v.mutedText }}>{speakerHeadline}</p>}
       </header>
@@ -1693,7 +1693,7 @@ function PressKitPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
           {!submitted ? (
             <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
               <h3 className="text-lg font-semibold mb-4" style={{ color: v.headingText, fontFamily: hFont }}>Pitch a Story</h3>
-              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Journalists, podcasters, producers — get in touch.</p>
+              <p className="text-xs mb-4" style={{ color: v.mutedText }}>Journalists, podcasters, producers, get in touch.</p>
               <form onSubmit={onSubmit} className="space-y-3">
                 <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
                 <Input placeholder="Last name / Outlet" value={lastName} onChange={e => setLastName(e.target.value)} />
@@ -2905,7 +2905,7 @@ function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
         commerceLabel="Book a Discovery Call"
         ctaLabel="Book a Discovery Call"
         inquiryHeading="Book a Discovery Call"
-        inquiryIntro="Tell us a little about where you are — we'll reach out within 24 hours."
+        inquiryIntro="Tell us a little about where you are, we'll reach out within 24 hours."
         messagePlaceholder="What outcome are you working toward?"
         selectedOfferLabel={packages[0] ? yrStr(packages[0]?.name) : undefined}
         selectedOfferPrice={typeof packages[0]?.price_usd === "number" ? packages[0].price_usd : undefined}
@@ -2971,7 +2971,7 @@ function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setE
         actionType="application"
         ctaLabel="Apply for a Conversation"
         inquiryHeading="Apply for a Conversation"
-        inquiryIntro="High-touch work — we accept a limited number of clients each quarter."
+        inquiryIntro="High-touch work, we accept a limited number of clients each quarter."
         messagePlaceholder="Briefly: what's the result you want, and why now?"
         selectedOfferLabel={offers[0] ? yrStr(offers[0]?.name || offers[0]?.title) : undefined}
         selectedOfferPrice={typeof offers[0]?.price_usd === "number" ? offers[0].price_usd : (typeof offers[0]?.price === "number" ? offers[0].price : undefined)}
@@ -3034,7 +3034,7 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
         actionType="enquiry"
         ctaLabel="Send Speaking Inquiry"
         inquiryHeading="Book Pauline to Speak"
-        inquiryIntro="Tell us about your event — date, audience, and outcome you want."
+        inquiryIntro="Tell us about your event, date, audience, and outcome you want."
         messagePlaceholder="Event name, date, audience size, and the talk you'd like…"
         selectedOfferLabel={talks[0] ? yrStr(talks[0]?.title || talks[0]?.name) : undefined}
         v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
@@ -3340,7 +3340,7 @@ function CertificationPage({ data, content, v, hFont, bgColor, onSubmit, email, 
         commerceLabel="Enrol in Certification"
         ctaLabel={paymentLink ? "Enroll Now" : "Apply for Certification"}
         inquiryHeading="Apply for Certification"
-        inquiryIntro="Tell us about your background — we'll confirm fit and enrolment options."
+        inquiryIntro="Tell us about your background, we'll confirm fit and enrolment options."
         messagePlaceholder="Your role, prior experience, and what you want to do with this certification…"
         selectedOfferLabel={levels[0] ? yrStr(levels[0]?.name || levels[0]?.level || levels[0]?.title) : undefined}
         v={v} hFont={hFont} bgColor={bgColor} onSubmit={onSubmit}
@@ -3541,7 +3541,7 @@ function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
       <p className="text-[11px] text-center leading-relaxed" style={{ color: v.mutedText }}>
         {externalUrl
           ? `Donations go directly to ${charityName || "the charity"}. Authors Bureau does not process or hold donation funds.`
-          : "Campaign coming soon — donation link will be added shortly."}
+          : "Campaign coming soon, donation link will be added shortly."}
       </p>
     </Card>
   );
