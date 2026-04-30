@@ -442,9 +442,20 @@ export default function SmartProductCard({
             </Button>
           )}
           {state === "in-progress" && (
-            <Button size="sm" className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`} onClick={onContinue}>
-              <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
-            </Button>
+            <>
+              <Button size="sm" className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`} onClick={onContinue}>
+                <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
+              </Button>
+              {onRestart && (
+                <button
+                  type="button"
+                  onClick={onRestart}
+                  className="w-full text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline mt-1"
+                >
+                  Restart build
+                </button>
+              )}
+            </>
           )}
           {state === "published" && (
             <Button
