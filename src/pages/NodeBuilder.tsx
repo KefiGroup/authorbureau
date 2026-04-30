@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +65,6 @@ export default function NodeBuilder() {
   const bookId = searchParams.get("bookId");
   const from = searchParams.get("from");
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
