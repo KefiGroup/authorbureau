@@ -417,6 +417,9 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     } finally {
       setDownloadingPack(false);
     }
+  };
+
+  const unmark = async (post: SocialPost) => {
     try {
       await callMarketingHubState("update_social_post", { post_id: post.id, status: "ready" });
     } catch (_error) {
