@@ -68,13 +68,21 @@ serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
 
+    // Cross-platform ID drift fallback: find sibling author_profiles for any
+    // user in auth.users that shares this email, then match by pen_name siblings.
     if (!profile && userEmail) {
-      const { data: byEmail } = await admin
-        .from("author_profiles")
-        .select("id, pen_name, author_slug")
-        .eq("owner_email", userEmail.toLowerCase())
-        .maybeSingle();
-      if (byEmail) profile = byEmail;
+      const { data: authUsers } = await admin.auth.admin.listUsers();
+      const matches = (authUsers?.users || []).filter(
+        (u) => (u.email || "").toLowerCase() === userEmail.toLowerCase(),
+      );
+      for (const u of matches) {
+        const { data: p } = await admin
+          .from("author_profiles")
+          .select("id, pen_name, author_slug")
+          .eq("user_id", u.id)
+          .maybeSingle();
+        if (p) { profile = p; break; }
+      }
     }
 
     if (!profile) {
