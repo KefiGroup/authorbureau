@@ -97,8 +97,11 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
   const totalStreams = STREAMS.reduce((s, g) => s + g.nodes.length, 0);
 
   const getNodeStatus = (node: StreamNode): StreamNode["status"] => {
-    if (builtProducts.includes(node.label)) return "built";
-    if (recommendedByAbby.includes(node.label)) return "recommended";
+    // Match by node-id first (canonical), fall back to label for legacy AI text.
+    const matchesBuilt = (node.nodeId && builtProducts.includes(node.nodeId)) || builtProducts.includes(node.label);
+    const matchesRecommended = (node.nodeId && recommendedByAbby.includes(node.nodeId)) || recommendedByAbby.includes(node.label);
+    if (matchesBuilt) return "built";
+    if (matchesRecommended) return "recommended";
     // If no books analyzed (no recommendations at all), everything stays locked
     if (recommendedByAbby.length === 0 && node.requiredTier) return "locked";
     if (!node.requiredTier) return "unlocked";
