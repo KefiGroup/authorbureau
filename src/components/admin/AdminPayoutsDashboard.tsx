@@ -63,6 +63,30 @@ export default function AdminPayoutsDashboard() {
   const [processingAuthor, setProcessingAuthor] = useState<string | null>(null);
   const [runningPayouts, setRunningPayouts] = useState(false);
   const [runningStatements, setRunningStatements] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<PurchaseRow | null>(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [refunding, setRefunding] = useState(false);
+
+  const handleRefund = async () => {
+    if (!refundTarget) return;
+    if (refundReason.trim().length < 3) { toast.error("Reason required"); return; }
+    setRefunding(true);
+    try {
+      const res = await adminDataFetch("refund-purchase", { purchase_id: refundTarget.id, reason: refundReason.trim() });
+      if (res?.success) {
+        toast.success("Refund issued via Stripe");
+        setRefundTarget(null);
+        setRefundReason("");
+        await loadData();
+      } else {
+        toast.error(res?.message || `Refund failed (${res?.status ?? "?"})`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Refund failed");
+    } finally {
+      setRefunding(false);
+    }
+  };
 
   useEffect(() => { loadData(); }, []);
 
