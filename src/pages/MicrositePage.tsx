@@ -213,17 +213,7 @@ export default function MicrositePage() {
   // Render node-specific template
   return (
     <div className="min-h-screen" style={{ background: bgColor, color: v.bodyText }}>
-      {/* Clean nav - author name only */}
-      <nav className="border-b px-4 py-3 flex items-center justify-between" style={{ borderColor: v.cardBorder }}>
-        <Link to={`/${authorSlug}`} className="font-bold text-lg" style={{ color: v.headingText, fontFamily: hFont }}>
-          {authorName}
-        </Link>
-        {data.book && (
-          <Link to={`/${authorSlug}/${data.book.slug}`} className="text-sm hover:underline" style={{ color: v.accent }}>
-            {data.book.title}
-          </Link>
-        )}
-      </nav>
+      {/* Public microsites: no nav header per brand rules */}
 
       {/* Node-specific content */}
       {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} setQuizData={setQuizData} />}
