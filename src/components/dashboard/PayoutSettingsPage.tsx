@@ -108,8 +108,9 @@ export default function PayoutSettingsPage() {
 
     // Validation
     if (settings.payout_method === "stripe" && !hasStripeConnect) {
-      toast.error("Please connect your Stripe account first");
-      return;
+      // Non-blocking: allow saving Stripe as the chosen method; payouts will
+      // simply remain pending until Stripe Connect onboarding is completed.
+      toast.warning("Stripe selected. Complete Stripe Connect onboarding to receive payouts.");
     }
     if (settings.payout_method === "paypal" && !settings.paypal_email) {
       toast.error("Please enter your PayPal email");
