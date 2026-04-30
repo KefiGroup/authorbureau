@@ -122,6 +122,9 @@ interface SmartProductCardProps {
   onContinue?: () => void;
   onView?: () => void;
   onUpgrade?: () => void;
+  /** Optional secondary action for stuck in-progress nodes — clears the
+   *  draft and routes the user back to step 1 of the builder. */
+  onRestart?: () => void;
   genre?: string;
   code?: string;
 }
