@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, DollarSign, Clock, CheckCircle2, AlertTriangle, Send } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Send, Play, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -45,26 +45,72 @@ interface AuthorPending {
   currency: string;
 }
 
+interface PayoutsStatus {
+  stripe_ready: boolean;
+  paypal_ready: boolean;
+  last_payout_at: string | null;
+  last_statement_at: string | null;
+  last_statement_year: number | null;
+}
+
 export default function AdminPayoutsDashboard() {
   const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
+  const [status, setStatus] = useState<PayoutsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingAuthor, setProcessingAuthor] = useState<string | null>(null);
+  const [runningPayouts, setRunningPayouts] = useState(false);
+  const [runningStatements, setRunningStatements] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
-      const [purchasesRes, payoutsRes] = await Promise.all([
+      const [purchasesRes, payoutsRes, statusRes] = await Promise.all([
         adminDataFetch("list-purchases"),
         adminDataFetch("list-payouts"),
+        adminDataFetch("payouts-status").catch(() => null),
       ]);
       setPurchases(purchasesRes.purchases || []);
       setPayouts(payoutsRes.payouts || []);
+      if (statusRes) setStatus(statusRes as PayoutsStatus);
     } catch (err) {
       console.error("Failed to load payout data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRunPayoutsNow = async () => {
+    if (!confirm("Run the monthly payout job now? This will transfer eligible earnings via Stripe Connect immediately.")) return;
+    setRunningPayouts(true);
+    try {
+      const res = await adminDataFetch("run-monthly-payouts-now");
+      if (res?.ok) toast.success("Monthly payout job started");
+      else toast.error(`Payout run failed (${res?.status ?? "?"})`);
+      await loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to run payouts");
+    } finally {
+      setRunningPayouts(false);
+    }
+  };
+
+  const handleGenerateStatementsNow = async () => {
+    const yearStr = prompt("Tax year for annual statements?", String(new Date().getUTCFullYear() - 1));
+    if (!yearStr) return;
+    const taxYear = Number(yearStr);
+    if (!Number.isFinite(taxYear)) { toast.error("Invalid year"); return; }
+    setRunningStatements(true);
+    try {
+      const res = await adminDataFetch("generate-annual-statements-now", { tax_year: taxYear });
+      if (res?.ok) toast.success(`Annual statements generated for ${taxYear}`);
+      else toast.error(`Statement run failed (${res?.status ?? "?"})`);
+      await loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate statements");
+    } finally {
+      setRunningStatements(false);
     }
   };
 
@@ -139,10 +185,59 @@ export default function AdminPayoutsDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-heading text-2xl font-bold">Payouts Management</h2>
-        <p className="text-sm text-muted-foreground">Manage author payouts across Stripe, PayPal, and Wise</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-heading text-2xl font-bold">Payouts Management</h2>
+          <p className="text-sm text-muted-foreground">
+            Automated monthly payouts via Stripe Connect. Annual statements emailed each January.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRunPayoutsNow}
+            disabled={runningPayouts}
+          >
+            {runningPayouts ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+            Run monthly payouts now
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGenerateStatementsNow}
+            disabled={runningStatements}
+          >
+            {runningStatements ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
+            Generate annual statements
+          </Button>
+        </div>
       </div>
+
+      {/* Automation status banner */}
+      {status && (
+        <Card className={status.stripe_ready ? "border-accent/40 bg-accent/5" : "border-destructive/40 bg-destructive/5"}>
+          <CardContent className="p-4 flex items-start gap-3 text-sm">
+            {status.stripe_ready ? (
+              <CheckCircle2 className="h-5 w-5 text-accent mt-0.5 shrink-0" />
+            ) : (
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            )}
+            <div className="flex-1 space-y-1">
+              <p className="font-medium">
+                Stripe Connect: {status.stripe_ready ? "configured" : "missing STRIPE_SECRET_KEY"}
+                {" · "}
+                PayPal Payouts API: {status.paypal_ready ? "configured" : "not configured (Stripe-only mode)"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Last payout run: {status.last_payout_at ? format(new Date(status.last_payout_at), "MMM d, yyyy HH:mm") : "never"}
+                {" · "}
+                Last annual statements: {status.last_statement_at ? `${status.last_statement_year} (${format(new Date(status.last_statement_at), "MMM d, yyyy")})` : "never"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4">

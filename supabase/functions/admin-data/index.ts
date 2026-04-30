@@ -477,6 +477,62 @@ Deno.serve(async (req) => {
       return json({ success: true });
     }
 
+    // ─── Payouts: status of automation secrets + last cron runs ───
+    if (action === "payouts-status") {
+      const stripeReady = !!Deno.env.get("STRIPE_SECRET_KEY");
+      const paypalReady = !!Deno.env.get("PAYPAL_CLIENT_ID") && !!Deno.env.get("PAYPAL_SECRET");
+      const { data: lastPayout } = await client
+        .from("author_payouts_v2")
+        .select("created_at, status")
+        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+      const { data: lastStatement } = await client
+        .from("author_annual_statements")
+        .select("generated_at, tax_year")
+        .order("generated_at", { ascending: false }).limit(1).maybeSingle();
+      return json({
+        stripe_ready: stripeReady,
+        paypal_ready: paypalReady,
+        last_payout_at: lastPayout?.created_at ?? null,
+        last_statement_at: lastStatement?.generated_at ?? null,
+        last_statement_year: lastStatement?.tax_year ?? null,
+      });
+    }
+
+    // ─── Payouts: trigger monthly payout run NOW ───
+    if (action === "run-monthly-payouts-now") {
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/run-monthly-payouts`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ triggered_by: "admin", admin_user_id: userId }),
+      });
+      const text = await res.text();
+      let data: unknown = text;
+      try { data = JSON.parse(text); } catch { /* keep text */ }
+      return json({ ok: res.ok, status: res.status, result: data });
+    }
+
+    // ─── Payouts: trigger annual statements generation NOW ───
+    if (action === "generate-annual-statements-now") {
+      const taxYear = (params as { tax_year?: number }).tax_year;
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-annual-statements`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify(taxYear ? { tax_year: taxYear } : {}),
+      });
+      const text = await res.text();
+      let data: unknown = text;
+      try { data = JSON.parse(text); } catch { /* keep text */ }
+      return json({ ok: res.ok, status: res.status, result: data });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
