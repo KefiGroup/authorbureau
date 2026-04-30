@@ -53,7 +53,7 @@ serve(async (req) => {
 <table><thead><tr><th>Period</th><th>Method</th><th>Reference</th><th>Gross USD</th><th>Net paid USD</th><th>Paid on</th></tr></thead>
 <tbody>${rows.map((r) => `<tr><td>${r.period_start} → ${r.period_end}</td><td>${r.payout_method}</td><td>${r.external_reference || ""}</td><td>$${Number(r.gross_usd).toFixed(2)}</td><td>$${Number(r.net_usd).toFixed(2)}</td><td>${r.paid_at ? r.paid_at.slice(0,10) : ""}</td></tr>`).join("")}</tbody>
 <tfoot><tr><th colspan="3">Totals</th><th>$${totalGross.toFixed(2)}</th><th>$${totalNet.toFixed(2)}</th><th></th></tr></tfoot></table>
-<p style="font-size:11px;color:#888;margin-top:24px">Authors Bureau is the Merchant of Record for all reader purchases. Net amounts reflect the 8% platform fee, which covers all payment-processing costs (Stripe / Wise / PayPal). No additional gateway or transfer fees are deducted from your share — you receive 92% of every sale.</p>
+<p style="font-size:11px;color:#888;margin-top:24px">Authors Bureau retains an 8% platform fee to cover all payment-processing costs on gross sales, so no extra processing fees are ever deducted from your share. You keep 92% of every sale.</p>
 </body></html>`;
 
       const path = `statements/${authorId}/${taxYear}.html`;
