@@ -2114,12 +2114,7 @@ function GroupCoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, 
                   <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{sessionFormat}</p>
                 </Card>
               )}
-              {price != null && (
-                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Investment</p>
-                  <p className="text-sm font-semibold mt-1" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-                </Card>
-              )}
+              {/* Pricing intentionally hidden on public microsite chrome (rule). */}
             </div>
           )}
 
@@ -2539,12 +2534,7 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
                   <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{modules.length} modules</p>
                 </Card>
               )}
-              {price != null && (
-                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Investment</p>
-                  <p className="text-sm font-semibold mt-1" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-                </Card>
-              )}
+              {/* Pricing intentionally hidden on public microsite chrome (rule). */}
             </div>
           )}
 
@@ -2643,9 +2633,7 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
               modal) so we no longer need a separate Notify form. */}
           <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
             <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enrol Now</h3>
-            {price != null && (
-              <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-            )}
+            {/* Headline price intentionally hidden on public microsite chrome (rule). */}
             <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
             {paymentLink ? (
               <a href={paymentLink} target="_blank" rel="noopener noreferrer">
