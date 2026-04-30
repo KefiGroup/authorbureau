@@ -99,6 +99,8 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let authorId: string | null = null
+  let explicitReplyTo: string | null = null
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -107,6 +109,16 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    if (typeof body.authorId === 'string' && body.authorId.trim()) {
+      authorId = body.authorId.trim()
+    } else if (typeof body.author_id === 'string' && body.author_id.trim()) {
+      authorId = body.author_id.trim()
+    }
+    if (typeof body.replyTo === 'string' && body.replyTo.trim()) {
+      explicitReplyTo = body.replyTo.trim()
+    } else if (typeof body.reply_to === 'string' && body.reply_to.trim()) {
+      explicitReplyTo = body.reply_to.trim()
     }
   } catch {
     return new Response(
