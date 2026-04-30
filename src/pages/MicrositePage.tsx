@@ -2998,15 +2998,16 @@ function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setE
           <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>The Offers</h2>
           <div className="space-y-3">
             {offers.map((o: any, i: number) => {
-              const name = yrStr(o?.name || o?.title, `Offer ${i + 1}`);
+              const rawName = yrStr(o?.name || o?.title);
               const desc = yrStr(o?.description);
-              const price = o?.price_usd ?? o?.price;
               const incl = yrLines(o?.includes ?? o?.deliverables ?? o?.outcomes);
+              // Skip placeholder rows entirely if there's no real title AND no description.
+              if (!rawName && !desc && incl.length === 0) return null;
+              const name = rawName || (desc ? desc.split(/[.!?]/)[0].slice(0, 60) : "Programme");
               return (
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+                  <div className="mb-2">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
                   </div>
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
                   {incl.length > 0 && (
