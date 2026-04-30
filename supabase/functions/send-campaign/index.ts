@@ -141,9 +141,6 @@ Deno.serve(async (req) => {
       .single();
 
     const senderName = settings?.sender_name || profile?.pen_name || "Author";
-    const { buildFromAddress, resolveReplyTo } = await import("../_shared/from-address.ts");
-    const fromEmail = buildFromAddress(senderName);
-    const replyTo = resolveReplyTo(settings?.reply_to_email);
 
     const { data: subscribers, error: subErr } = await supabase
       .from("author_subscribers")
@@ -163,11 +160,11 @@ Deno.serve(async (req) => {
       .eq("id", campaignId);
 
     const bodyMarkdown = campaign.content_json?.body || "";
-    const bodyHtml = markdownToHtml(bodyMarkdown);
-    const fullHtml = buildEmailHtml(bodyHtml, senderName);
 
     let sentCount = 0;
     let failCount = 0;
+
+    const { sendViaLovable } = await import("../_shared/from-address.ts");
 
     const batchSize = 10;
     for (let i = 0; i < subscribers.length; i += batchSize) {
@@ -175,33 +172,26 @@ Deno.serve(async (req) => {
 
       const sendPromises = batch.map(async (sub: any) => {
         try {
-          const res = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${RESEND_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: fromEmail,
-              to: [sub.email],
-              subject: campaign.subject,
-              html: fullHtml,
-              ...(replyTo ? { reply_to: replyTo } : {}),
-            }),
+          // Send via Lovable Cloud (verified pipeline). Per-recipient send.
+          const sendResult = await sendViaLovable({
+            recipientEmail: sub.email,
+            recipientName: sub.name,
+            senderName,
+            subject: campaign.subject,
+            bodyMarkdown,
+            idempotencyKey: `campaign-${campaignId}-sub-${sub.id}`,
           });
-
-          const result = await res.json();
 
           await supabase.from("email_send_logs").insert({
             campaign_id: campaignId,
             subscriber_id: sub.id,
             email: sub.email,
-            status: res.ok ? "sent" : "failed",
-            resend_message_id: result.id || null,
-            sent_at: res.ok ? new Date().toISOString() : null,
+            status: sendResult.ok ? "sent" : "failed",
+            resend_message_id: sendResult.messageId || null,
+            sent_at: sendResult.ok ? new Date().toISOString() : null,
           });
 
-          if (res.ok) sentCount++;
+          if (sendResult.ok) sentCount++;
           else failCount++;
         } catch (err) {
           console.error(`Failed to send to ${sub.email}:`, err);

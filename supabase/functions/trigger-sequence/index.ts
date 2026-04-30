@@ -110,55 +110,41 @@ Deno.serve(async (req) => {
 
       if (!step) {
         sendStatus = { sent: false, reason: 'no_steps' };
-      } else if (!RESEND_API_KEY) {
-        sendStatus = { sent: false, reason: 'no_resend_key', message: 'Resend API key not configured.' };
-        await supabase.from('email_send_log').insert({
-          template_name: 'sequence_step', recipient_email: email || 'unknown',
-          status: 'failed', error_message: 'no_resend_key', author_id: flow.author_id,
-          lead_id: lead_id || null, sequence_step_id: step.id, metadata: { flow_id },
-        });
       } else if (!email) {
         sendStatus = { sent: false, reason: 'no_recipient_email' };
       } else {
         const { data: profile } = await supabase
           .from('author_profiles').select('pen_name').eq('id', flow.author_id).maybeSingle();
         const { data: emailSettings } = await supabase
-          .from('author_email_settings').select('sender_name, reply_to_email')
+          .from('author_email_settings').select('sender_name')
           .eq('author_id', flow.author_id).maybeSingle();
 
         const senderName = emailSettings?.sender_name || profile?.pen_name || 'Authors Bureau';
-        const { buildFromAddress, resolveReplyTo } = await import('../_shared/from-address.ts');
-        const fromAddress = buildFromAddress(senderName);
-        const replyTo = resolveReplyTo(emailSettings?.reply_to_email);
-
-        const html = renderEmailHtml({
-          subject: step.subject, bodyMd: step.body_markdown,
-          senderName, recipientName: name,
-        });
 
         try {
-          const resp = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_API_KEY}` },
-            body: JSON.stringify({
-              from: fromAddress, to: [email], subject: step.subject, html,
-              ...(replyTo ? { reply_to: replyTo } : {}),
-            }),
+          const { sendViaLovable } = await import('../_shared/from-address.ts');
+          const sendResult = await sendViaLovable({
+            recipientEmail: email,
+            recipientName: name,
+            senderName,
+            subject: step.subject,
+            bodyMarkdown: step.body_markdown,
+            idempotencyKey: `seq-${enrollmentId}-step-${step.step_number || 1}`,
           });
-          const result = await resp.json();
-          if (!resp.ok) throw new Error(result?.message || `Resend ${resp.status}`);
+
+          if (!sendResult.ok) throw new Error(sendResult.error || `send failed (${sendResult.status})`);
 
           await supabase.from('email_send_log').insert({
-            message_id: result.id, template_name: 'sequence_step', recipient_email: email,
+            message_id: sendResult.messageId, template_name: 'sequence_step', recipient_email: email,
             status: 'sent', author_id: flow.author_id, lead_id: lead_id || null,
             sequence_step_id: step.id, to_name: name || null,
-            metadata: { flow_id, subject: step.subject },
+            metadata: { flow_id, subject: step.subject, via: 'lovable' },
           });
 
           await supabase.from('email_flow_enrollments').update({ current_step: 1 }).eq('id', enrollmentId);
-          sendStatus = { sent: true, message_id: result.id };
+          sendStatus = { sent: true, message_id: sendResult.messageId };
         } catch (sendErr) {
-          console.error('Resend error', sendErr);
+          console.error('Send error', sendErr);
           await supabase.from('email_send_log').insert({
             template_name: 'sequence_step', recipient_email: email, status: 'failed',
             error_message: (sendErr as Error).message, author_id: flow.author_id,

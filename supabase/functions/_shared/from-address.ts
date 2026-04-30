@@ -1,25 +1,75 @@
-// Centralized sender address builder.
-// IMPORTANT: notify.authorsbureau.com is the verified Resend domain.
-// authorsbureau.com (root) is NOT verified — using it returns 403 "domain not verified".
-// All nurture/campaign/sequence sends MUST go through notify.authorsbureau.com.
+// Shared helper: route author nurture / campaign / sequence emails through
+// Lovable Cloud's verified transactional email pipeline (notify.authorsbureau.com)
+// instead of the project's own Resend account (which has no verified domains).
+//
+// Why: every author on the platform sends through ONE verified pipeline.
+// No per-author Resend account, no per-author DNS — it just works.
+//
+// Each call enqueues a single email via the `author-broadcast` template.
+// The recipient receives a per-recipient send (not a bulk blast), so this
+// remains within the transactional email policy (one user action = one email).
 
-export const SENDER_DOMAIN = 'notify.authorsbureau.com';
-export const SENDER_LOCAL_PART = 'newsletter';
-export const DEFAULT_REPLY_TO = 'support@authorsbureau.com';
+export interface SendViaLovableArgs {
+  recipientEmail: string;
+  recipientName?: string | null;
+  senderName: string;          // Author's pen name / sender label
+  subject: string;
+  bodyMarkdown: string;        // Author-authored markdown body
+  idempotencyKey: string;      // Unique per logical send (e.g. enrollment-id + step-number)
+  preview?: string;
+}
 
-/**
- * Build a Resend-safe From address.
- * @param senderName Display name (e.g. author pen name). Stripped of non [A-Za-z0-9 ] chars.
- * @returns "Sender Name <newsletter@notify.authorsbureau.com>"
- */
-export function buildFromAddress(senderName?: string | null): string {
-  const cleanName = (senderName || 'Authors Bureau').replace(/[^A-Za-z0-9 ]/g, '').trim() || 'Authors Bureau';
-  return `${cleanName} <${SENDER_LOCAL_PART}@${SENDER_DOMAIN}>`;
+export interface SendViaLovableResult {
+  ok: boolean;
+  messageId?: string;
+  status: number;
+  error?: string;
+  suppressed?: boolean;
 }
 
 /**
- * Resolve reply-to. Falls back to platform support address.
+ * Sends one email through Lovable's send-transactional-email function.
+ * Uses the SUPABASE_SERVICE_ROLE_KEY env var for service-role auth.
  */
-export function resolveReplyTo(replyToEmail?: string | null): string {
-  return (replyToEmail && replyToEmail.includes('@')) ? replyToEmail : DEFAULT_REPLY_TO;
+export async function sendViaLovable(args: SendViaLovableArgs): Promise<SendViaLovableResult> {
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
+    return { ok: false, status: 500, error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' };
+  }
+
+  try {
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        templateName: 'author-broadcast',
+        recipientEmail: args.recipientEmail,
+        idempotencyKey: args.idempotencyKey,
+        templateData: {
+          senderName: args.senderName,
+          subject: args.subject,
+          bodyMarkdown: args.bodyMarkdown,
+          recipientName: args.recipientName || undefined,
+          preview: args.preview,
+        },
+      }),
+    });
+
+    const data = await resp.json().catch(() => ({} as any));
+
+    if (!resp.ok) {
+      return { ok: false, status: resp.status, error: data?.error || `HTTP ${resp.status}` };
+    }
+    if (data?.success === false && data?.reason === 'email_suppressed') {
+      return { ok: false, status: 200, suppressed: true, error: 'email_suppressed' };
+    }
+
+    return { ok: true, status: 200, messageId: data?.messageId || data?.message_id };
+  } catch (e) {
+    return { ok: false, status: 500, error: (e as Error).message };
+  }
 }
