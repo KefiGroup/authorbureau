@@ -22,6 +22,27 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
+/**
+ * Substitute {{var}} placeholders AND rewrite hard-coded placeholder URLs
+ * (example.com/lead-magnet, example.com) that the AI sequence generator
+ * sometimes emits when it has no real URL to use.
+ */
+function substitutePlaceholders(md: string, vars: Record<string, string>): string {
+  let out = md;
+  for (const [k, v] of Object.entries(vars)) {
+    if (!v) continue;
+    const re = new RegExp(`{{\\s*${k}\\s*}}`, 'gi');
+    out = out.replace(re, v);
+  }
+  if (vars.lead_magnet_url) {
+    out = out.replace(/https?:\/\/example\.com\/lead-magnet[^\s)\]]*/gi, vars.lead_magnet_url);
+  }
+  if (vars.author_url) {
+    out = out.replace(/https?:\/\/example\.com[^\s)\]]*/gi, vars.author_url);
+  }
+  return out;
+}
+
 function mdToHtml(md: string, vars: Record<string, string>): string {
   let out = md;
   for (const [k, v] of Object.entries(vars)) {
@@ -157,13 +178,27 @@ Deno.serve(async (req) => {
           stats.completed++; continue;
         }
 
-        // Author + sender info
+        // Author + sender info + author_slug for URL building
         const [{ data: profile }, { data: emailSettings }] = await Promise.all([
-          supabase.from('author_profiles').select('pen_name').eq('id', flow.author_id).maybeSingle(),
+          supabase.from('author_profiles').select('pen_name, author_slug').eq('id', flow.author_id).maybeSingle(),
           supabase.from('author_email_settings').select('sender_name, reply_to_email').eq('author_id', flow.author_id).maybeSingle(),
         ]);
 
         const senderName = emailSettings?.sender_name || profile?.pen_name || 'Authors Bureau';
+
+        // Build placeholder substitution vars
+        const authorSlug = profile?.author_slug || '';
+        const authorUrl = authorSlug ? `${PUBLIC_BASE}/${authorSlug}` : PUBLIC_BASE;
+        const leadMagnetUrl = authorSlug ? `${PUBLIC_BASE}/${authorSlug}/free-gift` : authorUrl;
+
+        const renderedBody = substitutePlaceholders(step.body_markdown, {
+          name: sub.name || 'there',
+          first_name: (sub.name || '').split(' ')[0] || 'there',
+          author_name: senderName,
+          author_url: authorUrl,
+          lead_magnet_url: leadMagnetUrl,
+          unsubscribe_url: `${PUBLIC_BASE}/unsubscribe?token=${await getOrCreateUnsubToken(supabase, sub.email)}`,
+        });
 
         // Send via Lovable Cloud (verified notify.authorsbureau.com pipeline).
         // Replaces direct Resend call (Resend account had no verified domains).
@@ -173,7 +208,7 @@ Deno.serve(async (req) => {
           recipientName: sub.name || null,
           senderName,
           subject: step.subject,
-          bodyMarkdown: step.body_markdown,
+          bodyMarkdown: renderedBody,
           idempotencyKey: `flow-${enr.id}-step-${step.step_number}`,
         });
 

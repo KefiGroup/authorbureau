@@ -165,6 +165,26 @@ Deno.serve(async (req) => {
       }).eq('id', flow.id);
     }
 
+    // Instant welcome: kick the drip processor right now (don't wait for the 5-min cron).
+    // Fire-and-forget — failures will be retried on the next cron tick.
+    const createdAny = enrollments.some((e) => e.created);
+    if (createdAny) {
+      try {
+        // Don't await beyond a short timeout — we just want to nudge the queue.
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 1500);
+        await fetch(`${SUPABASE_URL}/functions/v1/process-email-flows`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ trigger: 'enroll-subscriber-instant' }),
+          signal: controller.signal,
+        }).catch(() => {/* ignore — cron will pick it up */});
+      } catch { /* ignore */ }
+    }
+
     return new Response(JSON.stringify({
       ok: true, subscriber_id: sub.id, enrollments,
     }), { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });

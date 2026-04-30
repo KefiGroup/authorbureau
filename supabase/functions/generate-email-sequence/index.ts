@@ -112,7 +112,7 @@ Deno.serve(async (req) => {
 
     // Pull author + book context for personalisation
     const [{ data: author }, { data: book }] = await Promise.all([
-      supabase.from('author_profiles').select('pen_name, methodology_name, sign_off_phrase, tagline').eq('id', author_id).maybeSingle(),
+      supabase.from('author_profiles').select('pen_name, methodology_name, sign_off_phrase, tagline, author_slug').eq('id', author_id).maybeSingle(),
       book_id
         ? supabase.from('books').select('title, subtitle, description, genre').eq('id', book_id).maybeSingle()
         : Promise.resolve({ data: null }),
@@ -124,6 +124,12 @@ Deno.serve(async (req) => {
       ? `Use this exact cadence (trigger_delay_days for each step in order): ${JSON.stringify(preset.cadence)}.`
       : '';
 
+    // Real microsite URLs the AI can reference (or use {{lead_magnet_url}} placeholder).
+    const PUBLIC_BASE = Deno.env.get('PUBLIC_SITE_URL') || 'https://authorsbureau.com';
+    const slug = author?.author_slug || '';
+    const authorUrl = slug ? `${PUBLIC_BASE}/${slug}` : PUBLIC_BASE;
+    const leadMagnetUrl = slug ? `${PUBLIC_BASE}/${slug}/free-gift` : `${PUBLIC_BASE}/free-gift`;
+
     const systemPrompt = `You are ABBY, an email copywriter for ${author?.pen_name || 'an author'}.
 Write a ${preset.steps}-step email sequence for: ${preset.purpose}
 ${nodeCtx ? `Context: this sequence supports ${nodeCtx}.` : ''}
@@ -131,8 +137,13 @@ Author voice: ${author?.tagline || 'expert, warm, direct'}.
 Methodology: ${author?.methodology_name || 'the author\u2019s framework'}.
 ${book ? `Book: "${book.title}" — ${book.description?.slice(0, 200) || ''}` : ''}
 ${cadenceLine}
+Real URLs you MUST use when linking:
+- Lead magnet / free gift download: ${leadMagnetUrl}
+- Author home / "learn more": ${authorUrl}
+You may also use the placeholder tokens {{lead_magnet_url}}, {{author_url}}, {{first_name}} — they will be substituted at send time.
 Rules:
 - No emdashes anywhere.
+- NEVER write example.com, placeholder.com, or any fake URL. Use the real URLs above.
 - Use sign-off "${author?.sign_off_phrase || 'Best,'}".
 - Each email drives ONE single action.
 - Write like a human, not a marketer. Short paragraphs.
