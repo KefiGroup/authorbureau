@@ -9,11 +9,10 @@ const corsHeaders = {
 
 const MIN_PAYOUT_USD = 50;
 // Per the Payout Agreement, the 8% platform fee covers ALL payment-processing
-// costs (Stripe checkout fees, Wise transfer fees, PayPal transfer fees).
-// These constants are kept ONLY for internal margin reporting on
+// costs (Stripe checkout fees, Stripe Connect transfer fees, PayPal Payouts API
+// fees). These constants are kept ONLY for internal margin reporting on
 // `author_payouts_v2.payout_fee_usd`. They MUST NEVER be subtracted from the
 // author's payout amount — the author always receives exactly net_usd (92%).
-const WISE_FEE_USD = 1.5;
 const PAYPAL_FEE_PCT = 0.02;
 const STRIPE_TRANSFER_FEE_USD = 0;
 
@@ -27,9 +26,56 @@ interface Earning {
   earned_at: string;
 }
 
-function csvEscape(v: unknown): string {
-  const s = String(v ?? "");
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+// --- PayPal Payouts API helpers (dormant when secrets missing) ----------
+const PAYPAL_CLIENT_ID = Deno.env.get("PAYPAL_CLIENT_ID");
+const PAYPAL_SECRET = Deno.env.get("PAYPAL_SECRET");
+const PAYPAL_MODE = (Deno.env.get("PAYPAL_MODE") ?? "live").toLowerCase();
+const PAYPAL_BASE = PAYPAL_MODE === "sandbox"
+  ? "https://api-m.sandbox.paypal.com"
+  : "https://api-m.paypal.com";
+
+async function getPayPalAccessToken(): Promise<string> {
+  const creds = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`);
+  const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${creds}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: "grant_type=client_credentials",
+  });
+  if (!res.ok) throw new Error(`PayPal OAuth failed [${res.status}]: ${await res.text()}`);
+  const json = await res.json();
+  return json.access_token as string;
+}
+
+interface PayPalItem { email: string; amount: number; ref: string; note: string; sender_item_id: string; }
+async function createPayPalBatch(items: PayPalItem[], senderBatchId: string): Promise<string> {
+  const accessToken = await getPayPalAccessToken();
+  const res = await fetch(`${PAYPAL_BASE}/v1/payments/payouts`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sender_batch_header: {
+        sender_batch_id: senderBatchId,
+        email_subject: "You have a payout from Authors Bureau",
+        email_message: "Your monthly royalty payout from Authors Bureau is in your PayPal account.",
+      },
+      items: items.map((i) => ({
+        recipient_type: "EMAIL",
+        amount: { value: i.amount.toFixed(2), currency: "USD" },
+        receiver: i.email,
+        note: i.note,
+        sender_item_id: i.sender_item_id,
+      })),
+    }),
+  });
+  if (!res.ok) throw new Error(`PayPal Payouts API failed [${res.status}]: ${await res.text()}`);
+  const json = await res.json();
+  return json.batch_header?.payout_batch_id as string;
 }
 
 serve(async (req) => {
@@ -44,6 +90,25 @@ serve(async (req) => {
     const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY") || "", {
       apiVersion: "2025-08-27.basil",
     });
+
+    // Optional admin guard: if a user JWT is supplied (non-cron call),
+    // require admin role. Cron calls send the service-role key in
+    // Authorization, which decodes as role 'service_role' — those bypass.
+    const authHeader = req.headers.get("Authorization") || "";
+    const token = authHeader.replace("Bearer ", "");
+    if (token && token !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
+      try {
+        const { data: userRes } = await admin.auth.getUser(token);
+        if (userRes?.user) {
+          const { data: roleRow } = await admin.from("user_roles")
+            .select("role").eq("user_id", userRes.user.id).eq("role", "admin").maybeSingle();
+          if (!roleRow) {
+            return new Response(JSON.stringify({ error: "forbidden" }),
+              { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+          }
+        }
+      } catch { /* allow cron / service-role */ }
+    }
 
     const now = new Date();
     const periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 0));
@@ -72,7 +137,7 @@ serve(async (req) => {
 
     const { data: settings } = await admin
       .from("author_payout_settings")
-      .select("author_id, payout_method, paypal_email_v2, wise_recipient, minimum_payout_usd")
+      .select("author_id, payout_method, paypal_email_v2, minimum_payout_usd")
       .in("author_id", safeIds);
     const settingsByAuthor = new Map<string, any>();
     (settings || []).forEach((s: any) => settingsByAuthor.set(s.author_id, s));
@@ -85,18 +150,19 @@ serve(async (req) => {
     (profiles || []).forEach((p: any) => profileByAuthor.set(p.id, p));
 
     // 3. Process each author
-    const wiseRows: string[] = ["author_id,legal_name,country,bank_account_or_email,amount_usd,reference"];
-    const paypalRows: string[] = ["email,amount_usd,reference,note"];
     const createdPayouts: { author_id: string; net: number; method: string; status: string }[] = [];
     const skippedNoMethod: { author_id: string; net: number }[] = [];
-    let wiseTotal = 0, paypalTotal = 0, stripeTotal = 0;
-    let wiseAuthors = 0, paypalAuthors = 0, stripeAuthors = 0, stripeFailures = 0;
+    const skippedPayPalNotConfigured: { author_id: string; net: number }[] = [];
+    const paypalQueue: { authorId: string; payoutId: string; ernIds: string[]; net: number; email: string; ref: string }[] = [];
+    let stripeTotal = 0, paypalTotal = 0;
+    let stripeAuthors = 0, paypalAuthors = 0;
+    let stripeFailures = 0, paypalFailures = 0;
 
     for (const [authorId, ernList] of byAuthor) {
       const settingRow = settingsByAuthor.get(authorId);
       const profile = profileByAuthor.get(authorId);
       const min = Number(settingRow?.minimum_payout_usd ?? MIN_PAYOUT_USD);
-      const method = settingRow?.payout_method as ("wise" | "paypal" | "stripe" | undefined);
+      const method = settingRow?.payout_method as ("paypal" | "stripe" | undefined);
 
       const gross = ernList.reduce((s, e) => s + Number(e.gross_usd), 0);
       const stripeFees = ernList.reduce((s, e) => s + Number(e.stripe_fee_usd), 0);
@@ -108,21 +174,21 @@ serve(async (req) => {
         skippedNoMethod.push({ author_id: authorId, net: netBeforePayoutFee });
         continue;
       }
-      // Stripe method requires onboarding complete
       if (method === "stripe" && !profile?.stripe_onboarding_complete) {
         skippedNoMethod.push({ author_id: authorId, net: netBeforePayoutFee });
         continue;
       }
+      if (method === "paypal" && !settingRow?.paypal_email_v2) {
+        skippedNoMethod.push({ author_id: authorId, net: netBeforePayoutFee });
+        continue;
+      }
 
-      // Internal-margin reporting only: record the gateway fee Authors Bureau
-      // will absorb out of its 8%. Do NOT subtract it from the author's payout.
-      let payoutFee = 0;
-      if (method === "wise") payoutFee = WISE_FEE_USD;
-      else if (method === "paypal") payoutFee = Math.round(netBeforePayoutFee * PAYPAL_FEE_PCT * 100) / 100;
-      else payoutFee = STRIPE_TRANSFER_FEE_USD;
+      // Internal-margin reporting only — never deducted from author share.
+      const payoutFee = method === "paypal"
+        ? Math.round(netBeforePayoutFee * PAYPAL_FEE_PCT * 100) / 100
+        : STRIPE_TRANSFER_FEE_USD;
 
-      // Author always receives the full 92% net — gateway fees come out of
-      // the platform's 8% margin, never the author's share.
+      // Author always receives exactly 92% of gross.
       const net = Math.round(netBeforePayoutFee * 100) / 100;
       if (net <= 0) continue;
 
@@ -142,7 +208,7 @@ serve(async (req) => {
       }).select().single();
       if (payErr) { console.error("[payouts] insert failed", payErr); continue; }
 
-      // Link earnings
+      // Link earnings to this payout
       await admin.from("author_earnings").update({ payout_id: payout.id, paid_out: true })
         .in("id", ernList.map((e) => e.id));
 
@@ -155,11 +221,7 @@ serve(async (req) => {
             destination: profile.stripe_account_id,
             transfer_group: `PAYOUT_${periodTag}_${authorId}`,
             description: `Authors Bureau royalties ${fmtDate(periodStart)} → ${fmtDate(periodEnd)}`,
-            metadata: {
-              author_id: authorId,
-              payout_id: payout.id,
-              period: periodTag,
-            },
+            metadata: { author_id: authorId, payout_id: payout.id, period: periodTag },
           });
           await admin.from("author_payouts_v2").update({
             status: "paid",
@@ -176,55 +238,81 @@ serve(async (req) => {
             status: "failed",
             notes: `Stripe transfer failed: ${msg}`,
           }).eq("id", payout.id);
-          // Roll back earnings so they retry next month
           await admin.from("author_earnings").update({ payout_id: null, paid_out: false })
             .in("id", ernList.map((e) => e.id));
           stripeFailures++;
           createdPayouts.push({ author_id: authorId, net, method, status: "failed" });
         }
-      } else if (method === "wise") {
-        const wr = settingRow.wise_recipient || {};
-        wiseRows.push([
-          authorId, csvEscape(wr.legal_name || profile?.pen_name || ""), csvEscape(wr.country || ""),
-          csvEscape(wr.bank_account || wr.wise_email || ""), net.toFixed(2), ref,
-        ].join(","));
-        wiseTotal += net; wiseAuthors++;
-        createdPayouts.push({ author_id: authorId, net, method, status: "queued" });
       } else {
-        paypalRows.push([
-          csvEscape(settingRow.paypal_email_v2 || ""), net.toFixed(2), ref,
-          csvEscape(`Authors Bureau royalties ${fmtDate(periodStart)}–${fmtDate(periodEnd)}`),
-        ].join(","));
-        paypalTotal += net; paypalAuthors++;
-        createdPayouts.push({ author_id: authorId, net, method, status: "queued" });
+        // PayPal — queue for batch send (or graceful skip if not configured)
+        if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET) {
+          await admin.from("author_payouts_v2").update({
+            status: "pending_setup",
+            notes: "PayPal Payouts API not configured (PAYPAL_CLIENT_ID / PAYPAL_SECRET missing)",
+          }).eq("id", payout.id);
+          await admin.from("author_earnings").update({ payout_id: null, paid_out: false })
+            .in("id", ernList.map((e) => e.id));
+          skippedPayPalNotConfigured.push({ author_id: authorId, net });
+          continue;
+        }
+        paypalQueue.push({
+          authorId,
+          payoutId: payout.id,
+          ernIds: ernList.map((e) => e.id),
+          net,
+          email: settingRow.paypal_email_v2,
+          ref,
+        });
       }
     }
 
-    // 4. Upload CSVs and create batch records (Wise/PayPal only)
-    if (wiseAuthors > 0) {
-      const path = `batches/${periodTag}/wise-${periodTag}.csv`;
-      await admin.storage.from("payouts").upload(path, new Blob([wiseRows.join("\n")], { type: "text/csv" }), { upsert: true });
-      const { data: batch } = await admin.from("payout_batches").insert({
-        provider: "wise", period_start: fmtDate(periodStart), period_end: fmtDate(periodEnd),
-        csv_storage_path: path, total_authors: wiseAuthors, total_amount_usd: Math.round(wiseTotal * 100) / 100,
-      }).select().single();
-      if (batch) await admin.from("author_payouts_v2").update({ csv_batch_id: batch.id })
-        .eq("payout_method", "wise").eq("period_start", fmtDate(periodStart)).is("csv_batch_id", null);
-    }
-    if (paypalAuthors > 0) {
-      const path = `batches/${periodTag}/paypal-${periodTag}.csv`;
-      await admin.storage.from("payouts").upload(path, new Blob([paypalRows.join("\n")], { type: "text/csv" }), { upsert: true });
-      const { data: batch } = await admin.from("payout_batches").insert({
-        provider: "paypal", period_start: fmtDate(periodStart), period_end: fmtDate(periodEnd),
-        csv_storage_path: path, total_authors: paypalAuthors, total_amount_usd: Math.round(paypalTotal * 100) / 100,
-      }).select().single();
-      if (batch) await admin.from("author_payouts_v2").update({ csv_batch_id: batch.id })
-        .eq("payout_method", "paypal").eq("period_start", fmtDate(periodStart)).is("csv_batch_id", null);
+    // 4. Send PayPal batch (one API call for all PayPal payouts)
+    if (paypalQueue.length > 0 && PAYPAL_CLIENT_ID && PAYPAL_SECRET) {
+      const senderBatchId = `AB-${periodTag}-${Date.now()}`;
+      try {
+        const batchId = await createPayPalBatch(
+          paypalQueue.map((q) => ({
+            email: q.email,
+            amount: q.net,
+            ref: q.ref,
+            note: `Authors Bureau royalties ${fmtDate(periodStart)} – ${fmtDate(periodEnd)}`,
+            sender_item_id: q.payoutId,
+          })),
+          senderBatchId,
+        );
+        // Mark all queued PayPal payouts as 'paid' (fire-and-forget; the
+        // paypal-payouts-webhook will downgrade them to 'failed' if any
+        // individual transfer fails on PayPal's side).
+        for (const q of paypalQueue) {
+          await admin.from("author_payouts_v2").update({
+            status: "paid",
+            external_reference: batchId,
+            paid_at: new Date().toISOString(),
+          }).eq("id", q.payoutId);
+          createdPayouts.push({ author_id: q.authorId, net: q.net, method: "paypal", status: "paid" });
+          paypalTotal += q.net;
+          paypalAuthors++;
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        console.error("[payouts] PayPal batch failed", msg);
+        // Roll back all queued PayPal payouts
+        for (const q of paypalQueue) {
+          await admin.from("author_payouts_v2").update({
+            status: "failed",
+            notes: `PayPal batch failed: ${msg}`,
+          }).eq("id", q.payoutId);
+          await admin.from("author_earnings").update({ payout_id: null, paid_out: false })
+            .in("id", q.ernIds);
+          paypalFailures++;
+          createdPayouts.push({ author_id: q.authorId, net: q.net, method: "paypal", status: "failed" });
+        }
+      }
     }
 
     const resendKey = Deno.env.get("RESEND_API_KEY");
 
-    // 5. Notify each author whose payout went out (or failed for stripe)
+    // 5. Notify each author
     if (resendKey) {
       for (const p of createdPayouts) {
         const profile = profileByAuthor.get(p.author_id);
@@ -235,22 +323,21 @@ serve(async (req) => {
 
         const subject = p.status === "paid"
           ? `Your $${p.net.toFixed(2)} payout has been sent`
-          : p.status === "failed"
-          ? `Action needed: your payout failed`
-          : `Your $${p.net.toFixed(2)} payout is being processed`;
+          : `Action needed: your payout failed`;
 
         const html = p.status === "failed"
           ? `<div style="font-family: Georgia, serif; max-width:600px; margin:0 auto; padding:40px 20px;">
               <h2>Hi ${profile.pen_name || "there"},</h2>
-              <p>We tried to transfer <strong>$${p.net.toFixed(2)} USD</strong> to your Stripe Express account but the transfer failed.</p>
-              <p>This usually means your Stripe account needs additional verification. Please log into your <a href="https://authorsbureau.com/account-settings?tab=payouts">Payout Settings</a> and complete any outstanding requirements. We'll automatically retry on the next run.</p>
+              <p>We tried to transfer <strong>$${p.net.toFixed(2)} USD</strong> to you via ${p.method.toUpperCase()} but the transfer failed.</p>
+              <p>${p.method === "stripe"
+                ? `This usually means your Stripe account needs additional verification. Please log into your <a href="https://authorsbureau.com/account-settings?tab=payouts">Payout Settings</a> and complete any outstanding requirements.`
+                : `Please double-check the PayPal email on your <a href="https://authorsbureau.com/account-settings?tab=payouts">Payout Settings</a>. If you've recently changed it, we'll automatically retry next month.`}</p>
+              <p>We'll automatically retry on the next run.</p>
               <hr/><p style="font-size:12px;color:#888;">Authors Bureau · For Multiplier Pte Ltd · Singapore</p>
             </div>`
           : `<div style="font-family: Georgia, serif; max-width:600px; margin:0 auto; padding:40px 20px;">
               <h2>Hi ${profile.pen_name || "there"},</h2>
-              <p>${p.status === "paid"
-                ? `Great news — your monthly payout of <strong>$${p.net.toFixed(2)} USD</strong> has been sent via <strong>Stripe</strong> and should arrive in your bank within 1–3 business days.`
-                : `Great news — your monthly payout of <strong>$${p.net.toFixed(2)} USD</strong> is being processed via ${p.method.toUpperCase()}. You should receive funds within 1–3 business days.`}</p>
+              <p>Great news — your monthly payout of <strong>$${p.net.toFixed(2)} USD</strong> has been sent via <strong>${p.method === "stripe" ? "Stripe" : "PayPal"}</strong> and should arrive within 1–3 business days.</p>
               <p>View details in your <a href="https://authorsbureau.com/earnings">Earnings dashboard</a>.</p>
               <hr/><p style="font-size:12px;color:#888;">Authors Bureau · For Multiplier Pte Ltd · Singapore</p>
             </div>`;
@@ -261,9 +348,7 @@ serve(async (req) => {
             headers: { "Authorization": `Bearer ${resendKey}`, "Content-Type": "application/json" },
             body: JSON.stringify({
               from: "Authors Bureau <notify@notify.authorsbureau.com>",
-              to: [email],
-              subject,
-              html,
+              to: [email], subject, html,
             }),
           });
         } catch (e) { console.error("[payouts] author email failed", e); }
@@ -287,7 +372,7 @@ serve(async (req) => {
               html: `<div style="font-family: Georgia, serif; max-width:600px; margin:0 auto; padding:40px 20px;">
                 <h2>Hi ${profile.pen_name || "there"},</h2>
                 <p>You've earned <strong>$${s.net.toFixed(2)} USD</strong> in royalties on Authors Bureau, but we don't have a way to pay you yet.</p>
-                <p>Set up your payout method (Stripe Express, Wise, or PayPal) and we'll send the funds on the next 1st of the month.</p>
+                <p>Set up your payout method (Stripe Express or PayPal) and we'll send the funds on the next 1st of the month.</p>
                 <p><a href="https://authorsbureau.com/account-settings?tab=payouts" style="background:#0F2D4A;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">Connect Payout Account →</a></p>
                 <hr/><p style="font-size:12px;color:#888;">Authors Bureau · For Multiplier Pte Ltd · Singapore</p>
               </div>`,
@@ -297,8 +382,15 @@ serve(async (req) => {
       }
     }
 
-    // 7. Notify owner of any stripe failures
-    if (stripeFailures > 0 && resendKey) {
+    // 7. Owner alert — Stripe failures or PayPal not configured
+    const ownerAlerts: string[] = [];
+    if (stripeFailures > 0) ownerAlerts.push(`${stripeFailures} Stripe transfer(s) failed`);
+    if (paypalFailures > 0) ownerAlerts.push(`${paypalFailures} PayPal payout(s) failed`);
+    if (skippedPayPalNotConfigured.length > 0) {
+      const total = skippedPayPalNotConfigured.reduce((s, x) => s + x.net, 0);
+      ownerAlerts.push(`${skippedPayPalNotConfigured.length} PayPal author(s) waiting ($${total.toFixed(2)}) — PAYPAL_CLIENT_ID / PAYPAL_SECRET not set in Lovable Cloud secrets`);
+    }
+    if (ownerAlerts.length > 0 && resendKey) {
       try {
         await fetch("https://api.resend.com/emails", {
           method: "POST",
@@ -306,8 +398,8 @@ serve(async (req) => {
           body: JSON.stringify({
             from: "Authors Bureau <notify@notify.authorsbureau.com>",
             to: ["paulinet77@gmail.com"],
-            subject: `[Payouts] ${stripeFailures} Stripe transfer(s) failed for ${periodTag}`,
-            html: `<p>${stripeFailures} Stripe Express transfer(s) failed during the ${periodTag} payout run. Affected authors have been notified and their earnings remain in 'pending' state for retry. Check the admin payouts dashboard for details.</p>`,
+            subject: `[Payouts] ${periodTag} run — ${ownerAlerts.length} issue(s) need attention`,
+            html: `<p>The ${periodTag} payout run completed with the following issues:</p><ul>${ownerAlerts.map((a) => `<li>${a}</li>`).join("")}</ul><p>Check the admin payouts dashboard for details.</p>`,
           }),
         });
       } catch (e) { console.error("[payouts] owner alert failed", e); }
@@ -317,11 +409,11 @@ serve(async (req) => {
       ok: true,
       period: `${fmtDate(periodStart)} → ${fmtDate(periodEnd)}`,
       payouts_created: createdPayouts.length,
-      total_amount_usd: Math.round((wiseTotal + paypalTotal + stripeTotal) * 100) / 100,
+      total_amount_usd: Math.round((stripeTotal + paypalTotal) * 100) / 100,
       stripe: { authors: stripeAuthors, total: Math.round(stripeTotal * 100) / 100, failures: stripeFailures },
-      wise: { authors: wiseAuthors, total: Math.round(wiseTotal * 100) / 100 },
-      paypal: { authors: paypalAuthors, total: Math.round(paypalTotal * 100) / 100 },
+      paypal: { authors: paypalAuthors, total: Math.round(paypalTotal * 100) / 100, failures: paypalFailures, configured: !!(PAYPAL_CLIENT_ID && PAYPAL_SECRET) },
       reminders_sent: skippedNoMethod.length,
+      paypal_pending_setup: skippedPayPalNotConfigured.length,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("[run-monthly-payouts] error", error);
