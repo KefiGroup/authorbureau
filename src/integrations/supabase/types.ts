@@ -1314,7 +1314,29 @@ export type Database = {
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bug_reports: {
         Row: {
@@ -5886,7 +5908,29 @@ export type Database = {
           title?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       link_audit_v: {
         Row: {
