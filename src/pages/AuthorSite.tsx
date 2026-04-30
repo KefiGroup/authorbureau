@@ -141,8 +141,9 @@ export default function AuthorSite() {
       if (!isOwnerLocal) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
-    const [booksRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes, testimonialsRes, contextRes, curatedBookIdRes] = await Promise.all([
+    const [booksRes, booksByUserIdRes, booksByNameRes, homeStudyRes, coursesRes, coachingRes, audiobooksRes, podcastsRes, nodesRes, testimonialsRes, contextRes, curatedBookIdRes] = await Promise.all([
       booksQuery,
+      booksByUserIdQuery ? booksByUserIdQuery : Promise.resolve({ data: [] as unknown[] }),
       booksByNameQuery ? booksByNameQuery : Promise.resolve({ data: [] as unknown[] }),
       supabase.from("home_study_courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
       supabase.from("courses").select("id, title, price, currency, book_id, description").eq("author_id", profile.user_id).eq("status", "published"),
@@ -161,9 +162,16 @@ export default function AuthorSite() {
       supabase.rpc("get_author_curated_book_id" as any, { _author_id: profile.id } as any),
     ]);
 
-    const booksPrimary = (booksRes.data || []) as Record<string, unknown>[];
-    const booksFallback = (booksByNameRes?.data || []) as Record<string, unknown>[];
-    const books = booksPrimary.length > 0 ? booksPrimary : booksFallback;
+    // Merge all three book queries by id, preferring the primary (profile.id) match.
+    const booksMap = new Map<string, Record<string, unknown>>();
+    for (const b of [
+      ...((booksRes.data || []) as Record<string, unknown>[]),
+      ...((booksByUserIdRes?.data || []) as Record<string, unknown>[]),
+      ...((booksByNameRes?.data || []) as Record<string, unknown>[]),
+    ]) {
+      if (b?.id && !booksMap.has(b.id as string)) booksMap.set(b.id as string, b);
+    }
+    const books = Array.from(booksMap.values());
     const homeStudy = (homeStudyRes.data || []) as Record<string, unknown>[];
     const courses = (coursesRes.data || []) as Record<string, unknown>[];
     const coaching = (coachingRes.data || []) as CoachingService[];
