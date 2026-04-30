@@ -245,7 +245,7 @@ export default function SmartProductCard({
   id, label, icon: Icon, description, personalizedDescription,
   state, tierRequired, revenue, progressPercent,
   stats, liveRevenue, lastActivityAt,
-  onBuild, onContinue, onView, onUpgrade, genre, code,
+  onBuild, onContinue, onView, onUpgrade, onRestart, genre, code,
 }: SmartProductCardProps) {
   const category = getBuilderCategory(code ?? "");
   const catTokens = categoryCard[category];
