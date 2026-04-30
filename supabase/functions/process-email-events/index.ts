@@ -86,6 +86,38 @@ Deno.serve(async (req) => {
         else if (newScore >= 20) stage = 'warm';
         else if (newScore >= 5) stage = 'engaged';
         await supabase.from('leads').update({ abby_score: newScore, stage, last_activity_at: now }).eq('id', leadId);
+
+        // Mirror the score + stage bump to crm_contacts (Hot Leads source).
+        // Silent no-op if there's no matching contact row.
+        if (authorId) {
+          try {
+            const { data: leadRow } = await supabase
+              .from('leads').select('email').eq('id', leadId).maybeSingle();
+            const leadEmail = leadRow?.email?.toLowerCase();
+            if (leadEmail) {
+              const { data: contact } = await supabase
+                .from('crm_contacts')
+                .select('id, abby_score')
+                .eq('author_id', authorId)
+                .eq('email', leadEmail)
+                .maybeSingle();
+              if (contact) {
+                const contactNewScore = Math.min(100, Math.max(0, (contact.abby_score || 0) + delta));
+                let contactStage = 'new_lead';
+                if (contactNewScore >= 50) contactStage = 'hot';
+                else if (contactNewScore >= 20) contactStage = 'warm';
+                else if (contactNewScore >= 5) contactStage = 'engaged';
+                await supabase.from('crm_contacts').update({
+                  abby_score: contactNewScore,
+                  stage: contactStage,
+                  last_activity_at: now,
+                }).eq('id', contact.id);
+              }
+            }
+          } catch (mirrorErr) {
+            console.warn('[process-email-events] crm_contacts mirror failed (non-fatal)', mirrorErr);
+          }
+        }
       }
     }
 

@@ -95,6 +95,40 @@ export default function ConnectSettings() {
 
   useEffect(() => { refresh(); }, [user?.id]);
 
+  // Auto-refresh the connection badges when the tab regains focus.
+  // Stripe Connect happens in another tab/window; without this the badge
+  // would stay "Not Connected" until the user manually reloads.
+  useEffect(() => {
+    if (!user?.id) return;
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    const onFocus = () => refresh();
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onFocus);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  // If we just returned from Stripe onboarding, force a refresh and clean URL.
+  useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("stripe") === "connected" || params.get("stripe") === "success") {
+      refresh().then(() => {
+        toast({ title: "Stripe connected", description: "Your payments account is now active." });
+      });
+      params.delete("stripe");
+      const qs = params.toString();
+      const newUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const connFor = (p: string) => connections.find(c => c.platform === p && c.status === "connected");
 
   const handleConnect = async (platform: string) => {
