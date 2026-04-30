@@ -89,7 +89,7 @@ export default function LiveMicrositesGrid() {
     );
   }
 
-  const liveNodes = nodes.filter(n => n.delivery_url);
+  const liveNodes = nodes.map(n => ({ ...n, _publicUrl: pickPublicUrl(n) })).filter(n => n._publicUrl);
   const allLiveNodeIds = new Set(nodes.map(n => n.node_id));
   const inactive = ALL_BUILDER_NODES.filter(n => !allLiveNodeIds.has(n.id));
 
