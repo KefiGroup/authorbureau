@@ -37,6 +37,7 @@ interface Book {
   kindle_price?: string;
   paperback_price?: string;
   amazon_url?: string;
+  amazon_kindle_url?: string;
   cover_image_url?: string;
   author_id: string;
   author_name: string;
@@ -667,7 +668,25 @@ export default function AuthorBookPage() {
                     }}
                   >
                     <ExternalLink className="h-4 w-4" />
-                    {isAmazonLink ? "Buy on Amazon" : "Get Your Copy"}
+                    {isAmazonLink ? (book.amazon_kindle_url ? "Buy on Amazon (Paperback)" : "Buy on Amazon") : "Get Your Copy"}
+                  </a>
+                )}
+                {book.amazon_kindle_url && (
+                  <a
+                    href={book.amazon_kindle_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
+                    style={{
+                      background: "transparent",
+                      border: `2px solid ${v.accent}`,
+                      color: v.accent,
+                      padding: "12px 32px",
+                      borderRadius: "8px",
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Buy on Amazon (Kindle)
                   </a>
                 )}
                 <button

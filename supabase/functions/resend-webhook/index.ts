@@ -163,9 +163,10 @@ Deno.serve(async (req) => {
       if (leads && leads.length > 0) {
         for (const lead of leads) {
           const newScore = Math.min(100, (lead.abby_score || 0) + delta);
+          const nowIso = new Date().toISOString();
           await supabase.from('leads').update({
             abby_score: newScore,
-            last_activity_at: new Date().toISOString(),
+            last_activity_at: nowIso,
           }).eq('id', lead.id);
           await supabase.from('lead_activities').insert({
             lead_id: lead.id,
@@ -173,6 +174,27 @@ Deno.serve(async (req) => {
             activity_type: activityType,
             metadata: { message_id: messageId, delta, new_score: newScore },
           });
+
+          // Mirror the score bump to crm_contacts so the Hot Leads list
+          // (which reads from crm_contacts) reflects email engagement.
+          // Silent no-op if there's no matching contact row.
+          try {
+            const { data: contact } = await supabase
+              .from('crm_contacts')
+              .select('id, abby_score')
+              .eq('author_id', lead.author_id)
+              .eq('email', email.toLowerCase())
+              .maybeSingle();
+            if (contact) {
+              const contactNewScore = Math.min(100, (contact.abby_score || 0) + delta);
+              await supabase.from('crm_contacts').update({
+                abby_score: contactNewScore,
+                last_activity_at: nowIso,
+              }).eq('id', contact.id);
+            }
+          } catch (mirrorErr) {
+            console.warn('[resend-webhook] crm_contacts mirror failed (non-fatal)', mirrorErr);
+          }
         }
       }
     } catch (scoreErr) {

@@ -1224,6 +1224,7 @@ export type Database = {
         Row: {
           ai_enriched: boolean | null
           amazon_author_profile_url: string | null
+          amazon_kindle_url: string | null
           amazon_url: string | null
           approval_status: string
           author_bio: string | null
@@ -1256,6 +1257,7 @@ export type Database = {
         Insert: {
           ai_enriched?: boolean | null
           amazon_author_profile_url?: string | null
+          amazon_kindle_url?: string | null
           amazon_url?: string | null
           approval_status?: string
           author_bio?: string | null
@@ -1288,6 +1290,7 @@ export type Database = {
         Update: {
           ai_enriched?: boolean | null
           amazon_author_profile_url?: string | null
+          amazon_kindle_url?: string | null
           amazon_url?: string | null
           approval_status?: string
           author_bio?: string | null

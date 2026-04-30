@@ -25,6 +25,7 @@ interface Book {
   kindle_price?: string;
   paperback_price?: string;
   amazon_url?: string;
+  amazon_kindle_url?: string;
   cover_image_url?: string;
   author_id: string;
   author_name: string;
@@ -305,7 +306,15 @@ export default function DynamicBookMicrosite() {
                   <Button asChild className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 rounded-full font-semibold">
                     <a href={book.amazon_url} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="mr-2 h-4 w-4" />
-                      {isAmazonLink ? "Buy on Amazon" : "Get Your Copy"}
+                      {isAmazonLink ? (book.amazon_kindle_url ? "Buy on Amazon (Paperback)" : "Buy on Amazon") : "Get Your Copy"}
+                    </a>
+                  </Button>
+                )}
+                {book.amazon_kindle_url && (
+                  <Button asChild variant="outline" className="w-full mt-2 rounded-full font-semibold border-secondary text-secondary hover:bg-secondary/10">
+                    <a href={book.amazon_kindle_url} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="mr-2 h-4 w-4" />
+                      Buy on Amazon (Kindle)
                     </a>
                   </Button>
                 )}

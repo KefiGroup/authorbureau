@@ -1,0 +1,1 @@
+ALTER TABLE public.books ADD COLUMN IF NOT EXISTS amazon_kindle_url text NULL;
