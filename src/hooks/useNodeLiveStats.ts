@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { hasRequiredAssets } from "@/lib/node-readiness";
+import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "@/lib/node-readiness";
 
 export interface NodeLiveStats {
   status: string | null;
@@ -57,12 +57,14 @@ export function useNodeLiveStats(bookId?: string | null): {
           }
           return;
         }
-        let q = supabase
+        // Always fetch ALL of the author's rows. Book scoping is applied
+        // per-row below so author-level nodes (email, podcast, social, YR-*)
+        // count on every book's dashboard, while book-specific products
+        // only count for their own book_id. Mirrors useBookNodeProgress.
+        const { data: rows } = await supabase
           .from("author_nodes")
           .select("node_id, status, revenue_to_date, activated_at, current_step, book_id, microsite_url, content_json")
           .eq("author_id", profile.id);
-        if (bookId) q = q.eq("book_id", bookId);
-        const { data: rows } = await q;
 
         const map: Record<string, NodeLiveStats> = {};
         // Pick the most-progressed row per node_id (in case multiple books).
@@ -70,6 +72,11 @@ export function useNodeLiveStats(bookId?: string | null): {
           s === "live" ? 4 : s === "content_ready" ? 2 : s === "draft" ? 1 : 0;
         (rows || []).forEach((r: any) => {
           const code = r.node_id;
+          // Per-row scope check.
+          const isAuthorLevel = AUTHOR_LEVEL_NODES.has(code);
+          const matchesBook = !bookId || !r.book_id || r.book_id === bookId;
+          if (!isAuthorLevel && !matchesBook) return;
+
           const rawStatus: string | null = r.status ?? null;
           // Downgrade Live → content_ready if the node lacks required assets
           const effective =
