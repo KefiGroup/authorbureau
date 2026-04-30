@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,10 +8,42 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RefreshCw, Bug, MessageSquare, MessagesSquare, Search } from "lucide-react";
+import { RefreshCw, Bug, MessageSquare, MessagesSquare, Search, Clock, AlertTriangle, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict, isPast } from "date-fns";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
+
+function SlaBadge({ bug }: { bug: BugReport }) {
+  if (bug.status === "resolved") return null;
+  const now = Date.now();
+  // Pick the most relevant deadline
+  const firstDue = bug.first_response_due_at ? new Date(bug.first_response_due_at).getTime() : null;
+  const resDue = bug.resolution_due_at ? new Date(bug.resolution_due_at).getTime() : null;
+  const needsFirstResponse = !bug.first_response_at && firstDue;
+  const target = needsFirstResponse ? firstDue : resDue;
+  if (!target) return null;
+  const breached = target < now;
+  const label = needsFirstResponse ? "1st response" : "Resolve";
+  const ref = new Date(target);
+  return (
+    <Badge
+      variant="outline"
+      className={
+        breached
+          ? "bg-red-100 text-red-700 border-red-300 gap-1"
+          : target - now < 4 * 3600 * 1000
+          ? "bg-amber-100 text-amber-700 border-amber-300 gap-1"
+          : "bg-emerald-50 text-emerald-700 border-emerald-200 gap-1"
+      }
+    >
+      {breached ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+      {label}{" "}
+      {breached
+        ? `+${formatDistanceToNowStrict(ref)}`
+        : `${formatDistanceToNowStrict(ref)} left`}
+    </Badge>
+  );
+}
 
 type BugReport = {
   id: string;
