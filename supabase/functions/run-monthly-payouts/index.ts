@@ -8,10 +8,13 @@ const corsHeaders = {
 };
 
 const MIN_PAYOUT_USD = 50;
+// Per the Payout Agreement, the 8% platform fee covers ALL payment-processing
+// costs (Stripe checkout fees, Wise transfer fees, PayPal transfer fees).
+// These constants are kept ONLY for internal margin reporting on
+// `author_payouts_v2.payout_fee_usd`. They MUST NEVER be subtracted from the
+// author's payout amount — the author always receives exactly net_usd (92%).
 const WISE_FEE_USD = 1.5;
 const PAYPAL_FEE_PCT = 0.02;
-// Stripe transfers between platform balance and connected account are FREE
-// (Stripe only charges processing fees at the time the customer paid).
 const STRIPE_TRANSFER_FEE_USD = 0;
 
 interface Earning {
