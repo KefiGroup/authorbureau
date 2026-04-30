@@ -190,6 +190,20 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const earnings = grossSales - platformFee - stripeFees;
   const hasRevenue = grossSales > 0;
 
+  const micrositeUrl = slug ? `${window.location.origin}/${slug}` : null;
+  const funnelConvRate = funnelStats.views > 0 ? (funnelStats.conversions / funnelStats.views) * 100 : 0;
+  const copyLink = () => {
+    if (micrositeUrl) {
+      navigator.clipboard.writeText(micrositeUrl);
+      toast({ title: "Link copied!" });
+    }
+  };
+
+  const weekTrend = useMemo(() => {
+    if (leadsLastWeek === 0) return leadsThisWeek > 0 ? 100 : 0;
+    return ((leadsThisWeek - leadsLastWeek) / leadsLastWeek) * 100;
+  }, [leadsThisWeek, leadsLastWeek]);
+
   // Determine the correct next step based on user state
   const getNextStep = () => {
     if (!hasAccess) {
