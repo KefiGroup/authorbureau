@@ -129,27 +129,43 @@ Deno.serve(async (req) => {
       return respond({ success: false, error: "Unable to locate your author profile." });
     }
 
+    // Optional per-book scope. When present, every per-book table is filtered
+    // by `book_id`; author-level tables (e.g. author_email_settings) ignore it.
+    const bookId = typeof body?.book_id === "string" && body.book_id.length > 0 ? body.book_id : null;
+
     if (action === "snapshot") {
+      let nodesQuery = cloudAdmin
+        .from("author_nodes")
+        .select("node_id, status, marketing_activated_at, activated_at, content_json, personalised_name, microsite_url")
+        .eq("author_id", authorProfile.id);
+      if (bookId) nodesQuery = nodesQuery.eq("book_id", bookId);
+
+      let socialQuery = cloudAdmin
+        .from("social_posts")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03");
+      if (bookId) socialQuery = socialQuery.eq("book_id", bookId);
+
+      let sequencesQuery = cloudAdmin
+        .from("email_flows")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", authorProfile.id);
+      if (bookId) sequencesQuery = sequencesQuery.eq("book_id", bookId);
+
+      let contactsQuery = cloudAdmin
+        .from("crm_contacts")
+        .select("id", { count: "exact", head: true })
+        // crm_contacts.author_id is keyed by auth.users.id (matches RLS auth.uid()=author_id),
+        // not author_profiles.id. submit-funnel resolves authorUserId before insert.
+        .eq("author_id", (authorProfile as any).user_id);
+      if (bookId) contactsQuery = contactsQuery.eq("book_id", bookId);
+
       const [nodesRes, socialRes, sequencesRes, contactsRes, settingsRes] = await Promise.all([
-        cloudAdmin
-          .from("author_nodes")
-          .select("node_id, status, marketing_activated_at, activated_at, content_json, personalised_name, microsite_url")
-          .eq("author_id", authorProfile.id),
-        cloudAdmin
-          .from("social_posts")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", authorProfile.id)
-          .eq("node_id", "BP-03"),
-        cloudAdmin
-          .from("email_flows")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", authorProfile.id),
-        cloudAdmin
-          .from("crm_contacts")
-          .select("id", { count: "exact", head: true })
-          // crm_contacts.author_id is keyed by auth.users.id (matches RLS auth.uid()=author_id),
-          // not author_profiles.id. submit-funnel resolves authorUserId before insert.
-          .eq("author_id", (authorProfile as any).user_id),
+        nodesQuery,
+        socialQuery,
+        sequencesQuery,
+        contactsQuery,
         cloudAdmin
           .from("author_email_settings")
           .select("domain_verified")
