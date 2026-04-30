@@ -90,9 +90,7 @@ export default function PayoutsSettings() {
     setConnectingStripe(true);
     try {
       const returnPath = window.location.pathname + window.location.search;
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard", return_path: returnPath },
-      });
+      const { data, error } = await callStripeConnect({ action: "onboard", return_path: returnPath });
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
     } catch (e) {
