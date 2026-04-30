@@ -20,6 +20,7 @@ import {
 import HomeStudyExportModal from "./HomeStudyExportModal";
 import MarkdownRenderer from "./MarkdownRenderer";
 import HomeStudyReviewView from "./review/HomeStudyReviewView";
+import LiveMicrositesGrid from "./review/LiveMicrositesGrid";
 import { ALL_BUILDER_NODES, type BuilderNodeConfig } from "../dashboard/builders/builderNodeConfig";
 import { toast } from "@/hooks/use-toast";
 
@@ -307,6 +308,9 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
   return (
     <div className="max-w-5xl space-y-6">
+      {/* ── Live Microsites Grid (Audit #6) ─────────────────── */}
+      <LiveMicrositesGrid />
+
       {/* ── Header ───────────────────────────────────────────── */}
       <div>
         <h1 className="font-heading text-2xl md:text-3xl font-bold tracking-tight">
