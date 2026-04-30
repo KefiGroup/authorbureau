@@ -218,15 +218,56 @@ Deno.serve(async (req) => {
     const { data: authorNodes } = allProfileIds.length > 0
       ? await admin
           .from("author_nodes")
-          .select("node_id, status, book_id")
+          .select("node_id, status, book_id, content_json")
           .in("author_id", allProfileIds)
           .in("status", ["content_ready", "live", "published_pending_ghl"])
       : { data: [] };
 
-    // Collect unique built node_ids
+    // Mirror src/lib/node-readiness.ts so the dashboard counter matches the
+    // Book Hub "Live vs Building" tile state. A node row may be status='live'
+    // but missing required content_json — those must NOT count as built.
+    function hasRequiredAssets(nodeId: string, content: any): boolean {
+      if (!content || typeof content !== "object") return false;
+      switch (nodeId) {
+        case "BP-04": {
+          const fields = ["hero_headline","hero_subheadline","about_long","about_short","cta_label","lead_magnet_id"];
+          const hasField = fields.some((k) => {
+            const v = content[k];
+            return typeof v === "string" ? v.trim().length > 0 : !!v;
+          });
+          const hasSections = Array.isArray(content.sections) && content.sections.length > 0;
+          return hasField || hasSections;
+        }
+        case "BA-13": {
+          const hasSchedule = Array.isArray(content.sessions) ? content.sessions.length > 0 : !!content.schedule;
+          return hasSchedule;
+        }
+        case "BA-14": {
+          const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
+          const episodes = Array.isArray(content.episodes) ? content.episodes : [];
+          return rssReady && episodes.length > 0;
+        }
+        case "BA-15": {
+          const hasPressRelease = !!(content.press_release || content.press_release_html || content?.assets?.press_release);
+          const hasMediaList = Array.isArray(content.media_list)
+            ? content.media_list.length > 0
+            : Array.isArray(content.outlets) ? content.outlets.length > 0 : false;
+          return hasPressRelease && hasMediaList;
+        }
+        default:
+          return Object.keys(content).length > 0;
+      }
+    }
+
+    // Only count nodes that are truly built (status live + readiness gate).
     const builtNodeIds = new Set<string>();
-    for (const n of authorNodes || []) {
+    const builtRows: Array<{ node_id: string; book_id: string | null }> = [];
+    for (const n of (authorNodes || []) as any[]) {
+      const isLiveStatus = n.status === "live" || n.status === "published_pending_ghl";
+      if (!isLiveStatus) continue;
+      if (!hasRequiredAssets(n.node_id, n.content_json)) continue;
       builtNodeIds.add(n.node_id);
+      builtRows.push({ node_id: n.node_id, book_id: n.book_id });
     }
     // Also count website as built if author_slug is set
     if (profile?.author_slug) {
