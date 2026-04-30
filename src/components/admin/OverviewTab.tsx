@@ -2,6 +2,7 @@ import { Loader2, BookOpen, ShieldCheck, ArrowRight, RefreshCw, UserCheck, Conta
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import SystemHealthCard from "./SystemHealthCard";
 import type { AdminStats, Submission } from "@/types/admin";
 
 interface ProductCounts {
@@ -240,6 +241,8 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
           )}
         </Card>
       </div>
+
+      <SystemHealthCard />
 
       {/* Quick Actions */}
       <div className="space-y-3">

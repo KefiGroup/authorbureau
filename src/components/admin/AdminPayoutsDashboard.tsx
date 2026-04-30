@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { Loader2, CheckCircle2, AlertTriangle, Send, Play, FileText } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Send, Play, FileText, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
@@ -60,6 +63,30 @@ export default function AdminPayoutsDashboard() {
   const [processingAuthor, setProcessingAuthor] = useState<string | null>(null);
   const [runningPayouts, setRunningPayouts] = useState(false);
   const [runningStatements, setRunningStatements] = useState(false);
+  const [refundTarget, setRefundTarget] = useState<PurchaseRow | null>(null);
+  const [refundReason, setRefundReason] = useState("");
+  const [refunding, setRefunding] = useState(false);
+
+  const handleRefund = async () => {
+    if (!refundTarget) return;
+    if (refundReason.trim().length < 3) { toast.error("Reason required"); return; }
+    setRefunding(true);
+    try {
+      const res = await adminDataFetch("refund-purchase", { purchase_id: refundTarget.id, reason: refundReason.trim() });
+      if (res?.success) {
+        toast.success("Refund issued via Stripe");
+        setRefundTarget(null);
+        setRefundReason("");
+        await loadData();
+      } else {
+        toast.error(res?.message || `Refund failed (${res?.status ?? "?"})`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Refund failed");
+    } finally {
+      setRefunding(false);
+    }
+  };
 
   useEffect(() => { loadData(); }, []);
 
@@ -330,11 +357,12 @@ export default function AdminPayoutsDashboard() {
                       <th className="text-right p-3 font-medium">Fee</th>
                       <th className="text-right p-3 font-medium">Author Earns</th>
                       <th className="text-center p-3 font-medium">Status</th>
+                      <th className="text-center p-3 font-medium">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {purchases.length === 0 ? (
-                      <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No purchases yet</td></tr>
+                      <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No purchases yet</td></tr>
                     ) : purchases.map((p) => (
                       <tr key={p.id} className="border-t border-border/50">
                         <td className="p-3 text-muted-foreground">{format(new Date(p.created_at), "MMM d")}</td>
@@ -353,6 +381,20 @@ export default function AdminPayoutsDashboard() {
                           }>
                             {p.refund_status === "refunded" ? "Refunded" : p.payout_status}
                           </Badge>
+                        </td>
+                        <td className="p-3 text-center">
+                          {p.refund_status === "refunded" ? (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => { setRefundTarget(p); setRefundReason(""); }}
+                            >
+                              <Undo2 className="h-3 w-3 mr-1" />Refund
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -402,6 +444,40 @@ export default function AdminPayoutsDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <Dialog open={!!refundTarget} onOpenChange={(o) => { if (!o) { setRefundTarget(null); setRefundReason(""); } }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Refund purchase</DialogTitle>
+            <DialogDescription>
+              {refundTarget && (
+                <>
+                  Refund <strong>${Number(refundTarget.amount).toFixed(2)} {refundTarget.currency}</strong> to{" "}
+                  <strong>{refundTarget.customer_email}</strong> for "{refundTarget.product_title}". This calls Stripe immediately and notifies the author.
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="refund-reason">Reason (required, will be shared with the author)</Label>
+            <Textarea
+              id="refund-reason"
+              value={refundReason}
+              onChange={(e) => setRefundReason(e.target.value)}
+              placeholder="e.g., Customer requested refund within 14-day window"
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setRefundTarget(null); setRefundReason(""); }} disabled={refunding}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleRefund} disabled={refunding || refundReason.trim().length < 3}>
+              {refunding ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Refunding…</> : "Issue refund"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
