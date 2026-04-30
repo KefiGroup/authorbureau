@@ -44,6 +44,16 @@ function stripDashesString(input: string): string {
   return out;
 }
 
+// Short connector words that become grammatical orphans when the noun phrase
+// after them is stripped (e.g. "At [insert org] we will" -> "At  we will" ->
+// "we will"). Used by both the pricing scrubber and the placeholder scrubber.
+// Matches a connector word that's now adjacent to a double-space gap (where
+// something was removed), or to terminal punctuation.
+const ORPHAN_BEFORE_GAP_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s{2,}/gi;
+const ORPHAN_BEFORE_PUNCT_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[.,;:!?)])/gi;
+
 /**
  * Strip dollar amounts from prose strings.
  *  - "$27/month"               -> ""           (drop, may leave dangling word)
