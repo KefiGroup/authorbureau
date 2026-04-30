@@ -235,14 +235,26 @@ export default function AdminDashboard() {
     setApprovingBookId(null);
   };
 
-  const handleRejectBook = async (bookId: string) => {
+  const handleRejectBook = async (bookId: string, reason: string) => {
     setApprovingBookId(bookId);
     try {
-      await adminFetch("reject", { bookId });
-      toast({ title: "Book unpublished" });
+      await adminFetch("reject", { bookId, rejectionNote: reason });
+      toast({ title: "Book rejected — author notified" });
       fetchBooks();
     } catch (err) {
       toast({ title: err.message || "Reject failed", variant: "destructive" });
+    }
+    setApprovingBookId(null);
+  };
+
+  const handleRequestChanges = async (bookId: string, reason: string) => {
+    setApprovingBookId(bookId);
+    try {
+      await adminFetch("request-changes", { bookId, rejectionNote: reason });
+      toast({ title: "Changes requested — author notified" });
+      fetchBooks();
+    } catch (err) {
+      toast({ title: err.message || "Request changes failed", variant: "destructive" });
     }
     setApprovingBookId(null);
   };
