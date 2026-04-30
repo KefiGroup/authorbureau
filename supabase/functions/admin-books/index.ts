@@ -244,7 +244,19 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ error: "Unknown action" }), {
+    if (action === "recent-activity") {
+      const limit = Math.min(Number(body.limit) || 25, 100);
+      const { data: events, error: actErr } = await adminClient
+        .from("admin_audit_log")
+        .select("id, event_key, target_type, target_id, payload, created_at")
+        .order("created_at", { ascending: false })
+        .limit(limit);
+      if (actErr) throw actErr;
+      return new Response(JSON.stringify({ events: events || [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
       status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
