@@ -141,8 +141,10 @@ function stripPlaceholdersString(input: string): string {
   }
   // Step 2: collapse the gap.
   out = out.replace(/\s{2,}/g, " ");
-  // Step 3: capitalise leading char if a leading preposition was removed.
+  // Step 3: capitalise leading char + the first letter after sentence boundaries
+  // (handles "...destiny. we will" -> "...destiny. We will" after orphan removal).
   out = out.replace(/^([a-z])/, (m) => m.toUpperCase());
+  out = out.replace(/([.!?]\s+)([a-z])/g, (_m, p1, p2) => p1 + p2.toUpperCase());
   // Step 4: tidy stranded artefacts.
   out = out.replace(/\(\s*\)/g, "");
   out = out.replace(/,\s*,/g, ",");
