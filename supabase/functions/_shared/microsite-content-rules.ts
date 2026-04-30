@@ -114,18 +114,25 @@ const ORPHAN_PREPOSITION_RE =
 function stripPlaceholdersString(input: string): string {
   if (!input || typeof input !== "string") return input;
   let out = input;
+  let didStrip = false;
   for (const pattern of PLACEHOLDER_PATTERNS) {
+    const before = out;
     out = out.replace(pattern, "");
+    if (out !== before) didStrip = true;
   }
-  // Tidy: collapse the gap left by the removal, *then* remove any preposition
-  // that lost its object. Run twice in case two prepositions chain ("at the").
+  if (!didStrip) return out;
+
+  // A placeholder was removed — clean up the grammatical wreckage it left.
+  // Collapse the gap first.
   out = out.replace(/\s{2,}/g, " ");
+  // Remove orphaned prepositions that lost their object. Run twice in case
+  // two prepositions chained ("at the [insert org]" -> "at the" -> "").
   for (let i = 0; i < 2; i++) {
     out = out.replace(ORPHAN_PREPOSITION_RE, "$1");
   }
   // Capitalise the new first letter if a leading preposition was removed.
   out = out.replace(/^([a-z])/, (m) => m.toUpperCase());
-  // Final tidy: stranded punctuation, empty parens, double commas.
+  // Final tidy: empty parens, double commas, stranded punctuation.
   out = out.replace(/\(\s*\)/g, "");
   out = out.replace(/,\s*,/g, ",");
   out = out.replace(/\s+([.,;:!?])/g, "$1");
