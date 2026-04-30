@@ -137,10 +137,21 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
         by_table: (result.drafts || []).reduce((acc: any, d: any) => { acc[d.table] = (acc[d.table] || 0) + 1; return acc; }, {}),
       });
 
+      // Map slug → BP/BA/YR code so ALL_BUILDER_NODES.find resolves the right meta
+      const SLUG_TO_CODE: Record<string, string> = {
+        "lead-magnet": "BP-02", "email-flows": "BP-01", "social-media": "BP-03",
+        "website": "BP-04", "webinar": "BP-05", "workbook": "BP-06",
+        "book-sales": "BP-07", "audiobook": "BA-11", "online-course": "BA-10",
+        "membership": "BA-12", "group-coaching": "BA-13", "podcast": "BA-14",
+        "press": "BA-15", "affiliate": "BA-16", "upsell-downsell": "BA-17",
+        "partnerships": "BA-18", "home-study-course": "BP-07",
+      };
       const drafts: DraftProduct[] = (result.drafts || []).map((item: any) => {
-        const nodeConfig = ALL_BUILDER_NODES.find(n => n.id === item.nodeId);
+        const resolvedId = item.node_code || SLUG_TO_CODE[item.nodeId] || item.nodeId;
+        const nodeConfig = ALL_BUILDER_NODES.find(n => n.id === resolvedId);
         const totalSteps = nodeConfig?.steps.length || 5;
-        const stepsCompleted = item.stepsCompleted || 0;
+        const rawSteps = item.stepsCompleted || 0;
+        const stepsCompleted = Math.min(rawSteps, totalSteps); // cap to prevent "14/5" displays
         const actProgress = Math.round((stepsCompleted / totalSteps) * 100);
         const currentAct = stepsCompleted === 0 ? 1 : stepsCompleted >= totalSteps - 1 ? 3 : 2;
 
