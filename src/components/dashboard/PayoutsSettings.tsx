@@ -18,8 +18,6 @@ export default function PayoutsSettings() {
   const [saving, setSaving] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
 
-  const [method, setMethod] = useState<PayoutMethod>("stripe");
-  const [paypalEmail, setPaypalEmail] = useState("");
   const [agreementAck, setAgreementAck] = useState(false);
   const [refundWindow, setRefundWindow] = useState<number>(14);
 
@@ -32,12 +30,9 @@ export default function PayoutsSettings() {
       setAuthorId(profile.id);
       const { data: s } = await supabase
         .from("author_payout_settings")
-        .select("payout_method, paypal_email_v2, tax_self_declared_at, refund_window_days")
+        .select("tax_self_declared_at, refund_window_days")
         .eq("author_id", profile.id).maybeSingle();
       if (s) {
-        const savedMethod = s.payout_method as PayoutMethod | null;
-        setMethod(savedMethod === "paypal" ? "paypal" : "stripe");
-        setPaypalEmail(s.paypal_email_v2 || "");
         setAgreementAck(!!s.tax_self_declared_at);
         if (typeof (s as { refund_window_days?: number }).refund_window_days === "number") {
           setRefundWindow((s as { refund_window_days?: number }).refund_window_days || 14);
