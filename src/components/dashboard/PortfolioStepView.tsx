@@ -213,7 +213,29 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
             if (path) navigate(path);
             else if (n.navigateTo && onNavigate) onNavigate(n.navigateTo);
           };
-          return (
+          const handleRestart = async (n: NodeWithProgress) => {
+            const ok = window.confirm(
+              `Restart ${n.label}? Your current draft will be cleared and you'll start from step 1.`,
+            );
+            if (!ok || !user) return;
+            try {
+              const { data: profile } = await supabase
+                .from("author_profiles").select("id").eq("user_id", user.id).maybeSingle();
+              if (!profile?.id) throw new Error("Profile not found");
+              let q = supabase.from("author_nodes")
+                .update({ status: "draft", current_step: 1, content_json: {} })
+                .eq("author_id", profile.id).eq("node_id", n.code);
+              if (primaryBookId) q = q.eq("book_id", primaryBookId);
+              const { error } = await q;
+              if (error) throw error;
+              toast({ title: "Build restarted", description: `${n.label} cleared. Routing you to step 1.` });
+              progress.refresh();
+              refreshLiveStats();
+              handleNav(n);
+            } catch (e: any) {
+              toast({ title: "Couldn't restart", description: e?.message || "Try again.", variant: "destructive" });
+            }
+          };
             <div className="space-y-6">
               {groups.map((group) => (
                 <div key={group.name}>
