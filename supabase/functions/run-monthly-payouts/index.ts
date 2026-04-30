@@ -114,12 +114,16 @@ serve(async (req) => {
         continue;
       }
 
+      // Internal-margin reporting only: record the gateway fee Authors Bureau
+      // will absorb out of its 8%. Do NOT subtract it from the author's payout.
       let payoutFee = 0;
       if (method === "wise") payoutFee = WISE_FEE_USD;
       else if (method === "paypal") payoutFee = Math.round(netBeforePayoutFee * PAYPAL_FEE_PCT * 100) / 100;
       else payoutFee = STRIPE_TRANSFER_FEE_USD;
 
-      const net = Math.round((netBeforePayoutFee - payoutFee) * 100) / 100;
+      // Author always receives the full 92% net — gateway fees come out of
+      // the platform's 8% margin, never the author's share.
+      const net = Math.round(netBeforePayoutFee * 100) / 100;
       if (net <= 0) continue;
 
       const ref = `AB-${periodTag}-${authorId.slice(0, 8)}`;
