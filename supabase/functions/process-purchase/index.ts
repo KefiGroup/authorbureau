@@ -426,6 +426,7 @@ async function sendHomeStudyConfirmation(
       templateName: "purchase-confirmation",
       recipientEmail: args.customerEmail,
       idempotencyKey,
+      authorId: args.authorRowId,
       templateData: {
         customerName: args.customerName || undefined,
         productTitle,

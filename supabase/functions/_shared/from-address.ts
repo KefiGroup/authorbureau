@@ -17,6 +17,8 @@ export interface SendViaLovableArgs {
   bodyMarkdown: string;        // Author-authored markdown body
   idempotencyKey: string;      // Unique per logical send (e.g. enrollment-id + step-number)
   preview?: string;
+  authorId?: string | null;    // Optional — enables "{senderName} via Authors Bureau" From + Reply-To lookup
+  replyTo?: string | null;     // Optional — explicit override (highest priority)
 }
 
 export interface SendViaLovableResult {
@@ -49,6 +51,8 @@ export async function sendViaLovable(args: SendViaLovableArgs): Promise<SendViaL
         templateName: 'author-broadcast',
         recipientEmail: args.recipientEmail,
         idempotencyKey: args.idempotencyKey,
+        authorId: args.authorId || undefined,
+        replyTo: args.replyTo || undefined,
         templateData: {
           senderName: args.senderName,
           subject: args.subject,

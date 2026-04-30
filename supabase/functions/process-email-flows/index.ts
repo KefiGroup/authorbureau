@@ -210,6 +210,8 @@ Deno.serve(async (req) => {
           subject: step.subject,
           bodyMarkdown: renderedBody,
           idempotencyKey: `flow-${enr.id}-step-${step.step_number}`,
+          authorId: flow.author_id,
+          replyTo: emailSettings?.reply_to_email || null,
         });
 
         if (!sendResult.ok) {

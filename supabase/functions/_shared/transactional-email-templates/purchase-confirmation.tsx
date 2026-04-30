@@ -77,7 +77,12 @@ const PurchaseConfirmationEmail = ({
             <Text style={footer}>{supportNote}</Text>
           </>
         ) : null}
-        <Text style={footer}>— The {SITE_NAME} Team</Text>
+        <Hr style={hr} />
+        <Text style={footer}>
+          {authorName
+            ? `You're receiving this because ${authorName} sent it via ${SITE_NAME}.`
+            : `— The ${SITE_NAME} Team`}
+        </Text>
       </Container>
     </Body>
   </Html>

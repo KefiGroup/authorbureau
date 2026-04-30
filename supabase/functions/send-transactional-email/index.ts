@@ -99,6 +99,8 @@ Deno.serve(async (req) => {
   let idempotencyKey: string
   let messageId: string
   let templateData: Record<string, any> = {}
+  let authorId: string | null = null
+  let explicitReplyTo: string | null = null
   try {
     const body = await req.json()
     templateName = body.templateName || body.template_name
@@ -107,6 +109,16 @@ Deno.serve(async (req) => {
     idempotencyKey = body.idempotencyKey || body.idempotency_key || messageId
     if (body.templateData && typeof body.templateData === 'object') {
       templateData = body.templateData
+    }
+    if (typeof body.authorId === 'string' && body.authorId.trim()) {
+      authorId = body.authorId.trim()
+    } else if (typeof body.author_id === 'string' && body.author_id.trim()) {
+      authorId = body.author_id.trim()
+    }
+    if (typeof body.replyTo === 'string' && body.replyTo.trim()) {
+      explicitReplyTo = body.replyTo.trim()
+    } else if (typeof body.reply_to === 'string' && body.reply_to.trim()) {
+      explicitReplyTo = body.reply_to.trim()
     }
   } catch {
     return new Response(
@@ -321,22 +333,70 @@ Deno.serve(async (req) => {
     )
   }
 
-  // 4. Render React Email template to HTML and plain text
+  // 4. Resolve author-context branding (sender name + reply-to) BEFORE rendering,
+  // so templates can render the soft "sent on behalf of {senderName}" footer.
+  // This keeps system templates (book-approved, profile-*, abby-daily-report)
+  // platform-branded when no authorId is supplied.
+  let resolvedSenderName: string | null = null
+  let resolvedReplyTo: string | null = explicitReplyTo
+  if (authorId) {
+    const { data: settings } = await supabase
+      .from('author_email_settings')
+      .select('sender_name, reply_to_email')
+      .eq('author_id', authorId)
+      .maybeSingle()
+    if (settings) {
+      if (settings.sender_name && typeof settings.sender_name === 'string') {
+        resolvedSenderName = settings.sender_name.trim() || null
+      }
+      if (!resolvedReplyTo && settings.reply_to_email && typeof settings.reply_to_email === 'string') {
+        resolvedReplyTo = settings.reply_to_email.trim() || null
+      }
+    }
+    // Fallback to author_profiles.pen_name if sender_name not set
+    if (!resolvedSenderName) {
+      const { data: profile } = await supabase
+        .from('author_profiles')
+        .select('pen_name')
+        .eq('id', authorId)
+        .maybeSingle()
+      if (profile?.pen_name && typeof profile.pen_name === 'string') {
+        resolvedSenderName = profile.pen_name.trim() || null
+      }
+    }
+  }
+
+  // Inject senderName into templateData so templates can render the
+  // "sent on behalf of" footer. Templates that don't use it ignore it.
+  const enrichedTemplateData = resolvedSenderName
+    ? { senderName: resolvedSenderName, ...templateData }
+    : templateData
+
+  // Sanitize display name for RFC-5322-safe From header (strip CR/LF, quotes, angle brackets).
+  const sanitizeDisplay = (s: string) =>
+    s.replace(/[\r\n"<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80)
+
+  const fromDisplayName = resolvedSenderName
+    ? `${sanitizeDisplay(resolvedSenderName)} via ${SITE_NAME}`
+    : SITE_NAME
+  const fromHeader = `${fromDisplayName} <noreply@${FROM_DOMAIN}>`
+
+  // 5. Render React Email template to HTML and plain text
   const html = await renderAsync(
-    React.createElement(template.component, templateData)
+    React.createElement(template.component, enrichedTemplateData)
   )
   const plainText = await renderAsync(
-    React.createElement(template.component, templateData),
+    React.createElement(template.component, enrichedTemplateData),
     { plainText: true }
   )
 
   // Resolve subject — supports static string or dynamic function
   const resolvedSubject =
     typeof template.subject === 'function'
-      ? template.subject(templateData)
+      ? template.subject(enrichedTemplateData)
       : template.subject
 
-  // 5. Enqueue the pre-rendered email for async processing by the dispatcher.
+  // 6. Enqueue the pre-rendered email for async processing by the dispatcher.
   // The dispatcher (process-email-queue) handles sending, retries, and rate-limit backoff.
 
   // Log pending BEFORE enqueue so we have a record even if enqueue crashes
@@ -347,22 +407,27 @@ Deno.serve(async (req) => {
     status: 'pending',
   })
 
+  const enqueuePayload: Record<string, unknown> = {
+    message_id: messageId,
+    to: effectiveRecipient,
+    from: fromHeader,
+    sender_domain: SENDER_DOMAIN,
+    subject: resolvedSubject,
+    html,
+    text: plainText,
+    purpose: 'transactional',
+    label: templateName,
+    idempotency_key: idempotencyKey,
+    unsubscribe_token: unsubscribeToken,
+    queued_at: new Date().toISOString(),
+  }
+  if (resolvedReplyTo) {
+    enqueuePayload.reply_to = resolvedReplyTo
+  }
+
   const { error: enqueueError } = await supabase.rpc('enqueue_email', {
     queue_name: 'transactional_emails',
-    payload: {
-      message_id: messageId,
-      to: effectiveRecipient,
-      from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
-      sender_domain: SENDER_DOMAIN,
-      subject: resolvedSubject,
-      html,
-      text: plainText,
-      purpose: 'transactional',
-      label: templateName,
-      idempotency_key: idempotencyKey,
-      unsubscribe_token: unsubscribeToken,
-      queued_at: new Date().toISOString(),
-    },
+    payload: enqueuePayload,
   })
 
   if (enqueueError) {
