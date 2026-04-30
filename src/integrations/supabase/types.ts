@@ -969,7 +969,13 @@ export type Database = {
           stripe_customer_id: string | null
           stripe_onboarding_complete: boolean | null
           subscription_tier: string
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
           tagline: string | null
+          tier_expires_at: string | null
+          tier_override_at: string | null
+          tier_override_by: string | null
           timezone: string
           twitter_url: string | null
           updated_at: string
@@ -1020,7 +1026,13 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           tagline?: string | null
+          tier_expires_at?: string | null
+          tier_override_at?: string | null
+          tier_override_by?: string | null
           timezone?: string
           twitter_url?: string | null
           updated_at?: string
@@ -1071,7 +1083,13 @@ export type Database = {
           stripe_customer_id?: string | null
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
+          suspended_at?: string | null
+          suspended_by?: string | null
+          suspended_reason?: string | null
           tagline?: string | null
+          tier_expires_at?: string | null
+          tier_override_at?: string | null
+          tier_override_by?: string | null
           timezone?: string
           twitter_url?: string | null
           updated_at?: string
@@ -1356,11 +1374,15 @@ export type Database = {
       bug_reports: {
         Row: {
           admin_notes: string | null
+          assigned_to: string | null
           created_at: string
           description: string
+          first_response_at: string | null
+          first_response_due_at: string | null
           id: string
           page_url: string
           priority: string
+          resolution_due_at: string | null
           resolved_at: string | null
           screenshot_url: string | null
           status: string
@@ -1368,11 +1390,15 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          assigned_to?: string | null
           created_at?: string
           description: string
+          first_response_at?: string | null
+          first_response_due_at?: string | null
           id?: string
           page_url: string
           priority?: string
+          resolution_due_at?: string | null
           resolved_at?: string | null
           screenshot_url?: string | null
           status?: string
@@ -1380,11 +1406,15 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          assigned_to?: string | null
           created_at?: string
           description?: string
+          first_response_at?: string | null
+          first_response_due_at?: string | null
           id?: string
           page_url?: string
           priority?: string
+          resolution_due_at?: string | null
           resolved_at?: string | null
           screenshot_url?: string | null
           status?: string
@@ -2706,8 +2736,10 @@ export type Database = {
       feedback: {
         Row: {
           admin_notes: string | null
+          assigned_to: string | null
           created_at: string
           description: string
+          first_response_at: string | null
           id: string
           importance: string
           status: string
@@ -2716,8 +2748,10 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          assigned_to?: string | null
           created_at?: string
           description: string
+          first_response_at?: string | null
           id?: string
           importance?: string
           status?: string
@@ -2726,8 +2760,10 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          assigned_to?: string | null
           created_at?: string
           description?: string
+          first_response_at?: string | null
           id?: string
           importance?: string
           status?: string
@@ -5995,6 +6031,23 @@ export type Database = {
       }
     }
     Functions: {
+      admin_send_broadcast: {
+        Args: {
+          p_audience?: string
+          p_link?: string
+          p_message: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      admin_set_author_suspension: {
+        Args: { p_author_id: string; p_reason?: string; p_suspend: boolean }
+        Returns: Json
+      }
+      admin_set_author_tier: {
+        Args: { p_author_id: string; p_expires_at?: string; p_tier: string }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
