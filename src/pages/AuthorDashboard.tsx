@@ -555,7 +555,8 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
       case "big-ticket":
         return <Navigate to={`/node-builder/YR-20${buildNodeBuilderSearch(location)}`} replace />;
       case "connect-stripe":
-        return <ConnectStripePage />;
+        // Legacy section — unified into Payout Settings (Sprint 41 MOR model)
+        return <Navigate to="/dashboard?section=payout-settings" replace />;
       case "payout-settings":
         return <PayoutSettingsPage />;
       case "overview":
