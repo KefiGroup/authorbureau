@@ -8,6 +8,11 @@
  */
 // @ts-nocheck — Deno runtime
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  sanitiseForPublic,
+  validateForPublic,
+  ensurePrimaryCta,
+} from "./microsite-content-rules.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
