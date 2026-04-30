@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle, ArrowRight, ExternalLink, PlayCircle as PlayIcon, AlertTriangle } from "lucide-react";
@@ -30,6 +30,7 @@ interface FlowRow {
   description: string | null;
   flow_type: string;
   node_id: string | null;
+  book_id?: string | null;
   status: string;
   total_subscribers: number;
   open_rate: number;
@@ -53,7 +54,12 @@ const statusBadge: Record<string, string> = {
   paused: "bg-muted text-muted-foreground border-border",
 };
 
-export default function SequencesTab() {
+interface SequencesTabProps {
+  bookId?: string | null;
+  books?: { id: string; title: string }[];
+}
+
+export default function SequencesTab({ bookId = null, books = [] }: SequencesTabProps = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightKey = searchParams.get("highlight");
@@ -71,6 +77,12 @@ export default function SequencesTab() {
   const [senderVerified, setSenderVerified] = useState<boolean | null>(null);
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [editingFlow, setEditingFlow] = useState<FlowRow | null>(null);
+
+  const bookTitleById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const b of books) m[b.id] = b.title;
+    return m;
+  }, [books]);
 
   const load = async () => {
     try {
