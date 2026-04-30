@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { sanitiseForPublic } from "../_shared/microsite-content-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -155,44 +156,46 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
+    const responsePayload = sanitiseForPublic({
+      author: {
+        id: profile.id,
+        pen_name: profile.pen_name,
+        slug: profile.author_slug,
+        bio: profile.bio_short,
+        bio_long: profile.bio_long,
+        photo_url: profile.photo_url,
+        cover_photo_url: profile.cover_photo_url,
+        theme: profile.site_theme,
+        tagline: profile.tagline,
+        credentials: profile.credentials,
+        social: {
+          website: profile.website_url,
+          linkedin: profile.linkedin_url,
+          twitter: profile.twitter_url,
+          instagram: profile.instagram_url,
+          youtube: profile.youtube_url,
+        },
+      },
+      node: {
+        id: node.id,
+        node_id: node.node_id,
+        node_name: node.node_name,
+        personalised_name: node.personalised_name,
+        status: node.status,
+        content_json: node.content_json,
+        microsite_url: node.microsite_url,
+        payment_link: node.payment_link,
+        third_party_url: node.third_party_url,
+        ghl_resource_id: node.ghl_resource_id,
+        price_usd: node.price_usd,
+        currency: node.currency,
+      },
+      context: context || null,
+      book: book || null,
+    });
+
     return new Response(
-      JSON.stringify({
-        author: {
-          id: profile.id,
-          pen_name: profile.pen_name,
-          slug: profile.author_slug,
-          bio: profile.bio_short,
-          bio_long: profile.bio_long,
-          photo_url: profile.photo_url,
-          cover_photo_url: profile.cover_photo_url,
-          theme: profile.site_theme,
-          tagline: profile.tagline,
-          credentials: profile.credentials,
-          social: {
-            website: profile.website_url,
-            linkedin: profile.linkedin_url,
-            twitter: profile.twitter_url,
-            instagram: profile.instagram_url,
-            youtube: profile.youtube_url,
-          },
-        },
-        node: {
-          id: node.id,
-          node_id: node.node_id,
-          node_name: node.node_name,
-          personalised_name: node.personalised_name,
-          status: node.status,
-          content_json: node.content_json,
-          microsite_url: node.microsite_url,
-          payment_link: node.payment_link,
-          third_party_url: node.third_party_url,
-          ghl_resource_id: node.ghl_resource_id,
-          price_usd: node.price_usd,
-          currency: node.currency,
-        },
-        context: context || null,
-        book: book || null,
-      }),
+      JSON.stringify(responsePayload),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
