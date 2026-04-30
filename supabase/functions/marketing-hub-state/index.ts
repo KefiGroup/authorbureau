@@ -195,21 +195,23 @@ Deno.serve(async (req) => {
     }
 
     if (action === "social_calendar") {
-      const [nodeRes, postsRes] = await Promise.all([
-        cloudAdmin
-          .from("author_nodes")
-          .select("status, marketing_activated_at, activated_at")
-          .eq("author_id", authorProfile.id)
-          .eq("node_id", "BP-03")
-          .maybeSingle(),
-        cloudAdmin
-          .from("social_posts")
-          .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
-          .eq("author_id", authorProfile.id)
-          .eq("node_id", "BP-03")
-          .order("scheduled_at", { ascending: true })
-          .limit(500),
-      ]);
+      let nodeQuery = cloudAdmin
+        .from("author_nodes")
+        .select("status, marketing_activated_at, activated_at")
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03");
+      if (bookId) nodeQuery = nodeQuery.eq("book_id", bookId);
+
+      let postsQuery = cloudAdmin
+        .from("social_posts")
+        .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03")
+        .order("scheduled_at", { ascending: true })
+        .limit(500);
+      if (bookId) postsQuery = postsQuery.eq("book_id", bookId);
+
+      const [nodeRes, postsRes] = await Promise.all([nodeQuery.maybeSingle(), postsQuery]);
 
       if (nodeRes.error) throw nodeRes.error;
       if (postsRes.error) throw postsRes.error;
