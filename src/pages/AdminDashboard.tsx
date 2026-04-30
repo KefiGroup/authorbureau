@@ -295,6 +295,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {user?.id && <AdminNotificationBell userId={user.id} />}
             <Button asChild variant="outline" size="sm">
               <Link to="/dashboard">Author Dashboard</Link>
             </Button>
