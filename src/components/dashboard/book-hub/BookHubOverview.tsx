@@ -342,26 +342,34 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         );
       })()}
 
-      {/* 3. Your Next 3 Steps */}
-      {progress.topNextSteps.length > 0 && (
+      {/* 3. Your Next Steps — inline loader while progress hydrates, prevents full-page skeleton flash. */}
+      {(progress.loading || progress.topNextSteps.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/70 flex items-center gap-1.5">
-              <ArrowRight className="h-3.5 w-3.5" /> Your Next {progress.topNextSteps.length} Step{progress.topNextSteps.length === 1 ? "" : "s"}
+              <ArrowRight className="h-3.5 w-3.5" /> Your Next {progress.loading ? "" : progress.topNextSteps.length} Step{progress.topNextSteps.length === 1 ? "" : "s"}
             </h2>
-            <button onClick={() => onNavigateTab("revenue-streams")} className="text-xs text-secondary hover:underline font-semibold">
-              See full journey →
-            </button>
+            {!progress.loading && (
+              <button onClick={() => onNavigateTab("revenue-streams")} className="text-xs text-secondary hover:underline font-semibold">
+                See full journey →
+              </button>
+            )}
           </div>
-          <JourneyStepper
-            nodes={progress.topNextSteps}
-            bookId={book.id}
-            bookTitle={book.title}
-            highlightNodeId={progress.topNextSteps[0]?.id || null}
-            accent={accent}
-            onUpgrade={() => navigate("/dashboard?section=build-business")}
-            onNavigateSection={(s) => navigate(`/dashboard?section=${s}&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
-          />
+          {progress.loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your next steps…
+            </div>
+          ) : (
+            <JourneyStepper
+              nodes={progress.topNextSteps}
+              bookId={book.id}
+              bookTitle={book.title}
+              highlightNodeId={progress.topNextSteps[0]?.id || null}
+              accent={accent}
+              onUpgrade={() => navigate("/dashboard?section=build-business")}
+              onNavigateSection={(s) => navigate(`/dashboard?section=${s}&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
+            />
+          )}
         </div>
       )}
 
