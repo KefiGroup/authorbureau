@@ -2633,7 +2633,7 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
 
         <div className="md:sticky md:top-6">
           {/* BA-10 always sells via BuyNowButton (Authors Bureau is Merchant
-              of Record; 8% platform fee). The legacy `paymentLink` external-URL
+              of Record; 8% platform fee covers all payment-processing costs).
               path produced a "Notify Me" form whenever Stripe wasn't pre-wired,
               which made every published course look pre-launch to readers.
               BuyNowButton handles the no-Stripe case gracefully (waitlist

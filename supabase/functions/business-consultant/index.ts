@@ -679,7 +679,7 @@ Provide three options:
 
 Free Option — "Download Sales Page as HTML": A standalone HTML file with embedded CSS, ready to host anywhere. Professional design with responsive layout.
 
-Pro Option — "Connect Stripe": Step-by-step guide to creating a Stripe payment link for the book. Include direct link to dashboard.stripe.com. Cover both standard and signed copy products. Authors Bureau charges an 8% platform fee on sales (covers Stripe and other payment-gateway processing) — always show take-home revenue (92%) after the platform fee.
+Pro Option — "Connect Stripe": Step-by-step guide to creating a Stripe payment link for the book. Include direct link to dashboard.stripe.com. Cover both standard and signed copy products. Authors Bureau retains an 8% platform fee on sales to cover all payment-processing costs (Stripe / Wise / PayPal) — no extra processing fees are ever deducted from the author's share. Always show take-home revenue (92%) after the platform fee.
 
 Pro Option — "Generate QR Code": Using the QR code spec from Phase 2, provide instructions to generate a downloadable QR code image (300x300px minimum) for use in:
 - The physical book (back cover or inside back cover)
@@ -2606,7 +2606,7 @@ Additional guidance:
 - Monitor key metrics: AOV, upsell take rate, refund rate on upsells
 - If upsell refund rate exceeds 15%, reduce the price or improve the offer
 - Time-limited offers (15-30 minute countdown) increase upsell conversion by 20-30%
-- The platform's 8% transaction fee applies to all upsell revenue — factor this into pricing
+- The platform's 8% fee (which covers all payment-processing costs) applies to all upsell revenue — factor this into pricing
 - If the author has email flows built, recommend adding the upsell sequence to the post-purchase automation
 
 DOMAIN EXPERTISE: Strategic upsells increase AOV by 30-50%. Order bumps convert at 25-35% and are the easiest revenue booster. One-click upsells (no re-entering payment info) convert 2-3x higher than standard upsell pages. The ideal upsell is 2-3x the original purchase price. Downsells recover 10-15% of declined upsells. Payment plans increase conversion on offers above $200 by 40-60%. The most effective upsell copy focuses on "getting results faster" rather than "buying more stuff."`,

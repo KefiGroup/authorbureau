@@ -189,14 +189,14 @@ export default function PayoutsSettings() {
               <RadioGroupItem value="wise" id="m-wise" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="m-wise" className="font-semibold cursor-pointer">Wise</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Lowest FX fees, paid in your local currency. Manual processing — works in 160+ countries.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Paid in your local currency. Works in 160+ countries. Authors Bureau covers the Wise transfer fee.</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 cursor-pointer" onClick={() => setMethod("paypal")}>
               <RadioGroupItem value="paypal" id="m-paypal" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="m-paypal" className="font-semibold cursor-pointer">PayPal</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Familiar, but higher FX fees. Use if Wise/Stripe aren't available where you are.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Familiar and widely available. Use if Wise or Stripe isn't available where you are. Authors Bureau covers the PayPal transfer fee.</p>
               </div>
             </div>
           </RadioGroup>
@@ -263,7 +263,7 @@ export default function PayoutsSettings() {
             <p>By accepting, you confirm that:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li><strong className="text-foreground">Authors Bureau (For Multiplier Pte Ltd, Singapore)</strong> acts as Merchant of Record. We collect all reader payments through our Stripe account and remit your share monthly.</li>
-              <li>Authors Bureau retains an <strong className="text-foreground">8% platform fee</strong> on gross sales (covers AI generation, hosting, email delivery and payment-processing overhead). Stripe's processing fees are passed through at cost. You receive the remainder.</li>
+              <li>Authors Bureau retains an <strong className="text-foreground">8% platform fee</strong> to cover all payment-processing costs on gross sales, so no extra processing fees are ever deducted from your share. <strong className="text-foreground">You keep 92% of every sale.</strong></li>
               <li>Payouts are made on the <strong className="text-foreground">1st of each month</strong> for the previous calendar month, provided your balance is at least <strong className="text-foreground">US$50</strong>.</li>
               <li>You are <strong className="text-foreground">solely responsible for declaring and paying income tax</strong> in your country of residence. Authors Bureau will email you an annual earnings statement each January.</li>
               <li>Refunds issued within the buyer's refund window are deducted from your earnings; chargebacks may also be reversed.</li>

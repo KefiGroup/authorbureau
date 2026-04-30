@@ -8,10 +8,13 @@ const corsHeaders = {
 };
 
 const MIN_PAYOUT_USD = 50;
+// Per the Payout Agreement, the 8% platform fee covers ALL payment-processing
+// costs (Stripe checkout fees, Wise transfer fees, PayPal transfer fees).
+// These constants are kept ONLY for internal margin reporting on
+// `author_payouts_v2.payout_fee_usd`. They MUST NEVER be subtracted from the
+// author's payout amount — the author always receives exactly net_usd (92%).
 const WISE_FEE_USD = 1.5;
 const PAYPAL_FEE_PCT = 0.02;
-// Stripe transfers between platform balance and connected account are FREE
-// (Stripe only charges processing fees at the time the customer paid).
 const STRIPE_TRANSFER_FEE_USD = 0;
 
 interface Earning {
@@ -111,12 +114,16 @@ serve(async (req) => {
         continue;
       }
 
+      // Internal-margin reporting only: record the gateway fee Authors Bureau
+      // will absorb out of its 8%. Do NOT subtract it from the author's payout.
       let payoutFee = 0;
       if (method === "wise") payoutFee = WISE_FEE_USD;
       else if (method === "paypal") payoutFee = Math.round(netBeforePayoutFee * PAYPAL_FEE_PCT * 100) / 100;
       else payoutFee = STRIPE_TRANSFER_FEE_USD;
 
-      const net = Math.round((netBeforePayoutFee - payoutFee) * 100) / 100;
+      // Author always receives the full 92% net — gateway fees come out of
+      // the platform's 8% margin, never the author's share.
+      const net = Math.round(netBeforePayoutFee * 100) / 100;
       if (net <= 0) continue;
 
       const ref = `AB-${periodTag}-${authorId.slice(0, 8)}`;
