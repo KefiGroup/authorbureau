@@ -74,7 +74,7 @@ export default function PayoutsSettings() {
     if (params.get("stripe_connected") === "true") {
       (async () => {
         try {
-          await supabase.functions.invoke("stripe-connect", { body: { action: "status" } });
+          await callStripeConnect({ action: "status" });
         } catch { /* non-fatal */ }
         await refresh();
         toast.success("Stripe Express onboarding completed.");
