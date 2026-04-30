@@ -2930,7 +2930,7 @@ function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {duration && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>{duration}</p>}
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
@@ -3205,7 +3205,7 @@ function MastermindPage({ data, content, v, hFont, bgColor, onSubmit, email, set
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
                   {incl.length > 0 && (
@@ -3275,7 +3275,7 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {(dur || loc) && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>{[dur, loc].filter(Boolean).join(" · ")}</p>}
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
@@ -3494,7 +3494,7 @@ function ConferencePage({ data, content, v, hFont, bgColor, onSubmit, email, set
                 <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
                     <h3 className="text-base font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-base font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {incl.length > 0 && <ul className="space-y-1 mt-2">{incl.map((x, j) => (<li key={j} className="text-sm" style={{ color: v.bodyText }}>• {x}</li>))}</ul>}
                 </Card>
@@ -3661,7 +3661,7 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
                   {incl.length > 0 && <ul className="space-y-1 mt-2">{incl.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}</ul>}
