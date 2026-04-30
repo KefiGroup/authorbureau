@@ -163,7 +163,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
             {totalProducts > 0 && (
               <div className="text-center md:text-left">
                 <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{totalProducts}</span>
-                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Products Available</span>
+                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Products & Services</span>
               </div>
             )}
             {testimonialsCount > 0 && (
