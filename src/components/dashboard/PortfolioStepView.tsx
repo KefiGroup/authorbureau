@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, TrendingUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken } from "@/lib/get-active-token";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { ABBY_CATEGORIES, getStudioPath, type AbbyCategory } from "@/config/abbyFrameworkConfig";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { useNodeGating } from "@/hooks/useNodeGating";
@@ -50,7 +52,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
   const primaryBookIdEarly = analyzedBooks?.[0]?.id || books[0]?.id || "";
   const progress = useBookNodeProgress(effectiveTier, openNodeIds, primaryBookIdEarly || undefined);
-  const { byCode: liveStats } = useNodeLiveStats(primaryBookIdEarly || undefined);
+  const { byCode: liveStats, refresh: refreshLiveStats } = useNodeLiveStats(primaryBookIdEarly || undefined);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchBooks() {
@@ -210,6 +213,29 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
             if (path) navigate(path);
             else if (n.navigateTo && onNavigate) onNavigate(n.navigateTo);
           };
+          const handleRestart = async (n: NodeWithProgress) => {
+            const ok = window.confirm(
+              `Restart ${n.label}? Your current draft will be cleared and you'll start from step 1.`,
+            );
+            if (!ok || !user) return;
+            try {
+              const { data: profile } = await supabase
+                .from("author_profiles").select("id").eq("user_id", user.id).maybeSingle();
+              if (!profile?.id) throw new Error("Profile not found");
+              let q = supabase.from("author_nodes")
+                .update({ status: "draft", current_step: 1, content_json: {} })
+                .eq("author_id", profile.id).eq("node_id", n.code);
+              if (primaryBookId) q = q.eq("book_id", primaryBookId);
+              const { error } = await q;
+              if (error) throw error;
+              toast({ title: "Build restarted", description: `${n.label} cleared. Routing you to step 1.` });
+              progress.refresh();
+              refreshLiveStats();
+              handleNav(n);
+            } catch (e: any) {
+              toast({ title: "Couldn't restart", description: e?.message || "Try again.", variant: "destructive" });
+            }
+          };
           return (
             <div className="space-y-6">
               {groups.map((group) => (
@@ -256,6 +282,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                           onContinue={() => handleNav(n)}
                           onView={() => handleNav(n)}
                           onUpgrade={() => onNavigate?.("build-business")}
+                          onRestart={n.state === "in-progress" ? () => handleRestart(n) : undefined}
                         />
                       );
                     })}

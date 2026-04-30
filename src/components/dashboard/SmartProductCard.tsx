@@ -122,6 +122,9 @@ interface SmartProductCardProps {
   onContinue?: () => void;
   onView?: () => void;
   onUpgrade?: () => void;
+  /** Optional secondary action for stuck in-progress nodes — clears the
+   *  draft and routes the user back to step 1 of the builder. */
+  onRestart?: () => void;
   genre?: string;
   code?: string;
 }
@@ -242,7 +245,7 @@ export default function SmartProductCard({
   id, label, icon: Icon, description, personalizedDescription,
   state, tierRequired, revenue, progressPercent,
   stats, liveRevenue, lastActivityAt,
-  onBuild, onContinue, onView, onUpgrade, genre, code,
+  onBuild, onContinue, onView, onUpgrade, onRestart, genre, code,
 }: SmartProductCardProps) {
   const category = getBuilderCategory(code ?? "");
   const catTokens = categoryCard[category];
@@ -439,9 +442,20 @@ export default function SmartProductCard({
             </Button>
           )}
           {state === "in-progress" && (
-            <Button size="sm" className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`} onClick={onContinue}>
-              <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
-            </Button>
+            <>
+              <Button size="sm" className={`w-full text-xs border ${pendingTokens.ctaSolid} shadow-md`} onClick={onContinue}>
+                <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
+              </Button>
+              {onRestart && (
+                <button
+                  type="button"
+                  onClick={onRestart}
+                  className="w-full text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline mt-1"
+                >
+                  Restart build
+                </button>
+              )}
+            </>
           )}
           {state === "published" && (
             <Button
