@@ -237,6 +237,96 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           {grossSales > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
+          {/* ── Pipeline Snapshot (Audit #6) ────────────────────────── */}
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
+                <Activity className="h-4 w-4 text-secondary" /> Pipeline Snapshot
+              </h3>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live data</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><UserPlus className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Leads</span></div>
+                <p className="text-xl font-heading font-bold">{leadsCount.toLocaleString()}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><UserPlus className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Leads This Week</span></div>
+                <p className="text-xl font-heading font-bold flex items-center gap-1.5">
+                  {leadsThisWeek}
+                  {leadsLastWeek > 0 && (
+                    <span className={`inline-flex items-center text-[10px] font-semibold ${weekTrend >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                      {weekTrend >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {Math.abs(weekTrend).toFixed(0)}%
+                    </span>
+                  )}
+                </p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><DollarSign className="h-3.5 w-3.5 text-accent" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Revenue This Month</span></div>
+                <p className="text-xl font-heading font-bold text-accent">${revenueThisMonth.toFixed(0)}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><Zap className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Active Nodes</span></div>
+                <p className="text-xl font-heading font-bold">{activeNodesCount}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><Mail className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Email Open Rate</span></div>
+                <p className="text-xl font-heading font-bold">{emailOpenRate === null ? "—" : `${emailOpenRate.toFixed(0)}%`}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><Target className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Top Funnel</span></div>
+                {topFunnel ? (
+                  <div>
+                    <p className="text-sm font-heading font-bold truncate" title={topFunnel.title}>{topFunnel.title}</p>
+                    <p className="text-[11px] text-accent font-semibold">{topFunnel.rate.toFixed(1)}% conv.</p>
+                  </div>
+                ) : (
+                  <p className="text-xl font-heading font-bold text-muted-foreground">—</p>
+                )}
+              </Card>
+            </div>
+          </div>
+
+          {/* ── Hot Leads Today ─────────────────────────────────────── */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
+                <Flame className="h-4 w-4 text-rose-500" /> Hot Leads Today
+                <span className="text-[10px] text-muted-foreground font-normal">(ABBY score &gt; 60)</span>
+              </h3>
+              <Button variant="outline" size="sm" onClick={() => onNavigate?.("author-crm")}>
+                View CRM <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+            {hotLeads.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                No hot leads yet. Hot leads appear here when a contact's ABBY engagement score crosses 60.
+              </p>
+            ) : (
+              <div className="divide-y">
+                {hotLeads.map((lead) => (
+                  <div key={lead.id} className="flex items-center justify-between py-2.5 gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{lead.name || lead.email}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{lead.email}</p>
+                    </div>
+                    <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/30">
+                      <Flame className="h-3 w-3 mr-1" /> {lead.abby_score}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground tabular-nums w-16 text-right">
+                      {formatAgo(lead.last_activity_at || lead.created_at)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Stat cards (Gross / Earnings / Fees) */}
+          {grossSales > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
                 { label: "Gross Sales This Month", value: `$${grossSales.toFixed(2)}`, icon: DollarSign, color: "text-accent" },
                 { label: "Platform Fee (8%)", value: `$${platformFee.toFixed(2)}`, icon: Percent, color: "text-muted-foreground" },
                 { label: "Stripe Fees", value: `$${stripeFees.toFixed(2)}`, icon: CreditCard, color: "text-muted-foreground" },
