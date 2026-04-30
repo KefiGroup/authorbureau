@@ -167,12 +167,10 @@ export default function DashboardSidebar({
       id: "analytics" as DashboardSection, label: "Revenue Dashboard", icon: BarChart3,
     },
     {
-      id: "connect-stripe" as DashboardSection, label: stripeConnected ? "Stripe Connected" : "Connect Stripe",
-      icon: CreditCard,
-    },
-    {
       id: "payout-settings" as DashboardSection, label: "Payout Settings",
       icon: Wallet,
+      subtitle: "How you get paid",
+      tooltip: "Choose how to receive your monthly 92% payout — Stripe, PayPal, or Wise.",
     },
     {
       id: "connect-settings" as DashboardSection, label: "Connect Settings",
