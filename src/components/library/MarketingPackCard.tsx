@@ -42,6 +42,17 @@ export default function MarketingPackCard({ nodeId, nodeName, authorId, bookId, 
     if (type in buckets) buckets[type as PackAssetType] = a;
   }
 
+  // Real "ready" gate — the row must contain actual content, not just exist.
+  const isFilled = {
+    sales_copy: !!(buckets.sales_copy?.content?.markdown && String(buckets.sales_copy.content.markdown).trim().length > 30),
+    social_pack: Array.isArray(buckets.social_pack?.content?.posts) && buckets.social_pack!.content.posts.length > 0,
+    email_announcement: !!(buckets.email_announcement?.content?.email?.body_markdown && String(buckets.email_announcement.content.email.body_markdown).trim().length > 30),
+    bonus: !!(buckets.bonus?.content?.bonus?.body_markdown && String(buckets.bonus.content.bonus.body_markdown).trim().length > 30),
+  };
+  const readyCount = Object.values(isFilled).filter(Boolean).length;
+  const anyFailed = assets.some(a => a.status === "failed");
+  const allEmpty = readyCount === 0;
+
   const generatedAt = assets[0]?.content?.generated_at
     ? new Date(assets[0].content.generated_at).toLocaleDateString()
     : null;
@@ -74,7 +85,8 @@ export default function MarketingPackCard({ nodeId, nodeName, authorId, bookId, 
         <div>
           <CardTitle className="text-base font-bold">{nodeName}</CardTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {nodeId} · {assets.length}/4 assets {generatedAt && `· generated ${generatedAt}`}
+            {nodeId} · {readyCount}/4 ready {generatedAt && `· generated ${generatedAt}`}
+            {anyFailed && <span className="text-destructive ml-1">· generation failed</span>}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -89,23 +101,31 @@ export default function MarketingPackCard({ nodeId, nodeName, authorId, bookId, 
       </CardHeader>
       {open && (
         <CardContent className="space-y-4">
-          {/* Sales copy */}
-          {buckets.sales_copy && (
+          {allEmpty && (
+            <div className="rounded-md border border-dashed border-border p-4 text-center text-sm text-muted-foreground">
+              {anyFailed
+                ? "Generation didn't complete. Click Regenerate to try again."
+                : "This pack is still being generated. Click Regenerate if it's been more than a minute."}
+            </div>
+          )}
+
+          {/* Sales copy — only render if filled */}
+          {isFilled.sales_copy && (
             <AssetSection
               label={ASSET_TYPE_LABEL.sales_copy}
               onCopy={() => copy(buckets.sales_copy!.content?.markdown || "")}
-              body={buckets.sales_copy.content?.markdown || ""}
+              body={buckets.sales_copy!.content?.markdown || ""}
             />
           )}
 
           {/* Social pack */}
-          {buckets.social_pack && (
+          {isFilled.social_pack && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold">{ASSET_TYPE_LABEL.social_pack}</h4>
               </div>
               <div className="space-y-2">
-                {(buckets.social_pack.content?.posts || []).map((p: any, i: number) => (
+                {(buckets.social_pack!.content?.posts || []).map((p: any, i: number) => (
                   <div key={i} className="rounded-md border border-border p-3 bg-muted/30">
                     <div className="flex items-center justify-between mb-1">
                       <Badge variant="outline" className="text-[10px]">{p.platform}</Badge>
@@ -121,7 +141,7 @@ export default function MarketingPackCard({ nodeId, nodeName, authorId, bookId, 
           )}
 
           {/* Email announcement */}
-          {buckets.email_announcement && (
+          {isFilled.email_announcement && (
             <AssetSection
               label={ASSET_TYPE_LABEL.email_announcement}
               onCopy={() => {
@@ -129,21 +149,21 @@ export default function MarketingPackCard({ nodeId, nodeName, authorId, bookId, 
                 copy(`Subject: ${e.subject}\n\n${e.body_markdown}`);
               }}
               body={[
-                buckets.email_announcement.content?.email?.subject &&
-                  `**Subject:** ${buckets.email_announcement.content.email.subject}`,
-                buckets.email_announcement.content?.email?.preview &&
-                  `**Preview:** ${buckets.email_announcement.content.email.preview}`,
-                buckets.email_announcement.content?.email?.body_markdown,
+                buckets.email_announcement!.content?.email?.subject &&
+                  `**Subject:** ${buckets.email_announcement!.content.email.subject}`,
+                buckets.email_announcement!.content?.email?.preview &&
+                  `**Preview:** ${buckets.email_announcement!.content.email.preview}`,
+                buckets.email_announcement!.content?.email?.body_markdown,
               ].filter(Boolean).join("\n\n")}
             />
           )}
 
           {/* Bonus */}
-          {buckets.bonus && (
+          {isFilled.bonus && (
             <AssetSection
               label={`${spec?.bonus_label || "Bonus Asset"}`}
               onCopy={() => copy(buckets.bonus!.content?.bonus?.body_markdown || "")}
-              body={buckets.bonus.content?.bonus?.body_markdown || ""}
+              body={buckets.bonus!.content?.bonus?.body_markdown || ""}
             />
           )}
         </CardContent>

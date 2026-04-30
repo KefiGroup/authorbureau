@@ -1,54 +1,69 @@
-## Goal
-Systematically load every route in the app, detect runtime errors, broken edge function calls, stale references, and missing data, then fix the issues found.
+# Why your library looks empty
 
-## Scope — routes to audit
+The library DOES find your packs (you can see BP-09, BP-03, BP-01 cards). What's missing is the *body* of each asset.
 
-**Public**
-- `/` (Index), `/directory`, `/solutions`, `/solutions/:genre`, `/how-it-works`, `/methodology`, `/pricing`, `/contact`, `/faq`, `/terms`, `/terms-of-sale`, `/privacy`, `/unsubscribe`
-- `/readers-bureau`, `/readers-bureau/auth`
-- `/auth`, `/admin-auth`, `/join`, `/create-microsite`, `/sso`
+I queried `marketing_assets` for your account and the truth is:
 
-**Author (logged-in)**
-- `/dashboard` (and sections via `?section=`: profile, my-books, marketing-hub, author-crm, brand, build, yield, revenue)
-- `/my-books`, `/my-contacts`, `/marketing-hub`
-- `/dashboard/book/:bookId` (BookHub), `/dashboard/book/:bookId/build/:node`
-- `/account-settings`, `/connect-settings`, `/earnings`, `/abby-coach`, `/special-editions-calendar`, `/revenue-dashboard`
-- `/admin`, `/admin/payouts`, `/admin/content-quality`
+| Pack | Sales copy | Social posts | Email | Bonus |
+|---|---|---|---|---|
+| BA-13, BA-14, BA-10, YR-19 | Filled (6–8K chars) | Filled (3 posts) | Filled | Filled |
+| **BP-01, BP-03, BP-05, BP-09, YR-21, YR-22, YR-23, YR-26, BA-15** | Empty `""` | Empty `[]` | Empty `{}` | Empty `{}` |
 
-**Public author microsites** (sample using a known author slug, e.g. Pauline Teo)
-- `/:authorSlug`, `/:authorSlug/:bookSlug`, `/:authorSlug/:bookSlug/:productType`
-- `/:authorSlug/webinar`, `/:authorSlug/members`, `/:authorSlug/course/:courseSlug`
+Every empty row was created by the same DB trigger (`source: "db_trigger"`, `status: "ready"`) the moment the node was published. The trigger fires `generate-asset-pack`, but when the AI call fails, times out, or returns a malformed JSON, the function still upserts the four rows with empty fallbacks (`pack.sales_copy ?? ""`) and marks them `ready`. From the UI's point of view the pack "exists" so the card opens — into a wall of blanks.
 
-## Method
+So this is one bug with two visible faces: (1) silent AI failures, (2) status lying about readiness.
 
-1. **Static pass (no preview needed)**
-   - `rg` for stale patterns: imports of removed files, references to deprecated GHL deploy functions in active flows, `supabase.auth.getSession()` calls in shared-backend contexts (should be `getActiveToken`), direct `books` table queries for ownership checks (should use `get-author-book`), TypeScript errors via `tsc --noEmit`-equivalent signals in dev-server log.
-   - Check edge-function imports vs `supabase/functions/` directory for any missing deployments referenced from the client.
-   - Scan `src/pages/*.tsx` for unused/orphan pages no longer mounted in `App.tsx` (e.g. `MicrositePage.tsx`, `ReaderPortal.tsx`, `ReadingClub.tsx`, `FunnelPage.tsx`, `ThankYouPage.tsx`, `DynamicBookMicrosite.tsx`) — flag for removal if confirmed dead.
+# Plan
 
-2. **Runtime pass (browser tool)**
-   - For each route group, `navigate_to_sandbox` then `read_console_logs` + `list_network_requests` filtered to errors (4xx/5xx).
-   - Capture per-route: page rendered? console errors? failed network calls? Edge-function 401/500s?
-   - Test author pages while logged in (use existing session in preview); skip routes requiring specific data we don't have (e.g. random `:purchaseId`).
+## Part A — Fix the empty library (do first, ~1 hour)
 
-3. **Categorize findings**
-   - **Critical**: page crashes / blank screen / 401 from edge fn the page depends on.
-   - **High**: visible error toast, missing data, broken link.
-   - **Stale**: dead imports, orphan pages, references to removed/renamed functions, `verify_jwt` mismatches.
-   - **Low**: console warnings, deprecation notices.
+1. **Stop writing empty packs.** In `generate-asset-pack/index.ts`:
+   - Validate the AI response. If `sales_copy`, `social_posts`, `email_announcement`, or `bonus_asset` is missing/empty, retry once with `openai/gpt-5-mini` (Gemini Flash sometimes returns `{}` for long JSON).
+   - If the retry also fails, write `status: "failed"` with `error_message`, NOT `status: "ready"`.
+2. **Backfill the existing 9 empty packs.** Run `generate-asset-pack` once per `(author_id, node_id)` where any row has `markdown=""` / `posts=[]` / `email={}` / `bonus={}`. Confirmed list: BP-01, BP-03, BP-05, BP-09, YR-21, YR-22, YR-23, YR-26, BA-15 for Pauline (and we'll do the same scan for every other author).
+3. **UI honesty.** In `MarketingPackCard.tsx`:
+   - Hide buckets whose body is empty instead of rendering a blank `<pre>`.
+   - Show a "Generation failed — Regenerate" inline state when `status='failed'`.
+   - Change the "4/4 assets" pill to "X/4 ready" using a content-presence check, not row count.
+4. **Pre-flight log.** Add `console.log` of node_id + AI status code + parsed-keys-present so future failures show up in `supabase--edge_function_logs`.
 
-4. **Fix pass**
-   - Apply token-standard fixes (`getActiveToken` + `fetchWithTimeout`) where edge calls 401.
-   - Wire missing `bookId` props or add fallbacks where queries return empty.
-   - Delete or redirect confirmed orphan pages.
-   - Update any client-side calls referencing renamed/removed edge functions.
-   - Re-run failing route after each fix to confirm green.
+## Part B — Close the Must-Have gaps
 
-## Deliverable
+| Capability | Status today | Action |
+|---|---|---|
+| AI content generation | ✅ Documents + live pages + revenue wiring (28 nodes, microsites, Stripe checkout via `setup-stripe-product`) | None |
+| Social media kit | ⚠️ Graphics + captions + calendar exist; **no ZIP download, no "Mark as Posted"** | Add `export-social-pack-zip` edge function (PNG + captions.md bundled with JSZip). Add `posted_at` column + button in `SocialCalendarTab.tsx` and `PublishingDashboard.tsx` |
+| Email marketing | ⚠️ Sequences + Resend send + suppression all exist; **no ABBY scoring on opens/clicks** | Extend `process-email-events` to bump `crm_contacts.abby_score` (+5 open, +15 click, +30 reply). Already have webhook + flows |
+| Lead capture | ⚠️ Quiz + thank-you + CRM wired; **no auto follow-up sequence** | After quiz submit, call `process-email-flows` with the lead-magnet's bound 5-email nurture sequence (already generated by BP-01) |
+| Sales funnel | ✅ Auto-generated + live Stripe checkout (`BuyNowButton`, `setup-stripe-product`, dual webhook) | None |
+| CRM | ⚠️ Pipeline + tagging exist; **scoring is partial, no daily intelligence push** | Wire `abby-daily-report` to compute `hot_leads` (score ≥ 70 in last 7d) and surface in CRM Intelligence tab |
+| Payment processing | ✅ Stripe Connect Express, auto-product per node | None |
+| Revenue dashboard | ✅ Real-time gross/fee/net via `sync-stripe-metrics` | Add hot-lead count + 7d new-lead count widget |
+| Coaching/sessions | ❌ No Daily.co / booking calendar | Add `daily-co-create-room` edge function + `coaching_sessions` table + booking UI on BA-13 microsite. Stripe payment already works via existing checkout |
+| Course platform | ⚠️ Generation done; **no enrolment portal yet** | Add `/courses/:slug/learn` portal page + `course_enrollments` table + video player on `CourseLearnPage.tsx` (file already scaffolded) |
+| Podcast hosting | ⚠️ Audiobook MP3 pipeline reused; **no RSS feed** | Add `podcast-rss-feed` edge function generating Spotify/Apple-compliant XML, keyed by `author_slug` |
+| Membership site | ⚠️ Stripe products + `customer-portal` + `enroll-subscriber` exist; **no member-only portal** | Build `/members/:slug` route gated on active subscription |
+| Daily AI insights | ✅ `abby-daily-report-dispatcher` already runs 8am | Confirm cron is set; add to settings UI |
+| Export portability | ⚠️ TXT/DOCX/PDF work; **MP3 only via audiobook pipeline; no per-node ZIP** | Add `export-node-zip` that bundles all `nodeAssetRegistry` outputs (including TTS MP3 via existing ElevenLabs path) |
 
-A short audit report (in chat) listing each route with status (OK / Fixed / Known-limitation), plus the list of files changed. Orphan pages are removed only after confirming no inbound route or import references them.
+## Sequencing
 
-## Out of scope
-- New features, redesigns, copy changes.
-- Routes requiring real purchase IDs or third-party callbacks (Stripe success, social OAuth) — these are smoke-tested only for render, not full flow.
-- Database migrations unless a missing column is the root cause of a page crash.
+```text
+Step 1 (now)     Part A — fix generator + backfill 9 empty packs + UI gating
+Step 2 (today)   Mark-as-Posted + ZIP social pack + ABBY email scoring  (existing tables, small additions)
+Step 3 (next)    Lead-magnet → nurture autowire + hot-lead CRM widget   (no new infra)
+Step 4 (sprint)  Member portal + course-learn portal + podcast RSS      (new tables + 2 edge functions)
+Step 5 (sprint)  Daily.co coaching booking                              (new connector + booking table)
+Step 6 (sprint)  Per-node ZIP/MP3 export rail                           (wraps existing exporters)
+```
+
+## Tech notes
+
+- `MarketingPackCard.tsx` line ~77 — switch `${assets.length}/4 assets` to a content-presence count.
+- `generate-asset-pack/index.ts` line ~111 — wrap `JSON.parse(raw)` in a stricter validator and route failures to `status='failed'`. The trigger in migration `20260425083723…` does not need changes — it just enqueues; the function decides outcome.
+- Backfill is idempotent because the function does `delete + insert` on `(author_id, asset_type)`.
+- Memory rule honored: never pass `temperature` to `openai/gpt-5*` — use defaults.
+- Member portal and course portal routes already have placeholder pages (`MemberPortalPage.tsx`, `CourseLearnPage.tsx`); they just need data wiring.
+- Podcast RSS lives at edge route, not on a static file — points to existing audiobook MP3 URLs in storage.
+
+I'll start with **Part A** the moment you approve so your library stops looking empty, then move down the table in the order above.
