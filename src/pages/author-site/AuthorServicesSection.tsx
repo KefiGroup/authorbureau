@@ -89,7 +89,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                         </div>
                         {desc && <p className="text-sm leading-relaxed line-clamp-2" style={{ color: v.bodyText }}>{desc}</p>}
                         <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: v.mutedText }}>
-                          {price != null && price > 0 && <span className="font-bold" style={{ color: v.accent }}>${price}</span>}
+                          {priceLabel && <span className="font-bold" style={{ color: v.accent }}>{priceLabel}</span>}
                         </div>
                       </div>
                       <a href={linkTo} target={node.third_party_url ? "_blank" : undefined} rel={node.third_party_url ? "noopener noreferrer" : undefined}
