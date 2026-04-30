@@ -90,7 +90,7 @@ export default function SequencesTab({ bookId = null, books = [] }: SequencesTab
         flows: FlowRow[];
         steps_by_flow: Record<string, Step[]>;
         active_enrollments_by_flow?: Record<string, number>;
-      }>("sequences");
+      }>("sequences", bookId ? { book_id: bookId } : {});
       setFlows(res.flows || []);
       setSteps(res.steps_by_flow || {});
       setEnrollments(res.active_enrollments_by_flow || {});
@@ -101,7 +101,7 @@ export default function SequencesTab({ bookId = null, books = [] }: SequencesTab
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { setLoading(true); load(); }, [bookId]);
 
   // Check sender-email verification so we can warn before activating sequences.
   useEffect(() => {
@@ -145,7 +145,7 @@ export default function SequencesTab({ bookId = null, books = [] }: SequencesTab
     setGeneratingAll(true);
     try {
       const res = await callMarketingHubState<{ attempted: number; skipped_existing: number; background?: boolean }>(
-        "generate_all_sequences", { include_master: true }
+        "generate_all_sequences", { include_master: true, ...(bookId ? { book_id: bookId } : {}) }
       );
       if (res.attempted === 0) {
         toast({
