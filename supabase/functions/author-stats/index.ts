@@ -347,10 +347,10 @@ Deno.serve(async (req) => {
       totalPublished += counts.published;
     }
 
-    // Attribute each built author_node to its specific book when book_id is set;
+    // Attribute each *gated-built* author_node to its specific book when book_id is set;
     // fall back to the primary (oldest) book for legacy author-level rows.
-    for (const n of authorNodes || []) {
-      const bid = (n as any).book_id || primaryBookId;
+    for (const n of builtRows) {
+      const bid = n.book_id || primaryBookId;
       if (bid) ensureBookSet(bid).add(n.node_id);
     }
     if (profile?.author_slug && primaryBookId) {
