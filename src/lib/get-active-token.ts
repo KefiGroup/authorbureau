@@ -134,7 +134,7 @@ export async function getActiveToken(
     // Final fallback: re-read storage (a parallel refresh may have written
     // a fresh token by now).
     const refreshed = readCachedAccessToken();
-    return refreshed && !isTokenExpired(refreshed) ? refreshed : refreshed;
+    return refreshed && !isTokenExpired(refreshed) ? refreshed : null;
   })();
 
   inflightToken = { promise, expiresAt: now + INFLIGHT_TTL_MS };
