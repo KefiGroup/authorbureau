@@ -1,69 +1,45 @@
-# Why your library looks empty
+## Section 1 — Author Dashboard Bug Fixes
 
-The library DOES find your packs (you can see BP-09, BP-03, BP-01 cards). What's missing is the *body* of each asset.
+### Verification (what I found in the code)
 
-I queried `marketing_assets` for your account and the truth is:
+- **Pauline's account**: 2 books, 28 author_nodes, 2 saved business plans. So she is unambiguously a returning author.
+- **Bug 1 (Meet Abby)**: `src/components/dashboard/ABBYFrameworkDashboard.tsx` shows `<MeetAbbySection>` whenever `!hasPlan`. `hasPlan` is loaded asynchronously via `abby-execute action:status` for **only the first book** (line 126), and only flips true after a separate fetch resolves *after* `hasBootstrapped` is set. Result: returning authors with multi-book accounts, slow networks, or a plan saved against the second book see the onboarding flash on every login.
+- **Bug 2 (skeleton flash)**: `src/components/dashboard/book-hub/BookHubOverview.tsx` line 135 renders `<BookHubSkeleton/>` until **all** of these resolve serially: a `consultation-session` POST, a `generated_assets` SELECT, and a `business-consultant get-plan` POST. Three round-trips before any UI paints — that's the multi-second grey-card delay.
+- **Bug 3 (BP-013 etc.)**: `src/components/dashboard/book-hub/JourneyStepper.tsx` lines 92–109 render the node code (e.g. `BP-01`) and immediately below it a circular badge containing the `sequence` integer (e.g. `3`, `4`, `6`). The DB and `NODE_CODE_MAP` are clean (`BP-01`, `BP-03`, `BP-09`); the malformed strings the user sees are the **stacked code + sequence circle reading as one token** (BP-01 + 3 = "BP-013", BP-03 + 4 = "BP-034", BP-09 + 6 = "BP-096"). The sequence badge is also redundant with the code itself.
 
-| Pack | Sales copy | Social posts | Email | Bonus |
-|---|---|---|---|---|
-| BA-13, BA-14, BA-10, YR-19 | Filled (6–8K chars) | Filled (3 posts) | Filled | Filled |
-| **BP-01, BP-03, BP-05, BP-09, YR-21, YR-22, YR-23, YR-26, BA-15** | Empty `""` | Empty `[]` | Empty `{}` | Empty `{}` |
+### Fixes
 
-Every empty row was created by the same DB trigger (`source: "db_trigger"`, `status: "ready"`) the moment the node was published. The trigger fires `generate-asset-pack`, but when the AI call fails, times out, or returns a malformed JSON, the function still upserts the four rows with empty fallbacks (`pack.sales_copy ?? ""`) and marks them `ready`. From the UI's point of view the pack "exists" so the card opens — into a wall of blanks.
+**Bug 1 — Hide Meet Abby for returning authors**
+- File: `src/components/dashboard/ABBYFrameworkDashboard.tsx`
+- Change the gate at line 283 from `if (!hasPlan)` to `if (!hasPlan && bookCount === 0 && myBooks.length === 0)`.
+- Rationale matches the spec: any author who already has a book is past onboarding. The Meet Abby section is preserved only for true first-time users (zero books).
+- Returning authors with books fall through to the normal dashboard (`MonetizationUniverse` + book hub) immediately.
 
-So this is one bug with two visible faces: (1) silent AI failures, (2) status lying about readiness.
+**Bug 2 — Eliminate Analysis-tab skeleton flash**
+- File: `src/components/dashboard/book-hub/BookHubOverview.tsx`
+- Two changes:
+  1. Set `dataReady` to `true` immediately after the cheap `generated_assets` SELECT (and run the two edge-function fetches in parallel via `Promise.all`, not serially).
+  2. Decouple `progress.loading` from the full-page skeleton — render the page shell (header, hero strip, market snapshot section) right away, and show a small inline loader only inside the "Your Next Steps" block while `progress.loading` is true.
+- Net effect: first paint within ~150 ms instead of waiting for all three round-trips.
 
-# Plan
+**Bug 3 — Strip the malformed BP-013 / BP-034 / BP-096**
+- File: `src/components/dashboard/book-hub/JourneyStepper.tsx`
+- Remove the `sequence` integer badge entirely (lines 96–108). Keep the icon/checkmark circle but drop the number — the `BP-01` / `BA-11` / `YR-25` code printed above already serves as the identifier and ordinal cue.
+- Add a small visual separator (`mt-1` and a thin divider, or simply `mb-1` on the code span) so the code can never visually run into the badge in the future.
+- Verified output: each row will display `BP-01` followed by an icon-only circle (✓ when completed, the node icon otherwise) — never a numeric digit that can concatenate with the code.
 
-## Part A — Fix the empty library (do first, ~1 hour)
-
-1. **Stop writing empty packs.** In `generate-asset-pack/index.ts`:
-   - Validate the AI response. If `sales_copy`, `social_posts`, `email_announcement`, or `bonus_asset` is missing/empty, retry once with `openai/gpt-5-mini` (Gemini Flash sometimes returns `{}` for long JSON).
-   - If the retry also fails, write `status: "failed"` with `error_message`, NOT `status: "ready"`.
-2. **Backfill the existing 9 empty packs.** Run `generate-asset-pack` once per `(author_id, node_id)` where any row has `markdown=""` / `posts=[]` / `email={}` / `bonus={}`. Confirmed list: BP-01, BP-03, BP-05, BP-09, YR-21, YR-22, YR-23, YR-26, BA-15 for Pauline (and we'll do the same scan for every other author).
-3. **UI honesty.** In `MarketingPackCard.tsx`:
-   - Hide buckets whose body is empty instead of rendering a blank `<pre>`.
-   - Show a "Generation failed — Regenerate" inline state when `status='failed'`.
-   - Change the "4/4 assets" pill to "X/4 ready" using a content-presence check, not row count.
-4. **Pre-flight log.** Add `console.log` of node_id + AI status code + parsed-keys-present so future failures show up in `supabase--edge_function_logs`.
-
-## Part B — Close the Must-Have gaps
-
-| Capability | Status today | Action |
-|---|---|---|
-| AI content generation | ✅ Documents + live pages + revenue wiring (28 nodes, microsites, Stripe checkout via `setup-stripe-product`) | None |
-| Social media kit | ⚠️ Graphics + captions + calendar exist; **no ZIP download, no "Mark as Posted"** | Add `export-social-pack-zip` edge function (PNG + captions.md bundled with JSZip). Add `posted_at` column + button in `SocialCalendarTab.tsx` and `PublishingDashboard.tsx` |
-| Email marketing | ⚠️ Sequences + Resend send + suppression all exist; **no ABBY scoring on opens/clicks** | Extend `process-email-events` to bump `crm_contacts.abby_score` (+5 open, +15 click, +30 reply). Already have webhook + flows |
-| Lead capture | ⚠️ Quiz + thank-you + CRM wired; **no auto follow-up sequence** | After quiz submit, call `process-email-flows` with the lead-magnet's bound 5-email nurture sequence (already generated by BP-01) |
-| Sales funnel | ✅ Auto-generated + live Stripe checkout (`BuyNowButton`, `setup-stripe-product`, dual webhook) | None |
-| CRM | ⚠️ Pipeline + tagging exist; **scoring is partial, no daily intelligence push** | Wire `abby-daily-report` to compute `hot_leads` (score ≥ 70 in last 7d) and surface in CRM Intelligence tab |
-| Payment processing | ✅ Stripe Connect Express, auto-product per node | None |
-| Revenue dashboard | ✅ Real-time gross/fee/net via `sync-stripe-metrics` | Add hot-lead count + 7d new-lead count widget |
-| Coaching/sessions | ❌ No Daily.co / booking calendar | Add `daily-co-create-room` edge function + `coaching_sessions` table + booking UI on BA-13 microsite. Stripe payment already works via existing checkout |
-| Course platform | ⚠️ Generation done; **no enrolment portal yet** | Add `/courses/:slug/learn` portal page + `course_enrollments` table + video player on `CourseLearnPage.tsx` (file already scaffolded) |
-| Podcast hosting | ⚠️ Audiobook MP3 pipeline reused; **no RSS feed** | Add `podcast-rss-feed` edge function generating Spotify/Apple-compliant XML, keyed by `author_slug` |
-| Membership site | ⚠️ Stripe products + `customer-portal` + `enroll-subscriber` exist; **no member-only portal** | Build `/members/:slug` route gated on active subscription |
-| Daily AI insights | ✅ `abby-daily-report-dispatcher` already runs 8am | Confirm cron is set; add to settings UI |
-| Export portability | ⚠️ TXT/DOCX/PDF work; **MP3 only via audiobook pipeline; no per-node ZIP** | Add `export-node-zip` that bundles all `nodeAssetRegistry` outputs (including TTS MP3 via existing ElevenLabs path) |
-
-## Sequencing
+### Files touched
 
 ```text
-Step 1 (now)     Part A — fix generator + backfill 9 empty packs + UI gating
-Step 2 (today)   Mark-as-Posted + ZIP social pack + ABBY email scoring  (existing tables, small additions)
-Step 3 (next)    Lead-magnet → nurture autowire + hot-lead CRM widget   (no new infra)
-Step 4 (sprint)  Member portal + course-learn portal + podcast RSS      (new tables + 2 edge functions)
-Step 5 (sprint)  Daily.co coaching booking                              (new connector + booking table)
-Step 6 (sprint)  Per-node ZIP/MP3 export rail                           (wraps existing exporters)
+src/components/dashboard/ABBYFrameworkDashboard.tsx     (1-line condition change)
+src/components/dashboard/book-hub/BookHubOverview.tsx   (parallelize fetches, split skeleton)
+src/components/dashboard/book-hub/JourneyStepper.tsx    (remove sequence badge)
 ```
 
-## Tech notes
+No DB, edge function, or schema changes. No new dependencies.
 
-- `MarketingPackCard.tsx` line ~77 — switch `${assets.length}/4 assets` to a content-presence count.
-- `generate-asset-pack/index.ts` line ~111 — wrap `JSON.parse(raw)` in a stricter validator and route failures to `status='failed'`. The trigger in migration `20260425083723…` does not need changes — it just enqueues; the function decides outcome.
-- Backfill is idempotent because the function does `delete + insert` on `(author_id, asset_type)`.
-- Memory rule honored: never pass `temperature` to `openai/gpt-5*` — use defaults.
-- Member portal and course portal routes already have placeholder pages (`MemberPortalPage.tsx`, `CourseLearnPage.tsx`); they just need data wiring.
-- Podcast RSS lives at edge route, not on a static file — points to existing audiobook MP3 URLs in storage.
+### Verification after implementation
 
-I'll start with **Part A** the moment you approve so your library stops looking empty, then move down the table in the order above.
+- Log in as Pauline → `/dashboard` should land directly on the multi-book hub, no Meet Abby section.
+- Open Book Hub → Analysis tab → page shell appears within ~150 ms; only the Next Steps block shows a small spinner briefly.
+- Inspect the Next Steps block → codes read cleanly as `BP-01`, `BP-03`, `BP-09` (no trailing digit).
