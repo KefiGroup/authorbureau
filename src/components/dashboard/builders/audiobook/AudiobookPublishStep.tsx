@@ -89,6 +89,14 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         Authors Bureau storefront. You confirm metadata and we generate a downloadable ZIP per channel.
       </p>
 
+      <AudiobookExportCard
+        chapters={chapters}
+        bookTitle={bookTitle}
+        authorName={setup.authorName}
+        voiceName={voiceName}
+        retailPriceUsd={setup.retailPriceUsd}
+      />
+
       <DistributeAudiobookModal
         open={distOpen}
         onOpenChange={setDistOpen}
