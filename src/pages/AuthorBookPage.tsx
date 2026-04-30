@@ -19,6 +19,30 @@ import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
+import { stripHtml } from "@/lib/stripHtml";
+
+/** Best-effort 1–2 sentence summary for a buyable node card. */
+function extractCardDescription(node: { tagline?: string | null; content_json?: any }): string {
+  const tag = (node.tagline || "").trim();
+  if (tag) return tag.length > 200 ? tag.slice(0, 197).trimEnd() + "…" : tag;
+  const raw = stripHtml(String(node.content_json?.description || node.content_json?.summary || ""));
+  if (!raw) return "";
+  const flat = raw.replace(/\s+/g, " ").trim();
+  if (flat.length <= 160) return flat;
+  // Cut at sentence boundary if possible
+  const slice = flat.slice(0, 160);
+  const lastStop = Math.max(slice.lastIndexOf(". "), slice.lastIndexOf("! "), slice.lastIndexOf("? "));
+  return (lastStop > 80 ? slice.slice(0, lastStop + 1) : slice.trimEnd() + "…");
+}
+
+/** Convert an absolute delivery URL to an in-app path when same-origin. */
+function toInternalPath(url?: string | null): string | null {
+  if (!url) return null;
+  try {
+    const u = new URL(url, typeof window !== "undefined" ? window.location.origin : "https://authorsbureau.com");
+    return u.pathname + u.search + u.hash;
+  } catch { return null; }
+}
 
 /* ---------- Types ---------- */
 interface Book {
@@ -172,7 +196,7 @@ export default function AuthorBookPage() {
   const navigate = useNavigate();
   const [book, setBook] = useState<Book | null>(null);
   const [products, setProducts] = useState<ProductLink[]>([]);
-  const [buyableNodes, setBuyableNodes] = useState<Array<{ id: string; node_id: string; node_name: string; personalised_name: string | null; price_usd: number; currency: string | null; delivery_url: string | null }>>([]);
+  const [buyableNodes, setBuyableNodes] = useState<Array<{ id: string; node_id: string; node_name: string; personalised_name: string | null; price_usd: number; currency: string | null; delivery_url: string | null; tagline: string | null; content_json: any }>>([]);
   const [otherBooks, setOtherBooks] = useState<OtherBook[]>([]);
   const [allAuthorBooks, setAllAuthorBooks] = useState<{ slug: string; title: string; cover_image_url?: string; genre?: string }[]>([]);
   const [authorProfile, setAuthorProfile] = useState<any>(null);
@@ -407,7 +431,7 @@ export default function AuthorBookPage() {
     if (profile?.id) {
       const { data: buyable } = await supabase
         .from("author_nodes")
-        .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url")
+        .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url, tagline, content_json")
         .eq("author_id", profile.id)
         .eq("book_id", bookId)
         .eq("status", "live")
@@ -809,25 +833,42 @@ export default function AuthorBookPage() {
                 const currency = (n.currency || "USD").toUpperCase();
                 const symbol = currency === "USD" ? "$" : "";
                 const price = `${symbol}${Number(n.price_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                const description = extractCardDescription(n);
+                const learnMorePath = toInternalPath(n.delivery_url);
                 return (
                   <div
                     key={n.id}
                     className="rounded-xl p-5 flex flex-col"
                     style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
                   >
-                    <p className="font-semibold text-sm mb-1 line-clamp-2" style={{ color: v.headingText }}>
+                    <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>
                       {title}
                     </p>
+                    {description && (
+                      <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>
+                        {description}
+                      </p>
+                    )}
                     <p className="font-bold text-lg mb-4" style={{ color: v.accent }}>
                       {price}
                     </p>
-                    <div className="mt-auto">
+                    <div className="mt-auto space-y-2">
+                      {learnMorePath ? (
+                        <Link
+                          to={learnMorePath}
+                          className="w-full inline-flex items-center justify-center rounded-full text-xs h-9 font-semibold transition-opacity hover:opacity-90"
+                          style={{ background: v.accent, color: v.accentText }}
+                        >
+                          Learn More <ArrowRight className="ml-1 h-3 w-3" />
+                        </Link>
+                      ) : null}
                       <BuyNowButton
                         authorNodeId={n.id}
                         authorId={book.author_id}
                         fallbackUrl={n.delivery_url}
                         label="Buy Now"
                         className="w-full rounded-full text-xs h-9 font-semibold"
+                        variant={learnMorePath ? "outline" : "default"}
                       />
                     </div>
                   </div>
