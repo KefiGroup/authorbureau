@@ -50,7 +50,7 @@ function detectCurrentPage(pathname: string): string {
   return "Other";
 }
 
-export default function AbbyHelpChatbot() {
+function AbbyHelpChatbotImpl() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
