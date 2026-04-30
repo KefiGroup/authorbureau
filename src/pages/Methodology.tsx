@@ -59,7 +59,7 @@ const MASTER_TABLE: { builder: string; framework: string; citation: string }[] =
   { builder: "Podcast Tour", framework: "Strategic Guest Appearance Mapping", citation: "Audience overlap analysis" },
   { builder: "Webinars", framework: "Teach-Offer Model", citation: "5-15% conversion rate" },
   { builder: "Lead Magnets", framework: "Specificity Principle + 5-Minute Test", citation: "Checklists convert 3:1 over ebooks" },
-  { builder: "Media Outreach", framework: "Authority Positioning (Earned Media)", citation: "PR methodology" },
+  { builder: "Media & PR", framework: "Authority Positioning (Earned Media)", citation: "PR methodology" },
   { builder: "Affiliates", framework: "Partner-Driven Revenue Sharing", citation: "Pat Flynn model" },
   { builder: "Upsells", framework: "Post-Purchase Value Maximization", citation: "Brunson + Cialdini" },
   { builder: "Revenue Sharing", framework: "Strategic Partnership Frameworks", citation: "50/50 and 70/30 splits" },

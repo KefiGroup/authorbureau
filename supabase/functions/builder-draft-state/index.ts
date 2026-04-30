@@ -207,7 +207,76 @@ Deno.serve(async (req) => {
       if (action === "list-drafts") {
         const allDrafts: any[] = [];
 
-        // 1) Query product tables (courses, home_study_courses, etc.)
+        // node_id (e.g. "BP-02") → builder slug used by ALL_BUILDER_NODES (e.g. "lead-magnet")
+        const NODE_CODE_TO_SLUG: Record<string, string> = {
+          "BP-01": "email-flows",
+          "BP-02": "lead-magnet",
+          "BP-03": "social-media",
+          "BP-04": "website",
+          "BP-05": "webinar",
+          "BP-06": "workbook",
+          "BP-07": "book-sales",
+          "BP-08": "audiobook",
+          "BP-09": "online-course",
+          "BA-10": "online-course",
+          "BA-11": "audiobook",
+          "BA-12": "membership",
+          "BA-13": "group-coaching",
+          "BA-14": "podcast",
+          "BA-15": "press",
+          "BA-16": "affiliate",
+          "BA-17": "upsell-downsell",
+          "BA-18": "partnerships",
+        };
+
+        // 1) FIRST: Pull live / content_ready items from `author_nodes` (these win — drafts shadowed by these are stale)
+        const liveSlugs = new Set<string>();
+        const liveNodeRows: any[] = [];
+        try {
+          const { data: profileRows } = await cloudAdmin
+            .from("author_profiles")
+            .select("id, user_id")
+            .in("user_id", allUserIds);
+          const profileIds = (profileRows || []).map((p: any) => p.id);
+
+          if (profileIds.length > 0) {
+            const { data: nodeRows } = await cloudAdmin
+              .from("author_nodes")
+              .select("id, node_id, node_name, personalised_name, status, microsite_url, delivery_url, created_at, current_step, content_json, author_id, book_id")
+              .in("author_id", profileIds)
+              .in("status", ["content_ready", "live", "published"])
+              .order("created_at", { ascending: false });
+
+            for (const n of nodeRows || []) {
+              liveNodeRows.push(n);
+              const slugId = NODE_CODE_TO_SLUG[n.node_id] || n.node_id;
+              liveSlugs.add(slugId);
+              const status =
+                n.status === "live" || n.status === "published" ? "published" : "ready_for_review";
+              // Prefer the branded microsite URL; fall back to delivery_url only when it isn't a raw asset URL.
+              const cleanDelivery = n.delivery_url && !n.delivery_url.includes("supabase.co/storage") ? n.delivery_url : null;
+              const branded = n.microsite_url && /^https?:\/\//i.test(n.microsite_url) ? n.microsite_url : (cleanDelivery || n.microsite_url || "");
+              allDrafts.push({
+                id: n.id,
+                title: n.personalised_name || n.node_name || n.node_id,
+                book_id: n.book_id || null,
+                author_id: n.author_id,
+                created_at: n.created_at,
+                status,
+                description: branded,
+                table: "author_nodes",
+                nodeId: slugId,
+                stepsCompleted: n.current_step || 0,
+                microsite_url: branded || null,
+                node_code: n.node_id,
+              });
+            }
+          }
+        } catch (e) {
+          console.warn("[builder-draft-state] author_nodes lookup failed:", e);
+        }
+
+        // 2) Query product tables (courses, home_study_courses, etc.)
         //    Include published rows too so Review & Publish can show "Published".
         await Promise.all(
           PRODUCT_TABLES.map(async (table) => {
@@ -218,12 +287,16 @@ Deno.serve(async (req) => {
               .in("status", ["draft", "ready_for_review", "published", "live"]);
             for (const item of data || []) {
               const nodeId = Object.entries(NODE_DB_TABLES).find(([, t]) => t === table)?.[0] || table;
+              // Skip rows shadowed by a live author_node for the same slug+book
+              if (liveSlugs.has(nodeId) && allDrafts.some(d => d.table === "author_nodes" && d.nodeId === nodeId && (d.book_id === item.book_id || !d.book_id))) {
+                continue;
+              }
               allDrafts.push({ ...item, table, nodeId });
             }
           })
         );
 
-        // 2) Query generated_assets for builder_draft_* entries (covers all 28 nodes)
+        // 3) Query generated_assets for builder_draft_* entries (covers all 28 nodes)
         const { data: assetDrafts } = await cloudAdmin
           .from("generated_assets")
           .select("id, book_id, asset_type, content, created_at, updated_at, author_id")
@@ -232,6 +305,8 @@ Deno.serve(async (req) => {
 
         for (const asset of assetDrafts || []) {
           const draftNodeId = asset.asset_type.replace("builder_draft_", "");
+          // Skip drafts that are shadowed by a live author_node (regardless of book — author-level nodes apply globally)
+          if (liveSlugs.has(draftNodeId)) continue;
           const alreadyHas = allDrafts.some(d => d.nodeId === draftNodeId && d.book_id === asset.book_id);
           if (alreadyHas) continue;
 
@@ -246,6 +321,8 @@ Deno.serve(async (req) => {
           } catch { /* ignore */ }
 
           const editedCount = Object.keys(stepData).length;
+          // Cap at 5 (UNIFIED_STEPS length) to prevent absurd "14/5 steps" displays
+          const cappedSteps = Math.min(editedCount, 5);
 
           allDrafts.push({
             id: asset.id,
@@ -253,71 +330,12 @@ Deno.serve(async (req) => {
             book_id: asset.book_id,
             author_id: asset.author_id,
             created_at: asset.created_at,
-            status: editedCount >= 3 ? "ready_for_review" : "draft",
+            status: cappedSteps >= 3 ? "ready_for_review" : "draft",
             description: "",
             table: "generated_assets",
             nodeId: draftNodeId,
-            stepsCompleted: editedCount,
+            stepsCompleted: cappedSteps,
           });
-        }
-
-        // 3) Pull node-backed live / content_ready items from `author_nodes`
-        //    using the AUTHOR PROFILE ID (not auth user_id).
-        try {
-          const { data: profileRows } = await cloudAdmin
-            .from("author_profiles")
-            .select("id, user_id")
-            .in("user_id", allUserIds);
-          const profileIds = (profileRows || []).map((p: any) => p.id);
-
-          if (profileIds.length > 0) {
-            const { data: nodeRows } = await cloudAdmin
-              .from("author_nodes")
-              .select("id, node_id, node_name, personalised_name, status, microsite_url, created_at, current_step, content_json, author_id")
-              .in("author_id", profileIds)
-              .in("status", ["content_ready", "live", "published"])
-              .order("created_at", { ascending: false });
-
-            // node_id (e.g. "BP-02") → builder slug used by ALL_BUILDER_NODES (e.g. "lead-magnet")
-            const NODE_CODE_TO_SLUG: Record<string, string> = {
-              "BP-01": "email-flows",
-              "BP-02": "lead-magnet",
-              "BP-03": "social-media",
-              "BP-04": "website",
-              "BP-05": "webinar",
-              "BP-06": "workbook",
-              "BP-07": "book-sales",
-              "BP-08": "audiobook",
-              "BP-09": "online-course",
-            };
-
-            for (const n of nodeRows || []) {
-              const slugId = NODE_CODE_TO_SLUG[n.node_id] || n.node_id;
-              // Skip if we already have this node from product table or builder_draft_
-              const alreadyHas = allDrafts.some(d => d.nodeId === slugId);
-              if (alreadyHas) continue;
-
-              const status =
-                n.status === "live" || n.status === "published" ? "published" : "ready_for_review";
-
-              allDrafts.push({
-                id: n.id,
-                title: n.personalised_name || n.node_name || n.node_id,
-                book_id: null,
-                author_id: n.author_id,
-                created_at: n.created_at,
-                status,
-                description: n.microsite_url || "",
-                table: "author_nodes",
-                nodeId: slugId,
-                stepsCompleted: n.current_step || 0,
-                microsite_url: n.microsite_url || null,
-                node_code: n.node_id,
-              });
-            }
-          }
-        } catch (e) {
-          console.warn("[builder-draft-state] author_nodes lookup failed:", e);
         }
 
         // Get book titles

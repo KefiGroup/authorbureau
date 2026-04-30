@@ -52,7 +52,7 @@ const STREAMS: StreamGroup[] = [
       { label: "Memberships", price: "$9–$97/mo", status: "locked", requiredTier: "Pro" },
       { label: "Group Coaching", price: "$297–$997/cohort", status: "locked", requiredTier: "Pro" },
       { label: "Podcast Tour", price: "Marketing asset", status: "locked", requiredTier: "Pro" },
-      { label: "Media Outreach", price: "Marketing asset", status: "locked", requiredTier: "Pro" },
+      { label: "Media & PR", price: "Marketing asset", status: "locked", requiredTier: "Pro" },
       { label: "Affiliates", price: "Commission-based", status: "locked", requiredTier: "Pro" },
       { label: "Bundles", price: "Varies", status: "locked", requiredTier: "Pro" },
       { label: "Revenue Sharing", price: "Commission-based", status: "locked", requiredTier: "Pro" },

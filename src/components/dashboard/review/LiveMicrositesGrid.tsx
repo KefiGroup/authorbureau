@@ -11,9 +11,23 @@ import { toast } from "@/hooks/use-toast";
 interface LiveNode {
   node_id: string;
   delivery_url: string | null;
+  microsite_url: string | null;
   status: string;
   activated_at: string | null;
   book_id: string | null;
+}
+
+/** Prefer the branded microsite URL; treat raw asset/storage URLs as not-displayable. */
+function pickPublicUrl(n: LiveNode): string | null {
+  const mu = n.microsite_url?.trim();
+  if (mu && /^https?:\/\//i.test(mu)) return mu;
+  const du = n.delivery_url?.trim();
+  if (!du) return mu || null;
+  // Filter out raw asset/storage URLs — those are file delivery, not the public microsite
+  if (du.includes("supabase.co/storage") || /\.(mp3|mp4|wav|m4a|pdf|epub|zip)(\?|$)/i.test(du)) {
+    return mu || null;
+  }
+  return du;
 }
 
 const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {
@@ -43,11 +57,11 @@ export default function LiveMicrositesGrid() {
 
         const { data } = await supabase
           .from("author_nodes")
-          .select("node_id, delivery_url, status, activated_at, book_id")
+          .select("node_id, delivery_url, microsite_url, status, activated_at, book_id")
           .eq("author_id", prof.id)
           .eq("status", "live")
           .order("activated_at", { ascending: false });
-        setNodes(data || []);
+        setNodes((data as LiveNode[] | null) || []);
       } catch (e) {
         console.warn("[LiveMicrositesGrid] load failed", e);
       } finally {
@@ -75,7 +89,7 @@ export default function LiveMicrositesGrid() {
     );
   }
 
-  const liveNodes = nodes.filter(n => n.delivery_url);
+  const liveNodes = nodes.map(n => ({ ...n, _publicUrl: pickPublicUrl(n) })).filter(n => n._publicUrl);
   const allLiveNodeIds = new Set(nodes.map(n => n.node_id));
   const inactive = ALL_BUILDER_NODES.filter(n => !allLiveNodeIds.has(n.id));
 
@@ -115,14 +129,14 @@ export default function LiveMicrositesGrid() {
                     <Badge variant="outline" className={badge.className}>{badge.label}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground truncate mb-3 font-mono">
-                    {n.delivery_url}
+                    {n._publicUrl}
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => copyLink(n.node_id, n.delivery_url!)}
+                      onClick={() => copyLink(n.node_id, n._publicUrl!)}
                     >
                       {copiedId === n.node_id ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
                       {copiedId === n.node_id ? "Copied" : "Copy link"}
@@ -130,7 +144,7 @@ export default function LiveMicrositesGrid() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(n.delivery_url!, "_blank", "noopener,noreferrer")}
+                      onClick={() => window.open(n._publicUrl!, "_blank", "noopener,noreferrer")}
                     >
                       <ExternalLink className="w-3 h-3" />
                     </Button>
