@@ -197,6 +197,7 @@ export default function PayoutSettingsPage() {
       {/* Framing banner — clarifies that no Stripe connection is required to publish */}
       <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-4 text-sm text-muted-foreground">
         <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just tell us where to send your monthly 92% payout — Stripe, PayPal, or Wise all work.
+      </div>
 
       {/* Payout Method Selection */}
       <Card>
