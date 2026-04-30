@@ -75,9 +75,12 @@ serve(async (req) => {
         "group-coaching": "BA-13",
         "podcast": "BA-14",
         "press": "BA-15",
+        "media-kit": "BA-15",        // alias for /press
         "affiliates": "BA-16",
         "bundles": "BA-17",
+        "upsells": "BA-17",          // alias for /bundles
         "partners": "BA-18",
+        "partnerships": "BA-18",     // alias for /partners
         "coaching": "YR-19",
         "vip": "YR-20",
         "speaking": "YR-21",

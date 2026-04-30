@@ -44,6 +44,10 @@ const SLUG_ALIASES: Record<string, string> = {
   "course": "BP-07",
   "special-editions": "BP-08",
   "order": "BP-09",
+  // External-marketing aliases — keep in sync with get-microsite-page edge fn
+  "media-kit": "BA-15",       // alias of "press"
+  "upsells": "BA-17",         // alias of "bundles"
+  "partnerships": "BA-18",    // alias of "partners"
 };
 
 export const SLUG_TO_NODE: Record<string, string> = {
