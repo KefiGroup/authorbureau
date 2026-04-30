@@ -129,7 +129,7 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
             // the Live-badge logic in useNodeLiveStats. Adding a new gated
             // node? Update src/lib/node-readiness.ts in one place.
             const passesGate = hasRequiredAssets(n.node_id, n.content_json);
-            const isLiveStatus = n.status === "live" || n.status === "published_pending_ghl";
+            const isLiveStatus = n.status === "live";
             if (isLiveStatus && passesGate) {
               map[n.node_id] = "completed";
             } else if (

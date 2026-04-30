@@ -23,7 +23,6 @@ export interface NodeLiveStats {
 const STATUS_PROGRESS: Record<string, number> = {
   draft: 25,
   content_ready: 60,
-  published_pending_ghl: 85,
   live: 100,
 };
 
@@ -68,7 +67,7 @@ export function useNodeLiveStats(bookId?: string | null): {
         const map: Record<string, NodeLiveStats> = {};
         // Pick the most-progressed row per node_id (in case multiple books).
         const rank = (s: string | null) =>
-          s === "live" ? 4 : s === "published_pending_ghl" ? 3 : s === "content_ready" ? 2 : s === "draft" ? 1 : 0;
+          s === "live" ? 4 : s === "content_ready" ? 2 : s === "draft" ? 1 : 0;
         (rows || []).forEach((r: any) => {
           const code = r.node_id;
           const rawStatus: string | null = r.status ?? null;
