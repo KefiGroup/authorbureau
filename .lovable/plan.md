@@ -1,110 +1,57 @@
-# Plan — Author-Branded Transactional Sends (3 Low-Effort Wins)
+# Fix: Payout Settings ID mismatch (author_id semantics)
 
-Goal: make every transactional email **feel like it comes from the author**, while continuing to send through the single verified `notify.authorsbureau.com` pipeline. No DNS, no Resend changes, no per-author domain.
+## The bug
 
-## What's already in place
+`author_payout_settings.author_id` is meant to be `author_profiles.id` — that's how every backend function (`run-monthly-payouts`, `process-purchase`) and the readiness hook (`usePayoutReadiness`) reads it. But two things are inconsistent with that contract:
 
-- `send-transactional-email` enqueues to pgmq with a `from` field — currently hardcoded to `"Authors Bureau" <noreply@authorsbureau.com>`.
-- `author_email_settings` table already stores **`sender_name`** and **`reply_to_email`** per author (kept in sync by `sync-author-email`).
-- `author-broadcast.tsx` already has a "Sent via Authors Bureau on behalf of {senderName}" footer.
-- `reply_to` is **not** in the enqueued payload anywhere — completely missing today.
-- ~10 other templates (purchase-confirmation, quiz-result, webinar-email, audiobook-distribution-ready, book-submitted/approved, profile-*, abby-daily-report) have no author footer line.
+1. **`PayoutSettingsPage.tsx`** (the UI Pauline is on) reads and writes `author_id = user.id` (the auth user UID). Any save creates an orphan row that no payout job, admin dashboard, or readiness check can find.
+2. **The RLS policy** is `auth.uid() = author_id`, which would *block* a correct write (`author_id = profile.id`) entirely. It only "works" today because the page accidentally writes the wrong ID and the policy accidentally permits it.
 
-## The three changes
+Pauline currently has **zero rows** in `author_payout_settings`, so no data is corrupted — but the moment she clicks Save, an orphan is created and her real payout settings would still be invisible to the payout engine.
 
-### 1. Strengthen the From name → "Pauline Teo via Authors Bureau"
+## What to fix
 
-In `send-transactional-email/index.ts`:
+### 1. `src/components/dashboard/PayoutSettingsPage.tsx`
 
-- Accept an optional `authorId` in the request body.
-- If `authorId` is present, look up `author_email_settings.sender_name` and `reply_to_email` (service-role read, so RLS-safe).
-- Build the `from` string dynamically:
-  - With author: `"Pauline Teo via Authors Bureau" <noreply@authorsbureau.com>`
-  - Without author (system emails like `book-approved`): `"Authors Bureau" <noreply@authorsbureau.com>` (unchanged).
-- Sanitize the display name (strip `<`, `>`, `"`, newlines, RFC-5322-safe).
+- Resolve `author_profiles.id` first (look up `id, stripe_onboarding_complete` by `user_id`).
+- Use that `profileId` for both the `author_payout_settings` SELECT and UPSERT.
+- Show a clear empty-state if no `author_profile` exists yet (defensive — shouldn't happen for a logged-in author, but worth a friendly message instead of a silent no-op).
+- While we're in there: load and persist `paypal_email_v2`, `wise_recipient`, and `tax_self_declared_at` so the page is consistent with what the readiness check actually requires (`paypal_email`/`wise_email` columns are legacy and ignored by `usePayoutReadiness`). Keep the existing form fields, just persist them into the v2 columns.
 
-### 2. Wire Reply-To into the queue payload
+### 2. New migration to fix RLS
 
-- Add `reply_to` to the enqueued pgmq payload.
-- Resolution order:
-  1. Explicit `replyTo` in request body (highest priority — used by webinar/quiz flows that already know the author email).
-  2. `author_email_settings.reply_to_email` for the resolved `authorId`.
-  3. Omit (no Reply-To header — replies go to the unmonitored `noreply@`).
-- The Lovable email dispatcher already supports `reply_to` in the queue payload — this is just adding a field, no infra change.
+The current policy is wrong. Replace with one that joins through `author_profiles`:
 
-### 3. Add the soft author footer to author-context templates
+```sql
+DROP POLICY "Authors can manage their own payout settings" ON author_payout_settings;
 
-Add a single shared footer line — `"You're receiving this because {senderName} sent it via Authors Bureau."` — to the ~7 author-context templates that lack it:
-
-- `purchase-confirmation.tsx`
-- `quiz-result.tsx`
-- `webinar-email.tsx`
-- `audiobook-distribution-ready.tsx`
-- `book-submitted.tsx` / `book-approved.tsx` (admin-facing, but author context still relevant)
-- `abby-daily-report.tsx`
-
-Implementation: a small `<AuthorFooter senderName={...} />` shared component in `_shared/transactional-email-templates/` so we don't duplicate the markup. Each template accepts an optional `senderName` prop and renders the footer only when it's provided.
-
-The system unsubscribe footer (system-managed, can't be touched) stays below it — completely separate.
-
-## Caller updates (where we pass `authorId` / `senderName`)
-
-These are the existing send sites that have author context and should now pass it through. None require new schema:
-
-| Caller | What to pass |
-|---|---|
-| `_shared/from-address.ts` (`sendViaLovable`) | already has `senderName`; add optional `authorId` arg + forward |
-| `process-email-flows` (nurture sends) | already loads `author_email_settings` — pass both |
-| `crm-auto-capture` quiz-result invocation | pass `authorId` from the quiz context |
-| `webinar-register` invocation | pass `authorId` from the webinar |
-| `verify-purchase` purchase-confirmation invocation | pass `authorId` from the order |
-| `distribute-audiobook` notification | pass `authorId` |
-| Admin/system templates (`book-submitted`, `book-approved`, `profile-synced`, `profile-created`, `sender-email-verification`, `abby-daily-report`) | leave as-is — no author context, fall through to default "Authors Bureau" From + no Reply-To |
-
-## Files to edit
-
-```
-supabase/functions/send-transactional-email/index.ts        (core change)
-supabase/functions/_shared/from-address.ts                  (forward authorId)
-supabase/functions/_shared/transactional-email-templates/
-  ├── _author-footer.tsx                                    (new shared component)
-  ├── purchase-confirmation.tsx
-  ├── quiz-result.tsx
-  ├── webinar-email.tsx
-  ├── audiobook-distribution-ready.tsx
-  ├── book-submitted.tsx
-  ├── book-approved.tsx
-  └── abby-daily-report.tsx
-supabase/functions/crm-auto-capture/index.ts                (pass authorId)
-supabase/functions/webinar-register/index.ts                (pass authorId)
-supabase/functions/verify-purchase/index.ts                 (pass authorId)
-supabase/functions/distribute-audiobook/index.ts            (pass authorId)
-supabase/functions/process-email-flows/index.ts             (pass authorId)
+CREATE POLICY "Authors can manage their own payout settings"
+  ON author_payout_settings
+  FOR ALL
+  TO authenticated
+  USING (
+    author_id IN (SELECT id FROM author_profiles WHERE user_id = auth.uid())
+  )
+  WITH CHECK (
+    author_id IN (SELECT id FROM author_profiles WHERE user_id = auth.uid())
+  );
 ```
 
-## Deployment
+Admin SELECT policy stays as-is.
 
-After edits, deploy:
-- `send-transactional-email`
-- `crm-auto-capture`, `webinar-register`, `verify-purchase`, `distribute-audiobook`, `process-email-flows`
+### 3. No data backfill needed
 
-(Templates ride along with `send-transactional-email`.)
+Confirmed via DB query: `author_payout_settings` is empty. Nothing to migrate or clean up.
 
-## QA checklist
+## What this does NOT change
 
-1. Trigger a quiz lead capture for Pauline → inbox shows **From: "Pauline Teo via Authors Bureau"**, **Reply-To: pauline's email**, footer reads **"You're receiving this because Pauline Teo sent it via Authors Bureau."**
-2. Trigger `book-approved` (system) → From stays **"Authors Bureau"**, no Reply-To, no author footer (correct — it's a platform notice).
-3. Reply to the quiz-result email in Gmail → To-line auto-fills Pauline's email, not `noreply@`.
-4. Confirm `email_send_log` still shows `sent` for both flows.
-5. Suppression check still runs (no regression to compliance path).
+- Stripe Connect onboarding flow (Pauline still needs to click "Connect Stripe" on the Connect Stripe page if she wants Stripe payouts — that's separate and working correctly).
+- The 92/8 split, refund window logic, dual webhook, or any commerce wiring.
+- The `usePayoutReadiness` hook, `run-monthly-payouts`, or `process-purchase` (they're already correct).
 
-## Out of scope
+## Verification after deploy
 
-- Per-author sender domain (still deferred — separate sprint when 3+ Yield authors request it).
-- Editing the system-managed unsubscribe footer (forbidden by infra).
-- Auth emails (signup/recovery/etc.) — those stay platform-branded.
-
-## Memory
-
-Update `mem://index.md` core rules with a one-liner:
-> "Author-context transactional emails: From = '{senderName} via Authors Bureau', Reply-To = author_email_settings.reply_to_email, footer = 'sent on behalf of {senderName}'. System emails keep platform branding."
+1. As Pauline: open Payout Settings → pick PayPal → enter `pauline@example.com` → Save → toast success.
+2. DB check: `SELECT author_id, payout_method, paypal_email_v2 FROM author_payout_settings WHERE author_id = '92326a2f-3ed0-4873-a8cf-7a0b1350995a';` returns one row with the profile ID (not the user ID).
+3. Reload page → form pre-fills with PayPal + email.
+4. `usePayoutReadiness` now returns `payout_method: 'paypal'` for Pauline.
