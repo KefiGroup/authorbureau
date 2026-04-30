@@ -110,6 +110,32 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         setProfileState(isListed && hasName && hasPhoto && hasBio ? "live" : (hasName || hasPhoto ? "incomplete" : "none"));
       }
 
+      // Load live node IDs for the Monetization Universe (canonical source).
+      // We resolve the author profile id via the slug query when available.
+      const profileId = (slugRes as any)?.data?.id || (state?.profile as any)?.id;
+      if (profileId || user.id) {
+        try {
+          // Look up profile id if we don't already have one
+          let resolvedProfileId = profileId;
+          if (!resolvedProfileId) {
+            const { data } = await cloudSupabase
+              .from("author_profiles").select("id").eq("user_id", user.id).maybeSingle();
+            resolvedProfileId = data?.id;
+          }
+          if (resolvedProfileId) {
+            const { data: liveRows } = await cloudSupabase
+              .from("author_nodes")
+              .select("node_id")
+              .eq("author_id", resolvedProfileId)
+              .eq("status", "live");
+            const liveIds = Array.from(new Set((liveRows || []).map((r: any) => r.node_id).filter(Boolean)));
+            setBuiltProducts(liveIds);
+          }
+        } catch (e) {
+          console.warn("[Dashboard] live-nodes lookup failed", e);
+        }
+      }
+
       // Trust the canonical books endpoint over dashboard-state when it
       // returned a non-empty list — prevents flashing the "Meet Abby / no
       // book" empty state when only the dashboard-state call failed.
