@@ -164,40 +164,23 @@ Deno.serve(async (req) => {
         ]);
 
         const senderName = emailSettings?.sender_name || profile?.pen_name || 'Authors Bureau';
-        const { buildFromAddress, resolveReplyTo } = await import('../_shared/from-address.ts');
-        const fromAddress = buildFromAddress(senderName);
-        const replyTo = resolveReplyTo(emailSettings?.reply_to_email);
 
-        const token = await getOrCreateUnsubToken(supabase, sub.email);
-        const unsubscribeUrl = `${PUBLIC_BASE}/unsubscribe?token=${token}`;
-
-        const html = renderEmailHtml({
-          subject: step.subject, bodyMd: step.body_markdown,
-          senderName, recipientName: sub.name || undefined, unsubscribeUrl,
+        // Send via Lovable Cloud (verified notify.authorsbureau.com pipeline).
+        // Replaces direct Resend call (Resend account had no verified domains).
+        const { sendViaLovable } = await import('../_shared/from-address.ts');
+        const sendResult = await sendViaLovable({
+          recipientEmail: sub.email,
+          recipientName: sub.name || null,
+          senderName,
+          subject: step.subject,
+          bodyMarkdown: step.body_markdown,
+          idempotencyKey: `flow-${enr.id}-step-${step.step_number}`,
         });
 
-        // Send via Resend with one-click List-Unsubscribe header
-        const resp = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${RESEND_API_KEY}` },
-          body: JSON.stringify({
-            from: fromAddress,
-            to: [sub.email],
-            subject: step.subject,
-            html,
-            ...(replyTo ? { reply_to: replyTo } : {}),
-            headers: {
-              'List-Unsubscribe': `<${unsubscribeUrl}>`,
-              'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-            },
-          }),
-        });
-
-        const result = await resp.json().catch(() => ({}));
-        if (!resp.ok) {
+        if (!sendResult.ok) {
           await supabase.from('email_send_log').insert({
             template_name: 'sequence_step', recipient_email: sub.email, status: 'failed',
-            error_message: result?.message || `Resend ${resp.status}`,
+            error_message: sendResult.error || `send failed (${sendResult.status})`,
             author_id: flow.author_id, sequence_step_id: step.id,
             metadata: { flow_id: flow.id, enrollment_id: enr.id, step_number: step.step_number },
           });
@@ -208,12 +191,14 @@ Deno.serve(async (req) => {
           stats.failed++; continue;
         }
 
+        const result = { id: sendResult.messageId };
+
         await supabase.from('email_send_log').insert({
           message_id: result.id, template_name: 'sequence_step',
           recipient_email: sub.email, status: 'sent',
           author_id: flow.author_id, sequence_step_id: step.id,
           to_name: sub.name || null,
-          metadata: { flow_id: flow.id, enrollment_id: enr.id, step_number: step.step_number, subject: step.subject },
+          metadata: { flow_id: flow.id, enrollment_id: enr.id, step_number: step.step_number, subject: step.subject, via: 'lovable' },
         });
 
         // Compute next send. If a next step exists, schedule it; else mark completed.
