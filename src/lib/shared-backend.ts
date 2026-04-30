@@ -5,6 +5,27 @@ const AUTH_STORAGE_KEY = "authorsbureau-shared-auth";
 const AUTH_MEMORY_FALLBACK_KEY = `${AUTH_STORAGE_KEY}:memory`;
 const RETRYABLE_AUTH_ABORT = /(operation was aborted|aborterror|signal is aborted|lock acquire timeout)/i;
 
+// Silence the noisy gotrue lock-timeout warning. We deliberately set a 2s
+// fast-fail lock timeout below so concurrent reads fall through to the
+// cached-token path instead of blocking. Gotrue still logs every timeout at
+// `warn` level, which floods the console and trips Audit L1 ("zero yellow
+// noise"). We downgrade only that one message to `console.debug`; everything
+// else passes through untouched.
+if (typeof window !== "undefined" && !(window as unknown as { __abLockWarnPatched?: boolean }).__abLockWarnPatched) {
+  (window as unknown as { __abLockWarnPatched?: boolean }).__abLockWarnPatched = true;
+  const originalWarn = console.warn.bind(console);
+  console.warn = (...args: unknown[]) => {
+    const first = args[0];
+    if (typeof first === "string" && /lock:authorsbureau-shared-auth.*acquisition timed out/i.test(first)) {
+      // eslint-disable-next-line no-console
+      console.debug("[shared-auth] lock contention (handled by cached-token fallback)");
+      return;
+    }
+    originalWarn(...args);
+  };
+}
+
+
 type SharedSessionInput = {
   access_token: string;
   refresh_token: string;
