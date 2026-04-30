@@ -39,6 +39,12 @@ const BACK_TAB_ALIASES: Record<string, string> = {
   yield: "authority-builders",
 };
 
+const BACK_TAB_SUFFIX: Record<string, string> = {
+  "revenue-streams": "Brand",
+  "marketing-channels": "Build",
+  "authority-builders": "Yield",
+};
+
 export default function BookBuilderContextBar({ backTab = "overview" }: Props) {
   const navigate = useNavigate();
   const { bookId, bookTitle, bookCoverUrl } = useBookContext();
@@ -78,7 +84,7 @@ export default function BookBuilderContextBar({ backTab = "overview" }: Props) {
         onClick={() => navigate(`/dashboard/book/${bookId}?tab=${resolvedBackTab}`)}
       >
         <ArrowLeft className="h-4 w-4 mr-1" />
-        Back to Book Hub
+        Back to Book Hub{BACK_TAB_SUFFIX[resolvedBackTab] ? ` · ${BACK_TAB_SUFFIX[resolvedBackTab]}` : ""}
       </Button>
 
       <div className="w-px h-8 bg-border" />

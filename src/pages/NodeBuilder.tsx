@@ -164,12 +164,13 @@ export default function NodeBuilder() {
         <p className="text-muted-foreground mb-6">
           The builder for node {nodeId} is not available yet.
         </p>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="text-primary underline"
+        <Link
+          to={getHubPath(nodeId ?? "", bookId, from)}
+          className="inline-flex items-center gap-1.5 text-primary underline"
         >
-          Back to Dashboard
-        </button>
+          <ArrowLeft className="h-4 w-4" />
+          Back to {getHubLabel(nodeId ?? "", bookId, from)}
+        </Link>
       </div>
     </DashboardLayout>
   );
