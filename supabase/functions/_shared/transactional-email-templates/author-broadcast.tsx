@@ -52,7 +52,7 @@ const AuthorBroadcastEmail = ({
           {recipientName ? (
             <Text style={greeting}>Hi {recipientName},</Text>
           ) : null}
-          <Section dangerouslySetInnerHTML={{ __html: html }} />
+          <div dangerouslySetInnerHTML={{ __html: html }} />
           <Hr style={divider} />
           <Text style={signoff}>{senderName}</Text>
           <Text style={footer}>
