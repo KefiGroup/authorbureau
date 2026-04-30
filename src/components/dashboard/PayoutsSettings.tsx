@@ -299,6 +299,7 @@ export default function PayoutsSettings() {
         </CardContent>
       </Card>
 
+      <div className="flex justify-end">
         <Button size="lg" onClick={save} disabled={saving} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
           {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : "Save payout settings"}
         </Button>
