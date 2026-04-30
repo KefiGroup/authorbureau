@@ -183,18 +183,25 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (action === "reject") {
+    if (action === "reject" || action === "request-changes") {
       if (!bookId) {
         return new Response(JSON.stringify({ error: "bookId is required" }), {
           status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      const rejectionNote = body.rejectionNote || null;
+      const rejectionNote = (body.rejectionNote || body.reason || "").toString().trim() || null;
+      if (!rejectionNote) {
+        return new Response(JSON.stringify({ error: "A reason / note is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const newStatus = action === "request-changes" ? "changes_requested" : "rejected";
       const { error: rejectError } = await adminClient
         .from("books")
-        .update({ published_at: null, approval_status: "rejected", rejection_note: rejectionNote })
+        .update({ published_at: null, approval_status: newStatus, rejection_note: rejectionNote })
         .eq("id", bookId);
       if (rejectError) throw rejectError;
+      // DB trigger handles in-portal notification + audit log to author.
       return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
