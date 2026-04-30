@@ -146,7 +146,7 @@ const WebinarEmail = (raw: Props) => {
           <Text style={text}>{p.signOffPhrase},</Text>
           <Text style={{ ...text, fontWeight: 'bold' as const, margin: '0' }}>{p.authorName}</Text>
           <Hr style={divider} />
-          <Text style={footer}>This email was sent by {p.authorName}, powered by {SITE_NAME}.</Text>
+          <Text style={footer}>You're receiving this because {p.authorName} sent it via {SITE_NAME}.</Text>
         </Container>
       </Body>
     </Html>

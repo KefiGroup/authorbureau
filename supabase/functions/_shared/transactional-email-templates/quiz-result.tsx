@@ -55,7 +55,7 @@ const QuizResultEmail = ({
           <Text style={{ ...text, fontStyle: 'italic' as const, margin: '4px 0 0', fontSize: '14px' }}>Author of {bookTitle}</Text>
           <Hr style={divider} />
           <Text style={footer}>
-            This email was sent from {penName}'s Author Page, powered by {SITE_NAME}.
+            You're receiving this because {penName} sent it via {SITE_NAME}.
           </Text>
         </Container>
       </Body>
