@@ -279,7 +279,26 @@ export default function PayoutsSettings() {
         </CardContent>
       </Card>
 
-      <div className="flex justify-end">
+      <Card>
+        <CardHeader>
+          <CardTitle>Refund Window</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-xs text-muted-foreground mb-3">
+            Earnings become available for payout after this period to allow for refund processing.
+          </p>
+          <Select value={String(refundWindow)} onValueChange={(v) => setRefundWindow(Number(v))}>
+            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">7 days</SelectItem>
+              <SelectItem value="14">14 days (recommended)</SelectItem>
+              <SelectItem value="21">21 days</SelectItem>
+              <SelectItem value="30">30 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
         <Button size="lg" onClick={save} disabled={saving} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
           {saving ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Saving…</> : "Save payout settings"}
         </Button>
