@@ -163,8 +163,13 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
                 projectedRevenue: planData.plan.projectedRevenue || "$50K+",
                 productsBuilt: planData.completedAssets?.length || 0,
               });
-              setBuiltProducts(planData.completedAssets || []);
-              setRecommendedByAbby(planData.plan.products?.map((p: any) => p.name || p.label) || []);
+              // Do NOT overwrite builtProducts here — it's already populated from author_nodes (canonical).
+              // The plan's `completedAssets` uses asset_type strings (business_plan, lead_magnet) that
+              // don't match the Monetization Universe node-id keys.
+              const recIds = (planData.plan.products || [])
+                .map((p: any) => p.nodeId || p.node_id || p.code || p.name || p.label)
+                .filter(Boolean);
+              setRecommendedByAbby(recIds);
               try {
                 const key = `abby_post_analysis_seen_${user.id}`;
                 if (!localStorage.getItem(key)) {
