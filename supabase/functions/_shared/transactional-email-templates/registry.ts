@@ -19,6 +19,7 @@ import { template as webinarEmail } from './webinar-email.tsx'
 import { template as audiobookDistributionReady } from './audiobook-distribution-ready.tsx'
 import { template as purchaseConfirmation } from './purchase-confirmation.tsx'
 import { template as authorBroadcast } from './author-broadcast.tsx'
+import { template as abbyDailyReport } from './abby-daily-report.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'profile-synced': profileSynced,
@@ -31,4 +32,5 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'audiobook-distribution-ready': audiobookDistributionReady,
   'purchase-confirmation': purchaseConfirmation,
   'author-broadcast': authorBroadcast,
+  'abby-daily-report': abbyDailyReport,
 }
