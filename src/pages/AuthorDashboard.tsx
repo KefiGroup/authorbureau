@@ -25,7 +25,7 @@ import EmailMarketing from "@/components/dashboard/EmailMarketing";
 import RevenueDashboard from "@/components/dashboard/RevenueDashboard";
 import MicrositeManager from "@/components/dashboard/MicrositeManager";
 import { resolveLegacyBuilderRoute } from "@/components/dashboard/builders/legacyBuilderRedirect";
-import ConnectStripePage from "@/components/dashboard/ConnectStripePage";
+// ConnectStripePage removed Sprint 41 — unified under PayoutSettingsPage (MOR model)
 import HowItWorksSection from "@/components/dashboard/HowItWorksSection";
 import PayoutSettingsPage from "@/components/dashboard/PayoutSettingsPage";
 import ReviewProductsPage from "@/components/dashboard/ReviewProductsPage";
