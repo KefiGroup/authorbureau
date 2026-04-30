@@ -26,7 +26,7 @@ export default function PayoutSettingsPage() {
 
       {/* Framing banner */}
       <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-4 text-sm text-muted-foreground">
-        <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just tell us where to send your monthly 92% payout — Stripe Express or PayPal, both fully automated on the 1st of each month, and we cover all transfer fees.
+        <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just connect Stripe Express to receive your monthly 92% payout — fully automated on the 1st of each month, and we cover all transfer fees. More payout options coming soon.
       </div>
 
       {/* Canonical payout UI (Stripe Connect button + agreement + Wise/PayPal) */}
