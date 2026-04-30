@@ -7,6 +7,7 @@ interface StreamNode {
   price: string;
   status: "locked" | "unlocked" | "built" | "recommended";
   requiredTier?: string;
+  nodeId?: string; // BP-XX / BA-XX / YR-XX — used to match against built/recommended sets
 }
 
 interface StreamGroup {
@@ -28,15 +29,15 @@ const STREAMS: StreamGroup[] = [
     tierLabel: "From $49/mo",
     color: "#22C55E",
     nodes: [
-      { label: "Book Sales", price: "$15–$30/book", status: "locked", requiredTier: "Brand" },
-      { label: "Workbooks", price: "$0–$27 (lead magnet)", status: "locked", requiredTier: "Brand" },
-      { label: "Home Study Courses", price: "$27–$97", status: "locked", requiredTier: "Brand" },
-      { label: "Special Editions", price: "$25–$150", status: "locked", requiredTier: "Brand" },
-      { label: "Lead Magnets", price: "Free download", status: "locked", requiredTier: "Brand" },
-      { label: "Webinars", price: "$0–$97", status: "locked", requiredTier: "Brand" },
-      { label: "Social Media Calendar", price: "Marketing asset", status: "locked", requiredTier: "Brand" },
-      { label: "Email Marketing", price: "Marketing asset", status: "locked", requiredTier: "Brand" },
-      { label: "Website / Microsite", price: "Included", status: "built" },
+      { label: "Book Sales", price: "$15–$30/book", status: "locked", requiredTier: "Brand", nodeId: "BP-09" },
+      { label: "Workbooks", price: "$0–$27 (lead magnet)", status: "locked", requiredTier: "Brand", nodeId: "BP-06" },
+      { label: "Home Study Courses", price: "$27–$97", status: "locked", requiredTier: "Brand", nodeId: "BP-07" },
+      { label: "Special Editions", price: "$25–$150", status: "locked", requiredTier: "Brand", nodeId: "BP-08" },
+      { label: "Lead Magnets", price: "Free download", status: "locked", requiredTier: "Brand", nodeId: "BP-02" },
+      { label: "Webinars", price: "$0–$97", status: "locked", requiredTier: "Brand", nodeId: "BP-05" },
+      { label: "Social Media Calendar", price: "Marketing asset", status: "locked", requiredTier: "Brand", nodeId: "BP-03" },
+      { label: "Email Marketing", price: "Marketing asset", status: "locked", requiredTier: "Brand", nodeId: "BP-01" },
+      { label: "Website / Microsite", price: "Included", status: "built", nodeId: "BP-04" },
     ],
   },
   {
@@ -47,15 +48,15 @@ const STREAMS: StreamGroup[] = [
     tierLabel: "Pro $199/mo",
     color: "#8B5CF6",
     nodes: [
-      { label: "Online Courses", price: "$97–$497", status: "locked", requiredTier: "Pro" },
-      { label: "Audiobook", price: "$9.99–$24.99", status: "locked", requiredTier: "Pro" },
-      { label: "Memberships", price: "$9–$97/mo", status: "locked", requiredTier: "Pro" },
-      { label: "Group Coaching", price: "$297–$997/cohort", status: "locked", requiredTier: "Pro" },
-      { label: "Podcast Tour", price: "Marketing asset", status: "locked", requiredTier: "Pro" },
-      { label: "Media & PR", price: "Marketing asset", status: "locked", requiredTier: "Pro" },
-      { label: "Affiliates", price: "Commission-based", status: "locked", requiredTier: "Pro" },
-      { label: "Bundles", price: "Varies", status: "locked", requiredTier: "Pro" },
-      { label: "Revenue Sharing", price: "Commission-based", status: "locked", requiredTier: "Pro" },
+      { label: "Online Courses", price: "$97–$497", status: "locked", requiredTier: "Pro", nodeId: "BA-10" },
+      { label: "Audiobook", price: "$9.99–$24.99", status: "locked", requiredTier: "Pro", nodeId: "BA-11" },
+      { label: "Memberships", price: "$9–$97/mo", status: "locked", requiredTier: "Pro", nodeId: "BA-12" },
+      { label: "Group Coaching", price: "$297–$997/cohort", status: "locked", requiredTier: "Pro", nodeId: "BA-13" },
+      { label: "Podcast Tour", price: "Marketing asset", status: "locked", requiredTier: "Pro", nodeId: "BA-14" },
+      { label: "Media & PR", price: "Marketing asset", status: "locked", requiredTier: "Pro", nodeId: "BA-15" },
+      { label: "Affiliates", price: "Commission-based", status: "locked", requiredTier: "Pro", nodeId: "BA-16" },
+      { label: "Bundles", price: "Varies", status: "locked", requiredTier: "Pro", nodeId: "BA-17" },
+      { label: "Revenue Sharing", price: "Commission-based", status: "locked", requiredTier: "Pro", nodeId: "BA-18" },
     ],
   },
   {
@@ -66,16 +67,16 @@ const STREAMS: StreamGroup[] = [
     tierLabel: "Enterprise $499/mo",
     color: "#F59E0B",
     nodes: [
-      { label: "Coaching", price: "$150–$500/session", status: "locked", requiredTier: "Yield" },
-      { label: "Consulting", price: "$2,500–$10,000+", status: "locked", requiredTier: "Yield" },
-      { label: "Keynotes", price: "$2,500–$25,000", status: "locked", requiredTier: "Yield" },
-      { label: "Training Programs", price: "$5,000–$25,000", status: "locked", requiredTier: "Yield" },
-      { label: "Masterminds", price: "$5,000–$25,000/yr", status: "locked", requiredTier: "Yield" },
-      { label: "Retreats & Bootcamps", price: "$997–$5,000", status: "locked", requiredTier: "Yield" },
-      { label: "Certification", price: "$2,500–$7,500", status: "locked", requiredTier: "Yield" },
-      { label: "Conventions / Conferences", price: "$197–$2,500/ticket", status: "locked", requiredTier: "Yield" },
-      { label: "Fund Raising", price: "Varies", status: "locked", requiredTier: "Yield" },
-      { label: "Exhibitors / JV", price: "Varies", status: "locked", requiredTier: "Yield" },
+      { label: "Coaching", price: "$150–$500/session", status: "locked", requiredTier: "Yield", nodeId: "YR-19" },
+      { label: "Consulting", price: "$2,500–$10,000+", status: "locked", requiredTier: "Yield", nodeId: "YR-20" },
+      { label: "Keynotes", price: "$2,500–$25,000", status: "locked", requiredTier: "Yield", nodeId: "YR-21" },
+      { label: "Training Programs", price: "$5,000–$25,000", status: "locked", requiredTier: "Yield", nodeId: "YR-22" },
+      { label: "Masterminds", price: "$5,000–$25,000/yr", status: "locked", requiredTier: "Yield", nodeId: "YR-23" },
+      { label: "Retreats & Bootcamps", price: "$997–$5,000", status: "locked", requiredTier: "Yield", nodeId: "YR-24" },
+      { label: "Certification", price: "$2,500–$7,500", status: "locked", requiredTier: "Yield", nodeId: "YR-25" },
+      { label: "Conventions / Conferences", price: "$197–$2,500/ticket", status: "locked", requiredTier: "Yield", nodeId: "YR-26" },
+      { label: "Fund Raising", price: "Varies", status: "locked", requiredTier: "Yield", nodeId: "YR-27" },
+      { label: "Exhibitors / JV", price: "Varies", status: "locked", requiredTier: "Yield", nodeId: "YR-28" },
     ],
   },
 ];
