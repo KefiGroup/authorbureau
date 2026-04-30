@@ -129,27 +129,43 @@ Deno.serve(async (req) => {
       return respond({ success: false, error: "Unable to locate your author profile." });
     }
 
+    // Optional per-book scope. When present, every per-book table is filtered
+    // by `book_id`; author-level tables (e.g. author_email_settings) ignore it.
+    const bookId = typeof body?.book_id === "string" && body.book_id.length > 0 ? body.book_id : null;
+
     if (action === "snapshot") {
+      let nodesQuery = cloudAdmin
+        .from("author_nodes")
+        .select("node_id, status, marketing_activated_at, activated_at, content_json, personalised_name, microsite_url")
+        .eq("author_id", authorProfile.id);
+      if (bookId) nodesQuery = nodesQuery.eq("book_id", bookId);
+
+      let socialQuery = cloudAdmin
+        .from("social_posts")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03");
+      if (bookId) socialQuery = socialQuery.eq("book_id", bookId);
+
+      let sequencesQuery = cloudAdmin
+        .from("email_flows")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", authorProfile.id);
+      if (bookId) sequencesQuery = sequencesQuery.eq("book_id", bookId);
+
+      let contactsQuery = cloudAdmin
+        .from("crm_contacts")
+        .select("id", { count: "exact", head: true })
+        // crm_contacts.author_id is keyed by auth.users.id (matches RLS auth.uid()=author_id),
+        // not author_profiles.id. submit-funnel resolves authorUserId before insert.
+        .eq("author_id", (authorProfile as any).user_id);
+      if (bookId) contactsQuery = contactsQuery.eq("book_id", bookId);
+
       const [nodesRes, socialRes, sequencesRes, contactsRes, settingsRes] = await Promise.all([
-        cloudAdmin
-          .from("author_nodes")
-          .select("node_id, status, marketing_activated_at, activated_at, content_json, personalised_name, microsite_url")
-          .eq("author_id", authorProfile.id),
-        cloudAdmin
-          .from("social_posts")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", authorProfile.id)
-          .eq("node_id", "BP-03"),
-        cloudAdmin
-          .from("email_flows")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", authorProfile.id),
-        cloudAdmin
-          .from("crm_contacts")
-          .select("id", { count: "exact", head: true })
-          // crm_contacts.author_id is keyed by auth.users.id (matches RLS auth.uid()=author_id),
-          // not author_profiles.id. submit-funnel resolves authorUserId before insert.
-          .eq("author_id", (authorProfile as any).user_id),
+        nodesQuery,
+        socialQuery,
+        sequencesQuery,
+        contactsQuery,
         cloudAdmin
           .from("author_email_settings")
           .select("domain_verified")
@@ -179,21 +195,23 @@ Deno.serve(async (req) => {
     }
 
     if (action === "social_calendar") {
-      const [nodeRes, postsRes] = await Promise.all([
-        cloudAdmin
-          .from("author_nodes")
-          .select("status, marketing_activated_at, activated_at")
-          .eq("author_id", authorProfile.id)
-          .eq("node_id", "BP-03")
-          .maybeSingle(),
-        cloudAdmin
-          .from("social_posts")
-          .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
-          .eq("author_id", authorProfile.id)
-          .eq("node_id", "BP-03")
-          .order("scheduled_at", { ascending: true })
-          .limit(500),
-      ]);
+      let nodeQuery = cloudAdmin
+        .from("author_nodes")
+        .select("status, marketing_activated_at, activated_at")
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03");
+      if (bookId) nodeQuery = nodeQuery.eq("book_id", bookId);
+
+      let postsQuery = cloudAdmin
+        .from("social_posts")
+        .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index")
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03")
+        .order("scheduled_at", { ascending: true })
+        .limit(500);
+      if (bookId) postsQuery = postsQuery.eq("book_id", bookId);
+
+      const [nodeRes, postsRes] = await Promise.all([nodeQuery.maybeSingle(), postsQuery]);
 
       if (nodeRes.error) throw nodeRes.error;
       if (postsRes.error) throw postsRes.error;
@@ -312,11 +330,16 @@ Deno.serve(async (req) => {
     }
 
     if (action === "sequences") {
-      const { data: flows, error: flowsErr } = await cloudAdmin
+      // Include book_id in the projection so the UI can show a per-book badge
+      // and so the per-book filter operates on a real column. email_flows.book_id
+      // is nullable for legacy rows, which still surface in the "All Books" view.
+      let flowsQuery = cloudAdmin
         .from("email_flows")
-        .select("id, title, description, flow_type, node_id, status, total_subscribers, open_rate, click_rate, ai_generated, created_at")
+        .select("id, title, description, flow_type, node_id, book_id, status, total_subscribers, open_rate, click_rate, ai_generated, created_at")
         .eq("author_id", authorProfile.id)
         .order("created_at", { ascending: false });
+      if (bookId) flowsQuery = flowsQuery.eq("book_id", bookId);
+      const { data: flows, error: flowsErr } = await flowsQuery;
 
       if (flowsErr) throw flowsErr;
 
@@ -434,9 +457,14 @@ Deno.serve(async (req) => {
       ];
       const includeMaster = body?.include_master !== false;
 
-      const { data: existingFlows } = await cloudAdmin
+      // De-dupe is per-author when no book is selected; per-(author, book) when one is.
+      // This lets a 2-book author generate a fresh sequence set for Book #2 even if
+      // Book #1 already has BP-01.
+      let existingQuery = cloudAdmin
         .from("email_flows").select("node_id, flow_type")
         .eq("author_id", authorProfile.id);
+      if (bookId) existingQuery = existingQuery.eq("book_id", bookId);
+      const { data: existingFlows } = await existingQuery;
       const existingNodes = new Set((existingFlows || []).filter((f: any) => f.node_id).map((f: any) => f.node_id));
       const hasMaster = (existingFlows || []).some((f: any) => f.flow_type === 'master_nurture');
 
@@ -455,6 +483,7 @@ Deno.serve(async (req) => {
         for (const t of targets) {
           try {
             const payload: Record<string, unknown> = { author_id: authorProfile.id };
+            if (bookId) payload.book_id = bookId;
             if (t.kind === 'master') payload.sequence_type = 'master_nurture';
             else payload.node_id = t.node_id;
 
@@ -555,36 +584,43 @@ Deno.serve(async (req) => {
       const results: any[] = [];
 
       for (const nid of nodeIds) {
-        const { data: existing } = await cloudAdmin
+        // When a book is selected we only touch that book's row; when "All Books"
+        // is active we touch every row for the node_id (legacy author-wide behaviour).
+        let existingQuery = cloudAdmin
           .from("author_nodes")
-          .select("id, status")
+          .select("id, status, book_id")
           .eq("author_id", authorProfile.id)
-          .eq("node_id", nid)
-          .maybeSingle();
+          .eq("node_id", nid);
+        if (bookId) existingQuery = existingQuery.eq("book_id", bookId);
+        const { data: existingRows } = await existingQuery;
 
-        if (existing) {
+        if (existingRows && existingRows.length > 0) {
+          const ids = existingRows.map((r: any) => r.id);
           const { data: updated, error: updErr } = await cloudAdmin
             .from("author_nodes")
             .update({ marketing_activated_at: now })
-            .eq("id", existing.id)
-            .select("node_id, marketing_activated_at")
-            .maybeSingle();
+            .in("id", ids)
+            .select("node_id, marketing_activated_at, book_id");
           if (updErr) {
             results.push({ node_id: nid, error: updErr.message });
           } else {
-            results.push({ node_id: nid, ok: true, row: updated });
+            results.push({ node_id: nid, ok: true, rows: updated });
           }
         } else if (action === "activate_node") {
+          // No row yet — create a stub. Tie it to the selected book when scoped.
+          const insertPayload: Record<string, unknown> = {
+            author_id: authorProfile.id,
+            node_id: nid,
+            node_name: nid,
+            status: "live",
+            marketing_activated_at: now,
+          };
+          if (bookId) insertPayload.book_id = bookId;
+
           const { data: inserted, error: insErr } = await cloudAdmin
             .from("author_nodes")
-            .insert({
-              author_id: authorProfile.id,
-              node_id: nid,
-              node_name: nid,
-              status: "live",
-              marketing_activated_at: now,
-            })
-            .select("node_id, marketing_activated_at")
+            .insert(insertPayload)
+            .select("node_id, marketing_activated_at, book_id")
             .maybeSingle();
           if (insErr) {
             results.push({ node_id: nid, error: insErr.message });

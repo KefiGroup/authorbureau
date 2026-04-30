@@ -1958,6 +1958,7 @@ export type Database = {
           abby_score: number
           archetype: Database["public"]["Enums"]["node_archetype"] | null
           author_id: string
+          book_id: string | null
           company: string | null
           created_at: string
           email: string | null
@@ -1978,6 +1979,7 @@ export type Database = {
           abby_score?: number
           archetype?: Database["public"]["Enums"]["node_archetype"] | null
           author_id: string
+          book_id?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
@@ -1998,6 +2000,7 @@ export type Database = {
           abby_score?: number
           archetype?: Database["public"]["Enums"]["node_archetype"] | null
           author_id?: string
+          book_id?: string | null
           company?: string | null
           created_at?: string
           email?: string | null
@@ -2014,7 +2017,22 @@ export type Database = {
           stage?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       cross_builder_pushes: {
         Row: {
@@ -4712,6 +4730,7 @@ export type Database = {
       social_posts: {
         Row: {
           author_id: string
+          book_id: string | null
           channel_id: string | null
           content: string
           created_at: string
@@ -4730,6 +4749,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          book_id?: string | null
           channel_id?: string | null
           content: string
           created_at?: string
@@ -4748,6 +4768,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          book_id?: string | null
           channel_id?: string | null
           content?: string
           created_at?: string
@@ -4764,7 +4785,22 @@ export type Database = {
           status?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       speaking_topics: {
         Row: {

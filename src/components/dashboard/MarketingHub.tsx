@@ -16,6 +16,8 @@ import SequencesTab from "./marketing-hub/SequencesTab";
 import SocialCalendarTab from "./marketing-hub/SocialCalendarTab";
 import ContactsTab from "./marketing-hub/ContactsTab";
 import SettingsTab from "./marketing-hub/SettingsTab";
+import MarketingHubBookSelector from "./marketing-hub/MarketingHubBookSelector";
+import { useMarketingHubBookContext } from "@/hooks/useMarketingHubBookContext";
 
 /* ─── Campaign / Node mapping ─── */
 
@@ -213,6 +215,7 @@ function getContentPreview(contentJson: any): string {
 export default function MarketingHub({ onNavigate }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const bookCtx = useMarketingHubBookContext(user?.id);
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
   const tabParam = searchParams.get("tab");
@@ -269,7 +272,7 @@ export default function MarketingHub({ onNavigate }: Props) {
           contacts: number;
           domainPending: boolean;
         };
-      }>("snapshot");
+      }>("snapshot", bookCtx.activeBookId ? { book_id: bookCtx.activeBookId } : {});
 
       setAuthorProfileId(snapshot.author_profile_id || null);
       setNodeRows(snapshot.node_rows || []);
@@ -280,10 +283,12 @@ export default function MarketingHub({ onNavigate }: Props) {
       // Falls back to global count under the "all" key for the header stat.
       const counts: Record<string, number> = { all: snapshot.lead_count || 0 };
       try {
-        const { data: contacts } = await supabase
+        let q = supabase
           .from("crm_contacts")
           .select("last_node_id")
           .eq("author_id", user.id);
+        if (bookCtx.activeBookId) q = q.eq("book_id", bookCtx.activeBookId);
+        const { data: contacts } = await q;
         for (const row of contacts || []) {
           const nid = (row as any).last_node_id as string | null;
           if (nid) counts[nid] = (counts[nid] || 0) + 1;
@@ -297,7 +302,7 @@ export default function MarketingHub({ onNavigate }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, bookCtx.activeBookId]);
 
   const [archetypeFilter, setArchetypeFilter] = useState<ArchetypeFilter>("ALL");
 
@@ -389,7 +394,7 @@ export default function MarketingHub({ onNavigate }: Props) {
 
       const result = await callMarketingHubState<{ success: boolean; error?: string }>(
         "activate_node",
-        { node_ids: liveNodeIds },
+        { node_ids: liveNodeIds, ...(bookCtx.activeBookId ? { book_id: bookCtx.activeBookId } : {}) },
       );
 
       if (!result.success) {
