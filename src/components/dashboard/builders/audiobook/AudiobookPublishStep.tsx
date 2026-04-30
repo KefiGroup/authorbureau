@@ -6,6 +6,7 @@ import { Loader2, Rocket, Send, Headphones, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { toAbbyError } from "@/lib/abby-error";
 import DistributeAudiobookModal from "@/components/dashboard/audiobook/DistributeAudiobookModal";
+import AudiobookExportCard from "./AudiobookExportCard";
 
 interface Chapter {
   index: number;
@@ -87,6 +88,14 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         We'll prepare retailer-specific packages for ACX (Audible), Spotify, Apple Books, Findaway and your own
         Authors Bureau storefront. You confirm metadata and we generate a downloadable ZIP per channel.
       </p>
+
+      <AudiobookExportCard
+        chapters={chapters}
+        bookTitle={bookTitle}
+        authorName={setup.authorName}
+        voiceName={voiceName}
+        retailPriceUsd={setup.retailPriceUsd}
+      />
 
       <DistributeAudiobookModal
         open={distOpen}
