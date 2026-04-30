@@ -11,7 +11,7 @@ import AccountSettings from "./pages/AccountSettings";
 import Directory from "./pages/Directory";
 import AuthorProfile from "./pages/AuthorProfile";
 import { AuthorSlugRedirect } from "./pages/AuthorSlugRedirect";
-// DynamicBookMicrosite is legacy/unmounted — handled by AuthorSubpageResolver
+// Legacy DynamicBookMicrosite removed — book microsites handled by AuthorSubpageResolver
 import AuthorSubpageResolver from "./pages/AuthorSubpageResolver";
 import HomeStudyBundlePage from "./pages/HomeStudyBundlePage";
 import WebinarRegistrationPage from "./pages/WebinarRegistrationPage";
