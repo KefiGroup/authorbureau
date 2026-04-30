@@ -47,7 +47,6 @@ interface AuthorPending {
 
 interface PayoutsStatus {
   stripe_ready: boolean;
-  paypal_ready: boolean;
   last_payout_at: string | null;
   last_statement_at: string | null;
   last_statement_year: number | null;
@@ -226,8 +225,6 @@ export default function AdminPayoutsDashboard() {
             <div className="flex-1 space-y-1">
               <p className="font-medium">
                 Stripe Connect: {status.stripe_ready ? "configured" : "missing STRIPE_SECRET_KEY"}
-                {" · "}
-                PayPal Payouts API: {status.paypal_ready ? "configured" : "not configured (Stripe-only mode)"}
               </p>
               <p className="text-xs text-muted-foreground">
                 Last payout run: {status.last_payout_at ? format(new Date(status.last_payout_at), "MMM d, yyyy HH:mm") : "never"}

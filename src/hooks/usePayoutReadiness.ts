@@ -2,9 +2,9 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
-// Wise was removed in Sprint 43 — only Stripe Connect Express and PayPal
-// Payouts API are supported now (both fully automated on the 1st of each month).
-export type PayoutMethod = "paypal" | "stripe";
+// Sprint 44 — Stripe Express is the only supported payout rail.
+// Target markets (US, SG, AU, NZ) are all fully covered by Stripe.
+export type PayoutMethod = "stripe";
 
 export interface PayoutReadinessState {
   ready: boolean;
@@ -15,10 +15,10 @@ export interface PayoutReadinessState {
 }
 
 /**
- * Authors must set a payout method (Stripe Express or PayPal) AND
- * accept the Payout Agreement (tax + payment processing terms) before they
- * can publish paid products. Authors Bureau is the Merchant of Record —
- * readers always check out via the platform Stripe account.
+ * Authors must connect Stripe Express AND accept the Payout Agreement
+ * (tax + payment processing terms) before they can publish paid products.
+ * Authors Bureau is the Merchant of Record — readers always check out via
+ * the platform Stripe account.
  */
 export function usePayoutReadiness() {
   const { user } = useAuth();
@@ -47,15 +47,13 @@ export function usePayoutReadiness() {
       }
       const { data: settings } = await supabase
         .from("author_payout_settings")
-        .select("payout_method, paypal_email_v2, tax_self_declared_at")
+        .select("payout_method, tax_self_declared_at")
         .eq("author_id", profile.id)
         .maybeSingle();
 
       const method = (settings?.payout_method as PayoutMethod | null) || null;
       const stripeReady = !!profile.stripe_onboarding_complete;
-      const methodComplete =
-        (method === "paypal" && !!settings?.paypal_email_v2) ||
-        (method === "stripe" && stripeReady);
+      const methodComplete = method === "stripe" && stripeReady;
       const taxAck = !!settings?.tax_self_declared_at;
 
       setState({

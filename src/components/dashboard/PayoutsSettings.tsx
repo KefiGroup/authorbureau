@@ -142,7 +142,7 @@ export default function PayoutsSettings() {
               <p className="font-semibold flex items-center gap-2">
                 Stripe Express <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Recommended · Auto</Badge>
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Direct deposit to your bank on the 1st of each month. Available in 45+ countries. Authors Bureau covers all transfer fees. More payout options (PayPal) coming soon.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Direct deposit to your bank on the 1st of each month. Available in 45+ countries (including the US, Singapore, Australia and New Zealand). Authors Bureau covers all transfer fees.</p>
             </div>
           </div>
 
