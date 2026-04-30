@@ -394,7 +394,7 @@ export default function MarketingHub({ onNavigate }: Props) {
 
       const result = await callMarketingHubState<{ success: boolean; error?: string }>(
         "activate_node",
-        { node_ids: liveNodeIds },
+        { node_ids: liveNodeIds, ...(bookCtx.activeBookId ? { book_id: bookCtx.activeBookId } : {}) },
       );
 
       if (!result.success) {
