@@ -97,17 +97,15 @@ serve(async (req) => {
     // 3. Process each author
     const createdPayouts: { author_id: string; net: number; method: string; status: string }[] = [];
     const skippedNoMethod: { author_id: string; net: number }[] = [];
-    const skippedPayPalNotConfigured: { author_id: string; net: number }[] = [];
-    const paypalQueue: { authorId: string; payoutId: string; ernIds: string[]; net: number; email: string; ref: string }[] = [];
-    let stripeTotal = 0, paypalTotal = 0;
-    let stripeAuthors = 0, paypalAuthors = 0;
-    let stripeFailures = 0, paypalFailures = 0;
+    let stripeTotal = 0;
+    let stripeAuthors = 0;
+    let stripeFailures = 0;
 
     for (const [authorId, ernList] of byAuthor) {
       const settingRow = settingsByAuthor.get(authorId);
       const profile = profileByAuthor.get(authorId);
       const min = Number(settingRow?.minimum_payout_usd ?? MIN_PAYOUT_USD);
-      const method = settingRow?.payout_method as ("paypal" | "stripe" | undefined);
+      const method = settingRow?.payout_method as ("stripe" | undefined);
 
       const gross = ernList.reduce((s, e) => s + Number(e.gross_usd), 0);
       const stripeFees = ernList.reduce((s, e) => s + Number(e.stripe_fee_usd), 0);
@@ -115,29 +113,17 @@ serve(async (req) => {
       const netBeforePayoutFee = ernList.reduce((s, e) => s + Number(e.net_usd), 0);
 
       if (netBeforePayoutFee < min) continue;
-      if (!method) {
-        skippedNoMethod.push({ author_id: authorId, net: netBeforePayoutFee });
-        continue;
-      }
-      if (method === "stripe" && !profile?.stripe_onboarding_complete) {
-        skippedNoMethod.push({ author_id: authorId, net: netBeforePayoutFee });
-        continue;
-      }
-      if (method === "paypal" && !settingRow?.paypal_email_v2) {
+      if (method !== "stripe" || !profile?.stripe_onboarding_complete) {
         skippedNoMethod.push({ author_id: authorId, net: netBeforePayoutFee });
         continue;
       }
 
       // Internal-margin reporting only — never deducted from author share.
-      const payoutFee = method === "paypal"
-        ? Math.round(netBeforePayoutFee * PAYPAL_FEE_PCT * 100) / 100
-        : STRIPE_TRANSFER_FEE_USD;
+      const payoutFee = STRIPE_TRANSFER_FEE_USD;
 
       // Author always receives exactly 92% of gross.
       const net = Math.round(netBeforePayoutFee * 100) / 100;
       if (net <= 0) continue;
-
-      const ref = `AB-${periodTag}-${authorId.slice(0, 8)}`;
 
       const { data: payout, error: payErr } = await admin.from("author_payouts_v2").insert({
         author_id: authorId,
@@ -148,7 +134,7 @@ serve(async (req) => {
         total_platform_fees_usd: platformFees,
         payout_fee_usd: payoutFee,
         net_usd: net,
-        payout_method: method,
+        payout_method: "stripe",
         status: "queued",
       }).select().single();
       if (payErr) { console.error("[payouts] insert failed", payErr); continue; }
@@ -157,57 +143,35 @@ serve(async (req) => {
       await admin.from("author_earnings").update({ payout_id: payout.id, paid_out: true })
         .in("id", ernList.map((e) => e.id));
 
-      if (method === "stripe") {
-        // Auto-transfer via Stripe Connect Express
-        try {
-          const transfer = await stripe.transfers.create({
-            amount: Math.round(net * 100),
-            currency: "usd",
-            destination: profile.stripe_account_id,
-            transfer_group: `PAYOUT_${periodTag}_${authorId}`,
-            description: `Authors Bureau royalties ${fmtDate(periodStart)} → ${fmtDate(periodEnd)}`,
-            metadata: { author_id: authorId, payout_id: payout.id, period: periodTag },
-          });
-          await admin.from("author_payouts_v2").update({
-            status: "paid",
-            external_reference: transfer.id,
-            paid_at: new Date().toISOString(),
-          }).eq("id", payout.id);
-          createdPayouts.push({ author_id: authorId, net, method, status: "paid" });
-          stripeTotal += net;
-          stripeAuthors++;
-        } catch (transferErr) {
-          const msg = transferErr instanceof Error ? transferErr.message : String(transferErr);
-          console.error(`[payouts] stripe transfer failed for author ${authorId}:`, msg);
-          await admin.from("author_payouts_v2").update({
-            status: "failed",
-            notes: `Stripe transfer failed: ${msg}`,
-          }).eq("id", payout.id);
-          await admin.from("author_earnings").update({ payout_id: null, paid_out: false })
-            .in("id", ernList.map((e) => e.id));
-          stripeFailures++;
-          createdPayouts.push({ author_id: authorId, net, method, status: "failed" });
-        }
-      } else {
-        // PayPal — queue for batch send (or graceful skip if not configured)
-        if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET) {
-          await admin.from("author_payouts_v2").update({
-            status: "pending_setup",
-            notes: "PayPal Payouts API not configured (PAYPAL_CLIENT_ID / PAYPAL_SECRET missing)",
-          }).eq("id", payout.id);
-          await admin.from("author_earnings").update({ payout_id: null, paid_out: false })
-            .in("id", ernList.map((e) => e.id));
-          skippedPayPalNotConfigured.push({ author_id: authorId, net });
-          continue;
-        }
-        paypalQueue.push({
-          authorId,
-          payoutId: payout.id,
-          ernIds: ernList.map((e) => e.id),
-          net,
-          email: settingRow.paypal_email_v2,
-          ref,
+      // Auto-transfer via Stripe Connect Express
+      try {
+        const transfer = await stripe.transfers.create({
+          amount: Math.round(net * 100),
+          currency: "usd",
+          destination: profile.stripe_account_id,
+          transfer_group: `PAYOUT_${periodTag}_${authorId}`,
+          description: `Authors Bureau royalties ${fmtDate(periodStart)} → ${fmtDate(periodEnd)}`,
+          metadata: { author_id: authorId, payout_id: payout.id, period: periodTag },
         });
+        await admin.from("author_payouts_v2").update({
+          status: "paid",
+          external_reference: transfer.id,
+          paid_at: new Date().toISOString(),
+        }).eq("id", payout.id);
+        createdPayouts.push({ author_id: authorId, net, method: "stripe", status: "paid" });
+        stripeTotal += net;
+        stripeAuthors++;
+      } catch (transferErr) {
+        const msg = transferErr instanceof Error ? transferErr.message : String(transferErr);
+        console.error(`[payouts] stripe transfer failed for author ${authorId}:`, msg);
+        await admin.from("author_payouts_v2").update({
+          status: "failed",
+          notes: `Stripe transfer failed: ${msg}`,
+        }).eq("id", payout.id);
+        await admin.from("author_earnings").update({ payout_id: null, paid_out: false })
+          .in("id", ernList.map((e) => e.id));
+        stripeFailures++;
+        createdPayouts.push({ author_id: authorId, net, method: "stripe", status: "failed" });
       }
     }
 
