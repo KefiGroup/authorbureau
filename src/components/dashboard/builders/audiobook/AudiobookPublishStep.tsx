@@ -6,6 +6,7 @@ import { Loader2, Rocket, Send, Headphones, Clock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { toAbbyError } from "@/lib/abby-error";
 import DistributeAudiobookModal from "@/components/dashboard/audiobook/DistributeAudiobookModal";
+import AudiobookExportCard from "./AudiobookExportCard";
 
 interface Chapter {
   index: number;
