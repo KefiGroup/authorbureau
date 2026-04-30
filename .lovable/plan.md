@@ -1,38 +1,54 @@
-# Fix: My Library shows "Unauthorized"
+## Goal
+Systematically load every route in the app, detect runtime errors, broken edge function calls, stale references, and missing data, then fix the issues found.
 
-## Root cause
+## Scope — routes to audit
 
-Pauline is signed in via the **shared backend (PublishNow)**, so her browser holds a JWT signed by the shared Supabase project. The `get-author-library` edge function only validates against the **local Cloud project's** auth, so the token is rejected.
+**Public**
+- `/` (Index), `/directory`, `/solutions`, `/solutions/:genre`, `/how-it-works`, `/methodology`, `/pricing`, `/contact`, `/faq`, `/terms`, `/terms-of-sale`, `/privacy`, `/unsubscribe`
+- `/readers-bureau`, `/readers-bureau/auth`
+- `/auth`, `/admin-auth`, `/join`, `/create-microsite`, `/sso`
 
-Edge function logs confirm:
-```
-get-author-library auth failed: invalid JWT: unable to parse or verify signature,
-unrecognized JWT kid 10e65b79-... for algorithm ES256
-```
-→ returned `401 Unauthorized` → frontend shows the red "Unauthorized / Try again" panel.
+**Author (logged-in)**
+- `/dashboard` (and sections via `?section=`: profile, my-books, marketing-hub, author-crm, brand, build, yield, revenue)
+- `/my-books`, `/my-contacts`, `/marketing-hub`
+- `/dashboard/book/:bookId` (BookHub), `/dashboard/book/:bookId/build/:node`
+- `/account-settings`, `/connect-settings`, `/earnings`, `/abby-coach`, `/special-editions-calendar`, `/revenue-dashboard`
+- `/admin`, `/admin/payouts`, `/admin/content-quality`
 
-Other functions (e.g. `dashboard-state`, `marketing-hub-state`, `author-stats`) already implement the dual-token pattern: try shared backend first, fall back to local Cloud auth, then use the local service-role client to read data.
+**Public author microsites** (sample using a known author slug, e.g. Pauline Teo)
+- `/:authorSlug`, `/:authorSlug/:bookSlug`, `/:authorSlug/:bookSlug/:productType`
+- `/:authorSlug/webinar`, `/:authorSlug/members`, `/:authorSlug/course/:courseSlug`
 
-## Fix
+## Method
 
-Update **`supabase/functions/get-author-library/index.ts`** to use the same dual-token verification pattern as `dashboard-state`:
+1. **Static pass (no preview needed)**
+   - `rg` for stale patterns: imports of removed files, references to deprecated GHL deploy functions in active flows, `supabase.auth.getSession()` calls in shared-backend contexts (should be `getActiveToken`), direct `books` table queries for ownership checks (should use `get-author-book`), TypeScript errors via `tsc --noEmit`-equivalent signals in dev-server log.
+   - Check edge-function imports vs `supabase/functions/` directory for any missing deployments referenced from the client.
+   - Scan `src/pages/*.tsx` for unused/orphan pages no longer mounted in `App.tsx` (e.g. `MicrositePage.tsx`, `ReaderPortal.tsx`, `ReadingClub.tsx`, `FunnelPage.tsx`, `ThankYouPage.tsx`, `DynamicBookMicrosite.tsx`) — flag for removal if confirmed dead.
 
-1. Read the bearer token from the `Authorization` header (no early "Unauthorized" rejection just for kid mismatch).
-2. Validate against the shared backend (`https://wuftdpnekscrsghqtssd.supabase.co`) first using its anon key.
-3. If that fails, fall back to local Cloud `auth.getUser()`.
-4. If neither resolves a user, return `401 { error: "Invalid session" }`.
-5. Once `userId` is resolved, continue with the existing service-role lookup of `author_profiles`, `author_nodes`, and `marketing_assets` — unchanged.
-6. Also support cross-platform ID drift the same way `dashboard-state` does: if the profile lookup by `user_id` misses, look up author profile by the user's email (via service role on `author_profiles.owner_email`/sibling profiles) so authors created under a different auth ID still resolve. (Mirror the small pen-name/email sibling block from `dashboard-state` lines 73–95 area.)
+2. **Runtime pass (browser tool)**
+   - For each route group, `navigate_to_sandbox` then `read_console_logs` + `list_network_requests` filtered to errors (4xx/5xx).
+   - Capture per-route: page rendered? console errors? failed network calls? Edge-function 401/500s?
+   - Test author pages while logged in (use existing session in preview); skip routes requiring specific data we don't have (e.g. random `:purchaseId`).
 
-No frontend changes needed — `AuthorLibrary.tsx` already calls through `invokeWithTimeout` which sends `getActiveToken()`.
+3. **Categorize findings**
+   - **Critical**: page crashes / blank screen / 401 from edge fn the page depends on.
+   - **High**: visible error toast, missing data, broken link.
+   - **Stale**: dead imports, orphan pages, references to removed/renamed functions, `verify_jwt` mismatches.
+   - **Low**: console warnings, deprecation notices.
 
-## Files touched
+4. **Fix pass**
+   - Apply token-standard fixes (`getActiveToken` + `fetchWithTimeout`) where edge calls 401.
+   - Wire missing `bookId` props or add fallbacks where queries return empty.
+   - Delete or redirect confirmed orphan pages.
+   - Update any client-side calls referencing renamed/removed edge functions.
+   - Re-run failing route after each fix to confirm green.
 
-- `supabase/functions/get-author-library/index.ts` — replace the auth block with the shared-first / local-fallback pattern; keep the rest of the handler intact.
+## Deliverable
 
-## Verification
+A short audit report (in chat) listing each route with status (OK / Fixed / Known-limitation), plus the list of files changed. Orphan pages are removed only after confirming no inbound route or import references them.
 
-1. Reload `/dashboard?section=library` as Pauline → list of nodes/assets renders (no red Unauthorized).
-2. Edge function logs no longer contain `unrecognized JWT kid`.
-3. A locally-signed-in test user (no shared session) still loads their library — fallback path works.
-4. An unauthenticated request still returns `401 Invalid session`.
+## Out of scope
+- New features, redesigns, copy changes.
+- Routes requiring real purchase IDs or third-party callbacks (Stripe success, social OAuth) — these are smoke-tested only for render, not full flow.
+- Database migrations unless a missing column is the root cause of a page crash.
