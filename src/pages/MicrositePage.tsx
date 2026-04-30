@@ -213,17 +213,7 @@ export default function MicrositePage() {
   // Render node-specific template
   return (
     <div className="min-h-screen" style={{ background: bgColor, color: v.bodyText }}>
-      {/* Clean nav - author name only */}
-      <nav className="border-b px-4 py-3 flex items-center justify-between" style={{ borderColor: v.cardBorder }}>
-        <Link to={`/${authorSlug}`} className="font-bold text-lg" style={{ color: v.headingText, fontFamily: hFont }}>
-          {authorName}
-        </Link>
-        {data.book && (
-          <Link to={`/${authorSlug}/${data.book.slug}`} className="text-sm hover:underline" style={{ color: v.accent }}>
-            {data.book.title}
-          </Link>
-        )}
-      </nav>
+      {/* Public microsites: no nav header per brand rules */}
 
       {/* Node-specific content */}
       {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} setQuizData={setQuizData} />}
@@ -2124,12 +2114,7 @@ function GroupCoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, 
                   <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{sessionFormat}</p>
                 </Card>
               )}
-              {price != null && (
-                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Investment</p>
-                  <p className="text-sm font-semibold mt-1" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-                </Card>
-              )}
+              {/* Pricing intentionally hidden on public microsite chrome (rule). */}
             </div>
           )}
 
@@ -2549,12 +2534,7 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
                   <p className="text-sm font-semibold mt-1" style={{ color: v.headingText }}>{modules.length} modules</p>
                 </Card>
               )}
-              {price != null && (
-                <Card className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                  <p className="text-xs uppercase tracking-wider" style={{ color: v.mutedText }}>Investment</p>
-                  <p className="text-sm font-semibold mt-1" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-                </Card>
-              )}
+              {/* Pricing intentionally hidden on public microsite chrome (rule). */}
             </div>
           )}
 
@@ -2653,9 +2633,7 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
               modal) so we no longer need a separate Notify form. */}
           <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
             <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enrol Now</h3>
-            {price != null && (
-              <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-            )}
+            {/* Headline price intentionally hidden on public microsite chrome (rule). */}
             <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
             {paymentLink ? (
               <a href={paymentLink} target="_blank" rel="noopener noreferrer">
@@ -2800,12 +2778,12 @@ function YRRightCard({
   }
 
   // Stripe checkout via BuyNowButton when a price is registered on author_nodes.
+  // Public microsite chrome MUST NOT show the dollar amount; price is revealed at Stripe checkout.
   if ((actionType === "purchase" || actionType === "donate") && commerceNodeRowId && (typeof price === "number" && price > 0)) {
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
         <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{commerceLabel || ctaLabel || "Get Started"}</h3>
-        <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>${Number(price).toLocaleString()}</p>
-        {selectedOfferLabel && <p className="text-xs mb-3" style={{ color: v.mutedText }}>{selectedOfferLabel}</p>}
+        {selectedOfferLabel && <p className="text-sm mb-3" style={{ color: v.mutedText }}>{selectedOfferLabel}</p>}
         <BuyNowButton
           authorNodeId={commerceNodeRowId}
           authorId={commerceAuthorId || undefined}
@@ -2814,6 +2792,7 @@ function YRRightCard({
           className="w-full rounded-full"
           style={{ background: v.accent, color: bgColor }}
         />
+        <p className="text-[11px] mt-3 text-center" style={{ color: v.mutedText }}>Pricing shown at secure checkout.</p>
       </Card>
     );
   }
@@ -2823,14 +2802,12 @@ function YRRightCard({
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
         <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{ctaLabel || "Get Started"}</h3>
-        {price != null && (
-          <p className="text-3xl font-bold my-3" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : price}</p>
-        )}
         <a href={paymentLink} target="_blank" rel="noopener noreferrer">
           <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
             {ctaLabel || "Get Started"} <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </a>
+        <p className="text-[11px] mt-3 text-center" style={{ color: v.mutedText }}>Pricing shown at secure checkout.</p>
       </Card>
     );
   }
@@ -2856,7 +2833,6 @@ function YRRightCard({
       {selectedOfferLabel && (
         <div className="my-3 p-2 rounded-md text-xs" style={{ background: `${v.accent}15`, color: v.headingText }}>
           Interested in: <strong>{selectedOfferLabel}</strong>
-          {selectedOfferPrice != null && <> — <span style={{ color: v.accent }}>{typeof selectedOfferPrice === "number" ? `$${selectedOfferPrice.toLocaleString()}` : selectedOfferPrice}</span></>}
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-3 mt-3">
@@ -2954,7 +2930,7 @@ function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {duration && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>{duration}</p>}
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
@@ -3010,15 +2986,16 @@ function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setE
           <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>The Offers</h2>
           <div className="space-y-3">
             {offers.map((o: any, i: number) => {
-              const name = yrStr(o?.name || o?.title, `Offer ${i + 1}`);
+              const rawName = yrStr(o?.name || o?.title);
               const desc = yrStr(o?.description);
-              const price = o?.price_usd ?? o?.price;
               const incl = yrLines(o?.includes ?? o?.deliverables ?? o?.outcomes);
+              // Skip placeholder rows entirely if there's no real title AND no description.
+              if (!rawName && !desc && incl.length === 0) return null;
+              const name = rawName || (desc ? desc.split(/[.!?]/)[0].slice(0, 60) : "Programme");
               return (
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                  <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
+                  <div className="mb-2">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
                   </div>
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
                   {incl.length > 0 && (
@@ -3228,7 +3205,7 @@ function MastermindPage({ data, content, v, hFont, bgColor, onSubmit, email, set
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-2">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
                   {incl.length > 0 && (
@@ -3298,7 +3275,7 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {(dur || loc) && <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>{[dur, loc].filter(Boolean).join(" · ")}</p>}
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
@@ -3517,7 +3494,7 @@ function ConferencePage({ data, content, v, hFont, bgColor, onSubmit, email, set
                 <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
                     <h3 className="text-base font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-base font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {incl.length > 0 && <ul className="space-y-1 mt-2">{incl.map((x, j) => (<li key={j} className="text-sm" style={{ color: v.bodyText }}>• {x}</li>))}</ul>}
                 </Card>
@@ -3684,7 +3661,7 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
                 <Card key={i} className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
                     <h3 className="text-lg font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {price != null && <span className="text-xl font-bold" style={{ color: v.accent }}>{typeof price === "number" ? `$${price.toLocaleString()}` : yrInline(price)}</span>}
+                    {/* Per-row price hidden on public microsite chrome (rule). */}
                   </div>
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
                   {incl.length > 0 && <ul className="space-y-1 mt-2">{incl.map((x, j) => (<li key={j} className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /><span className="text-sm" style={{ color: v.bodyText }}>{x}</span></li>))}</ul>}

@@ -365,7 +365,7 @@ IMPORTANT RULES:
             body: JSON.stringify({
               model: "google/gemini-2.5-flash",
               messages: [
-                { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose." },
+                { role: "system", content: "You are a JSON repair tool. Return ONLY valid JSON, no prose.\n\nHARD CONTENT RULES (output that violates these will fail QA):\n- NEVER use the emdash character (\u2014) or endash (\u2013). Use commas, periods, or \" - \" for ranges only.\n- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.\n- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.\n- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns)." },
                 { role: "user", content: `Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` },
               ],
               max_completion_tokens: 10000,
