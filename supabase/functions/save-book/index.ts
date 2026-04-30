@@ -38,7 +38,8 @@ function generateSlug(title: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 50)
-    .replace(/^-+|-+$/g, ""); // strip leading/trailing hyphens (BUG-22 fix)
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, ""); // strip leading/trailing hyphens after slice (Bug 12)
 }
 
 serve(async (req) => {
