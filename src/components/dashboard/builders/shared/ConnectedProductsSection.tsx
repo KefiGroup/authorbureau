@@ -76,7 +76,7 @@ function getConnectedProducts(builderId: string): ConnectedProduct[] {
     "audiobook": [
       { id: "book-sales", icon: "📖", name: "Book Sales", connection: "Audio format complements print sales", tier: "brand", status: "not_started" },
       { id: "podcast-scripts", icon: "🎙️", name: "Podcast Tour", connection: "Audiobook listeners discover podcast", tier: "build", status: "not_started" },
-      { id: "media-outreach", icon: "📰", name: "Media Outreach", connection: "Audiobook launch drives media coverage", tier: "build", status: "not_started" },
+      { id: "media-outreach", icon: "📰", name: "Media & PR", connection: "Audiobook launch drives media coverage", tier: "build", status: "not_started" },
     ],
     "memberships": [
       { id: "online-course", icon: "🎓", name: "Online Course", connection: "Course graduates join membership", tier: "build", status: "not_started" },
@@ -127,7 +127,7 @@ function getConnectedProducts(builderId: string): ConnectedProduct[] {
     ],
     "keynotes": [
       { id: "consulting", icon: "📋", name: "Consulting", connection: "Speaking engagements lead to consulting", tier: "yield", status: "not_started" },
-      { id: "media-outreach", icon: "📰", name: "Media Outreach", connection: "Speaking profile attracts media", tier: "build", status: "not_started" },
+      { id: "media-outreach", icon: "📰", name: "Media & PR", connection: "Speaking profile attracts media", tier: "build", status: "not_started" },
       { id: "coaching", icon: "💬", name: "Coaching", connection: "Audience members apply for coaching", tier: "yield", status: "not_started" },
     ],
     "training": [
@@ -158,7 +158,7 @@ function getConnectedProducts(builderId: string): ConnectedProduct[] {
     "fundraising": [
       { id: "conventions", icon: "🎪", name: "Conventions", connection: "Events attract fundraising opportunities", tier: "yield", status: "not_started" },
       { id: "keynotes", icon: "🎤", name: "Keynotes", connection: "Speaking drives fundraising visibility", tier: "yield", status: "not_started" },
-      { id: "media-outreach", icon: "📰", name: "Media Outreach", connection: "Media coverage supports fundraising", tier: "build", status: "not_started" },
+      { id: "media-outreach", icon: "📰", name: "Media & PR", connection: "Media coverage supports fundraising", tier: "build", status: "not_started" },
     ],
     "exhibitors": [
       { id: "conventions", icon: "🎪", name: "Conventions", connection: "Exhibitor presence at your conventions", tier: "yield", status: "not_started" },
