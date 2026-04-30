@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles,
-  ArrowRight, Settings, BarChart3, Copy, ExternalLink, AlertTriangle, Info, CreditCard,
+  ArrowRight, BarChart3, Copy, ExternalLink, Info, CreditCard,
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
