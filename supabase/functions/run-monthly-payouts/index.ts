@@ -82,7 +82,7 @@ serve(async (req) => {
 
     const { data: settings } = await admin
       .from("author_payout_settings")
-      .select("author_id, payout_method, paypal_email_v2, minimum_payout_usd")
+      .select("author_id, payout_method, minimum_payout_usd")
       .in("author_id", safeIds);
     const settingsByAuthor = new Map<string, any>();
     (settings || []).forEach((s: any) => settingsByAuthor.set(s.author_id, s));
