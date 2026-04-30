@@ -169,6 +169,17 @@ export default function PayoutSettingsPage() {
     );
   }
 
+  if (profileMissing) {
+    return (
+      <div className="max-w-xl mx-auto py-16 text-center space-y-3">
+        <h1 className="font-heading text-2xl font-bold">Complete your author profile first</h1>
+        <p className="text-muted-foreground">
+          Set up your Author Profile before configuring payouts. Visit Author Profile in the sidebar to get started.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto space-y-8">
       {/* Header */}
