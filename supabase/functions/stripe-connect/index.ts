@@ -75,7 +75,8 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const { action } = await req.json();
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const action = (body as { action?: string }).action;
     const origin = req.headers.get("origin") || "https://authorbureau.lovable.app";
 
     const { data: profile } = await supabaseAdmin
@@ -151,10 +152,10 @@ serve(async (req) => {
       // Audit #3: callers (Dashboard › Payout Settings AND Account Settings ›
       // Payouts) can pass `return_path` so the author returns to whichever
       // page they started from. Fallback preserves the legacy behaviour.
-      const body = await req.json().catch(() => ({}));
+      const rawReturn = (body as { return_path?: unknown }).return_path;
       const returnPath: string =
-        typeof body.return_path === "string" && body.return_path.startsWith("/")
-          ? body.return_path
+        typeof rawReturn === "string" && rawReturn.startsWith("/")
+          ? rawReturn
           : "/account-settings?tab=payouts";
       const sep = returnPath.includes("?") ? "&" : "?";
 
