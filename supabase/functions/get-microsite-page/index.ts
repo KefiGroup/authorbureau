@@ -104,13 +104,18 @@ serve(async (req) => {
       }
     }
 
-    // Get node data
-    const { data: node } = await supabase
+    // Get node data — tolerate duplicate rows (a unique constraint now prevents
+    // them at the DB level, but we still order by "best row first" so the resolver
+    // never silently 404s if a duplicate ever slips in via a future migration).
+    const { data: nodeRows } = await supabase
       .from("author_nodes")
       .select("*")
       .eq("author_id", profile.id)
       .eq("node_id", nodeId!)
-      .maybeSingle();
+      .order("microsite_url", { ascending: false, nullsFirst: false })
+      .order("updated_at", { ascending: false })
+      .limit(1);
+    const node = (nodeRows && nodeRows[0]) || null;
 
     // Treat as live if explicitly live OR if the row is content_ready but the
     // content_json carries `activated: true` (forward-compat self-heal for cases
