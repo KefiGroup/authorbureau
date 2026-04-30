@@ -26,6 +26,7 @@ interface BookFormData {
   paperbackPrice: string;
   coverImageUrl: string;
   amazonUrl: string;
+  amazonKindleUrl: string;
   authorName: string;
   authorBio: string;
   authorPhotoUrl: string;
@@ -64,6 +65,7 @@ export default function DualModeBookForm({
     paperbackPrice: initialData?.paperbackPrice || "",
     coverImageUrl: initialData?.coverImageUrl || "",
     amazonUrl: initialData?.amazonUrl || "",
+    amazonKindleUrl: initialData?.amazonKindleUrl || "",
     authorName: initialData?.authorName || "",
     authorBio: initialData?.authorBio || "",
     authorPhotoUrl: initialData?.authorPhotoUrl || "",
@@ -206,6 +208,7 @@ export default function DualModeBookForm({
         kindlePrice: form.kindlePrice,
         paperbackPrice: form.paperbackPrice,
         amazonUrl: form.amazonUrl,
+        amazonKindleUrl: form.amazonKindleUrl,
         authorName: form.authorName,
         authorBio: form.authorBio,
         authorPhotoUrl: form.authorPhotoUrl,
@@ -411,10 +414,18 @@ export default function DualModeBookForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Amazon Book URL *</Label>
+              <Label>Amazon Paperback URL *</Label>
               <Input
                 value={form.amazonUrl}
                 onChange={(e) => update("amazonUrl", e.target.value)}
+                placeholder="https://amazon.com/dp/..."
+              />
+            </div>
+            <div>
+              <Label>Amazon Kindle URL <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
+              <Input
+                value={form.amazonKindleUrl}
+                onChange={(e) => update("amazonKindleUrl", e.target.value)}
                 placeholder="https://amazon.com/dp/..."
               />
             </div>

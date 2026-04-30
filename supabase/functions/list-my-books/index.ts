@@ -174,7 +174,7 @@ Deno.serve(async (req) => {
         pages: "pages", rating: "rating", genre: "genre", badges: "badges",
         price: "price", currency: "currency",
         kindlePrice: "kindle_price", paperbackPrice: "paperback_price",
-        amazonUrl: "amazon_url", coverImageUrl: "cover_image_url",
+        amazonUrl: "amazon_url", amazonKindleUrl: "amazon_kindle_url", coverImageUrl: "cover_image_url",
         bestsellerProofUrl: "bestseller_proof_url",
       };
 

@@ -40,6 +40,7 @@ interface Book {
   kindle_price?: string | null;
   paperback_price?: string | null;
   amazon_url?: string | null;
+  amazon_kindle_url?: string | null;
   bestseller_proof_url?: string | null;
   approval_status?: string | null;
   rejection_note?: string | null;
@@ -312,7 +313,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
       badges: editingBook.badges || [], price: editingBook.price || "",
       currency: editingBook.currency || "USD", kindlePrice: editingBook.kindle_price || "",
       paperbackPrice: editingBook.paperback_price || "", coverImageUrl: editingBook.cover_image_url || "",
-      amazonUrl: editingBook.amazon_url || "", bestsellerProofUrl: editingBook.bestseller_proof_url || "",
+      amazonUrl: editingBook.amazon_url || "", amazonKindleUrl: editingBook.amazon_kindle_url || "", bestsellerProofUrl: editingBook.bestseller_proof_url || "",
     } : undefined;
 
     return (
