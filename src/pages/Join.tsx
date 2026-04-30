@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { supabase } from "@/lib/shared-backend";
 import { useToast } from "@/hooks/use-toast";
 import { getPublishNowAuthUrl } from "@/lib/publishnow-auth";
@@ -23,6 +24,17 @@ const fadeUp = {
 export default function Join() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useDocumentMeta({
+    title: "Join Authors Bureau — Apply for the Author Directory",
+    description: "Apply to join the Authors Bureau directory. Get a profile, lead magnets, and AI-powered tools to turn your published book into 28 revenue streams.",
+    ogTitle: "Join Authors Bureau",
+    ogDescription: "Apply to join the Authors Bureau directory and turn your book into 28 revenue streams.",
+    ogImage: "https://authorsbureau.com/og-image.jpg",
+    ogUrl: "https://authorsbureau.com/join",
+    canonical: "https://authorsbureau.com/join",
+    twitterCard: "summary_large_image",
+  });
   const { toast } = useToast();
   const publishNowAuthUrl = getPublishNowAuthUrl("/dashboard");
 

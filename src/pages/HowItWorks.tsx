@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 import staircaseImg from "@/assets/abby_journey_staircase_v6.webp";
 import frameworkImg from "@/assets/how_28_revenue_streams_connect_v2.webp";

@@ -9,6 +9,7 @@ import BadgeDisplay from "@/components/BadgeDisplay";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import DirectoryGridSkeleton from "@/components/DirectoryGridSkeleton";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.webp";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
@@ -44,6 +45,17 @@ const fadeUp = {
 };
 
 export default function Directory() {
+  useDocumentMeta({
+    title: "Author Directory — Authors Bureau | Discover Published Authors",
+    description: "Browse the Authors Bureau directory of published authors. Discover their books, courses, podcasts, and ways to connect — all in one place.",
+    ogTitle: "Author Directory — Authors Bureau",
+    ogDescription: "Browse the Authors Bureau directory of published authors. Discover their books, courses, podcasts, and ways to connect.",
+    ogImage: "https://authorsbureau.com/og-image.jpg",
+    ogUrl: "https://authorsbureau.com/directory",
+    canonical: "https://authorsbureau.com/directory",
+    twitterCard: "summary_large_image",
+  });
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(searchParams.get("genre") || null);

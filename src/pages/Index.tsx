@@ -16,6 +16,7 @@ import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 // getPublishNowAuthUrl no longer used - CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const SIGNUP_URL = "/auth";
 const getPlanUrl = (_plan: string) => "/pricing";

@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },

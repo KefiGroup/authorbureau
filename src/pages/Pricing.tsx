@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, Sparkles, Zap, Crown, ArrowLeft, Lock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const PLANS = [
   {
