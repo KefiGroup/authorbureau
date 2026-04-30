@@ -197,23 +197,16 @@ export default function RevenueFullDashboard() {
     return () => { cancelled = true; };
   }, [user]);
 
-  // Background sync — enriches with GHL pipeline + Stripe revenue if connected.
+  // Background sync — enriches with Stripe revenue if connected.
   // Does NOT block initial render. Direct DB counts already shown.
   const syncMetrics = useCallback(async () => {
     if (!authorId) return;
     try {
-      const [ghlRes, stripeRes] = await Promise.all([
-        supabase.functions.invoke("sync-ghl-metrics", { body: { author_id: authorId } }).catch(() => ({ data: null })),
-        supabase.functions.invoke("sync-stripe-metrics", { body: { author_id: authorId } }).catch(() => ({ data: null })),
-      ]);
+      const stripeRes = await supabase.functions
+        .invoke("sync-stripe-metrics", { body: { author_id: authorId } })
+        .catch(() => ({ data: null }));
 
-      const ghl = (ghlRes as any)?.data;
       const stripe = (stripeRes as any)?.data;
-
-      // Only enrich pipeline value from GHL — keep direct CRM count for contacts
-      if (ghl?.success && ghl.data?.pipeline_value_usd) {
-        setMetrics((m) => ({ ...m, pipeline: ghl.data.pipeline_value_usd }));
-      }
 
       // Stripe revenue only overrides if higher (purchases table may be empty)
       if (stripe?.success && stripe.data?.stripe_revenue_mtd_usd) {
