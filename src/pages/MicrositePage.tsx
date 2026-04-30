@@ -3575,10 +3575,11 @@ function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
           <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Donation Tiers</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {tiers.map((t: any, i: number) => {
-              const name = yrStr(t?.name || t?.tier || t?.title, `Tier ${i + 1}`);
+              const name = yrStr(t?.tier_name || t?.name || t?.tier || t?.title, `Tier ${i + 1}`);
               const amt = t?.amount_usd ?? t?.amount ?? t?.price;
               const desc = yrStr(t?.description);
-              const perks = yrLines(t?.benefits || t?.perks || t?.includes);
+              // Support both array (`benefits`) and single-string (`benefit`) shapes from the generator.
+              const perks = yrLines(t?.benefits || t?.perks || t?.includes || t?.benefit);
               return (
                 <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
