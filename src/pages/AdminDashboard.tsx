@@ -19,6 +19,7 @@ import SupportTab from "@/components/admin/SupportTab";
 import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
 import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
 import NodeGatingTab from "@/components/admin/NodeGatingTab";
+import AdminNotificationBell from "@/components/admin/AdminNotificationBell";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
