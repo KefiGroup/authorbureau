@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import ContactForm from "./crm/ContactForm";
 import PipelineView from "@/components/crm/PipelineView";
+import HotLeadsCard from "./crm/HotLeadsCard";
 import ContactListView from "@/components/crm/ContactListView";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
