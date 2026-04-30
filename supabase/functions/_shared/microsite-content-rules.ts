@@ -80,16 +80,16 @@ function stripPricingFromProseString(input: string): string {
   if (out === before) {
     return out;
   }
-  // Tidy: collapse whitespace, then peel any stranded preposition that lost
-  // its noun phrase (e.g. "At $25,000, we will" -> "At  we will" -> "we will").
-  out = out.replace(/\s{2,}/g, " ");
+  // Peel any stranded preposition that lost its noun phrase. The double-space
+  // gap left by removal is the marker — DO NOT collapse it before this loop.
+  // ("At $25,000, we will" -> "At  we will" -> "we will").
   for (let i = 0; i < 3; i++) {
     const prev = out;
     out = out.replace(ORPHAN_BEFORE_GAP_RE, "$1 ");
     out = out.replace(ORPHAN_BEFORE_PUNCT_RE, "$1");
     if (out === prev) break;
   }
-  // Re-collapse + capitalise sentence-initial after orphan removal.
+  // Now collapse whitespace + capitalise sentence-initial.
   out = out.replace(/\s{2,}/g, " ");
   out = out.replace(/^([a-z])/, (m) => m.toUpperCase());
   out = out.replace(/([.!?]\s+)([a-z])/g, (_m, p1, p2) => p1 + p2.toUpperCase());
