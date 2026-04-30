@@ -164,7 +164,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                       <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
                         {product.price != null && product.price > 0
                           ? <span className="font-bold text-sm" style={{ color: v.accent }}>${product.price}</span>
-                          : <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>}
+                          : <span />}
                         <span className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
                           style={{ background: v.primary, color: v.primaryText }}>{ctaText}</span>
                       </div>
