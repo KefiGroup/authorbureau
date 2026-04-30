@@ -385,6 +385,10 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         })}
       </div>
 
+      {authorProfileId && (
+        <HotLeadsCard authorId={authorProfileId} />
+      )}
+
       {showForm && (
         <ContactForm onSubmit={handleAddContact} onCancel={() => setShowForm(false)} loading={formLoading} />
       )}
