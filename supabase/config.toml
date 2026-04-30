@@ -163,5 +163,4 @@ project_id = "tubpbslfrxyfhldkcyyq"
   [functions.abby-daily-report-dispatcher]
     verify_jwt = false
 
-[functions.paypal-payouts-webhook]
-verify_jwt = false
+
