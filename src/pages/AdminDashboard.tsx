@@ -348,6 +348,7 @@ export default function AdminDashboard() {
               onDelete={handleDeleteBook}
               onApprove={handleApproveBook}
               onReject={handleRejectBook}
+              onRequestChanges={handleRequestChanges}
               deletingId={deletingBookId}
               approvingId={approvingBookId}
               pendingCount={pendingBookCount}
