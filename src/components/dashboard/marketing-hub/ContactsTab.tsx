@@ -38,7 +38,7 @@ const stageLabel: Record<string, string> = {
   hot: "Hot", customer: "Customer", vip: "VIP", cold: "Cold", new: "New",
 };
 
-export default function ContactsTab({ authorId }: { authorId: string | null }) {
+export default function ContactsTab({ authorId, bookId = null }: { authorId: string | null; bookId?: string | null }) {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [lists, setLists] = useState<ListRow[]>([]);
@@ -54,19 +54,22 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
     (async () => {
       setLoading(true);
       setErrorMsg(null);
-      const [leadsRes, listsRes] = await Promise.all([
-        supabase
-          .from("crm_contacts")
-          .select("id, email, full_name, abby_score, stage, source, last_activity_at")
-          .eq("author_id", authorId)
-          .order("last_activity_at", { ascending: false, nullsFirst: false })
-          .limit(25),
-        supabase
-          .from("email_lists")
-          .select("id, name, description, subscriber_count")
-          .eq("author_id", authorId)
-          .order("created_at", { ascending: false }),
-      ]);
+      let leadsQuery = supabase
+        .from("crm_contacts")
+        .select("id, email, full_name, abby_score, stage, source, last_activity_at")
+        .eq("author_id", authorId)
+        .order("last_activity_at", { ascending: false, nullsFirst: false })
+        .limit(25);
+      if (bookId) leadsQuery = leadsQuery.eq("book_id", bookId);
+
+      let listsQuery = supabase
+        .from("email_lists")
+        .select("id, name, description, subscriber_count")
+        .eq("author_id", authorId)
+        .order("created_at", { ascending: false });
+      // email_lists does not have book_id today — keep author-wide.
+
+      const [leadsRes, listsRes] = await Promise.all([leadsQuery, listsQuery]);
       if (cancelled) return;
       if (leadsRes.error) setErrorMsg(leadsRes.error.message);
       setLeads((leadsRes.data as Lead[]) || []);
@@ -74,7 +77,7 @@ export default function ContactsTab({ authorId }: { authorId: string | null }) {
       setLoading(false);
     })();
     return () => { cancelled = true; };
-  }, [authorId]);
+  }, [authorId, bookId]);
 
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
