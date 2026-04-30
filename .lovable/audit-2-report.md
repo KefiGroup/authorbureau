@@ -67,3 +67,43 @@
 2. **Add `updated_at` to `author_nodes`** — trivial migration, big QA win.
 3. **Live microsite render test** — visit each of the 24 URLs in incognito to confirm they don't hit "ComingSoon" or 404.
 4. **Drop or replace the deprecated `deploy-*-to-ghl` functions** — currently dead code paths still on disk.
+
+---
+
+# Audit 3 + 4 Results (Follow-ups)
+
+## Audit 3 — `books.author_id` integrity ✅
+
+**Before**: 7 books / 4 authors stored `auth.users.id` instead of `author_profiles.id`.
+**After**: 7/7 = `valid_profile_id`, 0 = `is_user_id`, 0 orphans.
+
+Backfilled via:
+```sql
+UPDATE public.books b
+SET author_id = ap.id
+FROM public.author_profiles ap
+WHERE ap.user_id = b.author_id
+  AND ap.id <> b.author_id;
+```
+
+Generators that previously returned "Author not found" when called with `books.author_id` will now succeed for these books.
+
+## Audit 4 — `author_nodes.updated_at` ✅
+
+- Added `updated_at timestamp with time zone NOT NULL DEFAULT now()`.
+- Backfilled existing rows with `COALESCE(activated_at, created_at, now())`.
+- Attached `trg_author_nodes_updated_at` using existing `public.update_updated_at_column()` trigger function.
+
+Confirmed present:
+```
+column_name | data_type                | default
+updated_at  | timestamp with time zone | now()
+```
+
+## Linter
+
+50 "RLS Policy Always True" warnings reported by Supabase linter — all pre-existing on unrelated tables, not introduced by these migrations.
+
+## Out of scope (not done, flagged for future)
+
+- FK constraint `books.author_id → author_profiles.id`. Recommended next once the upload/ingest path is verified to never insert `user_id`.
