@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil, Trash2 } from "lucide-react";
+import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil, Trash2, Pause } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
+import AuthorActionMenu from "@/components/admin/AuthorActionMenu";
 
 interface DirectoryAuthor {
+  id: string;                          // author_profiles.id
   user_id: string;
   pen_name: string | null;
   photo_url: string | null;
@@ -33,6 +35,8 @@ interface DirectoryAuthor {
   youtube_url: string | null;
   location_city: string | null;
   location_country: string | null;
+  subscription_tier: string | null;
+  suspended_at: string | null;
 }
 
 const ALL_STATUSES = ["unlisted", "listed", "verified", "featured"] as const;
