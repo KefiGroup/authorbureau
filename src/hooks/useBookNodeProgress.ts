@@ -41,6 +41,22 @@ export const NODE_CODE_MAP: Record<string, string> = {
 
 const TIER_ORDER = ["free", "brand", "build", "yield"];
 
+// Author-level nodes belong to the author, not a single book. Their Live
+// status must show on every book's hub (one email list, one podcast show,
+// one set of social channels per author). Book-specific products
+// (microsite, workbook, course, audiobook, book-sales, etc.) stay scoped
+// to the active book.
+const AUTHOR_LEVEL_NODES = new Set<string>([
+  "BP-01", // Email Marketing
+  "BP-03", // Social Media
+  "BA-14", // Podcast (one show, multi-book episodes)
+  "BA-15", // Press / Media
+  "BA-16", // Affiliates
+  "BA-18", // JV Partners
+  "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
+  "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
+]);
+
 function tierMet(userTier: string, required?: string) {
   if (!required) return true;
   return TIER_ORDER.indexOf(userTier) >= TIER_ORDER.indexOf(required.toLowerCase());
