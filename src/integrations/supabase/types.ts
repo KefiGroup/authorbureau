@@ -118,6 +118,39 @@ export type Database = {
           },
         ]
       }
+      admin_audit_log: {
+        Row: {
+          actor_email: string | null
+          actor_id: string | null
+          created_at: string
+          event_key: string
+          id: string
+          payload: Json | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          event_key: string
+          id?: string
+          payload?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          actor_email?: string | null
+          actor_id?: string | null
+          created_at?: string
+          event_key?: string
+          id?: string
+          payload?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       ai_usage_logs: {
         Row: {
           author_id: string
@@ -1205,6 +1238,7 @@ export type Database = {
           genre: string | null
           id: string
           kindle_price: string | null
+          last_review_action_at: string | null
           owner_email: string | null
           pages: number | null
           paperback_price: string | null
@@ -1213,7 +1247,10 @@ export type Database = {
           rating: number | null
           rejection_note: string | null
           review_count: number | null
+          review_history: Json
+          review_round: number
           slug: string
+          submitted_at: string | null
           subtitle: string | null
           title: string
           updated_at: string
@@ -1238,6 +1275,7 @@ export type Database = {
           genre?: string | null
           id?: string
           kindle_price?: string | null
+          last_review_action_at?: string | null
           owner_email?: string | null
           pages?: number | null
           paperback_price?: string | null
@@ -1246,7 +1284,10 @@ export type Database = {
           rating?: number | null
           rejection_note?: string | null
           review_count?: number | null
+          review_history?: Json
+          review_round?: number
           slug: string
+          submitted_at?: string | null
           subtitle?: string | null
           title: string
           updated_at?: string
@@ -1271,6 +1312,7 @@ export type Database = {
           genre?: string | null
           id?: string
           kindle_price?: string | null
+          last_review_action_at?: string | null
           owner_email?: string | null
           pages?: number | null
           paperback_price?: string | null
@@ -1279,7 +1321,10 @@ export type Database = {
           rating?: number | null
           rejection_note?: string | null
           review_count?: number | null
+          review_history?: Json
+          review_round?: number
           slug?: string
+          submitted_at?: string | null
           subtitle?: string | null
           title?: string
           updated_at?: string
@@ -6003,6 +6048,31 @@ export type Database = {
           message_id: number
           payload: Json
           source_queue: string
+        }
+        Returns: number
+      }
+      notify_all_admins: {
+        Args: {
+          p_event_key?: string
+          p_link?: string
+          p_message: string
+          p_payload?: Json
+          p_target_id?: string
+          p_target_type?: string
+          p_title: string
+        }
+        Returns: number
+      }
+      notify_users: {
+        Args: {
+          p_event_key?: string
+          p_link?: string
+          p_message: string
+          p_payload?: Json
+          p_target_id?: string
+          p_target_type?: string
+          p_title: string
+          p_user_ids: string[]
         }
         Returns: number
       }
