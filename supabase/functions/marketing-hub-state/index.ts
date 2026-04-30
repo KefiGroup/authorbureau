@@ -457,9 +457,14 @@ Deno.serve(async (req) => {
       ];
       const includeMaster = body?.include_master !== false;
 
-      const { data: existingFlows } = await cloudAdmin
+      // De-dupe is per-author when no book is selected; per-(author, book) when one is.
+      // This lets a 2-book author generate a fresh sequence set for Book #2 even if
+      // Book #1 already has BP-01.
+      let existingQuery = cloudAdmin
         .from("email_flows").select("node_id, flow_type")
         .eq("author_id", authorProfile.id);
+      if (bookId) existingQuery = existingQuery.eq("book_id", bookId);
+      const { data: existingFlows } = await existingQuery;
       const existingNodes = new Set((existingFlows || []).filter((f: any) => f.node_id).map((f: any) => f.node_id));
       const hasMaster = (existingFlows || []).some((f: any) => f.flow_type === 'master_nurture');
 
@@ -478,6 +483,7 @@ Deno.serve(async (req) => {
         for (const t of targets) {
           try {
             const payload: Record<string, unknown> = { author_id: authorProfile.id };
+            if (bookId) payload.book_id = bookId;
             if (t.kind === 'master') payload.sequence_type = 'master_nurture';
             else payload.node_id = t.node_id;
 
