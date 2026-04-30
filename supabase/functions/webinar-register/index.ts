@@ -126,6 +126,7 @@ Deno.serve(async (req) => {
             templateName: 'webinar-email',
             recipientEmail: cleanEmail,
             idempotencyKey: `webinar-confirm-${registrationId}`,
+            authorId: webinar.author_id,
             templateData: {
               kind: 'confirmation',
               attendeeName: name || 'there',
