@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, forwardRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -50,7 +50,7 @@ function detectCurrentPage(pathname: string): string {
   return "Other";
 }
 
-export default function AbbyHelpChatbot() {
+function AbbyHelpChatbotImpl() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const location = useLocation();
@@ -758,3 +758,9 @@ function FeedbackFlow({ step, data, onUpdate, onNext, onSubmit }: {
 
   return null;
 }
+
+// forwardRef wrapper silences React dev warning when sibling components
+// (e.g. Sonner Toaster) inadvertently propagate refs through the tree.
+const AbbyHelpChatbot = forwardRef<HTMLDivElement>((_props, _ref) => <AbbyHelpChatbotImpl />);
+AbbyHelpChatbot.displayName = "AbbyHelpChatbot";
+export default AbbyHelpChatbot;

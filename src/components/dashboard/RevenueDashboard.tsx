@@ -1,28 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useStripeConnect } from "./StripeConnectBanner";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  DollarSign, TrendingUp, CreditCard, Percent,
+  DollarSign, TrendingUp, TrendingDown, CreditCard, Percent,
   BarChart3, Eye, Users, Clock, Globe, Link2, Copy, ArrowRight,
-  ShoppingBag, Zap, CheckCircle2,
+  ShoppingBag, Zap, CheckCircle2, Flame, Mail, Target, UserPlus, Activity,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
-
-const MONTHS_DATA = [
-  { month: "Oct", gross: 0, net: 0 },
-  { month: "Nov", gross: 0, net: 0 },
-  { month: "Dec", gross: 0, net: 0 },
-  { month: "Jan", gross: 0, net: 0 },
-  { month: "Feb", gross: 0, net: 0 },
-  { month: "Mar", gross: 0, net: 0 },
-];
 
 const TRAFFIC_SOURCES = [
   { source: "Direct", visits: 0, pct: 0 },
@@ -39,6 +31,43 @@ interface Props {
   authorSlug?: string;
 }
 
+interface HotLead {
+  id: string;
+  name: string | null;
+  email: string;
+  abby_score: number;
+  last_activity_at: string | null;
+  created_at: string;
+}
+
+interface MonthRevenue { month: string; gross: number; net: number; }
+
+const MONTH_LABELS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function formatAgo(iso: string | null): string {
+  if (!iso) return "no activity";
+  const ms = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 1) return "just now";
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  const d = Math.floor(h / 24);
+  return `${d}d ago`;
+}
+
+function startOfWeek(d = new Date()): Date {
+  const dt = new Date(d);
+  const day = (dt.getDay() + 6) % 7; // Monday=0
+  dt.setHours(0, 0, 0, 0);
+  dt.setDate(dt.getDate() - day);
+  return dt;
+}
+
+function startOfMonth(d = new Date()): Date {
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+
 export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const { isPremium, isAdmin, tier, user } = useAuth();
   const { onboarding_complete } = useStripeConnect();
@@ -48,56 +77,132 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
   const [funnelStats, setFunnelStats] = useState({ count: 0, views: 0, conversions: 0 });
   const [leadsCount, setLeadsCount] = useState(0);
 
-  // Fetch author slug + funnel stats + leads
+  // Audit #6 — pipeline intelligence
+  const [leadsThisWeek, setLeadsThisWeek] = useState(0);
+  const [leadsLastWeek, setLeadsLastWeek] = useState(0);
+  const [revenueThisMonth, setRevenueThisMonth] = useState(0);
+  const [activeNodesCount, setActiveNodesCount] = useState(0);
+  const [emailOpenRate, setEmailOpenRate] = useState<number | null>(null);
+  const [topFunnel, setTopFunnel] = useState<{ title: string; rate: number } | null>(null);
+  const [hotLeads, setHotLeads] = useState<HotLead[]>([]);
+  const [monthlyRevenue, setMonthlyRevenue] = useState<MonthRevenue[]>([]);
+
+  // Fetch author slug + funnel stats + leads + ALL audit-6 metrics in one effect
   useEffect(() => {
     if (!user) return;
+    let cancelled = false;
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
         .select("id, author_slug")
         .eq("user_id", user.id)
         .maybeSingle();
+      if (cancelled) return;
       if (!authorSlug && profile?.author_slug) setSlug(profile.author_slug);
-      if (profile?.id) {
-        const [{ data: funnels }, { count: lc }] = await Promise.all([
-          supabase
-            .from("funnels")
-            .select("page_views, conversions")
-            .eq("author_id", profile.id)
-            .eq("status", "live"),
-          supabase
-            .from("leads")
-            .select("id", { count: "exact", head: true })
-            .eq("author_id", profile.id),
-        ]);
-        if (funnels) {
-          setFunnelStats({
-            count: funnels.length,
-            views: funnels.reduce((s, f) => s + (f.page_views || 0), 0),
-            conversions: funnels.reduce((s, f) => s + (f.conversions || 0), 0),
-          });
-        }
-        setLeadsCount(lc || 0);
+      if (!profile?.id) return;
+
+      const aid = profile.id;
+      const wkStart = startOfWeek().toISOString();
+      const lastWkStart = new Date(startOfWeek().getTime() - 7 * 86400000).toISOString();
+      const monthStart = startOfMonth().toISOString();
+      const sixMonthsAgo = new Date(); sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 5); sixMonthsAgo.setDate(1); sixMonthsAgo.setHours(0,0,0,0);
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
+
+      const [
+        funnelsRes, leadsTotalRes, leadsWeekRes, leadsLastWeekRes,
+        purchasesMonthRes, nodesRes, emailRes, hotLeadsRes, purchases6moRes,
+      ] = await Promise.all([
+        supabase.from("funnels").select("id,title,page_views,conversions").eq("author_id", aid).eq("status", "live"),
+        supabase.from("leads").select("id", { count: "exact", head: true }).eq("author_id", aid),
+        supabase.from("leads").select("id", { count: "exact", head: true }).eq("author_id", aid).gte("created_at", wkStart),
+        supabase.from("leads").select("id", { count: "exact", head: true }).eq("author_id", aid).gte("created_at", lastWkStart).lt("created_at", wkStart),
+        supabase.from("purchases").select("amount").eq("author_id", aid).gte("created_at", monthStart),
+        supabase.from("author_nodes").select("id", { count: "exact", head: true }).eq("author_id", aid).eq("status", "live"),
+        supabase.from("email_send_log").select("opened_at").eq("author_id", aid).gte("created_at", thirtyDaysAgo).limit(2000),
+        supabase.from("leads").select("id,name,email,abby_score,last_activity_at,created_at").eq("author_id", aid).gt("abby_score", 60).order("last_activity_at", { ascending: false, nullsFirst: false }).limit(10),
+        supabase.from("purchases").select("amount,created_at").eq("author_id", aid).gte("created_at", sixMonthsAgo.toISOString()),
+      ]);
+
+      if (cancelled) return;
+
+      // Funnels
+      const funnels = funnelsRes.data || [];
+      setFunnelStats({
+        count: funnels.length,
+        views: funnels.reduce((s, f) => s + (f.page_views || 0), 0),
+        conversions: funnels.reduce((s, f) => s + (f.conversions || 0), 0),
+      });
+      const ranked = funnels
+        .filter((f: any) => (f.page_views || 0) > 0)
+        .map((f: any) => ({ title: f.title || "Untitled", rate: ((f.conversions || 0) / f.page_views) * 100 }))
+        .sort((a, b) => b.rate - a.rate);
+      setTopFunnel(ranked[0] || null);
+
+      // Leads
+      setLeadsCount(leadsTotalRes.count || 0);
+      setLeadsThisWeek(leadsWeekRes.count || 0);
+      setLeadsLastWeek(leadsLastWeekRes.count || 0);
+
+      // Hot leads
+      setHotLeads((hotLeadsRes.data as HotLead[]) || []);
+
+      // Active nodes
+      setActiveNodesCount(nodesRes.count || 0);
+
+      // Revenue this month
+      const monthSum = (purchasesMonthRes.data || []).reduce((s, p: any) => s + Number(p.amount || 0), 0);
+      setRevenueThisMonth(monthSum);
+
+      // Email open rate
+      const emailRows = emailRes.data || [];
+      if (emailRows.length === 0) {
+        setEmailOpenRate(null);
+      } else {
+        const opened = emailRows.filter((r: any) => r.opened_at).length;
+        setEmailOpenRate((opened / emailRows.length) * 100);
       }
+
+      // Monthly revenue series (6 months)
+      const buckets: Record<string, number> = {};
+      for (let i = 0; i < 6; i++) {
+        const d = new Date(); d.setMonth(d.getMonth() - (5 - i)); d.setDate(1);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        buckets[key] = 0;
+      }
+      (purchases6moRes.data || []).forEach((p: any) => {
+        const d = new Date(p.created_at);
+        const key = `${d.getFullYear()}-${d.getMonth()}`;
+        if (key in buckets) buckets[key] += Number(p.amount || 0);
+      });
+      const series: MonthRevenue[] = Object.entries(buckets).map(([k, gross]) => {
+        const [, mIdx] = k.split("-").map(Number);
+        return { month: MONTH_LABELS[mIdx], gross, net: gross * 0.92 };
+      });
+      setMonthlyRevenue(series);
     })();
+    return () => { cancelled = true; };
   }, [user, authorSlug]);
 
   const hasAccess = isPremium || isAdmin;
-  const hasRevenue = false; // TODO: wire to real transactions
-  const grossSales = 0;
+  const grossSales = revenueThisMonth;
   const platformFee = grossSales * 0.08;
   const stripeFees = grossSales > 0 ? grossSales * 0.029 + 0.3 : 0;
   const earnings = grossSales - platformFee - stripeFees;
+  const hasRevenue = grossSales > 0;
 
   const micrositeUrl = slug ? `${window.location.origin}/${slug}` : null;
   const funnelConvRate = funnelStats.views > 0 ? (funnelStats.conversions / funnelStats.views) * 100 : 0;
-
   const copyLink = () => {
     if (micrositeUrl) {
       navigator.clipboard.writeText(micrositeUrl);
       toast({ title: "Link copied!" });
     }
   };
+
+  const weekTrend = useMemo(() => {
+    if (leadsLastWeek === 0) return leadsThisWeek > 0 ? 100 : 0;
+    return ((leadsThisWeek - leadsLastWeek) / leadsLastWeek) * 100;
+  }, [leadsThisWeek, leadsLastWeek]);
 
   // Determine the correct next step based on user state
   const getNextStep = () => {
@@ -129,6 +234,93 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           </div>
 
           {/* Stat cards */}
+          {/* ── Pipeline Snapshot (Audit #6) ────────────────────────── */}
+          <div className="space-y-3">
+            <div className="flex items-baseline justify-between">
+              <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
+                <Activity className="h-4 w-4 text-secondary" /> Pipeline Snapshot
+              </h3>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live data</span>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><UserPlus className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Total Leads</span></div>
+                <p className="text-xl font-heading font-bold">{leadsCount.toLocaleString()}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><UserPlus className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Leads This Week</span></div>
+                <p className="text-xl font-heading font-bold flex items-center gap-1.5">
+                  {leadsThisWeek}
+                  {leadsLastWeek > 0 && (
+                    <span className={`inline-flex items-center text-[10px] font-semibold ${weekTrend >= 0 ? "text-emerald-600" : "text-rose-600"}`}>
+                      {weekTrend >= 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                      {Math.abs(weekTrend).toFixed(0)}%
+                    </span>
+                  )}
+                </p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><DollarSign className="h-3.5 w-3.5 text-accent" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Revenue This Month</span></div>
+                <p className="text-xl font-heading font-bold text-accent">${revenueThisMonth.toFixed(0)}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><Zap className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Active Nodes</span></div>
+                <p className="text-xl font-heading font-bold">{activeNodesCount}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><Mail className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Email Open Rate</span></div>
+                <p className="text-xl font-heading font-bold">{emailOpenRate === null ? "—" : `${emailOpenRate.toFixed(0)}%`}</p>
+              </Card>
+              <Card className="p-3">
+                <div className="flex items-center gap-1.5 mb-1"><Target className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Top Funnel</span></div>
+                {topFunnel ? (
+                  <div>
+                    <p className="text-sm font-heading font-bold truncate" title={topFunnel.title}>{topFunnel.title}</p>
+                    <p className="text-[11px] text-accent font-semibold">{topFunnel.rate.toFixed(1)}% conv.</p>
+                  </div>
+                ) : (
+                  <p className="text-xl font-heading font-bold text-muted-foreground">—</p>
+                )}
+              </Card>
+            </div>
+          </div>
+
+          {/* ── Hot Leads Today ─────────────────────────────────────── */}
+          <Card className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
+                <Flame className="h-4 w-4 text-rose-500" /> Hot Leads Today
+                <span className="text-[10px] text-muted-foreground font-normal">(ABBY score &gt; 60)</span>
+              </h3>
+              <Button variant="outline" size="sm" onClick={() => onNavigate?.("author-crm")}>
+                View CRM <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+            {hotLeads.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-6 text-center">
+                No hot leads yet. Hot leads appear here when a contact's ABBY engagement score crosses 60.
+              </p>
+            ) : (
+              <div className="divide-y">
+                {hotLeads.map((lead) => (
+                  <div key={lead.id} className="flex items-center justify-between py-2.5 gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium truncate">{lead.name || lead.email}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{lead.email}</p>
+                    </div>
+                    <Badge variant="outline" className="bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/30">
+                      <Flame className="h-3 w-3 mr-1" /> {lead.abby_score}
+                    </Badge>
+                    <span className="text-[11px] text-muted-foreground tabular-nums w-16 text-right">
+                      {formatAgo(lead.last_activity_at || lead.created_at)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
+          {/* Stat cards (Gross / Earnings / Fees) */}
           {grossSales > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
@@ -203,7 +395,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
             <h3 className="font-heading font-semibold text-sm mb-4">Monthly Earnings (Last 6 Months)</h3>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={MONTHS_DATA}>
+                <LineChart data={monthlyRevenue}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} padding={{ left: 10, right: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />

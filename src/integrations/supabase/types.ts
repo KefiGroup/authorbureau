@@ -959,6 +959,7 @@ export type Database = {
           stripe_onboarding_complete: boolean | null
           subscription_tier: string
           tagline: string | null
+          timezone: string
           twitter_url: string | null
           updated_at: string
           user_id: string
@@ -1016,6 +1017,7 @@ export type Database = {
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
           tagline?: string | null
+          timezone?: string
           twitter_url?: string | null
           updated_at?: string
           user_id: string
@@ -1073,6 +1075,7 @@ export type Database = {
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
           tagline?: string | null
+          timezone?: string
           twitter_url?: string | null
           updated_at?: string
           user_id?: string
