@@ -395,7 +395,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
             <h3 className="font-heading font-semibold text-sm mb-4">Monthly Earnings (Last 6 Months)</h3>
             <div className="h-[220px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={MONTHS_DATA}>
+                <LineChart data={monthlyRevenue}>
                   <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
                   <XAxis dataKey="month" tick={{ fontSize: 11 }} padding={{ left: 10, right: 10 }} />
                   <YAxis tick={{ fontSize: 11 }} />
