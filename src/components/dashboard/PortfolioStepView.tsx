@@ -248,7 +248,9 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {group.nodes.map((n, idx) => {
                       const isNext = catProgress.nextStep?.id === n.id;
-                      const cardState: ProductCardState = isNext && (n.state === "available" || n.state === "in-progress")
+                      // Only promote available next-step to "recommended". Never demote
+                      // completed (already published) or in-progress to recommended.
+                      const cardState: ProductCardState = isNext && n.state === "available"
                         ? "recommended"
                         : stateMap[n.state];
                       const live = liveStats[n.code];
