@@ -380,6 +380,11 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   }
   if (!user) return <Navigate to="/auth" replace />;
 
+  // Wave 3: Suspension guard — admins/superadmins bypass
+  if (suspensionState.checked && suspensionState.suspendedAt && !isAdmin && !isSuperAdmin(user.email)) {
+    return <SuspendedAccountScreen reason={suspensionState.reason} suspendedAt={suspensionState.suspendedAt} />;
+  }
+
   const gate = (featureName: string, children: React.ReactNode, requiredTier: "brand" | "build" | "yield" = "brand") => (
     <PremiumGate isPremium={isPremium || isAdmin || userIsSuperAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={userIsSuperAdmin ? "yield" : tier}>{children}</PremiumGate>
   );
