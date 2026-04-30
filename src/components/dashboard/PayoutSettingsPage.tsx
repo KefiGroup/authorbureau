@@ -45,33 +45,46 @@ export default function PayoutSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasStripeConnect, setHasStripeConnect] = useState(false);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [profileMissing, setProfileMissing] = useState(false);
 
   const loadSettings = useCallback(async () => {
     try {
-      // Check Stripe Connect status
+      // Resolve author_profiles.id — this is the canonical key used by
+      // author_payout_settings.author_id, the readiness hook, and all payout jobs.
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("stripe_onboarding_complete")
+        .select("id, stripe_onboarding_complete")
         .eq("user_id", user!.id)
         .maybeSingle();
-      setHasStripeConnect(!!profile?.stripe_onboarding_complete);
 
-      // Load payout settings
+      if (!profile?.id) {
+        setProfileMissing(true);
+        return;
+      }
+      setProfileId(profile.id);
+      setHasStripeConnect(!!profile.stripe_onboarding_complete);
+
+      // Load payout settings keyed on the profile id (NOT the auth user id).
       const { data } = await supabase
         .from("author_payout_settings" as any)
         .select("*")
-        .eq("author_id", user!.id)
+        .eq("author_id", profile.id)
         .maybeSingle();
 
       if (data) {
+        const d = data as any;
+        // Prefer v2 columns (used by usePayoutReadiness + payout jobs); fall
+        // back to legacy columns for any pre-fix rows.
+        const wiseFromRecipient = d.wise_recipient || {};
         setSettings({
-          payout_method: (data as any).payout_method || "stripe",
-          paypal_email: (data as any).paypal_email || "",
-          wise_email: (data as any).wise_email || "",
-          wise_account_number: (data as any).wise_account_number || "",
-          wise_routing_number: (data as any).wise_routing_number || "",
-          wise_currency: (data as any).wise_currency || "USD",
-          refund_window_days: (data as any).refund_window_days || 14,
+          payout_method: d.payout_method || "stripe",
+          paypal_email: d.paypal_email_v2 || d.paypal_email || "",
+          wise_email: wiseFromRecipient.email || d.wise_email || "",
+          wise_account_number: wiseFromRecipient.account_number || d.wise_account_number || "",
+          wise_routing_number: wiseFromRecipient.routing_number || d.wise_routing_number || "",
+          wise_currency: wiseFromRecipient.currency || d.wise_currency || "USD",
+          refund_window_days: d.refund_window_days || 14,
         });
       }
     } catch (err) {
@@ -88,6 +101,10 @@ export default function PayoutSettingsPage() {
 
   const handleSave = async () => {
     if (!user?.id) return;
+    if (!profileId) {
+      toast.error("Author profile not found. Please complete your profile first.");
+      return;
+    }
 
     // Validation
     if (settings.payout_method === "stripe" && !hasStripeConnect) {
@@ -105,14 +122,28 @@ export default function PayoutSettingsPage() {
 
     setSaving(true);
     try {
+      // Persist to BOTH legacy and v2 columns so old admin views keep working
+      // and the readiness hook + payout jobs (which read v2) see the data.
+      const wiseRecipient =
+        settings.payout_method === "wise"
+          ? {
+              email: settings.wise_email || null,
+              account_number: settings.wise_account_number || null,
+              routing_number: settings.wise_routing_number || null,
+              currency: settings.wise_currency || "USD",
+            }
+          : null;
+
       const payload = {
-        author_id: user.id,
+        author_id: profileId,
         payout_method: settings.payout_method,
         paypal_email: settings.paypal_email || null,
+        paypal_email_v2: settings.paypal_email || null,
         wise_email: settings.wise_email || null,
         wise_account_number: settings.wise_account_number || null,
         wise_routing_number: settings.wise_routing_number || null,
         wise_currency: settings.wise_currency,
+        wise_recipient: wiseRecipient,
         refund_window_days: settings.refund_window_days,
       };
 
