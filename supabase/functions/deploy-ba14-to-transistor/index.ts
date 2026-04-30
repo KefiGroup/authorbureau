@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const GHL_BASE_URL = "https://services.leadconnectorhq.com";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -15,7 +15,7 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: author } = await supabase.from("author_profiles").select("ghl_sub_account_id, pen_name, author_slug").eq("id", author_id).single();
+    const { data: author } = await supabase.from("author_profiles").select("pen_name, author_slug").eq("id", author_id).single();
     if (!author) throw new Error("Author not found");
     const authorSlug = author.author_slug || (author.pen_name || "").toLowerCase().replace(/\s+/g, "-");
 

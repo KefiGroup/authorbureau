@@ -32,7 +32,7 @@ serve(async (req) => {
 
     const { data: author, error: authorErr } = await supabase
       .from("author_profiles")
-      .select("pen_name, user_id, ghl_sub_account_id, subscription_tier")
+      .select("pen_name, user_id, subscription_tier")
       .eq("id", author_id)
       .single();
     if (authorErr || !author) return fail("Author profile not found");
