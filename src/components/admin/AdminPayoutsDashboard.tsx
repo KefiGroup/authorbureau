@@ -185,10 +185,59 @@ export default function AdminPayoutsDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="font-heading text-2xl font-bold">Payouts Management</h2>
-        <p className="text-sm text-muted-foreground">Manage author payouts across Stripe, PayPal, and Wise</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="font-heading text-2xl font-bold">Payouts Management</h2>
+          <p className="text-sm text-muted-foreground">
+            Automated monthly payouts via Stripe Connect. Annual statements emailed each January.
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRunPayoutsNow}
+            disabled={runningPayouts}
+          >
+            {runningPayouts ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Play className="h-4 w-4 mr-2" />}
+            Run monthly payouts now
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGenerateStatementsNow}
+            disabled={runningStatements}
+          >
+            {runningStatements ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <FileText className="h-4 w-4 mr-2" />}
+            Generate annual statements
+          </Button>
+        </div>
       </div>
+
+      {/* Automation status banner */}
+      {status && (
+        <Card className={status.stripe_ready ? "border-accent/40 bg-accent/5" : "border-destructive/40 bg-destructive/5"}>
+          <CardContent className="p-4 flex items-start gap-3 text-sm">
+            {status.stripe_ready ? (
+              <CheckCircle2 className="h-5 w-5 text-accent mt-0.5 shrink-0" />
+            ) : (
+              <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
+            )}
+            <div className="flex-1 space-y-1">
+              <p className="font-medium">
+                Stripe Connect: {status.stripe_ready ? "configured" : "missing STRIPE_SECRET_KEY"}
+                {" · "}
+                PayPal Payouts API: {status.paypal_ready ? "configured" : "not configured (Stripe-only mode)"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Last payout run: {status.last_payout_at ? format(new Date(status.last_payout_at), "MMM d, yyyy HH:mm") : "never"}
+                {" · "}
+                Last annual statements: {status.last_statement_at ? `${status.last_statement_year} (${format(new Date(status.last_statement_at), "MMM d, yyyy")})` : "never"}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-4">
