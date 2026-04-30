@@ -1,49 +1,45 @@
-# Stripe-only payouts: remove dormant PayPal/Wise code
+## What's actually happening
 
-You confirmed Stripe is the only payout rail you'll ever support (US, SG, AU, NZ all fully covered). Cleaning out the dormant PayPal code so the codebase matches reality and future-me never re-suggests other rails.
+The Stripe audits are unrelated. This error is a stale-session issue in the Marketing Hub.
 
-## Changes
+When you opened **Marketing Hub → Sequences**, the browser called the `marketing-hub-state` edge function with a cached access token from `localStorage["authorsbureau-shared-auth"]`. That token had **expired** (Pauline's session has been open for a while). The edge function tried to verify it against the shared backend and the cloud backend — both returned "no user" — so it responded with `Invalid session. Please sign in again.`
 
-### 1. `supabase/functions/run-monthly-payouts/index.ts`
-- Delete the `PAYPAL_CLIENT_ID/SECRET/MODE/BASE` constants and the `getPayPalAccessToken()` + `createPayPalBatch()` helpers (lines 16, 29–79).
-- Delete the `PAYPAL_FEE_PCT` constant.
-- Drop the `paypal` branch in the per-author loop: remove `paypal_email_v2` from the settings select, remove the `method === "paypal"` skip, the `payoutFee` conditional, the `paypalQueue.push(...)`, and the entire "Send PayPal batch" block.
-- Simplify the run summary: remove `paypalTotal`, `paypalAuthors`, `paypalFailures`, `skippedPayPalNotConfigured`, the `paypal: {...}` field, and the `paypal_pending_setup` field.
-- Update the failure-email and reminder-email copy to mention Stripe only (drop the "or PayPal" branches).
-- Keep `STRIPE_TRANSFER_FEE_USD = 0` for internal reporting.
+Why the cached token went stale:
+- `getActiveToken()` in `src/lib/get-active-token.ts` takes a **fast path**: if any token is in `localStorage`, it returns it immediately **without checking expiry**.
+- The shared-backend client refreshes tokens in the background, but if the page sat idle past the access-token TTL (1 hour) before the next render, the cached value in storage is still the old expired one until the next refresh tick fires.
+- Result: the first call after waking the tab uses a dead token, the edge function rejects it, the toast appears.
 
-### 2. `supabase/functions/paypal-payouts-webhook/index.ts`
-- **Delete the entire file.** Will also call `supabase--delete_edge_functions` to remove the deployed function.
+This is a real bug, not a Stripe/audit issue. It will keep happening intermittently to any author who leaves a tab open.
 
-### 3. `src/hooks/usePayoutReadiness.ts`
-- Change `PayoutMethod` from `"paypal" | "stripe"` to just `"stripe"`.
-- Remove the `paypal_email_v2` select and the `method === "paypal"` branch.
-- Update the JSDoc comment.
+## The fix (3 small changes)
 
-### 4. `src/components/dashboard/PayoutsSettings.tsx`
-- Drop the trailing "More payout options (PayPal) coming soon." sentence (line 145).
-- The `paypal_email_v2: null` in the upsert payload stays — it explicitly clears any legacy value.
+### 1. `src/lib/get-active-token.ts` — validate cached token expiry
 
-### 5. `src/components/dashboard/PayoutSettingsPage.tsx`
-- Remove the stale "Wise/PayPal" comments in the JSDoc and inline comment (lines 7, 11, 32).
-- Drop "More payout options coming soon." from the framing banner.
+Decode the JWT `exp` field on the cached token. If it's expired (or expires in <30s), skip the fast path and fall through to `supabase.auth.getSession()` so the client refreshes it. Pure client-side, no network call needed for the expiry check.
 
-### 6. `src/components/admin/AdminPayoutsDashboard.tsx`
-- Remove `paypal_ready` from the `PayoutsStatus` interface.
-- Update the automation status banner to show only "Stripe Connect: configured / missing STRIPE_SECRET_KEY".
+### 2. `src/lib/get-active-token.ts` — add `forceRefresh` option
 
-### 7. `supabase/functions/admin-data/index.ts`
-- Drop `paypalReady` from the `payouts-status` action and remove `paypal_ready` from the response.
+Add an optional `{ forceRefresh: true }` parameter that calls `sharedSupabase.auth.refreshSession()` and returns the new access token. Used by the retry path below.
 
-### 8. Memory updates
-- Update `mem://features/automated-payouts-stripe-only` to reflect Stripe-only (no longer "dormant PayPal code").
-- Update the Core "Commerce Engine" rule to drop "Wise, AND PayPal" from the fee-coverage list (now: "covers ALL payment-processing fees — Stripe").
-- Add a Core rule: "**Payout rail**: Stripe Express only. Do NOT propose PayPal, Wise, or any other rail. Target markets (US, SG, AU, NZ) all fully supported by Stripe."
+### 3. `src/lib/marketing-hub-state.ts` — retry once on "Invalid session"
 
-## Deploy
-- Redeploy `run-monthly-payouts`, `admin-data`.
-- Delete `paypal-payouts-webhook` from the project.
+In `callMarketingHubState`, if the response error is `"Invalid session. Please sign in again."`, call `getActiveToken({ forceRefresh: true })` once and retry the request. Only show the toast if the retry also fails.
 
-## Out of scope
-- DB columns (`paypal_email_v2`, etc.) stay in `author_payout_settings` — harmless, dropping them would require a destructive migration. They're never written to by the new code.
-- Incidental "PayPal" mentions in unrelated functions (e.g. `business-consultant`, `generate-author-bio`) — those are AI prompt examples, not payout logic.
+Apply the same retry wrapper to any other shared helpers that hit the same edge function pattern (the helper is only used by Marketing Hub today, so scope is contained).
+
+### Why not also change the edge function?
+
+The edge function is already correct — it tries shared backend first, then cloud, then rejects. The problem is purely client-side: we send a known-expired token. Fixing the client also fixes every other call site (Buffer, sequences, social calendar, etc.) that goes through `getActiveToken`.
+
+## Files touched
+
+- `src/lib/get-active-token.ts` — add JWT expiry check + `forceRefresh` option (~25 lines)
+- `src/lib/marketing-hub-state.ts` — one-shot retry on invalid-session (~10 lines)
+
+No database changes, no edge-function redeploy, no Stripe/audit work needed.
+
+## What you'll see after the fix
+
+- The "Couldn't load sequences / Invalid session" toast stops appearing on stale tabs.
+- Sequences load on first render even after the tab has been idle for hours.
+- If the refresh token itself is genuinely expired (rare, ~30 days idle), you'll still get a single sign-in toast — but only after a real refresh attempt fails.
