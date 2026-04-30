@@ -36,7 +36,8 @@ export default function RequirePayoutSetup({
   }
   if (ready) return <>{children}</>;
 
-  const goToPayouts = () => navigate("/account-settings?tab=payouts");
+  // Audit #3: canonical payout entry point lives on the dashboard now.
+  const goToPayouts = () => navigate("/dashboard?section=payout-settings");
 
   return (
     <>
