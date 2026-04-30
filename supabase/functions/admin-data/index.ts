@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
     if (action === "list-authors") {
       const { data: profiles } = await client
         .from("author_profiles")
-        .select("user_id, pen_name, photo_url, photo_crop_y, bio_short, bio_long, genres, directory_status, author_slug, created_at, tagline, website_url, instagram_url, twitter_url, linkedin_url, youtube_url, amazon_author_profile_url, location_city, location_country, is_speaker, speaker_fee_range, availability_notes, photo_zoom")
+        .select("id, user_id, pen_name, photo_url, photo_crop_y, bio_short, bio_long, genres, directory_status, author_slug, created_at, tagline, website_url, instagram_url, twitter_url, linkedin_url, youtube_url, amazon_author_profile_url, location_city, location_country, is_speaker, speaker_fee_range, availability_notes, photo_zoom, subscription_tier, suspended_at, suspended_reason, tier_expires_at, stripe_connected_account_id, stripe_onboarding_complete")
         .order("created_at", { ascending: false });
 
       const { data: books } = await client.from("books").select("author_id, author_name");
@@ -290,11 +290,18 @@ Deno.serve(async (req) => {
     }
 
     if (action === "update-bug") {
-      const { id, status, admin_notes } = params;
+      const { id, status, admin_notes, assigned_to, priority } = params;
       if (!id) return json({ error: "id required" }, 400);
       const updateData: any = {};
       if (status) updateData.status = status;
       if (admin_notes !== undefined) updateData.admin_notes = admin_notes;
+      if (assigned_to !== undefined) updateData.assigned_to = assigned_to;
+      if (priority !== undefined) updateData.priority = priority;
+      // Mark first response time when admin first moves out of "new" or adds notes
+      if ((status && status !== "new") || admin_notes) {
+        const { data: existing } = await client.from("bug_reports").select("first_response_at").eq("id", id).maybeSingle();
+        if (!existing?.first_response_at) updateData.first_response_at = new Date().toISOString();
+      }
       if (status === "resolved") updateData.resolved_at = new Date().toISOString();
       await client.from("bug_reports").update(updateData).eq("id", id);
       return json({ success: true });
@@ -591,6 +598,55 @@ Deno.serve(async (req) => {
         error_count_24h: errorCount24h ?? 0,
         recent_activity: recentAudit?.data ?? [],
       });
+    }
+
+    // ─── Wave 3: Author lifecycle ───
+    if (action === "suspend-author") {
+      const { authorId, suspend, reason } = params;
+      if (!authorId || typeof suspend !== "boolean") return json({ error: "authorId and suspend required" }, 400);
+      const { data, error } = await client.rpc("admin_set_author_suspension", {
+        p_author_id: authorId, p_suspend: suspend, p_reason: reason ?? null,
+      });
+      if (error) throw error;
+      return json(data);
+    }
+
+    if (action === "set-author-tier") {
+      const { authorId, tier, expiresAt } = params;
+      if (!authorId || !tier) return json({ error: "authorId and tier required" }, 400);
+      const { data, error } = await client.rpc("admin_set_author_tier", {
+        p_author_id: authorId, p_tier: tier, p_expires_at: expiresAt ?? null,
+      });
+      if (error) throw error;
+      return json(data);
+    }
+
+    // ─── Wave 3: Broadcast ───
+    if (action === "send-broadcast") {
+      const { title, message, link, audience } = params;
+      if (!title || !message) return json({ error: "title and message required" }, 400);
+      const { data, error } = await client.rpc("admin_send_broadcast", {
+        p_title: title, p_message: message, p_link: link ?? null, p_audience: audience ?? "all",
+      });
+      if (error) throw error;
+      return json(data);
+    }
+
+    // ─── Wave 3: Audit log viewer ───
+    if (action === "audit-log") {
+      const { eventKey, targetType, since, until, search, limit = 100, offset = 0 } = params;
+      let q = client.from("admin_audit_log")
+        .select("id, actor_id, actor_email, event_key, target_type, target_id, payload, created_at", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + Math.min(limit, 500) - 1);
+      if (eventKey) q = q.eq("event_key", eventKey);
+      if (targetType) q = q.eq("target_type", targetType);
+      if (since) q = q.gte("created_at", since);
+      if (until) q = q.lte("created_at", until);
+      if (search) q = q.or(`payload::text.ilike.%${search}%,actor_email.ilike.%${search}%,target_id.ilike.%${search}%`);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      return json({ rows: data || [], total: count ?? 0 });
     }
 
     return json({ error: "Unknown action" }, 400);
