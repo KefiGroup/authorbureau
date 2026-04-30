@@ -215,6 +215,7 @@ function getContentPreview(contentJson: any): string {
 export default function MarketingHub({ onNavigate }: Props) {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const bookCtx = useMarketingHubBookContext(user?.id);
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightId = searchParams.get("highlight");
   const tabParam = searchParams.get("tab");
