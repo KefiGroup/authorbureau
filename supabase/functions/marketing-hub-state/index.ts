@@ -584,36 +584,43 @@ Deno.serve(async (req) => {
       const results: any[] = [];
 
       for (const nid of nodeIds) {
-        const { data: existing } = await cloudAdmin
+        // When a book is selected we only touch that book's row; when "All Books"
+        // is active we touch every row for the node_id (legacy author-wide behaviour).
+        let existingQuery = cloudAdmin
           .from("author_nodes")
-          .select("id, status")
+          .select("id, status, book_id")
           .eq("author_id", authorProfile.id)
-          .eq("node_id", nid)
-          .maybeSingle();
+          .eq("node_id", nid);
+        if (bookId) existingQuery = existingQuery.eq("book_id", bookId);
+        const { data: existingRows } = await existingQuery;
 
-        if (existing) {
+        if (existingRows && existingRows.length > 0) {
+          const ids = existingRows.map((r: any) => r.id);
           const { data: updated, error: updErr } = await cloudAdmin
             .from("author_nodes")
             .update({ marketing_activated_at: now })
-            .eq("id", existing.id)
-            .select("node_id, marketing_activated_at")
-            .maybeSingle();
+            .in("id", ids)
+            .select("node_id, marketing_activated_at, book_id");
           if (updErr) {
             results.push({ node_id: nid, error: updErr.message });
           } else {
-            results.push({ node_id: nid, ok: true, row: updated });
+            results.push({ node_id: nid, ok: true, rows: updated });
           }
         } else if (action === "activate_node") {
+          // No row yet — create a stub. Tie it to the selected book when scoped.
+          const insertPayload: Record<string, unknown> = {
+            author_id: authorProfile.id,
+            node_id: nid,
+            node_name: nid,
+            status: "live",
+            marketing_activated_at: now,
+          };
+          if (bookId) insertPayload.book_id = bookId;
+
           const { data: inserted, error: insErr } = await cloudAdmin
             .from("author_nodes")
-            .insert({
-              author_id: authorProfile.id,
-              node_id: nid,
-              node_name: nid,
-              status: "live",
-              marketing_activated_at: now,
-            })
-            .select("node_id, marketing_activated_at")
+            .insert(insertPayload)
+            .select("node_id, marketing_activated_at, book_id")
             .maybeSingle();
           if (insErr) {
             results.push({ node_id: nid, error: insErr.message });
