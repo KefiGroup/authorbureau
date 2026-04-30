@@ -8,6 +8,11 @@
  */
 // @ts-nocheck — Deno runtime
 import { createClient } from "npm:@supabase/supabase-js@2";
+import {
+  sanitiseForPublic,
+  validateForPublic,
+  ensurePrimaryCta,
+} from "./microsite-content-rules.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -139,6 +144,61 @@ export async function upsertAuthorNode(
   payload: Record<string, unknown>,
   bookId?: string | null,
 ) {
+  // ---- Content quality gate (Layer 2) -------------------------------------
+  // If the caller is writing content_json, route it through the same validate /
+  // sanitise / ensure-CTA pipeline used by saveNodeContent(), and log any rule
+  // violations to content_quality_log so we see drift immediately instead of at
+  // audit time. Best-effort — never blocks the write.
+  if (payload && payload.content_json && typeof payload.content_json === "object") {
+    try {
+      const opts = { nodeId, archetype: (payload.archetype as string) ?? null };
+      const { violations } = validateForPublic(
+        payload.content_json as Record<string, unknown>,
+        opts,
+      );
+      const cleaned = sanitiseForPublic(
+        payload.content_json as Record<string, unknown>,
+        opts,
+      );
+      const hadCtaBefore = JSON.stringify(cleaned).includes('"primary_cta"');
+      const withCta = ensurePrimaryCta(cleaned, nodeId);
+      const ctaInjected =
+        !hadCtaBefore && JSON.stringify(withCta).includes('"primary_cta"');
+
+      payload = { ...payload, content_json: withCta };
+
+      if (violations.length > 0 || ctaInjected) {
+        const rows: Record<string, unknown>[] = violations.map((v) => ({
+          author_id: authorId,
+          node_id: nodeId,
+          rule: v.rule,
+          sample: v.sample,
+          field_path: v.field_path,
+          source: "upsertAuthorNode",
+        }));
+        if (ctaInjected) {
+          rows.push({
+            author_id: authorId,
+            node_id: nodeId,
+            rule: "missing_cta",
+            sample: null,
+            field_path: "primary_cta",
+            source: "upsertAuthorNode",
+          });
+        }
+        try {
+          await supabase.from("content_quality_log").insert(rows);
+        } catch (_e) {
+          // swallow — quality logging must never block content save
+        }
+      }
+    } catch (_e) {
+      // If the rules helper itself throws, fall through to the original
+      // payload — we'd rather save raw content than lose it.
+    }
+  }
+  // -------------------------------------------------------------------------
+
   // Try book-scoped match first
   let existing: { id: string; book_id: string | null } | null = null;
   if (bookId) {
