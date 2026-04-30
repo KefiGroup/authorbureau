@@ -139,7 +139,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
       // Map slug → BP/BA/YR code so ALL_BUILDER_NODES.find resolves the right meta
       const SLUG_TO_CODE: Record<string, string> = {
-        "lead-magnet": "BP-02", "email-flows": "BP-01", "social-media": "BP-03",
+        "lead-magnet": "BP-02", "lead-magnets": "BP-02",
+        "email-flows": "BP-01", "email-marketing": "BP-01", "social-media": "BP-03",
         "website": "BP-04", "webinar": "BP-05", "workbook": "BP-06",
         "book-sales": "BP-07", "audiobook": "BA-11", "online-course": "BA-10",
         "membership": "BA-12", "group-coaching": "BA-13", "podcast": "BA-14",
@@ -152,7 +153,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
         const totalSteps = nodeConfig?.steps.length || 5;
         const rawSteps = item.stepsCompleted || 0;
         const stepsCompleted = Math.min(rawSteps, totalSteps); // cap to prevent "14/5" displays
-        const actProgress = Math.round((stepsCompleted / totalSteps) * 100);
+        const actProgress = Math.min(100, Math.round((stepsCompleted / totalSteps) * 100));
         const currentAct = stepsCompleted === 0 ? 1 : stepsCompleted >= totalSteps - 1 ? 3 : 2;
 
         return {
@@ -176,7 +177,11 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
         };
       });
 
-      setProducts(drafts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      // Dedupe by bookId+nodeId so the counter reflects unique products per book.
+      const deduped = Array.from(
+        new Map(drafts.map(d => [`${d.bookId || ""}:${d.nodeId}`, d])).values()
+      );
+      setProducts(deduped.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (err) {
       console.warn("[ReviewProducts] Failed to fetch drafts:", err);
       setLoadError(err instanceof Error ? err.message : "Failed to load products");

@@ -138,9 +138,9 @@ export default function BuyNowButton({
       <Dialog open={paymentsModal} onOpenChange={setPaymentsModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Payments coming soon</DialogTitle>
+            <DialogTitle>Notify me when this is available</DialogTitle>
             <DialogDescription>
-              This author hasn't set up payments yet. Leave your email and we'll let you know the moment it's available.
+              The author hasn't switched on direct checkout yet. Leave your email and we'll let you know the moment it's ready to buy.
             </DialogDescription>
           </DialogHeader>
           {leadCaptured ? (
