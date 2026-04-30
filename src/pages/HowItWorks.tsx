@@ -218,7 +218,7 @@ export default function HowItWorks() {
                   { name: "Podcast Tour", desc: "Build authority by getting your message in front of aligned audiences." },
                   { name: "Media Outreach", desc: "Increase visibility with interviews, press angles, and media positioning." },
                   { name: "Affiliates", desc: "Let partners and advocates help distribute your products and offers." },
-                  { name: "Upsells / Downsells", desc: "Increase customer value by guiding readers to the next best offer." },
+                  { name: "Bundles", desc: "Increase customer value by guiding readers to the next best offer." },
                   { name: "Revenue Sharing", desc: "Create aligned partnerships where growth and outcomes are shared." },
                 ].map((s) => (
                   <div key={s.name} className="rounded-lg border border-border bg-card p-4 text-sm">

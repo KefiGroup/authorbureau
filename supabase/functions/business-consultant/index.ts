@@ -126,7 +126,7 @@ CRITICAL REVENUE RANGE RULES:
 5. Podcasts (Guest)
 6. Media Outreach
 7. Affiliates (15–50%)
-8. Upsells / Downsells
+8. Bundles
 9. Revenue Sharing / JV
 
 ## Y · Yield Revenue (10 nodes)
