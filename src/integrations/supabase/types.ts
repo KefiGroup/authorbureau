@@ -6020,6 +6020,7 @@ export type Database = {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
       }
+      detect_microsite_violations: { Args: { v: Json }; Returns: string[] }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -6071,6 +6072,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      scrub_microsite_jsonb: { Args: { v: Json }; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
