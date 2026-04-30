@@ -12,6 +12,31 @@ import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+
+async function callStripeConnect(body: Record<string, unknown>): Promise<{ data: any; error: Error | null }> {
+  try {
+    const token = await getActiveToken();
+    if (!token) return { data: null, error: new Error("Not signed in") };
+    const res = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/stripe-connect`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`,
+        "apikey": SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(body),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) return { data: null, error: new Error(json?.error || `HTTP ${res.status}`) };
+    return { data: json, error: null };
+  } catch (e) {
+    return { data: null, error: e instanceof Error ? e : new Error(String(e)) };
+  }
+}
 
 interface Snapshot {
   snapshot_date: string;
@@ -274,9 +299,7 @@ export default function RevenueFullDashboard() {
   const startStripeOnboarding = async () => {
     setStripeRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard" },
-      });
+      const { data, error } = await callStripeConnect({ action: "onboard" });
       if (error || !data?.url) {
         toast.error("Couldn't start Stripe onboarding. Please try again.");
         return;
@@ -296,9 +319,7 @@ export default function RevenueFullDashboard() {
   const refreshStripeStatus = async () => {
     setStripeRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "status" },
-      });
+      const { data, error } = await callStripeConnect({ action: "status" });
       if (error) {
         toast.error("Couldn't reach Stripe. Please try again.");
         return;
