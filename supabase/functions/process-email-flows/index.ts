@@ -22,6 +22,27 @@ function escapeHtml(str: string): string {
     .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 
+/**
+ * Substitute {{var}} placeholders AND rewrite hard-coded placeholder URLs
+ * (example.com/lead-magnet, example.com) that the AI sequence generator
+ * sometimes emits when it has no real URL to use.
+ */
+function substitutePlaceholders(md: string, vars: Record<string, string>): string {
+  let out = md;
+  for (const [k, v] of Object.entries(vars)) {
+    if (!v) continue;
+    const re = new RegExp(`{{\\s*${k}\\s*}}`, 'gi');
+    out = out.replace(re, v);
+  }
+  if (vars.lead_magnet_url) {
+    out = out.replace(/https?:\/\/example\.com\/lead-magnet[^\s)\]]*/gi, vars.lead_magnet_url);
+  }
+  if (vars.author_url) {
+    out = out.replace(/https?:\/\/example\.com[^\s)\]]*/gi, vars.author_url);
+  }
+  return out;
+}
+
 function mdToHtml(md: string, vars: Record<string, string>): string {
   let out = md;
   for (const [k, v] of Object.entries(vars)) {
