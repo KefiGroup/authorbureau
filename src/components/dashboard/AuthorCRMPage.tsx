@@ -73,6 +73,8 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const [refreshKey, setRefreshKey] = useState(0);
   const [recentLeads, setRecentLeads] = useState<Array<{ id: string; email: string; name: string | null; created_at: string; abby_score: number | null; quiz_stage: string | null }>>([]);
 
+  const [authorProfileId, setAuthorProfileId] = useState<string | null>(null);
+
   const fetchInitial = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -84,6 +86,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       console.log("[CRM] initial load →", { total, effectiveTotal, recentLeads: recent.length, authorProfileId: data.authorProfileId });
       setStatsData({ total, effectiveTotal, activeThisWeek: 0, conversionRate: 0 });
       setRecentLeads(recent);
+      if (data.authorProfileId) setAuthorProfileId(data.authorProfileId);
     } catch (e) {
       console.warn("[CRM] initial load failed:", e);
       setStatsData({ total: 0, effectiveTotal: 0, activeThisWeek: 0, conversionRate: 0 });
