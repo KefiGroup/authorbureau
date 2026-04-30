@@ -4,11 +4,9 @@ import PayoutsSettings from "@/components/dashboard/PayoutsSettings";
 /**
  * Audit #3 (Sprint 42) — Canonical dashboard payout entry point.
  *
- * Previously this page had its own (incomplete) Stripe/PayPal/Wise UI that
- * couldn't actually start Stripe Connect onboarding and didn't capture the
- * Payout Agreement. It now reuses the proven `<PayoutsSettings />` component
- * (the same one rendered on /account-settings?tab=payouts), so authors get
- * the Connect Stripe button + agreement + Wise/PayPal fields in one place.
+ * Reuses the proven `<PayoutsSettings />` component (the same one rendered on
+ * /account-settings?tab=payouts), so authors get the Connect Stripe Express
+ * button + Payout Agreement in one place.
  */
 export default function PayoutSettingsPage() {
   return (
@@ -26,10 +24,10 @@ export default function PayoutSettingsPage() {
 
       {/* Framing banner */}
       <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-4 text-sm text-muted-foreground">
-        <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just connect Stripe Express to receive your monthly 92% payout — fully automated on the 1st of each month, and we cover all transfer fees. More payout options coming soon.
+        <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just connect Stripe Express to receive your monthly 92% payout — fully automated on the 1st of each month, and we cover all transfer fees.
       </div>
 
-      {/* Canonical payout UI (Stripe Connect button + agreement + Wise/PayPal) */}
+      {/* Canonical payout UI (Stripe Connect button + Payout Agreement) */}
       <PayoutsSettings />
     </div>
   );

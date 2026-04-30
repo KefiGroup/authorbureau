@@ -480,7 +480,6 @@ Deno.serve(async (req) => {
     // ─── Payouts: status of automation secrets + last cron runs ───
     if (action === "payouts-status") {
       const stripeReady = !!Deno.env.get("STRIPE_SECRET_KEY");
-      const paypalReady = !!Deno.env.get("PAYPAL_CLIENT_ID") && !!Deno.env.get("PAYPAL_SECRET");
       const { data: lastPayout } = await client
         .from("author_payouts_v2")
         .select("created_at, status")
@@ -491,7 +490,6 @@ Deno.serve(async (req) => {
         .order("generated_at", { ascending: false }).limit(1).maybeSingle();
       return json({
         stripe_ready: stripeReady,
-        paypal_ready: paypalReady,
         last_payout_at: lastPayout?.created_at ?? null,
         last_statement_at: lastStatement?.generated_at ?? null,
         last_statement_year: lastStatement?.tax_year ?? null,
