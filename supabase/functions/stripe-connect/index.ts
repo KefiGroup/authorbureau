@@ -148,10 +148,20 @@ serve(async (req) => {
           .eq("user_id", user.id);
       }
 
+      // Audit #3: callers (Dashboard › Payout Settings AND Account Settings ›
+      // Payouts) can pass `return_path` so the author returns to whichever
+      // page they started from. Fallback preserves the legacy behaviour.
+      const body = await req.json().catch(() => ({}));
+      const returnPath: string =
+        typeof body.return_path === "string" && body.return_path.startsWith("/")
+          ? body.return_path
+          : "/account-settings?tab=payouts";
+      const sep = returnPath.includes("?") ? "&" : "?";
+
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: `${origin}/account-settings?tab=payouts&stripe_refresh=true`,
-        return_url: `${origin}/account-settings?tab=payouts&stripe_connected=true`,
+        refresh_url: `${origin}${returnPath}${sep}stripe_refresh=true`,
+        return_url: `${origin}${returnPath}${sep}stripe_connected=true`,
         type: "account_onboarding",
       });
 
