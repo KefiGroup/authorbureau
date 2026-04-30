@@ -174,24 +174,27 @@ export default function BP04Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp04-to-ghl", {
-        body: { author_id: authorId, content_payload: content },
-      });
-      if (fnErr) throw new Error(fnErr.message || "Activation failed");
-      const status = data?.status || "live";
-      const liveUrl = data?.liveUrl;
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status, liveUrl }));
-      // Fire-and-forget: ensure email sequence exists for BP-04
+      // Native activation: write status='live' directly to author_nodes.
+      const { data: row, error: upErr } = await supabase
+        .from("author_nodes")
+        .update({
+          status: "live",
+          activated_at: new Date().toISOString(),
+          content_json: content,
+        })
+        .eq("author_id", authorId)
+        .eq("node_id", "BP-04")
+        .select("microsite_url")
+        .single();
+      if (upErr) throw new Error(upErr.message || "Activation failed");
+      const liveUrl = row?.microsite_url ?? undefined;
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "live", liveUrl }));
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-04" });
-      if (status === "published_pending_ghl") {
-        toast.success("Author Website saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
-      } else {
-        toast.success("Author Website is live! 🎉");
-      }
+      toast.success("Author Website is live! 🎉");
     } catch (e: any) {
-      console.error("Publish error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
-      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
+      console.error("Publish error:", e.message);
+      setError(e.message);
+      toast.error("Publish failed", { description: e.message });
     }
   };
 

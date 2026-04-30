@@ -186,32 +186,31 @@ export default function BP01Builder({ authorId, bookId }: Props) {
   };
 
   const handlePublish = async () => {
-    const prevStep = step;
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp01-to-ghl", {
-        body: { author_id: authorId, content_payload: content },
-      });
-      if (fnErr) throw new Error(fnErr.message || "Activation failed");
-      const status = data?.status || "live";
-      setContent((prev: any) => ({
-        ...prev,
-        activated: true,
-        publishStatus: status,
-      }));
+      // Native activation: write status='live' directly to author_nodes.
+      // The DB trigger autofills microsite_url; trigger_generate_asset_pack
+      // fires the ABBY nurture flow on status change.
+      const { error: upErr } = await supabase
+        .from("author_nodes")
+        .update({
+          status: "live",
+          activated_at: new Date().toISOString(),
+          content_json: content,
+        })
+        .eq("author_id", authorId)
+        .eq("node_id", "BP-01");
+      if (upErr) throw new Error(upErr.message || "Activation failed");
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "live" }));
       // Fire-and-forget: ensure email sequence + funnel exist for BP-01
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-01" });
       ensureFunnel({ authorId: authorId!, nodeId: "BP-01", funnelType: "opt_in" });
-      if (status === "published_pending_ghl") {
-        toast.success("Email Marketing saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
-      } else {
-        toast.success("Email Marketing is live! 🎉");
-      }
+      toast.success("Email Marketing is live! 🎉");
     } catch (e: any) {
-      console.error("Activation error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
-      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
+      console.error("Activation error:", e.message);
+      setError(e.message);
+      toast.error("Activation failed", { description: e.message });
     }
   };
 
