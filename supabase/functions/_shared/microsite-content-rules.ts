@@ -104,16 +104,55 @@ const PLACEHOLDER_PATTERNS: RegExp[] = [
   /\bUntitled\b/g,
 ];
 
+// Short connector words that become grammatical orphans when the noun phrase
+// after them is stripped (e.g. "At [insert org] we will" -> "At  we will" ->
+// "At we will"). We look for the double-space gap left by placeholder removal
+// and, if the word immediately before it is one of these prepositions/articles,
+// we delete that word along with the gap.
+const ORPHAN_BEFORE_GAP_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s{2,}/gi;
+// Also handle ". " trailing the placeholder where it ate the noun ("go to .")
+const ORPHAN_BEFORE_PUNCT_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[.,;:!?)])/gi;
+
 /** Drop bracketed placeholder tokens and obvious filler. */
 function stripPlaceholdersString(input: string): string {
   if (!input || typeof input !== "string") return input;
   let out = input;
+  let didStrip = false;
   for (const pattern of PLACEHOLDER_PATTERNS) {
+    const before = out;
     out = out.replace(pattern, "");
+    if (out !== before) didStrip = true;
   }
+  if (!didStrip) {
+    return out.replace(/\s{2,}/g, " ").trim();
+  }
+
+  // A placeholder was removed — clean up the grammatical wreckage.
+  // Step 1: remove orphan prepositions that now sit before a double-space gap
+  // (the gap is our marker that something was removed there). Loop because
+  // chains like "by the [...]" leave two prepositions to peel.
+  for (let i = 0; i < 3; i++) {
+    const before = out;
+    out = out.replace(ORPHAN_BEFORE_GAP_RE, "$1 ");
+    out = out.replace(ORPHAN_BEFORE_PUNCT_RE, "$1");
+    if (out === before) break;
+  }
+  // Step 2: collapse the gap.
+  out = out.replace(/\s{2,}/g, " ");
+  // Step 3: capitalise leading char + the first letter after sentence boundaries
+  // (handles "...destiny. we will" -> "...destiny. We will" after orphan removal).
+  out = out.replace(/^([a-z])/, (m) => m.toUpperCase());
+  out = out.replace(/([.!?]\s+)([a-z])/g, (_m, p1, p2) => p1 + p2.toUpperCase());
+  // Step 4: tidy stranded artefacts.
+  out = out.replace(/\(\s*\)/g, "");
+  out = out.replace(/,\s*,/g, ",");
+  out = out.replace(/\s+([.,;:!?])/g, "$1");
   out = out.replace(/\s{2,}/g, " ").trim();
   return out;
 }
+
 
 // ---------------------------------------------------------------------------
 // Recursive walker
