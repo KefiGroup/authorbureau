@@ -39,6 +39,7 @@ import AuthorBookPage from "./pages/AuthorBookPage";
 import BookSlugRedirect from "./pages/BookSlugRedirect";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
+import GlobalErrorBoundary from "./components/GlobalErrorBoundary";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
 import OnlineCourseViewer from "./pages/OnlineCourseViewer";
@@ -213,7 +214,9 @@ const App = () => {
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProvider>
             <ScrollToTop />
-            <AppRoutes />
+            <GlobalErrorBoundary>
+              <AppRoutes />
+            </GlobalErrorBoundary>
             <AbbyHelpChatbot />
           </AuthProvider>
         </BrowserRouter>
