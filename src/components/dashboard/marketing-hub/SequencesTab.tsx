@@ -310,6 +310,12 @@ export default function SequencesTab({ bookId = null, books = [] }: SequencesTab
                 {f.node_id && (
                   <Badge variant="outline" className="text-[10px]">{f.node_id}</Badge>
                 )}
+                {/* Book badge — shown in "All Books" mode when we know which book this flow belongs to */}
+                {!bookId && f.book_id && bookTitleById[f.book_id] && (
+                  <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-700 border-amber-500/20 max-w-[140px] truncate">
+                    📖 {bookTitleById[f.book_id]}
+                  </Badge>
+                )}
                 {f.flow_type === "master_nurture" && (
                   <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">Master</Badge>
                 )}
