@@ -1,9 +1,10 @@
+import { forwardRef } from "react";
 import { Link } from "react-router-dom";
 import logoText from "@/assets/logo-with-text.webp";
 
-export default function Footer() {
+const Footer = forwardRef<HTMLElement>((_props, ref) => {
   return (
-    <footer className="border-t border-border bg-primary text-primary-foreground">
+    <footer ref={ref} className="border-t border-border bg-primary text-primary-foreground">
       <div className="container py-12">
         <div className="grid gap-8 md:grid-cols-4">
           <div className="space-y-4">
@@ -60,4 +61,8 @@ export default function Footer() {
       </div>
     </footer>
   );
-}
+});
+
+Footer.displayName = "Footer";
+
+export default Footer;
