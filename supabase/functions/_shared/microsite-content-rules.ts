@@ -52,7 +52,7 @@ function stripDashesString(input: string): string {
 const ORPHAN_BEFORE_GAP_RE =
   /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s{2,}/gi;
 const ORPHAN_BEFORE_PUNCT_RE =
-  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[.,;:!?)])/gi;
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s*(?=[.,;:!?)]|$)/gi;
 
 /**
  * Strip dollar amounts from prose strings.
