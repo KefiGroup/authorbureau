@@ -468,7 +468,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        contact_id: ghlContactId,
+        contact_id: authorContactId,
         tag,
         message: action_type === "optin"
           ? "You're in! Check your email for next steps."
