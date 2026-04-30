@@ -33,10 +33,17 @@ export function hasRequiredAssets(nodeId: string, content: any): boolean {
       return hasSchedule;
     }
     case "BA-14": {
-      // Podcast Tour: a real distribution channel + at least one episode
+      // Podcast Tour: pass when distributed (RSS + episodes) OR when the
+      // author has activated the show locally with episodes + a title.
+      // The current builder marks `activated: true` even before RSS is
+      // wired, so we accept that as Live.
       const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
       const episodes = Array.isArray(content.episodes) ? content.episodes : [];
-      return rssReady && episodes.length > 0;
+      const activatedWithContent =
+        !!content.activated &&
+        episodes.length > 0 &&
+        !!(content.show_title || content.podcast_title);
+      return (rssReady && episodes.length > 0) || activatedWithContent;
     }
     case "BA-15": {
       // Media Outreach: needs both a press release and a populated media list
