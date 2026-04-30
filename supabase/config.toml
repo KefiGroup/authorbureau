@@ -157,3 +157,8 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.generate-cover-image]
     verify_jwt = false
+
+  [functions.abby-daily-report]
+    verify_jwt = false
+  [functions.abby-daily-report-dispatcher]
+    verify_jwt = false
