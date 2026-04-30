@@ -52,7 +52,8 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const effectiveTier = isAdmin || isSuperAdmin(user?.email) ? "yield" : tier;
   const primaryBookIdEarly = analyzedBooks?.[0]?.id || books[0]?.id || "";
   const progress = useBookNodeProgress(effectiveTier, openNodeIds, primaryBookIdEarly || undefined);
-  const { byCode: liveStats } = useNodeLiveStats(primaryBookIdEarly || undefined);
+  const { byCode: liveStats, refresh: refreshLiveStats } = useNodeLiveStats(primaryBookIdEarly || undefined);
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchBooks() {
