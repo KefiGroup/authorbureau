@@ -151,6 +151,35 @@ Deno.serve(async (req) => {
       .eq('message_id', messageId).eq('status', 'sent');
   }
 
+  // 4. Engagement scoring — bump abby_score on the matching lead row.
+  //    Open = +2, Click = +5. Capped at 100. Update last_activity_at, log activity.
+  if (type === 'email.opened' || type === 'email.clicked') {
+    try {
+      const delta = type === 'email.clicked' ? 5 : 2;
+      const activityType = type === 'email.clicked' ? 'email_click' : 'email_open';
+      // A reader email may exist under multiple authors — bump every match.
+      const { data: leads } = await supabase
+        .from('leads').select('id, author_id, abby_score').eq('email', email);
+      if (leads && leads.length > 0) {
+        for (const lead of leads) {
+          const newScore = Math.min(100, (lead.abby_score || 0) + delta);
+          await supabase.from('leads').update({
+            abby_score: newScore,
+            last_activity_at: new Date().toISOString(),
+          }).eq('id', lead.id);
+          await supabase.from('lead_activities').insert({
+            lead_id: lead.id,
+            author_id: lead.author_id,
+            activity_type: activityType,
+            metadata: { message_id: messageId, delta, new_score: newScore },
+          });
+        }
+      }
+    } catch (scoreErr) {
+      console.error('[resend-webhook] engagement scoring failed', scoreErr);
+    }
+  }
+
   return new Response(JSON.stringify({ ok: true, applied: { suppressionReason, logStatus } }), {
     status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
