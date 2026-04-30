@@ -75,7 +75,8 @@ serve(async (req) => {
       apiVersion: "2025-08-27.basil",
     });
 
-    const { action } = await req.json();
+    const body = await req.json().catch(() => ({} as Record<string, unknown>));
+    const action = (body as { action?: string }).action;
     const origin = req.headers.get("origin") || "https://authorbureau.lovable.app";
 
     const { data: profile } = await supabaseAdmin
@@ -148,10 +149,20 @@ serve(async (req) => {
           .eq("user_id", user.id);
       }
 
+      // Audit #3: callers (Dashboard › Payout Settings AND Account Settings ›
+      // Payouts) can pass `return_path` so the author returns to whichever
+      // page they started from. Fallback preserves the legacy behaviour.
+      const rawReturn = (body as { return_path?: unknown }).return_path;
+      const returnPath: string =
+        typeof rawReturn === "string" && rawReturn.startsWith("/")
+          ? rawReturn
+          : "/account-settings?tab=payouts";
+      const sep = returnPath.includes("?") ? "&" : "?";
+
       const accountLink = await stripe.accountLinks.create({
         account: accountId,
-        refresh_url: `${origin}/account-settings?tab=payouts&stripe_refresh=true`,
-        return_url: `${origin}/account-settings?tab=payouts&stripe_connected=true`,
+        refresh_url: `${origin}${returnPath}${sep}stripe_refresh=true`,
+        return_url: `${origin}${returnPath}${sep}stripe_connected=true`,
         type: "account_onboarding",
       });
 

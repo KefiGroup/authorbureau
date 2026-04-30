@@ -1,47 +1,59 @@
-## Problem
+# Audit #3 — Payout System for Authors
 
-The dashboard shows two contradictory pages:
+## What I found
 
-1. **Connect Stripe** — Tells the author they must connect a Stripe account to receive their 92% payout. Shows "Payments Active" when "connected".
-2. **Payout Settings** — Offers a choice of three payout methods: Stripe, PayPal, or Wise.
+There are **two parallel payout pages** in the app, and they don't agree with each other. That's why "Stripe onboarding" looks missing from where you're standing.
 
-This is contradictory because:
-- Page 1 implies Stripe is **required** for payouts.
-- Page 2 implies Stripe is **one of three optional** payout methods.
-- The "Payments Active" badge on Page 1 is fake — `useStripeConnect()` is a deprecated stub that always returns `connected: true`. So the badge shows green even if the author has done nothing.
-- Per the project's actual architecture (Sprint 41, Commerce Engine v1): **Authors Bureau is the Merchant of Record**. Readers pay Authors Bureau's Stripe — the author does NOT connect their own Stripe to receive customer payments. Authors only choose **where** to receive their monthly 92% payout (Stripe, PayPal, or Wise).
+### Page A — Dashboard › Payout Settings (the page in your screenshot)
+- File: `src/components/dashboard/PayoutSettingsPage.tsx`
+- Route: `/dashboard?section=payout-settings`
+- Lets you pick Stripe / PayPal / Wise.
+- **Has no "Connect Stripe" button.** It only reads `stripe_onboarding_complete` and shows a hint. There is literally nowhere to click to start onboarding from this page.
+- Does not capture the Payout Agreement (tax self-declaration), so saving here never satisfies `usePayoutReadiness` → publishing paid products stays blocked even after "saving".
 
-As an author, this is genuinely confusing — you can't tell whether Stripe is mandatory, what "Payments Active" means, or why there's a separate "Connect Stripe" page if PayPal/Wise are valid options.
+### Page B — Account Settings › Payouts tab (the working one)
+- File: `src/components/dashboard/PayoutsSettings.tsx`
+- Route: `/account-settings?tab=payouts`
+- Has the actual **"Connect Stripe Express"** button → calls the `stripe-connect` edge function (`action: "onboard"`) → Stripe-hosted onboarding → returns to `/account-settings?tab=payouts&stripe_connected=true`.
+- Captures the Payout Agreement (Merchant of Record, 8% fee, monthly on the 1st, US$50 minimum, self-declared taxes).
+- This is the flow `RequirePayoutSetup` and the `run-monthly-payouts` job actually expect.
 
-## Recommended Fix
+### Backend (verified end-to-end, all wired correctly)
+- `stripe-connect` edge function: creates payout-only Express account (`transfers` capability only), returns hosted onboarding URL, syncs `stripe_onboarding_complete` both ways. Healthy.
+- `run-monthly-payouts`: runs on the 1st, only pays Stripe authors when `stripe_onboarding_complete = true`, falls back to Wise/PayPal CSV batches, emails authors, alerts owner on failures. Healthy.
+- `usePayoutReadiness` hook: requires method **+** matching details **+** `tax_self_declared_at`. Page A can't satisfy the third — Page B can.
+- DB confirms: Pauline Teo has **no Stripe account, no payout method saved, no agreement signed**. Her record is empty because Page A is what she's been using and Page A doesn't actually finish the job.
 
-Remove the legacy "Connect Stripe" sidebar page entirely. Everything an author needs lives in **Payout Settings**, which is the source of truth.
+## The fix — collapse to one canonical page
 
-### Changes
+Make the dashboard page show the **same** controls as the Account Settings page (Connect Stripe button + agreement checkbox + full Wise fields), so authors never need to leave the dashboard to get paid.
 
-1. **Sidebar (`DashboardSidebar.tsx`)**
-   - Remove the "Connect Stripe / Stripe Connected" sidebar entry.
-   - Keep "Payout Settings" as the single entry point under Revenue & Tools.
+### 1. Replace `PayoutSettingsPage.tsx` with a wrapper around `PayoutsSettings`
+- Dashboard › Payout Settings will render the proven `PayoutsSettings` component (kept as the single source of truth).
+- Keep the dashboard page header + the framing banner ("You don't need to connect Stripe to publish or sell…") above it.
+- Remove the duplicate radio/refund-window UI and the duplicate save logic in `PayoutSettingsPage.tsx`.
 
-2. **Routing (`AuthorDashboard.tsx`)**
-   - Remove the `connect-stripe` case from the section switch.
-   - Add a redirect: if anyone lands on `?section=connect-stripe` (old links, bookmarks), auto-route them to `?section=payout-settings`.
-   - Remove the `ConnectStripePage` import.
+### 2. Make `PayoutsSettings` aware of where it's rendered
+- Update `connectStripe()` return URLs in the edge function call so authors come back to the **same page they started from** — pass `origin + window.location.pathname + "?stripe_connected=true"` and detect that on mount to refresh status. Today it always returns to `/account-settings?tab=payouts`.
 
-3. **Payout Settings page (`PayoutSettingsPage.tsx`)**
-   - Add a short header banner above the method picker that frames the page correctly:
-     > "Readers pay Authors Bureau at checkout. We keep an 8% platform fee and pay out your 92% share monthly. Choose how you'd like to receive it below."
-   - For the **Stripe option**, change the description from "Direct transfer to your connected Stripe account" to "Direct transfer via Stripe — fastest option for US/EU authors." Keep the existing non-blocking warning that onboarding is needed before payouts actually run.
-   - Make the existing "Complete Stripe Connect onboarding" button visible inline under the Stripe radio, only when Stripe is selected, so the connect flow is reachable from the same screen (no separate page needed).
+### 3. Keep `RequirePayoutSetup`'s deep link consistent
+- Update `goToPayouts` in `RequirePayoutSetup.tsx` to `/dashboard?section=payout-settings` (the dashboard page is now the canonical entry point and matches the sidebar).
 
-4. **Delete the legacy file**
-   - Delete `src/components/dashboard/ConnectStripePage.tsx` so it can't be reintroduced by accident.
+### 4. Add a Refund Window field to `PayoutsSettings` (it only existed on Page A)
+- Persist `refund_window_days` alongside the rest of the payload. No data loss when we retire Page A's UI.
 
-5. **Leave alone (already correct per memory)**
-   - `StripeConnectBanner.tsx` — already a deprecated no-op stub returning `null`.
-   - `StripeRequiredModal.tsx` — gated by paid-product publishing flow; separate concern.
-   - Backend `author_payout_settings` and `usePayoutReadiness` — already correct after the previous fix.
+### 5. Pauline-specific recovery
+- After deploy, walk Pauline through: open Dashboard › Payout Settings → click **Connect Stripe Express** → finish Stripe-hosted onboarding → check Payout Agreement → Save. That single flow will populate `stripe_account_id`, flip `stripe_onboarding_complete`, store the agreement, and unblock her next payout run.
 
-## Result
+## Files touched
 
-One page, one mental model: **"Choose your payout method."** No contradiction, no fake "Payments Active" badge, no question about whether Stripe is required.
+- `src/components/dashboard/PayoutSettingsPage.tsx` — slim wrapper (header + banner + `<PayoutsSettings/>`).
+- `src/components/dashboard/PayoutsSettings.tsx` — dynamic return URL on Stripe Connect onboarding; add Refund Window card; auto-refresh on `?stripe_connected=true`.
+- `src/components/dashboard/RequirePayoutSetup.tsx` — point CTA to `/dashboard?section=payout-settings`.
+- No DB migration needed — `author_payout_settings` already has every column we use.
+- No edge-function changes needed — `stripe-connect` already does the right thing.
+
+## Out of scope (intentionally)
+
+- Removing the Account Settings › Payouts tab. We'll keep it as a second entry point so existing email links (`run-monthly-payouts` reminder emails point to `/account-settings?tab=payouts`) keep working. Both routes will render the same component.
+- Stripe enablement / new Stripe products — Stripe is already enabled and the Connect Express flow is live.
