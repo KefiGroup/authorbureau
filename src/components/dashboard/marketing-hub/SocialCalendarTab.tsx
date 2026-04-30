@@ -31,6 +31,7 @@ import {
   Send,
   GripVertical,
   Inbox,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -591,6 +592,12 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
               <span className="text-muted-foreground">({PLATFORM_LABELS[nextUp.platform] || nextUp.platform})</span>
             </div>
           )}
+          <div className="ml-auto">
+            <Button size="sm" variant="outline" onClick={handleDownloadPack} disabled={downloadingPack || totalCount === 0}>
+              {downloadingPack ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Download className="h-3.5 w-3.5 mr-1" />}
+              Download Pack (.zip)
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
