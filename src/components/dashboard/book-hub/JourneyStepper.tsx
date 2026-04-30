@@ -89,23 +89,18 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                   {isHighlight && (
                     <span className={`absolute -left-px top-3 bottom-3 w-1 rounded-full ${accent.bg}`} />
                   )}
-                  <div className="flex flex-col items-center justify-center w-12 shrink-0">
-                    <span className={`text-[10px] font-mono font-bold ${isHighlight ? accent.text : "text-muted-foreground"}`}>
+                  {/* Bug 3 fix: drop the sequence-number badge — it visually concatenated with the
+                      code (e.g. "BP-01" + "3" read as "BP-013"). Code alone is the identifier;
+                      completion state is shown as a check icon below. */}
+                  <div className="flex flex-col items-center justify-center w-14 shrink-0 gap-1.5">
+                    <span className={`text-[11px] font-mono font-bold tracking-tight ${isHighlight ? accent.text : "text-muted-foreground"}`}>
                       {n.code}
                     </span>
-                    <span
-                      className={`mt-0.5 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        n.state === "completed"
-                          ? "bg-emerald-500 text-white"
-                          : n.state === "in-progress"
-                            ? "bg-amber-500 text-white"
-                            : isHighlight
-                              ? `${accent.bg} text-white`
-                              : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {n.state === "completed" ? <CheckCircle2 className="h-3.5 w-3.5" /> : n.sequence}
-                    </span>
+                    {n.state === "completed" && (
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center bg-emerald-500 text-white">
+                        <CheckCircle2 className="h-3 w-3" />
+                      </span>
+                    )}
                   </div>
 
                   <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${

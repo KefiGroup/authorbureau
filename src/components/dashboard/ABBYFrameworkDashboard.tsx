@@ -280,7 +280,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     );
   }
 
-  if (!hasPlan) {
+  // Bug 1 fix: only show Meet Abby onboarding to true first-time authors (zero books).
+  // Returning authors fall through to the normal multi-book dashboard immediately.
+  if (!hasPlan && bookCount === 0 && myBooks.length === 0) {
     return (
       <div className="max-w-6xl space-y-8">
         {/* Multi-book picker — shown when author has >1 book */}

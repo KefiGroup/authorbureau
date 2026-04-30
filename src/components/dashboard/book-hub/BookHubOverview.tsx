@@ -76,6 +76,7 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
   const isAnalyzed = hasConsultation || planSections.length > 0 || !!plan;
 
   useEffect(() => {
+    let cancelled = false;
     async function checkData() {
       const token = await getActiveToken();
       let userId: string | null = null;
@@ -89,50 +90,54 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
           }
         } catch { /* ignore */ }
       }
-      if (!token || !userId) { setDataReady(true); return; }
+      if (!token || !userId) { if (!cancelled) setDataReady(true); return; }
+
+      // Bug 2 fix: paint the page shell ASAP. Fetch the cheap manuscript check first
+      // so dataReady flips on the next tick, then run the two edge-function calls
+      // in parallel — they hydrate consultation + plan content in the background.
+      const authHeaders = { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` };
 
       try {
-        const resp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-          body: JSON.stringify({ action: "count", book_id: book.id }),
-        });
-        const result = await resp.json();
-        setHasConsultation((result.count ?? 0) > 0);
-      } catch { setHasConsultation(false); }
-
-      const { data: assets } = await supabase
-        .from("generated_assets")
-        .select("content")
-        .eq("book_id", book.id)
-        .eq("asset_type", "source_material")
-        .limit(1);
-      if (assets && assets.length > 0 && assets[0].content) {
-        setHasManuscript(true);
-        setManuscriptChars(assets[0].content.length);
-      }
-
-      try {
-        const planResp = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-          body: JSON.stringify({ action: "get-plan", bookId: book.id }),
-        });
-        if (planResp.ok) {
-          const planResult = await planResp.json();
-          if (planResult.content) {
-            setPlanContent(planResult.content);
-            setPlanSections(extractSections(planResult.content));
-          }
+        const { data: assets } = await supabase
+          .from("generated_assets")
+          .select("content")
+          .eq("book_id", book.id)
+          .eq("asset_type", "source_material")
+          .limit(1);
+        if (!cancelled && assets && assets.length > 0 && assets[0].content) {
+          setHasManuscript(true);
+          setManuscriptChars(assets[0].content.length);
         }
       } catch { /* noop */ }
 
-      setDataReady(true);
+      if (!cancelled) setDataReady(true);
+
+      // Hydrate consultation + plan in parallel; UI is already painted.
+      const consultationPromise = fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consultation-session`, {
+        method: "POST", headers: authHeaders, body: JSON.stringify({ action: "count", book_id: book.id }),
+      }).then(r => r.json()).then(result => {
+        if (!cancelled) setHasConsultation((result.count ?? 0) > 0);
+      }).catch(() => { if (!cancelled) setHasConsultation(false); });
+
+      const planPromise = fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/business-consultant`, {
+        method: "POST", headers: authHeaders, body: JSON.stringify({ action: "get-plan", bookId: book.id }),
+      }).then(r => r.ok ? r.json() : null).then(planResult => {
+        if (!cancelled && planResult?.content) {
+          setPlanContent(planResult.content);
+          setPlanSections(extractSections(planResult.content));
+        }
+      }).catch(() => { /* noop */ });
+
+      await Promise.all([consultationPromise, planPromise]);
     }
     checkData();
+    return () => { cancelled = true; };
   }, [book.id]);
 
-  if (!dataReady || progress.loading) return <BookHubSkeleton />;
+  // Bug 2 fix: only block the page on dataReady (cheap local check). Don't wait
+  // for progress.loading — render the shell immediately; the Next Steps block
+  // shows its own inline loader.
+  if (!dataReady) return <BookHubSkeleton />;
 
   const handleDownloadPlan = async () => {
     if (!planContent) return;
@@ -337,26 +342,34 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         );
       })()}
 
-      {/* 3. Your Next 3 Steps */}
-      {progress.topNextSteps.length > 0 && (
+      {/* 3. Your Next Steps — inline loader while progress hydrates, prevents full-page skeleton flash. */}
+      {(progress.loading || progress.topNextSteps.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/70 flex items-center gap-1.5">
-              <ArrowRight className="h-3.5 w-3.5" /> Your Next {progress.topNextSteps.length} Step{progress.topNextSteps.length === 1 ? "" : "s"}
+              <ArrowRight className="h-3.5 w-3.5" /> Your Next {progress.loading ? "" : progress.topNextSteps.length} Step{progress.topNextSteps.length === 1 ? "" : "s"}
             </h2>
-            <button onClick={() => onNavigateTab("revenue-streams")} className="text-xs text-secondary hover:underline font-semibold">
-              See full journey →
-            </button>
+            {!progress.loading && (
+              <button onClick={() => onNavigateTab("revenue-streams")} className="text-xs text-secondary hover:underline font-semibold">
+                See full journey →
+              </button>
+            )}
           </div>
-          <JourneyStepper
-            nodes={progress.topNextSteps}
-            bookId={book.id}
-            bookTitle={book.title}
-            highlightNodeId={progress.topNextSteps[0]?.id || null}
-            accent={accent}
-            onUpgrade={() => navigate("/dashboard?section=build-business")}
-            onNavigateSection={(s) => navigate(`/dashboard?section=${s}&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
-          />
+          {progress.loading ? (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground py-3">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading your next steps…
+            </div>
+          ) : (
+            <JourneyStepper
+              nodes={progress.topNextSteps}
+              bookId={book.id}
+              bookTitle={book.title}
+              highlightNodeId={progress.topNextSteps[0]?.id || null}
+              accent={accent}
+              onUpgrade={() => navigate("/dashboard?section=build-business")}
+              onNavigateSection={(s) => navigate(`/dashboard?section=${s}&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
+            />
+          )}
         </div>
       )}
 
