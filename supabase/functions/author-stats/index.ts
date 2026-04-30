@@ -220,7 +220,7 @@ Deno.serve(async (req) => {
           .from("author_nodes")
           .select("node_id, status, book_id, content_json")
           .in("author_id", allProfileIds)
-          .in("status", ["content_ready", "live", "published_pending_ghl"])
+          .in("status", ["content_ready", "live"])
       : { data: [] };
 
     // Mirror src/lib/node-readiness.ts so the dashboard counter matches the
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
     const builtNodeIds = new Set<string>();
     const builtRows: Array<{ node_id: string; book_id: string | null }> = [];
     for (const n of (authorNodes || []) as any[]) {
-      const isLiveStatus = n.status === "live" || n.status === "published_pending_ghl";
+      const isLiveStatus = n.status === "live";
       if (!isLiveStatus) continue;
       if (!hasRequiredAssets(n.node_id, n.content_json)) continue;
       builtNodeIds.add(n.node_id);

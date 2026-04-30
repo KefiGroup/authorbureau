@@ -347,9 +347,9 @@ Deno.serve(async (req) => {
     // ---------------------------------------------------------------
     // Count products per book — canonical source is `author_nodes`.
     // Each of the 28 builders writes to author_nodes (status: live |
-    // content_ready | published_pending_ghl). The legacy generated_assets
-    // "builder_content_*" prefix and the per-product tables (courses,
-    // audiobooks, etc.) are kept as a fallback for very old accounts.
+    // content_ready). The legacy generated_assets "builder_content_*"
+    // prefix and the per-product tables (courses, audiobooks, etc.)
+    // are kept as a fallback for very old accounts.
     // ---------------------------------------------------------------
     const productCounts: Record<string, number> = {};
     const categoryCounts: Record<string, { brand: number; build: number; yield: number }> = {};
@@ -363,7 +363,7 @@ Deno.serve(async (req) => {
         .from("author_nodes")
         .select("book_id, node_id, node_name, status, microsite_url, delivery_url")
         .in("book_id", bookIds)
-        .in("status", ["live", "content_ready", "published_pending_ghl"]);
+        .in("status", ["live", "content_ready"]);
 
       for (const r of nodeRows || []) {
         if (!r.book_id || !r.node_id) continue;
