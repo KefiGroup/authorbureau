@@ -34,7 +34,7 @@ serve(async (req) => {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from("author_profiles")
-      .select("ghl_sub_account_id, pen_name, user_id, methodology_name, sign_off_phrase, quiz_name")
+      .select("pen_name, user_id, methodology_name, sign_off_phrase, quiz_name")
       .eq("id", author_id)
       .single();
 
@@ -46,7 +46,6 @@ serve(async (req) => {
     }
 
     const authorUserId = profile.user_id;
-    const ghlSubAccountId = profile.ghl_sub_account_id;
     console.log("[microsite-action] 🔑 Author resolution:", JSON.stringify({
       author_profile_id: author_id,
       author_user_id: authorUserId,
@@ -55,7 +54,6 @@ serve(async (req) => {
       action_type,
       email: email?.toLowerCase?.().trim(),
     }));
-    const GHL_API_KEY = Deno.env.get("GHL_API_KEY") || Deno.env.get("GHL_SUBACCOUNT_KEY") || "";
 
     // Tag map
     const tagMap: Record<string, string> = {
@@ -84,38 +82,6 @@ serve(async (req) => {
     const tag = tagMap[`${node_id}:${action_type}`] || `${node_id.toLowerCase()}-${action_type}`;
     const fullName = [first_name, last_name].filter(Boolean).join(" ") || email;
     const cleanEmail = email.toLowerCase().trim();
-
-    // ─── GHL Contact (skip for quiz completions to avoid wrong automation email) ───
-    console.log("[microsite-action] Tag resolved:", tag, "| GHL sub:", ghlSubAccountId, "| isQuiz:", !!(node_id === "BP-02" && quiz_stage));
-    let ghlContactId: string | null = null;
-    const skipGhl = node_id === "BP-02" && quiz_stage;
-    if (ghlSubAccountId && GHL_API_KEY && !skipGhl) {
-      try {
-        const ghlRes = await fetch("https://services.leadconnectorhq.com/contacts/", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${GHL_API_KEY}`,
-            "Content-Type": "application/json",
-            Version: "2021-07-28",
-          },
-          body: JSON.stringify({
-            locationId: ghlSubAccountId,
-            email: cleanEmail,
-            firstName: first_name || "",
-            lastName: last_name || "",
-            tags: [tag],
-            source: `Authors Bureau - ${node_id}`,
-            ...(extra.company ? { companyName: extra.company } : {}),
-          }),
-        });
-        const ghlData = await ghlRes.json();
-        ghlContactId = ghlData?.contact?.id || null;
-      } catch (ghlErr) {
-        console.error("GHL contact creation failed:", ghlErr);
-      }
-    } else if (skipGhl) {
-      console.log("[microsite-action] ⏭ Skipping GHL contact for quiz completion to avoid automation email");
-    }
 
     // ─── Author Subscribers + Sequence Auto-Enroll ───
     console.log("[microsite-action] ▶ enroll-subscriber for", cleanEmail);
