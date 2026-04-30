@@ -122,17 +122,6 @@ const PLACEHOLDER_PATTERNS: RegExp[] = [
   /\bUntitled\b/g,
 ];
 
-// Short connector words that become grammatical orphans when the noun phrase
-// after them is stripped (e.g. "At [insert org] we will" -> "At  we will" ->
-// "At we will"). We look for the double-space gap left by placeholder removal
-// and, if the word immediately before it is one of these prepositions/articles,
-// we delete that word along with the gap.
-const ORPHAN_BEFORE_GAP_RE =
-  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s{2,}/gi;
-// Also handle ". " trailing the placeholder where it ate the noun ("go to .")
-const ORPHAN_BEFORE_PUNCT_RE =
-  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[.,;:!?)])/gi;
-
 /** Drop bracketed placeholder tokens and obvious filler. */
 function stripPlaceholdersString(input: string): string {
   if (!input || typeof input !== "string") return input;
