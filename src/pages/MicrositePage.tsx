@@ -1742,13 +1742,20 @@ function JVPartnersPage({ data, content, v, hFont, bgColor, onSubmit, email, set
             <div className="space-y-4">
               <h2 className="text-xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Ideal Partners</h2>
               <div className="grid sm:grid-cols-2 gap-4">
-                {partners.map((p: any, i: number) => (
-                  <Card key={i} className="p-4 space-y-2" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                    <h3 className="font-semibold" style={{ color: v.headingText }}>{typeof p === "string" ? p : p.name || p.title || p.type}</h3>
-                    {typeof p === "object" && p.description && <p className="text-sm" style={{ color: v.bodyText }}>{p.description}</p>}
-                    {typeof p === "object" && p.audience && <p className="text-xs" style={{ color: v.mutedText }}>Audience: {p.audience}</p>}
-                  </Card>
-                ))}
+                {partners.map((p: any, i: number) => {
+                  const heading = typeof p === "string" ? p : (p.profile_type || p.name || p.title || p.type || `Partner ${i + 1}`);
+                  const examples = typeof p === "object" && Array.isArray(p.examples) ? p.examples.filter(Boolean) : [];
+                  return (
+                    <Card key={i} className="p-4 space-y-2" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                      <h3 className="font-semibold leading-snug" style={{ color: v.headingText }}>{heading}</h3>
+                      {typeof p === "object" && p.description && <p className="text-sm" style={{ color: v.bodyText }}>{p.description}</p>}
+                      {typeof p === "object" && p.why_good_fit && <p className="text-sm" style={{ color: v.bodyText }}><span className="font-medium" style={{ color: v.headingText }}>Why a fit: </span>{p.why_good_fit}</p>}
+                      {examples.length > 0 && <p className="text-xs" style={{ color: v.mutedText }}>Examples: {examples.join(", ")}</p>}
+                      {typeof p === "object" && p.audience && <p className="text-xs" style={{ color: v.mutedText }}>Audience: {p.audience}</p>}
+                      {typeof p === "object" && p.revenue_model && <p className="text-xs" style={{ color: v.mutedText }}>Revenue: {p.revenue_model}</p>}
+                    </Card>
+                  );
+                })}
               </div>
             </div>
           )}
