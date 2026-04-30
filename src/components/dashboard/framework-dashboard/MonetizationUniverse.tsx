@@ -54,7 +54,7 @@ const STREAMS: StreamGroup[] = [
       { label: "Podcast Tour", price: "Marketing asset", status: "locked", requiredTier: "Pro" },
       { label: "Media Outreach", price: "Marketing asset", status: "locked", requiredTier: "Pro" },
       { label: "Affiliates", price: "Commission-based", status: "locked", requiredTier: "Pro" },
-      { label: "Upsells / Downsells", price: "Varies", status: "locked", requiredTier: "Pro" },
+      { label: "Bundles", price: "Varies", status: "locked", requiredTier: "Pro" },
       { label: "Revenue Sharing", price: "Commission-based", status: "locked", requiredTier: "Pro" },
     ],
   },

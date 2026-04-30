@@ -41,13 +41,13 @@ const META: BuilderNodeMeta[] = [
 
   // Build Authority (BA) — category "bridge"
   { id: "BA-10", label: "Online Course", icon: "GraduationCap", emoji: "🎓", category: "bridge" },
-  { id: "BA-11", label: "Home Study Course", icon: "BookMarked", emoji: "🏠", category: "bridge" },
+  { id: "BA-11", label: "Audiobook", icon: "Headphones", emoji: "🎧", category: "bridge" },
   { id: "BA-12", label: "Membership", icon: "Users", emoji: "🔁", category: "bridge" },
   { id: "BA-13", label: "Group Coaching", icon: "Users", emoji: "👥", category: "bridge" },
   { id: "BA-14", label: "Podcast Tour", icon: "Mic", emoji: "🎤", category: "bridge" },
   { id: "BA-15", label: "Media & PR", icon: "Megaphone", emoji: "📰", category: "bridge" },
   { id: "BA-16", label: "Affiliates", icon: "Heart", emoji: "🤝", category: "bridge" },
-  { id: "BA-17", label: "Upsells", icon: "BarChart3", emoji: "📈", category: "bridge" },
+  { id: "BA-17", label: "Bundles", icon: "BarChart3", emoji: "📈", category: "bridge" },
   { id: "BA-18", label: "JV Partnerships", icon: "Network", emoji: "🤲", category: "bridge" },
 
   // Yield Revenue (YR) — category "yield"

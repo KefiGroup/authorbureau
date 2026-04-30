@@ -1,77 +1,88 @@
-## Audit 9 — Error Handling & Edge Cases
+## Audit 10 — Cross-Node Consistency
 
-Goal: guarantee no page can show a blank white screen, a never-resolving spinner, or raw JSON errors. Every failure must produce a human-readable message with a clear next action.
+Goal: every one of the 28 nodes must behave identically — same back-link wording, same badge rules, same URL shape, same canonical name everywhere. A single inconsistency fails the audit.
 
-### Findings from exploration
+### Findings
 
-1. **No global React error boundary** — only `YRSafeBoundary` exists, and it only wraps Yield builders. If any other page throws during render (e.g. malformed AI payload, unexpected null), the user sees a blank white screen. This is the single biggest gap for the audit's "no blank screens" rule.
-2. **AbbyHelpChatbot ref warning** — console keeps showing `Function components cannot be given refs` from `AbbyHelpChatbotImpl`. The existing `forwardRef` wrapper on the outer component doesn't silence it because the warning fires on the *inner* function. Needs to be wrapped properly or have the warning's source removed.
-3. **Shared-auth lock-timeout warnings** — gotrue emits `Lock "lock:authorsbureau-shared-auth" acquisition timed out after 2000ms` repeatedly. This is by design (we deliberately set a 2s fast-fail timeout in `shared-backend.ts`) and the cached-token fallback handles it. But the noisy `console.warn` violates Audit Level 1 ("zero red/yellow noise on every page"). Needs to be filtered.
-4. **Form validation, empty states, edge-function errors, auth redirects** — already in good shape across the app (verified during prior audits 1–8). Only spot-checks needed.
+**Already passing (verified during exploration):**
 
-### What we will build
+- Canonical `/node-builder/:nodeId` route in `src/pages/NodeBuilder.tsx` already routes back via `getHubLabel` → `Book Hub · Brand|Build|Yield`, and `getHubPath` preserves the right tab + bookId.
+- `buildNodeBuilderHref()` in `src/lib/node-builder-nav.ts` enforces `?bookId=…` on every sibling-node hop.
+- Live-badge logic in `src/hooks/useBookNodeProgress.ts` is bookId-scoped, requires both `status === "live"` AND `hasRequiredAssets()` — empty content can never show Live.
+- Products Built counter uses bookId-scoped `centralStats.products.perBook[bookId]`.
+- Public-page slugs match `/[author-slug]/[product-slug]` per the `compute_node_microsite_url` DB function.
 
-#### Block 1 — Global Error Boundary
+**Failures needing a fix:**
 
-Create `src/components/GlobalErrorBoundary.tsx`:
+1. **BA-11 mislabeled.** `builderNodeConfig.ts` says "Home Study Course" — collides with BP-07. Builder code, audiobook memory rule, and DB slug all say **"Audiobook"**. → Update config to `Audiobook`, emoji `🎧`, icon `Headphones`.
 
-- Class component implementing `componentDidCatch` + `getDerivedStateFromError`.
-- Friendly fallback UI: navy card, "Something went wrong" heading, ABBY-voiced message via `toAbbyError`, "Try again" button (resets boundary state) and "Go home" link.
-- Logs the error + stack to console (dev only) and to a future telemetry hook (no-op for now).
-- Wrap `<App />` contents in `src/App.tsx` between `TooltipProvider` and `BrowserRouter` so every route is protected.
+2. **BA-17 label drift.** Config: "Upsells". Builder header: "Upsells / Downsells". DB slug: `bundles`. User decision: canonical name = **"Bundles"**. → Update config label to `Bundles` and the BA17 builder header to match.
 
-#### Block 2 — Fix AbbyHelpChatbot ref warning
+3. **`BookBuilderContextBar.tsx` shows bare "Back to Book Hub".** Audit explicitly requires the category suffix. → Append `· Brand` / `· Build` / `· Yield` based on the resolved tab (`revenue-streams` → Brand, `marketing-channels` → Build, `authority-builders` → Yield, `overview` → no suffix).
 
-The current pattern wraps `AbbyHelpChatbotImpl` (a plain function) inside a `forwardRef` that just renders `<AbbyHelpChatbotImpl />`. React still warns because something in the tree is passing a ref to the *inner* function (likely Radix/`asChild` children rendered inside the chatbot).
+4. **`NodeBuilder.tsx` "Coming Soon" fallback.** When a node id has no registered builder, the fallback button says "Back to Dashboard" and routes to `/dashboard`. → Reuse the same `getHubPath` / `getHubLabel` so the fallback also returns to the correct Book Hub tab. Also: every registered node already has a builder, so the fallback is mostly defensive.
 
-Fix: convert `AbbyHelpChatbotImpl` itself to `forwardRef<HTMLDivElement>` and attach the ref to the root container `<div>`. Remove the redundant outer wrapper and export the inner component directly.
+### What we will change
 
-#### Block 3 — Silence shared-auth lock-timeout console noise
+#### Block 1 — Fix canonical node names
 
-In `src/lib/shared-backend.ts`, add a one-time install (top of the module) that monkey-patches `console.warn` only for messages matching `/lock:authorsbureau-shared-auth.*acquisition timed out/i`, downgrading them to `console.debug`. Other warnings pass through untouched. This is the same pattern used by Supabase community projects to mute the same gotrue noise in dev.
+- `src/components/dashboard/builders/builderNodeConfig.ts`
+  - BA-11: `label: "Audiobook"`, `icon: "Headphones"`, `emoji: "🎧"`
+  - BA-17: `label: "Bundles"`, keep `icon: "BarChart3"`, `emoji: "📈"`
 
-Acceptance: open DevTools, refresh dashboard, see zero yellow lock-timeout warnings while the cached-token path keeps working.
+- `src/components/dashboard/builders/ba17/BA17Builder.tsx`
+  - Replace the header `"Upsells / Downsells"` with `"Bundles"` (line 102) and the toast `"Your Bundles page is live on your site."` is already correct. Update `nodeName: "Upsells & Downsells"` in the `autosaveBuilderDraft` call (line 76) to `"Bundles"`.
+
+- Sweep for any other UI string `Upsells & Downsells` or `Upsells / Downsells` and replace with `Bundles`. Same for any string `Home Study Course` paired with `BA-11` (BP-07's identical label stays).
+
+#### Block 2 — Add category suffix to legacy `BookBuilderContextBar`
+
+- `src/components/dashboard/BookBuilderContextBar.tsx`
+  - Add a small `getSuffix(tab)` mapping: `revenue-streams` → "Brand", `marketing-channels` → "Build", `authority-builders` → "Yield", anything else → null.
+  - Render `Back to Book Hub{suffix && ` · ${suffix}`}`.
+  - No prop changes; the existing `backTab` prop already gets aliased through `BACK_TAB_ALIASES`.
+
+#### Block 3 — Harden `NodeBuilder.tsx` Coming Soon fallback
+
+- Replace the bare `<button>` with a `<Link to={getHubPath(nodeId, bookId, from)}>` rendering `Back to {getHubLabel(nodeId, bookId, from)}`.
+- Same back-link styling as the active path so users can't tell which path they're on.
 
 #### Block 4 — 8-Level QA verification
 
-Run the audit checklist on the live preview:
-
-- L1 Console/Network — verify zero red errors and zero yellow warnings on `/`, `/dashboard`, `/readers-bureau`, `/auth`, `/marketing`.
-- L2 Buttons — spot check primary CTAs on dashboard, marketing hub, and a public microsite.
-- L3 Empty states — already verified in audit 1; re-check CRM and Revenue tabs render their empty-state copy.
-- L4 Data flow — out of scope for an error-handling audit; carry forward from audit 5.
-- L5 Mobile — re-check at 375px on `/` and `/dashboard` (carry from audit 8).
-- L6 Auth — incognito visit to `/dashboard` should redirect to `/auth`, not crash.
-- L7 Errors — force-throw inside a route to confirm the new GlobalErrorBoundary fallback UI renders (not a blank screen).
-- L8 Navigation — every error-state UI we add will have at minimum a "Try again" + "Go home" pair.
+- L1 Console/Network: load Book Hub for a real book, open one node from each tab (BP-03, BA-11, YR-22), expect zero red errors / failed requests.
+- L2 Buttons: click each back button → returns to correct tab.
+- L3 Empty states: a node with no `author_nodes` row shows ⭐ Recommended, never ✅ Live (already enforced by `useBookNodeProgress`).
+- L4 Data flow: rename strings only, no DB writes — verify by reading existing rows that nothing renders the old labels.
+- L5 Mobile (375px): back-link wraps cleanly on the Book Hub card.
+- L6 Auth: incognito visit to `/node-builder/BA-11?bookId=…` → redirected by existing auth guard.
+- L7 Errors: invalid `nodeId` (e.g. `/node-builder/BP-99`) → new fallback now offers correct Book Hub link, not "Back to Dashboard".
+- L8 Navigation: back link + sibling-node nav both work; no dead ends.
 
 ### Files we will touch
 
 ```text
-NEW     src/components/GlobalErrorBoundary.tsx     (~80 lines)
-EDIT    src/App.tsx                                 (wrap routes in boundary)
-EDIT    src/components/AbbyHelpChatbot.tsx          (convert impl to forwardRef, remove wrapper)
-EDIT    src/lib/shared-backend.ts                   (filter lock-timeout warn)
+EDIT  src/components/dashboard/builders/builderNodeConfig.ts   (BA-11, BA-17 labels)
+EDIT  src/components/dashboard/builders/ba17/BA17Builder.tsx   (header + nodeName)
+EDIT  src/components/dashboard/BookBuilderContextBar.tsx       (category suffix)
+EDIT  src/pages/NodeBuilder.tsx                                (fallback back-link)
 ```
 
-No DB migrations, no edge function changes, no breaking changes to existing UI. All changes are purely defensive / cosmetic.
+No DB migrations. No edge function changes. No public-URL slug changes (BA-17 stays `/bundles`, BA-11 keeps the audiobook flow it already uses).
 
-### Out of scope
+### Memory update at the end
 
-- Per-builder boundaries (`YRSafeBoundary`) stay as-is.
-- We will not change the 2s lock timeout itself — only the noisy log.
-- We will not add Sentry / external telemetry yet (placeholder only).
+Append to `mem://core` (or refresh the Canonical Node Names rule): explicitly list **BA-11 = Audiobook** and **BA-17 = Bundles** so future generators don't re-introduce the drift.
 
-### Expected report at end
+### Expected report
 
 ```text
-LEVEL 1: PASS  (console + network clean)
-LEVEL 2: PASS  (no silent failures)
-LEVEL 3: PASS  (empty states already shipped)
-LEVEL 4: PASS  (carry from audit 5)
-LEVEL 5: PASS  (carry from audit 8)
-LEVEL 6: PASS  (auth redirects already wired)
-LEVEL 7: PASS  (GlobalErrorBoundary catches render crashes)
-LEVEL 8: PASS  (every error UI offers Try again + Go home)
+LEVEL 1: PASS
+LEVEL 2: PASS
+LEVEL 3: PASS  (badge gate already correct)
+LEVEL 4: PASS  (renames only)
+LEVEL 5: PASS
+LEVEL 6: PASS  (existing auth guard unchanged)
+LEVEL 7: PASS  (fallback no longer dead-ends)
+LEVEL 8: PASS
 OVERALL: PASS
 ```

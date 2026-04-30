@@ -391,7 +391,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
             const streamMap: Record<string, string> = {
               "Online Courses": "courses", "Home Study Courses": "home-study",
               "Workbooks": "workbooks", "Audiobook": "audiobook-studio",
-              "Monthly Memberships": "memberships", "Upsells / Downsells": "revenue-streams",
+              "Monthly Memberships": "memberships", "Bundles": "revenue-streams",
               "Social Media Calendar": "social-media", "Webinars": "webinars",
               "Podcasts (Guest)": "podcast", "Website / Microsite": "microsite-manager",
               "Email Marketing": "email-marketing", "1-on-1 Coaching": "coaching",

@@ -1,4 +1,4 @@
-import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -65,7 +65,6 @@ export default function NodeBuilder() {
   const bookId = searchParams.get("bookId");
   const from = searchParams.get("from");
   const { user, loading: authLoading } = useAuth();
-  const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -164,12 +163,13 @@ export default function NodeBuilder() {
         <p className="text-muted-foreground mb-6">
           The builder for node {nodeId} is not available yet.
         </p>
-        <button
-          onClick={() => navigate("/dashboard")}
-          className="text-primary underline"
+        <Link
+          to={getHubPath(nodeId ?? "", bookId, from)}
+          className="inline-flex items-center gap-1.5 text-primary underline"
         >
-          Back to Dashboard
-        </button>
+          <ArrowLeft className="h-4 w-4" />
+          Back to {getHubLabel(nodeId ?? "", bookId, from)}
+        </Link>
       </div>
     </DashboardLayout>
   );
