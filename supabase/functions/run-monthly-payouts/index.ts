@@ -9,11 +9,8 @@ const corsHeaders = {
 
 const MIN_PAYOUT_USD = 50;
 // Per the Payout Agreement, the 8% platform fee covers ALL payment-processing
-// costs (Stripe checkout fees, Stripe Connect transfer fees, PayPal Payouts API
-// fees). These constants are kept ONLY for internal margin reporting on
-// `author_payouts_v2.payout_fee_usd`. They MUST NEVER be subtracted from the
-// author's payout amount — the author always receives exactly net_usd (92%).
-const PAYPAL_FEE_PCT = 0.02;
+// costs (Stripe checkout fees, Stripe Connect transfer fees). The author
+// always receives exactly net_usd (92%) — payout fees are NEVER deducted.
 const STRIPE_TRANSFER_FEE_USD = 0;
 
 interface Earning {
@@ -24,58 +21,6 @@ interface Earning {
   platform_fee_usd: number;
   net_usd: number;
   earned_at: string;
-}
-
-// --- PayPal Payouts API helpers (dormant when secrets missing) ----------
-const PAYPAL_CLIENT_ID = Deno.env.get("PAYPAL_CLIENT_ID");
-const PAYPAL_SECRET = Deno.env.get("PAYPAL_SECRET");
-const PAYPAL_MODE = (Deno.env.get("PAYPAL_MODE") ?? "live").toLowerCase();
-const PAYPAL_BASE = PAYPAL_MODE === "sandbox"
-  ? "https://api-m.sandbox.paypal.com"
-  : "https://api-m.paypal.com";
-
-async function getPayPalAccessToken(): Promise<string> {
-  const creds = btoa(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`);
-  const res = await fetch(`${PAYPAL_BASE}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${creds}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: "grant_type=client_credentials",
-  });
-  if (!res.ok) throw new Error(`PayPal OAuth failed [${res.status}]: ${await res.text()}`);
-  const json = await res.json();
-  return json.access_token as string;
-}
-
-interface PayPalItem { email: string; amount: number; ref: string; note: string; sender_item_id: string; }
-async function createPayPalBatch(items: PayPalItem[], senderBatchId: string): Promise<string> {
-  const accessToken = await getPayPalAccessToken();
-  const res = await fetch(`${PAYPAL_BASE}/v1/payments/payouts`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      sender_batch_header: {
-        sender_batch_id: senderBatchId,
-        email_subject: "You have a payout from Authors Bureau",
-        email_message: "Your monthly royalty payout from Authors Bureau is in your PayPal account.",
-      },
-      items: items.map((i) => ({
-        recipient_type: "EMAIL",
-        amount: { value: i.amount.toFixed(2), currency: "USD" },
-        receiver: i.email,
-        note: i.note,
-        sender_item_id: i.sender_item_id,
-      })),
-    }),
-  });
-  if (!res.ok) throw new Error(`PayPal Payouts API failed [${res.status}]: ${await res.text()}`);
-  const json = await res.json();
-  return json.batch_header?.payout_batch_id as string;
 }
 
 serve(async (req) => {
