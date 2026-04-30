@@ -180,25 +180,28 @@ export default function BP05Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("deploy-bp05-to-ghl", {
-        body: { author_id: authorId, content_payload: content },
-      });
-      if (fnErr) throw new Error(fnErr.message || "Activation failed");
-      const status = data?.status || "live";
-      const liveUrl = data?.liveUrl;
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: status, liveUrl }));
-      // Fire-and-forget: ensure email sequence + funnel exist for BP-05
+      // Native activation: write status='live' directly to author_nodes.
+      const { data: row, error: upErr } = await supabase
+        .from("author_nodes")
+        .update({
+          status: "live",
+          activated_at: new Date().toISOString(),
+          content_json: content,
+        })
+        .eq("author_id", authorId)
+        .eq("node_id", "BP-05")
+        .select("microsite_url")
+        .single();
+      if (upErr) throw new Error(upErr.message || "Activation failed");
+      const liveUrl = row?.microsite_url ?? undefined;
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "live", liveUrl }));
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-05" });
       ensureFunnel({ authorId: authorId!, nodeId: "BP-05", funnelType: "webinar" });
-      if (status === "published_pending_ghl") {
-        toast.success("Webinars saved ✅", { description: "Content saved — connect your Marketing Hub to go live." });
-      } else {
-        toast.success("Webinars are live! 🎉");
-      }
+      toast.success("Webinars are live! 🎉");
     } catch (e: any) {
-      console.error("Publish error (non-blocking):", e.message);
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "published_pending_ghl" }));
-      toast.success("Content saved ✅", { description: "Connect your Marketing Hub to go live." });
+      console.error("Publish error:", e.message);
+      setError(e.message);
+      toast.error("Publish failed", { description: e.message });
     }
   };
 

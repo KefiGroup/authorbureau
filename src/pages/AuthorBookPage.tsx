@@ -353,7 +353,7 @@ export default function AuthorBookPage() {
             .from("author_nodes")
             .select("node_id, node_name, personalised_name, status, price_usd, currency")
             .eq("author_id", profile.id)
-            .in("status", ["live", "published_pending_ghl"])
+            .eq("status", "live")
         : Promise.resolve({ data: [] as any[] }),
     ]);
 

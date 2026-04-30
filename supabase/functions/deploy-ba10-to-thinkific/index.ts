@@ -42,24 +42,9 @@ serve(async (req) => {
     const eMessage = e instanceof Error ? e.message : String(e); console.error("Stripe error (non-blocking):", eMessage); }
     }
 
-    let locationId = author.ghl_sub_account_id;
-    if (!locationId) {
-      try {
-        const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/provision-ghl-subaccount`, { method: "POST", headers: { "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`, "Content-Type": "application/json" }, body: JSON.stringify({ author_id }) });
-        const d = await r.json();
-        locationId = d?.ghl_subaccount_id || null;
-      } catch (e) { console.error("GHL provision error:", e); }
-    }
-    const GHL_AGENCY_KEY = Deno.env.get("GHL_AGENCY_KEY");
-    if (locationId && GHL_AGENCY_KEY) {
-      try {
-        await fetch(`${GHL_BASE_URL}/opportunities/`, { method: "POST", headers: { Authorization: `Bearer ${GHL_AGENCY_KEY}`, "Content-Type": "application/json", Version: "2021-07-28" }, body: JSON.stringify({ locationId, name: title, pipelineId: "online-courses", status: "open", monetaryValue: price }) });
-      } catch (e) { console.error("GHL opportunity error:", e); }
-    }
-
     content.payment_link_url = paymentLinkUrl;
     const micrositeUrl = `https://authorsbureau.com/${authorSlug}/online-course`;
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinkUrl, content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinkUrl }).eq("author_id", author_id).eq("node_id", "BA-10");
+    await supabase.from("author_nodes").update({ status: "live", content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinkUrl }).eq("author_id", author_id).eq("node_id", "BA-10");
 
     return new Response(JSON.stringify({ success: true, payment_link_url: paymentLinkUrl }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {

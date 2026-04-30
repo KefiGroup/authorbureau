@@ -127,7 +127,6 @@ serve(async (req) => {
       !!node &&
       (
         node.status === "live" ||
-        node.status === "published_pending_ghl" ||
         (node.status === "content_ready" && cj.activated === true)
       );
 
@@ -194,7 +193,6 @@ serve(async (req) => {
           microsite_url: node.microsite_url,
           payment_link: node.payment_link,
           third_party_url: node.third_party_url,
-          ghl_resource_id: node.ghl_resource_id,
           price_usd: node.price_usd,
           currency: node.currency,
         },

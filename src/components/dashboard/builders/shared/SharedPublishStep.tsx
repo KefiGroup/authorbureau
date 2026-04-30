@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles,
-  ArrowRight, Settings, BarChart3, Copy, ExternalLink, AlertTriangle, Info, CreditCard,
+  ArrowRight, BarChart3, Copy, ExternalLink, Info,
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
@@ -63,7 +63,6 @@ export default function SharedPublishStep({
   const savedStatus = stepData.publishStatus as string | undefined;
   const savedLiveUrl = stepData.publishLiveUrl as string | undefined;
   const isLive = savedStatus === "live";
-  const isPendingGhl = savedStatus === "published_pending_ghl";
 
   // Detect paid product from stepData (works for any builder shape).
   const isPaid = isPaidNode(stepData);
@@ -75,14 +74,6 @@ export default function SharedPublishStep({
     : baseChecks;
   const allReady = checks.every(c => c.done);
   const proj = revenue.calculate(stepData);
-
-  // Determine button label
-  const getButtonLabel = () => {
-    if (publishing) return "Publishing…";
-    if (isLive) return "Update Live Funnel";
-    if (isPendingGhl) return "Retry Publish";
-    return `Publish to Marketing Hub`;
-  };
 
   const handlePublish = async () => {
     // Pre-flight: paid product requires Stripe Connect.
@@ -112,11 +103,7 @@ export default function SharedPublishStep({
         publishMessage: result?.message,
       }));
 
-      if (status === "published_pending_ghl") {
-        toast({ title: `${builderLabel} saved ✅`, description: "Content saved — connect your Marketing Hub to go live." });
-      } else {
-        toast({ title: `${builderLabel} is live! 🎉` });
-      }
+      toast({ title: `${builderLabel} is live! 🎉` });
     } catch (err: any) {
       if (err instanceof StripeRequiredError) {
         setStripeModalOpen(true);
@@ -167,10 +154,9 @@ export default function SharedPublishStep({
           <div className="text-sm text-muted-foreground space-y-1">
             <p className="font-medium text-foreground">How publishing works</p>
             <ol className="list-decimal list-inside space-y-0.5 text-xs">
-              <li>Click <strong>Publish to Marketing Hub</strong> to save your {builderLabel.toLowerCase()}</li>
-              <li>Click <strong>Connect Settings</strong> in the left sidebar → then click <strong>Connect Now</strong></li>
-              <li>Come back here and click <strong>Retry Publish</strong> — your opt-in page goes live with a shareable link</li>
-              <li>Share your live link or click <strong>Marketing Hub</strong> in the sidebar to distribute</li>
+              <li>Click <strong>Publish to Marketing Hub</strong> to take your {builderLabel.toLowerCase()} live</li>
+              <li>You'll get a shareable link instantly — no extra setup required</li>
+              <li>Click <strong>Marketing Hub</strong> in the sidebar to distribute it across channels</li>
             </ol>
           </div>
         </div>
@@ -224,49 +210,31 @@ export default function SharedPublishStep({
       </Card>
 
       {/* Persistent status panel */}
-      {(isLive || isPendingGhl) && (
-        <Card className={`p-5 ${isLive ? "border-accent/20 bg-gradient-to-br from-accent/5 to-transparent" : "border-orange-400/20 bg-gradient-to-br from-orange-50/50 to-transparent dark:from-orange-950/20"}`}>
+      {isLive && (
+        <Card className="p-5 border-accent/20 bg-gradient-to-br from-accent/5 to-transparent">
           <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${isLive ? "bg-accent/10" : "bg-orange-100 dark:bg-orange-900/30"}`}>
-              {isLive ? <Check className="h-5 w-5 text-accent" /> : <AlertTriangle className="h-5 w-5 text-orange-500" />}
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-accent/10">
+              <Check className="h-5 w-5 text-accent" />
             </div>
             <div className="flex-1">
-              {isLive ? (
-                <>
-                  <p className="text-sm font-semibold text-accent mb-1">Your {builderLabel.toLowerCase()} is live! 🎉</p>
-                  {savedLiveUrl && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-[300px]">{savedLiveUrl}</code>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyUrl(savedLiveUrl)}>
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
-                        <a href={savedLiveUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
-                      </Button>
-                    </div>
-                  )}
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Distribute it across social media from the Marketing Hub to start driving traffic.
-                  </p>
-                  <Button size="sm" variant="outline" onClick={() => navigate("/marketing-hub")}>
-                    <BarChart3 className="h-3.5 w-3.5 mr-1.5" /> Go to Marketing Hub <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              <p className="text-sm font-semibold text-accent mb-1">Your {builderLabel.toLowerCase()} is live! 🎉</p>
+              {savedLiveUrl && (
+                <div className="flex items-center gap-2 mb-3">
+                  <code className="text-xs bg-muted px-2 py-1 rounded truncate max-w-[300px]">{savedLiveUrl}</code>
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => copyUrl(savedLiveUrl)}>
+                    <Copy className="h-3.5 w-3.5" />
                   </Button>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-semibold text-orange-600 dark:text-orange-400 mb-1">Content saved — not live yet</p>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Your {builderLabel.toLowerCase()} is saved and ready. To go live:
-                  </p>
-                  <ol className="list-decimal list-inside text-sm text-muted-foreground space-y-1 mb-3">
-                    <li>Click <strong>Connect Settings</strong> in the left sidebar → then click <strong>Connect Now</strong></li>
-                    <li>Once connected, come back here and click <strong>Retry Publish</strong></li>
-                  </ol>
-                  <Button size="sm" variant="outline" onClick={() => onNavigate ? onNavigate("connect-settings") : navigate("/account-settings?tab=connections")}>
-                    <Settings className="h-3.5 w-3.5 mr-1.5" /> Go to Connect Settings <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                  <Button size="sm" variant="ghost" className="h-7 w-7 p-0" asChild>
+                    <a href={savedLiveUrl} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5" /></a>
                   </Button>
-                </>
+                </div>
               )}
+              <p className="text-sm text-muted-foreground mb-3">
+                Distribute it across social media from the Marketing Hub to start driving traffic.
+              </p>
+              <Button size="sm" variant="outline" onClick={() => navigate("/marketing-hub")}>
+                <BarChart3 className="h-3.5 w-3.5 mr-1.5" /> Go to Marketing Hub <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
             </div>
           </div>
         </Card>
@@ -292,9 +260,7 @@ export default function SharedPublishStep({
           {publishing ? (
             <><Sparkles className="h-4 w-4 mr-2 animate-spin" /> Publishing…</>
           ) : isLive ? (
-            <><Check className="h-4 w-4 mr-2" /> Update Live Funnel</>
-          ) : isPendingGhl ? (
-            <><Rocket className="h-4 w-4 mr-2" /> Retry Publish</>
+            <><Check className="h-4 w-4 mr-2" /> Update Live Page</>
           ) : (
             <><Rocket className="h-4 w-4 mr-2" /> Publish to Marketing Hub</>
           )}

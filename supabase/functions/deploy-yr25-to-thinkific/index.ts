@@ -31,14 +31,9 @@ serve(async (req) => {
       }
       paymentLinks.push({ label: item.name, url });
     }
-    const GHL_AGENCY_KEY = Deno.env.get("GHL_AGENCY_KEY");
-    let locationId = author.ghl_sub_account_id;
-    if (locationId && GHL_AGENCY_KEY) {
-      try { await fetch(`${GHL_BASE_URL}/opportunities/`, { method: "POST", headers: { Authorization: `Bearer ${GHL_AGENCY_KEY}`, "Content-Type": "application/json", Version: "2021-07-28" }, body: JSON.stringify({ locationId, name: "certification", pipelineId: "certification", status: "open", monetaryValue: items[0]?.price || 0 }) }); } catch (e) { console.error("GHL error:", e); }
-    }
     content.payment_links = paymentLinks;
     const micrositeUrl = author.author_slug ? `https://authorsbureau.com/${author.author_slug}/certification` : null;
-    await supabase.from("author_nodes").update({ status: "live", ghl_resource_id: paymentLinks[0]?.url || "", content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinks[0]?.url || null }).eq("author_id", author_id).eq("node_id", "YR-25");
+    await supabase.from("author_nodes").update({ status: "live", content_json: content, activated_at: new Date().toISOString(), microsite_url: micrositeUrl, payment_link: paymentLinks[0]?.url || null }).eq("author_id", author_id).eq("node_id", "YR-25");
     return new Response(JSON.stringify({ success: true, payment_links: paymentLinks }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (err) {
     const errMessage = err instanceof Error ? err.message : String(err); console.error("deploy-yr25-to-thinkific error:", errMessage); return new Response(JSON.stringify({ success: false, error: errMessage }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }); }

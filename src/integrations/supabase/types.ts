@@ -597,7 +597,6 @@ export type Database = {
           current_step: number | null
           delivery_type: string | null
           delivery_url: string | null
-          ghl_resource_id: string | null
           id: string
           marketing_activated_at: string | null
           microsite_url: string | null
@@ -626,7 +625,6 @@ export type Database = {
           current_step?: number | null
           delivery_type?: string | null
           delivery_url?: string | null
-          ghl_resource_id?: string | null
           id?: string
           marketing_activated_at?: string | null
           microsite_url?: string | null
@@ -655,7 +653,6 @@ export type Database = {
           current_step?: number | null
           delivery_type?: string | null
           delivery_url?: string | null
-          ghl_resource_id?: string | null
           id?: string
           marketing_activated_at?: string | null
           microsite_url?: string | null
@@ -913,13 +910,6 @@ export type Database = {
           facebook_url: string | null
           frameworks: Json | null
           genres: string[] | null
-          ghl_api_key: string | null
-          ghl_provision_status: string | null
-          ghl_provisioned_at: string | null
-          ghl_provisioning_attempts: number | null
-          ghl_provisioning_failed: boolean | null
-          ghl_sub_account_id: string | null
-          ghl_sub_account_name: string | null
           has_seen_journey_onboarding: boolean
           id: string
           instagram_url: string | null
@@ -971,13 +961,6 @@ export type Database = {
           facebook_url?: string | null
           frameworks?: Json | null
           genres?: string[] | null
-          ghl_api_key?: string | null
-          ghl_provision_status?: string | null
-          ghl_provisioned_at?: string | null
-          ghl_provisioning_attempts?: number | null
-          ghl_provisioning_failed?: boolean | null
-          ghl_sub_account_id?: string | null
-          ghl_sub_account_name?: string | null
           has_seen_journey_onboarding?: boolean
           id?: string
           instagram_url?: string | null
@@ -1029,13 +1012,6 @@ export type Database = {
           facebook_url?: string | null
           frameworks?: Json | null
           genres?: string[] | null
-          ghl_api_key?: string | null
-          ghl_provision_status?: string | null
-          ghl_provisioned_at?: string | null
-          ghl_provisioning_attempts?: number | null
-          ghl_provisioning_failed?: boolean | null
-          ghl_sub_account_id?: string | null
-          ghl_sub_account_name?: string | null
           has_seen_journey_onboarding?: boolean
           id?: string
           instagram_url?: string | null
@@ -3050,70 +3026,6 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      ghl_deployments: {
-        Row: {
-          author_id: string
-          content_snapshot: Json | null
-          deployed_at: string | null
-          deployment_status: string | null
-          error_message: string | null
-          ghl_campaign_ids: Json | null
-          ghl_form_ids: Json | null
-          ghl_pipeline_ids: Json | null
-          ghl_workflow_ids: Json | null
-          id: string
-          node_id: string
-        }
-        Insert: {
-          author_id: string
-          content_snapshot?: Json | null
-          deployed_at?: string | null
-          deployment_status?: string | null
-          error_message?: string | null
-          ghl_campaign_ids?: Json | null
-          ghl_form_ids?: Json | null
-          ghl_pipeline_ids?: Json | null
-          ghl_workflow_ids?: Json | null
-          id?: string
-          node_id: string
-        }
-        Update: {
-          author_id?: string
-          content_snapshot?: Json | null
-          deployed_at?: string | null
-          deployment_status?: string | null
-          error_message?: string | null
-          ghl_campaign_ids?: Json | null
-          ghl_form_ids?: Json | null
-          ghl_pipeline_ids?: Json | null
-          ghl_workflow_ids?: Json | null
-          id?: string
-          node_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ghl_deployments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "author_profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ghl_deployments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "author_profiles_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "ghl_deployments_author_id_fkey"
-            columns: ["author_id"]
-            isOneToOne: false
-            referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
           },
         ]
