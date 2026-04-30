@@ -209,7 +209,7 @@ export default function PayoutSettingsPage() {
             {PAYOUT_OPTIONS.map((opt) => {
               const Icon = opt.icon;
               const isSelected = settings.payout_method === opt.value;
-              const isDisabled = opt.value === "stripe" && !hasStripeConnect;
+              const needsStripeConnect = opt.value === "stripe" && !hasStripeConnect;
 
               return (
                 <label
@@ -218,9 +218,9 @@ export default function PayoutSettingsPage() {
                     isSelected
                       ? "border-secondary bg-secondary/5"
                       : "border-border hover:border-muted-foreground/30"
-                  } ${isDisabled ? "opacity-50" : ""}`}
+                  }`}
                 >
-                  <RadioGroupItem value={opt.value} disabled={isDisabled} className="mt-1" />
+                  <RadioGroupItem value={opt.value} className="mt-1" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <Icon className="h-4 w-4 text-secondary" />
@@ -230,9 +230,9 @@ export default function PayoutSettingsPage() {
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mt-0.5">{opt.description}</p>
-                    {opt.value === "stripe" && !hasStripeConnect && (
-                      <p className="text-xs text-destructive mt-1">
-                        Connect your Stripe account first to use this option
+                    {needsStripeConnect && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        You can select Stripe now. Payouts will start once you complete Stripe Connect onboarding.
                       </p>
                     )}
                   </div>
