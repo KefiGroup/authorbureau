@@ -57,11 +57,11 @@ export default function LiveMicrositesGrid() {
 
         const { data } = await supabase
           .from("author_nodes")
-          .select("node_id, delivery_url, status, activated_at, book_id")
+          .select("node_id, delivery_url, microsite_url, status, activated_at, book_id")
           .eq("author_id", prof.id)
           .eq("status", "live")
           .order("activated_at", { ascending: false });
-        setNodes(data || []);
+        setNodes((data as LiveNode[] | null) || []);
       } catch (e) {
         console.warn("[LiveMicrositesGrid] load failed", e);
       } finally {
