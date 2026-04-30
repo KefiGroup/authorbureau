@@ -330,11 +330,16 @@ Deno.serve(async (req) => {
     }
 
     if (action === "sequences") {
-      const { data: flows, error: flowsErr } = await cloudAdmin
+      // Include book_id in the projection so the UI can show a per-book badge
+      // and so the per-book filter operates on a real column. email_flows.book_id
+      // is nullable for legacy rows, which still surface in the "All Books" view.
+      let flowsQuery = cloudAdmin
         .from("email_flows")
-        .select("id, title, description, flow_type, node_id, status, total_subscribers, open_rate, click_rate, ai_generated, created_at")
+        .select("id, title, description, flow_type, node_id, book_id, status, total_subscribers, open_rate, click_rate, ai_generated, created_at")
         .eq("author_id", authorProfile.id)
         .order("created_at", { ascending: false });
+      if (bookId) flowsQuery = flowsQuery.eq("book_id", bookId);
+      const { data: flows, error: flowsErr } = await flowsQuery;
 
       if (flowsErr) throw flowsErr;
 
