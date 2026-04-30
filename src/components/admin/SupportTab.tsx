@@ -23,6 +23,10 @@ type BugReport = {
   admin_notes: string | null;
   created_at: string;
   resolved_at: string | null;
+  assigned_to: string | null;
+  first_response_at: string | null;
+  first_response_due_at: string | null;
+  resolution_due_at: string | null;
 };
 
 type FeedbackItem = {
