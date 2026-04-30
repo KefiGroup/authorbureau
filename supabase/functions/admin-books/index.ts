@@ -92,7 +92,7 @@ Deno.serve(async (req) => {
       
       let query = adminClient
         .from("books")
-        .select("id, title, subtitle, author_name, genre, cover_image_url, slug, published_at, created_at, entry_mode, description, amazon_url, price, currency, kindle_price, paperback_price, pages, rating, badges, bestseller_proof_url, owner_email")
+        .select("id, title, subtitle, author_name, genre, cover_image_url, slug, published_at, created_at, entry_mode, description, amazon_url, price, currency, kindle_price, paperback_price, pages, rating, badges, bestseller_proof_url, owner_email, approval_status, rejection_note, submitted_at, review_round, last_review_action_at")
         .order("created_at", { ascending: false });
 
       // Filter: "pending" = not published, "published" = published, default = all
