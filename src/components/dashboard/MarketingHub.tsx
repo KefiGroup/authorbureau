@@ -16,6 +16,8 @@ import SequencesTab from "./marketing-hub/SequencesTab";
 import SocialCalendarTab from "./marketing-hub/SocialCalendarTab";
 import ContactsTab from "./marketing-hub/ContactsTab";
 import SettingsTab from "./marketing-hub/SettingsTab";
+import MarketingHubBookSelector from "./marketing-hub/MarketingHubBookSelector";
+import { useMarketingHubBookContext } from "@/hooks/useMarketingHubBookContext";
 
 /* ─── Campaign / Node mapping ─── */
 
