@@ -87,12 +87,8 @@ export default function PayoutsSettings() {
 
   const save = async () => {
     if (!authorId) return;
-    if (method === "paypal" && !paypalEmail) {
-      toast.error("Enter your PayPal email.");
-      return;
-    }
-    if (method === "stripe" && !stripe_onboarding_complete) {
-      toast.error("Click 'Connect Stripe Express' below first to finish your account onboarding.");
+    if (!stripe_onboarding_complete) {
+      toast.error("Click 'Connect Stripe Express' above first to finish your account onboarding.");
       return;
     }
     if (!agreementAck) {
@@ -103,8 +99,8 @@ export default function PayoutsSettings() {
     try {
       const payload = {
         author_id: authorId,
-        payout_method: method,
-        paypal_email_v2: method === "paypal" ? paypalEmail : null,
+        payout_method: "stripe" as PayoutMethod,
+        paypal_email_v2: null,
         tax_self_declared_at: agreementAck ? new Date().toISOString() : null,
         refund_window_days: refundWindow,
       };
