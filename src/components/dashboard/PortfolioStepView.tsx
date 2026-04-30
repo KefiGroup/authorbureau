@@ -236,6 +236,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
               toast({ title: "Couldn't restart", description: e?.message || "Try again.", variant: "destructive" });
             }
           };
+          return (
             <div className="space-y-6">
               {groups.map((group) => (
                 <div key={group.name}>
