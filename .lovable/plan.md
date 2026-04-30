@@ -1,81 +1,116 @@
 ## Root Cause
 
-Two compounding regressions are stripping ✅ Live badges in the Book Hub category tabs.
+BA-15 Media Outreach is **not** actually stuck — Pauline has a complete record:
+- `status = 'live'`
+- `press_release` ✓
+- `target_media_outlets` ✓ (5 real outlets with outlet name, type, audience, pitch_angle)
 
-**Cause 1 — Over-aggressive bookId scoping (Bugs 4, 5, 6).**
-`useBookNodeProgress` now filters `author_nodes` by the *currently viewed* `book_id`. Pauline owns:
-- "Be SUCKcessful" → `BA-14` live
-- "Invest Like Buffett for Parents" → `BP-01` live, `BP-09` live
+But `hasRequiredAssets("BA-15", content)` only checks `media_list` or `outlets` — it does **not** know about `target_media_outlets`, which is the field name the current BA-15 builder writes. So:
 
-When viewing the "Be SUCKcessful" hub, `BP-01` (Email Marketing) is hidden because it lives under the other book's row, so the tile falls back to "Recommended". Same for `BA-14` when viewing the other book. But many nodes are inherently **author-level**, not book-level — there is one email list, one podcast show, one set of social channels per author. Scoping these by book is the wrong model.
+1. `useNodeLiveStats` downgrades `live → content_ready`
+2. `STATUS_PROGRESS["content_ready"] = 60`
+3. Card renders "🔨 Building · 60% done · Continue Building →"
 
-**Cause 2 — BA-14 readiness gate too strict (Bug 6).**
-Even after fixing scoping, `BA-14` would still show "Recommended" because `hasRequiredAssets("BA-14", ...)` requires `rss_url`/`transistor.show_id`. Pauline's row has 10 episodes and `activated: true`, but no RSS field is persisted by the current builder. Per memory `audits/manus-2026-04-23-corrections` the strict check is intentional, but it doesn't match what the BA-14 builder actually writes when an author marks the show live.
+This is the same pattern that hit BA-14: a readiness gate written before the builder finalised its field names. There is no real partial-generation problem here — the AI completed, the data is there, the gate is wrong.
+
+A second, smaller issue: even when a node *is* genuinely stuck mid-build, there is no explicit "Restart Build" CTA. Today the user clicks "Continue Building" which routes to the builder, where they have to know to re-trigger generation themselves. That UX is opaque.
 
 ## Plan
 
-### 1. Classify nodes as author-scoped vs book-scoped in `useBookNodeProgress`
+### 1. Fix BA-15 readiness gate (resolves Pauline's case immediately)
 
-Introduce a small classifier inside `src/hooks/useBookNodeProgress.ts`:
-
-```ts
-// Author-level nodes belong to the author, not a single book.
-// Their Live status must show on every book's hub.
-const AUTHOR_LEVEL_NODES = new Set([
-  "BP-01", // Email Marketing
-  "BP-03", // Social Media
-  "BA-14", // Podcast (one show, multi-book episodes)
-  "BA-15", // Press
-  "BA-16", // Affiliates
-  "BA-18", // JV Partners
-  "YR-19","YR-20","YR-21","YR-22","YR-23",
-  "YR-24","YR-25","YR-26","YR-27","YR-28",
-]);
-```
-
-Change the query strategy: **always fetch all of the author's nodes**, then when building the status map, accept a row if either:
-- the node is in `AUTHOR_LEVEL_NODES` (book_id ignored), OR
-- `bookId` is unset, OR
-- `row.book_id === bookId`.
-
-This keeps book-specific products (BP-04 microsite, BP-06 workbook, BP-07 home study, BP-08 special edition, BP-09 book sales, BA-10 course, BA-11 audiobook, BA-12 membership, BA-17 bundles, BP-02 lead magnet, BP-05 webinar) correctly scoped to the active book — so BP-09 for "Invest Like Buffett for Parents" still won't show Live on the "Be SUCKcessful" hub (which is correct, since it's a different book's product).
-
-### 2. Loosen BA-14 readiness gate to recognize the activated podcast state
-
-In `src/lib/node-readiness.ts`, update the `BA-14` case to also pass when the author has explicitly activated the show with episodes:
+`src/lib/node-readiness.ts` — accept `target_media_outlets` (current builder), `media_list`, or `outlets`:
 
 ```ts
-case "BA-14": {
-  const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
-  const episodes = Array.isArray(content.episodes) ? content.episodes : [];
-  const activatedWithContent =
-    !!content.activated &&
-    episodes.length > 0 &&
-    !!(content.show_title || content.podcast_title);
-  return (rssReady && episodes.length > 0) || activatedWithContent;
+case "BA-15": {
+  const hasPressRelease = !!(
+    content.press_release ||
+    content.press_release_html ||
+    content?.assets?.press_release
+  );
+  const outletArrays = [
+    content.target_media_outlets, // current builder
+    content.media_list,           // legacy
+    content.outlets,              // legacy
+  ];
+  const hasOutlets = outletArrays.some(
+    (a: any) => Array.isArray(a) && a.length > 0,
+  );
+  return hasPressRelease && hasOutlets;
 }
 ```
 
-This keeps the strict path (RSS + episode) intact for distributed shows, but also accepts the "activated locally with show + episodes" state that the current BA-14 builder actually persists. Update memory `audits/manus-2026-04-23-corrections` after the fix to record the broadened criteria.
+After this change, Pauline's BA-15 row passes the gate → effective status stays `live` → card shows ✅ Live in both Build tab and Library.
 
-### 3. Verification
+### 2. Add a "Restart Build" affordance for in-progress nodes
 
-After the change, against current production data for `92326a2f-3ed0-4873-a8cf-7a0b1350995a`:
+`src/components/dashboard/SmartProductCard.tsx` — when `state === "in-progress"`, render a small secondary "Restart Build" link below the primary "Continue Building →" button.
 
-| Hub viewed | BP-01 | BP-09 | BA-14 |
-|---|---|---|---|
-| Be SUCKcessful | ✅ Live (author-level) | Recommended (different book — correct) | ✅ Live (author-level + activated gate) |
-| Invest Like Buffett for Parents | ✅ Live (author-level) | ✅ Live (matches book_id) | ✅ Live (author-level + activated gate) |
+```tsx
+{state === "in-progress" && (
+  <>
+    <Button size="sm" className={...} onClick={onContinue}>
+      <Wrench className="h-3 w-3 mr-1.5" /> Continue Building →
+    </Button>
+    {onRestart && (
+      <button
+        type="button"
+        onClick={onRestart}
+        className="w-full text-[10px] text-muted-foreground hover:text-foreground underline-offset-2 hover:underline mt-1"
+      >
+        Restart build
+      </button>
+    )}
+  </>
+)}
+```
 
-This restores the three regressed badges (Bugs 4, 5, 6) without re-introducing the cross-book leakage that the original scoping fix was meant to prevent.
+Add `onRestart?: () => void` to `SmartProductCardProps`.
+
+### 3. Wire `onRestart` in `PortfolioStepView.tsx`
+
+When clicked, ask the user to confirm, then:
+1. Update the row: `status = 'draft'`, `current_step = 1`, `content_json = {}` for that `(author_id, node_id, book_id)`.
+2. `progress.refresh()` and `liveStats.refresh()`.
+3. Navigate to the builder via the existing `handleNav(n)` so the user lands on step 1.
+
+```ts
+async function handleRestart(n: NodeWithProgress) {
+  const ok = window.confirm(
+    `Restart ${n.label}? Your current draft will be cleared and you'll start over.`,
+  );
+  if (!ok) return;
+  const code = n.code;
+  const { data: profile } = await supabase
+    .from("author_profiles").select("id").eq("user_id", user.id).maybeSingle();
+  if (!profile?.id) return;
+  let q = supabase.from("author_nodes")
+    .update({ status: "draft", current_step: 1, content_json: {} })
+    .eq("author_id", profile.id).eq("node_id", code);
+  if (primaryBookIdEarly) q = q.eq("book_id", primaryBookIdEarly);
+  await q;
+  progress.refresh();
+  liveStats.refresh();
+  handleNav(n);
+}
+```
+
+Pass `onRestart={() => handleRestart(n)}` only when `n.state === "in-progress"`.
+
+### 4. Verification
+
+- BA-15 for Pauline → ✅ Live badge across Build tab, Library, Hub.
+- Any other node genuinely stuck in `draft`/`content_ready` → user sees a small "Restart build" link under "Continue Building →".
+- Restart confirms, clears the row to `draft / step 1 / {}`, refreshes both hooks, and routes into the builder.
 
 ### Files touched
 
-- `src/hooks/useBookNodeProgress.ts` — add classifier, switch to author-wide fetch + per-row scope check.
-- `src/lib/node-readiness.ts` — broaden BA-14 gate.
-- `mem://audits/manus-2026-04-23-corrections` — note the BA-14 broadening.
+- `src/lib/node-readiness.ts` — broaden BA-15 gate.
+- `src/components/dashboard/SmartProductCard.tsx` — add optional `onRestart` prop and small link.
+- `src/components/dashboard/PortfolioStepView.tsx` — implement `handleRestart` and pass to card.
+- `mem://audits/manus-2026-04-23-corrections` — add BA-15 field-name note alongside BA-14.
 
 ### Out of scope
 
-- No DB changes; no edge function changes.
-- Marketing Hub / Library scoping is unaffected (`AuthorLibrary.tsx` uses its own readiness check, not this hook).
+- No edge-function or DB-schema changes.
+- No automatic AI re-trigger on Restart — Restart simply resets state and drops the user back into the builder, where the existing per-step Generate buttons handle re-runs. Auto-running AI on click would be unexpected and could double-charge.

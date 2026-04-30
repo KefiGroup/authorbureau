@@ -46,14 +46,13 @@ export function hasRequiredAssets(nodeId: string, content: any): boolean {
       return (rssReady && episodes.length > 0) || activatedWithContent;
     }
     case "BA-15": {
-      // Media Outreach: needs both a press release and a populated media list
+      // Media Outreach: needs a press release plus a populated outlets list.
+      // The current builder writes outlets under `target_media_outlets`;
+      // older generations used `media_list` / `outlets`. Accept any of the three.
       const hasPressRelease = !!(content.press_release || content.press_release_html || content?.assets?.press_release);
-      const hasMediaList = Array.isArray(content.media_list)
-        ? content.media_list.length > 0
-        : Array.isArray(content.outlets)
-        ? content.outlets.length > 0
-        : false;
-      return hasPressRelease && hasMediaList;
+      const outletArrays = [content.target_media_outlets, content.media_list, content.outlets];
+      const hasOutlets = outletArrays.some((a: any) => Array.isArray(a) && a.length > 0);
+      return hasPressRelease && hasOutlets;
     }
     default:
       // Generic gate: any object with at least one key passes. Most builders
