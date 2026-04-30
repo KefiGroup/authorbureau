@@ -531,6 +531,68 @@ Deno.serve(async (req) => {
       return json({ ok: res.ok, status: res.status, result: data });
     }
 
+    // ─── Refund: proxy to refund-purchase edge function ───
+    if (action === "refund-purchase") {
+      const { purchase_id, reason } = params as { purchase_id?: string; reason?: string };
+      if (!purchase_id || !reason) return json({ error: "purchase_id and reason required" }, 400);
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/refund-purchase`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          // Forward the admin's bearer token so refund-purchase can re-verify them
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ purchase_id, reason }),
+      });
+      const text = await res.text();
+      let data: unknown = text;
+      try { data = JSON.parse(text); } catch { /* keep text */ }
+      return json(data, res.status);
+    }
+
+    // ─── System Health: connector secrets, last cron runs, recent edge errors ───
+    if (action === "system-health") {
+      const secrets = {
+        stripe: !!Deno.env.get("STRIPE_SECRET_KEY"),
+        stripe_webhook: !!Deno.env.get("STRIPE_WEBHOOK_SECRET"),
+        resend: !!Deno.env.get("RESEND_API_KEY"),
+        elevenlabs: !!Deno.env.get("ELEVENLABS_API_KEY"),
+        buffer: !!Deno.env.get("BUFFER_API_KEY"),
+        lovable_ai: !!Deno.env.get("LOVABLE_API_KEY"),
+        perplexity: !!Deno.env.get("PERPLEXITY_API_KEY"),
+        firecrawl: !!Deno.env.get("FIRECRAWL_API_KEY"),
+      };
+
+      const [lastPayout, lastStatement, lastEmailSync, recentAudit] = await Promise.all([
+        client.from("author_payouts_v2").select("created_at, status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        client.from("author_annual_statements").select("generated_at, tax_year").order("generated_at", { ascending: false }).limit(1).maybeSingle(),
+        client.from("email_sync_log").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        client.from("admin_audit_log").select("event_key, created_at, target_type, payload").order("created_at", { ascending: false }).limit(20),
+      ]);
+
+      // Approximate "errors in last 24h" by counting purchase / payout failures recorded in audit log
+      // (full edge-function error scrape requires analytics_query which is out-of-band for this proxy)
+      const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      const { count: errorCount24h } = await client
+        .from("admin_audit_log")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", since)
+        .or("event_key.like.%failed%,event_key.like.%error%");
+
+      return json({
+        secrets,
+        crons: {
+          last_payout_at: lastPayout?.data?.created_at ?? null,
+          last_statement_at: lastStatement?.data?.generated_at ?? null,
+          last_statement_year: lastStatement?.data?.tax_year ?? null,
+          last_email_sync_at: lastEmailSync?.data?.created_at ?? null,
+        },
+        error_count_24h: errorCount24h ?? 0,
+        recent_activity: recentAudit?.data ?? [],
+      });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
