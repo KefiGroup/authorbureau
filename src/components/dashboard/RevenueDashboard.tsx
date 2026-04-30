@@ -234,9 +234,6 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           </div>
 
           {/* Stat cards */}
-          {grossSales > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
           {/* ── Pipeline Snapshot (Audit #6) ────────────────────────── */}
           <div className="space-y-3">
             <div className="flex items-baseline justify-between">
