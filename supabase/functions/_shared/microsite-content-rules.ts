@@ -105,10 +105,15 @@ const PLACEHOLDER_PATTERNS: RegExp[] = [
 ];
 
 // Short connector words that become grammatical orphans when the noun phrase
-// after them is stripped (e.g. "At [insert org] we will" -> "At we will").
-// We delete the orphaned preposition together with the surrounding whitespace.
-const ORPHAN_PREPOSITION_RE =
-  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[\s.,;:!?)]|$)/gi;
+// after them is stripped (e.g. "At [insert org] we will" -> "At  we will" ->
+// "At we will"). We look for the double-space gap left by placeholder removal
+// and, if the word immediately before it is one of these prepositions/articles,
+// we delete that word along with the gap.
+const ORPHAN_BEFORE_GAP_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s{2,}/gi;
+// Also handle ". " trailing the placeholder where it ate the noun ("go to .")
+const ORPHAN_BEFORE_PUNCT_RE =
+  /(^|[\s(.,;:!?])(a|an|the|at|by|with|for|of|from|to|in|on|into|onto)\s+(?=[.,;:!?)])/gi;
 
 /** Drop bracketed placeholder tokens and obvious filler. */
 function stripPlaceholdersString(input: string): string {
@@ -120,19 +125,25 @@ function stripPlaceholdersString(input: string): string {
     out = out.replace(pattern, "");
     if (out !== before) didStrip = true;
   }
-  if (!didStrip) return out;
-
-  // A placeholder was removed — clean up the grammatical wreckage it left.
-  // Collapse the gap first.
-  out = out.replace(/\s{2,}/g, " ");
-  // Remove orphaned prepositions that lost their object. Run twice in case
-  // two prepositions chained ("at the [insert org]" -> "at the" -> "").
-  for (let i = 0; i < 2; i++) {
-    out = out.replace(ORPHAN_PREPOSITION_RE, "$1");
+  if (!didStrip) {
+    return out.replace(/\s{2,}/g, " ").trim();
   }
-  // Capitalise the new first letter if a leading preposition was removed.
+
+  // A placeholder was removed — clean up the grammatical wreckage.
+  // Step 1: remove orphan prepositions that now sit before a double-space gap
+  // (the gap is our marker that something was removed there). Loop because
+  // chains like "by the [...]" leave two prepositions to peel.
+  for (let i = 0; i < 3; i++) {
+    const before = out;
+    out = out.replace(ORPHAN_BEFORE_GAP_RE, "$1 ");
+    out = out.replace(ORPHAN_BEFORE_PUNCT_RE, "$1");
+    if (out === before) break;
+  }
+  // Step 2: collapse the gap.
+  out = out.replace(/\s{2,}/g, " ");
+  // Step 3: capitalise leading char if a leading preposition was removed.
   out = out.replace(/^([a-z])/, (m) => m.toUpperCase());
-  // Final tidy: empty parens, double commas, stranded punctuation.
+  // Step 4: tidy stranded artefacts.
   out = out.replace(/\(\s*\)/g, "");
   out = out.replace(/,\s*,/g, ",");
   out = out.replace(/\s+([.,;:!?])/g, "$1");
