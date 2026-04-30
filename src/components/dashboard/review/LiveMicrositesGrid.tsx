@@ -11,9 +11,23 @@ import { toast } from "@/hooks/use-toast";
 interface LiveNode {
   node_id: string;
   delivery_url: string | null;
+  microsite_url: string | null;
   status: string;
   activated_at: string | null;
   book_id: string | null;
+}
+
+/** Prefer the branded microsite URL; treat raw asset/storage URLs as not-displayable. */
+function pickPublicUrl(n: LiveNode): string | null {
+  const mu = n.microsite_url?.trim();
+  if (mu && /^https?:\/\//i.test(mu)) return mu;
+  const du = n.delivery_url?.trim();
+  if (!du) return mu || null;
+  // Filter out raw asset/storage URLs — those are file delivery, not the public microsite
+  if (du.includes("supabase.co/storage") || /\.(mp3|mp4|wav|m4a|pdf|epub|zip)(\?|$)/i.test(du)) {
+    return mu || null;
+  }
+  return du;
 }
 
 const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {
