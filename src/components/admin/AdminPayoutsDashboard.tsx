@@ -357,11 +357,12 @@ export default function AdminPayoutsDashboard() {
                       <th className="text-right p-3 font-medium">Fee</th>
                       <th className="text-right p-3 font-medium">Author Earns</th>
                       <th className="text-center p-3 font-medium">Status</th>
+                      <th className="text-center p-3 font-medium">Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {purchases.length === 0 ? (
-                      <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No purchases yet</td></tr>
+                      <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">No purchases yet</td></tr>
                     ) : purchases.map((p) => (
                       <tr key={p.id} className="border-t border-border/50">
                         <td className="p-3 text-muted-foreground">{format(new Date(p.created_at), "MMM d")}</td>
@@ -380,6 +381,20 @@ export default function AdminPayoutsDashboard() {
                           }>
                             {p.refund_status === "refunded" ? "Refunded" : p.payout_status}
                           </Badge>
+                        </td>
+                        <td className="p-3 text-center">
+                          {p.refund_status === "refunded" ? (
+                            <span className="text-xs text-muted-foreground">—</span>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-xs"
+                              onClick={() => { setRefundTarget(p); setRefundReason(""); }}
+                            >
+                              <Undo2 className="h-3 w-3 mr-1" />Refund
+                            </Button>
+                          )}
                         </td>
                       </tr>
                     ))}
