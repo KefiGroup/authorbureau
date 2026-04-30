@@ -135,6 +135,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [repairing, setRepairing] = useState(false);
+  const [downloadingPack, setDownloadingPack] = useState(false);
   const [bp03Activated, setBp03Activated] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [view, setView] = useState<"month" | "week">("month");
@@ -385,7 +386,37 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: "posted", posted_at: new Date().toISOString() } : p));
   };
 
-  const unmark = async (post: SocialPost) => {
+  const handleDownloadPack = async () => {
+    if (!authorId) return;
+    setDownloadingPack(true);
+    try {
+      const token = await getActiveToken();
+      if (!token) { toast.error("Please sign in again"); return; }
+      const url = `https://${import.meta.env.VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/export-social-pack-zip`;
+      const res = await fetchWithTimeout(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ author_id: authorId, book_id: bookId || null }),
+      }, 60000);
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error(txt || `Export failed (${res.status})`);
+      }
+      const blob = await res.blob();
+      const a = document.createElement("a");
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      a.download = `social-pack-${Date.now()}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(objUrl);
+      toast.success("Social pack downloaded ✓");
+    } catch (e) {
+      toast.error((e as Error).message || "Couldn't build the pack");
+    } finally {
+      setDownloadingPack(false);
+    }
     try {
       await callMarketingHubState("update_social_post", { post_id: post.id, status: "ready" });
     } catch (_error) {
