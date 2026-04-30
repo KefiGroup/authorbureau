@@ -126,8 +126,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
   const handleSyncFromPublishNow = async () => {
     setSyncLoading(true);
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      const { getActiveToken } = await import("@/lib/get-active-token");
+      const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
       const res = await fetch(
