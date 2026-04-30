@@ -41,6 +41,22 @@ export const NODE_CODE_MAP: Record<string, string> = {
 
 const TIER_ORDER = ["free", "brand", "build", "yield"];
 
+// Author-level nodes belong to the author, not a single book. Their Live
+// status must show on every book's hub (one email list, one podcast show,
+// one set of social channels per author). Book-specific products
+// (microsite, workbook, course, audiobook, book-sales, etc.) stay scoped
+// to the active book.
+const AUTHOR_LEVEL_NODES = new Set<string>([
+  "BP-01", // Email Marketing
+  "BP-03", // Social Media
+  "BA-14", // Podcast (one show, multi-book episodes)
+  "BA-15", // Press / Media
+  "BA-16", // Affiliates
+  "BA-18", // JV Partners
+  "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
+  "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
+]);
+
 function tierMet(userTier: string, required?: string) {
   if (!required) return true;
   return TIER_ORDER.indexOf(userTier) >= TIER_ORDER.indexOf(required.toLowerCase());
@@ -94,16 +110,21 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
 
         const map: Record<string, "completed" | "in-progress"> = {};
         if (profile?.id) {
-          // Scope to the current book when provided so the Book Hub tile state
-          // reflects ONLY this book — not other books the author also owns.
-          let q = supabase
+          // Always fetch ALL of the author's nodes. We then apply scoping
+          // per-row so author-level nodes (email, podcast, social, YR-*)
+          // count on every book hub, while book-specific products only
+          // count for their own book_id.
+          const { data: nodes } = await supabase
             .from("author_nodes")
             .select("node_id, status, content_json, book_id")
             .eq("author_id", profile.id);
-          if (bookId) q = q.eq("book_id", bookId);
-          const { data: nodes } = await q;
 
           (nodes || []).forEach((n: any) => {
+            // Per-row scope check.
+            const isAuthorLevel = AUTHOR_LEVEL_NODES.has(n.node_id);
+            const matchesBook = !bookId || !n.book_id || n.book_id === bookId;
+            if (!isAuthorLevel && !matchesBook) return;
+
             // Use the shared readiness gate so Book Hub tile state matches
             // the Live-badge logic in useNodeLiveStats. Adding a new gated
             // node? Update src/lib/node-readiness.ts in one place.
