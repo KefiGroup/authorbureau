@@ -86,6 +86,17 @@ const pricingCards = [
 ];
 
 export default function HowItWorks() {
+  useDocumentMeta({
+    title: "How It Works — Authors Bureau | The ABBY Framework",
+    description: "See how the ABBY Framework turns your published book into 28 revenue streams across Brand, Build, and Yield phases — guided by your AI Business Advisor.",
+    ogTitle: "How It Works — Authors Bureau",
+    ogDescription: "See how the ABBY Framework turns your published book into 28 revenue streams — guided by your AI Business Advisor.",
+    ogImage: "https://authorsbureau.com/og-image.jpg",
+    ogUrl: "https://authorsbureau.com/how-it-works",
+    canonical: "https://authorsbureau.com/how-it-works",
+    twitterCard: "summary_large_image",
+  });
+
   const [openAccordion, setOpenAccordion] = useState<number | null>(null);
 
   return (

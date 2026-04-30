@@ -60,6 +60,17 @@ const jsonLd = {
 };
 
 export default function Index() {
+  useDocumentMeta({
+    title: "Authors Bureau — Turn Your Book Into 28 Revenue Streams",
+    description: "The #1 AI-powered platform for published authors. Turn your book into courses, coaching, memberships, speaking, and 24 more income streams — automatically.",
+    ogTitle: "Authors Bureau — Turn Your Book Into 28 Revenue Streams",
+    ogDescription: "The #1 AI-powered platform for published authors. Turn your book into courses, coaching, memberships, speaking, and 24 more income streams — automatically.",
+    ogImage: "https://authorsbureau.com/og-image.jpg",
+    ogUrl: "https://authorsbureau.com/",
+    canonical: "https://authorsbureau.com/",
+    twitterCard: "summary_large_image",
+  });
+
   return (
     <div className="min-h-screen">
       <script
