@@ -39,6 +39,11 @@ export interface AdminBook {
   badges?: string[] | null;
   bestseller_proof_url?: string | null;
   owner_email?: string | null;
+  approval_status?: string | null;
+  rejection_note?: string | null;
+  submitted_at?: string | null;
+  review_round?: number | null;
+  last_review_action_at?: string | null;
 }
 
 export interface AdminInfo {

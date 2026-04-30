@@ -19,6 +19,7 @@ import SupportTab from "@/components/admin/SupportTab";
 import AdminMessagesTab from "@/components/admin/AdminMessagesTab";
 import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
 import NodeGatingTab from "@/components/admin/NodeGatingTab";
+import AdminNotificationBell from "@/components/admin/AdminNotificationBell";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
@@ -234,14 +235,26 @@ export default function AdminDashboard() {
     setApprovingBookId(null);
   };
 
-  const handleRejectBook = async (bookId: string) => {
+  const handleRejectBook = async (bookId: string, reason: string) => {
     setApprovingBookId(bookId);
     try {
-      await adminFetch("reject", { bookId });
-      toast({ title: "Book unpublished" });
+      await adminFetch("reject", { bookId, rejectionNote: reason });
+      toast({ title: "Book rejected — author notified" });
       fetchBooks();
     } catch (err) {
       toast({ title: err.message || "Reject failed", variant: "destructive" });
+    }
+    setApprovingBookId(null);
+  };
+
+  const handleRequestChanges = async (bookId: string, reason: string) => {
+    setApprovingBookId(bookId);
+    try {
+      await adminFetch("request-changes", { bookId, rejectionNote: reason });
+      toast({ title: "Changes requested — author notified" });
+      fetchBooks();
+    } catch (err) {
+      toast({ title: err.message || "Request changes failed", variant: "destructive" });
     }
     setApprovingBookId(null);
   };
@@ -282,6 +295,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            {user?.id && <AdminNotificationBell userId={user.id} />}
             <Button asChild variant="outline" size="sm">
               <Link to="/dashboard">Author Dashboard</Link>
             </Button>
@@ -334,6 +348,7 @@ export default function AdminDashboard() {
               onDelete={handleDeleteBook}
               onApprove={handleApproveBook}
               onReject={handleRejectBook}
+              onRequestChanges={handleRequestChanges}
               deletingId={deletingBookId}
               approvingId={approvingBookId}
               pendingCount={pendingBookCount}
