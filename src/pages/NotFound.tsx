@@ -2,12 +2,29 @@ import { useLocation, Link } from "react-router-dom";
 import { useEffect } from "react";
 import { Sparkles, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const NotFound = () => {
   const location = useLocation();
 
+  useDocumentMeta({
+    title: "Page Not Found — Authors Bureau",
+    description: "The page you're looking for doesn't exist. Return to Authors Bureau to discover authors, books, and 28 ways to grow your author business.",
+  });
+
   useEffect(() => {
+    // Add noindex for 404 pages
+    let robots = document.querySelector('meta[name="robots"]') as HTMLMetaElement | null;
+    if (!robots) {
+      robots = document.createElement("meta");
+      robots.setAttribute("name", "robots");
+      document.head.appendChild(robots);
+    }
+    robots.setAttribute("content", "noindex");
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);
+    return () => {
+      robots?.remove();
+    };
   }, [location.pathname]);
 
   return (

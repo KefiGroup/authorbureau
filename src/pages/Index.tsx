@@ -16,6 +16,7 @@ import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 // getPublishNowAuthUrl no longer used - CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const SIGNUP_URL = "/auth";
 const getPlanUrl = (_plan: string) => "/pricing";
@@ -60,6 +61,17 @@ const jsonLd = {
 };
 
 export default function Index() {
+  useDocumentMeta({
+    title: "Authors Bureau — Turn Your Book Into 28 Revenue Streams",
+    description: "The #1 AI-powered platform for published authors. Turn your book into courses, coaching, memberships, speaking, and 24 more income streams — automatically.",
+    ogTitle: "Authors Bureau — Turn Your Book Into 28 Revenue Streams",
+    ogDescription: "The #1 AI-powered platform for published authors. Turn your book into courses, coaching, memberships, speaking, and 24 more income streams — automatically.",
+    ogImage: "https://authorsbureau.com/og-image.jpg",
+    ogUrl: "https://authorsbureau.com/",
+    canonical: "https://authorsbureau.com/",
+    twitterCard: "summary_large_image",
+  });
+
   return (
     <div className="min-h-screen">
       <script

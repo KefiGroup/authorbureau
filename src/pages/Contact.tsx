@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -21,6 +22,17 @@ const fadeUp = {
 export default function Contact() {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
+
+  useDocumentMeta({
+    title: "Contact — Authors Bureau | Get in Touch",
+    description: "Have a question about Authors Bureau, your directory profile, or our 28 revenue streams? Reach our team — we usually reply within one business day.",
+    ogTitle: "Contact — Authors Bureau",
+    ogDescription: "Have a question about Authors Bureau? Reach our team — we usually reply within one business day.",
+    ogImage: "https://authorsbureau.com/og-image.jpg",
+    ogUrl: "https://authorsbureau.com/contact",
+    canonical: "https://authorsbureau.com/contact",
+    twitterCard: "summary_large_image",
+  });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

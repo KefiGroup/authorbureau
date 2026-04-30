@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Loader2, Sparkles, Zap, Crown, ArrowLeft, Lock } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const PLANS = [
   {
@@ -77,6 +78,17 @@ const PLANS = [
 ];
 
 export default function Pricing() {
+  useDocumentMeta({
+    title: "Pricing — Authors Bureau | Brand, Build & Yield Packages",
+    description: "Choose the Authors Bureau plan that matches your ambition. Every plan includes ABBY AI consultation and access to AI-powered revenue stream builders.",
+    ogTitle: "Pricing — Authors Bureau",
+    ogDescription: "Choose the Authors Bureau plan that matches your ambition. Every plan includes ABBY AI consultation and revenue stream builders.",
+    ogImage: "https://authorsbureau.com/og-image.jpg",
+    ogUrl: "https://authorsbureau.com/pricing",
+    canonical: "https://authorsbureau.com/pricing",
+    twitterCard: "summary_large_image",
+  });
+
   const { user, tier, isPremium } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
