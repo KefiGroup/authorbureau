@@ -34,7 +34,7 @@ const DEFAULT_SETTINGS: PayoutSettings = {
 };
 
 const PAYOUT_OPTIONS: { value: PayoutMethod; label: string; icon: typeof CreditCard; description: string }[] = [
-  { value: "stripe", label: "Stripe", icon: CreditCard, description: "Direct transfer to your connected Stripe account. Fastest option." },
+  { value: "stripe", label: "Stripe", icon: CreditCard, description: "Direct transfer via Stripe — fastest option for US/EU authors. Requires Stripe Connect onboarding before payouts run." },
   { value: "paypal", label: "PayPal", icon: DollarSign, description: "Payout sent to your PayPal email. Available worldwide." },
   { value: "wise", label: "Wise", icon: Globe, description: "Bank transfer via Wise. Best rates for international authors." },
 ];
