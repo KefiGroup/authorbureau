@@ -71,7 +71,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                 const SIcon = meta.icon;
                 const title = node.personalised_name || node.node_name;
                 const desc = node.content_json?.description as string | undefined;
-                const price = node.content_json?.price as number | undefined;
+                const { label: priceLabel } = getNodePriceLabel(node);
                 const linkTo = node.third_party_url || node.payment_link || `/${authorSlug}#subscribe-section`;
 
                 return (
