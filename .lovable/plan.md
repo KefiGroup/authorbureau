@@ -1,166 +1,102 @@
-## Current Admin Portal — Audit (paulinet77@gmail.com)
+# Wave 3 — Admin Portal Continuation
 
-`/admin` already has 11 tabs wired to two edge functions (`admin-books`, `admin-data`):
+Waves 1-2 shipped the notification engine, book review workflow, refunds, and System Health. Wave 3 closes the remaining high-value gaps from the canonical spec in Part A of the plan.
 
-| Tab | What it does today | Gap |
-|---|---|---|
-| Overview | Counts (books, authors, admins) + pending badges | No revenue/payout/system-health metrics, no recent-activity feed |
-| Authors | List/search authors | No suspend, no impersonate, no audit trail |
-| Books | List + Approve/Reject/Delete; sends `book-approved` email | No in-portal notification to author OR admin, no rejection reason workflow, no resubmission, no version history |
-| CRM | Author CRM contacts | OK |
-| Messages | Author↔Admin chat | OK |
-| Reading Club | Reader activity | OK |
-| Support | Tickets list | No SLA, no assignment, no ticket statuses transitions |
-| Payouts | Stripe Express batches | No notification to author when paid/failed |
-| Node Gating | Toggle nodes per tier | superadmin-only ✓ |
-| Admins | Promote/Demote | superadmin-only ✓ |
-| Platforms | PublishNow access | OK |
+## Scope (4 modules)
 
-Notifications infra: `public.notifications` table exists with realtime + RLS, and `NotificationCenter.tsx` bell already renders for authors. **Nothing currently writes to it on book submit/approve/reject/payout/support events.** That is the core missing piece.
+### 1. Author Lifecycle Controls (Authors tab)
+Per-author admin actions, all audit-logged and notification-wired.
 
----
+- **Suspend / Reinstate**
+  - New columns on `author_profiles`: `suspended_at timestamptz`, `suspended_reason text`, `suspended_by uuid`.
+  - Behavior (per prior decision): public microsite stays live; only **dashboard login is blocked**. Enforced in `useAuth` / `AuthorDashboard` guard → redirect to a "Account paused" screen with support contact.
+  - Modal requires reason; notifies the author via `notify_users` + `account.suspended` email; audit-logged.
+  - Reinstate restores access, notifies author, audit-logged.
+- **Tier override** — superadmin can set `subscription_tier` (Brand/Build/Yield) + optional `tier_expires_at`, audit-logged.
+- **Impersonate (read-only "View as")** — superadmin-only. Generates a short-lived signed token that opens `/dashboard?impersonate=<author_id>` in read-only mode (writes blocked at edge-function layer via `x-impersonation` header check). Banner shown across the dashboard while active.
+- **Profile inspector drawer** — read-only mirror of key author fields (books, nodes live, last login, Stripe Connect status, tier, suspension state).
 
-## Part A — Systematic Admin Function Map (the spec)
+### 2. Support Tab upgrade
+Today the tab lists tickets with no workflow. Add:
 
-Recommended canonical set of admin capabilities, grouped:
+- Ticket statuses: `open → in_progress → waiting_author → resolved → closed`.
+- **Assignment** to a specific admin (dropdown of `user_roles where role='admin'`).
+- **SLA timer** — `first_response_due_at` (4h default) and `resolution_due_at` (48h) computed from `created_at`; row badge turns amber at 80% and red on breach.
+- **Reply UI** — admin reply posts to existing messages thread + sets status + notifies author via bell.
+- New columns on `support_tickets`: `assigned_to uuid`, `status text`, `first_response_at timestamptz`, `resolved_at timestamptz`, `priority text default 'normal'`.
 
-```text
-1. Author Management
-   - Directory (search, filter by tier/status/country)
-   - Profile inspector (read-only mirror of author dashboard)
-   - Suspend / reinstate / delete (with reason)
-   - Impersonate (read-only "view as")
-   - Tier override (Brand/Build/Yield) + expiry
-   - Manual book-approval override per author
-   - Email/slug change audit log
+### 3. Broadcast Announcements (Overview tab — superadmin-only)
+- Compose modal: title, message, optional link, audience filter (`all authors` | `tier=Brand` | `tier=Build` | `tier=Yield` | `published authors only`).
+- On send: server-side fan-out via `notify_users(<resolved uids>, ..., event_key='admin.broadcast')`. Optional checkbox "Also email" → enqueues to `email_queue` with the existing `transactional-email` pipeline.
+- Author dashboard: any unread `admin.broadcast` notification surfaces as a dismissible banner above the dashboard header (in addition to the bell).
+- Audit-logged with recipient count.
 
-2. Book / Content Lifecycle
-   - Submission queue (pending_review)
-   - Approve / Request changes (with note) / Reject (with reason)
-   - Resubmission tracking (version N)
-   - Force-unpublish + reason
-   - Bulk approve same-author
-   - Microsite preview link per book
+### 4. Audit Log Viewer (new tab "Audit", superadmin-only)
+- Reads `admin_audit_log` with filters: actor, event_key, target_type, date range, free-text search on payload.
+- Paginated table; row click opens JSON payload drawer.
+- CSV export.
 
-3. Commerce & Payouts
-   - Order ledger (gross, 8% fee, net)
-   - Refund initiation + audit
-   - Stripe Connect status per author
-   - Payout batches (existing) + manual single payout
-   - Failed-payout queue
+## Technical Plan
 
-4. Marketing / ABBY Engine
-   - Asset pack generation status per author/node
-   - Failed-generation queue + retry
-   - Email send log (template, recipient, status) — already partly exists
-   - Social posts queue (Buffer)
+**Migration** (`<ts>_admin_wave3.sql`):
+- `author_profiles` → add `suspended_at`, `suspended_reason`, `suspended_by`, `tier_expires_at`.
+- `support_tickets` → add `assigned_to`, `status`, `first_response_at`, `resolved_at`, `priority`, `first_response_due_at`, `resolution_due_at`.
+- Trigger `support_tickets_set_due_dates_trg` to compute SLA timestamps on insert.
+- RLS: admins read/write both tables; authors read their own ticket row.
 
-5. Support & Communication
-   - Ticket inbox + assignment + SLA timer
-   - Author↔Admin DM (exists)
-   - Broadcast announcement (banner + notification + optional email)
+**Edge functions:**
+- `admin-authors` (new) — actions: `suspend`, `reinstate`, `set-tier`, `impersonate-token`, `profile-inspect`. All check `has_role(uid,'admin')`; impersonate also checks superadmin email allowlist.
+- `admin-support` (new) — actions: `assign`, `set-status`, `reply`, `list` (with SLA computed fields).
+- `admin-broadcast` (new) — resolves audience, calls `notify_users`, optional email enqueue.
+- `admin-data` → add `audit-log` action with filter support.
+- All wire to `notify_users` / `notify_all_admins` and write `admin_audit_log` rows.
 
-6. Platform Configuration
-   - Node gating per tier (exists)
-   - Platform fee % (exists in platform_config)
-   - Feature flags
-   - Public-content quality log viewer
+**Email templates** (registered in `transactional-email-templates/registry.ts`):
+- `account-suspended`, `account-reinstated`, `admin-broadcast` (optional channel).
 
-7. System Health
-   - Edge-function error feed (last 24h)
-   - Cron job status (process-email-queue, etc.)
-   - Stripe / ElevenLabs / Buffer connector status
-   - Database orphan/ghost-uid warnings (table exists)
+**UI components:**
+- `src/components/admin/AuthorsTab.tsx` — extend with action menu (Suspend/Reinstate/Set Tier/Impersonate/Inspect) + drawers/modals.
+- `src/components/admin/SupportTab.tsx` — rebuild with Kanban-or-list view, assignment dropdown, SLA badge, reply drawer.
+- `src/components/admin/BroadcastDialog.tsx` (new) — composer + audience picker.
+- `src/components/admin/AuditLogTab.tsx` (new) — table + filters + JSON drawer.
+- `src/components/dashboard/SuspendedAccountScreen.tsx` (new) — shown by `AuthorDashboard` when `author_profiles.suspended_at` is set.
+- `src/components/dashboard/BroadcastBanner.tsx` (new) — surfaces unread `admin.broadcast` notifications.
+- `src/components/admin/ImpersonationBanner.tsx` (new) — global red banner while a superadmin is impersonating.
 
-8. Audit & Security
-   - Admin action log (who did what, when, target, before/after)
-   - Login/IP log
-   - Role changes log
-   - Superadmin-only zones (existing pattern ✓)
-```
+**Auth/guard wiring:**
+- `useAuth` exposes `isSuspended` from author_profiles; `AuthorDashboard` short-circuits to suspended screen.
+- Impersonation: `getActiveToken()` already standard; impersonation token attached as `x-impersonation: <author_id>` header. Edge functions that mutate state reject the header (read-only enforcement).
 
-This is the spec to fine-tune toward. Implementation lands in waves; Wave 1 is below.
-
----
-
-## Part B — Business-Rules Engine: Notifications & Lifecycle
-
-### Canonical events (Wave 1 covers Book lifecycle end-to-end)
-
-| Event | Triggered by | Notify Author | Notify Admins | Email |
-|---|---|---|---|---|
-| `book.submitted` | Author submits / publishes draft (sets approval_status='pending_review') | "Submission received, under review" | "New book pending review: {title}" + link | optional admin digest |
-| `book.approved` | Admin clicks Approve | "Your book is live 🎉" + microsite URL | log only | existing `book-approved` ✓ |
-| `book.changes_requested` | Admin clicks Request Changes (new) + note | "Changes requested: {note}" | log only | new `book-changes-requested` template |
-| `book.rejected` | Admin clicks Reject + reason | "Submission rejected: {reason}" | log only | new `book-rejected` template |
-| `book.resubmitted` | Author edits + resubmits | confirm to author | "Resubmission v{n}: {title}" | — |
-| `payout.paid` | Stripe webhook | "Payout {amt} sent" | log | existing |
-| `payout.failed` | Stripe webhook | "Payout failed: action needed" | "Payout failure for {author}" | optional |
-| `support.opened` | Author opens ticket | confirm | "New ticket: {subject}" | optional |
-| `support.replied` | Counterparty replies | recipient gets bell | recipient (if admin) | — |
-| `purchase.completed` | verify-purchase webhook | "New sale {amt}" | log | existing |
-| `node.published` (microsite goes live) | author_nodes.status→live | confirm | log | — |
-| `admin.broadcast` | Admin posts announcement | all authors get bell | — | optional |
-
-### Single mechanism
-
-One DB helper + one edge function entrypoint = all events go through it:
-
-- `public.notify_users(target_user_ids uuid[], title text, message text, link text, event_key text)` — SECURITY DEFINER inserts to `notifications` (and a new `audit_log` row with event_key + actor).
-- New table `public.admin_audit_log` (actor_id, event_key, target_type, target_id, payload jsonb, created_at) — backbone of the Audit & System-Health tabs.
-- New helper `notify_all_admins(...)` resolves admin user_ids via `user_roles where role='admin'`.
-
-### Wave-1 Implementation Scope
-
-**Schema (migration):**
-1. `public.admin_audit_log` table + RLS (admins read; service-role write).
-2. SQL function `public.notify_users(...)` and `public.notify_all_admins(...)`.
-3. Add `books.submitted_at`, `books.review_round int default 1`, `books.rejection_note text` (rejection_note already exists per code; verify), `books.review_history jsonb`.
-4. Trigger `books_after_status_change` → calls the right `notify_*` based on `approval_status` transition.
-
-**Edge function changes:**
-- `admin-books` `approve`: call `notify_users([author], 'Your book is live', ..., '/books/{slug}')` + audit log. Email already wired ✓.
-- `admin-books` `reject`: accept `reason`, store in `rejection_note`, notify author, audit log, send new `book-rejected` email template.
-- New action `request-changes`: same as reject but status='changes_requested' and uses `book-changes-requested` template.
-- New action in book write path (`save-book`/`publish-book`, whichever exists): on first transition to `pending_review`, notify all admins.
-
-**UI changes:**
-- `BooksTab.tsx`: add "Request Changes" button + modal with reason textarea. Reject button gets a required reason modal too. Show `review_round` badge.
-- `OverviewTab.tsx`: add "Recent Activity" feed pulling last 20 rows of `admin_audit_log`.
-- New `AdminNotificationBell.tsx` mounted in `AdminDashboard` header — same pattern as author `NotificationCenter` but filtered to admin events.
-- New email templates: `book-rejected.tsx`, `book-changes-requested.tsx` registered in `transactional-email-templates/registry.ts`.
-
-**Author side:**
-- Existing `NotificationCenter.tsx` already polls + realtime — no change needed; it will pick up rows automatically.
-- Add a small "Resubmit" action on author's book card when `approval_status='changes_requested'` or `'rejected'`.
-
-### Out of scope for Wave 1 (queued for Wave 2+)
-- Impersonate, suspend/reinstate, refund flow, broadcast announcements, system-health dashboard, ticket SLA. These are itemised in Part A and will land sequentially.
-
----
-
-## Files that will be touched in Wave 1
+## Files Touched
 
 ```text
-NEW  supabase/migrations/<ts>_admin_audit_and_notify.sql
-NEW  supabase/functions/_shared/transactional-email-templates/book-rejected.tsx
-NEW  supabase/functions/_shared/transactional-email-templates/book-changes-requested.tsx
+NEW  supabase/migrations/<ts>_admin_wave3.sql
+NEW  supabase/functions/admin-authors/index.ts
+NEW  supabase/functions/admin-support/index.ts
+NEW  supabase/functions/admin-broadcast/index.ts
+NEW  supabase/functions/_shared/transactional-email-templates/account-suspended.tsx
+NEW  supabase/functions/_shared/transactional-email-templates/account-reinstated.tsx
+NEW  supabase/functions/_shared/transactional-email-templates/admin-broadcast.tsx
 EDIT supabase/functions/_shared/transactional-email-templates/registry.ts
-EDIT supabase/functions/admin-books/index.ts         (reject reason, request-changes, audit, notify)
-EDIT supabase/functions/save-book/index.ts (or equivalent)  (notify admins on submit)
-NEW  src/components/admin/AdminNotificationBell.tsx
-EDIT src/pages/AdminDashboard.tsx                    (mount bell, recent activity)
-EDIT src/components/admin/BooksTab.tsx               (reason modals, review_round badge)
-EDIT src/components/admin/OverviewTab.tsx            (Recent Activity feed)
-EDIT src/components/dashboard/MyBooks.tsx            (Resubmit CTA when changes_requested/rejected)
+EDIT supabase/functions/admin-data/index.ts                (audit-log action)
+EDIT src/components/admin/AuthorsTab.tsx
+EDIT src/components/admin/SupportTab.tsx
+EDIT src/components/admin/OverviewTab.tsx                  (Broadcast button)
+EDIT src/pages/AdminDashboard.tsx                          (Audit tab + impersonation banner mount)
+NEW  src/components/admin/BroadcastDialog.tsx
+NEW  src/components/admin/AuditLogTab.tsx
+NEW  src/components/admin/ImpersonationBanner.tsx
+NEW  src/components/dashboard/SuspendedAccountScreen.tsx
+NEW  src/components/dashboard/BroadcastBanner.tsx
+EDIT src/hooks/useAuth.tsx                                 (expose isSuspended)
+EDIT src/pages/AuthorDashboard.tsx                         (guard + banner mount)
+EDIT src/types/admin.ts
 ```
 
----
+## Out of scope (Wave 4 candidates)
+Marketing/ABBY ops console (asset-pack failure queue + retry), feature flags UI, login/IP log, bulk-approve same-author, manual single Stripe payout trigger.
 
-## Open questions before we start
-
-1. For "Request Changes" vs "Reject" — should rejection be terminal (author cannot resubmit same book) or always allow resubmission? Default plan: changes_requested = resubmittable, rejected = terminal (admin must re-open).
-2. Should admin notifications email-digest hourly instead of one-per-event? Default: in-portal bell only, email digest deferred to Wave 2.
-3. Confirm the Author dashboard should show the rejection/changes note inline on the book card (default: yes).
-
-Confirm or override these and I'll execute Wave 1.
+## Open questions
+1. **Impersonation** — superadmin-only (paulinet77 + mitchcarson per `superadmin.ts`), correct? Default: yes.
+2. **Suspension email** — send by default or admin opt-in checkbox? Default: send by default with opt-out.
+3. **SLA defaults** — 4h first response / 48h resolution acceptable, or different per priority?
