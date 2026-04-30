@@ -57,7 +57,7 @@ const BBY_PHASES: BBYPhase[] = [
       { label: "Memberships", id: "memberships", requiredTier: "build" },
       { label: "Group Coaching", id: "group-coaching", requiredTier: "build" },
       { label: "Podcast Tour", id: "podcast-guest", requiredTier: "build" },
-      { label: "Media Outreach", id: "in-house-speaker", requiredTier: "build" },
+      { label: "Media & PR", id: "in-house-speaker", requiredTier: "build" },
       { label: "Affiliates", id: "affiliates", requiredTier: "build" },
       { label: "Bundles", id: "upsells", requiredTier: "build" },
       { label: "Revenue Sharing", id: "revenue-sharing", requiredTier: "build" },

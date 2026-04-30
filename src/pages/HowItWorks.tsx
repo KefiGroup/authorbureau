@@ -216,7 +216,7 @@ export default function HowItWorks() {
                   { name: "Memberships", desc: "Create recurring value through ongoing content, community, and access." },
                   { name: "Group Coaching", desc: "Lead readers through a shared transformation in a scalable live format." },
                   { name: "Podcast Tour", desc: "Build authority by getting your message in front of aligned audiences." },
-                  { name: "Media Outreach", desc: "Increase visibility with interviews, press angles, and media positioning." },
+                  { name: "Media & PR", desc: "Increase visibility with interviews, press angles, and media positioning." },
                   { name: "Affiliates", desc: "Let partners and advocates help distribute your products and offers." },
                   { name: "Bundles", desc: "Increase customer value by guiding readers to the next best offer." },
                   { name: "Revenue Sharing", desc: "Create aligned partnerships where growth and outcomes are shared." },

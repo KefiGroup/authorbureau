@@ -40,7 +40,7 @@ const FRAMEWORK: Category[] = [
       { label: "Memberships", active: false, category: "revenue" },
       { label: "Group Coaching", active: false, category: "revenue" },
       { label: "Podcast Tour", active: false, category: "marketing" },
-      { label: "Media Outreach", active: false, category: "marketing" },
+      { label: "Media & PR", active: false, category: "marketing" },
       { label: "Affiliates", active: false, category: "marketing" },
       { label: "Upsells", active: false, category: "revenue" },
       { label: "Revenue Sharing", active: false, category: "revenue" },
