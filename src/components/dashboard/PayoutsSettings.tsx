@@ -189,14 +189,14 @@ export default function PayoutsSettings() {
               <RadioGroupItem value="wise" id="m-wise" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="m-wise" className="font-semibold cursor-pointer">Wise</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Lowest FX fees, paid in your local currency. Manual processing — works in 160+ countries.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Paid in your local currency. Works in 160+ countries. Authors Bureau covers the Wise transfer fee.</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 cursor-pointer" onClick={() => setMethod("paypal")}>
               <RadioGroupItem value="paypal" id="m-paypal" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="m-paypal" className="font-semibold cursor-pointer">PayPal</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Familiar, but higher FX fees. Use if Wise/Stripe aren't available where you are.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Familiar and widely available. Use if Wise or Stripe isn't available where you are. Authors Bureau covers the PayPal transfer fee.</p>
               </div>
             </div>
           </RadioGroup>
