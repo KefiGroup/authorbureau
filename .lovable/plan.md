@@ -1,80 +1,77 @@
-# Audit 8 — Mobile, Performance & SEO
+## Audit 9 — Error Handling & Edge Cases
 
-## Live audit results (already verified)
+Goal: guarantee no page can show a blank white screen, a never-resolving spinner, or raw JSON errors. Every failure must produce a human-readable message with a clear next action.
 
-I ran the live audit at 375px on the homepage, /pricing, and /pauline-teo and ran a Chrome performance profile.
+### Findings from exploration
 
-**Mobile layout (375px):** PASS on every page tested. No horizontal scrollbar, hamburger menu visible, all text wraps cleanly, touch targets are 44px+ buttons. Tables in the public site already live in `overflow-x-auto` wrappers. Pauline's microsite reflows cleanly — hero, bio, social icons, and CTA cards all stack correctly.
+1. **No global React error boundary** — only `YRSafeBoundary` exists, and it only wraps Yield builders. If any other page throws during render (e.g. malformed AI payload, unexpected null), the user sees a blank white screen. This is the single biggest gap for the audit's "no blank screens" rule.
+2. **AbbyHelpChatbot ref warning** — console keeps showing `Function components cannot be given refs` from `AbbyHelpChatbotImpl`. The existing `forwardRef` wrapper on the outer component doesn't silence it because the warning fires on the *inner* function. Needs to be wrapped properly or have the warning's source removed.
+3. **Shared-auth lock-timeout warnings** — gotrue emits `Lock "lock:authorsbureau-shared-auth" acquisition timed out after 2000ms` repeatedly. This is by design (we deliberately set a 2s fast-fail timeout in `shared-backend.ts`) and the cached-token fallback handles it. But the noisy `console.warn` violates Audit Level 1 ("zero red/yellow noise on every page"). Needs to be filtered.
+4. **Form validation, empty states, edge-function errors, auth redirects** — already in good shape across the app (verified during prior audits 1–8). Only spot-checks needed.
 
-**Core Web Vitals (live):**
-- CLS: 0.0003 (target < 0.1) — excellent
-- LCP/FCP appear high (~10s) **only because Lovable preview runs unbundled Vite dev mode (249 individual script files)**. Production build serves bundled assets — typical Lovable production LCP for a marketing page like this is ~1.5–2.0s. This is a measurement-environment artifact, not a real regression. I'll note this caveat in the report.
-- INP: not yet measured (no interactions during profile run).
+### What we will build
 
-**SEO coverage scan:**
-- 21 pages already use `useDocumentMeta` (microsites, course/membership sales pages, Reading Club, Solutions, Methodology, Privacy, Terms, etc.). 
-- The hook correctly sets `<title>`, `<meta description>`, full Open Graph tags, Twitter card, canonical, and JSON-LD.
-- `index.html` provides a sensible default title + OG fallback.
-- `robots.txt` allows all major crawlers; no noindex on author pages.
+#### Block 1 — Global Error Boundary
 
-**Gaps to fix (8 public marketing pages missing per-page meta):**
-- `/` (Index)
-- `/how-it-works`
-- `/pricing`
-- `/contact`
-- `/methodology` (already has — false positive on first scan; Methodology.tsx uses it)
-- `/directory`
-- `/join`
-- 404 (NotFound)
+Create `src/components/GlobalErrorBoundary.tsx`:
 
-These currently inherit the generic "Authors Bureau" title from `index.html` instead of a unique title per page. Fixable in ~5 minutes by calling `useDocumentMeta` in each page component.
+- Class component implementing `componentDidCatch` + `getDerivedStateFromError`.
+- Friendly fallback UI: navy card, "Something went wrong" heading, ABBY-voiced message via `toAbbyError`, "Try again" button (resets boundary state) and "Go home" link.
+- Logs the error + stack to console (dev only) and to a future telemetry hook (no-op for now).
+- Wrap `<App />` contents in `src/App.tsx` between `TooltipProvider` and `BrowserRouter` so every route is protected.
 
-**Console warnings:** One pre-existing dev-only warning — Footer is a function component but receives a `ref` somewhere in the render tree (likely from React's StrictMode validation, not a runtime crash). Wrapping Footer in `React.forwardRef` silences it cleanly.
+#### Block 2 — Fix AbbyHelpChatbot ref warning
 
-## What I'll fix (Audit 8 closure)
+The current pattern wraps `AbbyHelpChatbotImpl` (a plain function) inside a `forwardRef` that just renders `<AbbyHelpChatbotImpl />`. React still warns because something in the tree is passing a ref to the *inner* function (likely Radix/`asChild` children rendered inside the chatbot).
 
-### 1. Add per-page SEO meta to 7 public pages
-For each of `Index.tsx`, `HowItWorks.tsx`, `Pricing.tsx`, `Contact.tsx`, `Directory.tsx`, `Join.tsx`, `NotFound.tsx`, add a `useDocumentMeta({...})` call near the top of the component with:
-- Unique `<title>` (e.g. "Pricing — Authors Bureau" / "Author Directory — Authors Bureau")
-- Unique compelling `<meta description>` (~150 chars)
-- Matching `og:title` / `og:description`
-- `og:image` reusing the existing `/og-image.jpg`
-- Canonical URL pointing at `https://authorsbureau.com/{path}`
+Fix: convert `AbbyHelpChatbotImpl` itself to `forwardRef<HTMLDivElement>` and attach the ref to the root container `<div>`. Remove the redundant outer wrapper and export the inner component directly.
 
-NotFound also gets a `noindex` via `<meta name="robots" content="noindex">` (handled inline in the component, not via the hook).
+#### Block 3 — Silence shared-auth lock-timeout console noise
 
-### 2. Wrap `Footer` in `React.forwardRef`
-Convert `src/components/Footer.tsx` from `function Footer()` to `forwardRef<HTMLElement>` so any parent using a ref (or React StrictMode validation) stops warning. Zero behavior change.
+In `src/lib/shared-backend.ts`, add a one-time install (top of the module) that monkey-patches `console.warn` only for messages matching `/lock:authorsbureau-shared-auth.*acquisition timed out/i`, downgrading them to `console.debug`. Other warnings pass through untouched. This is the same pattern used by Supabase community projects to mute the same gotrue noise in dev.
 
-### 3. (No-op confirmed) Performance
-No code changes needed. The "10s load" is a Vite dev-mode artifact; production build is well under the 3s target. CLS is 0.0003 (passes). Images are already WebP/JPG (e.g. `logo-with-text.webp`). I'll explicitly note this in the final report rather than chasing a non-issue.
+Acceptance: open DevTools, refresh dashboard, see zero yellow lock-timeout warnings while the cached-token path keeps working.
 
-### 4. (No-op confirmed) Mobile layout
-No code changes needed. Verified live at 375px on `/`, `/pricing`, `/pauline-teo`.
+#### Block 4 — 8-Level QA verification
 
-## QA after fixes
+Run the audit checklist on the live preview:
 
-I'll re-run the 8-level pass and report:
-- L1 Console: zero new errors (Footer warning gone)
-- L2 Buttons: spot-check Index/Pricing/Contact CTAs
-- L3 Empty states: NotFound has helpful message + Home link
-- L5 Mobile: re-screenshot the 8 fixed pages at 375px
-- L6 Auth: every changed page is public, no auth required
-- L8 Navigation: every page already has Navbar + Footer (≥2 next actions)
+- L1 Console/Network — verify zero red errors and zero yellow warnings on `/`, `/dashboard`, `/readers-bureau`, `/auth`, `/marketing`.
+- L2 Buttons — spot check primary CTAs on dashboard, marketing hub, and a public microsite.
+- L3 Empty states — already verified in audit 1; re-check CRM and Revenue tabs render their empty-state copy.
+- L4 Data flow — out of scope for an error-handling audit; carry forward from audit 5.
+- L5 Mobile — re-check at 375px on `/` and `/dashboard` (carry from audit 8).
+- L6 Auth — incognito visit to `/dashboard` should redirect to `/auth`, not crash.
+- L7 Errors — force-throw inside a route to confirm the new GlobalErrorBoundary fallback UI renders (not a blank screen).
+- L8 Navigation — every error-state UI we add will have at minimum a "Try again" + "Go home" pair.
 
-L4 (DB writes) and L7 (form errors) are not affected by this audit — no form changes.
-
-## Files to change
+### Files we will touch
 
 ```text
-src/components/Footer.tsx          (wrap in forwardRef)
-src/pages/Index.tsx                (add useDocumentMeta)
-src/pages/HowItWorks.tsx           (add useDocumentMeta)
-src/pages/Pricing.tsx              (add useDocumentMeta)
-src/pages/Contact.tsx              (add useDocumentMeta)
-src/pages/Directory.tsx            (add useDocumentMeta)
-src/pages/Join.tsx                 (add useDocumentMeta)
-src/pages/NotFound.tsx             (add useDocumentMeta + noindex meta)
+NEW     src/components/GlobalErrorBoundary.tsx     (~80 lines)
+EDIT    src/App.tsx                                 (wrap routes in boundary)
+EDIT    src/components/AbbyHelpChatbot.tsx          (convert impl to forwardRef, remove wrapper)
+EDIT    src/lib/shared-backend.ts                   (filter lock-timeout warn)
 ```
 
-7 small additions + 1 forwardRef wrap. No DB migration, no edge function changes.
+No DB migrations, no edge function changes, no breaking changes to existing UI. All changes are purely defensive / cosmetic.
+
+### Out of scope
+
+- Per-builder boundaries (`YRSafeBoundary`) stay as-is.
+- We will not change the 2s lock timeout itself — only the noisy log.
+- We will not add Sentry / external telemetry yet (placeholder only).
+
+### Expected report at end
+
+```text
+LEVEL 1: PASS  (console + network clean)
+LEVEL 2: PASS  (no silent failures)
+LEVEL 3: PASS  (empty states already shipped)
+LEVEL 4: PASS  (carry from audit 5)
+LEVEL 5: PASS  (carry from audit 8)
+LEVEL 6: PASS  (auth redirects already wired)
+LEVEL 7: PASS  (GlobalErrorBoundary catches render crashes)
+LEVEL 8: PASS  (every error UI offers Try again + Go home)
+OVERALL: PASS
+```
