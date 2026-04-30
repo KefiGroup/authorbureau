@@ -45,26 +45,72 @@ interface AuthorPending {
   currency: string;
 }
 
+interface PayoutsStatus {
+  stripe_ready: boolean;
+  paypal_ready: boolean;
+  last_payout_at: string | null;
+  last_statement_at: string | null;
+  last_statement_year: number | null;
+}
+
 export default function AdminPayoutsDashboard() {
   const [purchases, setPurchases] = useState<PurchaseRow[]>([]);
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
+  const [status, setStatus] = useState<PayoutsStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [processingAuthor, setProcessingAuthor] = useState<string | null>(null);
+  const [runningPayouts, setRunningPayouts] = useState(false);
+  const [runningStatements, setRunningStatements] = useState(false);
 
   useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
-      const [purchasesRes, payoutsRes] = await Promise.all([
+      const [purchasesRes, payoutsRes, statusRes] = await Promise.all([
         adminDataFetch("list-purchases"),
         adminDataFetch("list-payouts"),
+        adminDataFetch("payouts-status").catch(() => null),
       ]);
       setPurchases(purchasesRes.purchases || []);
       setPayouts(payoutsRes.payouts || []);
+      if (statusRes) setStatus(statusRes as PayoutsStatus);
     } catch (err) {
       console.error("Failed to load payout data:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRunPayoutsNow = async () => {
+    if (!confirm("Run the monthly payout job now? This will transfer eligible earnings via Stripe Connect immediately.")) return;
+    setRunningPayouts(true);
+    try {
+      const res = await adminDataFetch("run-monthly-payouts-now");
+      if (res?.ok) toast.success("Monthly payout job started");
+      else toast.error(`Payout run failed (${res?.status ?? "?"})`);
+      await loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to run payouts");
+    } finally {
+      setRunningPayouts(false);
+    }
+  };
+
+  const handleGenerateStatementsNow = async () => {
+    const yearStr = prompt("Tax year for annual statements?", String(new Date().getUTCFullYear() - 1));
+    if (!yearStr) return;
+    const taxYear = Number(yearStr);
+    if (!Number.isFinite(taxYear)) { toast.error("Invalid year"); return; }
+    setRunningStatements(true);
+    try {
+      const res = await adminDataFetch("generate-annual-statements-now", { tax_year: taxYear });
+      if (res?.ok) toast.success(`Annual statements generated for ${taxYear}`);
+      else toast.error(`Statement run failed (${res?.status ?? "?"})`);
+      await loadData();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to generate statements");
+    } finally {
+      setRunningStatements(false);
     }
   };
 
