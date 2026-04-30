@@ -242,6 +242,8 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         </Card>
       </div>
 
+      <SystemHealthCard />
+
       {/* Quick Actions */}
       <div className="space-y-3">
         <h3 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wider">Quick Actions</h3>
