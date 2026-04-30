@@ -20,13 +20,13 @@ export default function PayoutSettingsPage() {
         </div>
         <h1 className="font-heading text-3xl font-bold">Payout Settings</h1>
         <p className="text-muted-foreground max-w-xl mx-auto">
-          Readers pay Authors Bureau at checkout. We keep an 8% platform fee (covers Stripe and other payment-gateway processing) and pay out your remaining 92% monthly. Choose how you'd like to receive it below.
+          Readers pay Authors Bureau at checkout. We retain an 8% platform fee to cover all payment-processing costs and pay you the remaining 92% monthly.
         </p>
       </div>
 
       {/* Framing banner */}
       <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-4 text-sm text-muted-foreground">
-        <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just tell us where to send your monthly 92% payout — Stripe, PayPal, or Wise all work.
+        <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just tell us where to send your monthly 92% payout — Stripe, PayPal, or Wise all work, and we cover the transfer fees.
       </div>
 
       {/* Canonical payout UI (Stripe Connect button + agreement + Wise/PayPal) */}
