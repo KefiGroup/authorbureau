@@ -24,8 +24,18 @@ function escapeHtml(str: string): string {
 
 function mdToHtml(md: string, vars: Record<string, string>): string {
   let out = md;
+  // Substitute {{var}} placeholders FIRST (case-insensitive variants supported)
   for (const [k, v] of Object.entries(vars)) {
-    out = out.replaceAll(`{{${k}}}`, v);
+    const re = new RegExp(`{{\\s*${k}\\s*}}`, 'gi');
+    out = out.replace(re, v);
+  }
+  // Also rewrite hard-coded placeholder URLs the AI may have hallucinated
+  if (vars.lead_magnet_url) {
+    out = out.replace(/https?:\/\/example\.com\/lead-magnet\/?/gi, vars.lead_magnet_url);
+    out = out.replace(/https?:\/\/example\.com\/?(?=[\s)\]])/gi, vars.lead_magnet_url);
+  }
+  if (vars.author_url) {
+    out = out.replace(/https?:\/\/example\.com\/?(?=[\s)\]])/gi, vars.author_url);
   }
   out = escapeHtml(out);
   out = out.replace(/^### (.*)$/gm, '<h3 style="margin:24px 0 8px;">$1</h3>');
