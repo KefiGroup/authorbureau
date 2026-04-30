@@ -13,6 +13,7 @@ import LeadCaptureForm from "@/components/LeadCaptureForm";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
 import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlayer";
 import { normalizeOutcome } from "@/lib/workbook-pdf";
+import { stripHtml } from "@/lib/stripHtml";
 
 interface MicrositeData {
   author: any;
@@ -1265,10 +1266,22 @@ function LongFormSalesPage({
   const author = data.author || {};
   const authorBio = author.bio || author.bio_long || "";
 
+  // True daily lesson count for home-study programmes (BP-07 stores study_weeks[].days[]).
+  const dailyLessonCount = Array.isArray(content.study_weeks)
+    ? content.study_weeks.reduce(
+        (n: number, w: any) => n + (Array.isArray(w?.days) ? w.days.length : 0),
+        0,
+      )
+    : 0;
+
   // Author included items for pricing card
   const includedItems: string[] = [
     duration ? `${duration} of ${type === "home-study" ? "training" : "content"}` : `Full ${cfg.title.toLowerCase()} access`,
-    youGet.length > 0 ? `${youGet.length}+ structured ${type === "home-study" ? "lessons" : "modules"}` : "All core content",
+    type === "home-study" && dailyLessonCount > 0
+      ? `${dailyLessonCount} daily lessons`
+      : youGet.length > 0
+        ? `${youGet.length} structured ${type === "home-study" ? "lessons" : "modules"}`
+        : "All core content",
     "Instant digital delivery",
     guaranteeText,
   ];
@@ -1292,7 +1305,7 @@ function LongFormSalesPage({
           <img src={data.book.cover_image_url} alt={data.book.title} className="w-full max-w-[200px] mx-auto rounded-lg shadow-xl mb-8" />
         )}
         <div className="max-w-sm mx-auto">{renderCta(ctaLabel)}</div>
-        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · 30-day guarantee</p>
+        <p className="text-xs mt-3" style={{ color: v.mutedText }}>Secure checkout · Stripe · {guaranteeText}</p>
       </header>
 
       {/* ── Problem / Pain ── */}
@@ -2400,7 +2413,35 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
             {content.headline || pageTitle}
           </h1>
           {content.subheadline && <p className="text-lg" style={{ color: v.mutedText }}>{content.subheadline}</p>}
-          {content.description && <p className="text-base leading-relaxed" style={{ color: v.bodyText }}>{content.description}</p>}
+          {content.description && (() => {
+            const text = stripHtml(String(content.description));
+            const paras = text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+            if (paras.length === 0) return null;
+            return (
+              <div className="space-y-3">
+                {paras.map((p, i) => {
+                  const lines = p.split(/\n/).map(l => l.trim()).filter(Boolean);
+                  const isBullets = lines.length > 1 && lines.every(l => /^([-*•]|\d+[.)])\s+/.test(l));
+                  if (isBullets) {
+                    return (
+                      <ul key={i} className="space-y-1 list-disc pl-5">
+                        {lines.map((l, j) => (
+                          <li key={j} className="text-base leading-relaxed" style={{ color: v.bodyText }}>
+                            {l.replace(/^([-*•]|\d+[.)])\s+/, "")}
+                          </li>
+                        ))}
+                      </ul>
+                    );
+                  }
+                  return (
+                    <p key={i} className="text-base leading-relaxed whitespace-pre-line" style={{ color: v.bodyText }}>
+                      {p}
+                    </p>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {content.bullets && Array.isArray(content.bullets) && (
             <ul className="space-y-2">
@@ -2432,14 +2473,17 @@ function GenericPage({ data, content, v, hFont, bgColor, nodeId, onSubmit, email
             <p className="text-2xl font-bold" style={{ color: v.headingText }}>${content.price}</p>
           )}
 
-          {actionType === "purchase" && hasPaymentLink && (
-            <Button className="rounded-full px-8 py-3" style={{ background: v.accent, color: v.accentText }} asChild>
-              <a href={paymentUrl} target="_blank" rel="noopener noreferrer">
-                {content.cta_text || "Get Started"} <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-            </Button>
+          {actionType === "purchase" && data.node.id && (
+            <BuyNowButton
+              authorNodeId={data.node.id}
+              authorId={data.author?.id}
+              fallbackUrl={paymentUrl || null}
+              label={content.cta_text || "Get Started"}
+              className="rounded-full px-8 py-3"
+              style={{ background: v.accent, color: v.accentText }}
+            />
           )}
-          {actionType === "purchase" && !hasPaymentLink && (
+          {actionType === "purchase" && !data.node.id && (
             <Button className="rounded-full" disabled>Coming Soon</Button>
           )}
         </div>
