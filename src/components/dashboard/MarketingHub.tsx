@@ -272,7 +272,7 @@ export default function MarketingHub({ onNavigate }: Props) {
           contacts: number;
           domainPending: boolean;
         };
-      }>("snapshot");
+      }>("snapshot", bookCtx.activeBookId ? { book_id: bookCtx.activeBookId } : {});
 
       setAuthorProfileId(snapshot.author_profile_id || null);
       setNodeRows(snapshot.node_rows || []);
