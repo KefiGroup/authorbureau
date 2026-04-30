@@ -319,9 +319,7 @@ export default function RevenueFullDashboard() {
   const refreshStripeStatus = async () => {
     setStripeRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "status" },
-      });
+      const { data, error } = await callStripeConnect({ action: "status" });
       if (error) {
         toast.error("Couldn't reach Stripe. Please try again.");
         return;
