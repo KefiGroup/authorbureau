@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { BookOpen, Mail, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
 import type { AuthorData, BookWithProducts, ThemeVars } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import { stripHtml } from "@/lib/stripHtml";
 
 const SOCIAL_LINKS = [
   { key: "website_url", icon: Globe, label: "Website" },
@@ -80,7 +81,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               className="text-lg md:text-xl mb-5" style={{ color: `${v.primaryText}D9` }}
             >
               {(() => {
-                const bio = (author.bio_short || "").trim();
+                const bio = stripHtml(author.bio_short || "");
                 if (bio) return bio;
                 const hasBestseller = booksWithProducts.some(b => b.badges && b.badges.length > 0);
                 const cleanGenres = [
