@@ -133,6 +133,7 @@ export default function PayoutsSettings() {
           : null,
         paypal_email_v2: method === "paypal" ? paypalEmail : null,
         tax_self_declared_at: agreementAck ? new Date().toISOString() : null,
+        refund_window_days: refundWindow,
       };
       const { error } = await supabase
         .from("author_payout_settings")
