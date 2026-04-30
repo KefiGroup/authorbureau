@@ -313,32 +313,28 @@ export default function BP02Builder({ authorId, bookId }: Props) {
       const token = await getActiveToken();
       if (!token) throw new Error("Not authenticated");
 
-      const publishResponse = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/deploy-bp02-to-ghl`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            author_id: authorId,
-            content_payload: { ...content, publishChannels, _currentStep: 4 },
-          }),
-        },
-        30000,
-      );
+      // Native activation: write status=live directly. The DB trigger
+      // (author_nodes_autofill_delivery_url) computes the canonical microsite_url.
+      const { data: updated, error: upErr } = await supabase
+        .from("author_nodes")
+        .update({
+          status: "live",
+          activated_at: new Date().toISOString(),
+          content_json: { ...content, publishChannels, _currentStep: 4 },
+        })
+        .eq("author_id", authorId!)
+        .eq("node_id", "BP-02")
+        .select("microsite_url, delivery_url")
+        .maybeSingle();
 
-      const publishResult = await publishResponse.json().catch(() => ({}));
-      if (!publishResponse.ok || !publishResult?.success) {
-        throw new Error(publishResult?.message || "Failed to publish your lead magnet.");
+      if (upErr) {
+        throw new Error(upErr.message || "Failed to publish your lead magnet.");
       }
 
-      const micrositeUrl = typeof publishResult?.microsite_url === "string"
-        ? publishResult.microsite_url
-        : typeof publishResult?.live_url === "string"
-          ? publishResult.live_url
-          : fallbackMicrositeUrl;
+      const micrositeUrl =
+        (typeof updated?.microsite_url === "string" && updated.microsite_url) ||
+        (typeof updated?.delivery_url === "string" && updated.delivery_url) ||
+        fallbackMicrositeUrl;
 
       // Push nurture emails to BP-04 (Email Marketing) — only if channel selected
       if (publishChannels.emailNurture && (content.nurture_sequence || content.nurture_emails)) {

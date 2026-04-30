@@ -293,17 +293,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       setEditMode(false);
       toast({ title: "Profile saved! ✅" });
 
-      // Silently provision GHL sub-account (fire and forget)
-      if (result.profile?.id) {
-        fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ghl-provision-author`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ author_id: result.profile.id }),
-          }
-        ).catch(() => {}); // Silent — author never sees this
-      }
+      // (GHL provisioning removed — native ABBY flow now handles activation)
     } catch (err) {
       toast({ title: "Save failed", description: err.message, variant: "destructive" });
     } finally {
