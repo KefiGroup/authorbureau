@@ -34,7 +34,7 @@ const DEFAULT_SETTINGS: PayoutSettings = {
 };
 
 const PAYOUT_OPTIONS: { value: PayoutMethod; label: string; icon: typeof CreditCard; description: string }[] = [
-  { value: "stripe", label: "Stripe", icon: CreditCard, description: "Direct transfer to your connected Stripe account. Fastest option." },
+  { value: "stripe", label: "Stripe", icon: CreditCard, description: "Direct transfer via Stripe — fastest option for US/EU authors. Requires Stripe Connect onboarding before payouts run." },
   { value: "paypal", label: "PayPal", icon: DollarSign, description: "Payout sent to your PayPal email. Available worldwide." },
   { value: "wise", label: "Wise", icon: Globe, description: "Bank transfer via Wise. Best rates for international authors." },
 ];
@@ -189,9 +189,14 @@ export default function PayoutSettingsPage() {
           <Wallet className="h-8 w-8 text-secondary" />
         </div>
         <h1 className="font-heading text-3xl font-bold">Payout Settings</h1>
-        <p className="text-muted-foreground max-w-md mx-auto">
-          Choose how you'd like to receive your earnings. You keep 92% of every sale.
+        <p className="text-muted-foreground max-w-xl mx-auto">
+          Readers pay Authors Bureau at checkout. We keep an 8% platform fee (covers Stripe and other payment-gateway processing) and pay out your remaining 92% monthly. Choose how you'd like to receive it below.
         </p>
+      </div>
+
+      {/* Framing banner — clarifies that no Stripe connection is required to publish */}
+      <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-4 text-sm text-muted-foreground">
+        <strong className="text-foreground">You don't need to connect Stripe to publish or sell.</strong> Authors Bureau collects every payment for you. Just tell us where to send your monthly 92% payout — Stripe, PayPal, or Wise all work.
       </div>
 
       {/* Payout Method Selection */}
