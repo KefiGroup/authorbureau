@@ -129,14 +129,14 @@ export default function LiveMicrositesGrid() {
                     <Badge variant="outline" className={badge.className}>{badge.label}</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground truncate mb-3 font-mono">
-                    {n.delivery_url}
+                    {n._publicUrl}
                   </div>
                   <div className="flex gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       className="flex-1"
-                      onClick={() => copyLink(n.node_id, n.delivery_url!)}
+                      onClick={() => copyLink(n.node_id, n._publicUrl!)}
                     >
                       {copiedId === n.node_id ? <Check className="w-3 h-3 mr-1" /> : <Copy className="w-3 h-3 mr-1" />}
                       {copiedId === n.node_id ? "Copied" : "Copy link"}
@@ -144,7 +144,7 @@ export default function LiveMicrositesGrid() {
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => window.open(n.delivery_url!, "_blank", "noopener,noreferrer")}
+                      onClick={() => window.open(n._publicUrl!, "_blank", "noopener,noreferrer")}
                     >
                       <ExternalLink className="w-3 h-3" />
                     </Button>
