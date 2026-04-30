@@ -1533,6 +1533,39 @@ export type Database = {
         }
         Relationships: []
       }
+      content_quality_log: {
+        Row: {
+          author_id: string
+          created_at: string
+          field_path: string | null
+          id: string
+          node_id: string
+          rule: string
+          sample: string | null
+          source: string | null
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          field_path?: string | null
+          id?: string
+          node_id: string
+          rule: string
+          sample?: string | null
+          source?: string | null
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          field_path?: string | null
+          id?: string
+          node_id?: string
+          rule?: string
+          sample?: string | null
+          source?: string | null
+        }
+        Relationships: []
+      }
       course_deliverables: {
         Row: {
           content: string | null
