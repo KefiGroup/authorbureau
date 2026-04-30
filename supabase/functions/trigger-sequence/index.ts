@@ -127,8 +127,9 @@ Deno.serve(async (req) => {
           .eq('author_id', flow.author_id).maybeSingle();
 
         const senderName = emailSettings?.sender_name || profile?.pen_name || 'Authors Bureau';
-        const fromAddress = `${senderName.replace(/[^A-Za-z0-9 ]/g, '')} <onboarding@resend.dev>`;
-        const replyTo = emailSettings?.reply_to_email || undefined;
+        const { buildFromAddress, resolveReplyTo } = await import('../_shared/from-address.ts');
+        const fromAddress = buildFromAddress(senderName);
+        const replyTo = resolveReplyTo(emailSettings?.reply_to_email);
 
         const html = renderEmailHtml({
           subject: step.subject, bodyMd: step.body_markdown,

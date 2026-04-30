@@ -164,8 +164,9 @@ Deno.serve(async (req) => {
         ]);
 
         const senderName = emailSettings?.sender_name || profile?.pen_name || 'Authors Bureau';
-        const fromAddress = `${senderName.replace(/[^A-Za-z0-9 ]/g, '')} <newsletter@authorsbureau.com>`;
-        const replyTo = emailSettings?.reply_to_email || undefined;
+        const { buildFromAddress, resolveReplyTo } = await import('../_shared/from-address.ts');
+        const fromAddress = buildFromAddress(senderName);
+        const replyTo = resolveReplyTo(emailSettings?.reply_to_email);
 
         const token = await getOrCreateUnsubToken(supabase, sub.email);
         const unsubscribeUrl = `${PUBLIC_BASE}/unsubscribe?token=${token}`;
