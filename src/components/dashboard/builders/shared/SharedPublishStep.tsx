@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   Check, Monitor, Smartphone, Download, Rocket, TrendingUp, Sparkles,
-  ArrowRight, BarChart3, Copy, ExternalLink, Info, CreditCard,
+  ArrowRight, BarChart3, Copy, ExternalLink, Info,
 } from "lucide-react";
 
 import { useToast } from "@/hooks/use-toast";
@@ -74,13 +74,6 @@ export default function SharedPublishStep({
     : baseChecks;
   const allReady = checks.every(c => c.done);
   const proj = revenue.calculate(stepData);
-
-  // Determine button label
-  const getButtonLabel = () => {
-    if (publishing) return "Publishing…";
-    if (isLive) return "Update Live Page";
-    return `Publish to Marketing Hub`;
-  };
 
   const handlePublish = async () => {
     // Pre-flight: paid product requires Stripe Connect.
