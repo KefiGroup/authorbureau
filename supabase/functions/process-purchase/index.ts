@@ -148,10 +148,12 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session, admin: 
   const platformFee = +(amount * feeRate).toFixed(2);
   const authorEarnings = +(amount - platformFee).toFixed(2);
 
-  // Estimated Stripe processing fee (2.9% + $0.30 for US cards). Adjust if needed.
+  // Estimated Stripe processing fee (2.9% + $0.30 for US cards) — recorded for
+  // INTERNAL margin tracking only. The 8% platform fee covers ALL gateway
+  // costs (Stripe / Wise / PayPal); the author always receives exactly 92%
+  // of gross. NEVER subtract stripeFee from the author's net.
   const stripeFee = +((amount * 0.029) + 0.30).toFixed(2);
-  const netAfterStripe = +(amount - stripeFee).toFixed(2);
-  const netForAuthor = +(netAfterStripe - platformFee).toFixed(2);
+  const netForAuthor = authorEarnings;
 
   // Insert purchases row (works for both payment and subscription first invoice)
   const { data: purchaseRow } = await admin.from("purchases").insert({
