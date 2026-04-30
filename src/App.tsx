@@ -48,6 +48,7 @@ import ReaderTermsOfSale from "./pages/ReaderTermsOfSale";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import HubRedirect from "./components/dashboard/HubRedirect";
 import RevenueFullDashboard from "./pages/RevenueFullDashboard";
+import ContentQualityLog from "./pages/admin/ContentQualityLog";
 import NodeBuilder from "./pages/NodeBuilder";
 import AbbyCoachPage from "./pages/AbbyCoachPage";
 import Pricing from "./pages/Pricing";
