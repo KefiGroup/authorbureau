@@ -299,9 +299,7 @@ export default function RevenueFullDashboard() {
   const startStripeOnboarding = async () => {
     setStripeRefreshing(true);
     try {
-      const { data, error } = await supabase.functions.invoke("stripe-connect", {
-        body: { action: "onboard" },
-      });
+      const { data, error } = await callStripeConnect({ action: "onboard" });
       if (error || !data?.url) {
         toast.error("Couldn't start Stripe onboarding. Please try again.");
         return;
