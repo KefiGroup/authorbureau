@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Wallet, Loader2, CheckCircle2, AlertCircle, Zap, ExternalLink } from "lucide-react";
+import { Wallet, Loader2, CheckCircle2, AlertCircle, Zap, ExternalLink, Mail } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,13 +13,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePayoutReadiness, type PayoutMethod } from "@/hooks/usePayoutReadiness";
 import { toast } from "sonner";
 
-const COUNTRIES = [
-  "Singapore", "United States", "United Kingdom", "Australia", "Canada", "India", "Philippines",
-  "Malaysia", "Indonesia", "Vietnam", "Thailand", "Japan", "South Korea", "Hong Kong",
-  "Germany", "France", "Spain", "Italy", "Netherlands", "Brazil", "Mexico", "South Africa",
-  "Nigeria", "Kenya", "United Arab Emirates", "New Zealand", "Other",
-];
-
 export default function PayoutsSettings() {
   const { user } = useAuth();
   const { ready, stripe_onboarding_complete, refresh } = usePayoutReadiness();
@@ -28,11 +21,7 @@ export default function PayoutsSettings() {
   const [saving, setSaving] = useState(false);
   const [connectingStripe, setConnectingStripe] = useState(false);
 
-  const [method, setMethod] = useState<PayoutMethod>("wise");
-  const [legalName, setLegalName] = useState("");
-  const [country, setCountry] = useState("");
-  const [bankAccount, setBankAccount] = useState("");
-  const [wiseEmail, setWiseEmail] = useState("");
+  const [method, setMethod] = useState<PayoutMethod>("stripe");
   const [paypalEmail, setPaypalEmail] = useState("");
   const [agreementAck, setAgreementAck] = useState(false);
   const [refundWindow, setRefundWindow] = useState<number>(14);
@@ -46,17 +35,11 @@ export default function PayoutsSettings() {
       setAuthorId(profile.id);
       const { data: s } = await supabase
         .from("author_payout_settings")
-        .select("payout_method, wise_recipient, paypal_email_v2, tax_self_declared_at, refund_window_days")
+        .select("payout_method, paypal_email_v2, tax_self_declared_at, refund_window_days")
         .eq("author_id", profile.id).maybeSingle();
       if (s) {
-        setMethod((s.payout_method as PayoutMethod) || "wise");
-        const wr = (s.wise_recipient as Record<string, string> | null) || null;
-        if (wr) {
-          setLegalName(wr.legal_name || "");
-          setCountry(wr.country || "");
-          setBankAccount(wr.bank_account || "");
-          setWiseEmail(wr.wise_email || "");
-        }
+        const savedMethod = s.payout_method as PayoutMethod | null;
+        setMethod(savedMethod === "paypal" ? "paypal" : "stripe");
         setPaypalEmail(s.paypal_email_v2 || "");
         setAgreementAck(!!s.tax_self_declared_at);
         if (typeof (s as { refund_window_days?: number }).refund_window_days === "number") {
@@ -78,7 +61,6 @@ export default function PayoutsSettings() {
         } catch { /* non-fatal */ }
         await refresh();
         toast.success("Stripe Express onboarding completed.");
-        // Clean the URL so refreshes don't re-trigger this.
         params.delete("stripe_connected");
         params.delete("stripe_refresh");
         const qs = params.toString();
@@ -90,8 +72,6 @@ export default function PayoutsSettings() {
   const connectStripe = async () => {
     setConnectingStripe(true);
     try {
-      // Audit #3: tell the edge function which page to return to so the
-      // author lands back on the same page (dashboard OR account settings).
       const returnPath = window.location.pathname + window.location.search;
       const { data, error } = await supabase.functions.invoke("stripe-connect", {
         body: { action: "onboard", return_path: returnPath },
@@ -107,10 +87,6 @@ export default function PayoutsSettings() {
 
   const save = async () => {
     if (!authorId) return;
-    if (method === "wise" && (!legalName || !country || (!bankAccount && !wiseEmail))) {
-      toast.error("Fill legal name, country, and either a bank account OR a Wise email.");
-      return;
-    }
     if (method === "paypal" && !paypalEmail) {
       toast.error("Enter your PayPal email.");
       return;
@@ -128,9 +104,6 @@ export default function PayoutsSettings() {
       const payload = {
         author_id: authorId,
         payout_method: method,
-        wise_recipient: method === "wise"
-          ? { legal_name: legalName, country, bank_account: bankAccount, wise_email: wiseEmail }
-          : null,
         paypal_email_v2: method === "paypal" ? paypalEmail : null,
         tax_self_declared_at: agreementAck ? new Date().toISOString() : null,
         refund_window_days: refundWindow,
@@ -160,7 +133,7 @@ export default function PayoutsSettings() {
             <Wallet className="h-6 w-6 text-secondary" /> Payouts
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Authors Bureau collects all reader payments and pays you 92% on the 1st of each month (minimum US$50).
+            Authors Bureau collects all reader payments and pays you 92% on the 1st of each month (minimum US$50). Both methods below are fully automated — no waiting, no manual steps.
           </p>
         </div>
         <div className="flex flex-col gap-1.5 items-end">
@@ -180,23 +153,18 @@ export default function PayoutsSettings() {
               <RadioGroupItem value="stripe" id="m-stripe" className="mt-1" />
               <div className="flex-1">
                 <Label htmlFor="m-stripe" className="font-semibold cursor-pointer flex items-center gap-2">
-                  Stripe Express <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Auto</Badge>
+                  Stripe Express <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Recommended · Auto</Badge>
                 </Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Automatic transfer to your bank on the 1st. No CSV, no waiting. Available in 45+ countries.</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 cursor-pointer" onClick={() => setMethod("wise")}>
-              <RadioGroupItem value="wise" id="m-wise" className="mt-1" />
-              <div className="flex-1">
-                <Label htmlFor="m-wise" className="font-semibold cursor-pointer">Wise</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Paid in your local currency. Works in 160+ countries. Authors Bureau covers the Wise transfer fee.</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Direct deposit to your bank on the 1st. Available in 45+ countries. Authors Bureau covers all transfer fees.</p>
               </div>
             </div>
             <div className="flex items-start gap-3 p-3 border rounded-lg hover:bg-muted/30 cursor-pointer" onClick={() => setMethod("paypal")}>
               <RadioGroupItem value="paypal" id="m-paypal" className="mt-1" />
               <div className="flex-1">
-                <Label htmlFor="m-paypal" className="font-semibold cursor-pointer">PayPal</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">Familiar and widely available. Use if Wise or Stripe isn't available where you are. Authors Bureau covers the PayPal transfer fee.</p>
+                <Label htmlFor="m-paypal" className="font-semibold cursor-pointer flex items-center gap-2">
+                  PayPal <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Auto</Badge>
+                </Label>
+                <p className="text-xs text-muted-foreground mt-0.5">Sent to your PayPal email on the 1st. Works in 200+ countries. Authors Bureau covers all transfer fees.</p>
               </div>
             </div>
           </RadioGroup>
@@ -221,35 +189,14 @@ export default function PayoutsSettings() {
             </div>
           )}
 
-          {method === "wise" && (
-            <div className="space-y-3 pt-2 border-t">
-              <div>
-                <Label>Legal name (must match bank account)</Label>
-                <Input value={legalName} onChange={(e) => setLegalName(e.target.value)} placeholder="e.g. Pauline Teo" />
-              </div>
-              <div>
-                <Label>Country</Label>
-                <Select value={country} onValueChange={setCountry}>
-                  <SelectTrigger><SelectValue placeholder="Select country" /></SelectTrigger>
-                  <SelectContent>{COUNTRIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Bank account number / IBAN <span className="text-xs text-muted-foreground">(or use Wise email below)</span></Label>
-                <Input value={bankAccount} onChange={(e) => setBankAccount(e.target.value)} placeholder="Account / IBAN" />
-              </div>
-              <div>
-                <Label>Wise email <span className="text-xs text-muted-foreground">(if you have a Wise account)</span></Label>
-                <Input type="email" value={wiseEmail} onChange={(e) => setWiseEmail(e.target.value)} placeholder="you@example.com" />
-              </div>
-            </div>
-          )}
-
           {method === "paypal" && (
             <div className="space-y-3 pt-2 border-t">
               <div>
-                <Label>PayPal email</Label>
+                <Label className="flex items-center gap-1.5"><Mail className="h-3.5 w-3.5" />PayPal email</Label>
                 <Input type="email" value={paypalEmail} onChange={(e) => setPaypalEmail(e.target.value)} placeholder="you@example.com" />
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Make sure this email is registered to a PayPal account that can receive payments. Funds usually arrive within 1 business day.
+                </p>
               </div>
             </div>
           )}
