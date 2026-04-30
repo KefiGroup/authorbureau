@@ -133,7 +133,7 @@ export default function PayoutsSettings() {
             <Wallet className="h-6 w-6 text-secondary" /> Payouts
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Authors Bureau collects all reader payments and pays you 92% on the 1st of each month (minimum US$50). Both methods below are fully automated — no waiting, no manual steps.
+            Authors Bureau collects all reader payments and pays you 92% on the 1st of each month (minimum US$50). Connect Stripe Express below — fully automated, no manual steps.
           </p>
         </div>
         <div className="flex flex-col gap-1.5 items-end">
