@@ -175,53 +175,9 @@ serve(async (req) => {
       }
     }
 
-    // 4. Send PayPal batch (one API call for all PayPal payouts)
-    if (paypalQueue.length > 0 && PAYPAL_CLIENT_ID && PAYPAL_SECRET) {
-      const senderBatchId = `AB-${periodTag}-${Date.now()}`;
-      try {
-        const batchId = await createPayPalBatch(
-          paypalQueue.map((q) => ({
-            email: q.email,
-            amount: q.net,
-            ref: q.ref,
-            note: `Authors Bureau royalties ${fmtDate(periodStart)} – ${fmtDate(periodEnd)}`,
-            sender_item_id: q.payoutId,
-          })),
-          senderBatchId,
-        );
-        // Mark all queued PayPal payouts as 'paid' (fire-and-forget; the
-        // paypal-payouts-webhook will downgrade them to 'failed' if any
-        // individual transfer fails on PayPal's side).
-        for (const q of paypalQueue) {
-          await admin.from("author_payouts_v2").update({
-            status: "paid",
-            external_reference: batchId,
-            paid_at: new Date().toISOString(),
-          }).eq("id", q.payoutId);
-          createdPayouts.push({ author_id: q.authorId, net: q.net, method: "paypal", status: "paid" });
-          paypalTotal += q.net;
-          paypalAuthors++;
-        }
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        console.error("[payouts] PayPal batch failed", msg);
-        // Roll back all queued PayPal payouts
-        for (const q of paypalQueue) {
-          await admin.from("author_payouts_v2").update({
-            status: "failed",
-            notes: `PayPal batch failed: ${msg}`,
-          }).eq("id", q.payoutId);
-          await admin.from("author_earnings").update({ payout_id: null, paid_out: false })
-            .in("id", q.ernIds);
-          paypalFailures++;
-          createdPayouts.push({ author_id: q.authorId, net: q.net, method: "paypal", status: "failed" });
-        }
-      }
-    }
-
     const resendKey = Deno.env.get("RESEND_API_KEY");
 
-    // 5. Notify each author
+    // 4. Notify each author
     if (resendKey) {
       for (const p of createdPayouts) {
         const profile = profileByAuthor.get(p.author_id);
@@ -237,16 +193,14 @@ serve(async (req) => {
         const html = p.status === "failed"
           ? `<div style="font-family: Georgia, serif; max-width:600px; margin:0 auto; padding:40px 20px;">
               <h2>Hi ${profile.pen_name || "there"},</h2>
-              <p>We tried to transfer <strong>$${p.net.toFixed(2)} USD</strong> to you via ${p.method.toUpperCase()} but the transfer failed.</p>
-              <p>${p.method === "stripe"
-                ? `This usually means your Stripe account needs additional verification. Please log into your <a href="https://authorsbureau.com/account-settings?tab=payouts">Payout Settings</a> and complete any outstanding requirements.`
-                : `Please double-check the PayPal email on your <a href="https://authorsbureau.com/account-settings?tab=payouts">Payout Settings</a>. If you've recently changed it, we'll automatically retry next month.`}</p>
+              <p>We tried to transfer <strong>$${p.net.toFixed(2)} USD</strong> to you via Stripe Express but the transfer failed.</p>
+              <p>This usually means your Stripe account needs additional verification. Please log into your <a href="https://authorsbureau.com/account-settings?tab=payouts">Payout Settings</a> and complete any outstanding requirements.</p>
               <p>We'll automatically retry on the next run.</p>
               <hr/><p style="font-size:12px;color:#888;">Authors Bureau · For Multiplier Pte Ltd · Singapore</p>
             </div>`
           : `<div style="font-family: Georgia, serif; max-width:600px; margin:0 auto; padding:40px 20px;">
               <h2>Hi ${profile.pen_name || "there"},</h2>
-              <p>Great news — your monthly payout of <strong>$${p.net.toFixed(2)} USD</strong> has been sent via <strong>${p.method === "stripe" ? "Stripe" : "PayPal"}</strong> and should arrive within 1–3 business days.</p>
+              <p>Great news — your monthly payout of <strong>$${p.net.toFixed(2)} USD</strong> has been sent via <strong>Stripe Express</strong> and should arrive within 1–3 business days.</p>
               <p>View details in your <a href="https://authorsbureau.com/earnings">Earnings dashboard</a>.</p>
               <hr/><p style="font-size:12px;color:#888;">Authors Bureau · For Multiplier Pte Ltd · Singapore</p>
             </div>`;
@@ -263,7 +217,7 @@ serve(async (req) => {
         } catch (e) { console.error("[payouts] author email failed", e); }
       }
 
-      // 6. Reminder email to authors with pending earnings but no payout method
+      // 5. Reminder email to authors with pending earnings but no payout method
       for (const s of skippedNoMethod) {
         const profile = profileByAuthor.get(s.author_id);
         if (!profile?.user_id) continue;
@@ -281,8 +235,8 @@ serve(async (req) => {
               html: `<div style="font-family: Georgia, serif; max-width:600px; margin:0 auto; padding:40px 20px;">
                 <h2>Hi ${profile.pen_name || "there"},</h2>
                 <p>You've earned <strong>$${s.net.toFixed(2)} USD</strong> in royalties on Authors Bureau, but we don't have a way to pay you yet.</p>
-                <p>Set up your payout method (Stripe Express or PayPal) and we'll send the funds on the next 1st of the month.</p>
-                <p><a href="https://authorsbureau.com/account-settings?tab=payouts" style="background:#0F2D4A;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">Connect Payout Account →</a></p>
+                <p>Connect your Stripe Express account and we'll send the funds on the next 1st of the month — fully automated, with all transfer fees covered.</p>
+                <p><a href="https://authorsbureau.com/account-settings?tab=payouts" style="background:#0F2D4A;color:white;padding:12px 24px;text-decoration:none;border-radius:6px;display:inline-block;">Connect Stripe Express →</a></p>
                 <hr/><p style="font-size:12px;color:#888;">Authors Bureau · For Multiplier Pte Ltd · Singapore</p>
               </div>`,
             }),
@@ -291,14 +245,9 @@ serve(async (req) => {
       }
     }
 
-    // 7. Owner alert — Stripe failures or PayPal not configured
+    // 6. Owner alert — Stripe failures only
     const ownerAlerts: string[] = [];
     if (stripeFailures > 0) ownerAlerts.push(`${stripeFailures} Stripe transfer(s) failed`);
-    if (paypalFailures > 0) ownerAlerts.push(`${paypalFailures} PayPal payout(s) failed`);
-    if (skippedPayPalNotConfigured.length > 0) {
-      const total = skippedPayPalNotConfigured.reduce((s, x) => s + x.net, 0);
-      ownerAlerts.push(`${skippedPayPalNotConfigured.length} PayPal author(s) waiting ($${total.toFixed(2)}) — PAYPAL_CLIENT_ID / PAYPAL_SECRET not set in Lovable Cloud secrets`);
-    }
     if (ownerAlerts.length > 0 && resendKey) {
       try {
         await fetch("https://api.resend.com/emails", {
@@ -318,11 +267,9 @@ serve(async (req) => {
       ok: true,
       period: `${fmtDate(periodStart)} → ${fmtDate(periodEnd)}`,
       payouts_created: createdPayouts.length,
-      total_amount_usd: Math.round((stripeTotal + paypalTotal) * 100) / 100,
+      total_amount_usd: Math.round(stripeTotal * 100) / 100,
       stripe: { authors: stripeAuthors, total: Math.round(stripeTotal * 100) / 100, failures: stripeFailures },
-      paypal: { authors: paypalAuthors, total: Math.round(paypalTotal * 100) / 100, failures: paypalFailures, configured: !!(PAYPAL_CLIENT_ID && PAYPAL_SECRET) },
       reminders_sent: skippedNoMethod.length,
-      paypal_pending_setup: skippedPayPalNotConfigured.length,
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (error) {
     console.error("[run-monthly-payouts] error", error);
