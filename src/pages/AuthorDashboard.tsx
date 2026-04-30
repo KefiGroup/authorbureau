@@ -43,6 +43,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 import { useMyBooks } from "@/hooks/useMyBooks";
+import SuspendedAccountScreen from "@/components/dashboard/SuspendedAccountScreen";
+import BroadcastBanner from "@/components/dashboard/BroadcastBanner";
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { isSuperAdmin } from "@/lib/superadmin";
@@ -235,6 +237,30 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   // Centralized stats from author-stats edge function
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
   const { books: myBooks, loading: myBooksLoading } = useMyBooks(user?.id);
+
+  // Wave 3: Suspension state
+  const [suspensionState, setSuspensionState] = useState<{ checked: boolean; suspendedAt: string | null; reason: string | null }>({
+    checked: false, suspendedAt: null, reason: null,
+  });
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("author_profiles")
+        .select("suspended_at, suspended_reason")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cancelled) {
+        setSuspensionState({
+          checked: true,
+          suspendedAt: data?.suspended_at ?? null,
+          reason: data?.suspended_reason ?? null,
+        });
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id]);
 
   // Active book from URL (?bookId=...) — drives sidebar's currentBook context
   const activeBookId = searchParams.get("bookId");
