@@ -337,6 +337,7 @@ serve(async (req) => {
             templateName: 'quiz-result',
             recipientEmail: cleanEmail,
             idempotencyKey,
+            authorId: author_id,
             templateData: {
               readerName,
               stageName,
