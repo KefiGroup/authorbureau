@@ -141,8 +141,9 @@ Deno.serve(async (req) => {
       .single();
 
     const senderName = settings?.sender_name || profile?.pen_name || "Author";
-    const fromEmail = `${senderName} <newsletter@authorsbureau.com>`;
-    const replyTo = settings?.reply_to_email || undefined;
+    const { buildFromAddress, resolveReplyTo } = await import("../_shared/from-address.ts");
+    const fromEmail = buildFromAddress(senderName);
+    const replyTo = resolveReplyTo(settings?.reply_to_email);
 
     const { data: subscribers, error: subErr } = await supabase
       .from("author_subscribers")
