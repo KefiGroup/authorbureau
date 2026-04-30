@@ -42,6 +42,7 @@ import {
 
 interface Props {
   authorId: string | null;
+  bookId?: string | null;
 }
 
 interface SocialPost {
@@ -127,7 +128,7 @@ function buildWeekGrid(anchor: Date): Date[] {
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-export default function SocialCalendarTab({ authorId }: Props) {
+export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const navigate = useNavigate();
   const { isReady: isAuthReady } = useAuthReady();
   const [posts, setPosts] = useState<SocialPost[]>([]);
@@ -171,7 +172,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
       const result = await callMarketingHubState<{
         bp03_activated: boolean;
         posts: SocialPost[];
-      }>("social_calendar");
+      }>("social_calendar", bookId ? { book_id: bookId } : {});
 
       const loadedPosts: SocialPost[] = result.posts || [];
       setBp03Activated(!!result.bp03_activated);
@@ -191,7 +192,7 @@ export default function SocialCalendarTab({ authorId }: Props) {
     }
   };
 
-  useEffect(() => { load(); }, [authorId, isAuthReady]);
+  useEffect(() => { load(); }, [authorId, isAuthReady, bookId]);
 
   const repairCalendar = async () => {
     setRepairing(true);

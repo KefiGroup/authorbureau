@@ -416,18 +416,23 @@ export default function MarketingHub({ onNavigate }: Props) {
     try {
       // For BP-03, "pause" means clearing the calendar's ready/draft posts.
       if (campaign.id === "social-media") {
-        await supabase
+        let q = supabase
           .from("social_posts" as any)
           .delete()
           .eq("author_id", authorProfileId)
           .eq("node_id", "BP-03")
           .in("status", ["draft", "ready"]);
+        if (bookCtx.activeBookId) q = q.eq("book_id", bookCtx.activeBookId);
+        await q;
         toast({ title: "Campaign paused", description: "Social Calendar cleared. Re-activate anytime to refill it." });
         await fetchNodes();
         return;
       }
 
-      await callMarketingHubState("pause_node", { node_ids: campaign.nodeIds });
+      await callMarketingHubState("pause_node", {
+        node_ids: campaign.nodeIds,
+        ...(bookCtx.activeBookId ? { book_id: bookCtx.activeBookId } : {}),
+      });
       toast({ title: "Campaign paused", description: `${campaign.label} has been paused.` });
       await fetchNodes();
     } catch (err: any) {
@@ -476,6 +481,15 @@ export default function MarketingHub({ onNavigate }: Props) {
           Activate campaigns, manage email sequences, and track every contact in one place.
         </p>
       </div>
+
+      {/* Per-book scope selector — only renders for authors with 2+ books */}
+      {bookCtx.hasMultipleBooks && (
+        <MarketingHubBookSelector
+          books={bookCtx.books}
+          activeBookId={bookCtx.activeBookId}
+          onChange={bookCtx.setActiveBookId}
+        />
+      )}
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full grid-cols-5 max-w-2xl">
@@ -624,15 +638,15 @@ export default function MarketingHub({ onNavigate }: Props) {
         </TabsContent>
 
         <TabsContent value="sequences" className="mt-6">
-          <SequencesTab />
+          <SequencesTab bookId={bookCtx.activeBookId} books={bookCtx.books} />
         </TabsContent>
 
         <TabsContent value="social-calendar" className="mt-6">
-          <SocialCalendarTab authorId={authorProfileId} />
+          <SocialCalendarTab authorId={authorProfileId} bookId={bookCtx.activeBookId} />
         </TabsContent>
 
         <TabsContent value="contacts" className="mt-6">
-          <ContactsTab authorId={user?.id ?? null} />
+          <ContactsTab authorId={user?.id ?? null} bookId={bookCtx.activeBookId} />
         </TabsContent>
 
         <TabsContent value="settings" className="mt-6">

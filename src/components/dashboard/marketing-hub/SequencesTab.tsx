@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Loader2, Mail, TrendingUp, Users, MousePointerClick, Sparkles, Pencil, PauseCircle, PlayCircle, ArrowRight, ExternalLink, PlayCircle as PlayIcon, AlertTriangle } from "lucide-react";
@@ -30,6 +30,7 @@ interface FlowRow {
   description: string | null;
   flow_type: string;
   node_id: string | null;
+  book_id?: string | null;
   status: string;
   total_subscribers: number;
   open_rate: number;
@@ -53,7 +54,12 @@ const statusBadge: Record<string, string> = {
   paused: "bg-muted text-muted-foreground border-border",
 };
 
-export default function SequencesTab() {
+interface SequencesTabProps {
+  bookId?: string | null;
+  books?: { id: string; title: string }[];
+}
+
+export default function SequencesTab({ bookId = null, books = [] }: SequencesTabProps = {}) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const highlightKey = searchParams.get("highlight");
@@ -72,13 +78,19 @@ export default function SequencesTab() {
   const [pulseId, setPulseId] = useState<string | null>(null);
   const [editingFlow, setEditingFlow] = useState<FlowRow | null>(null);
 
+  const bookTitleById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const b of books) m[b.id] = b.title;
+    return m;
+  }, [books]);
+
   const load = async () => {
     try {
       const res = await callMarketingHubState<{
         flows: FlowRow[];
         steps_by_flow: Record<string, Step[]>;
         active_enrollments_by_flow?: Record<string, number>;
-      }>("sequences");
+      }>("sequences", bookId ? { book_id: bookId } : {});
       setFlows(res.flows || []);
       setSteps(res.steps_by_flow || {});
       setEnrollments(res.active_enrollments_by_flow || {});
@@ -89,7 +101,7 @@ export default function SequencesTab() {
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { setLoading(true); load(); }, [bookId]);
 
   // Check sender-email verification so we can warn before activating sequences.
   useEffect(() => {
@@ -133,7 +145,7 @@ export default function SequencesTab() {
     setGeneratingAll(true);
     try {
       const res = await callMarketingHubState<{ attempted: number; skipped_existing: number; background?: boolean }>(
-        "generate_all_sequences", { include_master: true }
+        "generate_all_sequences", { include_master: true, ...(bookId ? { book_id: bookId } : {}) }
       );
       if (res.attempted === 0) {
         toast({
@@ -297,6 +309,12 @@ export default function SequencesTab() {
                 )}
                 {f.node_id && (
                   <Badge variant="outline" className="text-[10px]">{f.node_id}</Badge>
+                )}
+                {/* Book badge — shown in "All Books" mode when we know which book this flow belongs to */}
+                {!bookId && f.book_id && bookTitleById[f.book_id] && (
+                  <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-700 border-amber-500/20 max-w-[140px] truncate">
+                    📖 {bookTitleById[f.book_id]}
+                  </Badge>
                 )}
                 {f.flow_type === "master_nurture" && (
                   <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/20">Master</Badge>
