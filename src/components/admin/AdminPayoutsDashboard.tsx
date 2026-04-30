@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Loader2, DollarSign, Clock, CheckCircle2, AlertTriangle, Send } from "lucide-react";
+import { Loader2, CheckCircle2, AlertTriangle, Send, Play, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
