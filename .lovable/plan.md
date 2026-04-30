@@ -1,91 +1,76 @@
-# Audit #5 — Critical Blocker Found, Then Resume Audit
+# Microsite Cleanup — Render-Time Fixes + Targeted Generator Prompts
 
-## What I found (live site is broken for readers)
+## Ground-truth findings (live audit on authorsbureau.com)
 
-I scored all 24 of Pauline's microsite URLs against the resolver. **Every single one returns HTTP 404 "Node not live"**, even though the database confirms all 28 nodes have `status='live'`. That means right now, any reader who clicks a card on `/pauline-teo` and lands on `/pauline-teo/free-gift`, `/webinar`, `/coaching`, etc. gets a broken page.
+I just opened the two lowest scorers in the browser. The good news: **CTAs are NOT missing** — both pages have working forms/buttons rendered by `MicrositePage.tsx` defaults. The real problems readers actually see are different and more important:
 
-### Root cause
+**`/pauline-teo/vip` (4/8)**
+- Pricing exposed: `$5,000`, `$12,000`, `$25,000` — violates "no pricing on public microsites"
+- Empty offer titles: "Offer 1 / Offer 2 / Offer 3" (JSON has prices but no `name` / `title`)
+- Visible emdashes in body copy and form helper text
+- Tiny "Pauline Teo" header bar at top — violates "no nav header"
 
-```text
-DB: 28 nodes × 2 rows each = 56 rows for Pauline
-Resolver: .maybeSingle() against (author_id, node_id) → returns null when >1 row
-Result: isLive = false → 404 → "Node not live"
+**`/pauline-teo/certification` (5/8)**
+- Pricing exposed: `$3,500` and tier label "Associate"
+- Visible emdashes in tagline and body ("Every Master Was Once a Disaster — start by sucking…")
+- Same "Pauline Teo" header bar
+
+This pattern is the same across all 21 flagged pages. The fix order should be: **(A) render-time sanitization** (instant, blanket coverage of all 28 pages), then **(B) targeted JSON repair for VIP**, then **(C) generator prompt hardening** (so future writes stay clean).
+
+## Pass A — Render-time sanitization (fixes all 28 pages instantly, no regen)
+
+### A1. Strip emdashes server-side in `get-microsite-page`
+Walk the resolved `content_json` and `book` payloads recursively before responding; replace `—` (U+2014) and `–` (U+2013) with `, ` (or ` - ` when between digits like ranges). Also strip from `bio_short`, `bio_long`, `tagline`, `credentials` on the author payload. Single function deployment fixes every existing page on next reader visit.
+
+### A2. Hide pricing on the rendered microsite (`src/pages/MicrositePage.tsx`)
+- Remove the price column on YR-20 offer rows; show only the offer name + a single "Apply" CTA.
+- Remove the headline price block on YR-25 (Certification); replace with a quiet "Application required" line above the CTA.
+- Audit all other paid-tier renderers (YR-19 Coaching, YR-23 Mastermind, YR-24 Retreats, BA-13 Group Coaching, BP-07 Home Study, BP-08 Special Edition) and apply the same suppression. Pricing only appears server-side in the BuyNowButton checkout flow, never in static page chrome.
+
+### A3. Remove the small "Pauline Teo" header bar
+Find the breadcrumb/header injection at the top of microsite pages and remove it (or wrap it behind an `isOwnerPreview` flag so authors still see context but readers don't). Public site rule says: no nav header.
+
+### A4. Field hygiene fallbacks
+In MicrositePage's YR-20 renderer, when an offer has no `name`/`title`, fall back to deriving one from the offer's `description` first sentence (or hide the row entirely instead of showing "Offer 1"). Same pattern for any other node that loops a list — never render numeric placeholders.
+
+## Pass B — Targeted JSON repair for VIP (one author, one node)
+
+Pauline's YR-20 `content_json.offers` array has prices but no titles. Either:
+- Re-run the YR-20 generator with the hardened prompt (preferred — catches all five missing-title authors at once if there are any), or
+- Patch this specific row to add three offer titles: "Sucking Sprint", "SUCKCESS Incubator", "Mentorship". 
+
+Decision after Pass A: if the offers UI now hides untitled rows cleanly, no patch needed. If empty rows would be a regression, run a targeted regeneration.
+
+## Pass C — Generator prompt hardening (prevents recurrence)
+
+Add a single shared block to all 28 generator system prompts:
+
+```
+HARD RULES (these will fail QA if violated):
+- NEVER use emdash (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, or tier labels like "Associate"/"Pro" 
+  in body copy, taglines, headlines, or descriptions. Pricing lives in price_usd only.
+- Every list item (offer, package, module, episode) MUST have a `title` or `name` 
+  field with concrete, descriptive copy — never generic placeholders.
+- Use the author's brand vocabulary (frameworks, signature phrases) verbatim.
 ```
 
-Every node has **2 duplicate rows**:
-- **Original row** (created weeks ago) — has `microsite_url` populated, slightly older content_json
-- **Newer row** (created 2026-04-29) — `microsite_url=NULL`, slightly larger regenerated content_json
+Apply to all `generate-yr*`, `generate-ba*`, `generate-bp*` functions. Single shared constant imported by each, no per-file copy-paste drift.
 
-Both are `status='live'`. Same `updated_at` (touched by a recent bulk write — likely a generator that did INSERT instead of UPSERT). This is **Pauline-only** (other authors have 1 row per node), so the corruption was introduced by a generator run on her account specifically.
+## Pass D — Re-audit
 
-## The fix (two parts)
+After Passes A & C deploy, re-score all 28 of Pauline's URLs using the same 8-point rubric. Target: every page ≥ 7/8, with VIP and Certification specifically returning to 8/8.
 
-### Part A — Stop the bleeding (data cleanup)
+## Technical Details
 
-For each of Pauline's 28 node_ids, keep the **better** of the two rows and delete the other. "Better" = the row with `microsite_url` populated AND the larger/newer content_json where they differ.
+- **Files edited**: `supabase/functions/get-microsite-page/index.ts` (A1), `src/pages/MicrositePage.tsx` (A2, A3, A4), all `supabase/functions/generate-{yr,ba,bp}*/index.ts` (C — shared prompt constant).
+- **New file**: `supabase/functions/_shared/microsite-content-rules.ts` exporting `HARD_RULES_PROMPT` constant + `stripDashes(value: any): any` recursive helper. Both consumed by Pass A1 and Pass C.
+- **No DB migration required** for Pass A; optional regeneration for Pass B.
+- **Edge function deploys**: `get-microsite-page` immediately; generators only when each is next invoked.
+- **Risk**: low — sanitizer is read-only output transform; pricing-removal is deletion of UI elements with no data writes.
 
-Concretely, the rule per node_id:
-1. If exactly one row has `microsite_url IS NOT NULL` → keep that row, delete the other
-2. If both have NULL `microsite_url` → keep the one with the larger `content_json`, delete the other
+## Out of scope for this sprint
 
-This will be a single migration:
-
-```sql
--- Within a transaction
-WITH ranked AS (
-  SELECT id, node_id,
-    ROW_NUMBER() OVER (
-      PARTITION BY author_id, node_id
-      ORDER BY (microsite_url IS NOT NULL) DESC,
-               length(content_json::text) DESC,
-               created_at ASC
-    ) as rn
-  FROM author_nodes
-  WHERE author_id = (SELECT id FROM author_profiles WHERE author_slug='pauline-teo')
-)
-DELETE FROM author_nodes WHERE id IN (SELECT id FROM ranked WHERE rn > 1);
-```
-
-I will print the would-delete set before running, so we can eyeball it.
-
-### Part B — Prevent recurrence (resolver hardening + DB constraint)
-
-1. **Resolver fallback** in `supabase/functions/get-microsite-page/index.ts` — switch from `.maybeSingle()` (which fails on dupes) to a query that orders by `(microsite_url NULLS LAST, updated_at DESC)` and takes `.limit(1)`. If dupes ever reappear, readers still get a working page.
-
-2. **Unique constraint** so this can never silently happen again:
-   ```sql
-   ALTER TABLE author_nodes
-     ADD CONSTRAINT author_nodes_author_node_unique UNIQUE (author_id, node_id);
-   ```
-   This will fail loudly the next time a generator tries to INSERT a duplicate (we'll see the error in edge function logs immediately, instead of silently corrupting the reader experience).
-
-3. **`author-stats` recount** — once dupes are gone, the "28/28" counter and BookHub progress will agree (the stats function currently counts both rows).
-
-## Then — resume Audit #5 (Steps 1–7)
-
-Once Part A+B are deployed, I re-run my scoring pass against the live site. With nodes resolvable, I score each page on the 8-check rubric:
-1. HTTP status / load time
-2. Title tag (not generic)
-3. No placeholder leaks (`[AUTHOR NAME]`, `{{`, `undefined`, `example.com`)
-4. Pauline + SUCKcess personalisation
-5. CTA presence
-6. No broken images
-7. No console / network errors
-8. Mobile (375×812) — no overflow, all CTAs tappable
-
-Output: per-page scorecard table, prioritised fix queue, then implement fixes for anything <7/8.
-
-## Open question — none, this is unblocked
-
-The data fix is a delete of 28 redundant rows where every "winner" is unambiguously identifiable. Safe to proceed.
-
-## Files / changes
-
-- **Migration** — delete 28 duplicate rows for `pauline-teo`; add unique constraint on `(author_id, node_id)`.
-- **`supabase/functions/get-microsite-page/index.ts`** — replace `.maybeSingle()` with ordered `.limit(1)` so the resolver is dupe-tolerant.
-- **`supabase/functions/author-stats/index.ts`** — already updated last sprint; will re-verify counts after dedup.
-- **No changes** to UI components in this step — Part A+B alone restore all 24 microsites.
-
-## Why this comes first
-
-Without the dedup + resolver fix, every other "fix the title tag" or "fix a CTA" task is invisible to readers because the page never loads. This single fix unblocks the **entire** audit and also explains the dashboard 28/28 counter mismatch.
+- "Coming Soon" routing for unbuilt nodes (separate audit item)
+- L1–L8 QA gate execution (post-fix)
+- Mobile-overflow fixes (none observed in the two ground-truth pages; will re-check during re-audit)
