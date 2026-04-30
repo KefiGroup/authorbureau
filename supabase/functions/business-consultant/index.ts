@@ -2606,7 +2606,7 @@ Additional guidance:
 - Monitor key metrics: AOV, upsell take rate, refund rate on upsells
 - If upsell refund rate exceeds 15%, reduce the price or improve the offer
 - Time-limited offers (15-30 minute countdown) increase upsell conversion by 20-30%
-- The platform's 8% transaction fee applies to all upsell revenue — factor this into pricing
+- The platform's 8% fee (which covers all payment-processing costs) applies to all upsell revenue — factor this into pricing
 - If the author has email flows built, recommend adding the upsell sequence to the post-purchase automation
 
 DOMAIN EXPERTISE: Strategic upsells increase AOV by 30-50%. Order bumps convert at 25-35% and are the easiest revenue booster. One-click upsells (no re-entering payment info) convert 2-3x higher than standard upsell pages. The ideal upsell is 2-3x the original purchase price. Downsells recover 10-15% of declined upsells. Payment plans increase conversion on offers above $200 by 40-60%. The most effective upsell copy focuses on "getting results faster" rather than "buying more stuff."`,
