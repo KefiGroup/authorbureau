@@ -10,5 +10,7 @@ export function stripHtml(html: string): string {
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#039;|&apos;/g, "'")
+    // Normalize stray whitespace before sentence punctuation (e.g. "Specialist ,who" → "Specialist, who")
+    .replace(/[ \t]+([,.;:!?])/g, "$1")
     .trim();
 }
