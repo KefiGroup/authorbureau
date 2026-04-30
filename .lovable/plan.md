@@ -1,85 +1,120 @@
-# Audit #3b — Payout Fee Wording + Automation Mismatch (final, locked copy)
+# Fully-automated monthly payouts — Stripe now, PayPal-ready, no Wise
 
-## What you asked
+## What this delivers
 
-1. Use this exact copy in the Payout Agreement (and align all other places that mention the 8%):
+By the 1st of next month, every author with at least $50 in earnings gets paid **without any admin intervention**:
 
-   > Authors Bureau retains an 8% platform fee to cover all payment-processing costs on gross sales, so no extra processing fees are ever deducted from your share. You keep 92% of every sale.
+- **Stripe Connect Express** → automatic transfer on the 1st (already coded, just needs a cron schedule)
+- **PayPal Payouts API** → code wired and ready, **dormant** until you create a PayPal Business account and enable Payouts. Once you add the secrets, it activates automatically — no code changes needed
+- **Wise** → removed from the UI and code (you said no Wise)
+- **Annual statement** → generated as PDF and emailed to each author every Jan 5th
 
-2. Make sure the automation actually does what we say (no hidden Stripe / Wise / PayPal deduction from the author's 92%).
+## Step-by-step plan
 
-## Audit finding
+### 1. Remove Wise from the platform
 
-The automation **does NOT match the policy**. Right now `process-purchase` and `verify-purchase` both deduct the 8% platform fee AND a separate Stripe processing fee from the author:
+- `src/components/dashboard/PayoutsSettings.tsx` and `PayoutSettingsPage.tsx` — remove the Wise radio option, copy, and recipient form
+- `supabase/functions/run-monthly-payouts/index.ts` — remove the entire Wise branch (CSV generation, batch insert, totals)
+- `supabase/functions/run-monthly-payouts/index.ts` — keep only `stripe` and `paypal` as valid `payout_method` values
+- Migration: backfill any existing `wise` rows in `author_payout_settings` to `null` (forces them to re-pick) and add a CHECK constraint `payout_method IN ('stripe','paypal')`
 
-```text
-gross         = $100.00
-platform_fee  = 8% of gross           = $8.00   ← kept by Authors Bureau
-stripe_fee    = 2.9% + $0.30          = $3.20   ← ALSO deducted from author
-net_for_author = gross − stripe_fee − platform_fee = $88.80
-```
+### 2. Wire PayPal Payouts API (dormant until secrets exist)
 
-So today the author nets **$88.80** on a $100 sale, not 92%. That contradicts the wording above and the Core memory rule. There is also no logic anywhere absorbing Wise/PayPal payout fees out of the platform's 8% — they would silently eat into the author's share when those payout methods run.
-
-## The fix — 3 parts
-
-### 1. Reword (UI + all surfaces)
-
-Replace the fee bullet in `PayoutsSettings.tsx` with the exact line you supplied. Trim the framing banner on `PayoutSettingsPage.tsx` to match:
-
-> Readers pay Authors Bureau at checkout. Authors Bureau retains an 8% platform fee to cover all payment-processing costs — so no extra processing fees are ever deducted from your share. You keep 92% of every sale, paid out monthly.
-
-Also remove "lowest FX fees" / "higher FX fees" wording from the Wise / PayPal radio cards (it implies the author pays them — they don't). Replace with neutral wording about speed and country coverage.
-
-### 2. Fix the automation (math)
-
-In `supabase/functions/process-purchase/index.ts` and `supabase/functions/verify-purchase/index.ts`:
-
-- **Stop deducting any gateway fee from the author's net.** Authors Bureau absorbs Stripe / Wise / PayPal fees out of the 8%.
-- Author's net becomes: `net_for_author = gross − platform_fee` (i.e. exactly 92%).
-- Keep recording `stripe_fee_usd` for **internal accounting only** so we know our own margin — it must NOT reduce `net_usd`.
+Replace the current PayPal CSV branch with a real API call:
 
 ```ts
-const platformFee  = +(amount * feeRate).toFixed(2);          // 8%
-const stripeFee    = +((amount * 0.029) + 0.30).toFixed(2);   // recorded only
-const netForAuthor = +(amount - platformFee).toFixed(2);      // 92% — no gateway deduction
+// supabase/functions/run-monthly-payouts/index.ts (PayPal branch)
+const PAYPAL_CLIENT_ID = Deno.env.get("PAYPAL_CLIENT_ID");
+const PAYPAL_SECRET = Deno.env.get("PAYPAL_SECRET");
+const PAYPAL_MODE = Deno.env.get("PAYPAL_MODE") ?? "live"; // 'sandbox' | 'live'
+
+if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET) {
+  // Graceful skip — mark payout 'pending_setup' instead of 'queued'
+  // Email owner: "PayPal Payouts not configured — N authors waiting"
+  // No author penalty; their earnings stay unpaid for next run
+} else {
+  // 1. OAuth: POST https://api-m.paypal.com/v1/oauth2/token
+  // 2. POST /v1/payments/payouts with sender_batch_id = ref, items array
+  //    Each item: { recipient_type: 'EMAIL', amount: { value, currency: 'USD' },
+  //                 receiver: settings.paypal_email_v2, note, sender_item_id }
+  // 3. Response includes batch_id → store in author_payouts_v2.external_reference
+  // 4. Set status = 'paid' (PayPal Payouts is fire-and-forget; track failures via webhook in step 3)
+}
 ```
 
-### 3. Verify monthly payout engine (Stripe / Wise / PayPal)
+Add a new edge function `paypal-payouts-webhook` to receive `PAYMENT.PAYOUTS-ITEM.SUCCEEDED|FAILED|UNCLAIMED` events from PayPal. Updates `author_payouts_v2.status` accordingly and emails the author on failure.
 
-`run-monthly-payouts` already sums `net_usd` from `author_earnings`, so once (2) is fixed the engine will transfer exactly 92% regardless of payout method. I'll add a one-line comment in that function so future edits don't accidentally subtract Wise/PayPal fees from the payout amount.
+When PayPal account is ready, you'll add three secrets (`PAYPAL_CLIENT_ID`, `PAYPAL_SECRET`, `PAYPAL_MODE`) and configure the webhook URL — no redeploy needed.
 
-## Other places that need the same wording
+### 3. Schedule both jobs in `cron.job` (insert SQL — contains anon key, not a migration)
 
-- `src/pages/TermsOfService.tsx` — fee section
-- `src/pages/MicrositePage.tsx` — any fee mention
-- `supabase/functions/business-consultant/index.ts` — ABBY prompt currently says "covers Stripe and other payment-gateway processing"; align to the locked copy
-- `supabase/functions/generate-annual-statements/index.ts` — annual statement wording
-- `ba11-publish-audiobook` + `distribute-audiobook` already say "92% you / 8% platform fee" — no change needed
+```text
+payouts-monthly-1st        0 9 1 * *  → run-monthly-payouts
+generate-annual-statements 0 9 5 1 *  → generate-annual-statements
+```
 
-## Memory update
+- **Monthly payouts:** 09:00 UTC on the 1st of every month. Covers prior month's earnings (function already calculates the right window).
+- **Annual statements:** 09:00 UTC on January 5th. Defaults `tax_year` to prior year, gives Dec payouts time to settle.
 
-Update Core memory rule (`commerce-engine-v1`) to:
+### 4. Make annual statements actually reach authors
 
-> "Platform fee 8% covers ALL payment-processing fees (Stripe / Wise / PayPal). Author always keeps exactly 92% of gross. Gateway fees are NEVER deducted from the author's share."
+`supabase/functions/generate-annual-statements/index.ts`:
+- Render statement as **PDF** (not HTML) using the same server-side PDF approach used in `generate-asset-pack`. Store at `statements/<author_id>/<year>.pdf`
+- After upserting, look up author email and send a navy/gold branded email via `send-transactional-email` (system email, no `authorId`) with subject *"Your {year} Authors Bureau earnings statement is ready"* — body summarises totals and links to `/earnings`
+- Migration: add `author_annual_statements.emailed_at timestamptz` so re-runs don't double-send
+- Add admin "Re-send statement" button in `AdminPayoutsDashboard`
+
+### 5. Owner-visible safety net
+
+`src/components/admin/AdminPayoutsDashboard.tsx`:
+- Add **"Run payouts now"** button (admin-only, calls `run-monthly-payouts`) for emergency / off-cycle runs
+- Add **"Generate {prior year} statements now"** button
+- Show banner if PayPal secrets missing: *"PayPal Payouts API not configured — N authors with PayPal selected are waiting. Add `PAYPAL_CLIENT_ID` + `PAYPAL_SECRET` in Lovable Cloud secrets."*
+- Add admin auth guard to both `run-monthly-payouts` and `generate-annual-statements` (currently anyone with a JWT can hit them)
+
+### 6. Author-side UX
+
+`src/components/dashboard/PayoutsSettings.tsx`:
+- Two payout options only: **Stripe Connect Express (recommended, auto)** and **PayPal (auto, requires PayPal email)**
+- For Stripe: existing onboarding link to Stripe Express
+- For PayPal: just an email field (validated). Show a small note: *"Payouts arrive within 1–3 business days of the 1st of each month."*
+- Keep the locked 92/8 fee copy
+
+### 7. Memory update
+
+Add to Core: *"Payouts run automatically on the 1st of every month at 09:00 UTC. Stripe Connect = live. PayPal Payouts API = code-ready, activates when `PAYPAL_CLIENT_ID` + `PAYPAL_SECRET` secrets are added. Wise is not supported. Annual statements run Jan 5th, emailed to authors as PDF."*
 
 ## Files to change
 
-- `src/components/dashboard/PayoutsSettings.tsx` (locked copy in agreement bullet + checkbox label + radio descriptions)
-- `src/components/dashboard/PayoutSettingsPage.tsx` (header + framing banner)
-- `src/pages/TermsOfService.tsx`
-- `src/pages/MicrositePage.tsx`
-- `supabase/functions/process-purchase/index.ts` (math)
-- `supabase/functions/verify-purchase/index.ts` (math)
-- `supabase/functions/run-monthly-payouts/index.ts` (clarifying comment only)
-- `supabase/functions/business-consultant/index.ts` (ABBY prompt copy)
-- `supabase/functions/generate-annual-statements/index.ts`
-- `mem://architecture/commerce-engine-v1` + `mem://index.md`
+- `supabase/functions/run-monthly-payouts/index.ts` — remove Wise, replace PayPal CSV with PayPal Payouts API call (graceful skip when secrets missing), add admin auth guard
+- `supabase/functions/generate-annual-statements/index.ts` — PDF render, email author, admin auth guard, emailed_at guard
+- New: `supabase/functions/paypal-payouts-webhook/index.ts` — receives PayPal item-level status events
+- `src/components/dashboard/PayoutsSettings.tsx` — remove Wise option, simplify to Stripe + PayPal
+- `src/components/dashboard/PayoutSettingsPage.tsx` — same
+- `src/components/admin/AdminPayoutsDashboard.tsx` — Run-now buttons, PayPal-not-configured banner, re-send statement button
+- New migration: `author_annual_statements.emailed_at`, CHECK constraint on `payout_method`, backfill Wise rows to NULL
+- Insert SQL (not migration) to register the two cron jobs
 
 ## What I will NOT touch
 
-- `stripe-connect` (Express onboarding — unrelated)
-- Database schema (existing `stripe_fee_usd` column stays for internal margin tracking)
-- Stripe Connect transfer logic in `run-monthly-payouts` (math is already correct once step 2 is fixed)
+- 92/8 fee math (already correct)
+- Stripe Connect transfer logic (already correct)
+- Reader checkout, Commerce Engine, BuyNowButton — unrelated
+- Existing `payouts` storage bucket structure
+- Existing `mark-payout-paid` function (kept for emergency manual marking)
+
+## What you'll need to do separately (outside Lovable)
+
+1. **Apply for PayPal Business + Payouts** at paypal.com (free, 1–2 weeks for Payouts approval). Once approved, you'll have Client ID + Secret from the PayPal Developer dashboard. Add them as Lovable Cloud secrets — code activates automatically.
+2. **Set the PayPal webhook URL** in PayPal Developer dashboard to `https://tubpbslfrxyfhldkcyyq.supabase.co/functions/v1/paypal-payouts-webhook` and subscribe to `PAYMENT.PAYOUTS-ITEM.*` events.
+
+## Result
+
+| When | What happens | Admin work |
+|---|---|---|
+| 1st of every month, 09:00 UTC | Stripe authors paid via auto-transfer; PayPal authors paid via API (once secrets added); failures email author + owner | **Zero** |
+| Jan 5th, 09:00 UTC | Annual PDF statement emailed to every author with prior-year earnings | **Zero** |
+| Author selects payout method | Picks Stripe (onboards in 5 min) or PayPal (just email) | **Zero** |
+| PayPal account not yet ready | Earnings accumulate; owner banner shows "N authors waiting"; Stripe payouts continue normally | **Zero** until you add secrets |
 
 Approve and I'll implement all of the above in one pass.

@@ -59,12 +59,44 @@ serve(async (req) => {
       const path = `statements/${authorId}/${taxYear}.html`;
       await admin.storage.from("payouts").upload(path, new Blob([html], { type: "text/html" }), { upsert: true });
 
+      const { data: existing } = await admin.from("author_annual_statements")
+        .select("emailed_at").eq("author_id", authorId).eq("tax_year", taxYear).maybeSingle();
+
       await admin.from("author_annual_statements").upsert({
         author_id: authorId, tax_year: taxYear,
         total_gross_usd: Math.round(totalGross * 100) / 100,
         total_net_paid_usd: Math.round(totalNet * 100) / 100,
         pdf_storage_path: path,
       }, { onConflict: "author_id,tax_year" });
+
+      // Email author (only once per year — guarded by emailed_at)
+      if (!existing?.emailed_at && profile?.user_id) {
+        try {
+          const { data: userRes } = await admin.auth.admin.getUserById(profile.user_id);
+          const recipientEmail = userRes?.user?.email;
+          if (recipientEmail) {
+            await admin.functions.invoke("send-transactional-email", {
+              body: {
+                templateName: "annual-earnings-statement",
+                recipientEmail,
+                idempotencyKey: `annual-statement-${authorId}-${taxYear}`,
+                templateData: {
+                  authorName: profile?.pen_name || undefined,
+                  taxYear,
+                  totalGross: totalGross.toFixed(2),
+                  totalNet: totalNet.toFixed(2),
+                  earningsUrl: "https://authorsbureau.com/earnings",
+                },
+              },
+            });
+            await admin.from("author_annual_statements")
+              .update({ emailed_at: new Date().toISOString() })
+              .eq("author_id", authorId).eq("tax_year", taxYear);
+          }
+        } catch (mailErr) {
+          console.error(`[annual-statements] email failed for ${authorId}`, mailErr);
+        }
+      }
       generated++;
     }
 

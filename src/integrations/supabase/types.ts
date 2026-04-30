@@ -290,6 +290,7 @@ export type Database = {
       author_annual_statements: {
         Row: {
           author_id: string
+          emailed_at: string | null
           generated_at: string
           id: string
           pdf_storage_path: string
@@ -299,6 +300,7 @@ export type Database = {
         }
         Insert: {
           author_id: string
+          emailed_at?: string | null
           generated_at?: string
           id?: string
           pdf_storage_path: string
@@ -308,6 +310,7 @@ export type Database = {
         }
         Update: {
           author_id?: string
+          emailed_at?: string | null
           generated_at?: string
           id?: string
           pdf_storage_path?: string
@@ -719,11 +722,6 @@ export type Database = {
           refund_window_days: number
           tax_self_declared_at: string | null
           updated_at: string
-          wise_account_number: string | null
-          wise_currency: string | null
-          wise_email: string | null
-          wise_recipient: Json | null
-          wise_routing_number: string | null
         }
         Insert: {
           author_id: string
@@ -736,11 +734,6 @@ export type Database = {
           refund_window_days?: number
           tax_self_declared_at?: string | null
           updated_at?: string
-          wise_account_number?: string | null
-          wise_currency?: string | null
-          wise_email?: string | null
-          wise_recipient?: Json | null
-          wise_routing_number?: string | null
         }
         Update: {
           author_id?: string
@@ -753,11 +746,6 @@ export type Database = {
           refund_window_days?: number
           tax_self_declared_at?: string | null
           updated_at?: string
-          wise_account_number?: string | null
-          wise_currency?: string | null
-          wise_email?: string | null
-          wise_recipient?: Json | null
-          wise_routing_number?: string | null
         }
         Relationships: []
       }
