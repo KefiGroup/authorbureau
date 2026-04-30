@@ -2845,7 +2845,6 @@ function YRRightCard({
       {selectedOfferLabel && (
         <div className="my-3 p-2 rounded-md text-xs" style={{ background: `${v.accent}15`, color: v.headingText }}>
           Interested in: <strong>{selectedOfferLabel}</strong>
-          {selectedOfferPrice != null && <> — <span style={{ color: v.accent }}>{typeof selectedOfferPrice === "number" ? `$${selectedOfferPrice.toLocaleString()}` : selectedOfferPrice}</span></>}
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-3 mt-3">
