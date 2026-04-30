@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ABBY_CATEGORIES, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
-import { hasRequiredAssets } from "@/lib/node-readiness";
+import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "@/lib/node-readiness";
 
 export type NodeStatus = "completed" | "in-progress" | "available" | "locked" | "coming-soon";
 
@@ -41,21 +41,7 @@ export const NODE_CODE_MAP: Record<string, string> = {
 
 const TIER_ORDER = ["free", "brand", "build", "yield"];
 
-// Author-level nodes belong to the author, not a single book. Their Live
-// status must show on every book's hub (one email list, one podcast show,
-// one set of social channels per author). Book-specific products
-// (microsite, workbook, course, audiobook, book-sales, etc.) stay scoped
-// to the active book.
-const AUTHOR_LEVEL_NODES = new Set<string>([
-  "BP-01", // Email Marketing
-  "BP-03", // Social Media
-  "BA-14", // Podcast (one show, multi-book episodes)
-  "BA-15", // Press / Media
-  "BA-16", // Affiliates
-  "BA-18", // JV Partners
-  "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
-  "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
-]);
+// AUTHOR_LEVEL_NODES is shared with useNodeLiveStats — see src/lib/node-readiness.ts.
 
 function tierMet(userTier: string, required?: string) {
   if (!required) return true;
