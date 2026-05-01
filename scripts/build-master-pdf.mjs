@@ -117,8 +117,10 @@ const css = `
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     color: #0f172a; line-height: 1.45; max-width: 100%;
   }
-  h1, h2, h3, h4 { color: #0f172a; page-break-after: avoid; }
+  h1, h2, h3, h4, h1.title { color: #0f172a; page-break-after: avoid;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; }
   h1 { font-size: 22pt; margin-top: 0; }
+  h1.title { font-size: 26pt; text-align: center; margin: 2em 0 1em; }
   h2 { font-size: 16pt; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-top: 1.6em; }
   h3 { font-size: 13pt; margin-top: 1.4em; }
   h4 { font-size: 11.5pt; margin-top: 1.2em; }
