@@ -82,7 +82,7 @@ export default function SpecialEditionCalendarCard() {
               <p className="mt-1.5 text-xs text-muted-foreground">{countdown}</p>
 
               <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-secondary group-hover:gap-1.5 transition-all">
-                {urgent ? "Build edition" : "Plan edition"} <ArrowRight className="h-3 w-3" />
+                {urgent ? "Generate edition" : "Generate edition"} <ArrowRight className="h-3 w-3" />
               </div>
             </button>
           );

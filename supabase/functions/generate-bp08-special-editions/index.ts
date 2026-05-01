@@ -16,7 +16,7 @@ serve(async (req) => {
   let parsedBookId: string | null = null;
   const supabase = makeServiceClient();
   try {
-    const { author_id, book_id } = await req.json();
+    const { author_id, book_id, occasion } = await req.json();
     if (!author_id) throw new Error("author_id is required");
     parsedAuthorId = author_id;
     parsedBookId = book_id ?? null;
@@ -57,40 +57,50 @@ Author details:
 - Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
 - Unique insights: ${JSON.stringify(ctx?.unique_insights ?? [])}
 - Genre/Niche: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}
+${occasion ? `
+OCCASION-SPECIFIC BRIEF (this is critical):
+- Occasion: ${occasion.label} ${occasion.emoji || ""}
+- Peak gift-buying window: ${occasion.peakWindow}
+- Target launch date: ${occasion.peakDateIso}
+- Default edition style: ${occasion.defaultEditionType}
+- Suggested base price: $${occasion.defaultPriceUsd}
+- Seed extras to consider: ${occasion.defaultIncludes}
 
+ALL 3 editions MUST be themed for ${occasion.label}. Use the occasion in edition names, descriptions, foreword/insert ideas, the bundle name, the marketing angle, and the sales-page headline. The collection title and tagline must reference ${occasion.label}. Pricing should ladder around $${occasion.defaultPriceUsd} (e.g., entry / mid / premium tier).
+` : ""}
 Generate as JSON with these exact keys:
 {
-  "edition_title": "Special Edition collection title",
+  "edition_title": "${occasion ? `${occasion.label}-themed collection title` : "Special Edition collection title"}",
   "edition_subtitle": "One-line subtitle",
   "tagline": "Short punchy tagline",
   "editions": [
     {
       "number": 1,
-      "name": "Edition name (e.g., 'Signed Collector's Edition')",
+      "name": "${occasion ? `${occasion.label} edition name (e.g., 'Signed ${occasion.label} Edition')` : "Edition name (e.g., 'Signed Collector's Edition')"}",
       "description": "2-3 sentences describing this edition",
       "includes": ["Item 1", "Item 2", "Item 3"],
       "print_specs": "e.g., Hardcover, gold foil, ribbon bookmark",
-      "suggested_price_usd": 49
+      "suggested_price_usd": ${occasion?.defaultPriceUsd ?? 49}
     }
   ],
   "bundle_offer": {
-    "name": "Complete Collection Bundle",
+    "name": "${occasion ? `Complete ${occasion.label} Collection Bundle` : "Complete Collection Bundle"}",
     "description": "2-3 sentences",
     "includes_editions": [1, 2, 3],
-    "suggested_price_usd": 129,
+    "suggested_price_usd": ${occasion ? Math.round((occasion.defaultPriceUsd ?? 49) * 2.6) : 129},
     "savings_note": "Save $X vs buying separately"
   },
   "who_its_for": "2-3 sentences",
-  "marketing_angle": "2-3 sentences on positioning",
-  "suggested_price_usd": 49,
+  "marketing_angle": "2-3 sentences on positioning${occasion ? `, anchored to ${occasion.label}` : ""}",
+  "suggested_price_usd": ${occasion?.defaultPriceUsd ?? 49},
   "pricing_rationale": "One sentence",
   "sales_page": {
-    "headline": "Sales page headline",
+    "headline": "${occasion ? `${occasion.label}-anchored sales headline` : "Sales page headline"}",
     "subheadline": "Supporting subheadline",
-    "exclusivity_statement": "2-3 sentences about limited availability",
-    "cta_button_text": "e.g., Order Special Edition"
+    "exclusivity_statement": "2-3 sentences about limited availability${occasion ? ` tied to the ${occasion.peakWindow} window` : ""}",
+    "cta_button_text": "${occasion ? `e.g., Order ${occasion.label} Edition` : "e.g., Order Special Edition"}"
   },
-  "abby_summary": "2-3 sentence summary"
+  "abby_summary": "2-3 sentence summary${occasion ? ` mentioning ${occasion.label}` : ""}"
 }
 
 editions must have exactly 3 items. Make everything specific.` }
@@ -104,7 +114,16 @@ editions must have exactly 3 items. Make everything specific.` }
       return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
     }
     const aiData = await aiRes.json();
-    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    const parsed = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    const occasionMeta = occasion
+      ? {
+          occasion: occasion.id,
+          occasion_label: occasion.label,
+          occasion_emoji: occasion.emoji,
+          peak_date: occasion.peakDateIso,
+        }
+      : {};
+    const content = { ...parsed, ...occasionMeta };
 
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",

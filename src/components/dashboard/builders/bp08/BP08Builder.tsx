@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { findCalendarOccasion, nextOccurrence, type CalendarOccasion } from "@/lib/special-edition-calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
@@ -31,6 +32,14 @@ interface Props { authorId: string | null; bookId?: string | null; }
 
 export default function BP08Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const occasionId = searchParams.get("occasion");
+  const autostart = searchParams.get("autostart") === "1";
+  const selectedOccasion: CalendarOccasion | undefined = useMemo(
+    () => findCalendarOccasion(occasionId),
+    [occasionId],
+  );
+  const didAutostartRef = useRef(false);
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
@@ -92,8 +101,20 @@ export default function BP08Builder({ authorId, bookId }: Props) {
       await supabase.auth.refreshSession().catch(() => null);
       token = await getActiveToken();
     }
-    console.info("[BP-08] token resolved", { hasToken: !!token });
+    console.info("[BP-08] token resolved", { hasToken: !!token, occasion: selectedOccasion?.id });
     if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
+    const occasionPayload = selectedOccasion
+      ? {
+          id: selectedOccasion.id,
+          label: selectedOccasion.label,
+          emoji: selectedOccasion.emoji,
+          peakWindow: selectedOccasion.peakWindow,
+          peakDateIso: nextOccurrence(selectedOccasion).toISOString().slice(0, 10),
+          defaultEditionType: selectedOccasion.defaultEditionType,
+          defaultPriceUsd: selectedOccasion.defaultPriceUsd,
+          defaultIncludes: selectedOccasion.defaultIncludes,
+        }
+      : null;
     const res = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp08-special-editions`,
       {
@@ -103,14 +124,22 @@ export default function BP08Builder({ authorId, bookId }: Props) {
           Authorization: `Bearer ${token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ author_id: authorId }),
+        body: JSON.stringify({ author_id: authorId, book_id: bookId ?? null, occasion: occasionPayload }),
       },
       180_000,
     );
     console.info("[BP-08] http status", res.status);
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
-    const newContent = { ...(data.content || {}), _currentStep: 2 };
+    const occasionMeta = selectedOccasion
+      ? {
+          occasion: selectedOccasion.id,
+          occasion_label: selectedOccasion.label,
+          occasion_emoji: selectedOccasion.emoji,
+          peak_date: nextOccurrence(selectedOccasion).toISOString().slice(0, 10),
+        }
+      : {};
+    const newContent = { ...(data.content || {}), ...occasionMeta, _currentStep: 2 };
     if (authorId) {
       await autosaveBuilderDraft({
         authorId,
@@ -138,12 +167,26 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   };
 
   const handleGenerate = async () => {
-    console.info("[BP-08] generate clicked", { authorId });
+    console.info("[BP-08] generate clicked", { authorId, occasion: selectedOccasion?.id });
     if (!authorId) return;
     setStep(1); setError(null);
     const promise = startGeneration(authorId, "BP-08", runGeneration);
     await attachToGeneration(promise);
   };
+
+  // Auto-start generation when arriving from the calendar with ?occasion=...&autostart=1
+  useEffect(() => {
+    if (!autostart || !selectedOccasion) return;
+    if (didAutostartRef.current) return;
+    if (!authorId) return;
+    if (step !== 0) return;          // already past intro (e.g. resumed draft)
+    if (content) return;             // existing draft loaded
+    if (isBookLoading) return;
+    if (!hasResolvedBook) return;
+    didAutostartRef.current = true;
+    handleGenerate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart, selectedOccasion, authorId, step, content, isBookLoading, hasResolvedBook]);
 
   const handlePublish = async () => {
     setStep(3); setError(null);
@@ -191,7 +234,20 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button>
               </>
-              ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> Design My Special Editions</Button></>)}
+              ) : (<>
+                {selectedOccasion && (
+                  <div className="mb-4 rounded-xl border border-secondary/40 bg-secondary/5 p-3 flex items-center gap-3">
+                    <span className="text-2xl leading-none" aria-hidden>{selectedOccasion.emoji}</span>
+                    <div className="text-sm">
+                      <p className="font-semibold text-foreground">Designing your {selectedOccasion.label} edition</p>
+                      <p className="text-xs text-muted-foreground">Peak window {selectedOccasion.peakWindow} · launch ~{selectedOccasion.launchWindowWeeks} weeks out</p>
+                    </div>
+                  </div>
+                )}
+                <p className="text-muted-foreground mb-4">Hi {authorName}! {selectedOccasion ? `I'll design 3 themed ${selectedOccasion.label} edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}', from a signed gift copy to a VIP collector's package - all timed for the ${selectedOccasion.label} buying window.` : `Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' - from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts.`} Ready?</p>
+                <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> {selectedOccasion ? `Design My ${selectedOccasion.label} Edition` : "Design My Special Editions"}</Button>
+              </>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
