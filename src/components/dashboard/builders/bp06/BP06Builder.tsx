@@ -133,13 +133,13 @@ export default function BP06Builder({ authorId, bookId }: Props) {
         setStep(node.status === "live" ? 3 : 2);
         return;
       }
-      const draft = await loadBuilderDraft(authorId, "BP-06", bookId ?? null);
+      const draft = await loadBuilderDraft(authorId, "BP-06", activeBookId);
       if (draft.content) {
         setContent(draft.content);
         setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
       }
     })();
-  }, [authorId]);
+  }, [authorId, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
