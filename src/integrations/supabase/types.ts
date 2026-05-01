@@ -738,6 +738,13 @@ export type Database = {
             referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "author_nodes_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "node_registry"
+            referencedColumns: ["node_id"]
+          },
         ]
       }
       author_payout_settings: {
@@ -2082,6 +2089,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "books_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contacts_last_node_id_fkey"
+            columns: ["last_node_id"]
+            isOneToOne: false
+            referencedRelation: "node_registry"
+            referencedColumns: ["node_id"]
           },
         ]
       }
@@ -3552,6 +3566,36 @@ export type Database = {
           node_id?: string
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      node_registry: {
+        Row: {
+          archetype: Database["public"]["Enums"]["node_archetype"]
+          canonical_label: string
+          category: string
+          created_at: string
+          display_order: number
+          microsite_slug: string | null
+          node_id: string
+        }
+        Insert: {
+          archetype: Database["public"]["Enums"]["node_archetype"]
+          canonical_label: string
+          category: string
+          created_at?: string
+          display_order: number
+          microsite_slug?: string | null
+          node_id: string
+        }
+        Update: {
+          archetype?: Database["public"]["Enums"]["node_archetype"]
+          canonical_label?: string
+          category?: string
+          created_at?: string
+          display_order?: number
+          microsite_slug?: string | null
+          node_id?: string
         }
         Relationships: []
       }
@@ -6071,6 +6115,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_node_id_fkey"
+            columns: ["node_id"]
+            isOneToOne: false
+            referencedRelation: "node_registry"
+            referencedColumns: ["node_id"]
           },
         ]
       }
