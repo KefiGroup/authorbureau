@@ -1,6 +1,6 @@
 # 01 · AB Master Architecture Reference
 
-_Version 3.2 · 2026-05-01 · single source of truth_
+_Version 3.3 · 2026-05-01 · single source of truth_
 
 **Source(s) of truth:**
 - `src/components/dashboard/builders/builderNodeConfig.ts` (canonical node IDs + labels)
