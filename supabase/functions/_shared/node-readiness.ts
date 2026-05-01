@@ -37,12 +37,17 @@ export const AUTHOR_LEVEL_NODES = new Set<string>([
 
 /**
  * Commerce-bearing nodes per the Master Architecture (Engine map).
- * Each of these flows through the ABBY Commerce Engine and therefore needs
- * the author's payout account to be connected before the node can count as
- * a Live capability — otherwise no money can actually move.
  *
- * If you add a new commerce node (or remove one because the architecture
- * stops requiring payouts for it), update this set ONLY here.
+ * IMPORTANT — INFORMATIONAL ONLY. This set does NOT gate Live status.
+ *
+ * Authors Bureau is the Merchant of Record: ALL reader payments flow into
+ * the platform's Stripe account via `create-checkout-session`, regardless
+ * of whether the individual author has connected Stripe Express. The
+ * author's Stripe Express connection is a back-office payout-method
+ * decision (automated transfer vs. admin-handled manual payout) and must
+ * NEVER affect commerce readiness or the X / 28 Live count.
+ *
+ * Kept exported for documentation, analytics, and tests.
  */
 export const COMMERCE_NODES = new Set<string>([
   "BP-06", "BP-07", "BP-09",
@@ -65,13 +70,13 @@ const SESSION_STYLE_YR_NODES = new Set<string>([
 
 /**
  * Optional readiness context that callers can pass in. All fields are
- * optional — when a caller doesn't provide them the gate falls back to the
- * pre-context behaviour (so this is a backwards-compatible extension).
+ * optional. Reserved for future shared context — DO NOT add a
+ * `stripeConnected` flag back here: payout setup is a back-office concern
+ * and never gates commerce readiness (Authors Bureau is Merchant of
+ * Record on every transaction).
  */
-export interface ReadinessContext {
-  /** Author has connected their payout account (Stripe Express). */
-  stripeConnected?: boolean;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ReadinessContext {}
 
 // ---------------------------------------------------------------------------
 // Helpers (pure)
@@ -120,20 +125,15 @@ function hasCommerceSignal(content: any): boolean {
 export function hasRequiredAssets(
   nodeId: string,
   content: any,
-  ctx: ReadinessContext = {},
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _ctx: ReadinessContext = {},
 ): boolean {
   if (!content || typeof content !== "object") return false;
 
-  // Commerce gate — applies to every commerce-bearing node, regardless of
-  // its content-shape gate below. If the caller told us payouts are not
-  // connected, the node cannot be Live (no money can actually flow). When
-  // `stripeConnected` is undefined the gate is skipped (back-compat).
-  if (
-    COMMERCE_NODES.has(nodeId) &&
-    ctx.stripeConnected === false
-  ) {
-    return false;
-  }
+  // NOTE: There is intentionally no Stripe-connection gate here.
+  // Authors Bureau is Merchant of Record — reader payments always flow to
+  // the platform Stripe account. Author payout setup is admin-side and
+  // must not affect Live status. See COMMERCE_NODES doc above.
 
   switch (nodeId) {
     // ---- BRAND PRODUCTS ----------------------------------------------------
