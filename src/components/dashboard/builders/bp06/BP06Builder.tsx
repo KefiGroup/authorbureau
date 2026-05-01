@@ -440,9 +440,12 @@ interface ReviewStepProps {
   stripeReady: boolean;
   stripeLoading: boolean;
   onConnectStripe: () => void;
+  onSaveToLibrary: () => void;
+  savingToLibrary: boolean;
+  savedToLibrary: boolean;
 }
 
-function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe }: ReviewStepProps) {
+function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe, onSaveToLibrary, savingToLibrary, savedToLibrary }: ReviewStepProps) {
   // Locked snapshot of Abby's original recommendation — never mutated by user edits.
   // Falls back to legacy fields for drafts created before the snapshot was added.
   const abbyRec: "free" | "paid" =
