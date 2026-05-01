@@ -190,6 +190,8 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
               } catch (error) { console.error(error); }
           }).catch(() => { /* non-critical */ });
         }
+      }
+
       if (isInitialLoad) {
         setHasBootstrapped(true);
       }
