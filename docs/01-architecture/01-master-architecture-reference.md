@@ -1,6 +1,6 @@
 # 01 · AB Master Architecture Reference
 
-_Version 3.1 · 2026-05-01 · single source of truth_
+_Version 3.2 · 2026-05-01 · single source of truth_
 
 **Source(s) of truth:**
 - `src/components/dashboard/builders/builderNodeConfig.ts` (canonical node IDs + labels)
@@ -57,30 +57,32 @@ The platform is single-tenant per author, multi-book per author, and all reader-
 
 Generator-internal `NODE_NAME` constants are centrally enforced via `supabase/functions/_shared/canonical-node-labels.ts` (Sprint 48). Each generator calls `getCanonicalNodeLabel(NODE_ID)`, and `upsertAuthorNode` overrides any non-canonical string at write time.
 
-**Sprint 49 — DB-level node hardening (Half A):** A `public.node_registry` table now holds the 28 canonical nodes (id, label, category, archetype, microsite slug, display order) as a SQL source of truth. `author_nodes.node_id` and `crm_contacts.last_node_id` are now FK-constrained to it (unknown IDs are rejected at the DB layer). A `BEFORE INSERT/UPDATE` trigger on `author_nodes` forces `node_name` to `node_registry.canonical_label` on every write — a DB-level mirror of the TS guard rail. `compute_node_microsite_url` reads slugs from the registry instead of a hardcoded `CASE`. Filename divergences (e.g. `generate-bp09-speaking` serves Book Sales) remain cosmetic — tracked for Sprint 50 — and do NOT affect runtime behaviour.
+**Sprint 49 — DB-level node hardening (Half A):** A `public.node_registry` table now holds the 28 canonical nodes (id, label, category, archetype, microsite slug, display order) as a SQL source of truth. `author_nodes.node_id` and `crm_contacts.last_node_id` are now FK-constrained to it (unknown IDs are rejected at the DB layer). A `BEFORE INSERT/UPDATE` trigger on `author_nodes` forces `node_name` to `node_registry.canonical_label` on every write — a DB-level mirror of the TS guard rail. `compute_node_microsite_url` reads slugs from the registry instead of a hardcoded `CASE`.
 
-| ID | Canonical label | Framework category | Scope | Edge function (verified on disk) | Notes / known divergences |
+**Sprint 50 — Edge function folder rename (Half B):** All five legacy-named generator folders were renamed to match their canonical node labels (`generate-bp06-workbook`, `generate-bp07-home-study`, `generate-bp08-special-editions`, `generate-bp09-book-sales`, `generate-ba17-bundles`). The 5 client invoke/fetch sites in the BP-06/07/08/09 + BA-17 builders were updated in lockstep. Two-phase deploy: new function names deployed first, then old names deleted. All filename divergences are now resolved.
+
+| ID | Canonical label | Framework category | Scope | Edge function (verified on disk) | Notes |
 |---|---|---|---|---|---|
 | BP-01 | Email Marketing | Brand Products | **Author** | `generate-bp01-email-marketing` | — |
 | BP-02 | Lead Magnet | Brand Products | Book | `generate-bp02-lead-magnets` (+ `generate-bp02-social-pack`, `bp02-activate-funnel`) | Multi-function node |
 | BP-03 | Social Media | Brand Products | **Author** | `generate-bp03-social-media` (+ `bp03-node-state`) | — |
 | BP-04 | Author Website | Brand Products | Book | `generate-bp04-website` | — |
 | BP-05 | Webinars | Brand Products | Book | `generate-bp05-webinars` | — |
-| BP-06 | Workbook | Brand Products | Book | `generate-bp06-online-course` | Function file is legacy-named; `NODE_ID="BP-06"`, `NODE_NAME="Workbook"` inside |
-| BP-07 | Home Study Course | Brand Products | Book | `generate-bp07-coaching` | Legacy filename; internal NODE_NAME correct |
-| BP-08 | Special Editions | Brand Products | Book | `generate-bp08-mastermind` | Legacy filename; internal NODE_NAME correct |
-| BP-09 | Book Sales | Brand Products | Book | `generate-bp09-speaking` | Legacy filename; NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
+| BP-06 | Workbook | Brand Products | Book | `generate-bp06-workbook` | Sprint 50 rename |
+| BP-07 | Home Study Course | Brand Products | Book | `generate-bp07-home-study` | Sprint 50 rename |
+| BP-08 | Special Editions | Brand Products | Book | `generate-bp08-special-editions` | Sprint 50 rename |
+| BP-09 | Book Sales | Brand Products | Book | `generate-bp09-book-sales` | Sprint 50 rename |
 | BA-10 | Online Course | Build Authority | Book | `generate-ba10-online-course` | — |
 | BA-11 | Audiobook | Build Authority | Book | `generate-ba11-audiobook` (+ `ba11-audiobook-generate`, `ba11-publish-audiobook`, `ba11-voice-preview`) | Multi-function node (TTS pipeline) |
 | BA-12 | Membership | Build Authority | Book | `generate-ba12-membership` | — |
 | BA-13 | Group Coaching | Build Authority | Book | `generate-ba13-group-coaching` | Code comment in readiness gate says "BA-13 is a paid offer" but rule does not enforce a commerce signal. Documented in readiness spec. |
 | BA-14 | Podcast Tour | Build Authority | **Author** | `generate-ba14-podcast` | — |
 | BA-15 | Media & PR | Build Authority | **Author** | `generate-ba15-media-pr` | — |
-| BA-16 | Affiliates | Build Authority | **Author** | `generate-ba16-affiliate` (singular) | NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
-| BA-17 | Bundles | Build Authority | Book | `generate-ba17-upsells` | Legacy filename; NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
+| BA-16 | Affiliates | Build Authority | **Author** | `generate-ba16-affiliate` (singular) | — |
+| BA-17 | Bundles | Build Authority | Book | `generate-ba17-bundles` | Sprint 50 rename |
 | BA-18 | JV Partnerships | Build Authority | **Author** | `generate-ba18-jv-partnerships` | — |
 | YR-19 | 1-on-1 Coaching | Yield Revenue | **Author** | `generate-yr19-coaching` | Session-style |
-| YR-20 | Big Ticket Consulting | Yield Revenue | **Author** | `generate-yr20-big-ticket` | NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
+| YR-20 | Big Ticket Consulting | Yield Revenue | **Author** | `generate-yr20-big-ticket` | — |
 | YR-21 | Speaking | Yield Revenue | **Author** | `generate-yr21-speaking` | — |
 | YR-22 | Corporate Training | Yield Revenue | **Author** | `generate-yr22-corporate` | Session-style |
 | YR-23 | Mastermind | Yield Revenue | **Author** | `generate-yr23-mastermind` | Session-style |
