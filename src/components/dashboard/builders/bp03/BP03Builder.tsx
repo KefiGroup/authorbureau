@@ -408,7 +408,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         console.warn("[BP-03] library_asset upload failed, activating without it", e);
       }
 
-      const savedNode = await persistNodeState("live");
+      const savedNode = await persistNodeState("live", activeContent);
 
       // Default schedule: start tomorrow, every 3 days
       const start = new Date();
