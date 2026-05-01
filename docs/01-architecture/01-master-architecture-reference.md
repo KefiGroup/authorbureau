@@ -179,6 +179,7 @@ See `05-technology-stack-current.md` for the full table.
 | 45 | GHL fully removed from code, DB, copy | terminology |
 | 46 | Documentation Sprint v3 — 6-category /docs | every category |
 | 47 | Documentation corrections — canonical registry | this file + every other doc |
+| 48 | Canonical node-label alignment — `canonical-node-labels.ts` shared module + `upsertAuthorNode` guard rail + 4-row backfill + BA-15/BA-16 asset-pack swap | this file (§3 divergence flags cleared) |
 
 ## 10. Competitive Position
 
