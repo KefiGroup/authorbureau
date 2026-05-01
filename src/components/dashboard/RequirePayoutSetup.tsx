@@ -14,13 +14,13 @@ interface Props {
 
 /**
  * Gate for paid-product builders. Blocks publishing until the author has
- * configured a payout method (Wise or PayPal) and acknowledged tax
+ * configured a Stripe Express payout account and acknowledged tax
  * self-declaration. Authors Bureau is the Merchant of Record.
  */
 export default function RequirePayoutSetup({
   children,
   title = "Set up payouts to publish paid products",
-  description = "Choose how Authors Bureau should pay you (Wise or PayPal) and acknowledge that you'll self-declare income in your country.",
+  description = "Connect your Stripe Express account so Authors Bureau can pay you, and acknowledge that you'll self-declare income in your country.",
   showLockedPreview = false,
 }: Props) {
   const { ready, loading } = usePayoutReadiness();

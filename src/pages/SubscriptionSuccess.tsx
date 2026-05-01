@@ -7,19 +7,19 @@ import { CheckCircle2, Sparkles, ArrowRight, PartyPopper } from "lucide-react";
 const TIER_UNLOCKS = {
   starter: {
     label: TIERS.brand.label,
-    nodes: ["Email Marketing", "Lead Magnets", "Social Media", "Website / Microsite", "Webinars", "Workbook", "Home Study Course", "Special Editions", "Book Sales"],
+    nodes: ["Email Marketing", "Lead Magnet", "Social Media", "Author Website", "Webinars", "Workbook", "Home Study Course", "Special Editions", "Book Sales"],
     hub: "/brand-products",
     hubLabel: "Go to Brand Products",
   },
   pro: {
     label: TIERS.build.label,
-    nodes: ["All Brand Products", "Online Course", "Audiobook", "Membership Site", "Group Coaching", "Podcast", "Media & PR", "Affiliate Programme", "Upsells & Bundles", "JV Partnerships"],
+    nodes: ["All Brand Products", "Online Course", "Audiobook", "Membership", "Group Coaching", "Podcast Tour", "Media & PR", "Affiliates", "Bundles", "JV Partnerships"],
     hub: "/build-authority",
     hubLabel: "Go to Build Authority",
   },
   enterprise: {
     label: TIERS.yield.label,
-    nodes: ["All Brand Products + Build Authority", "1-on-1 Coaching", "Big Ticket Offers", "Keynote Speaking", "Corporate Training", "Mastermind", "Retreats", "Certification Program", "Conferences", "Fundraising", "Exhibitors & Sponsors"],
+    nodes: ["All Brand Products + Build Authority", "1-on-1 Coaching", "Big Ticket Consulting", "Speaking", "Corporate Training", "Mastermind", "Retreats", "Certification", "Conference", "Fundraising", "Sponsors"],
     hub: "/yield-revenue",
     hubLabel: "Go to Yield Revenue",
   },
