@@ -153,18 +153,22 @@ const pandoc = spawnSync("pandoc", [
   "-f", "gfm+yaml_metadata_block+pipe_tables",
   "-t", "html5", "--standalone",
   "--metadata", "title=Authors Bureau — Master Documentation",
-  "--toc", "--toc-depth=2",
+  "--toc", "--toc-depth=1",
   "-o", HTML,
 ], { stdio: "inherit" });
 if (pandoc.status !== 0) { console.error("pandoc failed"); process.exit(1); }
 
 let html = readFileSync(HTML, "utf8");
+if (!html.includes('charset="utf-8"') && !html.includes("charset=utf-8")) {
+  html = html.replace("<head>", '<head>\n<meta charset="utf-8">');
+}
 html = html.replace("</head>", `<style>${css}</style></head>`);
 writeFileSync(HTML, html);
 
 const chromium = spawnSync("chromium", [
   "--headless=new", "--no-sandbox", "--disable-gpu", "--hide-scrollbars",
-  `--print-to-pdf=${PDF_CANON}`, "--print-to-pdf-no-header",
+  `--print-to-pdf=${PDF_CANON}`,
+  "--no-pdf-header-footer",
   "--virtual-time-budget=10000",
   `file://${HTML}`,
 ], { stdio: "inherit" });
