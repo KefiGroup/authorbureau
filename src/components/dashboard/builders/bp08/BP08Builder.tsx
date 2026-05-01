@@ -185,6 +185,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     if (!authorId) return;
     if (isBookLoading) return;
     if (!hasResolvedBook) return;
+    if (!draftLoaded) return;        // wait until we know whether a saved draft exists
 
     // Case A: no existing draft -> autostart immediately
     if (!content) {
@@ -206,7 +207,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     });
     setStep(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autostart, selectedOccasion, authorId, content, isBookLoading, hasResolvedBook]);
+  }, [autostart, selectedOccasion, authorId, content, isBookLoading, hasResolvedBook, draftLoaded]);
 
   const confirmReplace = () => {
     setPendingReplace(null);
