@@ -134,10 +134,11 @@ const css = `
     padding: 10px 12px; white-space: pre-wrap !important;
     word-break: break-word; overflow-wrap: anywhere; page-break-inside: avoid; }
   pre code { background: transparent; padding: 0; }
-  table { border-collapse: collapse; width: 100%; table-layout: auto;
-    margin: 1em 0; page-break-inside: auto; font-size: 10pt; }
+  table { border-collapse: collapse; width: 100%; table-layout: fixed;
+    margin: 1em 0; page-break-inside: auto; font-size: 9.5pt; }
   th, td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top;
-    text-align: left; word-break: break-word; overflow-wrap: anywhere; max-width: 0; }
+    text-align: left; word-break: break-word; overflow-wrap: anywhere; }
+  /* Long single-row "index" lists rendered as tables get the most room */
   th { background: #f1f5f9; font-weight: 600; }
   a { color: #0d9488; text-decoration: none; word-break: break-all; overflow-wrap: anywhere; }
   blockquote { border-left: 3px solid #0d9488; background: #f0fdfa;
