@@ -24,7 +24,7 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { publishNodeToSite, StripeRequiredError } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { downloadWorkbookPdf, buildWorkbookPdfBlob, estimateWorkbookPageCount, normalizeOutcome } from "@/lib/workbook-pdf";
+import { downloadWorkbookPdf, buildWorkbookPdfBlob, estimateWorkbookPageCount, normalizeOutcome, type ToolkitItem } from "@/lib/workbook-pdf";
 import { downloadWorkbookDocx, buildWorkbookDocxBlob } from "@/lib/workbook-docx";
 import { parseWorkbookDocx } from "@/lib/workbook-docx-import";
 import { useStripeConnect } from "@/components/dashboard/StripeConnectBanner";
@@ -339,6 +339,25 @@ function AbbyCard({ children }: { children: React.ReactNode }) {
   return <Card className={`${s.border} ${s.bg} ${s.glowShadow} overflow-hidden relative`}><div className={`absolute left-0 top-0 bottom-0 w-1 ${s.leftStrip}`} /><CardContent className="pt-6 pl-7"><div className="flex gap-3"><div className={`shrink-0 w-10 h-10 rounded-full ${s.iconBg} flex items-center justify-center`}><Sparkles className={`h-5 w-5 ${s.iconText}`} /></div><div className="flex-1 min-w-0">{children}</div></div></CardContent></Card>;
 }
 
+function normalizeWorkbookToolkit(items: unknown): ToolkitItem[] {
+  if (!Array.isArray(items)) return [];
+  return items.flatMap((item) => {
+    if (typeof item === "string") {
+      const name = item.trim();
+      return name ? [{ name }] : [];
+    }
+    if (item && typeof item === "object" && "name" in item && typeof item.name === "string") {
+      const name = item.name.trim();
+      if (!name) return [];
+      const type = "type" in item && typeof item.type === "string" ? item.type : undefined;
+      const purpose = "purpose" in item && typeof item.purpose === "string" ? item.purpose : undefined;
+      const linked_section = "linked_section" in item && typeof item.linked_section === "number" ? item.linked_section : undefined;
+      return [{ name, type, purpose, linked_section }];
+    }
+    return [];
+  });
+}
+
 interface ReviewStepProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   content: any;
@@ -376,6 +395,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
   const effectivePrice = pricingChoice === "paid" ? paidPrice : 0;
   const isPaid = effectivePrice > 0;
   const pageCount = estimateWorkbookPageCount(content);
+  const toolkitItems = normalizeWorkbookToolkit(content.what_youll_get);
 
   // Rewrite stale page-count claims Abby may have baked into rationales
   // (e.g. "56-page count" / "45 pages") so they match the real PDF.
@@ -437,7 +457,17 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
             <div><p className="text-xs font-semibold text-muted-foreground mb-1">Transformation Promise</p><p className="text-sm">{content.transformation_promise}</p></div>
             <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
             <div><p className="text-xs font-semibold text-muted-foreground mb-2">What You'll Get</p>
-              <ul className="space-y-1">{content.what_youll_get?.map((d: string, i: number) => <li key={i} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />{d}</li>)}</ul>
+              <ul className="space-y-2">
+                {toolkitItems.map((item, i: number) => (
+                  <li key={`${item.name}-${i}`} className="flex items-start gap-2 text-sm">
+                    <Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-medium text-foreground">{item.name}</span>
+                      {item.purpose && <p className="text-muted-foreground">{item.purpose}</p>}
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
           </CardContent></Card>
         </TabsContent>
