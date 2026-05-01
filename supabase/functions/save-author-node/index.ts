@@ -263,10 +263,22 @@ Deno.serve(async (req: Request) => {
       previousStatus: node.status,
       micrositeUrl: micrositeUrl ?? null,
     });
-    const mergedContent = {
-      ...((node.content_json ?? {}) as Record<string, unknown>),
+    const existingContent = (node.content_json ?? {}) as Record<string, unknown>;
+    const derivedAsset = deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
+    const previousAsset = existingContent.library_asset as Record<string, unknown> | undefined;
+    const previousHistory = Array.isArray(existingContent.library_asset_history)
+      ? (existingContent.library_asset_history as unknown[])
+      : [];
+
+    const nextHistory = derivedAsset && previousAsset
+      ? [previousAsset, ...previousHistory].slice(0, 5)
+      : previousHistory;
+
+    const mergedContent: Record<string, unknown> = {
+      ...existingContent,
       activated: true,
       _currentStep: 3,
+      ...(derivedAsset ? { library_asset: derivedAsset, library_asset_history: nextHistory } : {}),
     };
     const updatePayload: Record<string, unknown> = {
       status: "live",
