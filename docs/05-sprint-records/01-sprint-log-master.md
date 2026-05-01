@@ -1,6 +1,6 @@
 # 01 · AB Sprint Log — Master
 
-_Version 3.0 · 2026-05-01_
+_Version 3.1 · 2026-05-01_
 
 **Source(s) of truth:**
 - Project memory (`mem://sprints/*`, `mem://audits/*`)
@@ -24,6 +24,11 @@ Running log of every sprint. Pauline maintains; Lovable provides per-sprint summ
 | 45 | GHL fully removed | 2026-04 | Cleanup | All GHL refs deleted from code, DB, copy |
 | 46 | Documentation Sprint v3 | 2026-05-01 | Initial 6-category /docs structure | 56 markdown files; Manus framework alignment |
 | 47 | Documentation Corrections | 2026-05-01 | Master registry + cross-doc alignment | Master Architecture §3 (canonical registry); all 28 node docs regenerated; counter math reconciled; legacy filename divergences logged as bugs |
+| 48 | Canonical Labels — TS Guard Rail (Half A1) | 2026-05-01 | Edge-side single source of truth for node labels | `_shared/canonical-node-labels.ts`; `upsertAuthorNode` warns on label drift |
+| 49 | Canonical Labels — DB Guard Rail (Half A2) | 2026-05-01 | Database enforces 28-node registry | `node_registry` table seeded with 28 rows; FKs from `author_nodes` + `purchases`; BEFORE trigger blocks unknown node IDs |
+| 50 | Canonical Labels — Folder Renames (Half B) | 2026-05-01 | Generator paths match canonical labels | 5 folders renamed (bp06→workbook, bp07→home-study, bp08→special-editions, bp09→book-sales, ba17→bundles); 5 client invoke sites updated; two-phase deploy |
+| 51 | Canonical Labels — Final Cleanup | 2026-05-01 | Remove all hardcoded NODE_NAME drift; add parity tests | 18 generators now use `getCanonicalNodeLabel(NODE_ID)`; `get-microsite-page` resolves slugs from `node_registry`; vitest + Node parity scripts |
+| 52 | Cross-Surface Alignment Audit | 2026-05-01 | Final cleanup of Abby prompts, generator prompt bodies, docs | business-consultant labels corrected (BA-11 Audiobook, BA-17 Bundles, BP-09 Book Sales, YR-28 Sponsors); BP-09 generator + slide exporter no longer hardcode "Live Audience Conversion Toolkit"; 5 framework docs + engine map refreshed; bug rows 11+12 closed |
 
 ## Schema of this table
 
