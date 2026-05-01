@@ -1,91 +1,124 @@
-# Sprint 52 — Cross-Surface Alignment Audit & Cleanup
+## Goal
 
-A full sweep of `/docs`, edge function prompts, and generator internals against canonical truth (`builderNodeConfig.ts` + `_shared/canonical-node-labels.ts`) found 4 classes of drift remaining after Sprints 48–51. None of them break runtime, but they will cause Abby to recommend the wrong product, mislabel revenue streams, and confuse anyone reading the docs.
+Rewrite every document in `/docs/` from scratch with high integrity, sourced directly from the **live code, the live Supabase schema, and the live ABBY edge-function prompts** — not from the existing doc text. Then deliver as **(a) updated repo files, (b) a ZIP archive, and (c) a single combined master PDF** for offline reading.
 
-## Findings (4 categories)
+The existing 51 files map 1:1 to the framework's 6 categories, so structure stays. Content gets fully regenerated.
 
-### 1. Abby prompt label drift (HIGH — violates Core memory rule)
+## Source-of-truth pinning (non-negotiable)
 
-`supabase/functions/business-consultant/index.ts` — the consultation framework Abby uses to recommend revenue streams contains **two outright wrong labels** and **several legacy "Kit" phrasings**:
+Every doc will be sourced from one of these — **never from the previous doc text**:
 
-| Where | Says | Must say (canonical) |
-|---|---|---|
-| BA-11 (line ~3235) | "Home Study Course" | **Audiobook** |
-| YR-28 (line ~3256) | "Sponsors & Exhibitors" | **Sponsors** |
-| BA-17 (line ~3241) | "Upsells" | **Bundles** |
-| BP-09 (line ~3229) | "Book Sales Strategy" | **Book Sales** |
-| Phase 2 sections (~2059, 2181, 2473, 2757) | "Speaking Kit", "Affiliate Programme Kit", "JV Partnership Kit", "Mastermind Kit" | Use canonical node labels |
+| Source | Pulled by |
+|---|---|
+| `src/components/dashboard/builders/builderNodeConfig.ts` | All node labels, categories, emojis |
+| `supabase/functions/_shared/canonical-node-labels.ts` | Edge-side label parity |
+| Live Supabase `information_schema` + `pg_catalog` | Database schema (110 tables, all columns, FKs, enums, RLS policies) |
+| `supabase/functions/<name>/index.ts` | Every ABBY prompt verbatim, every NODE_NAME, NODE_ID |
+| `src/components/dashboard/builders/<node>/` | What the author does in each builder |
+| `src/pages/MicrositePage.tsx` + microsite components | What the reader experiences |
+| `mem://index.md` Core rules | Strategic philosophy, forbidden phrases, business constraints |
+| `git log` + `docs/05-sprint-records/` | Sprint history, decisions, bug registry |
 
-Direct violation of the Core memory rule: *"All ABBY prompts (business-consultant, …) MUST use these exact labels: BA-11 = Audiobook, … YR-28 = Sponsors."*
+If a doc says "X" but the code says "Y", the **code wins** and the doc is rewritten.
 
-### 2. Generator prompt-body legacy phrases (MEDIUM)
+## Deliverables
 
-Sprint 51 fixed `NODE_NAME` constants but missed prompt strings inside generators:
+```text
+1. /docs/  — 51 fully rewritten markdown files (in repo)
+2. /mnt/documents/authors-bureau-docs.zip  — same files, downloadable
+3. /mnt/documents/AB_Master_Documentation.pdf  — all 51 docs combined, navigable
+```
 
-- `generate-bp09-book-sales/index.ts` lines 49 & 65 — still say `"Live Audience Conversion Toolkit"` in the user prompt and JSON skeleton (`kit_title`).
-- `export-bp09-slides/index.ts` line 29 — fallback `kitTitle` defaults to `"Live Audience Conversion Toolkit"`.
+## Work plan (6 phases, ~51 files)
 
-### 3. Documentation stale paths & labels (MEDIUM)
+### Phase 1 — Foundation (Category 1: Architecture, 5 files)
+1. **Master Architecture Reference** — 7 engines, 28 nodes, tech stack, sprint roadmap, competitive position. Pull engine list from edge function folders + memory.
+2. **Database Schema — Complete** — auto-generated from live Supabase: every table, column, type, default, FK, enum, RLS policy. 110 tables.
+3. **Engine Architecture Map** — one section per engine (Email, Funnel, Course, Commerce, Sessions, Podcast, CRM, plus Nurture). What it does, tables read/written, edge functions, external services.
+4. **Node Connector Map** — 28 nodes × engine matrix. Native engines only.
+5. **Technology Stack — Current** — React 18, Vite 5, Tailwind v3, TS 5, Supabase, Lovable AI Gateway (gpt-5.2 + gemini-3-flash-preview), Stripe Express only, Resend, ElevenLabs, Buffer (status: removed Apr 2026 per memory).
 
-Sprint 50 renamed 5 generator folders, but several docs were never updated:
+### Phase 2 — Business Rules (Category 2, 5 files)
+1. **Count Business Rules v3** — 28-node universe, author vs book scoping, two-gate live rule, BP-00 exclusion clause.
+2. **Node Readiness Gates — Full Spec** — for **all 28 nodes**: exact `hasRequiredAssets()` logic pulled from `src/lib/nodeRegistry.ts` and per-builder code.
+3. **Product Lifecycle Rules** — `draft → ready_for_review → live → archived`, transitions, who triggers each.
+4. **Stripe Connection Rules** — Express-only, 8% platform fee, payout-vs-commerce separation, BuyNowButton gate.
+5. **Author-Level vs Book-Level Registry** — definitive 16/12 split with rationale per node.
 
-- `docs/04-node-frameworks/BP-06.md`, `BP-07.md`, `BP-08.md`, `BP-09.md`, `BA-17.md` — all five `**Edge function:**` lines still point to legacy paths (`generate-bp06-online-course`, `generate-bp07-coaching`, etc.). The "Filename note: legacy" copy is now obsolete.
-- `docs/01-architecture/03-engine-architecture-map.md` line 87 — Course Builder Engine still lists `generate-bp06-online-course`, `generate-bp07-coaching`.
-- `docs/05-sprint-records/03-bug-registry.md` rows 11 & 12 — both bugs are now resolved (Sprint 50 + 51) but still marked "open".
+### Phase 3 — ABBY AI (Category 3, 7 files) — **highest priority per framework**
+1. **Master Prompt Architecture** — persona (warm, expert, encouraging), forbidden technical terms, book-context adaptation pattern.
+2. **System Prompt — Current Version (v?)** — exact extraction from `business-consultant/index.ts` + `abby-help-chat/index.ts`, version-stamped.
+3. **Node Activation Prompts — All 28** — exact prompt block extracted from each `generate-<node>/index.ts`. Verbatim, one section per node.
+4. **Content Generation Prompts** — email sequences, social packs, media kits, JV emails, narration scripts, course outlines. Extracted from `generate-email-sequence`, `generate-social-content`, `compose-social-post`, `generate-podcast-season`, etc.
+5. **CRM Intelligence Prompts** — Daily Intelligence Report, lead scoring, hot lead notifications. From `generate-daily-insight`, `generate-nudges`, `abby-daily-report`.
+6. **ABBY Score Algorithm** — exact rules + pipeline stage thresholds, sourced from CRM scoring code.
+7. **Autonomous Actions Registry** — every trigger → ABBY action pair, sourced from DB triggers + edge function callers.
 
-### 4. Sprint log gap (LOW — process hygiene)
+### Phase 4 — 28 Node Frameworks (Category 4, 28 files) — **deep technical spec**
+Each node doc gets the **7 framework sections + 5 technical sections**:
 
-`docs/05-sprint-records/01-sprint-log-master.md` ends at Sprint 46. **Sprints 47, 48, 49, 50, 51 are missing.** Violates the `mem://process/docs-sprint-maintenance` rule ("Every sprint must update /docs/ before completion").
+```text
+1. What it is (plain English, 1 paragraph)
+2. What ABBY builds (engine + generated artifacts)
+3. What the author does (step-by-step in the builder)
+4. What the reader experiences (microsite/email journey)
+5. Readiness gate (exact hasRequiredAssets code block)
+6. Revenue model (one-time / recurring / high-ticket)
+7. Dependencies (prerequisite nodes, engine connections)
+--- Technical appendix ---
+8. content_json schema (TypeScript interface)
+9. Edge functions (generate-*, exporters, webhooks)
+10. Database tables read/written
+11. ABBY prompt (verbatim, collapsed)
+12. UI source files (builder + microsite components)
+```
 
-## What is already aligned (verified clean)
+Each node doc estimated at 4–6 pages. Source: `src/components/dashboard/builders/<node>/`, `supabase/functions/generate-<node>/`, microsite components.
 
-- ✅ Node count = 28 everywhere; no "29 nodes" framing in active docs.
-- ✅ Platform fee = 8% consistently; "92% to author" copy locked.
-- ✅ GHL fully removed from active surfaces; only intentional "removed" mentions remain.
-- ✅ Tier names = Brand/Build/Yield Package; no Starter/Pro/Enterprise drift.
-- ✅ Stripe-only payout rail; no PayPal/Wise references.
-- ✅ Canonical labels parity test (4/4) and slug parity script (28/28) both green.
-- ✅ All other 23 generators correctly resolve labels via `getCanonicalNodeLabel()`.
+### Phase 5 — Sprint Records (Category 5, 4 files)
+1. **Sprint Log Master** — backfilled from existing log + `git log` for sprints 1–52.
+2. **Sprint Prompt Archive** — preserve existing entries, add structure for future sprints.
+3. **Bug Registry** — preserved + reorganized by status (open/resolved).
+4. **Decision Log** — every architectural decision (GHL removal, Buffer removal, Stripe-only, 8% fee, etc.) with date + rationale, sourced from `mem://` Core rules.
 
-## Implementation Plan
+### Phase 6 — User Experience (Category 6, 4 files)
+1. **Design Rules** — dark navy + gold, category colors (Brand=Teal, Build=Indigo, Yield=Amber), banned UI terms, ABBY tone.
+2. **Author Journey Map** — sign-up → book upload → BP-00 analysis → 28-node activation → first revenue.
+3. **Reader Journey Map** — microsite discovery → quiz → email list → purchase → upsell, mapped across nodes.
+4. **Test Account Credentials** — pointer doc only (real creds stay out of repo).
 
-### Step 1 — Fix Abby business-consultant prompts
-- `BA-11 Home Study Course` → `BA-11 Audiobook`
-- `YR-28 Sponsors & Exhibitors` → `YR-28 Sponsors`
-- `BA-17 Upsells` → `BA-17 Bundles`
-- `BP-09 Book Sales Strategy` → `BP-09 Book Sales`
-- Replace Phase 2 "Kit" section titles with canonical-label phrasing (e.g., "Complete Speaking Activation", "Complete Affiliate Activation").
+### Phase 7 — Bundle + PDF (deliverables)
+1. Update `/docs/README.md` as the master index with links to all 51 files.
+2. Build `/mnt/documents/authors-bureau-docs.zip` containing the entire `/docs/` tree.
+3. Concatenate all markdown into one file with a TOC, render via `pandoc → PDF` (or reportlab if pandoc/LaTeX unavailable). Output `/mnt/documents/AB_Master_Documentation.pdf`.
+4. **Mandatory PDF QA**: convert PDF to images, inspect every page for clipping/overlap, fix and re-render until clean.
 
-### Step 2 — Clean generator prompt bodies
-- `generate-bp09-book-sales/index.ts`: replace both `Live Audience Conversion Toolkit` strings with `${NODE_NAME} kit` (where `NODE_NAME` is already the canonical "Book Sales").
-- `export-bp09-slides/index.ts`: change fallback to `"Book Sales"`.
+## Integrity guard rails (run at the end)
 
-### Step 3 — Refresh docs to match Sprint 50/51 reality
-- Update `Edge function:` line in `BP-06/07/08/09.md` and `BA-17.md` to canonical paths.
-- Remove "Filename note: legacy …" sentences from those 5 framework files.
-- Update `engine-architecture-map.md` line 87 to canonical paths.
-- Mark bug-registry rows 11 & 12 as `Fixed` with sprint reference.
+```text
+- rg sweep: zero forbidden phrases ("Live Audience Conversion Toolkit", "Sponsors & Exhibitors",
+  "29 nodes", "GHL", "PayPal", etc.) anywhere in /docs/
+- rg sweep: every node referenced uses canonical labels from builderNodeConfig.ts
+- node scripts/check-slug-parity.mjs — must stay green
+- vitest run canonical-labels-parity.test.ts — must stay green
+- Every "Edge function:" path in node docs must resolve to a real folder in supabase/functions/
+- Every table named in Database Schema doc must exist in information_schema
+```
 
-### Step 4 — Backfill sprint log
-Add rows 47, 48, 49, 50, 51 to `01-sprint-log-master.md` with one-line summaries pulled from the Sprint 51 memory entry and the master architecture reference v3.3.
+## What I will NOT do (per memory rules)
 
-### Step 5 — Verify
-- Re-run `bunx vitest run src/lib/__tests__/canonical-labels-parity.test.ts`
-- Re-run `node scripts/check-slug-parity.mjs`
-- Final `rg` sweep for: `Live Audience Conversion`, `Affiliate Programme Kit`, `JV Partnership Kit`, `Sponsors & Exhibitors`, `BA-11 Home Study`, `generate-bp06-online-course`, `generate-bp07-coaching`, `generate-bp08-mastermind`, `generate-bp09-speaking`, `generate-ba17-upsells`. All must return zero hits in `src/`, `supabase/functions/`, and active `docs/` (historical sprint records may keep mentions).
+- Will not edit `src/integrations/supabase/{client,types}.ts`, `.env`, or `supabase/config.toml` project-level settings.
+- Will not invent prompts — if a generator's prompt is not in code, the doc says "(no AI generation step)".
+- Will not include emdashes in any author/reader-facing copy referenced (memory rule).
+- Will not use the term "GHL", "Buffer" (except in decision-log historical entries), "PayPal", or "Wise" anywhere in current-state docs.
+- Will not store real test credentials in the repo — only references.
 
-### Step 6 — Deploy & document
-- Deploy `business-consultant`, `generate-bp09-book-sales`, `export-bp09-slides` (3 functions).
-- Update `mem://architecture/canonical-node-labels` to add Sprint 52 to the title and note "prompt bodies + docs aligned".
-- Update `docs/01-architecture/01-master-architecture-reference.md` to v3.4 with a Sprint 52 note.
+## Estimated scope
 
-## Files Touched (~13)
+- **51 markdown files** (5 + 5 + 7 + 28 + 4 + 4 + README + bundle index) ~ 18,000–25,000 lines total.
+- **1 ZIP** + **1 PDF** in `/mnt/documents/`.
+- Multi-step execution; I'll work category-by-category and pause if something material is unclear.
 
-Edge functions (3): `business-consultant`, `generate-bp09-book-sales`, `export-bp09-slides`
+## Approval
 
-Docs (8): `04-node-frameworks/{BP-06,BP-07,BP-08,BP-09,BA-17}.md`, `01-architecture/03-engine-architecture-map.md`, `01-architecture/01-master-architecture-reference.md`, `05-sprint-records/01-sprint-log-master.md`, `05-sprint-records/03-bug-registry.md`
-
-Memory (2): `mem://architecture/canonical-node-labels`, `mem://index.md`
-
-## Risk
-Very low. All changes are string-only (no schema, no API contract changes). Only behavioral risk is Abby producing slightly different consultation copy — which is the intended fix.
+Once approved, I switch to build mode and begin with **Phase 1 (Architecture)** since every later doc references the engines and schema established there. ABBY (Phase 3) gets extra care because the framework rates it as the most perishable.
