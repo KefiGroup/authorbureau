@@ -36,6 +36,8 @@ import {
   type Frequency,
 } from "@/components/dashboard/builders/shared/socialKitHelpers";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
+import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
+import { buildBp03Txt } from "@/lib/build-library-txt";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
 
@@ -343,14 +345,15 @@ export default function BP03Builder({ authorId, bookId }: Props) {
     }
   };
 
-  const persistNodeState = async (nextStatus: "content_ready" | "live") => {
+  const persistNodeState = async (nextStatus: "content_ready" | "live", overrideContent?: any) => {
     if (!authorId) throw new Error("Please wait for your author profile to finish loading.");
-    if (!hasUsableSocialKit(content)) throw new Error("Generate your starter kit before saving it.");
+    const payload = overrideContent ?? content;
+    if (!hasUsableSocialKit(payload)) throw new Error("Generate your starter kit before saving it.");
     const result = await fetchBp03NodeState({
       action: "save",
       author_id: authorId,
       status: nextStatus,
-      content,
+      content: payload,
     });
     return result.node;
   };
@@ -387,12 +390,30 @@ export default function BP03Builder({ authorId, bookId }: Props) {
     setError(null);
     setIsActivating(true);
     try {
-      const savedNode = await persistNodeState("live");
+      // Sprint 55: build a TXT compilation and upload before persisting so
+      // the saved content_json carries the canonical library_asset record.
+      let activeContent = content;
+      try {
+        const txtBlob = buildBp03Txt(content, authorName, bookTitle || "your book");
+        const safeName = (bookTitle || "social-kit").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+        const asset = await uploadAndRegisterLibraryAsset({
+          authorId,
+          nodeId: "BP-03",
+          title: "Social Media Kit",
+          primary: { blob: txtBlob, filename: `${safeName}-social-kit.txt`, kind: "docx" },
+        });
+        activeContent = { ...content, library_asset: asset };
+        setContent(activeContent);
+      } catch (e) {
+        console.warn("[BP-03] library_asset upload failed, activating without it", e);
+      }
+
+      const savedNode = await persistNodeState("live", activeContent);
 
       // Default schedule: start tomorrow, every 3 days
       const start = new Date();
       start.setDate(start.getDate() + 1);
-      const { saved } = await persistSocialPostsToCalendar(authorId, content, start, "every_3_days");
+      const { saved } = await persistSocialPostsToCalendar(authorId, activeContent, start, "every_3_days");
       setSavedCount(saved);
 
       setContent({

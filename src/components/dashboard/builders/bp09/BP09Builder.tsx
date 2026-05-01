@@ -23,6 +23,8 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
+import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
+import { buildBp09Txt } from "@/lib/build-library-txt";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
@@ -126,12 +128,37 @@ export default function BP09Builder({ authorId, bookId }: Props) {
   const handlePublish = async () => {
     setStep(3); setError(null);
     try {
+      // Sprint 55: build a TXT compilation of the toolkit and stamp the
+      // canonical library_asset record before publishing. BP-09 has no
+      // microsite, so the TXT becomes the downloadable deliverable.
+      let libraryAsset: Record<string, unknown> | null = null;
+      try {
+        const txtBlob = buildBp09Txt(
+          content,
+          authorName,
+          (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book",
+        );
+        const safeName = (resolvedBookTitle || detectedBookTitle || "live-toolkit").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+        // kind=txt overrides the contract default (external_url) so the
+        // Library UI surfaces a "Download TXT" button rather than a generic
+        // external link label.
+        const asset = await uploadAndRegisterLibraryAsset({
+          authorId: authorId!,
+          nodeId: "BP-09",
+          title: (typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit",
+          primary: { blob: txtBlob, filename: `${safeName}-live-toolkit.txt`, kind: "txt" },
+        });
+        libraryAsset = asset as unknown as Record<string, unknown>;
+      } catch (e) {
+        console.warn("[BP-09] library_asset upload failed, publishing without it", e);
+      }
+
       if (content && authorId) {
-        const merged = { ...content, _currentStep: 3 };
+        const merged = { ...content, _currentStep: 3, ...(libraryAsset ? { library_asset: libraryAsset } : {}) };
         await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: merged, currentStep: 3, bookId: bookId ?? null });
         setContent(merged);
       }
-      await publishNodeToSite(authorId!, "BP-09", authorSlug);
+      await publishNodeToSite(authorId!, "BP-09", authorSlug, bookId ?? null, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Publish failed");
