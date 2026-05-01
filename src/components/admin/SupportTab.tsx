@@ -111,7 +111,7 @@ const importanceColors: Record<string, string> = {
 
 export default function SupportTab() {
   const { toast } = useToast();
-
+  const { user } = useAuth();
   const [bugs, setBugs] = useState<BugReport[]>([]);
   const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -170,6 +170,18 @@ export default function SupportTab() {
       setSelectedBug(null);
     } catch (err) {
       toast({ title: err.message || "Update failed", variant: "destructive" });
+    }
+  };
+
+  const assignBugToMe = async (id: string) => {
+    if (!user?.id) return;
+    try {
+      await adminDataFetch("update-bug", { id, assigned_to: user.id });
+      toast({ title: "Assigned to you" });
+      fetchBugs();
+      setSelectedBug((prev) => (prev ? { ...prev, assigned_to: user.id } : prev));
+    } catch (err: any) {
+      toast({ title: err.message || "Assign failed", variant: "destructive" });
     }
   };
 
