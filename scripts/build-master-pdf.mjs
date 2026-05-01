@@ -93,7 +93,10 @@ if (missingFromOrder.length) {
   ORDER.push(...missingFromOrder.sort());
 }
 
-const banner = `% Authors Bureau — Master Documentation
+// NOTE: title uses ASCII hyphen (not em-dash) because the pandoc-default
+// header font lacks an em-dash glyph and renders it as ��� in chromium.
+// Body text continues to use em-dashes (rendered fine via our CSS font stack).
+const banner = `% Authors Bureau - Master Documentation
 % Sprint 53.1 · ${VERSION}
 % Generated ${new Date().toISOString().slice(0, 10)}
 
