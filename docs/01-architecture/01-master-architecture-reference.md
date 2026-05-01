@@ -184,6 +184,8 @@ See `05-technology-stack-current.md` for the full table.
 | 46 | Documentation Sprint v3 — 6-category /docs | every category |
 | 47 | Documentation corrections — canonical registry | this file + every other doc |
 | 48 | Canonical node-label alignment — `canonical-node-labels.ts` shared module + `upsertAuthorNode` guard rail + 4-row backfill + BA-15/BA-16 asset-pack swap | this file (§3 divergence flags cleared) |
+| 49 | DB-level node hardening — `node_registry` table, FKs, BEFORE trigger forcing canonical labels, `compute_node_microsite_url` reads from registry | this file (§3 hardening note) |
+| 50 | Edge function folder rename — 5 mismatched generators (`bp06-online-course→workbook`, `bp07-coaching→home-study`, `bp08-mastermind→special-editions`, `bp09-speaking→book-sales`, `ba17-upsells→bundles`) renamed; 5 client invoke sites updated; old functions deleted | this file (§3 filenames now canonical) |
 
 ## 10. Competitive Position
 
