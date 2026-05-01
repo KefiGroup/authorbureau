@@ -48,6 +48,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [pendingReplace, setPendingReplace] = useState<{ existingLabel: string } | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
@@ -70,6 +71,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
       const inflight = getGeneration<any>(authorId, "BP-08");
       if (inflight) {
         setStep(1);
+        setDraftLoaded(true);
         attachToGeneration(inflight);
         return;
       }
@@ -83,6 +85,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         setStep(Math.min(3, Math.max(2, savedStep)));
         if (draft.isLive) setContent((p: any) => ({ ...p, activated: true }));
       }
+      setDraftLoaded(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorId]);
@@ -182,6 +185,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     if (!authorId) return;
     if (isBookLoading) return;
     if (!hasResolvedBook) return;
+    if (!draftLoaded) return;        // wait until we know whether a saved draft exists
 
     // Case A: no existing draft -> autostart immediately
     if (!content) {
@@ -203,7 +207,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     });
     setStep(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autostart, selectedOccasion, authorId, content, isBookLoading, hasResolvedBook]);
+  }, [autostart, selectedOccasion, authorId, content, isBookLoading, hasResolvedBook, draftLoaded]);
 
   const confirmReplace = () => {
     setPendingReplace(null);
