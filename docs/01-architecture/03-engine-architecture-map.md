@@ -12,7 +12,7 @@ The Authors Bureau backend is organized into **7 cooperating engines**. Each sec
 | 4. Commerce | `author_nodes`, `purchases`, `platform_config`, `payouts` | `books`, `author_profiles` | **Stripe (Authors Bureau as Merchant of Record)** | 14 |
 | 5. Sessions | `sessions`, `session_bookings` | `author_nodes` | Zoom, Stripe | 4 |
 | 6. Podcast | `podcasts`, `podcast_episodes`, `audiobooks` | `books` | Transistor.fm, ElevenLabs | 7 |
-| 7. CRM / Social / Nurture | `crm_contacts`, `social_connections`, `social_posts`, `abby_nudges`, `notifications` | All node tables | Buffer, LinkedIn | 10 |
+| 7. CRM / Social / Nurture | `crm_contacts`, `social_connections`, `social_posts`, `abby_nudges`, `notifications` | All node tables | LinkedIn (Buffer removed Sprint 37) | 10 |
 
 ---
 
@@ -171,16 +171,16 @@ See `mem://features/audiobook-tts-pipeline`.
 
 **Key tables**
 - `crm_contacts` — unified contact record (last_node_id, archetype A/B/C/D auto-filled)
-- `social_connections` — Buffer / LinkedIn OAuth connections per author
+- `social_connections` — LinkedIn OAuth connections per author (Buffer removed Sprint 37; table retained for LinkedIn + future rails)
 - `social_posts` — scheduled and published posts with platform metadata
 - `abby_nudges` — proactive coaching cards (9 trigger types)
 - `notifications` — in-app notification feed
 - `abby_conversations` — chat history with ABBY
 
 **External services**
-- **Buffer** — multi-platform scheduling (GraphQL API)
-- **LinkedIn** — direct OAuth posting
-- **Lovable AI Gateway** — nudge and post generation
+- **LinkedIn** — direct OAuth posting (only active social rail)
+- **Lovable AI Gateway** — nudge, post, and 30-day calendar generation
+- ~~Buffer~~ — removed Sprint 37; ABBY now generates a 30-day calendar that authors post manually
 
 **Edge functions**
 - `crm-auto-capture` — captures contacts from any author touchpoint
