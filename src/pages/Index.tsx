@@ -36,7 +36,7 @@ const comparisonRows = [
   { need: "Coaching Setup", without: "Calendar + payments + you price it", withAB: "Abby designs your coaching packages" },
   { need: "Author Website", without: "Website builder + you design it", withAB: "Abby builds your microsite" },
   { need: "Social Media", without: "Scheduler + you create content", withAB: "Abby generates a 90-day content calendar" },
-  { need: "Speaking Kit", without: "You create your own pitch deck", withAB: "Abby writes your keynote proposal" },
+  { need: "Book Sales kit", without: "You create your own pitch deck", withAB: "Abby writes your keynote proposal" },
   { need: "Total Effort", without: "Multiple tools + 40hrs/wk of your time", withAB: "One platform + Abby does the work" },
 ];
 

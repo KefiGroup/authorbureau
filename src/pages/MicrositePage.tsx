@@ -156,7 +156,7 @@ export default function MicrositePage() {
           <BookOpen className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">This page isn't public</h1>
           <p className="text-gray-500 mb-6">
-            The author's Live Audience Conversion Toolkit is a private resource used at workshops, book signings, and corporate lunches, it doesn't have a public web page.
+            The author's Book Sales kit is a private resource used at workshops, book signings, and corporate lunches, it doesn't have a public web page.
           </p>
           <Button asChild variant="outline">
             <Link to={`/${authorSlug}`}>Visit {data.author.pen_name || authorSlug}'s page</Link>

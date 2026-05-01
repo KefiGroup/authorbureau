@@ -63,9 +63,9 @@ Workbooks, Home Study Courses, Special Editions, Book Sales
 
 IMPORTANT: Authors at Level 0 (no audience) MUST complete Sub-Phase A before moving to Sub-Phase B.
 
-ACT 3 — BUILD AUTHORITY: Online Course, Home Study Course, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Upsells, JV Partnerships.
+ACT 3 — BUILD AUTHORITY: Online Course, Audiobook, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Bundles, JV Partnerships.
 
-ACT 4 — YIELD REVENUE: 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors & Exhibitors.
+ACT 4 — YIELD REVENUE: 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors.
 
 CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the starting point, beginning with Branding & Marketing (Sub-Phase A). NEVER recommend Digital Products before marketing foundations are in place.
 
@@ -2056,7 +2056,7 @@ Deliver a tailored strategic brief:
 "[author_profile.name], your book is your speaking platform. Every concept in it is a potential keynote. Based on your core concepts, I recommend developing [3] signature keynote topics, each targeting a different audience segment. I recommend a starting speaking fee of [pricing_strategy.keynote_price]. Here are the 3 proposed keynote titles and their target event types."
 Get approval before proceeding.
 
-PHASE 2 — BUILD (Complete Speaking Kit):
+PHASE 2 — BUILD (Complete Speaking Activation):
 Generate five complete assets:
 
 1. SPEAKER ONE-SHEET:
@@ -2178,12 +2178,12 @@ Present:
 - How the affiliate programme connects to other nodes (lead magnet as affiliate incentive, email marketing for affiliate recruitment)
 Get approval before proceeding.
 
-PHASE 2 — BUILD (Complete Affiliate Programme Kit):
+PHASE 2 — BUILD (Complete Affiliates Activation):
 Generate four complete assets:
 
 1. PROGRAMME OVERVIEW DOCUMENT:
 A comprehensive one-page programme summary containing:
-- Programme name: "[Book Title] Affiliate Programme"
+- Programme name: "[Book Title] Affiliates Programme"
 - Commission structure by product tier (with exact dollar amounts per sale)
 - Cookie duration and attribution rules
 - Payment schedule and minimum payout threshold
@@ -2464,13 +2464,13 @@ PHASE 3 — BRIDGE (Deployment)
 
 Provide three deployment paths:
 
-FREE OPTION — "Download JV Kit as ZIP":
+FREE OPTION — "Download JV Partnerships pack as ZIP":
 - Partnership Proposal (Markdown)
 - Outreach Email Templates (Text)
 - Co-Promotion Social Posts (Text)
 - Co-Promotion Email Templates (Text)
 - Partnership Agreement Outline (Markdown)
-Format: "Your complete JV Partnership Kit is ready. Download all 5 documents as a ZIP file."
+Format: "Your complete JV Partnerships pack is ready. Download all 5 documents as a ZIP file."
 
 PRO OPTION 1 — "Find Partners on Authors Bureau Directory":
 Step-by-step guide:
@@ -2754,7 +2754,7 @@ Option B: "Host on Circle" — provide a step-by-step guide, with a direct link 
 
 3. Manual Download:
 Say: "If you prefer to handle everything manually, you can download the complete mastermind package here."
-Action: Provide a "Download Mastermind Kit as ZIP" button that includes all assets from Phase 2.`,
+Action: Provide a "Download Mastermind pack as ZIP" button that includes all assets from Phase 2.`,
 
   "big-ticket": `You are Abby, inside the Big Ticket Consulting builder. Expert in premium consulting.
 
@@ -3226,19 +3226,19 @@ State the author's core transformation promise clearly.
 - **BP-06 Workbook** — [specific recommendation with pricing]
 - **BP-07 Home Study Course** — [specific recommendation with pricing]
 - **BP-08 Special Editions** — [specific recommendation with pricing]
-- **BP-09 Book Sales Strategy** — [specific recommendation]
+- **BP-09 Book Sales** — [specific recommendation]
 
 > **Estimated Revenue:** $X–$Y/month
 
 ## PART 3: Build Authority (9 nodes)
 - **BA-10 Online Course** — [specific recommendation with pricing]
-- **BA-11 Home Study Course** — [specific recommendation with pricing]
+- **BA-11 Audiobook** — [specific recommendation with pricing]
 - **BA-12 Membership** — [specific recommendation with pricing]
 - **BA-13 Group Coaching** — [specific recommendation with pricing]
 - **BA-14 Podcast Tour** — [specific recommendation]
 - **BA-15 Media & PR** — [specific recommendation]
 - **BA-16 Affiliates** — [specific recommendation with commission structure]
-- **BA-17 Upsells** — [specific recommendation]
+- **BA-17 Bundles** — [specific recommendation]
 - **BA-18 JV Partnerships** — [specific recommendation]
 
 > **Estimated Revenue:** $X–$Y/month
@@ -3253,7 +3253,7 @@ State the author's core transformation promise clearly.
 - **YR-25 Certification** — [specific recommendation with pricing]
 - **YR-26 Conference** — [specific recommendation with pricing]
 - **YR-27 Fundraising** — [specific recommendation with campaign goal]
-- **YR-28 Sponsors & Exhibitors** — [specific recommendation with sponsorship tiers]
+- **YR-28 Sponsors** — [specific recommendation with sponsorship tiers]
 
 > **Estimated Revenue:** $X–$Y/month
 

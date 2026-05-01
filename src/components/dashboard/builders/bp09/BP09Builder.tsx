@@ -202,7 +202,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
         <BuilderHeader
           nodeId="BP-09"
           title="Book Sales"
-          subtitle="Live Audience Conversion Toolkit · Webinars · Workshops · Book signings · Corporate lunches"
+          subtitle="Book Sales kit · Webinars · Workshops · Book signings · Corporate lunches"
           icon={Mic}
           onBack={() => navigate(bookId ? `/book-hub/${bookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />

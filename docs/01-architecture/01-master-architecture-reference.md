@@ -1,6 +1,6 @@
 # 01 · AB Master Architecture Reference
 
-_Version 3.3 · 2026-05-01 · single source of truth_
+_Version 3.4 · 2026-05-01 · single source of truth_
 
 **Source(s) of truth:**
 - `src/components/dashboard/builders/builderNodeConfig.ts` (canonical node IDs + labels)
@@ -60,6 +60,8 @@ Generator-internal `NODE_NAME` constants are centrally enforced via `supabase/fu
 **Sprint 49 — DB-level node hardening (Half A):** A `public.node_registry` table now holds the 28 canonical nodes (id, label, category, archetype, microsite slug, display order) as a SQL source of truth. `author_nodes.node_id` and `crm_contacts.last_node_id` are now FK-constrained to it (unknown IDs are rejected at the DB layer). A `BEFORE INSERT/UPDATE` trigger on `author_nodes` forces `node_name` to `node_registry.canonical_label` on every write — a DB-level mirror of the TS guard rail. `compute_node_microsite_url` reads slugs from the registry instead of a hardcoded `CASE`.
 
 **Sprint 50 — Edge function folder rename (Half B):** All five legacy-named generator folders were renamed to match their canonical node labels (`generate-bp06-workbook`, `generate-bp07-home-study`, `generate-bp08-special-editions`, `generate-bp09-book-sales`, `generate-ba17-bundles`). The 5 client invoke/fetch sites in the BP-06/07/08/09 + BA-17 builders were updated in lockstep. Two-phase deploy: new function names deployed first, then old names deleted. All filename divergences are now resolved.
+
+**Sprint 52 — Cross-Surface Alignment Audit:** Final cleanup of label drift inside Abby prompts, generator prompt bodies, and node-framework docs. `business-consultant` and `abby-help-chat` now use canonical labels in all framework summaries (BA-11 = Audiobook, BA-17 = Bundles, BP-09 = Book Sales, YR-28 = Sponsors); legacy "Kit" phrasings (Speaking Kit, Affiliate Programme Kit, JV Partnership Kit, Mastermind Kit) replaced. The BP-09 generator + slide exporter no longer hardcode "Live Audience Conversion Toolkit" — both now use `${NODE_NAME} kit`. The 5 framework docs (BP-06/07/08/09, BA-17) and the engine map were refreshed to match Sprint 50 paths. Bug-registry rows 11 + 12 closed.
 
 | ID | Canonical label | Framework category | Scope | Edge function (verified on disk) | Notes |
 |---|---|---|---|---|---|

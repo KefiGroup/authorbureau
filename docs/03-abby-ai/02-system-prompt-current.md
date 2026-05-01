@@ -68,9 +68,9 @@ Workbooks, Home Study Courses, Special Editions, Book Sales
 
 IMPORTANT: Authors at Level 0 (no audience) MUST complete Sub-Phase A before moving to Sub-Phase B.
 
-ACT 3 — BUILD AUTHORITY: Online Course, Home Study Course, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Upsells, JV Partnerships.
+ACT 3 — BUILD AUTHORITY: Online Course, Audiobook, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Bundles, JV Partnerships.
 
-ACT 4 — YIELD REVENUE: 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors & Exhibitors.
+ACT 4 — YIELD REVENUE: 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors.
 
 CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the starting point, beginning with Branding & Marketing (Sub-Phase A). NEVER recommend Digital Products before marketing foundations are in place.
 

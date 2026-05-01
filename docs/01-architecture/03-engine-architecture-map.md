@@ -84,7 +84,7 @@ See `mem://ai/lead-magnet-generation-specs`, `mem://features/lead-magnet-microsi
 - **Lovable AI Gateway** — curriculum generation
 
 **Edge functions**
-- `generate-ba10-online-course`, `generate-bp06-online-course`, `generate-bp07-coaching`
+- `generate-ba10-online-course`, `generate-bp06-workbook`, `generate-bp07-home-study`
 - `deploy-ba10-to-thinkific`, `deploy-bp07-to-thinkific`, `deploy-yr25-to-thinkific`
 - `sso-proxy` — Thinkific SSO bridge
 
