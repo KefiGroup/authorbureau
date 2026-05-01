@@ -578,14 +578,17 @@ Deno.serve(async (req) => {
         client.from("admin_audit_log").select("event_key, created_at, target_type, payload").order("created_at", { ascending: false }).limit(20),
       ]);
 
-      // Approximate "errors in last 24h" by counting purchase / payout failures recorded in audit log
-      // (full edge-function error scrape requires analytics_query which is out-of-band for this proxy)
+      // Real error count from system_error_log (last 24h, unresolved)
       const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
       const { count: errorCount24h } = await client
-        .from("admin_audit_log")
+        .from("system_error_log")
         .select("id", { count: "exact", head: true })
-        .gte("created_at", since)
-        .or("event_key.like.%failed%,event_key.like.%error%");
+        .gte("created_at", since);
+      const { count: unresolvedCritical } = await client
+        .from("system_error_log")
+        .select("id", { count: "exact", head: true })
+        .eq("severity", "critical")
+        .is("resolved_at", null);
 
       return json({
         secrets,
