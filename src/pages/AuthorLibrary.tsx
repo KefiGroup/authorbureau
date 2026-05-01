@@ -212,33 +212,64 @@ export default function AuthorLibrary() {
         {/* ── By Node ── */}
         <TabsContent value="by-node" className="space-y-4">
           {nodes.map(n => {
-            const assets = getAvailableAssets(n.node_id, n.content_json);
-            if (!assets.length) return null;
+            // Sprint 55: prefer the uniform library_asset (one row per node) when
+            // present. Fall back to the legacy per-format asset list for nodes
+            // that haven't yet been wired to render-library-asset.
+            const libAsset = (n.content_json?.library_asset ?? null) as
+              | { kind?: string; url?: string; pdf_url?: string | null; txt_url?: string | null; title?: string }
+              | null;
+            const hasLibAsset = !!(libAsset && libAsset.url);
+            const legacyAssets = hasLibAsset ? [] : getAvailableAssets(n.node_id, n.content_json);
+            if (!hasLibAsset && !legacyAssets.length) return null;
             return (
               <Card key={n.id}>
                 <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0">
                   <div>
                     <CardTitle className="text-base font-bold">
-                      {n.personalised_name || NODE_NAMES[n.node_id] || n.node_name}
+                      {libAsset?.title || n.personalised_name || NODE_NAMES[n.node_id] || n.node_name}
                     </CardTitle>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {n.node_id} · {assets.length} asset{assets.length === 1 ? "" : "s"}
+                      {n.node_id}
+                      {hasLibAsset
+                        ? ` · ${libAsset?.kind ?? "deliverable"}`
+                        : ` · ${legacyAssets.length} asset${legacyAssets.length === 1 ? "" : "s"}`}
                     </p>
                   </div>
                   <Badge variant={n.status === "live" ? "default" : "secondary"}>{n.status}</Badge>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {assets.map(a => (
-                    <AssetRow
-                      key={`${n.id}-${a.key}`}
-                      node={n}
-                      asset={a}
-                      sizeHint={describeAssetSize(a, n.content_json)}
-                      authorSlug={profile?.author_slug ?? null}
-                      penName={profile?.pen_name ?? null}
-                      icon={TYPE_ICON[a.type] || FileText}
-                    />
-                  ))}
+                  {hasLibAsset ? (
+                    <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/50 px-3 py-2">
+                      <span className="text-sm font-medium mr-auto">{libAsset?.title || "Deliverable"}</span>
+                      {libAsset?.url && (
+                        <Button asChild size="sm" variant="default">
+                          <a href={libAsset.url} target="_blank" rel="noreferrer">Download {(libAsset.kind || "file").toUpperCase()}</a>
+                        </Button>
+                      )}
+                      {libAsset?.pdf_url && (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={libAsset.pdf_url} target="_blank" rel="noreferrer">PDF</a>
+                        </Button>
+                      )}
+                      {libAsset?.txt_url && (
+                        <Button asChild size="sm" variant="outline">
+                          <a href={libAsset.txt_url} target="_blank" rel="noreferrer">TXT</a>
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    legacyAssets.map(a => (
+                      <AssetRow
+                        key={`${n.id}-${a.key}`}
+                        node={n}
+                        asset={a}
+                        sizeHint={describeAssetSize(a, n.content_json)}
+                        authorSlug={profile?.author_slug ?? null}
+                        penName={profile?.pen_name ?? null}
+                        icon={TYPE_ICON[a.type] || FileText}
+                      />
+                    ))
+                  )}
                 </CardContent>
               </Card>
             );

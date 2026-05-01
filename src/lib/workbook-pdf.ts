@@ -661,7 +661,11 @@ function renderBackCover(doc: jsPDF, bookTitle: string, authorName?: string) {
   doc.setTextColor(0);
 }
 
-export function downloadWorkbookPdf({ content, bookTitle, authorName }: WorkbookPdfOptions): void {
+/**
+ * Build the workbook PDF and return a [Blob, filename] tuple without triggering
+ * a download. Used by the publish flow (Sprint 55).
+ */
+export function buildWorkbookPdfBlob({ content, bookTitle, authorName }: WorkbookPdfOptions): { blob: Blob; filename: string } {
   const doc = new jsPDF({ unit: "pt", format: "letter" });
   const sections = Array.isArray(content.sections) ? content.sections : [];
 
@@ -673,7 +677,6 @@ export function downloadWorkbookPdf({ content, bookTitle, authorName }: Workbook
   renderActionPlan(doc, content);
   renderBackCover(doc, bookTitle, authorName);
 
-  // Add footers (skip cover page and back cover, both have their own brand bands)
   const total = doc.getNumberOfPages();
   const label = `${content.workbook_title || "Workbook"} — ${authorName || ""}`.trim();
   for (let p = 2; p < total; p++) {
@@ -682,5 +685,18 @@ export function downloadWorkbookPdf({ content, bookTitle, authorName }: Workbook
   }
 
   const filename = `${safeFilename(bookTitle)}-${safeFilename(content.workbook_title || "Workbook")}.pdf`;
-  doc.save(filename);
+  return { blob: doc.output("blob"), filename };
 }
+
+export function downloadWorkbookPdf(opts: WorkbookPdfOptions): void {
+  const { blob, filename } = buildWorkbookPdfBlob(opts);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
