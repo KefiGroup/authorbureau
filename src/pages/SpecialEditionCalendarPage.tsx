@@ -122,6 +122,31 @@ export default function SpecialEditionCalendarPage() {
           </button>
         </header>
 
+        {/* How the workflow works */}
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <h2 className="font-heading text-sm font-bold text-foreground mb-3">
+            How a special edition gets built
+          </h2>
+          <ol className="grid gap-3 sm:grid-cols-4">
+            {[
+              { icon: MousePointerClick, title: "1. Click a date", body: "Pick any occasion below. Each tile deep-links into the BP-08 builder pre-loaded with that theme." },
+              { icon: Sparkles, title: "2. Abby designs", body: "Abby auto-generates 3 themed edition tiers, a bundle, pricing ladder, and sales-page copy in 20-40s." },
+              { icon: Library, title: "3. Save to library", body: "Review, tweak the price or copy, then save. The edition lives in your private library, ready to quote." },
+              { icon: Package, title: "4. Take orders", body: "Quote gift buyers from your library, print-and-sign yourself, ship direct. You keep 100% off-platform." },
+            ].map((s, i) => (
+              <li key={i} className="rounded-xl border border-border bg-background p-3">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <div className="rounded-md bg-secondary/15 p-1.5 text-secondary">
+                    <s.icon className="h-3.5 w-3.5" />
+                  </div>
+                  <p className="text-xs font-bold text-foreground">{s.title}</p>
+                </div>
+                <p className="text-[11px] leading-relaxed text-muted-foreground">{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+
         {/* 12-month grid */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => {
