@@ -28,6 +28,7 @@ Running log of every sprint. Pauline maintains; Lovable provides per-sprint summ
 | 50 | Canonical Labels — Folder Renames (Half B) | 2026-05-01 | Generator paths match canonical labels | 5 folders renamed (bp06→workbook, bp07→home-study, bp08→special-editions, bp09→book-sales, ba17→bundles); 5 client invoke sites updated; two-phase deploy |
 | 51 | Canonical Labels — Final Cleanup | 2026-05-01 | Remove all hardcoded NODE_NAME drift; add parity tests | 18 generators now use `getCanonicalNodeLabel(NODE_ID)`; `get-microsite-page` resolves slugs from `node_registry`; vitest + Node parity scripts |
 | 52 | Cross-Surface Alignment Audit | 2026-05-01 | Final cleanup of Abby prompts, generator prompt bodies, docs | business-consultant labels corrected (BA-11 Audiobook, BA-17 Bundles, BP-09 Book Sales, YR-28 Sponsors); BP-09 generator + slide exporter no longer hardcode "Live Audience Conversion Toolkit"; 5 framework docs + engine map refreshed; bug rows 11+12 closed |
+| 53 | Documentation High-Integrity Rewrite | 2026-05-01 | Audit + targeted rewrite of all 51+ docs; ZIP + Master PDF deliverables | All 28 node-framework docs regenerated via `scripts/build-node-framework-docs.mjs` v3.2 with 5-section technical appendix (content_json schema, edge function paths, DB tables, ABBY prompt pointers, UI source files); engine map Buffer drift purged from active-services list; sprint-log duplicate row 44 deduped; ZIP archive `authors-bureau-docs.zip` + `AB_Master_Documentation.pdf` published to `/mnt/documents/` |
 
 ## Schema of this table
 
