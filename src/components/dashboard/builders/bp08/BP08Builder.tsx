@@ -71,6 +71,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
       const inflight = getGeneration<any>(authorId, "BP-08");
       if (inflight) {
         setStep(1);
+        setDraftLoaded(true);
         attachToGeneration(inflight);
         return;
       }
@@ -84,6 +85,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         setStep(Math.min(3, Math.max(2, savedStep)));
         if (draft.isLive) setContent((p: any) => ({ ...p, activated: true }));
       }
+      setDraftLoaded(true);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorId]);
