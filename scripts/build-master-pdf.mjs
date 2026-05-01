@@ -16,7 +16,7 @@ import { spawnSync } from "node:child_process";
 import { mkdirSync, existsSync, readFileSync, writeFileSync, readdirSync, copyFileSync } from "node:fs";
 import { resolve, join } from "node:path";
 
-const VERSION = "v3.6";
+const VERSION = "v3.8";
 const DOCS = resolve(process.cwd(), "docs");
 const OUT_DIR = "/mnt/documents";
 const TMP_DIR = "/tmp/ab-master-pdf";
@@ -97,7 +97,7 @@ if (missingFromOrder.length) {
 // header font lacks an em-dash glyph and renders it as ��� in chromium.
 // Body text continues to use em-dashes (rendered fine via our CSS font stack).
 const banner = `% Authors Bureau - Master Documentation
-% Sprint 53.1 · ${VERSION}
+% Sprint 54 · ${VERSION}
 % Generated ${new Date().toISOString().slice(0, 10)}
 
 `;
