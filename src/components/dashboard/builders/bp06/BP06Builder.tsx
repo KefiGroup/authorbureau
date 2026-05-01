@@ -113,7 +113,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       }
       if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
       const res = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp06-online-course`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp06-workbook`,
         {
           method: "POST",
           headers: {

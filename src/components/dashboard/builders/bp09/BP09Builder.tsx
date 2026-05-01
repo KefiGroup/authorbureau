@@ -97,7 +97,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
     if (!token) { await supabase.auth.refreshSession().catch(() => null); token = await getActiveToken(); }
     if (!token) throw new Error("We couldn't verify your sign-in. Please refresh and try again.");
     const res = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp09-speaking`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp09-book-sales`,
       { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId }) },
       180_000,
     );
