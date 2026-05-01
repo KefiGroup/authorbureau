@@ -97,6 +97,19 @@ export const CALENDAR_OCCASIONS: CalendarOccasion[] = [
       "Signed copy + Workbook bundle, themed Back-to-School foreword, study planner insert, companion 'Growth Mindset' reflection PDF.",
   },
   {
+    id: "thanksgiving",
+    label: "Thanksgiving",
+    emoji: "🦃",
+    peakWindow: "Oct 15 - Nov 27",
+    peakMonth: 11,
+    peakDay: 27,
+    launchWindowWeeks: 8,
+    defaultEditionType: "collectors",
+    defaultPriceUsd: 69,
+    defaultIncludes:
+      "Hardcover gratitude edition, themed Thanksgiving foreword, 'Season of Gratitude' reflection journal (PDF), signed bookplate, family-discussion guide, author audio gratitude note.",
+  },
+  {
     id: "christmas",
     label: "Christmas / Holiday",
     emoji: "🎁",
