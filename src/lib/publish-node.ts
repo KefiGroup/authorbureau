@@ -17,7 +17,7 @@ export async function publishNodeToSite(
   penNameSlug: string,
   bookId?: string | null,
   /** Sprint 55: optional pre-built library_asset to stamp on publish. */
-  libraryAsset?: Record<string, unknown> | null,
+  libraryAsset?: Record<string, unknown> | unknown | null,
 ): Promise<{ micrositeUrl: string | null }> {
   const hasPublicPage = !NO_MICROSITE_NODES.has(nodeId);
   const micrositeUrl = hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId) : null;
