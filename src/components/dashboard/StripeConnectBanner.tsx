@@ -71,7 +71,7 @@ interface BannerProps {
 
 export default function StripeConnectBanner(_props: BannerProps = {}) {
   // Sprint 41: deprecated — payments are platform-collected via Authors Bureau Stripe.
-  // Authors set up Wise/PayPal payouts in Account Settings → Payouts instead.
+  // Authors connect Stripe Express in Account Settings → Payouts instead (Sprint 44 made Stripe Express the only payout rail).
   return null;
 }
 

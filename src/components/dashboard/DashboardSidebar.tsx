@@ -170,7 +170,7 @@ export default function DashboardSidebar({
       id: "payout-settings" as DashboardSection, label: "Payout Settings",
       icon: Wallet,
       subtitle: "How you get paid",
-      tooltip: "Choose how to receive your monthly 92% payout — Stripe, PayPal, or Wise.",
+      tooltip: "Connect Stripe Express to receive your monthly 92% payout.",
     },
     {
       id: "connect-settings" as DashboardSection, label: "Connect Settings",
