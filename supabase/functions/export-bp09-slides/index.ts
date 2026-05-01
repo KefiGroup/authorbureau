@@ -26,7 +26,7 @@ serve(async (req) => {
     if (!slides.length) throw new Error(`No ${deck} slides found. Generate the toolkit first.`);
 
     const penName = author?.pen_name || "Author";
-    const kitTitle = content?.kit_title || "Live Audience Conversion Toolkit";
+    const kitTitle = content?.kit_title || "Book Sales kit";
 
     const pptx = new PptxGenJS();
     pptx.author = penName;
