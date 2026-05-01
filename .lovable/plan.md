@@ -1,57 +1,81 @@
-# What happened
+## What you actually have today (good news)
 
-Two different things are mixed up in this report. Splitting them out:
+The BP-06 builder already produces a **fully branded workbook** — not a plain PDF. The PDF renderer (`src/lib/workbook-pdf.ts`) builds:
 
-## 1. The screenshot (authorsbureau.com → "Something went wrong")
+- Navy branded **cover page** with book title + author name
+- Welcome page
+- Table of contents
+- 2 pages per section (prompt page + ruled response lines)
+- Toolkit pages (Canvas grid, 90-day planner, weekly tracker, playbook table, story template, vision page)
+- Action plan page
+- Back cover
 
-The screenshot is **not** the in-app preview. It's Safari, on the **published** custom domain `authorsbureau.com`. The page being shown is `GlobalErrorBoundary`'s fallback ("ABBY hit a snag — Try again / Go home"), which only renders when a React component throws **during render** somewhere inside `<AppRoutes />`.
+All print-ready US Letter (8.5 × 11", KDP-compatible).
 
-Evidence we have right now:
+## How the three things you asked about work
 
-- The in-app preview is healthy. The session replay we captured shows the homepage hero animating (motion transitions on Y-translate/opacity firing) and the directory data loaded successfully (200 on `author_profiles_public` + `books`).
-- Console only shows `Lock "lock:authorsbureau-shared-auth" acquisition timed out after 2000ms` from gotrue. That is **expected** — `src/lib/shared-backend.ts` deliberately wraps `processLock` with a 2-second fast-fail timeout and even patches `console.warn` to silence exactly this message. It does not crash anything; the cached-token fallback handles it.
-- No runtime errors are reported by the preview, no failing network calls, edge-function logs only show one unrelated `abby-execute` 500.
+```text
+┌──────────────────────────────────────────────────────────────────────┐
+│  Review screen (where you are now)                                   │
+│                                                                      │
+│  [Download PDF]  ──►  saves the branded PDF to your computer         │
+│  [Download Word] ──►  editable .docx (re-import after edits)         │
+│                                                                      │
+│  [Publish to My Site] ──► does ALL of the following in one click:    │
+│        1. Builds the branded PDF (same one as Download PDF)          │
+│        2. Builds the .docx                                           │
+│        3. Uploads both to library-assets storage bucket              │
+│        4. Registers a library_asset record (title, pdf_url, docx)    │
+│        5. Sets BP-06 status = live on your microsite                 │
+│        6. Workbook now appears in My Library AND on your site        │
+└──────────────────────────────────────────────────────────────────────┘
+```
 
-So the failure is isolated to the **published bundle** at `authorsbureau.com`. Most likely cause: the published deploy is on an older or partially-deployed build that doesn't match the current source (so a chunk import throws on hydration), or one of the homepage's lazy chunks failed to load on the user's Safari session.
+So the answer to "how do I save to library + publish to site": **clicking Publish to My Site does both.** The Library entry only appears *after* a successful Publish — Download PDF alone does not populate the Library.
 
-This is **not** caused by yesterday's BP-06 multi-book edit:
-- BP-06 is only loaded inside `BookBuilderRoute`, never on `/`.
-- The BP-06 file imports cleanly (verified — same imports it had before, just with `activeBookId` derived from URL params).
-- Audit confirmed no hard-coded UUIDs / emails were introduced.
+## The actual problem from the previous session
 
-## 2. The "data wipe" / "books cannot be read" complaint
+The earlier session found that for "Be SUCKcessful" the BP-06 record is stuck at `status: 'content_ready'` with `library_asset: null` and zero server logs — meaning Publish to My Site was never successfully fired. Two likely reasons:
 
-That part is a separate, real architectural problem and is what the previous Sprint 55c BP-06 patch addressed: the BP-06 builder was using a generic `useAuthorBook()` and not pinning to the `bookId` from the route, so for an author with multiple books (Pauline Teo: *Be SUCKcessful* + *Invest Like Buffett*) the gate could mis-resolve the book. That fix is in and is unaffected by what's on screen now.
+1. **Silent failure**: `BP06Builder.tsx:217` catches upload errors with `console.warn` and proceeds — so if upload fails you see nothing in the UI and nothing reaches the Library.
+2. **Click never reached publish**: an earlier render crash or a disabled button state may have blocked it.
 
-# Plan to fix the published site
+## What I'll do (one focused pass)
 
-### Step 1 — Confirm the published bundle is the failure point
-- Use `browser--navigate_to_url` to load `https://authorsbureau.com/` headless and capture: console errors, failed network requests, and the actual stack trace caught by `GlobalErrorBoundary`.
-- Compare the build hash against the preview's `BUILD_TIMESTAMP` log to tell whether published is on an older / stale deploy or a brand-new broken one.
+1. **Make the publish flow loud, not silent**
+   - In `BP06Builder.tsx` `buildAndUploadDeliverable`, replace the swallowed `console.warn` with a toast error and abort publish if upload fails — so if storage rejects the PDF you'll see exactly why instead of a quiet no-op.
+   - Add a `toast.success("Workbook saved to your Library")` when upload succeeds.
 
-### Step 2 — Look at what `GlobalErrorBoundary` is actually catching
-- `GlobalErrorBoundary` already stores the thrown `Error` in state, but in production builds it only shows the dev `<details>` block in `import.meta.env.DEV`. Add a one-line, prod-safe `console.error("[GlobalErrorBoundary]", error)` so the next reproduction surfaces the real message in browser console (it is currently swallowed in prod).
+2. **Add a "Save to Library" affordance on the Review screen**
+   - Right now Review only shows Download PDF / Download Word / Publish to My Site. Add a third button: **"Save to Library"** that runs `buildAndUploadDeliverable` only (uploads PDF + DOCX, registers the asset) without flipping the node to `live`. This lets you stash the file in your Library before deciding to publish to the site.
+   - Publish to My Site keeps doing both (save + go live).
 
-### Step 3 — Harden the home route against single-component failures
-The homepage mounts these top-level components: `Navbar`, hero section, `DynamicMeetOurAuthors`, `MethodologyTrustBadge`, `Footer`, plus the always-mounted `AbbyHelpChatbot`. Today a throw in any one of them takes down the entire site.
-- Wrap `AbbyHelpChatbot` and `DynamicMeetOurAuthors` (the two data-fetching components on `/`) in small local error boundaries so a failure inside them degrades to a placeholder instead of replacing the whole page with the global fallback.
+3. **Surface the existing Library link from Review**
+   - Add a small "View in My Library →" link that appears after a successful save, deep-linking to `/dashboard?section=my-library`.
 
-### Step 4 — Re-publish
-- Once Steps 1–3 land, trigger a fresh publish so `authorsbureau.com` is rebuilt from the current source. If Step 1 confirms the issue was simply a stale/broken cached deploy, this alone will resolve the user-visible symptom; Steps 2–3 keep it from happening silently again.
+4. **Diagnose your specific book**
+   - Open `Be SUCKcessful` BP-06 → click the new **Save to Library** button → watch `render-library-asset` and `save-author-node` logs in real time. If storage upload fails, the new toast will tell us the exact bucket / path / RLS error.
 
-### Step 5 — Verify
-- Reload `authorsbureau.com` in a clean session (Safari hard reload) and confirm the homepage renders.
-- Then have the user reload the BP-06 builder for *Be SUCKcessful* (the previous concern) and confirm the "Build My Workbook" button is enabled.
+## Files I'll touch
 
-# Technical notes
+- `src/components/dashboard/builders/bp06/BP06Builder.tsx` — fail-loud, new Save-to-Library button, post-save link
+- (no schema or edge-function changes — the storage bucket, `render-library-asset`, and `save-author-node` already do the right thing)
 
-- `src/components/GlobalErrorBoundary.tsx`: add a non-DEV `console.error` of `error.message` so prod stacks aren't lost.
-- `src/pages/Index.tsx`: introduce a tiny `<SectionBoundary>` wrapper (renders `null` on error + logs) around `<DynamicMeetOurAuthors />`.
-- `src/App.tsx`: wrap `<AbbyHelpChatbot />` in the same `SectionBoundary` since it sits **outside** `<AppRoutes />` but **inside** `<GlobalErrorBoundary>` — a throw there currently nukes the whole tree.
-- No DB migrations, no edge-function changes, no changes to the BP-06 fix from Sprint 55c.
+## What you'll see after this lands
 
-# What I will NOT do
+On the Review step:
 
-- Not touch BP-06 / `useAuthorBook` again. The Sprint 55c fix is correct.
-- Not change auth, storage keys, or the shared lock — the lock-timeout warnings are intentional and already silenced in prod.
-- Not introduce any account-specific or book-specific hardcoding.
+```text
+[Download PDF]    [Download Word (.docx)]
+[Save to Library]                              ← new
+─────────────────────────────────────────────
+[ Publish to My Site → ]                       ← still does save + go-live
+```
+
+After Publish succeeds, the workbook shows up in **Dashboard → My Library** (PDF + DOCX download links) AND on your public author site as a free/paid lead magnet — using the same branded PDF the Download button gives you.
+
+## Out of scope (ask separately if you want them)
+
+- Custom cover artwork upload (today the cover is the auto-generated navy branded cover)
+- Inline PDF preview inside the builder
+- Re-styling the PDF interior (current layout is the Sprint 55 print-ready spec)

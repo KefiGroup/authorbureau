@@ -191,31 +191,62 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   /**
    * Sprint 55 — Build the workbook DOCX + PDF, upload them to library-assets
    * storage, and stamp the canonical library_asset record on publish.
-   * Falls back to publish-without-asset if upload fails so the author isn't
-   * blocked from going live.
+   *
+   * Sprint 55c — Fail loudly. Previously this swallowed upload errors with a
+   * console.warn, which silently dropped the workbook from the Library and
+   * left authors confused. We now surface the real error so the user (and
+   * support) can see why a Library save failed.
    */
-  const buildAndUploadDeliverable = async () => {
+  const buildAndUploadDeliverable = async (opts?: { silent?: boolean }) => {
     if (!authorId || !content) return null;
-    try {
-      const [docxBlob, pdfBuilt] = await Promise.all([
-        buildWorkbookDocxBlob({ content, bookTitle: effectiveBookTitle, authorName }),
-        Promise.resolve(buildWorkbookPdfBlob({ content, bookTitle: effectiveBookTitle, authorName })),
-      ]);
-      const safeBook = effectiveBookTitle.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
-      const docxName = `${safeBook}-workbook.docx`;
-      const pdfName = pdfBuilt.filename;
-      const asset = await uploadAndRegisterLibraryAsset({
-        authorId,
-        nodeId: "BP-06",
-        title: content.workbook_title || "Workbook",
-        primary: { blob: docxBlob, filename: docxName, kind: "docx" },
-        pdf: { blob: pdfBuilt.blob, filename: pdfName },
-        isPaid: isPaidNode(content),
+    const [docxBlob, pdfBuilt] = await Promise.all([
+      buildWorkbookDocxBlob({ content, bookTitle: effectiveBookTitle, authorName }),
+      Promise.resolve(buildWorkbookPdfBlob({ content, bookTitle: effectiveBookTitle, authorName })),
+    ]);
+    const safeBook = effectiveBookTitle.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+    const docxName = `${safeBook}-workbook.docx`;
+    const pdfName = pdfBuilt.filename;
+    const asset = await uploadAndRegisterLibraryAsset({
+      authorId,
+      nodeId: "BP-06",
+      title: content.workbook_title || "Workbook",
+      primary: { blob: docxBlob, filename: docxName, kind: "docx" },
+      pdf: { blob: pdfBuilt.blob, filename: pdfName },
+      isPaid: isPaidNode(content),
+    });
+    if (!opts?.silent) {
+      toast.success("Workbook saved to your Library", {
+        description: "PDF and Word version are now available in My Library.",
       });
-      return asset;
-    } catch (err) {
-      console.warn("[BP-06] library_asset upload failed, publishing without it", err);
-      return null;
+    }
+    return asset;
+  };
+
+  /**
+   * Save-only: uploads the deliverable to the Library without flipping the
+   * node to live. Lets authors stash a copy before deciding to publish.
+   */
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
+  const [savedToLibrary, setSavedToLibrary] = useState<boolean>(Boolean(content?.library_asset));
+  const handleSaveToLibrary = async () => {
+    if (!authorId || !content) return;
+    setSavingToLibrary(true);
+    try {
+      const asset = await buildAndUploadDeliverable();
+      if (asset) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setContent((prev: any) => ({ ...prev, library_asset: asset }));
+        setSavedToLibrary(true);
+      }
+    } catch (e: unknown) {
+      const msg = (e as Error)?.message || "Save failed";
+      console.error("[BP-06] save-to-library failed", e);
+      toast.error("Couldn't save to your Library", {
+        description: msg,
+        duration: 12000,
+      });
+    } finally {
+      setSavingToLibrary(false);
     }
   };
 
@@ -228,10 +259,28 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      const libraryAsset = await buildAndUploadDeliverable();
+      // Sprint 55c — surface upload failures instead of silently publishing
+      // without a library_asset (which leaves the workbook missing from the Library).
+      let libraryAsset: Awaited<ReturnType<typeof buildAndUploadDeliverable>> = null;
+      try {
+        libraryAsset = await buildAndUploadDeliverable({ silent: true });
+      } catch (uploadErr) {
+        const msg = (uploadErr as Error)?.message || "Upload failed";
+        console.error("[BP-06] publish: library upload failed", uploadErr);
+        toast.error("Couldn't save workbook to your Library", {
+          description: `${msg}. Publish was cancelled — try again or contact support.`,
+          duration: 14000,
+        });
+        setError(msg);
+        setStep(2);
+        return;
+      }
       await publishNodeToSite(authorId!, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      toast.success("Workbook published to your site", {
+        description: "Saved to My Library and live on your author page.",
+      });
     } catch (e: unknown) {
       if (e instanceof StripeRequiredError) {
         setStripeModalOpen(true);
@@ -252,10 +301,26 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      const libraryAsset = await buildAndUploadDeliverable();
+      let libraryAsset: Awaited<ReturnType<typeof buildAndUploadDeliverable>> = null;
+      try {
+        libraryAsset = await buildAndUploadDeliverable({ silent: true });
+      } catch (uploadErr) {
+        const msg = (uploadErr as Error)?.message || "Upload failed";
+        console.error("[BP-06] publish (free): library upload failed", uploadErr);
+        toast.error("Couldn't save workbook to your Library", {
+          description: `${msg}. Publish was cancelled — try again or contact support.`,
+          duration: 14000,
+        });
+        setError(msg);
+        setStep(2);
+        return;
+      }
       await publishNodeToSite(authorId, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      toast.success("Workbook published to your site", {
+        description: "Saved to My Library and live on your author page.",
+      });
     } catch (e: unknown) {
       setError((e as Error).message);
       setStep(2);
@@ -304,6 +369,9 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             stripeReady={stripeReady}
             stripeLoading={stripeLoading}
             onConnectStripe={() => setStripeModalOpen(true)}
+            onSaveToLibrary={handleSaveToLibrary}
+            savingToLibrary={savingToLibrary}
+            savedToLibrary={savedToLibrary || Boolean(content?.library_asset)}
           />
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
@@ -372,9 +440,12 @@ interface ReviewStepProps {
   stripeReady: boolean;
   stripeLoading: boolean;
   onConnectStripe: () => void;
+  onSaveToLibrary: () => void;
+  savingToLibrary: boolean;
+  savedToLibrary: boolean;
 }
 
-function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe }: ReviewStepProps) {
+function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTitle, onActivate, onPrevious, stripeReady, stripeLoading, onConnectStripe, onSaveToLibrary, savingToLibrary, savedToLibrary }: ReviewStepProps) {
   // Locked snapshot of Abby's original recommendation — never mutated by user edits.
   // Falls back to legacy fields for drafts created before the snapshot was added.
   const abbyRec: "free" | "paid" =
@@ -627,6 +698,38 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
             </Button>
             <Button size="lg" variant="secondary" onClick={() => downloadWorkbookDocx({ content, bookTitle, authorName })}>
               <FileDown className="h-4 w-4 mr-2" /> Download Word (.docx)
+            </Button>
+          </div>
+          {/* Sprint 55c — Save to Library without going live. Lets authors stash
+              the same branded PDF + DOCX in My Library before deciding to publish. */}
+          <div className="rounded-md border border-border bg-background/60 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                {savedToLibrary ? <Check className="h-4 w-4 text-emerald-600" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
+                {savedToLibrary ? "Saved to your Library" : "Save a copy to your Library"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {savedToLibrary
+                  ? "Your branded PDF + Word version are in My Library. Re-save anytime after edits."
+                  : "Stash the branded PDF and Word version in My Library without publishing yet."}
+              </p>
+              {savedToLibrary && (
+                <a
+                  href="/dashboard?section=my-library"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                >
+                  View in My Library →
+                </a>
+              )}
+            </div>
+            <Button
+              variant={savedToLibrary ? "outline" : "secondary"}
+              size="sm"
+              onClick={onSaveToLibrary}
+              disabled={savingToLibrary}
+              className="shrink-0"
+            >
+              {savingToLibrary ? "Saving…" : savedToLibrary ? "Re-save to Library" : "Save to Library"}
             </Button>
           </div>
           <WorkbookDocxImporter
