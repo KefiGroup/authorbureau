@@ -397,24 +397,6 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         onAction={handleJourneyAction}
       />
 
-      {/* Section 2: Collapsible 28-streams flow diagram (Monetization Universe removed — redundant with per-book counts) */}
-      <section className="space-y-4">
-        <Collapsible defaultOpen={isFirstPostAnalysis}>
-          <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors group">
-            <ChevronDown className="h-4 w-4 transition-transform group-data-[state=open]:rotate-180" />
-            Understanding Your 28 Revenue Streams
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3">
-            <img
-              src="/images/journey-flow-diagram.webp"
-              alt="How Your 28 Revenue Streams Connect"
-              className="w-full rounded-2xl shadow-lg"
-              loading="lazy"
-            />
-          </CollapsibleContent>
-        </Collapsible>
-      </section>
-
       {/* Special Edition Calendar — proactive seasonal prompts (BP-08) */}
       <SpecialEditionCalendarCard />
 
