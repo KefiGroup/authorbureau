@@ -47,17 +47,17 @@ export function usePayoutReadiness() {
       }
       const { data: settings } = await supabase
         .from("author_payout_settings")
-        .select("payout_method, tax_self_declared_at")
+        .select("tax_self_declared_at")
         .eq("author_id", profile.id)
         .maybeSingle();
 
-      const method = (settings?.payout_method as PayoutMethod | null) || null;
+      // Sprint 54 — payout_method column dropped; Stripe Express is the only rail.
       const stripeReady = !!profile.stripe_onboarding_complete;
-      const methodComplete = method === "stripe" && stripeReady;
+      const method: PayoutMethod | null = stripeReady ? "stripe" : null;
       const taxAck = !!settings?.tax_self_declared_at;
 
       setState({
-        ready: methodComplete && taxAck,
+        ready: stripeReady && taxAck,
         payout_method: method,
         tax_acknowledged: taxAck,
         stripe_onboarding_complete: stripeReady,
