@@ -1241,3 +1241,467 @@ for (const [id, label, cat, scope, fn, content] of NODES) {
 }
 
 console.log(`04 node frameworks: ${NODES.length} files written`);
+
+// ───────────────────────────────────────────────────────────────────────────
+// 05 — SPRINT RECORDS
+// ───────────────────────────────────────────────────────────────────────────
+
+w(
+  "05-sprint-records/01-sprint-log-master.md",
+  header("01 · AB Sprint Log — Master", [
+    "Project memory (`mem://sprints/*`, `mem://audits/*`)",
+  ]) +
+    `Running log of every sprint. Pauline maintains; Lovable provides per-sprint summaries when this doc is updated.
+
+| # | Sprint | Date | Focus | Key deliverables |
+|---|---|---|---|---|
+| 28 | ABBY Nurture Engine | 2025-Q4 | GHL replaced by native ABBY flow | Marketing Hub generate→review→go-live→nurture; \`status='live'\` direct to author_nodes |
+| 30 | Daily.co removal | early 2026 | Drop video infra | Zoom links manual paste only |
+| 33 | Counter consistency | early 2026 | Fix 22→26→24 drift | Single \`node-readiness.ts\` shared by 3 consumers |
+| 34 | ABBY Email Engine | 2026-Q1 | Native email | 4-tab Marketing Hub; BP-01/02/05 hooks; \`email_flows\` schema |
+| 36b | Buffer integration | 2026-Q1 | Social scheduling experiment | (rolled back in 37) |
+| 37 | ABBY Social Designer | 2026-Q1 | Buffer removed; native composer | \`compose-social-post\` 2-step renderer; 6 templates × 5 platforms |
+| 39 | Commerce Engine v1 | 2026-Q1 | MoR commerce shipped | \`author_nodes\` registry; 8% fee; dual webhook; \`<BuyNowButton>\` |
+| 44 | Stripe-only payouts | 2026-04 | PayPal + Wise removed | Stripe Express only; admin manual fallback |
+| 45 | GHL fully removed | 2026-04 | Cleanup | All GHL refs deleted from code, DB, copy |
+| 46 | Documentation Sprint v3 | 2026-05-01 | This sprint | 6-category /docs structure; Manus framework alignment |
+
+## Schema of this table
+
+- **#** — sprint number
+- **Sprint** — short name
+- **Date** — completion date
+- **Focus** — 1-line goal
+- **Key deliverables** — what shipped (link to PRs / decisions if available)
+
+When a sprint completes, add a new row here AND ensure the relevant docs in 01–06 are updated per the maintenance rule in \`/docs/README.md\`.
+`,
+);
+
+w(
+  "05-sprint-records/02-sprint-prompt-archive.md",
+  header("02 · AB Sprint Prompt Archive", [
+    "Pauline's saved prompt log (external — not committed to repo)",
+  ]) +
+    `> **Owner:** Pauline. **Critical:** save every sprint prompt sent to Lovable here, in order, BEFORE sending. This is the recovery document — if Lovable ever loses context, replaying these prompts in order rebuilds the platform.
+
+## Format
+
+\`\`\`markdown
+## Sprint <N> — <short title> — <YYYY-MM-DD>
+
+<verbatim prompt sent to Lovable>
+
+---
+\`\`\`
+
+## Entries
+
+> _The full prompt history pre-dating Sprint 46 lives in Pauline's external archive. From Sprint 46 onward, every prompt is to be pasted into this file before send._
+
+### Sprint 46 — Documentation Sprint v3 — ${DATE}
+
+(Verbatim prompt that initiated this sprint:)
+
+> Documentation Sprint Prompt for Lovable: Before we begin the next feature sprint, I need you to produce the following documentation for everything built so far. These documents must be committed to the GitHub repository in a /docs folder so they are version-controlled alongside the code. [...followed by the Manus 6-category framework checklist...]
+
+(Plus follow-ups: "fix doc 03", "go ahead and finish the docs sprint".)
+
+---
+`,
+);
+
+w(
+  "05-sprint-records/03-bug-registry.md",
+  header("03 · AB Bug Registry", [
+    "Project memory + sprint history",
+  ]) +
+    `Every bug ever found. Never delete entries — keep as history.
+
+| # | Date found | Severity | Description | Sprint fixed | Status |
+|---|---|---|---|---|---|
+| 1 | 2026-Q1 | High | "X / 28 Live" counter drifted between 22, 26, 24 across screens | 33 | Fixed — single \`node-readiness.ts\` source |
+| 2 | 2026-Q1 | High | Buffer API intermittently failed silently; posts not published | 37 | Fixed — Buffer removed; manual posting |
+| 3 | 2026-04 | High | \`temperature\` overrides on \`openai/gpt-5*\` returned AI gateway 400 | Manus audit 2026-04-23 | Fixed — temperature param removed from all gpt-5* calls |
+| 4 | 2026-04 | Medium | BA-14 marked Live with 0 episodes (just clicked Activate) | Manus audit 2026-04-23 | Fixed — strict isLive: RSS+1ep OR activated+2ep+title |
+| 5 | 2026-04 | Medium | YR-25/27/28 generators failed silently | Manus audit 2026-04-23 | Verified working after fixes |
+| 6 | 2026-04 | Critical | PayPal + Wise payout flows had auth edge-cases | 44 | Fixed — both rails removed; Stripe-only |
+| 7 | 2026-04 | Medium | Author Stripe disconnect blocked publishing | 44 | Fixed — Stripe is payout-only, never gates publish |
+| 8 | 2026-04 | Low | Microsite copy occasionally rendered em-dashes | ongoing | DB trigger \`scrub_microsite_jsonb\` strips on write |
+| 9 | 2026-Q1 | Medium | Lead-magnet copy contained banned phrases ("next-step", "exercise") | ongoing | Copy validator runs pre-persist |
+| 10 | 2026-04 | Low | Email change in PublishNow didn't sync to AB \`books.owner_email\` | sprint 43 | Fixed — \`sync-author-email\` edge function |
+
+## Adding new entries
+
+When fixing a bug:
+
+1. Add a row to this table.
+2. Reference the sprint number that fixed it.
+3. Update \`02-business-rules/\` or \`04-node-frameworks/\` if the fix changes a documented rule.
+4. Add a row to \`04-decision-log.md\` if the fix involved an architectural choice.
+`,
+);
+
+w(
+  "05-sprint-records/04-decision-log.md",
+  header("04 · AB Decision Log", [
+    "Project memory + sprint summaries",
+  ]) +
+    `Every architectural decision and the reason for it. Append-only.
+
+## 2026-04 — Stripe Express only for author payouts
+
+**Decision:** Permanently remove PayPal and Wise as payout rails. Stripe Express is the only supported rail.
+
+**Reason:** Stripe Express now covers all four target markets (US, SG, AU, NZ). Maintaining three rails tripled the auth-edge-case surface for a single integration. One rail = simpler ops + better author experience.
+
+**Implication:** Authors in unsupported regions must wait for Stripe Express expansion. Admin manual payout (bank transfer) handles edge cases.
+
+---
+
+## 2026-04 — GoHighLevel fully removed (Sprint 45)
+
+**Decision:** Strip all GHL OAuth, calls, references, and copy from code, DB, and UI.
+
+**Reason:** ABBY Nurture Engine (Sprint 28) replicated GHL's marketing-automation surface natively. Maintaining GHL OAuth + the manual reconnect ritual cost more than the integration delivered. Native flow is faster, cheaper, and on-brand.
+
+**Implication:** Marketing Hub is now fully native. Authors no longer connect GHL.
+
+---
+
+## 2026-04-23 — Temperature ban on \`openai/gpt-5*\`
+
+**Decision:** Never pass a \`temperature\` override on \`openai/gpt-5*\` Lovable AI Gateway calls.
+
+**Reason:** Gateway returns 400 for any value other than the default (1). Audit (\`mem://audits/manus-2026-04-23-corrections\`) found multiple generators silently failing.
+
+**Implication:** Complex-structure generators that wanted lower temperature (0.2) had to switch to non-gpt-5 models or accept default temperature.
+
+---
+
+## 2026-Q1 — Commerce Engine v1: Authors Bureau as Merchant of Record
+
+**Decision:** All reader payments flow into platform Stripe account; author Stripe Express is back-office payout only.
+
+**Reason:** (a) Authors don't need Stripe to start selling. (b) Single tax + invoice surface for buyers. (c) Eliminates the "Stripe disconnected → reader gets error" failure mode.
+
+**Implication:** Platform fee = 8 % covers all gateway processing. Author always gets 92 %. Author Stripe state must NEVER appear in \`hasRequiredAssets\`.
+
+---
+
+## 2026-Q1 — Buffer removed (Sprint 37)
+
+**Decision:** Drop Buffer integration; ABBY generates a 30-day calendar; author posts manually.
+
+**Reason:** Buffer GraphQL was unreliable; many authors preferred manual control over auto-posting.
+
+**Implication:** BP-03 is now content-only. The Social Designer (\`compose-social-post\`) renders graphics on demand.
+
+---
+
+## 2025-Q4 — ABBY Nurture Engine native (Sprint 28)
+
+**Decision:** Replace GHL-driven marketing automation with a native flow: generate → review → go live → continuous AI nurture.
+
+**Reason:** Faster, cheaper, no third-party OAuth fragility, brand-controlled UI.
+
+**Implication:** Builders write \`status='live'\` directly to \`author_nodes\`. Marketing Hub watcher picks up live nodes and starts campaigns.
+
+---
+
+## Adding new decisions
+
+When making an architectural decision:
+
+1. Append a section to this file with **Decision / Reason / Implication**.
+2. Cross-link from the relevant sprint row in \`01-sprint-log-master.md\`.
+3. Update affected docs in 01–04 same sprint.
+`,
+);
+
+console.log("05 sprint records written");
+
+// ───────────────────────────────────────────────────────────────────────────
+// 06 — USER EXPERIENCE
+// ───────────────────────────────────────────────────────────────────────────
+
+w(
+  "06-user-experience/01-design-rules.md",
+  header("01 · AB Design Rules", [
+    "`tailwind.config.ts`",
+    "`src/index.css`",
+    "`mem://style/visual-identity-and-design-freeze`",
+    "`mem://architecture/audience-split-persona-and-visual-identity`",
+  ]) +
+    `## 1. Palette
+
+Authors Bureau uses HSL semantic tokens defined in \`src/index.css\` and consumed via Tailwind classes — **never hard-coded colours in components**.
+
+| Token | Role |
+|---|---|
+| \`--background\` | Page background (dark navy) |
+| \`--foreground\` | Body text |
+| \`--primary\` / \`--primary-foreground\` | Author CTA gold |
+| \`--secondary\` | Reader CTA teal |
+| \`--accent\` | Hover / highlight |
+| \`--muted\` / \`--muted-foreground\` | Subdued surfaces / labels |
+| \`--card\` / \`--card-foreground\` | All surfaces — dark navy, never light |
+| \`--builder-brand\` | Brand-category accent (Teal) |
+| \`--builder-bridge\` | Build-category accent (Indigo) |
+| \`--builder-yield\` | Yield-category accent (Amber) |
+| \`--success\` / \`--destructive\` | Status |
+
+### Audience split
+
+- **Author dashboard** — Gold (\`primary\`).
+- **Reader / public surfaces** — Teal (\`secondary\`).
+
+Routing logic in \`mem://architecture/audience-split-persona-and-visual-identity\`.
+
+## 2. Typography
+
+| Use | Family |
+|---|---|
+| Headings | **Playfair Display** (serif) |
+| Body | **Inter** (sans-serif) |
+
+Set in \`tailwind.config.ts\` — do not change without approval.
+
+## 3. Visual freeze rules
+
+- Dark navy cards across the dashboard. **No light backgrounds.**
+- Builder category colours fixed: Brand=Teal, Build=Indigo, Yield=Amber. Do not introduce other category colours.
+- WebP images optimised to **< 150 KB**.
+- Single step-circle stepper for builders (no progress bars or breadcrumbs).
+- LIVE lead-magnet uses \`text-red-600\` for the live indicator (per \`mem://style/lead-magnet-success-theme\`).
+
+## 4. Public microsites
+
+- **No nav header.**
+- **No pricing visible** anywhere on a public microsite.
+- **No em-dashes** in any rendered copy (\`scrub_microsite_jsonb\` DB trigger enforces).
+- Empty fields **must hide cleanly** — no "TBD", "[insert]", "—" placeholders.
+- Footer must include "Powered by Authors Bureau".
+- Header / footer component requirements per \`mem://ux/public-microsite-rendering-standards\`.
+
+## 5. ABBY tone in UI
+
+- Warm, encouraging, specific.
+- Always uses author's first name.
+- 3–5 sentences default in chat.
+- Celebrates wins; never makes the author feel behind.
+
+## 6. Forbidden technical jargon (UI copy)
+
+| Internal | Author-facing |
+|---|---|
+| GHL / Stripe / Supabase / Thinkific / Transistor | (omit) |
+| CRM | "your contacts" |
+| API / webhook / endpoint | (omit) |
+| deploy | "activate" |
+| backend | "your marketing" |
+| funnel | "campaign" |
+
+## 7. Action-description vocabulary
+
+Every action label uses plain English:
+
+- "Generate" not "Run prompt"
+- "Activate" not "Deploy" or "Publish to GHL"
+- "Save" not "Persist"
+- "Connect payouts" not "Link Stripe Connect Express account"
+`,
+);
+
+w(
+  "06-user-experience/02-author-journey-map.md",
+  header("02 · AB Author Journey Map", [
+    "`mem://ux/new-user-onboarding-flow`",
+    "`mem://features/onboarding-and-manuscript-specs`",
+    "`mem://ux/book-hub-architecture`",
+  ]) +
+    `End-to-end flow from sign-up to first revenue.
+
+## Stage 1 — Sign-up
+
+1. Author lands on \`authorsbureau.com\` or is invited from PublishNow.io.
+2. Signs up with email or Google (Supabase Auth).
+3. \`auth.users\` insert trigger seeds 28 \`author_nodes\` rows (\`status='draft'\`).
+4. Author lands on dashboard with the **3-step onboarding card**: Add book → Talk to ABBY → Activate first node.
+
+## Stage 2 — Add a book
+
+1. Author uploads manuscript (PDF / DOCX) OR provides a published-book URL.
+2. Manuscript path: client-side \`pdfjs-dist\` / \`mammoth\` extracts text.
+3. Published-book path: \`parse-published-book\` edge function scrapes metadata + sample.
+4. Book row created in \`books\` (\`published_at\` initially NULL — admin gate).
+5. \`enrich-book-data\` runs to fill cover, ISBN, etc.
+
+## Stage 3 — Initial Analysis (BP-00)
+
+1. ABBY runs \`generate-bp00-analysis\` → produces a **business plan** in \`generated_assets\`.
+2. The Business Consultant chat flow walks the author through the plan (5 turns).
+3. Author sees their personalised 28-node roadmap, sequenced by audience level.
+
+## Stage 4 — Activate first Brand Product
+
+1. Author opens BP-04 (Author Website) — recommended first node.
+2. Reviews ABBY-drafted hero + about + sections.
+3. Hits Activate → microsite goes live at \`authorsbureau.com/<author>/<book>\`.
+4. Then BP-02 (Lead Magnet) → quiz live.
+5. Then BP-01 (Email Marketing) → welcome sequence enrolling new subscribers.
+
+## Stage 5 — First lead, first sale
+
+1. Author shares microsite URL.
+2. Reader takes quiz → enters CRM → enters email sequence.
+3. Email Engine drives reader back to microsite → reader buys (BP-09 / BP-06 / BA-10).
+4. Dual webhook (\`verify-purchase\` + \`process-purchase\`) confirms sale.
+5. Author dashboard shows revenue tile increment + ABBY celebration nudge.
+
+## Stage 6 — Scale via Build + Yield
+
+1. ABBY's Daily Intelligence Report flags audience growth (\`mem://ai/phased-product-sequencing-logic\` Level 1+).
+2. ABBY recommends moving to Sub-Phase B (digital products) → BP-06 / BP-07.
+3. At Level 2+ (1k+ contacts), ABBY recommends Build nodes (BA-10 / BA-14).
+4. At Level 4+ (5k+ contacts), ABBY recommends Yield nodes (YR-19 / YR-23).
+
+## Touchpoints with ABBY (always-on)
+
+- Persistent dashboard chat (\`abby-chat\`).
+- Daily Intelligence Report email (06:00 author local).
+- Real-time nudge cards (9 triggers).
+- Per-node generators on activate.
+
+## Author exports
+
+- Business plan PDF (with disclaimers per \`mem://features/author-export-packages\`).
+- Annual statements (\`generate-annual-statements\`).
+- Course / workbook / sales packs (per node).
+
+> Screenshots: Pauline can attach to a future revision. The flow above is the current source-of-truth narrative.
+`,
+);
+
+w(
+  "06-user-experience/03-reader-journey-map.md",
+  header("03 · AB Reader Journey Map", [
+    "`mem://features/readers-bureau-system-and-portal`",
+    "`mem://features/lead-magnet-microsite-conversion-specs`",
+    "`mem://architecture/commerce-engine-v1`",
+  ]) +
+    `End-to-end flow from discovering an author to becoming a customer / fan.
+
+## Stage 1 — Discovery
+
+The reader finds the author via:
+
+- **Search** → Authors Bureau microsite ranks for the book's keywords.
+- **Social** → BP-03 post links to lead magnet OR microsite.
+- **Podcast** → BA-14 episode in their feed (Spotify / Apple).
+- **Press** → BA-15 placement.
+- **Affiliate** → BA-16 referral link.
+- **JV partner** → BA-18 cross-promo email.
+
+## Stage 2 — Lead capture (Funnel Engine)
+
+1. Reader lands on lead-magnet microsite (4 stages: Gate → Quiz → Results → Next Step).
+2. Submits email → \`enroll-subscriber\` writes to \`crm_contacts\` + \`email_lists\` enrolment.
+3. CRM score +10 (quiz completed).
+4. Lead magnet result delivered immediately (HTML + email follow-up).
+
+## Stage 3 — Nurture (Email Engine)
+
+1. Reader receives BP-01 welcome sequence step 1 within minutes.
+2. Subsequent steps deliver on cadence (typically 3–10 emails over 2–4 weeks).
+3. Each open (+2) / click (+5) / sales-page visit (+5/+10) bumps the score.
+4. ABBY may insert nudged sends based on behaviour (re-engagement, hot-lead alert).
+
+## Stage 4 — First purchase
+
+1. A sequence step OR microsite CTA points to a paid offer.
+2. Reader clicks `<BuyNowButton>` → \`create-checkout-session\` → Stripe Checkout (platform Stripe account, MoR).
+3. \`verify-purchase\` confirms synchronously; \`process-purchase\` completes async.
+4. Reader receives confirmation email (author-branded From if author has set sender preferences).
+5. CRM score +30; stage advances to Customer (≥ 81).
+
+## Stage 5 — Onboarding into the product
+
+Per node:
+
+- **BP-06 / BP-07 / BA-10** → enrolled in Course Engine OR Thinkific.
+- **BA-12** → recurring subscription begins; \`membership_content\` access.
+- **YR-19 / YR-23 / YR-24** → Sessions Engine schedules calls / cohort.
+- **BP-09 (book)** → download link OR shipping detail collection.
+
+## Stage 6 — Reader Bureau (Teal experience)
+
+1. Reader signs up for Readers Bureau account → switches from "purchase one book" to "track my reading life".
+2. Joins reading clubs (\`reading_club_members\`), participates in challenges (\`reading_challenges\`), earns badges (\`reader_badges\`).
+3. Discover other authors → loops back to Stage 1 for a new author.
+
+## Stage 7 — Upsell / repeat
+
+- Bundles (BA-17) shown at checkout for related products.
+- Email sequences pitch next-tier offers based on score.
+- VIP tier (score = 100) receives premium offers (YR-19 / YR-20).
+
+## Pricing visibility rule
+
+> Public microsites **never display prices**. The price appears only at checkout, after the reader clicks Buy. This protects the author's positioning and maintains the "browse → choose to buy" flow.
+
+> Em-dashes never appear on public surfaces — DB trigger strips them.
+`,
+);
+
+w(
+  "06-user-experience/04-test-account-credentials.md",
+  header("04 · AB Test Account Credentials", [
+    "Pauline's secure note (no secrets committed to repo)",
+  ]) +
+    `> **CRITICAL:** This file contains placeholders only. Real credentials live in Pauline's password manager — never paste passwords or API keys into this repository.
+
+## Author test account
+
+- **Email:** \`support@paulineteo.com\`
+- **Password:** _(see secure note)_
+- **Pen name:** Pauline Teo
+- **Test book:** Be SUCKcessful
+
+## Reader test account
+
+- **Email:** \`paulinet77@yahoo.com.sg\`
+- **Password:** _(see secure note)_
+- **Reader profile:** active in Be SUCKcessful reading club
+
+## Admin test account
+
+- **Email:** _(see secure note)_
+- **Role:** \`admin\` in \`user_roles\` table
+
+## Test Stripe
+
+- **Mode:** Stripe Test Mode
+- **Card:** \`4242 4242 4242 4242\`, any future expiry, any CVC
+- **Test webhook:** see Stripe dashboard
+
+## Test data fixtures
+
+- Test book: **Be SUCKcessful** (the canonical test book — see \`/docs/06-be-suckcessful-test.md\`).
+- Test lead magnet: 8-question success-style quiz, 5 result tiers.
+- Test course: 4-module home-study built from BP-07 generator.
+
+## What to do if credentials need changing
+
+1. Update Pauline's secure note.
+2. Email \`support@authorsbureau.com\` to notify other operators.
+3. **Do not** commit the new credentials here.
+
+---
+
+_End of Documentation Sprint v3._
+`,
+);
+
+console.log("06 UX written");
+console.log("All v3 docs generated.");

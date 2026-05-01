@@ -1,37 +1,62 @@
 # Authors Bureau — Engineering Documentation
 
-This folder is the **source of truth** for the Authors Bureau platform's architecture, prompts, schema, and node behavior. It is committed to GitHub alongside the code so every sprint can reference and update it.
+_Version 3.0 · 2026-05-01_
 
-## Index
+This folder is the **single source of truth** for the Authors Bureau platform's architecture, business rules, AI prompts, schema, node behaviour, and process. It is committed to GitHub alongside the code so every sprint can reference and update it.
 
-| File | Description |
-|---|---|
-| [01-abby-master-prompt-architecture.md](./01-abby-master-prompt-architecture.md) | ABBY persona, philosophy, forbidden terms, model routing |
-| [02-abby-system-prompt-current.md](./02-abby-system-prompt-current.md) | The verbatim production system prompt (versioned) |
-| [03-abby-node-activation-prompts.md](./03-abby-node-activation-prompts.md) | Per-node generator prompts (BP-00..YR-28) |
-| [04-ab-engine-architecture-map.md](./04-ab-engine-architecture-map.md) | The 7 platform engines, their tables and integrations |
-| [05-ab-database-schema-current.md](./05-ab-database-schema-current.md) | Live `public` schema export |
-| [06-ab-node-framework-be-suckcessful-test.md](./06-ab-node-framework-be-suckcessful-test.md) | Author + reader journeys for the 5 most-used nodes |
+The folder structure mirrors the **Authors Bureau Master Documentation Framework** by Manus AI (May 1, 2026).
+
+## Categories
+
+| # | Category | Purpose |
+|---|----------|---------|
+| 01 | [Architecture](./01-architecture/) | What is built and why — the system at the highest level |
+| 02 | [Business Rules](./02-business-rules/) | How the system counts and decides — the rules that prevent bugs |
+| 03 | [ABBY AI](./03-abby-ai/) | What ABBY says and does — the most fragile and most valuable IP |
+| 04 | [Node Frameworks](./04-node-frameworks/) | One document per node (28 total) |
+| 05 | [Sprint Records](./05-sprint-records/) | What was built, when, and why — the audit trail |
+| 06 | [User Experience](./06-user-experience/) | What the author and reader actually see |
+
+## Quick links
+
+- [Master Architecture Reference](./01-architecture/01-master-architecture-reference.md)
+- [Database Schema (live)](./01-architecture/02-database-schema-current.md)
+- [Engine Architecture Map](./01-architecture/03-engine-architecture-map.md)
+- [Node Readiness Gates — Full Spec](./02-business-rules/02-node-readiness-gates-full-spec.md)
+- [ABBY System Prompt — Current](./03-abby-ai/02-system-prompt-current.md)
+- [ABBY Node Activation Prompts](./03-abby-ai/03-node-activation-prompts.md)
+- [28 Node Frameworks Index](./04-node-frameworks/README.md)
+- [Be SUCKcessful walkthrough](./06-be-suckcessful-test.md)
 
 ## Maintenance rule (locked)
 
-> **Every sprint must update the relevant doc(s) under `/docs/` before the sprint is marked complete.**
->
-> - New node generator → update **03** and (if among the top 5) **06**
-> - Database schema change → re-export **05**
-> - New engine, table, or external service → update **04**
-> - Any change to ABBY's system prompt → bump version in **02** and update **01** if the persona / philosophy shifts
-> - New forbidden term, model, or behavioral rule → update **01**
+> Every sprint must update the relevant doc(s) under `/docs/` **before** the sprint is marked complete.
 
-This rule is also stored in project memory at `mem://process/docs-sprint-maintenance` so future sessions enforce it automatically.
+| Change shipped | Docs that must be touched |
+|---|---|
+| Database migration | `01-architecture/02-database-schema-current.md` + relevant entries in `02-business-rules/` |
+| New node generator or builder | `04-node-frameworks/<id>.md` + `03-abby-ai/03-node-activation-prompts.md` + sprint log |
+| New engine / table / external service | `01-architecture/03-engine-architecture-map.md` + `01-architecture/04-node-connector-map.md` |
+| Tech stack swap | `01-architecture/05-technology-stack-current.md` + decision log |
+| Change to ABBY system prompt | bump version in `03-abby-ai/02-system-prompt-current.md` + add Changelog row |
+| Persona / philosophy / forbidden term | `03-abby-ai/01-master-prompt-architecture.md` |
+| Readiness gate change | `02-business-rules/02-node-readiness-gates-full-spec.md` |
+| Pricing / fee / payout / Stripe behaviour | `02-business-rules/04-stripe-connection-rules.md` + decision log |
+| New bug found / fixed | `05-sprint-records/03-bug-registry.md` |
+| Architectural decision | `05-sprint-records/04-decision-log.md` |
 
-## How to regenerate
+This rule is also stored in project memory at `mem://process/docs-sprint-maintenance` so future AI sessions enforce it automatically.
+
+## Regeneration
 
 ```bash
-node scripts/build-docs.mjs
+node scripts/build-docs.mjs        # 03-abby-ai/01–02 + database schema
+node scripts/build-doc-03.mjs      # 03-abby-ai/03 (node activation prompts)
+node scripts/build-docs-v3.mjs     # everything else (this manifest)
+node scripts/package-docs.mjs      # zips /docs to /mnt/documents/authors-bureau-docs-v3.zip
 ```
 
-The script reads directly from `supabase/functions/`, `src/components/dashboard/builders/`, and the live database schema, so the docs always reflect what is actually in production.
+The scripts read directly from `supabase/functions/`, `src/`, and the live database, so docs always reflect what is actually in production.
 
 ---
-_Generated: 2026-05-01 · Version 1.0_
+_Last regenerated: 2026-05-01_
