@@ -134,3 +134,19 @@ When making an architectural decision:
 **Deferred to follow-up sprints**: per-builder publish-step writes for the 28 nodes (BP first, then BA, then YR), full DOCX/PPTX/PDF rendering inside `render-library-asset`, Library UI consolidation, `library_asset_history[]` versioning.
 
 **Stripe**: still excluded from readiness (Merchant-of-Record principle preserved).
+
+## Sprint 55 — Reference impl: BP-06 writes real `library_asset` (2026-05-01)
+
+**Decision**: Wire BP-06 Workbook end-to-end through the Sprint-54 uniform contract as the reference implementation for the other 27 builders.
+
+**Scope landed**:
+- `buildWorkbookDocxBlob` + `buildWorkbookPdfBlob` extracted in `src/lib/workbook-docx.ts` and `src/lib/workbook-pdf.ts` (download wrappers preserved).
+- New `src/lib/publish-library-asset.ts` uploads DOCX + PDF to `library-assets` (paid) or `library-assets-public` (free) bucket and calls `render-library-asset` to register the canonical record. Long-lived signed URLs for paid deliverables.
+- BP-06 publish + make-free flows now build → upload → register → publish, passing the asset through `publishNodeToSite(..., libraryAsset)`.
+- `save-author-node:publish` honours caller-supplied `libraryAsset`, falls back to legacy synthesis only when absent.
+- `AuthorLibrary.tsx` "By node" tab adopts the one-row-per-node shape when `library_asset` exists (Download primary / PDF / TXT buttons); legacy AssetRow path retained for un-wired nodes.
+- RLS audit on `library-assets` + `library-assets-public`: confirmed correct (per-author folder prefix + admin override on read/insert/update/delete).
+
+**Pauline pre-rebuild state**: 0 author_nodes, 0 marketing_assets, 0 social_posts, 0 email_flows, 0 leads. 2 books preserved. 226-row backup at `/mnt/documents/pauline-pre-wipe-backup.jsonl`.
+
+**Deferred**: BP-01 / BP-03 / BP-04 / BP-09 + BA / YR builders to follow the same 4-step pattern (build blob → upload → register → publish). Library "By format" and "Recent" tabs still read legacy assets only; rewrite when ≥3 builders have adopted the contract.
