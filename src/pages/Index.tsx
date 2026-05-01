@@ -305,7 +305,9 @@ export default function Index() {
       </section>
 
       {/* ===== SECTION 5: FEATURED AUTHORS ===== */}
-      <DynamicMeetOurAuthors />
+      <SectionBoundary name="DynamicMeetOurAuthors">
+        <DynamicMeetOurAuthors />
+      </SectionBoundary>
 
       {/* ===== SECTION 6: FREE TIER - BOOK PAGE SHOWCASE ===== */}
       <section className="py-24">
