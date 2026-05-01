@@ -59,11 +59,16 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [stripeModalOpen, setStripeModalOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  // Prefer the explicit bookId from the route (Book Hub → BP-06), and only
+  // fall back to whatever the author hook resolved. This is the pattern used
+  // by BP-01 / BP-02 / BP-05; BP-06 was the outlier and was therefore
+  // resolving to the "latest" book for authors with multiple books.
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
   const { onboarding_complete: stripeReady, loading: stripeLoading } = useStripeConnect();
   const hasResolvedBook = hasBook || Boolean(resolvedBookTitle) || Boolean(detectedBookTitle && detectedBookTitle !== "your book");
-  const effectiveBookTitle = (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau";
+  const effectiveBookTitle = (resolvedBookTitle || (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : "")) || "Authors-Bureau";
 
   useEffect(() => {
     if (!authorId) return;
@@ -71,28 +76,70 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setResolvedBookTitle(ctx.book_title);
+
+      // Per-book resolution. If we have an explicit bookId in scope, prefer:
+      //   1. author_context for that exact book
+      //   2. that book's title from `books`
+      // Only fall back to "latest book" when no bookId is in scope at all.
+      if (activeBookId) {
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
+          .eq("book_id", activeBookId)
+          .maybeSingle();
+        if (ctx?.book_title) {
+          setResolvedBookTitle(ctx.book_title);
+        } else {
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("id", activeBookId)
+            .maybeSingle();
+          if (book?.title) setResolvedBookTitle(book.title);
+        }
       } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (book?.title) setResolvedBookTitle(book.title);
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ctx?.book_title) {
+          setResolvedBookTitle(ctx.book_title);
+        } else {
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("author_id", profile?.user_id || authorId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (book?.title) setResolvedBookTitle(book.title);
+        }
       }
       // Hydrate from author_nodes first; fall back to draft store so half-edited drafts survive a refresh.
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-06").maybeSingle();
+      let nodeQuery = supabase
+        .from("author_nodes")
+        .select("content_json, status")
+        .eq("author_id", authorId)
+        .eq("node_id", "BP-06");
+      if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
+      const { data: node } = await nodeQuery.maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         const baseContent = node.content_json as Record<string, unknown>;
         setContent(node.status === "live" ? { ...baseContent, activated: true } : baseContent);
         setStep(node.status === "live" ? 3 : 2);
         return;
       }
-      const draft = await loadBuilderDraft(authorId, "BP-06", bookId ?? null);
+      const draft = await loadBuilderDraft(authorId, "BP-06", activeBookId);
       if (draft.content) {
         setContent(draft.content);
         setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
       }
     })();
-  }, [authorId]);
+  }, [authorId, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -104,7 +151,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   }, [step, content?.activated]);
 
   const handleGenerate = async () => {
-    console.info("[BP-06] generate clicked", { authorId });
+    console.info("[BP-06] generate clicked", { authorId, activeBookId });
     setStep(1); setError(null);
     try {
       let token = await getActiveToken();
@@ -122,7 +169,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             Authorization: `Bearer ${token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ author_id: authorId }),
+          body: JSON.stringify({ author_id: authorId, book_id: activeBookId }),
         },
         180_000,
       );
@@ -131,7 +178,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       setContent(data.content);
       setStep(2);
       // Autosave so refresh restores the review step (matches BA-10 behaviour).
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: data.content, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: data.content, currentStep: 2, bookId: activeBookId });
     } catch (e: unknown) {
       const msg = toAbbyError((e as Error)?.message || "Generation failed");
       console.error("[BP-06] generate failed", e);
@@ -182,7 +229,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setError(null);
     try {
       const libraryAsset = await buildAndUploadDeliverable();
-      await publishNodeToSite(authorId!, "BP-06", authorSlug, bookId ?? null, libraryAsset);
+      await publishNodeToSite(authorId!, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
     } catch (e: unknown) {
@@ -200,13 +247,13 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     if (!authorId) return;
     const next = { ...content, suggested_price_usd: 0, pricing_recommendation: "free" };
     setContent(next);
-    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
+    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: activeBookId });
     // Continue with publish now that it's free.
     setStep(3);
     setError(null);
     try {
       const libraryAsset = await buildAndUploadDeliverable();
-      await publishNodeToSite(authorId, "BP-06", authorSlug, bookId ?? null, libraryAsset);
+      await publishNodeToSite(authorId, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
     } catch (e: unknown) {
@@ -231,7 +278,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your workbook, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-06${bookId ? `?bookId=${bookId}` : ""}`)}`)}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-06${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : (
               <>
@@ -249,7 +296,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             content={content}
             setContent={setContent}
             authorId={authorId}
-            bookId={bookId ?? null}
+            bookId={activeBookId}
             authorName={authorName}
             bookTitle={effectiveBookTitle}
             onActivate={handlePublish}
