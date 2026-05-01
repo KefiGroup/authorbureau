@@ -241,10 +241,36 @@ async function buildSection(slug, nodeId) {
   const model = extractModel(src);
   const maxTokens = extractMaxTokens(src);
 
-  // Prefer inline messages capture — that's what generators actually send.
+  // Build a name -> body map of all top-level template-literal consts.
+  const constMap = {};
+  {
+    const re = /(?:const|let|var)\s+([A-Za-z_][A-Za-z0-9_]*)\s*=\s*`([\s\S]*?)`/g;
+    let mm;
+    while ((mm = re.exec(src)) !== null) constMap[mm[1]] = mm[2];
+  }
+
   let blocks = extractInlineMessages(src);
-  // If no inline blocks (legacy generators using top-level consts), fall back.
   if (blocks.length === 0) blocks = extractTopLevelConsts(src);
+
+  // If a block body is just `${name}` and `name` is a known top-level const,
+  // substitute the resolved const value so docs show the real prompt.
+  blocks = blocks.map((b) => {
+    const trimmed = b.body.trim();
+    const onlyVar = trimmed.match(/^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/);
+    if (onlyVar && constMap[onlyVar[1]]) {
+      return { kind: b.kind, body: constMap[onlyVar[1]] };
+    }
+    return b;
+  });
+
+  // Dedupe identical blocks (retry calls reuse the same prompt).
+  const seen = new Set();
+  blocks = blocks.filter((b) => {
+    const key = `${b.kind}::${b.body}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 
   const allVars = new Set();
   blocks.forEach((b) => dynamicVars(b.body).forEach((v) => allVars.add(v)));
