@@ -443,7 +443,7 @@ Strict rules:
       }
     }
 
-    await upsertAuthorNode(supabase, author_id, {
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",
       current_step: 2,
       content_json: { ...content, course_id: courseId, _currentStep: 2 },
@@ -463,6 +463,8 @@ Strict rules:
         await upsertAuthorNode(
           createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
           authorIdForRestore,
+          NODE_ID,
+          NODE_NAME,
           priorNodeState,
           bookIdForRestore,
         );
