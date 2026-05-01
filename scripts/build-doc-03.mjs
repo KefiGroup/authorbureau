@@ -1,12 +1,9 @@
 #!/usr/bin/env node
-/**
- * Build docs/03-abby-node-activation-prompts.md from all
- * supabase/functions/generate-*/index.ts edge functions.
- *
- * Captures inline messages[{role, content: `...`}] template literals
- * (the pattern used by 25 of 29 generators), in addition to top-level
- * const/let/var template literals.
- */
+// Build docs/03-abby-node-activation-prompts.md from all
+// supabase/functions/generate-<slug>/index.ts edge functions.
+// Captures inline messages[{role, content: `...`}] template literals
+// (the pattern used by 25 of 29 generators), in addition to top-level
+// const/let/var template literals.
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
