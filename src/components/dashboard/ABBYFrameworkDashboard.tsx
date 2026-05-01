@@ -5,7 +5,7 @@ import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
 import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
-import MonetizationUniverse from "./framework-dashboard/MonetizationUniverse";
+
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
 import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
