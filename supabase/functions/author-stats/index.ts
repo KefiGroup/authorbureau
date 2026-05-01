@@ -315,6 +315,20 @@ Deno.serve(async (req) => {
     // or the entire query silently returns null and that table's rows are lost.
     const AUTHOR_SCOPED_TABLES = new Set<string>(["coaching_packages"]);
 
+    // Author-level nodes count toward EVERY book in the author's library
+    // (one email list, one podcast, one set of social channels, all YR services).
+    // MUST mirror src/lib/node-readiness.ts AUTHOR_LEVEL_NODES exactly so the
+    // dashboard book card matches the in-book Brand/Build/Yield tab counters.
+    const AUTHOR_LEVEL_NODES = new Set<string>([
+      "BP-01", "BP-03", "BA-14", "BA-15", "BA-16", "BA-18",
+      "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
+      "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
+    ]);
+    const allBookIds = allBooks.map((b: any) => b.id);
+    const fanOutToAllBooks = (nodeId: string) => {
+      for (const bid of allBookIds) ensureBookSet(bid).add(nodeId);
+    };
+
     for (const table of PRODUCT_TABLES) {
       const isAuthorScoped = AUTHOR_SCOPED_TABLES.has(table);
       const selectCols = isAuthorScoped ? "id, status" : "id, status, book_id";
@@ -333,11 +347,15 @@ Deno.serve(async (req) => {
         else if (row.status === "published" || row.status === "active") counts.published++;
 
         // Per-book counting — attach this row's node to its specific book.
-        // Author-scoped tables (no book_id) attribute to the primary book so they
-        // still surface somewhere in the per-book breakdown.
-        const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
-        if (bookId && nodeIdForTable) {
-          ensureBookSet(bookId).add(nodeIdForTable);
+        // Author-level nodes (e.g. BP-01 email, BP-03 social, YR-* services)
+        // fan out to every book; book-specific products scope to their own book.
+        if (nodeIdForTable) {
+          if (AUTHOR_LEVEL_NODES.has(nodeIdForTable)) {
+            fanOutToAllBooks(nodeIdForTable);
+          } else {
+            const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
+            if (bookId) ensureBookSet(bookId).add(nodeIdForTable);
+          }
         }
       }
 
@@ -347,11 +365,16 @@ Deno.serve(async (req) => {
       totalPublished += counts.published;
     }
 
-    // Attribute each *gated-built* author_node to its specific book when book_id is set;
-    // fall back to the primary (oldest) book for legacy author-level rows.
+    // Attribute each *gated-built* author_node row. Author-level nodes count
+    // toward every book; book-specific rows scope to their own book_id with a
+    // fallback to the primary (oldest) book for legacy un-stamped rows.
     for (const n of builtRows) {
-      const bid = n.book_id || primaryBookId;
-      if (bid) ensureBookSet(bid).add(n.node_id);
+      if (AUTHOR_LEVEL_NODES.has(n.node_id)) {
+        fanOutToAllBooks(n.node_id);
+      } else {
+        const bid = n.book_id || primaryBookId;
+        if (bid) ensureBookSet(bid).add(n.node_id);
+      }
     }
     if (profile?.author_slug && primaryBookId) {
       ensureBookSet(primaryBookId).add("BP-04");
@@ -375,13 +398,16 @@ Deno.serve(async (req) => {
       };
     }
 
-    // Bug 3 fix: aggregate totalBuilt from per-book distinct node sets so it
-    // includes author_nodes rows (BP/BA/YR), matching the per-book chip totals.
-    // Falls back to product-table sum for safety if perBookNodeSets is empty.
-    const aggregatedFromNodeSets = Object.values(perBookNodeSets)
-      .reduce((sum, set) => sum + set.size, 0);
-    if (aggregatedFromNodeSets > 0) {
-      totalBuilt = aggregatedFromNodeSets;
+    // Aggregate totalBuilt from the union of all per-book node sets so it
+    // reflects distinct author-wide built nodes (author-level nodes appear in
+    // every book's set, so summing would double-count). Falls back to the
+    // product-table sum for safety if perBookNodeSets is empty.
+    const distinctBuiltNodes = new Set<string>();
+    for (const set of Object.values(perBookNodeSets)) {
+      for (const nid of set) distinctBuiltNodes.add(nid);
+    }
+    if (distinctBuiltNodes.size > 0) {
+      totalBuilt = distinctBuiltNodes.size;
     }
 
     const result = {

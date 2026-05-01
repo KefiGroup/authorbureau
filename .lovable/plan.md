@@ -1,87 +1,60 @@
-## Admin Portal Audit Results
+## Bug — Dashboard book card undercounts when nodes are author-level
 
-I audited every page, tab, link, and button under `/admin*` against the route table, ran static handler checks, and queried the error log (clean — 0 errors in 48h). Found **5 real bugs**, ordered by severity.
+### Root cause (verified)
+Two different counters use two different scoping rules for the same `author_nodes` table:
 
----
+| Source | Scoping |
+|---|---|
+| **Book Hub tabs** (`useNodeLiveStats` + `useBookNodeProgress`) | Author-level nodes (BP-01, BP-03, BA-14, BA-15, BA-16, BA-18, YR-19…YR-28) count toward **every** book in the library. Book-specific nodes use `book_id`. Source of truth: `AUTHOR_LEVEL_NODES` in `src/lib/node-readiness.ts`. |
+| **Dashboard book card** (`useAuthorStats` → `author-stats` edge function `perBook`) | Strict `book_id` match, with fallback only to the **primary (oldest) book** when `book_id` is null (`supabase/functions/author-stats/index.ts:352-355`). |
 
-### Bug 1 — High · Broken redirect to non-existent route
-**File:** `src/pages/AdminDashboard.tsx:271`
+So for the non-primary book "Be SUCKcessful":
+- All YR-* nodes (10) are author-level → Book Hub counts them; dashboard card attributes them only to "Invest Like Buffett for Parents" (the primary/oldest book) → undercount of ~2 in Brand and ~2 in Build is consistent with author-level BP-01/BP-03 + BA-14/BA-15 being attributed to the primary book.
+- The Yield 10/10 happens to match in your screenshot because Pauline's primary book has all 10 YR's attributed to it; the secondary book is missing them in the dashboard breakdown but happens to coincidentally match because... wait, screenshot actually shows Yield 10/10 on both books, meaning the edge function may already be partially fanning yield out. Actual Brand 6/9 vs 8/9 and Build 6/9 vs 8/9 deltas point exactly at author-level Brand+Build nodes (BP-01, BP-03, BA-14, BA-15, BA-16, BA-18) being missed for the secondary book.
 
-```tsx
-if (!user) return <Navigate to="/admin-login" replace />;
+### Fix
+Update `supabase/functions/author-stats/index.ts` to mirror `AUTHOR_LEVEL_NODES` semantics: when a built `author_nodes` row's `node_id` is in the author-level set, attribute it to **every book** in the author's library, not just to its `book_id` / `primaryBookId`.
+
+Concretely, rewrite the attribution block (around lines 350-358):
+
+```typescript
+// Author-level node ids that count toward every book — must mirror
+// src/lib/node-readiness.ts AUTHOR_LEVEL_NODES exactly.
+const AUTHOR_LEVEL_NODES = new Set<string>([
+  "BP-01", "BP-03", "BA-14", "BA-15", "BA-16", "BA-18",
+  "YR-19","YR-20","YR-21","YR-22","YR-23","YR-24","YR-25","YR-26","YR-27","YR-28",
+]);
+
+for (const n of builtRows) {
+  if (AUTHOR_LEVEL_NODES.has(n.node_id)) {
+    // Author-level: applies to every book in the author's library.
+    for (const b of allBooks) ensureBookSet(b.id).add(n.node_id);
+  } else {
+    // Book-specific: scope strictly to its own book, fallback to primary
+    // for legacy rows that pre-date book_id stamping.
+    const bid = n.book_id || primaryBookId;
+    if (bid) ensureBookSet(bid).add(n.node_id);
+  }
+}
 ```
 
-Route is registered as `/admin-auth` (App.tsx:142). A logged-out visit to `/admin` redirects to a 404 (catch-all NotFound).
+Also do the same fan-out for the product-table loop where `nodeIdForTable` is in `AUTHOR_LEVEL_NODES` (e.g., `coaching_packages` → `YR-19`, `email_flows` → `BP-01`, `social_media_content` → `BP-03`):
 
-**Fix:** Change `/admin-login` → `/admin-auth`.
-
----
-
-### Bug 2 — High · Wise/PayPal copy violates "Stripe Express only" memory rule
-**File:** `src/pages/AdminPayouts.tsx:178`
-
-```tsx
-<p>Enter the Wise/PayPal transaction reference.</p>
-<Input placeholder="e.g. WISE-12345-ABC" />
+```typescript
+if (nodeIdForTable) {
+  if (AUTHOR_LEVEL_NODES.has(nodeIdForTable)) {
+    for (const b of allBooks) ensureBookSet(b.id).add(nodeIdForTable);
+  } else {
+    const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
+    if (bookId) ensureBookSet(bookId).add(nodeIdForTable);
+  }
+}
 ```
 
-Memory rule: *"Stripe Express ONLY. PayPal/Wise code permanently removed (Sprint 44)."*
+### Side effects
+- Aggregated `totalBuilt` (sum across `perBookNodeSets`) will now double-count author-level nodes across books. Fix by computing the dedupe-aware aggregate from `builtNodeIds.size + product-table-only nodes` instead of summing perBook sets. Quick patch: leave `totalBuilt` derived from product tables (current behaviour) and stop using `aggregatedFromNodeSets` if it relied on summing across books.
 
-**Fix:** Update copy to "Enter the Stripe transfer reference" and placeholder to `e.g. tr_1AbCdE...`. Same page also overlaps with the in-dashboard `Payouts` tab (`AdminPayoutsDashboard`) — flag for future consolidation but leave routing alone in this sprint.
+### Files touched
+- `supabase/functions/author-stats/index.ts` — single file, ~25 lines changed.
 
----
-
-### Bug 3 — Medium · Dead "AI Tokens Used" overview card
-**File:** `src/components/admin/OverviewTab.tsx:117`
-
-```tsx
-{ label: "AI Tokens Used", ..., action: () => {} }
-```
-
-Renders as a `<button>` with hover affordance but does nothing on click — looks broken.
-
-**Fix:** Remove the `<button>` wrapper for non-actionable cards (render as `<div>` without hover style), OR make it scroll to the AI Usage Dashboard panel below. Recommend the former for minimal change.
-
----
-
-### Bug 4 — Medium · "View all" recent submissions points to non-existent tab
-**File:** `src/components/admin/OverviewTab.tsx:291`
-
-```tsx
-<Button onClick={() => onNavigate("submissions")}>View all</Button>
-```
-
-`"submissions"` is not in the `Tab` union (`overview | books | authors | admins | platforms | crm | messages | reading-club | support | payouts | node-gating | audit | errors`). Casting via `as Tab` swallows it, so the click sets an unknown tab and the content area renders **blank**.
-
-**Fix:** Change target to `"books"` (since recent submissions are book submissions) or hide the "View all" button entirely. Recommend routing to `books` with `filter="pending"`.
-
----
-
-### Bug 5 — Low · Orphan `/admin/content-quality` page
-**Files:** `src/App.tsx:148`, `src/pages/admin/ContentQualityLog.tsx`
-
-Route is registered and the component exists, but no link anywhere in the admin UI navigates to it. Reachable only via direct URL.
-
-**Fix:** Add a quick-action button in `OverviewTab` (or a tab entry) linking to `/admin/content-quality`. If the page is intentionally retired, remove the route + file instead. Recommend adding a quick-action link.
-
----
-
-### Verified Healthy
-- All 13 tab buttons in `AdminDashboard` have `onClick` handlers wired to setTab.
-- `AdminPayoutsDashboard`, `ErrorsTab`, `AuditLogTab`, `NodeGatingTab`, `AdminsTab`, `AuthorActionMenu`, `BooksTab` action buttons all have valid handlers or live inside Dialog/AlertDialog triggers.
-- `AdminNotificationBell` mounts correctly with `user.id` guard.
-- `system_error_log`: 0 entries in last 48h.
-- `Author Dashboard` link in admin header → `/dashboard` (valid).
-- Sign Out button → `signOut()` (valid).
-
----
-
-### Implementation order (small sprint)
-1. AdminDashboard.tsx — fix redirect path (1 line).
-2. AdminPayouts.tsx — Stripe-only copy (2 lines).
-3. OverviewTab.tsx — non-clickable AI Tokens card + fix "View all" target (~6 lines).
-4. OverviewTab.tsx — add Content Quality Log quick action (~4 lines).
-
-No DB changes, no edge function changes, no new dependencies. Pure UI fixes.
-
-Approve and I'll implement all 5 in a single pass.
+No DB migration, no client changes (the hook already consumes `perBook[bookId]`).
