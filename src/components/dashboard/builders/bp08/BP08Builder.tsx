@@ -266,6 +266,23 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button>
               </>
+              ) : pendingReplace && selectedOccasion ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
+                    <p className="font-semibold text-foreground mb-1">You already have a saved edition</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your library currently holds <span className="font-medium text-foreground">"{pendingReplace.existingLabel}"</span>. Generating a new <span className="font-medium text-foreground">{selectedOccasion.emoji} {selectedOccasion.label}</span> edition will replace it. Only one Special Edition draft is stored per book.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button className="flex-1" size="lg" onClick={confirmReplace}>
+                      <Sparkles className="h-4 w-4 mr-2" /> Replace with {selectedOccasion.label} edition
+                    </Button>
+                    <Button variant="outline" size="lg" onClick={cancelReplace}>
+                      Keep current edition
+                    </Button>
+                  </div>
+                </div>
               ) : (<>
                 {selectedOccasion && (
                   <div className="mb-4 rounded-xl border border-secondary/40 bg-secondary/5 p-3 flex items-center gap-3">
