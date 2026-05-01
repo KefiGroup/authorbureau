@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "@/lib/node-readiness";
+import { hasRequiredAssets, AUTHOR_LEVEL_NODES, COMMERCE_NODES } from "@/lib/node-readiness";
 
 /**
  * Fixture-based snapshot of the readiness rules. Any change to
