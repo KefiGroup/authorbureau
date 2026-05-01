@@ -9,9 +9,13 @@ import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
 import { useAuth } from "@/hooks/useAuth";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 import {
-  BookOpen, Loader2, Sparkles, TrendingUp, BarChart3, Hammer, CheckCircle2,
+  BookOpen, Loader2, Sparkles, TrendingUp, BarChart3, Hammer, CheckCircle2, Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Book } from "./types";
+
+const STREAMS_BUILT_HELP =
+  "Capabilities live for this book. Counts every node whose content has passed readiness checks. Author-level capabilities (email list, podcast, services) count toward every book.";
 
 interface BookSelectionViewProps {
   books: Book[];
@@ -166,8 +170,25 @@ export default function BookSelectionView({
                             <CheckCircle2 className="h-3 w-3" /> Analyzed
                           </span>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          {streamCount} streams mapped · {builtThisBook}/28 streams built
+                        <p className="text-xs text-muted-foreground inline-flex items-center gap-1 flex-wrap">
+                          <span>{streamCount} streams mapped · {builtThisBook}/28 streams built</span>
+                          <TooltipProvider delayDuration={150}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  aria-label="What does streams built mean?"
+                                  className="inline-flex"
+                                >
+                                  <Info className="h-3 w-3 text-muted-foreground/60 hover:text-muted-foreground" />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs text-xs leading-snug">
+                                {STREAMS_BUILT_HELP}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </p>
                         <p className="text-[11px] text-muted-foreground">
                           Brand {builtBrand}/9 · Build {builtBuild}/9 · Yield {builtYield}/10
