@@ -1,8 +1,12 @@
-import { BookOpen, Plus, ArrowRight } from "lucide-react";
+import { BookOpen, Plus, ArrowRight, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useNavigate } from "react-router-dom";
 import type { MyBook } from "@/hooks/useMyBooks";
 import type { PerBookStats } from "@/hooks/useAuthorStats";
+
+const STREAMS_BUILT_HELP =
+  "Capabilities live for this book. Counts every node whose content has passed readiness checks. Author-level capabilities (email list, podcast, services) count toward every book.";
 
 interface Props {
   books: MyBook[];
