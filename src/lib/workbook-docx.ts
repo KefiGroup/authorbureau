@@ -522,11 +522,15 @@ export async function buildWorkbookDocxBlob({ content, bookTitle, authorName }: 
     ],
   });
 
-  const blob = await Packer.toBlob(doc);
+  return Packer.toBlob(doc);
+}
+
+export async function downloadWorkbookDocx(opts: WorkbookDocxOptions): Promise<void> {
+  const blob = await buildWorkbookDocxBlob(opts);
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `${safeFilename(bookTitle)}-${safeFilename(content.workbook_title || "Workbook")}.docx`;
+  a.download = `${safeFilename(opts.bookTitle)}-${safeFilename(opts.content.workbook_title || "Workbook")}.docx`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
