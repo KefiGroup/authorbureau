@@ -18,7 +18,6 @@ Running log of every sprint. Pauline maintains; Lovable provides per-sprint summ
 | 36b | Buffer integration | 2026-Q1 | Social scheduling experiment | (rolled back in 37) |
 | 37 | ABBY Social Designer | 2026-Q1 | Buffer removed; native composer | `compose-social-post` 2-step renderer; 6 templates × 5 platforms |
 | 39 | Commerce Engine v1 | 2026-Q1 | MoR commerce shipped | `author_nodes` registry; 8% fee; dual webhook; `<BuyNowButton>` |
-| 44 | Stripe-only payouts | 2026-04 | PayPal + Wise removed | Stripe Express only; admin manual fallback |
 | 43 | Cross-platform email sync | 2026-04 | PublishNow→AB email sync | `sync-author-email`; `email_sync_log` audit |
 | 44 | Stripe-only payouts | 2026-04 | PayPal + Wise removed | Stripe Express only; admin manual fallback |
 | 45 | GHL fully removed | 2026-04 | Cleanup | All GHL refs deleted from code, DB, copy |
