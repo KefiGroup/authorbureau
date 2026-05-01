@@ -38,7 +38,129 @@ function decodeJwtSub(token: string): { sub?: string; email?: string } | null {
   }
 }
 
-Deno.serve(async (req: Request) => {
+// ---------------------------------------------------------------------------
+// Sprint 54 — Uniform library_asset contract.
+//
+// On publish we attempt to synthesise a library_asset record from whatever
+// substantive content the builder has already saved. This is intentionally
+// conservative: if no real deliverable evidence exists, we leave
+// library_asset unset and let the legacy readiness fallback handle it.
+//
+// Once individual builders are wired (per-category sprints) they can write
+// library_asset themselves and this synthesis becomes a safety net.
+// Source of truth: docs/02-business-rules/02-node-readiness-gates-full-spec.md
+// ---------------------------------------------------------------------------
+
+const REQUIRED_KIND: Record<string, string> = {
+  "BP-01": "email_sequence", "BP-02": "docx", "BP-03": "docx",
+  "BP-04": "external_url", "BP-05": "pptx", "BP-06": "docx",
+  "BP-07": "docx", "BP-08": "docx", "BP-09": "external_url",
+  "BA-10": "docx", "BA-11": "audio_zip", "BA-12": "docx",
+  "BA-13": "docx", "BA-14": "podcast_pack", "BA-15": "docx",
+  "BA-16": "docx", "BA-17": "docx", "BA-18": "docx",
+  "YR-19": "docx", "YR-20": "docx", "YR-21": "pptx",
+  "YR-22": "pptx", "YR-23": "docx", "YR-24": "docx",
+  "YR-25": "docx", "YR-26": "docx", "YR-27": "docx",
+  "YR-28": "docx",
+};
+
+function nonEmptyStr(v: unknown): v is string {
+  return typeof v === "string" && v.trim().length > 0;
+}
+function nonEmptyArr(v: unknown): v is unknown[] {
+  return Array.isArray(v) && v.length > 0;
+}
+
+function deriveLibraryAsset(
+  nodeId: string,
+  content: Record<string, unknown>,
+  micrositeUrl: string | null,
+): { kind: string; url: string; pdf_url: string | null; txt_url: string | null; title: string; saved_at: string } | null {
+  const kind = REQUIRED_KIND[nodeId];
+  if (!kind) return null;
+
+  const c = content as Record<string, any>;
+  const title =
+    (nonEmptyStr(c.title) && c.title) ||
+    (nonEmptyStr(c.workbook_title) && c.workbook_title) ||
+    (nonEmptyStr(c.show_title) && c.show_title) ||
+    (nonEmptyStr(c.podcast_title) && c.podcast_title) ||
+    (nonEmptyStr(c.hero_headline) && c.hero_headline) ||
+    `${nodeId} deliverable`;
+  const saved_at = new Date().toISOString();
+  const pdf_url = nonEmptyStr(c.pdf_url) ? c.pdf_url : null;
+
+  let url: string | null = null;
+  switch (kind) {
+    case "external_url": {
+      // BP-04 microsite, BP-09 book sales: a public URL is the deliverable.
+      url =
+        (nonEmptyStr(c.amazon_url) && c.amazon_url) ||
+        (nonEmptyStr(c.sales_page_url) && c.sales_page_url) ||
+        (nonEmptyStr(c.public_url) && c.public_url) ||
+        micrositeUrl ||
+        null;
+      break;
+    }
+    case "audio_zip": {
+      // BA-11: a generated narration zip or any chapter file counts.
+      url =
+        (nonEmptyStr(c.audiobook_zip_url) && c.audiobook_zip_url) ||
+        (nonEmptyStr(c.narration_script_url) && c.narration_script_url) ||
+        (nonEmptyArr(c.chapters) && nonEmptyStr((c.chapters[0] as any)?.publicUrl) && (c.chapters[0] as any).publicUrl) ||
+        null;
+      break;
+    }
+    case "email_sequence": {
+      // BP-01: a saved sequence id or a non-empty steps array is the deliverable.
+      if (nonEmptyStr(c.email_sequence_id) && nonEmptyArr(c.steps)) {
+        url = `sequence://${c.email_sequence_id}`;
+      } else if (nonEmptyArr(c.sequence_steps)) {
+        url = `sequence://${nodeId}-${Date.now()}`;
+      }
+      break;
+    }
+    case "podcast_pack": {
+      // BA-14: an RSS feed or a built episodes pack.
+      url =
+        (nonEmptyStr(c.rss_url) && c.rss_url) ||
+        (nonEmptyStr(c.rss_feed_url) && c.rss_feed_url) ||
+        (nonEmptyArr(c.episodes) && `podcast-pack://${nodeId}`) ||
+        null;
+      break;
+    }
+    case "pptx": {
+      url =
+        (nonEmptyStr(c.pptx_url) && c.pptx_url) ||
+        (nonEmptyStr(c.slides_url) && c.slides_url) ||
+        pdf_url ||
+        null;
+      break;
+    }
+    case "docx":
+    default: {
+      // Any saved document, PDF, course id, or substantive built sections.
+      url =
+        (nonEmptyStr(c.docx_url) && c.docx_url) ||
+        pdf_url ||
+        (nonEmptyStr(c.course_id) && `course://${c.course_id}`) ||
+        (nonEmptyArr(c.sections) && `built://${nodeId}`) ||
+        (nonEmptyArr(c.modules) && `built://${nodeId}`) ||
+        null;
+      break;
+    }
+  }
+
+  if (!url) return null;
+  return {
+    kind,
+    url,
+    pdf_url,
+    txt_url: null,
+    title,
+    saved_at,
+  };
+}
   console.log("[save-author-node] request started", { method: req.method });
 
   if (req.method === "OPTIONS") {
