@@ -599,8 +599,52 @@ Deno.serve(async (req) => {
           last_email_sync_at: lastEmailSync?.data?.created_at ?? null,
         },
         error_count_24h: errorCount24h ?? 0,
+        unresolved_critical: unresolvedCritical ?? 0,
         recent_activity: recentAudit?.data ?? [],
       });
+    }
+
+    // ─── Wave 4: Error log ───
+    if (action === "errors-list") {
+      const { severity, source, resolved, search, limit = 100, offset = 0 } = params as {
+        severity?: string; source?: string; resolved?: boolean; search?: string;
+        limit?: number; offset?: number;
+      };
+      let q = client.from("system_error_log")
+        .select("id, source, function_name, severity, message, stack, context, acknowledged_at, resolved_at, created_at", { count: "exact" })
+        .order("created_at", { ascending: false })
+        .range(offset, offset + Math.min(limit, 500) - 1);
+      if (severity) q = q.eq("severity", severity);
+      if (source) q = q.eq("source", source);
+      if (typeof resolved === "boolean") {
+        q = resolved ? q.not("resolved_at", "is", null) : q.is("resolved_at", null);
+      }
+      if (search) q = q.or(`message.ilike.%${search}%,function_name.ilike.%${search}%`);
+      const { data, count, error } = await q;
+      if (error) throw error;
+      return json({ rows: data || [], total: count ?? 0 });
+    }
+
+    if (action === "errors-summary") {
+      const { data, error } = await client.rpc("admin_error_summary");
+      if (error) throw error;
+      return json(data);
+    }
+
+    if (action === "errors-acknowledge") {
+      const { ids } = params as { ids?: string[] };
+      if (!Array.isArray(ids) || ids.length === 0) return json({ error: "ids required" }, 400);
+      const { data, error } = await client.rpc("admin_acknowledge_errors", { p_ids: ids });
+      if (error) throw error;
+      return json({ count: data });
+    }
+
+    if (action === "errors-resolve") {
+      const { ids } = params as { ids?: string[] };
+      if (!Array.isArray(ids) || ids.length === 0) return json({ error: "ids required" }, 400);
+      const { data, error } = await client.rpc("admin_resolve_errors", { p_ids: ids });
+      if (error) throw error;
+      return json({ count: data });
     }
 
     // ─── Wave 3: Author lifecycle ───
