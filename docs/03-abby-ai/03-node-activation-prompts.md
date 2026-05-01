@@ -1239,7 +1239,7 @@ HARD CONTENT RULES (output that violates these will fail QA):
 ### user
 
 ```text
-Build a Live Audience Conversion Toolkit for ${author.pen_name}'s book "${bookTitle}".
+Build a ${NODE_NAME} kit for ${author.pen_name}'s book "${bookTitle}".
 
 Author details:
 - Pen name: ${author.pen_name}
@@ -1255,7 +1255,7 @@ Author details:
 Generate a JSON object with EXACTLY these keys (no extras, no markdown):
 
 {
-  "kit_title": "${bookTitle} — Live Audience Conversion Toolkit",
+  "kit_title": "${bookTitle} — ${NODE_NAME} kit",
   "tagline": "Punchy one-liner positioning the toolkit",
   "abby_summary": "2-3 sentences explaining what's inside and how to use it",
 
