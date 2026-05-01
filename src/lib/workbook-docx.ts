@@ -253,7 +253,12 @@ function renderToolkitTemplate(item: ToolkitItem): (Paragraph | Table)[] {
   return out;
 }
 
-export async function downloadWorkbookDocx({ content, bookTitle, authorName }: WorkbookDocxOptions): Promise<void> {
+/**
+ * Build the workbook DOCX as a Blob without triggering a browser download.
+ * Used by the publish flow (Sprint 55) to upload the file to library-assets
+ * storage before stamping the uniform `library_asset` record.
+ */
+export async function buildWorkbookDocxBlob({ content, bookTitle, authorName }: WorkbookDocxOptions): Promise<Blob> {
   const sections = Array.isArray(content.sections) ? content.sections : [];
   const children: (Paragraph | Table)[] = [];
 
