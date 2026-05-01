@@ -899,3 +899,345 @@ w(
 );
 
 console.log("03 ABBY 04–07 written");
+
+// ───────────────────────────────────────────────────────────────────────────
+// 04 — NODE FRAMEWORKS (28 nodes, 7 sections each)
+// ───────────────────────────────────────────────────────────────────────────
+
+/**
+ * Each entry contains the 7 mandatory sections from the Manus framework:
+ *  1. what       — plain-English description
+ *  2. abby       — what ABBY builds + engine + edge function
+ *  3. author     — steps the author takes
+ *  4. reader     — end-to-end reader / customer journey
+ *  5. gate       — exact hasRequiredAssets rule (verbatim)
+ *  6. revenue    — revenue model
+ *  7. deps       — dependencies (other nodes / connectors)
+ */
+const NODES = [
+  ["BP-01", "Email Marketing", "Brand", "Author", "generate-bp01-email-marketing", {
+    what: "The author's master email list and the welcome sequence that turns a reader into a subscriber. This is the single source of truth for everything ABBY sends to the author's audience.",
+    abby: "Engine: **Email Engine** (Resend). ABBY drafts a 3–10 step welcome sequence using the book's hook, theme, and call-to-action. Stored in `email_flows` + `email_flow_steps`; sequence ID written to `author_nodes.content_json.email_sequence_id`.",
+    author: "1) Open the BP-01 builder. 2) Confirm sender name + reply-to address (sets `author_email_settings`). 3) Review the auto-drafted sequence — edit subject lines and bodies. 4) Click Activate. The Email Engine starts enrolling new contacts immediately.",
+    reader: "Reader hits a microsite or lead-magnet form → submits email → enters the welcome sequence step 1 within minutes → receives subsequent steps on cadence → can unsubscribe via per-author signed token at any time.",
+    gate: "`email_sequence_id` set AND `steps[]` non-empty (new model), OR `sequence_steps[]` non-empty (legacy).",
+    revenue: "Indirect — feeds every paid offer downstream. Direct revenue when a sequence step contains a Buy CTA for BP-09 / BP-06 / BA-10.",
+    deps: "Requires Resend connector (platform-managed, always on). Recommended: BP-02 (lead magnet) to provide the entry point.",
+  }],
+  ["BP-02", "Lead Magnet", "Brand", "Book", "generate-bp02-lead-magnets", {
+    what: "A short (2–3 minute) assessment, quiz, or downloadable that captures a reader's email in exchange for value tied directly to the book's promise.",
+    abby: "Engine: **Funnel Engine**. ABBY generates an 8-question quiz with 5 result tiers, 3 headline variants, a 4-stage conversion microsite (Gate → Quiz → Results → Next Step), and a Social Distribution Pack. Stored in `funnels` and `marketing_assets`.",
+    author: "1) Open BP-02 builder. 2) Pick a template (6 visual templates) and tone. 3) Review the 8 generated questions; edit if needed. 4) Pick one of 3 headline variants (Identity / Outcome / Curiosity). 5) Click Activate — the lead-magnet microsite goes live at a public URL.",
+    reader: "Reader sees the gate page → submits email → takes the 8-question quiz → lands on a personalised result tier → is invited to a next step (book purchase, BP-01 enrolment, or another offer).",
+    gate: "Generic gate — any non-empty `content_json` passes. The lead-magnet builder always saves substantial structured content on activation.",
+    revenue: "Indirect — primary feeder for BP-01 and downstream paid offers.",
+    deps: "BP-01 (Email Engine must exist for enrolment). Optionally pushes asset packs to BP-03 and BP-04.",
+  }],
+  ["BP-03", "Social Media", "Brand", "Author", "generate-bp03-social-media", {
+    what: "A 30-day calendar of social posts in the author's voice, plus an on-demand graphic composer (Social Designer) that produces platform-sized images.",
+    abby: "Engines: **Funnel + content store**. ABBY generates a calendar of platform-tagged posts and stores them in `social_media_content` / `social_posts`. The Social Designer (`compose-social-post`) produces 6 templates × 5 platforms via 2-step background + burn-in image rendering.",
+    author: "1) Generate or refresh the 30-day calendar. 2) For any post, click Design to render a graphic. 3) Copy text + download image. 4) Post manually to chosen platforms (Buffer was removed; manual control is intentional).",
+    reader: "Reader sees the post on the platform → clicks through to the lead magnet, microsite, or Buy link → enters the funnel.",
+    gate: "`posts_generated > 0` OR `content_calendar_id` set OR `posts[]` non-empty.",
+    revenue: "Indirect — top-of-funnel awareness driving traffic to lead magnets and sales pages.",
+    deps: "None required. Recommended: BP-02 lead magnet so social CTAs have a destination.",
+  }],
+  ["BP-04", "Author Website", "Brand", "Book", "generate-bp04-website", {
+    what: "The book's public microsite — hero, about, lead magnet form, learn page, and revenue offers — hosted on Authors Bureau.",
+    abby: "Engine: **Microsite renderer** + content stores. ABBY generates hero copy, headline, subheadline, about (long + short), and section content. Public URL pattern: `authorsbureau.com/<author-slug>/<book-slug>`.",
+    author: "1) Open BP-04 builder. 2) Review hero + about + sections. 3) Add a lead magnet (BP-02 cross-push auto-fills). 4) Click Activate — site goes live. Owner-preview lets the logged-in author preview unpublished drafts.",
+    reader: "Reader arrives via search, social, or referral → reads hero + about → submits email to lead magnet → enters BP-01 sequence → returns to browse Learn / Buy sections.",
+    gate: "Primary anchor (`hero_headline` non-empty OR `sections[]` non-empty) AND ≥ 1 supporting field (`about_long`, `about_short`, `hero_subheadline`, or `lead_magnet_id`).",
+    revenue: "Indirect — hub for every other node. Direct revenue when sections render `<BuyNowButton>` for BP-06/07/09 or YR offers.",
+    deps: "Recommended: BP-02 (lead magnet), BP-09 (book sales). Microsite copy must respect `mem://content/public-site-logic` (no pricing visible, no em-dashes, hides empty fields).",
+  }],
+  ["BP-05", "Webinars", "Brand", "Book", "generate-bp05-webinars", {
+    what: "A live or evergreen webinar where the author teaches one core idea from the book and pitches a paid offer.",
+    abby: "Engines: **Sessions + Email**. ABBY drafts a webinar outline, slide titles, registration page copy, reminder sequence, and follow-up sequence. Sessions live in `consultation_sessions`-style records.",
+    author: "1) Open BP-05 builder. 2) Set date/time + Zoom link (paste). 3) Review outline + slide titles. 4) Activate — registration page goes live, Email Engine schedules reminders.",
+    reader: "Reader registers → receives confirmation + reminder emails → attends → receives recording + offer follow-up.",
+    gate: "Generic gate — any non-empty `content_json`.",
+    revenue: "High — webinar pitch typically converts to BA-10 / YR-19 / YR-23.",
+    deps: "BP-01 (sequence delivery). Zoom link is pasted manually (no Zoom API integration).",
+  }],
+  ["BP-06", "Workbook", "Brand", "Book", "generate-bp06-online-course", {
+    what: "A printable / fillable PDF companion to the book — exercises, prompts, and worksheets readers complete to apply the book's framework.",
+    abby: "Engines: **Course + Commerce**. ABBY drafts modular workbook content; PDF rendered by client. Listed for sale via the Commerce Engine; `purchases` records each transaction.",
+    author: "1) Open BP-06 builder. 2) Review modules. 3) Set price (or free). 4) Activate — sale page + download flow goes live.",
+    reader: "Reader buys via `<BuyNowButton>` → checkout via `create-checkout-session` → confirmation email with download link.",
+    gate: "`title` set AND (`pdf_url` set OR commerce signal — `stripe_price_id` / `price_usd > 0` / paid sales tier).",
+    revenue: "Direct — typically $9–$29.",
+    deps: "BP-09 (book sales) for cross-push opportunities.",
+  }],
+  ["BP-07", "Home Study Course", "Brand", "Book", "generate-bp07-coaching", {
+    what: "A self-paced course version of the book's framework — videos, audio, and worksheets bundled as a digital product.",
+    abby: "Engines: **Course + Commerce**. ABBY drafts module + lesson outlines; can deploy to Thinkific (`deploy-bp07-to-thinkific`). Optional MoR sale via platform Commerce.",
+    author: "1) Open BP-07 builder. 2) Review module structure. 3) Optionally connect Thinkific subdomain. 4) Set price + activate.",
+    reader: "Reader buys → receives Thinkific access OR Authors Bureau learner portal access → progresses through modules at own pace.",
+    gate: "`title` set AND (`course_id` set OR commerce signal).",
+    revenue: "Direct — typically $97–$497.",
+    deps: "Optional Thinkific. Sequenced after BP-06 (workbook) per the Product Development Sequence.",
+  }],
+  ["BP-08", "Special Editions", "Brand", "Book", "generate-bp08-mastermind", {
+    what: "Limited-edition bundles tied to the book — signed copies, bonus content, anniversary editions.",
+    abby: "Engine: **Commerce**. ABBY generates marketing copy + bonus content descriptions; bundles stored in `special_editions` + `special_edition_bundles`.",
+    author: "1) Open BP-08 builder. 2) Define bundle contents + bonus assets. 3) Set price + inventory. 4) Activate.",
+    reader: "Reader sees the bundle on microsite → buys → receives confirmation + (if physical) shipping detail collection.",
+    gate: "Generic gate.",
+    revenue: "Direct — premium pricing ($49–$199).",
+    deps: "BP-09 (book sales) and BP-04 (microsite).",
+  }],
+  ["BP-09", "Book Sales", "Brand", "Book", "generate-bp09-speaking", {
+    what: "The canonical sales channels for the book itself — Amazon link, sales page, optional MoR direct sale.",
+    abby: "Engine: **Commerce**. ABBY generates sales page copy (mandatory 11-section framework, see `mem://features/standardized-sales-page-builder`), exports slides + handout via `export-bp09-slides` / `export-bp09-handout`.",
+    author: "1) Open BP-09 builder. 2) Paste Amazon / retailer URLs. 3) Optionally enable direct platform sale. 4) Activate.",
+    reader: "Reader visits microsite → clicks Buy → routed to Amazon OR completes platform checkout.",
+    gate: "`title` set AND (`amazon_url` OR `sales_page_url` OR commerce signal).",
+    revenue: "Direct — book sale margin (Amazon royalty or 92% of MoR price).",
+    deps: "BP-04 (microsite to host the link).",
+  }],
+  ["BA-10", "Online Course", "Build", "Book", "generate-ba10-online-course", {
+    what: "A premium, video-based course expanding the book into a full curriculum. Hosted on Thinkific, sold by Authors Bureau as MoR.",
+    abby: "Engines: **Course + Commerce**. ABBY drafts module/lesson curriculum (16k token complex generation), validates against sales copy via Mismatch Validator (`mem://features/sales-curriculum-validation-system`). Deploys via `deploy-ba10-to-thinkific`.",
+    author: "1) Open BA-10 builder. 2) Review modules. 3) Approve sales page (auto-validated against curriculum). 4) Connect Thinkific. 5) Activate.",
+    reader: "Reader buys → enrolled in Thinkific automatically → progresses through modules → certificate on completion (optional).",
+    gate: "`title` set AND (`course_id` OR ≥ 1 module OR commerce signal).",
+    revenue: "Direct — typically $297–$997.",
+    deps: "Thinkific connector. Sequenced after BP-07 per Product Development Sequence.",
+  }],
+  ["BA-11", "Audiobook", "Build", "Book", "generate-ba11-audiobook", {
+    what: "An audiobook version of the book — TTS-narrated with ElevenLabs, packaged for ACX, distributed manually.",
+    abby: "Engine: **TTS pipeline** (ElevenLabs V2). ABBY generates narration script, voice preview (`ba11-voice-preview`), and the ACX submission guide. Save & Distribute flow handles packaging.",
+    author: "1) Open BA-11 Audiobook Studio. 2) Pick voice. 3) Generate narration script. 4) Review chapters. 5) Generate audio (`elevenlabs-tts-audiobook-v2`). 6) Download ACX-ready package; submit to ACX manually.",
+    reader: "Listener buys on Audible / Apple Books / etc — Authors Bureau is the producer of record on the ACX submission.",
+    gate: "`narration_script_url` set OR `acx_guide_generated === true` OR `chapters[]` non-empty.",
+    revenue: "Direct — Audible royalty (paid through ACX, not Authors Bureau Commerce).",
+    deps: "ElevenLabs (platform-managed). ACX account is author's responsibility.",
+  }],
+  ["BA-12", "Membership", "Build", "Book", "generate-ba12-membership", {
+    what: "A recurring membership tied to the book's themes — monthly content, community, exclusive sessions.",
+    abby: "Engine: **Commerce (recurring)**. ABBY drafts membership offer + monthly content calendar + welcome sequence. Subscriptions in `subscriptions`.",
+    author: "1) Open BA-12 builder. 2) Define membership benefits. 3) Set monthly price (Stripe price ID). 4) Activate.",
+    reader: "Reader buys → recurring Stripe subscription → ongoing access to `membership_content` → can cancel via `customer-portal`.",
+    gate: "`title` set AND `stripe_price_id` set.",
+    revenue: "Direct + recurring — typically $19–$97 / month.",
+    deps: "Stripe (platform). Optionally BP-01 for member nurture.",
+  }],
+  ["BA-13", "Group Coaching", "Build", "Book", "generate-ba13-group-coaching", {
+    what: "A cohort-based group coaching programme — a fixed group meeting on a schedule for a defined duration.",
+    abby: "Engines: **Sessions + Commerce**. ABBY drafts cohort outline, session schedule, sales page, application form.",
+    author: "1) Open BA-13 builder. 2) Set cohort dates + Zoom link. 3) Set price. 4) Activate.",
+    reader: "Reader applies → gets accepted → buys → receives schedule + Zoom links → joins live cohort.",
+    gate: "`sessions[]` non-empty OR `schedule` string set.",
+    revenue: "Direct + cohort — typically $497–$2,997 per seat.",
+    deps: "Stripe; manual Zoom link.",
+  }],
+  ["BA-14", "Podcast Tour", "Build", "Author", "generate-ba14-podcast", {
+    what: "The author's own podcast — ABBY drafts seasons, episode outlines, show notes, and pushes to Transistor.fm for RSS distribution.",
+    abby: "Engine: **Podcast** (Transistor.fm). `generate-podcast-season` produces season arcs; `deploy-ba14-to-transistor` syncs episodes.",
+    author: "1) Open BA-14 builder. 2) Generate season. 3) Record episodes. 4) Deploy to Transistor → distributed to Apple/Spotify automatically.",
+    reader: "Listener subscribes on Apple / Spotify → episodes auto-deliver via RSS.",
+    gate: "RSS ready (`rss_url`/`rss_feed_url`/`transistor.show_id`) AND ≥ 1 episode, OR activated + ≥ 2 episodes + show title (strict isLive check per `mem://audits/manus-2026-04-23-corrections`).",
+    revenue: "Indirect — authority + audience. Sponsorship revenue routes via YR-28.",
+    deps: "Transistor.fm (platform-managed).",
+  }],
+  ["BA-15", "Media & PR", "Build", "Author", "generate-ba15-media-pr", {
+    what: "Press kit, press release, target media outlets list — the assets needed to pitch the book to journalists, podcasters, and influencers.",
+    abby: "Engine: **Asset store**. ABBY generates press release (headline + body), pitch email template, target outlets list (`target_media_outlets`).",
+    author: "1) Open BA-15 builder. 2) Review press release. 3) Review outlets list. 4) Activate. (Pitching itself is manual.)",
+    reader: "(B2B — journalist receives pitch.)",
+    gate: "Press release present (string OR object with headline AND body) AND outlets list non-empty.",
+    revenue: "Indirect — earned media drives book sales + authority.",
+    deps: "None.",
+  }],
+  ["BA-16", "Affiliates", "Build", "Author", "generate-ba16-affiliate", {
+    what: "An affiliate programme letting other creators earn a commission for promoting the author's offers.",
+    abby: "Engines: **CRM + Commerce**. ABBY drafts affiliate-recruitment copy, terms, tracking links.",
+    author: "1) Open BA-16 builder. 2) Set commission rate. 3) Approve terms. 4) Activate; share affiliate-signup URL.",
+    reader: "Affiliate signs up → gets unique referral link → reader purchases → commission attributed.",
+    gate: "Generic gate.",
+    revenue: "Negative direct (commission paid out) but expands top-of-funnel reach.",
+    deps: "Stripe (for affiliate payout via Connect).",
+  }],
+  ["BA-17", "Bundles", "Build", "Book", "generate-ba17-upsells", {
+    what: "Multi-product bundles combining ≥ 2 existing offers (e.g. workbook + course) at a packaged price.",
+    abby: "Engine: **Commerce**. ABBY drafts bundle offer + comparison table + checkout copy.",
+    author: "1) Open BA-17 builder. 2) Pick ≥ 2 items from existing nodes. 3) Set bundle price. 4) Activate.",
+    reader: "Reader sees bundle CTA on a single-product page → upgrades to bundle at checkout.",
+    gate: "`title` set AND `items.length >= 2` AND commerce signal.",
+    revenue: "Direct — boosts AOV; typical bundle uplift 30–60 %.",
+    deps: "Existing items (BP-06, BP-07, BA-10, etc).",
+  }],
+  ["BA-18", "JV Partnerships", "Build", "Author", "generate-ba18-jv-partnerships", {
+    what: "Joint-venture deals with other authors — co-promote each other's offers to combined lists.",
+    abby: "Engine: **CRM**. ABBY drafts JV pitch emails, partner brief, swap terms.",
+    author: "1) Open BA-18 builder. 2) Identify candidate partners. 3) Send pitch via Email Engine. 4) Track in CRM.",
+    reader: "Reader on partner's list receives co-promo → enters author's funnel.",
+    gate: "Generic gate.",
+    revenue: "Indirect (audience swap) + revenue-share splits on JV launches.",
+    deps: "BP-01 (Email Engine) + CRM Engine.",
+  }],
+  ["YR-19", "1-on-1 Coaching", "Yield", "Author", "generate-yr19-coaching", {
+    what: "Premium 1:1 coaching with the author — packages priced per call or per programme.",
+    abby: "Engines: **Sessions + Commerce**. ABBY drafts package descriptions, intake form, scheduling copy. `coaching_packages` records each package.",
+    author: "1) Open YR-19 builder. 2) Define packages (price, # sessions, deliverables). 3) Add booking URL (Calendly etc). 4) Activate.",
+    reader: "Reader books → pays → receives intake form + Zoom link → coaching sessions begin.",
+    gate: "`title` set AND commerce signal AND (`session_type` OR `booking_url` set, since YR-19 is session-style).",
+    revenue: "Direct — typically $250–$1,500 per session or $2k–$10k per package.",
+    deps: "Stripe; manual Zoom + booking link.",
+  }],
+  ["YR-20", "Big Ticket Consulting", "Yield", "Author", "generate-yr20-big-ticket", {
+    what: "Strategic consulting engagements — multi-month, custom-scoped, high-ticket.",
+    abby: "Engine: **Commerce**. ABBY drafts proposal, engagement agreement skeleton, sales page.",
+    author: "1) Open YR-20 builder. 2) Define engagement tiers + price. 3) Activate.",
+    reader: "Prospect inquires → consultation → custom proposal → contract.",
+    gate: "`title` set AND commerce signal.",
+    revenue: "Direct — typically $10k–$100k per engagement.",
+    deps: "Stripe (for invoicing). Often paired with YR-19.",
+  }],
+  ["YR-21", "Speaking", "Yield", "Author", "generate-yr21-speaking", {
+    what: "Speaker kit + topics list for booking the author for keynotes and panels.",
+    abby: "Engine: **Asset store**. ABBY generates speaker bio, topic descriptions, demo reel page, speaking fee guide.",
+    author: "1) Open YR-21 builder. 2) Define topics + fees. 3) Upload demo video link. 4) Activate.",
+    reader: "Event organiser visits speaker page → fills inquiry form → booking conversation begins.",
+    gate: "`title` set AND commerce signal (speaking fee).",
+    revenue: "Direct — typically $5k–$50k per keynote.",
+    deps: "BP-04 (microsite for the speaker page).",
+  }],
+  ["YR-22", "Corporate Training", "Yield", "Author", "generate-yr22-corporate", {
+    what: "Customised corporate training programmes built from the book's framework. 8-step workflow includes Bloom's taxonomy + Kolb's stages alignment.",
+    abby: "Engines: **Sessions + Commerce**. ABBY generates training menu, learning outcomes (`blooms_level`), experiential mapping (`kolbs_stage`), proposal templates. Per `mem://features/training-program-comprehensive-specs`.",
+    author: "1) Open YR-22 builder (8 steps). 2) Define audience + outcomes. 3) Generate curriculum. 4) Set price. 5) Optionally connect Thinkific for delivery. 6) Activate.",
+    reader: "L&D buyer requests proposal → contract → delivery (live or Thinkific) → evaluation.",
+    gate: "`title` set AND commerce signal AND (`session_type` OR `booking_url` — session-style).",
+    revenue: "Direct — typically $5k–$75k per engagement.",
+    deps: "Stripe; optional Thinkific.",
+  }],
+  ["YR-23", "Mastermind", "Yield", "Author", "generate-yr23-mastermind", {
+    what: "An ongoing high-ticket peer group of vetted members meeting on a recurring cadence.",
+    abby: "Engines: **Sessions + Commerce**. ABBY drafts mastermind charter, member criteria, monthly format, application form.",
+    author: "1) Open YR-23 builder. 2) Define cadence + price. 3) Activate.",
+    reader: "Applicant applies → vetted → pays → joins monthly sessions + community.",
+    gate: "`title` + commerce signal + session-style fields.",
+    revenue: "Direct + recurring — typically $1,000–$5,000 / month.",
+    deps: "Stripe.",
+  }],
+  ["YR-24", "Retreats", "Yield", "Author", "generate-yr24-retreats", {
+    what: "Multi-day in-person retreats led by the author at a chosen location.",
+    abby: "Engines: **Sessions + Commerce**. ABBY drafts retreat agenda, sales page, application form.",
+    author: "1) Open YR-24 builder. 2) Set dates, location, capacity, price. 3) Activate.",
+    reader: "Reader applies → pays → travels → attends retreat.",
+    gate: "`title` + commerce signal + session-style fields.",
+    revenue: "Direct — typically $3k–$15k per attendee.",
+    deps: "Stripe; logistics handled out-of-band.",
+  }],
+  ["YR-25", "Certification", "Yield", "Author", "generate-yr25-certification", {
+    what: "A certification programme that licences others to teach the author's framework. Highest-margin Yield offer.",
+    abby: "Engines: **Course + Commerce**. ABBY drafts certification curriculum, exam structure, licensing terms. `deploy-yr25-to-thinkific` for course host.",
+    author: "1) Open YR-25 builder. 2) Define certification levels + curriculum. 3) Set price. 4) Activate.",
+    reader: "Practitioner buys → completes certification → receives credential + use of trademark.",
+    gate: "`title` + commerce signal.",
+    revenue: "Direct + ongoing royalties — typically $5k–$25k per practitioner + annual renewal.",
+    deps: "Thinkific (recommended).",
+  }],
+  ["YR-26", "Conference", "Yield", "Author", "generate-yr26-conference", {
+    what: "An annual conference branded around the author's framework — multi-speaker, multi-day, sponsor-supported.",
+    abby: "Engines: **Commerce + Sessions**. ABBY drafts conference theme, agenda template, sponsor deck (cross-pushes to YR-28).",
+    author: "1) Open YR-26 builder. 2) Set dates + venue. 3) Define ticket tiers. 4) Activate.",
+    reader: "Reader buys ticket → attends conference.",
+    gate: "`title` + commerce signal.",
+    revenue: "Direct — multiple ticket tiers + sponsorship revenue.",
+    deps: "Stripe; logistics out-of-band.",
+  }],
+  ["YR-27", "Fundraising", "Yield", "Author", "generate-yr27-fundraising", {
+    what: "A fundraising offer for non-profit, advocacy, or cause-tied books. Donation flows handled via Stripe.",
+    abby: "Engine: **Commerce**. ABBY drafts donation tiers, impact statement, donor recognition copy. `deploy-yr27-to-stripe` provisions price IDs.",
+    author: "1) Open YR-27 builder. 2) Define tiers + impact statement. 3) Activate.",
+    reader: "Donor selects tier → completes Stripe donation → receives receipt + recognition.",
+    gate: "`title` + commerce signal.",
+    revenue: "Direct (donations).",
+    deps: "Stripe.",
+  }],
+  ["YR-28", "Sponsors", "Yield", "Author", "generate-yr28-sponsors", {
+    what: "Sponsorship packages for the author's podcast (BA-14), conference (YR-26), and content channels.",
+    abby: "Engine: **Commerce**. ABBY drafts sponsor deck, package tiers, audience metrics summary.",
+    author: "1) Open YR-28 builder. 2) Define sponsor packages + price. 3) Activate.",
+    reader: "Sponsor (B2B) reviews deck → contracts → receives placement.",
+    gate: "`title` + commerce signal.",
+    revenue: "Direct — $1k–$50k per sponsor per period.",
+    deps: "BA-14 (podcast) and/or YR-26 (conference) for inventory.",
+  }],
+];
+
+// Index for the node-frameworks folder
+let nodeIndex = header("04 · Node Frameworks — Index", [
+  "`src/components/dashboard/builders/builderNodeConfig.ts`",
+  "`supabase/functions/_shared/node-readiness.ts`",
+]) +
+  `Each of the 28 nodes has its own framework document below. Every doc follows the same 7-section template defined by Manus:
+
+1. **What it is** — plain-English description
+2. **What ABBY builds** — engine(s), edge function, data shape
+3. **What the author does** — step-by-step builder flow
+4. **What the reader experiences** — end-to-end customer journey
+5. **Readiness gate** — exact \`hasRequiredAssets\` rule
+6. **Revenue model** — how money flows
+7. **Dependencies** — required nodes + connectors
+
+## Index
+
+| ID | Label | Category | Scope | Doc |
+|---|---|---|---|---|
+`;
+
+for (const [id, label, cat, scope] of NODES) {
+  nodeIndex += `| ${id} | ${label} | ${cat} | ${scope} | [${id}.md](./${id}.md) |\n`;
+}
+
+nodeIndex += `\n## Authoring template
+
+When adding a new node:
+
+\`\`\`markdown
+# <ID> · <Label>
+
+_Version <v> · <date>_
+
+**Category:** Brand | Build | Yield
+**Scope:** Author | Book
+
+## 1. What it is
+
+## 2. What ABBY builds
+
+## 3. What the author does
+
+## 4. What the reader experiences
+
+## 5. Readiness gate
+
+## 6. Revenue model
+
+## 7. Dependencies
+\`\`\`
+`;
+
+w("04-node-frameworks/README.md", nodeIndex);
+
+// Write each node file
+for (const [id, label, cat, scope, fn, content] of NODES) {
+  w(
+    `04-node-frameworks/${id}.md`,
+    `# ${id} · ${label}\n\n_Version ${VERSION} · ${DATE}_\n\n` +
+      `**Category:** ${cat}  \n**Scope:** ${scope}-level  \n**Edge function:** \`supabase/functions/${fn}/index.ts\`\n\n---\n\n` +
+      `## 1. What it is\n\n${content.what}\n\n` +
+      `## 2. What ABBY builds\n\n${content.abby}\n\n` +
+      `## 3. What the author does\n\n${content.author}\n\n` +
+      `## 4. What the reader experiences\n\n${content.reader}\n\n` +
+      `## 5. Readiness gate (\`hasRequiredAssets\`)\n\n${content.gate}\n\n_Source: \`supabase/functions/_shared/node-readiness.ts\`._\n\n` +
+      `## 6. Revenue model\n\n${content.revenue}\n\n` +
+      `## 7. Dependencies\n\n${content.deps}\n`,
+  );
+}
+
+console.log(`04 node frameworks: ${NODES.length} files written`);
