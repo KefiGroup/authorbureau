@@ -32,6 +32,14 @@ interface Props { authorId: string | null; bookId?: string | null; }
 
 export default function BP08Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const occasionId = searchParams.get("occasion");
+  const autostart = searchParams.get("autostart") === "1";
+  const selectedOccasion: CalendarOccasion | undefined = useMemo(
+    () => findCalendarOccasion(occasionId),
+    [occasionId],
+  );
+  const didAutostartRef = useRef(false);
   const [step, setStep] = useState(0);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
