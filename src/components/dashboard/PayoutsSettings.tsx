@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { usePayoutReadiness, type PayoutMethod } from "@/hooks/usePayoutReadiness";
+import { usePayoutReadiness } from "@/hooks/usePayoutReadiness";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { toast } from "sonner";
 
