@@ -65,7 +65,27 @@ export default function MultiBookPicker({ books, perBook, onAddBook }: Props) {
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold text-sm text-foreground line-clamp-2">{b.title}</p>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">{total}/28 streams built</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5 inline-flex items-center gap-1">
+                    {total}/28 streams built
+                    <TooltipProvider delayDuration={150}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label="What does streams built mean?"
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex"
+                          >
+                            <Info className="h-3 w-3 text-muted-foreground/60 hover:text-muted-foreground" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-xs text-xs leading-snug">
+                          {STREAMS_BUILT_HELP}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </p>
                   <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
                     <div className="h-full bg-secondary transition-all" style={{ width: `${pct}%` }} />
                   </div>
