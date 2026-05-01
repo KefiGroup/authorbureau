@@ -494,7 +494,7 @@ export default function AuthorBookPage() {
 
   const badgeList = Array.isArray(book.badges) ? book.badges : [];
   const isAmazonLink = book.amazon_url?.includes("amazon.com") || book.amazon_url?.includes("a.co");
-  const authorBio = (book.author_bio || authorProfile?.bio_short || "").replace(/<[^>]+>/g, "");
+  const authorBio = stripHtml(book.author_bio || authorProfile?.bio_short || "");
   const authorPhoto = book.author_photo_url || authorProfile?.photo_url || "";
 
   const priceFormats = [
