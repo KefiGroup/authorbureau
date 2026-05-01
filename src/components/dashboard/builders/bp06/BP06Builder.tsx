@@ -59,11 +59,16 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [stripeModalOpen, setStripeModalOpen] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  // Prefer the explicit bookId from the route (Book Hub → BP-06), and only
+  // fall back to whatever the author hook resolved. This is the pattern used
+  // by BP-01 / BP-02 / BP-05; BP-06 was the outlier and was therefore
+  // resolving to the "latest" book for authors with multiple books.
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
   const { onboarding_complete: stripeReady, loading: stripeLoading } = useStripeConnect();
   const hasResolvedBook = hasBook || Boolean(resolvedBookTitle) || Boolean(detectedBookTitle && detectedBookTitle !== "your book");
-  const effectiveBookTitle = (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau";
+  const effectiveBookTitle = (resolvedBookTitle || (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : "")) || "Authors-Bureau";
 
   useEffect(() => {
     if (!authorId) return;
@@ -71,15 +76,57 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setResolvedBookTitle(ctx.book_title);
+
+      // Per-book resolution. If we have an explicit bookId in scope, prefer:
+      //   1. author_context for that exact book
+      //   2. that book's title from `books`
+      // Only fall back to "latest book" when no bookId is in scope at all.
+      if (activeBookId) {
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
+          .eq("book_id", activeBookId)
+          .maybeSingle();
+        if (ctx?.book_title) {
+          setResolvedBookTitle(ctx.book_title);
+        } else {
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("id", activeBookId)
+            .maybeSingle();
+          if (book?.title) setResolvedBookTitle(book.title);
+        }
       } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (book?.title) setResolvedBookTitle(book.title);
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ctx?.book_title) {
+          setResolvedBookTitle(ctx.book_title);
+        } else {
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("author_id", profile?.user_id || authorId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (book?.title) setResolvedBookTitle(book.title);
+        }
       }
       // Hydrate from author_nodes first; fall back to draft store so half-edited drafts survive a refresh.
-      const { data: node } = await supabase.from("author_nodes").select("content_json, status").eq("author_id", authorId).eq("node_id", "BP-06").maybeSingle();
+      let nodeQuery = supabase
+        .from("author_nodes")
+        .select("content_json, status")
+        .eq("author_id", authorId)
+        .eq("node_id", "BP-06");
+      if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
+      const { data: node } = await nodeQuery.maybeSingle();
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         const baseContent = node.content_json as Record<string, unknown>;
         setContent(node.status === "live" ? { ...baseContent, activated: true } : baseContent);

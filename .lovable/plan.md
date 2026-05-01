@@ -1,66 +1,60 @@
-## Status check (post-wipe verification)
+# Fix BP-06 book lookup and false gating
 
-| Surface | State |
-|---|---|
-| `author_nodes` for Pauline | 0 rows ✅ |
-| `marketing_assets`, `social_posts`, `email_flows`, `leads` | 0 rows ✅ |
-| `books` | 2 rows preserved ✅ |
-| Storage buckets `library-assets` (private) + `library-assets-public` (public) | exist ✅ |
-| `render-library-asset` edge function | deployed ✅ |
-| `save-author-node` synthesises `library_asset` on publish from legacy fields | wired ✅ |
-| `hasRequiredAssets` precedence: uniform contract → legacy fallback | wired ✅ |
-| 28 generator folders + canonical labels (Sprints 48–52) | aligned ✅ |
+## What I found
+The screenshots and code point to a specific bug in the Workbook builder, not missing book data.
 
-The reset is good. The architecture itself is locked. What's NOT yet aligned is the **builders' write-side** — they still write old-shape `content_json`, so on every publish we fall through to the legacy gate. That's safe but it means the Sprint-54 contract isn't actually being exercised yet.
+Pauline's author account is valid and the data exists:
+- `author_profiles`: Pauline Teo = `92326a2f-3ed0-4873-a8cf-7a0b1350995a`
+- books owned by Pauline:
+  - `e5b857ac-48ce-4ffc-a761-3c09e95a318e` = `Be SUCKcessful`
+  - `3c65a5f1-96da-4538-80c3-7bb23fb622fb` = `Invest Like Buffett for Parents`
+- `author_context` exists for both books.
 
-## What still needs aligning before Pauline rebuilds
+So the backend data is present.
 
-### 1. Builder publish flow → write `library_asset` directly (priority)
+The actual problem is in the BP-06 flow:
+- `BP06Builder` uses `useAuthorBook()` for its intro gate, which calls `get-author-book` with no explicit `bookId`.
+- `get-author-book` falls back to the latest matching book when no `bookId` is supplied.
+- BP-06 `handleGenerate()` sends only `{ author_id }` to `generate-bp06-workbook`, but the generator expects `book_id` when an author has multiple books.
+- After the recent stricter per-book context rules, this can cause the builder to resolve the wrong book or no valid context for the active book, which matches your screenshots: the book header is present, but clicking Build leads to the false “Complete Book Profile” state.
 
-`save-author-node` only *synthesises* the asset from whatever legacy fields the builder happens to leave behind. That's a transitional safety net, not the spec. Each of the 28 builders should call `render-library-asset` (mode `register` or `txt_only`) on publish and pass back a real asset object — pdf_url, txt_url, kind matching `REQUIRED_KIND[nodeId]`. Until they do, we'll never see a Live node satisfy the new gate, only the fallback.
+In short: the UI knows which book page you came from, but BP-06 does not thread that active `bookId` all the way through generation and gating.
 
-Recommended order: BP-06 first (already nearest — has DOCX/PDF in workbook builder), then BP-01, BP-03, BP-04, BP-09 (the 5 a new author touches in their first week), then BA category, then YR.
+## Plan
+1. Update `src/components/dashboard/builders/bp06/BP06Builder.tsx`
+   - Derive an `activeBookId` the same way BP-01/BP-02 already do: prefer the route/query `bookId`, then fall back to the hook only if needed.
+   - Use the active book for generation, draft restore, and publish flows.
+   - Stop using the generic/latest-book fallback for the intro gate when an explicit `bookId` is already in scope.
 
-### 2. Dual-format output (DOCX + PDF + TXT, PPTX + PDF + TXT, audio + TXT)
+2. Fix the BP-06 generate request
+   - Send `book_id: activeBookId` to `generate-bp06-workbook`.
+   - Preserve the existing auth-token pattern (`getActiveToken()` + `fetchWithTimeout()`), but make the request match the per-book contract used by the other builders.
 
-`render-library-asset` currently supports only `register` (caller already uploaded files) and `txt_only`. The "three-format output policy" in the readiness spec requires the function itself to produce DOCX + PDF + TXT from a single source. That's the missing piece. Options:
+3. Align BP-06 local resolution with per-book behavior
+   - When hydrating local title/context in the intro screen, prefer the explicit `bookId` first instead of “latest book for this author”.
+   - Ensure the intro copy, builder state, and publish calls stay tied to the selected book rather than whichever book sorts newest.
 
-- (a) Build it in `render-library-asset` using `docx` + `pdf-lib` (heavy, slow cold start).
-- (b) Keep `render-library-asset` as a registry/uploader and let each builder use the existing per-builder export libs (`builder-pdf.ts`, `workbook-docx.ts`) to produce the files, then call `register`. **Recommended** — cheaper and reuses what already works for BP-06.
+4. Verify the backend contract remains correct
+   - Confirm `generate-bp06-workbook` already supports `book_id` and relies on per-book `author_context`.
+   - No database migration needed; this is a client-side threading bug.
 
-### 3. Storage bucket policies (RLS) audit
+5. Test the author flow end-to-end
+   - From Pauline’s Book Hub, open BP-06 for `Be SUCKcessful` and confirm:
+     - the intro screen shows the builder CTA
+     - clicking Build no longer drops to “Complete Book Profile”
+     - the builder stays attached to the selected book
+   - Repeat with the second Pauline book to confirm multi-book authors work correctly.
 
-Both buckets exist but I should verify:
-- `library-assets` (private): only the owning author can read/write; signed-URL serving for paid deliverables.
-- `library-assets-public`: public read, authenticated write.
+## Technical notes
+Relevant files:
+- `src/components/dashboard/builders/bp06/BP06Builder.tsx`
+- `src/hooks/useAuthorBook.ts`
+- `supabase/functions/generate-bp06-workbook/index.ts`
+- `supabase/functions/_shared/builder-helpers.ts`
 
-If RLS isn't right, the very first publish from BP-06 will fail silently or expose a paid asset publicly.
+Comparison pattern already working:
+- `BP01Builder` and `BP02Builder` both compute an active book and pass `book_id` into their generator functions.
+- BP-06 is currently the outlier.
 
-### 4. AssetRow / Library page display of `library_asset`
-
-`src/components/library/AssetRow.tsx` and `src/pages/AuthorLibrary.tsx` were built for the old `marketing_assets` table. They need a small adapter that reads `author_nodes.content_json.library_asset` so a Live node actually shows up in the author's library. Without this, Pauline will publish BP-06, see "Live", and find nothing in her Library tab.
-
-### 5. Decision-log + memory entries for the wipe
-
-Two short entries:
-- `docs/05-sprint-records/04-decision-log.md` — "2026-05-01: Wiped Pauline Teo's deliverables (kept books, profile, login, storage). 226 rows backed up to `/mnt/documents/pauline-pre-wipe-backup.jsonl`."
-- New memory `mem://operations/test-account-wipe-procedure` — codify the scoped-DELETE pattern so future resets follow the same boundaries (don't touch `auth.users`, `author_profiles`, `books`, storage).
-
-### 6. Optional: seed an empty `author_context` row?
-
-Without `bp00-analysis` having been run, every framework-heavy generator will return `contextBlocked` and `AnalyseBookGate.tsx` will prompt Pauline before any node generates. That's the correct behaviour — no action needed, but worth flagging so we don't think it's a bug when she hits it.
-
-## Proposed next sprint (Sprint 55 — "Builders adopt the contract")
-
-1. Wire BP-06 (workbook) to call `render-library-asset` with mode `register`, passing the DOCX + PDF that the builder already produces. Verify Live in the new gate, not the fallback.
-2. Audit + fix RLS on `library-assets` and `library-assets-public`.
-3. Add the `library_asset` adapter to `AuthorLibrary.tsx`.
-4. Repeat (1) for BP-01 / BP-03 / BP-04 / BP-09.
-5. Update decision log + add the wipe-procedure memory.
-
-Once approved I'll switch to default mode and execute Sprint 55 (or any subset you pick). I'll **not** wire all 28 builders in one sprint — that was the previous direction and it's too wide a blast radius without the BP-06 reference implementation landed first.
-
-## Questions for you
-
-- **Scope of next sprint**: do you want the full Sprint 55 above, or just the BP-06 reference implementation + RLS audit + Library adapter (steps 1–3) so we can validate the whole loop end-to-end before fanning out?
-- **Library page**: should a Live node with a `library_asset` show as a single "Workbook" row, or do you want the existing per-asset breakdown (DOCX, PDF, TXT shown as 3 rows under one node)?
+## Expected outcome
+Pauline can enter BP-06 from an already loaded book in Book Hub and build normally, without the false “Complete Book Profile” gate and without cross-book leakage between her two books.
