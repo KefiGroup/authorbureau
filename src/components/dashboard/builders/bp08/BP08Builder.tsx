@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { findCalendarOccasion, nextOccurrence, type CalendarOccasion } from "@/lib/special-edition-calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
