@@ -149,15 +149,26 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         setBookApproved(anyApproved);
 
         if (booksData.books.length > 0) {
-          const firstBook = booksData.books[0];
-          fetchWithTimeout(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
-            { method: "POST", headers, body: JSON.stringify({ action: "status", bookId: firstBook.id }) },
-            TIMEOUT
-          ).then(r => r.json()).then(planData => {
-            if (planData.plan) {
-              setHasPlan(true);
-              setPlanSummary({
+          // Check ALL books for an Abby plan, not just the first.
+          // hasPlan flips true if ANY book has been analyzed (prevents the
+          // "Analyze Your Book" CTA from showing for returning multi-book authors
+          // whose first book in the list happens to be unanalyzed).
+          Promise.all(
+            booksData.books.map((b: any) =>
+              fetchWithTimeout(
+                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
+                { method: "POST", headers, body: JSON.stringify({ action: "status", bookId: b.id }) },
+                TIMEOUT
+              ).then(r => r.json()).then(d => ({ book: b, data: d })).catch(() => ({ book: b, data: null }))
+            )
+          ).then((results) => {
+            const analyzed = results.filter(r => r.data?.plan);
+            if (analyzed.length === 0) return;
+            // Prefer the first analyzed book for the summary card.
+            const firstBook = analyzed[0].book;
+            const planData = analyzed[0].data;
+            setHasPlan(true);
+            setPlanSummary({
                 bookTitle: firstBook.title,
                 streamsMapped: planData.plan.products?.length || ({ brand: 9, build: 18, yield: 28 } as Record<string, number>)[tier] || 28,
                 projectedRevenue: planData.plan.projectedRevenue || "$50K+",
