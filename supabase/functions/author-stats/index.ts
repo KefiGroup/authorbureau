@@ -398,13 +398,16 @@ Deno.serve(async (req) => {
       };
     }
 
-    // Bug 3 fix: aggregate totalBuilt from per-book distinct node sets so it
-    // includes author_nodes rows (BP/BA/YR), matching the per-book chip totals.
-    // Falls back to product-table sum for safety if perBookNodeSets is empty.
-    const aggregatedFromNodeSets = Object.values(perBookNodeSets)
-      .reduce((sum, set) => sum + set.size, 0);
-    if (aggregatedFromNodeSets > 0) {
-      totalBuilt = aggregatedFromNodeSets;
+    // Aggregate totalBuilt from the union of all per-book node sets so it
+    // reflects distinct author-wide built nodes (author-level nodes appear in
+    // every book's set, so summing would double-count). Falls back to the
+    // product-table sum for safety if perBookNodeSets is empty.
+    const distinctBuiltNodes = new Set<string>();
+    for (const set of Object.values(perBookNodeSets)) {
+      for (const nid of set) distinctBuiltNodes.add(nid);
+    }
+    if (distinctBuiltNodes.size > 0) {
+      totalBuilt = distinctBuiltNodes.size;
     }
 
     const result = {
