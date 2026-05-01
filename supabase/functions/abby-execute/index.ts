@@ -11,29 +11,62 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 
 async function resolveUser(token: string): Promise<{ id: string; email: string }> {
+  if (!token) throw new Error("Unauthorized");
+
+  // Decode JWT first to grab sub (always present) and email (often present)
+  let decoded: any = null;
+  try { decoded = JSON.parse(atob(token.split(".")[1])); } catch { /* ignore */ }
+
   const localClient = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     { auth: { persistSession: false } }
   );
-  const { data: localUser } = await localClient.auth.getUser(token);
-  if (localUser?.user?.id && localUser?.user?.email) {
-    return { id: localUser.user.id, email: localUser.user.email };
+
+  // 1. Local project: getUser(token)
+  try {
+    const { data } = await localClient.auth.getUser(token);
+    if (data?.user?.id && data?.user?.email) return { id: data.user.id, email: data.user.email };
+  } catch { /* ignore */ }
+
+  // 2. Local project: admin lookup by sub from decoded JWT
+  if (decoded?.sub) {
+    try {
+      const { data } = await localClient.auth.admin.getUserById(decoded.sub);
+      if (data?.user?.email) return { id: data.user.id, email: data.user.email };
+    } catch { /* ignore */ }
   }
 
+  // 3. Shared backend: getUser(token)
   const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
   if (sharedKey) {
     const sharedClient = createClient(SHARED_BACKEND_URL, sharedKey, { auth: { persistSession: false } });
-    const { data: sharedUser } = await sharedClient.auth.getUser(token);
-    if (sharedUser?.user?.id && sharedUser?.user?.email) {
-      return { id: sharedUser.user.id, email: sharedUser.user.email };
+    try {
+      const { data } = await sharedClient.auth.getUser(token);
+      if (data?.user?.id && data?.user?.email) return { id: data.user.id, email: data.user.email };
+    } catch { /* ignore */ }
+    // 4. Shared backend: admin lookup by sub
+    if (decoded?.sub) {
+      try {
+        const { data } = await sharedClient.auth.admin.getUserById(decoded.sub);
+        if (data?.user?.email) return { id: data.user.id, email: data.user.email };
+      } catch { /* ignore */ }
     }
   }
 
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.sub && payload.email) return { id: payload.sub, email: payload.email };
-  } catch { /* ignore */ }
+  // 5. JWT-only fallback: accept sub even if email isn't a top-level claim,
+  //    look it up in books.owner_email as a last resort.
+  if (decoded?.sub) {
+    if (decoded.email) return { id: decoded.sub, email: decoded.email };
+    try {
+      const { data: book } = await localClient
+        .from("books").select("owner_email")
+        .eq("user_id", decoded.sub)
+        .not("owner_email", "is", null)
+        .limit(1).maybeSingle();
+      if (book?.owner_email) return { id: decoded.sub, email: book.owner_email };
+    } catch { /* ignore */ }
+  }
 
   throw new Error("Unauthorized");
 }
