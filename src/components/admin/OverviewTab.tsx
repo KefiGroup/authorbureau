@@ -1,4 +1,5 @@
-import { Loader2, BookOpen, ShieldCheck, ArrowRight, RefreshCw, UserCheck, Contact, Package, DollarSign, Cpu, Headphones, Users, Megaphone } from "lucide-react";
+import { Loader2, BookOpen, ShieldCheck, ArrowRight, RefreshCw, UserCheck, Contact, Package, DollarSign, Cpu, Headphones, Users, Megaphone, FileSearch } from "lucide-react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
