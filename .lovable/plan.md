@@ -1,119 +1,91 @@
-# Sprint 51 — Final Root-Cause Cleanup
+# Sprint 52 — Cross-Surface Alignment Audit & Cleanup
 
-After Sprints 48-50, the **data layer** is structurally safe (TS guard rail + DB FK + DB trigger + canonical folder names). But a focused audit found **three remaining classes of latent bugs** that the DB trigger silently masks today and that will bite the moment a label is renamed or someone reads the wrong file as the source of truth.
+A full sweep of `/docs`, edge function prompts, and generator internals against canonical truth (`builderNodeConfig.ts` + `_shared/canonical-node-labels.ts`) found 4 classes of drift remaining after Sprints 48–51. None of them break runtime, but they will cause Abby to recommend the wrong product, mislabel revenue streams, and confuse anyone reading the docs.
 
-This sprint closes all three classes so future label/slug/folder changes flow through **one** edit, not five.
+## Findings (4 categories)
 
----
+### 1. Abby prompt label drift (HIGH — violates Core memory rule)
 
-## What's actually still wrong
+`supabase/functions/business-consultant/index.ts` — the consultation framework Abby uses to recommend revenue streams contains **two outright wrong labels** and **several legacy "Kit" phrasings**:
 
-### Class 1 — 15 generators still hardcode `NODE_NAME` strings
-
-Sprint 48 introduced `getCanonicalNodeLabel(NODE_ID)` and only 3 generators were converted (BA-16, BP-09, BA-17, YR-20). The other **15 still hardcode** the label. Five of those hardcoded strings are **already wrong vs the canonical label** — the DB trigger silently overwrites them on write, hiding the bug:
-
-| File | Hardcoded `NODE_NAME` | Canonical (`canonical-node-labels.ts`) |
+| Where | Says | Must say (canonical) |
 |---|---|---|
-| `generate-ba14-podcast/index.ts` | `"Podcast"` | `"Podcast Tour"` |
-| `generate-yr21-speaking/index.ts` | `"Keynote Speaking"` | `"Speaking"` |
-| `generate-yr25-certification/index.ts` | `"Certification Programme"` | `"Certification"` |
-| `generate-yr27-fundraising/index.ts` | `"Fundraising Campaign"` | `"Fundraising"` |
-| `generate-yr28-sponsors/index.ts` | `"Sponsors & Exhibitors"` | `"Sponsors"` |
+| BA-11 (line ~3235) | "Home Study Course" | **Audiobook** |
+| YR-28 (line ~3256) | "Sponsors & Exhibitors" | **Sponsors** |
+| BA-17 (line ~3241) | "Upsells" | **Bundles** |
+| BP-09 (line ~3229) | "Book Sales Strategy" | **Book Sales** |
+| Phase 2 sections (~2059, 2181, 2473, 2757) | "Speaking Kit", "Affiliate Programme Kit", "JV Partnership Kit", "Mastermind Kit" | Use canonical node labels |
 
-These wrong strings are still used in **prompt templates, log lines, returned JSON, and email subjects** sent back to the client — only the DB column is corrected. So today's authors can see "Sponsors & Exhibitors" in a generated asset while the dashboard counter says "Sponsors". That is a real, visible inconsistency.
+Direct violation of the Core memory rule: *"All ABBY prompts (business-consultant, …) MUST use these exact labels: BA-11 = Audiobook, … YR-28 = Sponsors."*
 
-The other 10 generators have correct hardcoded names but are landmines: rename a label and you must remember to grep+replace 10 files.
+### 2. Generator prompt-body legacy phrases (MEDIUM)
 
-### Class 2 — Two slug maps that can silently drift
+Sprint 51 fixed `NODE_NAME` constants but missed prompt strings inside generators:
 
-- `src/lib/node-slug-map.ts` (`NODE_SLUG_MAP`) — used by client router, `WebsiteBlueprintPage`, `AuthorBookPage`, microsite success screens.
-- `node_registry.microsite_slug` (DB) — used by `compute_node_microsite_url` and `get-microsite-page` edge function (via `SLUG_TO_NODE` re-import of the TS map — actually the edge function imports the TS map by URL, see below).
+- `generate-bp09-book-sales/index.ts` lines 49 & 65 — still say `"Live Audience Conversion Toolkit"` in the user prompt and JSON skeleton (`kit_title`).
+- `export-bp09-slides/index.ts` line 29 — fallback `kitTitle` defaults to `"Live Audience Conversion Toolkit"`.
 
-Today they happen to match across all 28 nodes. There is no test or seed-parity check that enforces it. Sprint 49's parity assertion only ran inside the migration; nothing prevents a future PR from editing one side without the other.
+### 3. Documentation stale paths & labels (MEDIUM)
 
-### Class 3 — Edge function `get-microsite-page` re-imports the client TS map
+Sprint 50 renamed 5 generator folders, but several docs were never updated:
 
-`supabase/functions/get-microsite-page/index.ts` reads `SLUG_TO_NODE` from a TS file. Edge functions cannot import from `src/`, so this is duplicated somewhere — let me verify and document the actual import path, then make it canonical (read from `node_registry`) instead of duplicating.
+- `docs/04-node-frameworks/BP-06.md`, `BP-07.md`, `BP-08.md`, `BP-09.md`, `BA-17.md` — all five `**Edge function:**` lines still point to legacy paths (`generate-bp06-online-course`, `generate-bp07-coaching`, etc.). The "Filename note: legacy" copy is now obsolete.
+- `docs/01-architecture/03-engine-architecture-map.md` line 87 — Course Builder Engine still lists `generate-bp06-online-course`, `generate-bp07-coaching`.
+- `docs/05-sprint-records/03-bug-registry.md` rows 11 & 12 — both bugs are now resolved (Sprint 50 + 51) but still marked "open".
 
----
+### 4. Sprint log gap (LOW — process hygiene)
 
-## What we will change
+`docs/05-sprint-records/01-sprint-log-master.md` ends at Sprint 46. **Sprints 47, 48, 49, 50, 51 are missing.** Violates the `mem://process/docs-sprint-maintenance` rule ("Every sprint must update /docs/ before completion").
 
-### Step 1 — Convert the 15 remaining generators
+## What is already aligned (verified clean)
 
-For each of the 15 files, replace:
-```ts
-const NODE_NAME = "<hardcoded string>";
-```
-with:
-```ts
-import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
-const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
-```
+- ✅ Node count = 28 everywhere; no "29 nodes" framing in active docs.
+- ✅ Platform fee = 8% consistently; "92% to author" copy locked.
+- ✅ GHL fully removed from active surfaces; only intentional "removed" mentions remain.
+- ✅ Tier names = Brand/Build/Yield Package; no Starter/Pro/Enterprise drift.
+- ✅ Stripe-only payout rail; no PayPal/Wise references.
+- ✅ Canonical labels parity test (4/4) and slug parity script (28/28) both green.
+- ✅ All other 23 generators correctly resolve labels via `getCanonicalNodeLabel()`.
 
-Files touched (15):
-BP-01, BP-02, BP-03, BP-04, BP-05, BP-06, BP-07, BP-08, BA-10, BA-11, BA-12, BA-13, BA-14, BA-15, BA-18, YR-19, YR-21, YR-22, YR-23, YR-24, YR-25, YR-26, YR-27, YR-28.
+## Implementation Plan
 
-(BA-16, BP-09, BA-17, YR-20 already migrated in Sprint 48.)
+### Step 1 — Fix Abby business-consultant prompts
+- `BA-11 Home Study Course` → `BA-11 Audiobook`
+- `YR-28 Sponsors & Exhibitors` → `YR-28 Sponsors`
+- `BA-17 Upsells` → `BA-17 Bundles`
+- `BP-09 Book Sales Strategy` → `BP-09 Book Sales`
+- Replace Phase 2 "Kit" section titles with canonical-label phrasing (e.g., "Complete Speaking Activation", "Complete Affiliate Activation").
 
-After this, **5 user-visible label drifts fix themselves automatically** (BA-14, YR-21, YR-25, YR-27, YR-28) — the prompts, logs, and return payloads will all start using the canonical label.
+### Step 2 — Clean generator prompt bodies
+- `generate-bp09-book-sales/index.ts`: replace both `Live Audience Conversion Toolkit` strings with `${NODE_NAME} kit` (where `NODE_NAME` is already the canonical "Book Sales").
+- `export-bp09-slides/index.ts`: change fallback to `"Book Sales"`.
 
-### Step 2 — Make the DB registry the single slug source of truth
+### Step 3 — Refresh docs to match Sprint 50/51 reality
+- Update `Edge function:` line in `BP-06/07/08/09.md` and `BA-17.md` to canonical paths.
+- Remove "Filename note: legacy …" sentences from those 5 framework files.
+- Update `engine-architecture-map.md` line 87 to canonical paths.
+- Mark bug-registry rows 11 & 12 as `Fixed` with sprint reference.
 
-- Add a tiny shared helper `supabase/functions/_shared/node-registry-slugs.ts` that **fetches** slugs from `node_registry` once per cold start (cached in module scope) instead of duplicating the TS map.
-- Refactor `get-microsite-page/index.ts` to use this helper.
-- Keep `src/lib/node-slug-map.ts` for the client (it can't query the DB at module load), but add a **build-time check** (`scripts/check-slug-parity.mjs`) that compares the TS map against the DB seed in the migration file and fails the build on drift. Run it from `npm test` / CI.
+### Step 4 — Backfill sprint log
+Add rows 47, 48, 49, 50, 51 to `01-sprint-log-master.md` with one-line summaries pulled from the Sprint 51 memory entry and the master architecture reference v3.3.
 
-### Step 3 — Add a vitest parity test
+### Step 5 — Verify
+- Re-run `bunx vitest run src/lib/__tests__/canonical-labels-parity.test.ts`
+- Re-run `node scripts/check-slug-parity.mjs`
+- Final `rg` sweep for: `Live Audience Conversion`, `Affiliate Programme Kit`, `JV Partnership Kit`, `Sponsors & Exhibitors`, `BA-11 Home Study`, `generate-bp06-online-course`, `generate-bp07-coaching`, `generate-bp08-mastermind`, `generate-bp09-speaking`, `generate-ba17-upsells`. All must return zero hits in `src/`, `supabase/functions/`, and active `docs/` (historical sprint records may keep mentions).
 
-Add `src/lib/__tests__/canonical-labels-parity.test.ts` that loads:
-- `builderNodeConfig.ts` META[]
-- `_shared/canonical-node-labels.ts` CANONICAL_NODE_LABELS
+### Step 6 — Deploy & document
+- Deploy `business-consultant`, `generate-bp09-book-sales`, `export-bp09-slides` (3 functions).
+- Update `mem://architecture/canonical-node-labels` to add Sprint 52 to the title and note "prompt bodies + docs aligned".
+- Update `docs/01-architecture/01-master-architecture-reference.md` to v3.4 with a Sprint 52 note.
 
-…and asserts they have the same 28 keys and matching labels. This was previously a runtime-only check.
+## Files Touched (~13)
 
-### Step 4 — Update docs + memory
+Edge functions (3): `business-consultant`, `generate-bp09-book-sales`, `export-bp09-slides`
 
-- `docs/01-architecture/01-master-architecture-reference.md` — version bump to 3.3, add Sprint 51 row, remove the "Sprint 50 candidates" deferred bullet from Sprint 49 plan, update the source-of-truth list to add the parity test + slug helper.
-- `mem://architecture/canonical-node-labels` — append Sprint 51 section confirming all 28 generators now use `getCanonicalNodeLabel`, slug single-source-of-truth, and parity test.
+Docs (8): `04-node-frameworks/{BP-06,BP-07,BP-08,BP-09,BA-17}.md`, `01-architecture/03-engine-architecture-map.md`, `01-architecture/01-master-architecture-reference.md`, `05-sprint-records/01-sprint-log-master.md`, `05-sprint-records/03-bug-registry.md`
 
----
-
-## What we will NOT change (and why)
-
-- **Folder names** — already canonical after Sprint 50.
-- **DB schema** — already hardened in Sprint 49.
-- **`builderNodeConfig.ts`** — it IS the UI source of truth; nothing to change.
-- **The `category` mismatch** (`build` = Brand Products, `bridge` = Build Authority) — historical, intentional, documented; renaming would touch 100+ files for zero functional gain.
-
----
+Memory (2): `mem://architecture/canonical-node-labels`, `mem://index.md`
 
 ## Risk
-
-- **15 generator file edits** — mechanical, one-line change per file, all behind the same import. Low risk. Each generator has the same `_shared/builder-helpers.ts` `upsertAuthorNode` guard rail backstopping any mistake.
-- **Slug helper refactor** — only `get-microsite-page` is touched. Cached lookup is a 1-row SELECT on a 28-row table, negligible cost.
-- **Parity tests** — pure additions, can only catch bugs, never cause them.
-- **No DB migration needed.**
-
----
-
-## Acceptance criteria
-
-1. `rg 'const NODE_NAME\s*=\s*"' supabase/functions/generate-*` returns **zero** hits.
-2. All 28 generators import and use `getCanonicalNodeLabel(NODE_ID)`.
-3. New vitest parity test passes for all 28 nodes (label match between UI map and edge map).
-4. New `scripts/check-slug-parity.mjs` runs cleanly and is wired into the test script.
-5. `get-microsite-page` resolves slugs via `node_registry`, no TS-map import.
-6. Master architecture doc updated to v3.3 with Sprint 51 entry.
-7. Memory file `canonical-node-labels` updated with Sprint 51 section.
-
----
-
-## After this sprint
-
-Adding or renaming a node becomes a **3-file change**:
-1. `builderNodeConfig.ts` (UI)
-2. `_shared/canonical-node-labels.ts` (edge)
-3. Migration row in `node_registry`
-
-The parity test catches you if you forget step 2; the FK + trigger catch you if you forget step 3. There is no fourth place to forget.
+Very low. All changes are string-only (no schema, no API contract changes). Only behavioral risk is Abby producing slightly different consultation copy — which is the intended fix.
