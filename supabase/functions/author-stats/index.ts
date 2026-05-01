@@ -315,6 +315,20 @@ Deno.serve(async (req) => {
     // or the entire query silently returns null and that table's rows are lost.
     const AUTHOR_SCOPED_TABLES = new Set<string>(["coaching_packages"]);
 
+    // Author-level nodes count toward EVERY book in the author's library
+    // (one email list, one podcast, one set of social channels, all YR services).
+    // MUST mirror src/lib/node-readiness.ts AUTHOR_LEVEL_NODES exactly so the
+    // dashboard book card matches the in-book Brand/Build/Yield tab counters.
+    const AUTHOR_LEVEL_NODES = new Set<string>([
+      "BP-01", "BP-03", "BA-14", "BA-15", "BA-16", "BA-18",
+      "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
+      "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
+    ]);
+    const allBookIds = allBooks.map((b: any) => b.id);
+    const fanOutToAllBooks = (nodeId: string) => {
+      for (const bid of allBookIds) ensureBookSet(bid).add(nodeId);
+    };
+
     for (const table of PRODUCT_TABLES) {
       const isAuthorScoped = AUTHOR_SCOPED_TABLES.has(table);
       const selectCols = isAuthorScoped ? "id, status" : "id, status, book_id";
