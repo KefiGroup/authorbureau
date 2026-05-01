@@ -144,6 +144,12 @@ export default function BookSelectionView({
                 {analyzedBooks.map((book) => {
                   const plan = planSummaries[book.id] || {};
                   const streamCount = plan.products?.length || 0;
+                  // Per-book live counts from author-stats (canonical author_nodes).
+                  const perBook = stats?.products?.perBook?.[book.id];
+                  const builtThisBook = perBook?.total ?? 0;
+                  const builtBrand = perBook?.brand ?? 0;
+                  const builtBuild = perBook?.build ?? 0;
+                  const builtYield = perBook?.yield ?? 0;
                   return (
                     <Card key={book.id} className="p-4 flex gap-4">
                       <div className="w-[100px] h-[140px] rounded-lg overflow-hidden bg-muted shrink-0">
@@ -161,7 +167,10 @@ export default function BookSelectionView({
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {streamCount} streams mapped · Revenue projected
+                          {streamCount} streams mapped · {builtThisBook}/28 streams built
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Brand {builtBrand}/9 · Build {builtBuild}/9 · Yield {builtYield}/10
                         </p>
                         <div className="flex gap-2 flex-wrap pt-1">
                           <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => setViewPlanBook(book)}>
