@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -7,10 +8,42 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { RefreshCw, Bug, MessageSquare, MessagesSquare, Search } from "lucide-react";
+import { RefreshCw, Bug, MessageSquare, MessagesSquare, Search, Clock, AlertTriangle, UserCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { format } from "date-fns";
+import { format, formatDistanceToNowStrict, isPast } from "date-fns";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
+
+function SlaBadge({ bug }: { bug: BugReport }) {
+  if (bug.status === "resolved") return null;
+  const now = Date.now();
+  // Pick the most relevant deadline
+  const firstDue = bug.first_response_due_at ? new Date(bug.first_response_due_at).getTime() : null;
+  const resDue = bug.resolution_due_at ? new Date(bug.resolution_due_at).getTime() : null;
+  const needsFirstResponse = !bug.first_response_at && firstDue;
+  const target = needsFirstResponse ? firstDue : resDue;
+  if (!target) return null;
+  const breached = target < now;
+  const label = needsFirstResponse ? "1st response" : "Resolve";
+  const ref = new Date(target);
+  return (
+    <Badge
+      variant="outline"
+      className={
+        breached
+          ? "bg-red-100 text-red-700 border-red-300 gap-1"
+          : target - now < 4 * 3600 * 1000
+          ? "bg-amber-100 text-amber-700 border-amber-300 gap-1"
+          : "bg-emerald-50 text-emerald-700 border-emerald-200 gap-1"
+      }
+    >
+      {breached ? <AlertTriangle className="h-3 w-3" /> : <Clock className="h-3 w-3" />}
+      {label}{" "}
+      {breached
+        ? `+${formatDistanceToNowStrict(ref)}`
+        : `${formatDistanceToNowStrict(ref)} left`}
+    </Badge>
+  );
+}
 
 type BugReport = {
   id: string;
@@ -23,6 +56,10 @@ type BugReport = {
   admin_notes: string | null;
   created_at: string;
   resolved_at: string | null;
+  assigned_to: string | null;
+  first_response_at: string | null;
+  first_response_due_at: string | null;
+  resolution_due_at: string | null;
 };
 
 type FeedbackItem = {
@@ -74,7 +111,7 @@ const importanceColors: Record<string, string> = {
 
 export default function SupportTab() {
   const { toast } = useToast();
-
+  const { user } = useAuth();
   const [bugs, setBugs] = useState<BugReport[]>([]);
   const [feedbackList, setFeedbackList] = useState<FeedbackItem[]>([]);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>([]);
@@ -133,6 +170,18 @@ export default function SupportTab() {
       setSelectedBug(null);
     } catch (err) {
       toast({ title: err.message || "Update failed", variant: "destructive" });
+    }
+  };
+
+  const assignBugToMe = async (id: string) => {
+    if (!user?.id) return;
+    try {
+      await adminDataFetch("update-bug", { id, assigned_to: user.id });
+      toast({ title: "Assigned to you" });
+      fetchBugs();
+      setSelectedBug((prev) => (prev ? { ...prev, assigned_to: user.id } : prev));
+    } catch (err: any) {
+      toast({ title: err.message || "Assign failed", variant: "destructive" });
     }
   };
 
@@ -211,7 +260,9 @@ export default function SupportTab() {
                   <TableHead>Page</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Priority</TableHead>
+                  <TableHead>SLA</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Assigned</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
@@ -221,12 +272,18 @@ export default function SupportTab() {
                     <TableCell className="text-sm">{bug.page_url}</TableCell>
                     <TableCell className="text-sm max-w-[200px] truncate">{bug.description}</TableCell>
                     <TableCell><Badge variant="outline" className={priorityColors[bug.priority]}>{bug.priority}</Badge></TableCell>
+                    <TableCell><SlaBadge bug={bug} /></TableCell>
                     <TableCell><Badge variant="outline" className={statusColors[bug.status]}>{bug.status}</Badge></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {bug.assigned_to ? (
+                        bug.assigned_to === user?.id ? <span className="text-emerald-700 font-medium">You</span> : <span className="font-mono">{bug.assigned_to.slice(0, 6)}</span>
+                      ) : <span className="text-muted-foreground/60">—</span>}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{format(new Date(bug.created_at), "MMM d, yyyy")}</TableCell>
                   </TableRow>
                 ))}
                 {filteredBugs.length === 0 && hasBugData && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No bug reports match the current filters</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No bug reports match the current filters</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
@@ -328,17 +385,38 @@ export default function SupportTab() {
           <DialogHeader><DialogTitle>Bug Report</DialogTitle></DialogHeader>
           {selectedBug && (
             <div className="space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={priorityColors[selectedBug.priority]}>{selectedBug.priority}</Badge>
+                <Badge variant="outline" className={statusColors[selectedBug.status]}>{selectedBug.status}</Badge>
+                <SlaBadge bug={selectedBug} />
+              </div>
               <div><span className="text-sm font-medium">Page:</span> <span className="text-sm">{selectedBug.page_url}</span></div>
-              <div><span className="text-sm font-medium">Priority:</span> <Badge variant="outline" className={priorityColors[selectedBug.priority]}>{selectedBug.priority}</Badge></div>
               <div><span className="text-sm font-medium">Description:</span><p className="text-sm mt-1 whitespace-pre-wrap">{selectedBug.description}</p></div>
               {selectedBug.screenshot_url && (
                 <div><span className="text-sm font-medium">Screenshot:</span><img src={selectedBug.screenshot_url} className="mt-1 rounded border max-h-48" /></div>
               )}
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <div>Reported: {format(new Date(selectedBug.created_at), "MMM d, yyyy HH:mm")}</div>
+                {selectedBug.first_response_due_at && (
+                  <div>First-response due: {format(new Date(selectedBug.first_response_due_at), "MMM d, HH:mm")} {selectedBug.first_response_at && "✓ responded"}</div>
+                )}
+                {selectedBug.resolution_due_at && (
+                  <div>Resolution due: {format(new Date(selectedBug.resolution_due_at), "MMM d, HH:mm")}</div>
+                )}
+                <div>
+                  Assigned to: {selectedBug.assigned_to ? (selectedBug.assigned_to === user?.id ? "You" : <span className="font-mono">{selectedBug.assigned_to.slice(0, 8)}…</span>) : "—"}
+                </div>
+              </div>
               <div>
                 <span className="text-sm font-medium">Admin Notes:</span>
                 <Textarea value={adminNotes} onChange={e => setAdminNotes(e.target.value)} className="mt-1" rows={3} placeholder="Add notes..." />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {selectedBug.assigned_to !== user?.id && (
+                  <Button size="sm" variant="outline" onClick={() => assignBugToMe(selectedBug.id)}>
+                    <UserCheck className="h-4 w-4 mr-1" /> Assign to me
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={() => updateBugStatus(selectedBug.id, "in_progress")}>Mark In Progress</Button>
                 <Button size="sm" onClick={() => updateBugStatus(selectedBug.id, "resolved")} className="bg-green-600 hover:bg-green-700 text-white">Mark Resolved</Button>
               </div>

@@ -9,11 +9,13 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil, Trash2 } from "lucide-react";
+import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil, Trash2, Pause } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
+import AuthorActionMenu from "@/components/admin/AuthorActionMenu";
 
 interface DirectoryAuthor {
+  id: string;                          // author_profiles.id
   user_id: string;
   pen_name: string | null;
   photo_url: string | null;
@@ -33,6 +35,8 @@ interface DirectoryAuthor {
   youtube_url: string | null;
   location_city: string | null;
   location_country: string | null;
+  subscription_tier: string | null;
+  suspended_at: string | null;
 }
 
 const ALL_STATUSES = ["unlisted", "listed", "verified", "featured"] as const;
@@ -387,6 +391,16 @@ export default function AuthorsTab() {
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium capitalize ${statusColors[author.directory_status] || statusColors.unlisted}`}>
                       {author.directory_status}
                     </span>
+                    {author.subscription_tier && author.subscription_tier !== "free" && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
+                        {author.subscription_tier}
+                      </span>
+                    )}
+                    {author.suspended_at && (
+                      <span className="text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-200 text-amber-900 inline-flex items-center gap-1">
+                        <Pause className="h-2.5 w-2.5" /> Paused
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-muted-foreground truncate">{author.bio_short || "No bio"}</p>
                   <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground flex-wrap">
@@ -424,13 +438,13 @@ export default function AuthorsTab() {
                   </div>
                 </div>
 
-                <div className="shrink-0 w-36">
+                <div className="shrink-0 flex items-center gap-2">
                   <Select
                     value={author.directory_status}
                     onValueChange={(val) => updateStatus(author.user_id, val)}
                     disabled={updatingId === author.user_id}
                   >
-                    <SelectTrigger className="h-9 text-xs">
+                    <SelectTrigger className="h-9 text-xs w-32">
                       {updatingId === author.user_id ? (
                         <Loader2 className="h-3 w-3 animate-spin" />
                       ) : (
@@ -445,6 +459,14 @@ export default function AuthorsTab() {
                       ))}
                     </SelectContent>
                   </Select>
+                  <AuthorActionMenu
+                    authorId={author.id}
+                    penName={author.pen_name}
+                    authorSlug={author.author_slug}
+                    suspendedAt={author.suspended_at}
+                    subscriptionTier={author.subscription_tier}
+                    onChanged={fetchAuthors}
+                  />
                 </div>
               </CardContent>
             </Card>
