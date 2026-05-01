@@ -5,7 +5,7 @@ import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
 import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
-import MonetizationUniverse from "./framework-dashboard/MonetizationUniverse";
+
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
 import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
 import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
@@ -397,7 +397,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         onAction={handleJourneyAction}
       />
 
-      {/* Section 2: Monetization Universe with collapsible revenue flow */}
+      {/* Section 2: Collapsible 28-streams flow diagram (Monetization Universe removed — redundant with per-book counts) */}
       <section className="space-y-4">
         <Collapsible defaultOpen={isFirstPostAnalysis}>
           <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors group">
@@ -413,33 +413,6 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
             />
           </CollapsibleContent>
         </Collapsible>
-
-        <MonetizationUniverse
-          activatedCount={builtProducts.length}
-          builtProducts={builtProducts}
-          recommendedByAbby={recommendedByAbby}
-          subscribedTier={tier}
-          onNavigateToStream={(label) => {
-            const streamMap: Record<string, string> = {
-              "Online Courses": "courses", "Home Study Courses": "home-study",
-              "Workbooks": "workbooks", "Audiobook": "audiobook-studio",
-              "Monthly Memberships": "memberships", "Bundles": "revenue-streams",
-              "Social Media Calendar": "social-media", "Webinars": "webinars",
-              "Podcasts (Guest)": "podcast", "Website / Microsite": "microsite-manager",
-              "Email Marketing": "email-marketing", "1-on-1 Coaching": "coaching",
-              "Group Coaching": "group-coaching", "Big Ticket Consulting": "big-ticket",
-              "Keynotes": "speaking", "In-House Speaker": "speaking",
-              "Training Programs": "revenue-streams", "Affiliates": "marketing-channels",
-              "Revenue Sharing / JV": "marketing-channels",
-              "Retreats & Bootcamps": "authority-builders", "Certification": "authority-builders",
-              "Masterminds": "authority-builders", "Special Editions": "special-editions",
-              "Book Sales at Events": "book-sales", "Conventions / Conferences": "authority-builders",
-              "Fund Raising": "authority-builders", "Exhibitors / JV": "authority-builders",
-            };
-            const section = streamMap[label] || "revenue-streams";
-            onNavigate(section);
-          }}
-        />
       </section>
 
       {/* Special Edition Calendar — proactive seasonal prompts (BP-08) */}
