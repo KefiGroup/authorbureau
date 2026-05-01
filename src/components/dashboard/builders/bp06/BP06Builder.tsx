@@ -229,7 +229,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setError(null);
     try {
       const libraryAsset = await buildAndUploadDeliverable();
-      await publishNodeToSite(authorId!, "BP-06", authorSlug, bookId ?? null, libraryAsset);
+      await publishNodeToSite(authorId!, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
     } catch (e: unknown) {
@@ -247,13 +247,13 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     if (!authorId) return;
     const next = { ...content, suggested_price_usd: 0, pricing_recommendation: "free" };
     setContent(next);
-    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
+    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: activeBookId });
     // Continue with publish now that it's free.
     setStep(3);
     setError(null);
     try {
       const libraryAsset = await buildAndUploadDeliverable();
-      await publishNodeToSite(authorId, "BP-06", authorSlug, bookId ?? null, libraryAsset);
+      await publishNodeToSite(authorId, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
     } catch (e: unknown) {
