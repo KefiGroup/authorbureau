@@ -150,3 +150,26 @@ When making an architectural decision:
 **Pauline pre-rebuild state**: 0 author_nodes, 0 marketing_assets, 0 social_posts, 0 email_flows, 0 leads. 2 books preserved. 226-row backup at `/mnt/documents/pauline-pre-wipe-backup.jsonl`.
 
 **Deferred**: BP-01 / BP-03 / BP-04 / BP-09 + BA / YR builders to follow the same 4-step pattern (build blob → upload → register → publish). Library "By format" and "Recent" tabs still read legacy assets only; rewrite when ≥3 builders have adopted the contract.
+
+## Sprint 55b — BP-week builders adopt `library_asset` (2026-05-01)
+
+**Decision**: Extend the Sprint-55 reference impl to BP-01, BP-03, BP-04, BP-09 — the four remaining "Week 1" Brand Products builders — using the lightest viable shape per node.
+
+**Per-node approach**:
+- **BP-01 (Email Marketing)**: builds a TXT compilation of welcome sequence + lead magnet offer + first broadcast, uploads via `uploadAndRegisterLibraryAsset` with `kind=email_sequence`, merges `library_asset` into `content_json` before the direct status='live' write. Helper: `buildBp01Txt` in `src/lib/build-library-txt.ts`.
+- **BP-03 (Social Media)**: builds a TXT compilation of all posts + outreach kit, uploads with `kind=docx` (matches contract). `persistNodeState` extended to accept an `overrideContent` arg so the freshly-stamped asset is sent to `bp03-node-state` without React-state-update timing.
+- **BP-04 (Author Website)**: switched from direct `author_nodes.update` to `publishNodeToSite(...)` so the `deriveLibraryAsset` fallback runs and stamps `kind=external_url, url=microsite`. The author website IS the deliverable; no upload needed.
+- **BP-09 (Live Audience Toolkit)**: builds a TXT compilation of workshop + signing + corporate + shared assets. Overrides `kind=txt` (contract default `external_url` makes no sense without a microsite) so the Library UI surfaces a "Download TXT" button. PPTX exports remain on-demand via `export-bp09-slides`.
+
+**Why these shapes**: BP-04 already had a perfect public deliverable (the microsite URL); the other three lacked a single canonical file. Producing native DOCX/PPTX for each would require dedicated docx-js writers per node — deferred to a future sprint when authors request richer downloads. TXT meets the contract today and is fully readable.
+
+**Files touched**:
+- `src/lib/build-library-txt.ts` (new — three TXT builders)
+- `src/components/dashboard/builders/bp01/BP01Builder.tsx`
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+- `src/components/dashboard/builders/bp04/BP04Builder.tsx`
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+
+**Coverage**: 5 of 28 nodes now write a real `library_asset` on publish (BP-01, BP-03, BP-04, BP-06, BP-09). Remaining 23 still rely on the `deriveLibraryAsset` fallback in `save-author-node:publish`; they'll surface in the Library "By node" tab via the legacy AssetRow path until wired.
+
+**Deferred**: BP-02, BP-05, BP-07, BP-08 (rest of Brand Products) → BA-10..BA-18 → YR-19..YR-28.
