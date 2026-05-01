@@ -21,6 +21,8 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
+import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
+import { buildBp01Txt } from "@/lib/build-library-txt";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -189,6 +191,24 @@ export default function BP01Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
+      // Sprint 55: build a TXT compilation of the email kit and stamp the
+      // canonical library_asset record so it appears in the author's Library.
+      let libraryAsset: Record<string, unknown> | null = null;
+      try {
+        const txtBlob = buildBp01Txt(content, authorName, bookTitle || detectedBookTitle || "your book");
+        const safe = (bookTitle || "email-marketing").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+        const asset = await uploadAndRegisterLibraryAsset({
+          authorId: authorId!,
+          nodeId: "BP-01",
+          title: content?.lead_magnet_offer?.title || "Email Marketing Kit",
+          primary: { blob: txtBlob, filename: `${safe}-email-kit.txt`, kind: "email_sequence" },
+        });
+        libraryAsset = asset as unknown as Record<string, unknown>;
+      } catch (e) {
+        console.warn("[BP-01] library_asset upload failed, publishing without it", e);
+      }
+
+      const mergedContent = libraryAsset ? { ...content, library_asset: libraryAsset } : content;
       // Native activation: write status='live' directly to author_nodes.
       // The DB trigger autofills microsite_url; trigger_generate_asset_pack
       // fires the ABBY nurture flow on status change.
@@ -197,12 +217,12 @@ export default function BP01Builder({ authorId, bookId }: Props) {
         .update({
           status: "live",
           activated_at: new Date().toISOString(),
-          content_json: content,
+          content_json: mergedContent,
         })
         .eq("author_id", authorId)
         .eq("node_id", "BP-01");
       if (upErr) throw new Error(upErr.message || "Activation failed");
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "live" }));
+      setContent((prev: any) => ({ ...prev, ...mergedContent, activated: true, publishStatus: "live" }));
       // Fire-and-forget: ensure email sequence + funnel exist for BP-01
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-01" });
       ensureFunnel({ authorId: authorId!, nodeId: "BP-01", funnelType: "opt_in" });
