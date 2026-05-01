@@ -17,12 +17,11 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, upsertAuthorNode } from "../_shared/builder-helpers.ts";
+import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const NODE_ID = "BA-10";
+const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
 
 const AI_TIMEOUT_MS = 55_000;
 
