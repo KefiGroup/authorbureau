@@ -91,24 +91,17 @@ function extractTopLevelConsts(src) {
 }
 
 function extractInlineMessages(src) {
-  // Matches: { role: "system" | "user", content: <STRING> }
-  // where <STRING> is a backtick template literal OR a regular double-quoted string
-  // (possibly broken across lines or concatenated with `+`).
-  // Strategy: locate each { role: ... } opener, then scan from the `content:` colon
-  // forward to the matching closing `}` of the message object, then unwrap the
-  // captured string literal(s).
   const out = [];
   const headerRe = /\{\s*role\s*:\s*["'](system|user)["']\s*,\s*content\s*:\s*/g;
   let m;
   while ((m = headerRe.exec(src)) !== null) {
     const role = m[1];
     let i = headerRe.lastIndex;
-    // Scan forward, tracking string state, until we hit a top-level `,` or `}`
-    // that terminates the content value.
-    let depth = 0; // paren/bracket depth inside content expression
-    let inStr = null; // '`', '"', or "'"
+    let depth = 0; // paren/bracket depth in code regions
+    const stack = []; // string state stack: each entry is the quote char of the enclosing template literal interpolation
+    let inStr = null; // '`', '"', or "'" — null when in code
     let escape = false;
-    let start = i;
+    const start = i;
     while (i < src.length) {
       const c = src[i];
       if (inStr) {
@@ -116,8 +109,10 @@ function extractInlineMessages(src) {
         else if (c === "\\") { escape = true; }
         else if (c === inStr) { inStr = null; }
         else if (inStr === "`" && c === "$" && src[i + 1] === "{") {
-          // skip into ${...}, increment depth
+          // Enter interpolation: push current string char, switch to code mode.
+          stack.push({ quote: inStr, atDepth: depth });
           depth++;
+          inStr = null;
           i += 2;
           continue;
         }
@@ -126,18 +121,23 @@ function extractInlineMessages(src) {
         else if (c === "(" || c === "[" || c === "{") { depth++; }
         else if (c === ")" || c === "]") { depth--; }
         else if (c === "}") {
-          if (depth === 0) break; // end of message object
-          depth--;
+          // If this `}` matches a pending ${...} interpolation, restore string mode.
+          if (stack.length && depth - 1 === stack[stack.length - 1].atDepth) {
+            const frame = stack.pop();
+            depth--;
+            inStr = frame.quote;
+          } else if (depth === 0) {
+            break; // end of message object literal
+          } else {
+            depth--;
+          }
         } else if (c === "," && depth === 0) {
-          // could be end of content property — but only if next non-space token
-          // begins another property. For our purposes, treat as terminator.
           break;
         }
       }
       i++;
     }
     const expr = src.slice(start, i).trim().replace(/,\s*$/, "");
-    // Unwrap: handle `template`, "string"+"string"+..., or "string".
     const body = unwrapStringExpr(expr);
     if (body !== null) out.push({ kind: role, body });
     headerRe.lastIndex = i;
