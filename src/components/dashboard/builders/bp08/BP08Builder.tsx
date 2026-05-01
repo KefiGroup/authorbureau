@@ -95,7 +95,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     console.info("[BP-08] token resolved", { hasToken: !!token });
     if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
     const res = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp08-mastermind`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp08-special-editions`,
       {
         method: "POST",
         headers: {

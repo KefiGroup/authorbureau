@@ -107,7 +107,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
     console.info("[BP-07] token resolved", { hasToken: !!token });
     if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
     const res = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp07-coaching`,
+      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp07-home-study`,
       {
         method: "POST",
         headers: {
