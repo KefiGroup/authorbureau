@@ -430,7 +430,7 @@ Return JSON in this EXACT shape (field names matter):
 
 ## BA-17 · Bundles
 
-- **Edge function**: `supabase/functions/generate-ba17-upsells/index.ts`
+- **Edge function**: `supabase/functions/generate-ba17-bundles/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
 - **Prompt blocks extracted**: 2
@@ -989,7 +989,7 @@ Make everything specific to this author's book, niche, and audience. Never use g
 
 ## BP-06 · Online Course
 
-- **Edge function**: `supabase/functions/generate-bp06-online-course/index.ts`
+- **Edge function**: `supabase/functions/generate-bp06-workbook/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `12000`
 - **Prompt blocks extracted**: 2
@@ -1077,7 +1077,7 @@ Make everything specific to this author's book.
 
 ## BP-07 · Home Study Course
 
-- **Edge function**: `supabase/functions/generate-bp07-coaching/index.ts`
+- **Edge function**: `supabase/functions/generate-bp07-home-study/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `8192`
 - **Prompt blocks extracted**: 2
@@ -1143,7 +1143,7 @@ study_weeks must have exactly 3 items (Week 1, Week 2, Week 3). Each week must h
 
 ## BP-08 · Special Editions
 
-- **Edge function**: `supabase/functions/generate-bp08-mastermind/index.ts`
+- **Edge function**: `supabase/functions/generate-bp08-special-editions/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `8000`
 - **Prompt blocks extracted**: 2
@@ -1218,7 +1218,7 @@ editions must have exactly 3 items. Make everything specific.
 
 ## BP-09 · Speaking Decks
 
-- **Edge function**: `supabase/functions/generate-bp09-speaking/index.ts`
+- **Edge function**: `supabase/functions/generate-bp09-book-sales/index.ts`
 - **Model**: `openai/gpt-5.2`
 - **Max tokens**: `12000`
 - **Prompt blocks extracted**: 2
