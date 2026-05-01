@@ -5178,6 +5178,51 @@ export type Database = {
         }
         Relationships: []
       }
+      system_error_log: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          context: Json | null
+          created_at: string
+          function_name: string | null
+          id: string
+          message: string
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          source: string
+          stack: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          context?: Json | null
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          message: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source: string
+          stack?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          context?: Json | null
+          created_at?: string
+          function_name?: string | null
+          id?: string
+          message?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source?: string
+          stack?: string | null
+        }
+        Relationships: []
+      }
       testimonials: {
         Row: {
           author_id: string
@@ -6031,6 +6076,9 @@ export type Database = {
       }
     }
     Functions: {
+      admin_acknowledge_errors: { Args: { p_ids: string[] }; Returns: number }
+      admin_error_summary: { Args: never; Returns: Json }
+      admin_resolve_errors: { Args: { p_ids: string[] }; Returns: number }
       admin_send_broadcast: {
         Args: {
           p_audience?: string
