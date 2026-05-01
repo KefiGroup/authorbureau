@@ -9,6 +9,17 @@ _Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 Every architectural decision and the reason for it. Append-only.
 
+## 2026-05 — Uniform `library_asset` readiness contract (Sprint 54)
+
+**Decision:** Replace the per-node `hasRequiredAssets` switch with one rule: a node is 100% Live when `content_json.library_asset.url` is set AND `library_asset.kind === REQUIRED_KIND[nodeId]`. The 28-row REQUIRED_KIND table lives in `docs/02-business-rules/02-node-readiness-gates-full-spec.md`. Native files are DOCX (most nodes), PPTX (slide nodes), `audio_zip` (BA-11), `email_sequence` (BP-01), `podcast_pack` (BA-14), `external_url` (BP-04, BP-09).
+
+**Reason:** "Live" was inconsistent across builders — some checked Stripe, some checked an external connector, some had no gate at all. Authors saw nodes flip 60% ↔ Live arbitrarily (BP-06 Workbook bug). Tying readiness to a saved end-state file makes "Live" mean the same thing for every node and decouples it from commerce wiring.
+
+**Implication:** All 28 stuck-Live rows for the test author "Be SUCKcessful" were reset to `content_ready` in the same sprint. Going forward, the `save-author-node` publish action synthesises a `library_asset` from existing evidence (pdf_url, course_id, sections, etc.) and falls back to legacy gates for rows published before Sprint 54. Per-builder writes of `library_asset` will land in subsequent sprints.
+
+---
+
+
 ## 2026-04 — Stripe Express only for author payouts
 
 **Decision:** Permanently remove PayPal and Wise as payout rails. Stripe Express is the only supported rail.
