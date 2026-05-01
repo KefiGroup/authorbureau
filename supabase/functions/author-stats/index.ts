@@ -228,12 +228,13 @@ Deno.serve(async (req) => {
     // — the SAME module used by the frontend hooks. Do not inline a copy here.
 
     // Only count nodes that are truly built (status live + readiness gate).
+    const stripeConnected = !!(profile as any)?.stripe_onboarding_complete;
     const builtNodeIds = new Set<string>();
     const builtRows: Array<{ node_id: string; book_id: string | null }> = [];
     for (const n of (authorNodes || []) as any[]) {
       const isLiveStatus = n.status === "live";
       if (!isLiveStatus) continue;
-      if (!hasRequiredAssets(n.node_id, n.content_json)) continue;
+      if (!hasRequiredAssets(n.node_id, n.content_json, { stripeConnected })) continue;
       builtNodeIds.add(n.node_id);
       builtRows.push({ node_id: n.node_id, book_id: n.book_id });
     }

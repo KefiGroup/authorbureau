@@ -7,4 +7,10 @@
  *
  * DO NOT add logic here. Add it to the shared module.
  */
-export { AUTHOR_LEVEL_NODES, hasRequiredAssets, warnIfStuckLive } from "../../supabase/functions/_shared/node-readiness";
+export {
+  AUTHOR_LEVEL_NODES,
+  COMMERCE_NODES,
+  hasRequiredAssets,
+  warnIfStuckLive,
+} from "../../supabase/functions/_shared/node-readiness";
+export type { ReadinessContext } from "../../supabase/functions/_shared/node-readiness";

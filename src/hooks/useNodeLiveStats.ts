@@ -47,7 +47,7 @@ export function useNodeLiveStats(bookId?: string | null): {
       try {
         const { data: profile } = await supabase
           .from("author_profiles")
-          .select("id")
+          .select("id, stripe_onboarding_complete")
           .eq("user_id", user.id)
           .maybeSingle();
         if (!profile?.id) {
@@ -57,6 +57,7 @@ export function useNodeLiveStats(bookId?: string | null): {
           }
           return;
         }
+        const stripeConnected = !!(profile as any).stripe_onboarding_complete;
         // Always fetch ALL of the author's rows. Book scoping is applied
         // per-row below so author-level nodes (email, podcast, social, YR-*)
         // count on every book's dashboard, while book-specific products
@@ -80,7 +81,7 @@ export function useNodeLiveStats(bookId?: string | null): {
           const rawStatus: string | null = r.status ?? null;
           // Downgrade Live → content_ready if the node lacks required assets
           const effective =
-            rawStatus === "live" && !hasRequiredAssets(code, r.content_json)
+            rawStatus === "live" && !hasRequiredAssets(code, r.content_json, { stripeConnected })
               ? "content_ready"
               : rawStatus;
           const incoming: NodeLiveStats = {
