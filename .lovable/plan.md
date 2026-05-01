@@ -1,60 +1,57 @@
-# Fix BP-06 book lookup and false gating
+# What happened
 
-## What I found
-The screenshots and code point to a specific bug in the Workbook builder, not missing book data.
+Two different things are mixed up in this report. Splitting them out:
 
-Pauline's author account is valid and the data exists:
-- `author_profiles`: Pauline Teo = `92326a2f-3ed0-4873-a8cf-7a0b1350995a`
-- books owned by Pauline:
-  - `e5b857ac-48ce-4ffc-a761-3c09e95a318e` = `Be SUCKcessful`
-  - `3c65a5f1-96da-4538-80c3-7bb23fb622fb` = `Invest Like Buffett for Parents`
-- `author_context` exists for both books.
+## 1. The screenshot (authorsbureau.com → "Something went wrong")
 
-So the backend data is present.
+The screenshot is **not** the in-app preview. It's Safari, on the **published** custom domain `authorsbureau.com`. The page being shown is `GlobalErrorBoundary`'s fallback ("ABBY hit a snag — Try again / Go home"), which only renders when a React component throws **during render** somewhere inside `<AppRoutes />`.
 
-The actual problem is in the BP-06 flow:
-- `BP06Builder` uses `useAuthorBook()` for its intro gate, which calls `get-author-book` with no explicit `bookId`.
-- `get-author-book` falls back to the latest matching book when no `bookId` is supplied.
-- BP-06 `handleGenerate()` sends only `{ author_id }` to `generate-bp06-workbook`, but the generator expects `book_id` when an author has multiple books.
-- After the recent stricter per-book context rules, this can cause the builder to resolve the wrong book or no valid context for the active book, which matches your screenshots: the book header is present, but clicking Build leads to the false “Complete Book Profile” state.
+Evidence we have right now:
 
-In short: the UI knows which book page you came from, but BP-06 does not thread that active `bookId` all the way through generation and gating.
+- The in-app preview is healthy. The session replay we captured shows the homepage hero animating (motion transitions on Y-translate/opacity firing) and the directory data loaded successfully (200 on `author_profiles_public` + `books`).
+- Console only shows `Lock "lock:authorsbureau-shared-auth" acquisition timed out after 2000ms` from gotrue. That is **expected** — `src/lib/shared-backend.ts` deliberately wraps `processLock` with a 2-second fast-fail timeout and even patches `console.warn` to silence exactly this message. It does not crash anything; the cached-token fallback handles it.
+- No runtime errors are reported by the preview, no failing network calls, edge-function logs only show one unrelated `abby-execute` 500.
 
-## Plan
-1. Update `src/components/dashboard/builders/bp06/BP06Builder.tsx`
-   - Derive an `activeBookId` the same way BP-01/BP-02 already do: prefer the route/query `bookId`, then fall back to the hook only if needed.
-   - Use the active book for generation, draft restore, and publish flows.
-   - Stop using the generic/latest-book fallback for the intro gate when an explicit `bookId` is already in scope.
+So the failure is isolated to the **published bundle** at `authorsbureau.com`. Most likely cause: the published deploy is on an older or partially-deployed build that doesn't match the current source (so a chunk import throws on hydration), or one of the homepage's lazy chunks failed to load on the user's Safari session.
 
-2. Fix the BP-06 generate request
-   - Send `book_id: activeBookId` to `generate-bp06-workbook`.
-   - Preserve the existing auth-token pattern (`getActiveToken()` + `fetchWithTimeout()`), but make the request match the per-book contract used by the other builders.
+This is **not** caused by yesterday's BP-06 multi-book edit:
+- BP-06 is only loaded inside `BookBuilderRoute`, never on `/`.
+- The BP-06 file imports cleanly (verified — same imports it had before, just with `activeBookId` derived from URL params).
+- Audit confirmed no hard-coded UUIDs / emails were introduced.
 
-3. Align BP-06 local resolution with per-book behavior
-   - When hydrating local title/context in the intro screen, prefer the explicit `bookId` first instead of “latest book for this author”.
-   - Ensure the intro copy, builder state, and publish calls stay tied to the selected book rather than whichever book sorts newest.
+## 2. The "data wipe" / "books cannot be read" complaint
 
-4. Verify the backend contract remains correct
-   - Confirm `generate-bp06-workbook` already supports `book_id` and relies on per-book `author_context`.
-   - No database migration needed; this is a client-side threading bug.
+That part is a separate, real architectural problem and is what the previous Sprint 55c BP-06 patch addressed: the BP-06 builder was using a generic `useAuthorBook()` and not pinning to the `bookId` from the route, so for an author with multiple books (Pauline Teo: *Be SUCKcessful* + *Invest Like Buffett*) the gate could mis-resolve the book. That fix is in and is unaffected by what's on screen now.
 
-5. Test the author flow end-to-end
-   - From Pauline’s Book Hub, open BP-06 for `Be SUCKcessful` and confirm:
-     - the intro screen shows the builder CTA
-     - clicking Build no longer drops to “Complete Book Profile”
-     - the builder stays attached to the selected book
-   - Repeat with the second Pauline book to confirm multi-book authors work correctly.
+# Plan to fix the published site
 
-## Technical notes
-Relevant files:
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx`
-- `src/hooks/useAuthorBook.ts`
-- `supabase/functions/generate-bp06-workbook/index.ts`
-- `supabase/functions/_shared/builder-helpers.ts`
+### Step 1 — Confirm the published bundle is the failure point
+- Use `browser--navigate_to_url` to load `https://authorsbureau.com/` headless and capture: console errors, failed network requests, and the actual stack trace caught by `GlobalErrorBoundary`.
+- Compare the build hash against the preview's `BUILD_TIMESTAMP` log to tell whether published is on an older / stale deploy or a brand-new broken one.
 
-Comparison pattern already working:
-- `BP01Builder` and `BP02Builder` both compute an active book and pass `book_id` into their generator functions.
-- BP-06 is currently the outlier.
+### Step 2 — Look at what `GlobalErrorBoundary` is actually catching
+- `GlobalErrorBoundary` already stores the thrown `Error` in state, but in production builds it only shows the dev `<details>` block in `import.meta.env.DEV`. Add a one-line, prod-safe `console.error("[GlobalErrorBoundary]", error)` so the next reproduction surfaces the real message in browser console (it is currently swallowed in prod).
 
-## Expected outcome
-Pauline can enter BP-06 from an already loaded book in Book Hub and build normally, without the false “Complete Book Profile” gate and without cross-book leakage between her two books.
+### Step 3 — Harden the home route against single-component failures
+The homepage mounts these top-level components: `Navbar`, hero section, `DynamicMeetOurAuthors`, `MethodologyTrustBadge`, `Footer`, plus the always-mounted `AbbyHelpChatbot`. Today a throw in any one of them takes down the entire site.
+- Wrap `AbbyHelpChatbot` and `DynamicMeetOurAuthors` (the two data-fetching components on `/`) in small local error boundaries so a failure inside them degrades to a placeholder instead of replacing the whole page with the global fallback.
+
+### Step 4 — Re-publish
+- Once Steps 1–3 land, trigger a fresh publish so `authorsbureau.com` is rebuilt from the current source. If Step 1 confirms the issue was simply a stale/broken cached deploy, this alone will resolve the user-visible symptom; Steps 2–3 keep it from happening silently again.
+
+### Step 5 — Verify
+- Reload `authorsbureau.com` in a clean session (Safari hard reload) and confirm the homepage renders.
+- Then have the user reload the BP-06 builder for *Be SUCKcessful* (the previous concern) and confirm the "Build My Workbook" button is enabled.
+
+# Technical notes
+
+- `src/components/GlobalErrorBoundary.tsx`: add a non-DEV `console.error` of `error.message` so prod stacks aren't lost.
+- `src/pages/Index.tsx`: introduce a tiny `<SectionBoundary>` wrapper (renders `null` on error + logs) around `<DynamicMeetOurAuthors />`.
+- `src/App.tsx`: wrap `<AbbyHelpChatbot />` in the same `SectionBoundary` since it sits **outside** `<AppRoutes />` but **inside** `<GlobalErrorBoundary>` — a throw there currently nukes the whole tree.
+- No DB migrations, no edge-function changes, no changes to the BP-06 fix from Sprint 55c.
+
+# What I will NOT do
+
+- Not touch BP-06 / `useAuthorBook` again. The Sprint 55c fix is correct.
+- Not change auth, storage keys, or the shared lock — the lock-timeout warnings are intentional and already silenced in prod.
+- Not introduce any account-specific or book-specific hardcoding.
