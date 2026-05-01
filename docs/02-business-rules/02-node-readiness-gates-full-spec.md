@@ -25,7 +25,7 @@ For each of the 28 nodes, this document states the **exact** rule that `hasRequi
 | BA-10 Online Course | Title present AND (`course_id` OR ≥ 1 module OR commerce signal). |
 | BA-11 Audiobook | `narration_script_url` OR `acx_guide_generated === true` OR `chapters[]`. |
 | BA-12 Membership | Title present AND `stripe_price_id`. |
-| BA-13 Group Coaching | `sessions[]` OR `schedule` string. |
+| BA-13 Group Coaching | `sessions[]` OR `schedule` string. **Note:** Code comment says "BA-13 is a paid offer" but the rule does NOT enforce a commerce signal — known divergence. |
 | BA-14 Podcast Tour | RSS ready AND ≥ 1 episode, OR activated + ≥ 2 episodes + show title. |
 | BA-15 Media & PR | Press release (string OR object with headline + body) AND outlets list. |
 | BA-16 Affiliates | Generic gate. |

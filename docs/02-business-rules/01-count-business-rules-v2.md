@@ -8,18 +8,25 @@ _Version 3.0 · 2026-05-01_
 
 ---
 
-## 1. The Universe — 28 nodes
+## 1. The Universe — 29 IDs, 28 counted
 
-Counters across the dashboard, microsite, and admin views always denominate to **28**. (BP-00 is excluded from counters because it is the analysis step, not a revenue node.) Source: `builderNodeConfig.ts`.
+There are **29 node IDs** in the system (BP-00 through YR-28). Counters always denominate to **28** because **BP-00 (Initial Analysis) is excluded** — it is the analysis step, not a revenue node.
+
+Canonical source: `src/components/dashboard/builders/builderNodeConfig.ts` and the master registry in [`01-architecture/01-master-architecture-reference.md`](../01-architecture/01-master-architecture-reference.md) §3.
 
 ## 2. Author-level vs Book-level scoping
 
 Some nodes apply across the author's entire library (one email list, one podcast, one social presence). Others are book-specific (microsite, workbook, audiobook).
 
-- **Author-level (16 nodes)**: BP-01, BP-03, BA-14, BA-15, BA-16, BA-18, YR-19 through YR-28
-- **Book-level (12 nodes)**: BP-02, BP-04, BP-05, BP-06, BP-07, BP-08, BP-09, BA-10, BA-11, BA-12, BA-13, BA-17
+| Group | Count | IDs |
+|---|---|---|
+| Author-level | 16 | BP-01, BP-03, BA-14, BA-15, BA-16, BA-18, YR-19 through YR-28 |
+| Book-level (counted) | 12 | BP-02, BP-04, BP-05, BP-06, BP-07, BP-08, BP-09, BA-10, BA-11, BA-12, BA-13, BA-17 |
+| Book-level (uncounted) | 1 | BP-00 |
+| **Total counted** | **28** | |
+| **Total IDs** | **29** | |
 
-Defined in `AUTHOR_LEVEL_NODES` set.
+Defined in `AUTHOR_LEVEL_NODES` set in `supabase/functions/_shared/node-readiness.ts`. The author-level / book-level split for `05-author-vs-book-level-registry.md` matches this table exactly.
 
 ## 3. Two-Gate Live Rule
 
