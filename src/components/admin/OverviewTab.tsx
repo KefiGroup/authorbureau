@@ -137,12 +137,8 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {cards.map((c) => {
           const Icon = c.icon;
-          return (
-            <button
-              key={c.label}
-              onClick={c.action}
-              className="rounded-xl border border-border bg-card p-5 shadow-sm text-left hover:border-secondary/50 hover:shadow-md transition-all group"
-            >
+          const inner = (
+            <>
               <div className="flex items-center gap-3 mb-2">
                 <Icon className="h-5 w-5 text-muted-foreground group-hover:text-secondary transition-colors" />
                 <span className="text-sm text-muted-foreground">{c.label}</span>
@@ -153,6 +149,25 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
                 )}
               </div>
               <p className="text-3xl font-bold font-heading">{c.value}</p>
+            </>
+          );
+          if (!c.action) {
+            return (
+              <div
+                key={c.label}
+                className="rounded-xl border border-border bg-card p-5 shadow-sm"
+              >
+                {inner}
+              </div>
+            );
+          }
+          return (
+            <button
+              key={c.label}
+              onClick={c.action}
+              className="rounded-xl border border-border bg-card p-5 shadow-sm text-left hover:border-secondary/50 hover:shadow-md transition-all group"
+            >
+              {inner}
             </button>
           );
         })}
@@ -281,6 +296,11 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
           <Button variant="outline" size="sm" onClick={() => onNavigate("reading-club")}>
             <BookOpen className="h-4 w-4 mr-1.5" /> Reading Club
           </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/content-quality">
+              <FileSearch className="h-4 w-4 mr-1.5" /> Content Quality Log
+            </Link>
+          </Button>
         </div>
       </div>
 
@@ -288,7 +308,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-heading font-semibold text-sm text-muted-foreground uppercase tracking-wider">Recent Submissions</h3>
-            <Button variant="ghost" size="sm" onClick={() => onNavigate("submissions")} className="text-xs">
+            <Button variant="ghost" size="sm" onClick={() => onNavigate("books", "pending")} className="text-xs">
               View all <ArrowRight className="h-3 w-3 ml-1" />
             </Button>
           </div>
