@@ -185,25 +185,32 @@ describe("COMMERCE_NODES set", () => {
   });
 });
 
-describe("hasRequiredAssets — Stripe gate for commerce nodes", () => {
-  // Build a YR-19 fixture that would otherwise pass.
+describe("hasRequiredAssets — Stripe Express never gates Live status", () => {
+  // Authors Bureau is Merchant of Record. Author Stripe Express connection
+  // is a back-office payout-method decision and must NEVER affect commerce
+  // readiness or the X / 28 Live count.
   const goodYR19 = {
     title: "1:1 Coaching",
     stripe_price_id: "price_abc",
     session_type: "discovery_call",
   };
-  it("accepts when stripeConnected omitted (back-compat)", () => {
+  const goodBP06 = { title: "WB", stripe_price_id: "price_x" };
+  const goodYR22 = { title: "Corporate Training", price_usd: 5000, session_type: "cohort" };
+
+  it("commerce node passes with no ctx", () => {
     expect(hasRequiredAssets("YR-19", goodYR19)).toBe(true);
+    expect(hasRequiredAssets("BP-06", goodBP06)).toBe(true);
+    expect(hasRequiredAssets("YR-22", goodYR22)).toBe(true);
   });
-  it("accepts when stripeConnected:true", () => {
-    expect(hasRequiredAssets("YR-19", goodYR19, { stripeConnected: true })).toBe(true);
+  it("ignores any legacy stripeConnected:false flag (no longer gates)", () => {
+    expect(hasRequiredAssets("YR-19", goodYR19, { stripeConnected: false } as any)).toBe(true);
+    expect(hasRequiredAssets("BP-06", goodBP06, { stripeConnected: false } as any)).toBe(true);
+    expect(hasRequiredAssets("YR-22", goodYR22, { stripeConnected: false } as any)).toBe(true);
   });
-  it("rejects when stripeConnected:false (the new gate we're guarding)", () => {
-    expect(hasRequiredAssets("YR-19", goodYR19, { stripeConnected: false })).toBe(false);
-  });
-  it("does NOT apply Stripe gate to non-commerce nodes (BP-01)", () => {
+  it("non-commerce node still passes regardless of any ctx", () => {
     const bp01 = { email_sequence_id: "seq_1", steps: [{ subject: "Hi" }] };
-    expect(hasRequiredAssets("BP-01", bp01, { stripeConnected: false })).toBe(true);
+    expect(hasRequiredAssets("BP-01", bp01)).toBe(true);
+    expect(hasRequiredAssets("BP-01", bp01, { stripeConnected: false } as any)).toBe(true);
   });
 });
 
@@ -256,13 +263,8 @@ describe("hasRequiredAssets — BP-06 Workbook", () => {
   });
   it("accepts title + stripe_price_id (commerce signal)", () => {
     expect(
-      hasRequiredAssets("BP-06", { title: "WB", stripe_price_id: "price_x" }, { stripeConnected: true })
+      hasRequiredAssets("BP-06", { title: "WB", stripe_price_id: "price_x" })
     ).toBe(true);
-  });
-  it("rejects when stripeConnected:false even with stripe_price_id", () => {
-    expect(
-      hasRequiredAssets("BP-06", { title: "WB", stripe_price_id: "price_x" }, { stripeConnected: false })
-    ).toBe(false);
   });
 });
 
@@ -340,20 +342,12 @@ describe("hasRequiredAssets — BA-12 Membership", () => {
 describe("hasRequiredAssets — BA-17 Bundles", () => {
   it("rejects bundle of one item", () => {
     expect(
-      hasRequiredAssets(
-        "BA-17",
-        { title: "Bundle", price_usd: 99, items: [{ id: "a" }] },
-        { stripeConnected: true },
-      )
+      hasRequiredAssets("BA-17", { title: "Bundle", price_usd: 99, items: [{ id: "a" }] })
     ).toBe(false);
   });
   it("accepts ≥2 items + commerce signal", () => {
     expect(
-      hasRequiredAssets(
-        "BA-17",
-        { title: "Bundle", price_usd: 99, items: [{ id: "a" }, { id: "b" }] },
-        { stripeConnected: true },
-      )
+      hasRequiredAssets("BA-17", { title: "Bundle", price_usd: 99, items: [{ id: "a" }, { id: "b" }] })
     ).toBe(true);
   });
 });
@@ -361,11 +355,7 @@ describe("hasRequiredAssets — BA-17 Bundles", () => {
 describe("hasRequiredAssets — YR nodes (generic + session-style)", () => {
   it("YR-20 (non-session): accepts title + commerce", () => {
     expect(
-      hasRequiredAssets(
-        "YR-20",
-        { title: "VIP Day", price_usd: 5000 },
-        { stripeConnected: true },
-      )
+      hasRequiredAssets("YR-20", { title: "VIP Day", price_usd: 5000 })
     ).toBe(true);
   });
   it("YR-20: rejects title alone", () => {
@@ -373,29 +363,17 @@ describe("hasRequiredAssets — YR nodes (generic + session-style)", () => {
   });
   it("YR-19 (session-style): rejects title + commerce WITHOUT session_type/booking_url", () => {
     expect(
-      hasRequiredAssets(
-        "YR-19",
-        { title: "Coaching", price_usd: 1500 },
-        { stripeConnected: true },
-      )
+      hasRequiredAssets("YR-19", { title: "Coaching", price_usd: 1500 })
     ).toBe(false);
   });
   it("YR-19: accepts title + commerce + session_type", () => {
     expect(
-      hasRequiredAssets(
-        "YR-19",
-        { title: "Coaching", price_usd: 1500, session_type: "discovery" },
-        { stripeConnected: true },
-      )
+      hasRequiredAssets("YR-19", { title: "Coaching", price_usd: 1500, session_type: "discovery" })
     ).toBe(true);
   });
   it("YR-23 mastermind: accepts title + commerce + booking_url", () => {
     expect(
-      hasRequiredAssets(
-        "YR-23",
-        { title: "MM", stripe_price_id: "price_x", booking_url: "https://book/x" },
-        { stripeConnected: true },
-      )
+      hasRequiredAssets("YR-23", { title: "MM", stripe_price_id: "price_x", booking_url: "https://book/x" })
     ).toBe(true);
   });
 });

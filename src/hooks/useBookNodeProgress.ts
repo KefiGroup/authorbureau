@@ -90,13 +90,12 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
       try {
         const { data: profile } = await supabase
           .from("author_profiles")
-          .select("id, author_slug, stripe_onboarding_complete")
+          .select("id, author_slug")
           .eq("user_id", user.id)
           .maybeSingle();
 
         const map: Record<string, "completed" | "in-progress"> = {};
         if (profile?.id) {
-          const stripeConnected = !!(profile as any).stripe_onboarding_complete;
           // Always fetch ALL of the author's nodes. We then apply scoping
           // per-row so author-level nodes (email, podcast, social, YR-*)
           // count on every book hub, while book-specific products only
@@ -115,7 +114,9 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
             // Use the shared readiness gate so Book Hub tile state matches
             // the Live-badge logic in useNodeLiveStats. Adding a new gated
             // node? Update src/lib/node-readiness.ts in one place.
-            const passesGate = hasRequiredAssets(n.node_id, n.content_json, { stripeConnected });
+            // Stripe Express connection is NOT consulted: payout setup is
+            // admin-side only — Authors Bureau is Merchant of Record.
+            const passesGate = hasRequiredAssets(n.node_id, n.content_json);
             const isLiveStatus = n.status === "live";
             if (isLiveStatus && passesGate) {
               map[n.node_id] = "completed";
