@@ -234,7 +234,20 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button>
               </>
-              ) : (<><p className="text-muted-foreground mb-4">Hi {authorName}! Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> Design My Special Editions</Button></>)}
+              ) : (<>
+                {selectedOccasion && (
+                  <div className="mb-4 rounded-xl border border-secondary/40 bg-secondary/5 p-3 flex items-center gap-3">
+                    <span className="text-2xl leading-none" aria-hidden>{selectedOccasion.emoji}</span>
+                    <div className="text-sm">
+                      <p className="font-semibold text-foreground">Designing your {selectedOccasion.label} edition</p>
+                      <p className="text-xs text-muted-foreground">Peak window {selectedOccasion.peakWindow} · launch ~{selectedOccasion.launchWindowWeeks} weeks out</p>
+                    </div>
+                  </div>
+                )}
+                <p className="text-muted-foreground mb-4">Hi {authorName}! {selectedOccasion ? `I'll design 3 themed ${selectedOccasion.label} edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}', from a signed gift copy to a VIP collector's package - all timed for the ${selectedOccasion.label} buying window.` : `Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' - from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts.`} Ready?</p>
+                <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div>
+                <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> {selectedOccasion ? `Design My ${selectedOccasion.label} Edition` : "Design My Special Editions"}</Button>
+              </>)}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
