@@ -21,11 +21,12 @@ import AdminPayoutsDashboard from "@/components/admin/AdminPayoutsDashboard";
 import NodeGatingTab from "@/components/admin/NodeGatingTab";
 import AdminNotificationBell from "@/components/admin/AdminNotificationBell";
 import AuditLogTab from "@/components/admin/AuditLogTab";
-import { FileSearch } from "lucide-react";
+import ErrorsTab from "@/components/admin/ErrorsTab";
+import { FileSearch, AlertOctagon } from "lucide-react";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating" | "audit";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating" | "audit" | "errors";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
