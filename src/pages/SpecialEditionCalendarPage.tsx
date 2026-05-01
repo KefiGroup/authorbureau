@@ -14,7 +14,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
-import { Zap, ArrowRight, CalendarDays } from "lucide-react";
+import { Zap, ArrowRight, CalendarDays, MousePointerClick, Sparkles, Library, Package } from "lucide-react";
 
 type OccasionStatus = "not-started" | "drafted" | "live-portal" | "live-amazon";
 
