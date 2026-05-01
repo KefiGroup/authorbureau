@@ -1,6 +1,6 @@
 # 04 · ABBY Content Generation Prompts
 
-_Version 3.0 · 2026-05-01_
+_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 **Source(s) of truth:**
 - `supabase/functions/generate-email-sequence/index.ts`

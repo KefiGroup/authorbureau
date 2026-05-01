@@ -1,6 +1,6 @@
 # 01 · AB Master Architecture Reference
 
-_Version 3.4 · 2026-05-01 · single source of truth_
+_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 **Source(s) of truth:**
 - `src/components/dashboard/builders/builderNodeConfig.ts` (canonical node IDs + labels)

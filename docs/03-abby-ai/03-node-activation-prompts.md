@@ -1,6 +1,6 @@
 # 03 · ABBY Node Activation Prompts
 
-_Version 2.0 · 2026-05-01_
+_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 For every node builder shipped to date, this document records the **exact prompt(s)** the corresponding edge function sends to the Lovable AI Gateway when the author activates that node.
 

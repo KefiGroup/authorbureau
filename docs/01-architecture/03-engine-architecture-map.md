@@ -1,6 +1,6 @@
 # 04 · AB Engine Architecture Map
 
-_Version 1.0 · 2026-05-01_
+_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 The Authors Bureau backend is organized into **7 cooperating engines**. Each section below describes what the engine does, the database tables it owns or reads, the external services it calls, and the key edge functions that implement it.
 
