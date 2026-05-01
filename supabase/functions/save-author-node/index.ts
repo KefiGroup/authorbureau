@@ -193,6 +193,7 @@ Deno.serve(async (req: Request) => {
     content?: Record<string, unknown>;
     currentStep?: number;
     micrositeUrl?: string | null;
+    libraryAsset?: Record<string, unknown> | null;
   };
   try {
     body = await req.json();
@@ -201,7 +202,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = body.action ?? "save";
-  const { authorId, nodeId, nodeName, content, currentStep, bookId, micrositeUrl } = body;
+  const { authorId, nodeId, nodeName, content, currentStep, bookId, micrositeUrl, libraryAsset } = body;
 
   // list-audio uses authorId + bookId only — nodeId is not required.
   if (action === "list-audio") {
