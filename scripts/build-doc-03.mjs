@@ -91,17 +91,108 @@ function extractTopLevelConsts(src) {
 }
 
 function extractInlineMessages(src) {
-  // Matches: { role: "system" | "user", content: `...` }
-  // Tolerates whitespace & either single/double quotes around the role value.
-  const re = /\{\s*role\s*:\s*["'](system|user)["']\s*,\s*content\s*:\s*`([\s\S]*?)`\s*\}/g;
+  // Matches: { role: "system" | "user", content: <STRING> }
+  // where <STRING> is a backtick template literal OR a regular double-quoted string
+  // (possibly broken across lines or concatenated with `+`).
+  // Strategy: locate each { role: ... } opener, then scan from the `content:` colon
+  // forward to the matching closing `}` of the message object, then unwrap the
+  // captured string literal(s).
   const out = [];
+  const headerRe = /\{\s*role\s*:\s*["'](system|user)["']\s*,\s*content\s*:\s*/g;
   let m;
-  while ((m = re.exec(src)) !== null) {
-    const [, role, body] = m;
-    out.push({ kind: role, body });
+  while ((m = headerRe.exec(src)) !== null) {
+    const role = m[1];
+    let i = headerRe.lastIndex;
+    // Scan forward, tracking string state, until we hit a top-level `,` or `}`
+    // that terminates the content value.
+    let depth = 0; // paren/bracket depth inside content expression
+    let inStr = null; // '`', '"', or "'"
+    let escape = false;
+    let start = i;
+    while (i < src.length) {
+      const c = src[i];
+      if (inStr) {
+        if (escape) { escape = false; }
+        else if (c === "\\") { escape = true; }
+        else if (c === inStr) { inStr = null; }
+        else if (inStr === "`" && c === "$" && src[i + 1] === "{") {
+          // skip into ${...}, increment depth
+          depth++;
+          i += 2;
+          continue;
+        }
+      } else {
+        if (c === "`" || c === '"' || c === "'") { inStr = c; }
+        else if (c === "(" || c === "[" || c === "{") { depth++; }
+        else if (c === ")" || c === "]") { depth--; }
+        else if (c === "}") {
+          if (depth === 0) break; // end of message object
+          depth--;
+        } else if (c === "," && depth === 0) {
+          // could be end of content property — but only if next non-space token
+          // begins another property. For our purposes, treat as terminator.
+          break;
+        }
+      }
+      i++;
+    }
+    const expr = src.slice(start, i).trim().replace(/,\s*$/, "");
+    // Unwrap: handle `template`, "string"+"string"+..., or "string".
+    const body = unwrapStringExpr(expr);
+    if (body !== null) out.push({ kind: role, body });
+    headerRe.lastIndex = i;
   }
   return out;
 }
+
+function unwrapStringExpr(expr) {
+  expr = expr.trim();
+  // Single template literal
+  if (expr.startsWith("`") && expr.endsWith("`")) {
+    return expr.slice(1, -1);
+  }
+  // Single double-quoted string
+  if (expr.startsWith('"') && expr.endsWith('"') && !expr.slice(1, -1).includes('"')) {
+    return JSON.parse(expr);
+  }
+  // Concatenation of string literals (e.g. "a" + "b" + `c`)
+  // Split on `+` outside of strings.
+  const parts = [];
+  let buf = "";
+  let inStr = null;
+  let escape = false;
+  for (let j = 0; j < expr.length; j++) {
+    const c = expr[j];
+    if (inStr) {
+      buf += c;
+      if (escape) escape = false;
+      else if (c === "\\") escape = true;
+      else if (c === inStr) inStr = null;
+    } else if (c === "`" || c === '"' || c === "'") {
+      inStr = c; buf += c;
+    } else if (c === "+") {
+      parts.push(buf.trim()); buf = "";
+    } else {
+      buf += c;
+    }
+  }
+  if (buf.trim()) parts.push(buf.trim());
+  if (parts.length === 0) return null;
+  let joined = "";
+  for (const p of parts) {
+    if (p.startsWith("`") && p.endsWith("`")) joined += p.slice(1, -1);
+    else if (p.startsWith('"') && p.endsWith('"')) {
+      try { joined += JSON.parse(p); } catch { joined += p.slice(1, -1); }
+    } else if (p.startsWith("'") && p.endsWith("'")) {
+      joined += p.slice(1, -1);
+    } else {
+      // Non-string expression (e.g. a variable) — emit a marker.
+      joined += `\${${p}}`;
+    }
+  }
+  return joined;
+}
+
 
 function extractModel(src) {
   const m = src.match(/model\s*:\s*["']([^"']+)["']/);
