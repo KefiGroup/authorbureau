@@ -1,58 +1,36 @@
-## Sprint 54 — Close Final Reconciliation Drift
+## Problem
 
-Closes the two items deferred from Sprint 53.2's 100% reconciliation pass. Verified via live DB + code search:
+On `/dashboard`, the ABBY Journey Framework infographic appears **twice**:
 
-- `ghl_deployments` table **already dropped** — code references will throw if invoked.
-- `author_payout_settings` has 4 vestigial PayPal/payout columns; all rows confirmed clean (zero non-Stripe values).
-- Both target edge functions (`get-deployments`, `provision-orphan-authors`) have **zero callers** in `src/` or `supabase/functions/`.
+1. Inside `JourneyMapCTA` (the gold gradient card with the "Your book is the HOOK" tagline + dynamic CTA buttons)
+2. As a standalone `Your Journey Ahead` section directly below it
 
-### 1. Database migration — drop vestigial columns
+Both currently render the **same** v7 staircase image (`abby_journey_staircase_v7.webp` / `/images/journey-staircase.webp` — they are byte-identical, 93,750 B). On top of that, v7 is no longer the canonical framework artwork — the documentation framework calls for `abby_journey_framework_v14_bby.webp` (BRAND/BUILD/YIELD).
 
-Single migration on `public.author_payout_settings`:
+## Fix
 
-```
-ALTER TABLE public.author_payout_settings
-  DROP COLUMN IF EXISTS payout_method,
-  DROP COLUMN IF EXISTS paypal_email,
-  DROP COLUMN IF EXISTS paypal_email_v2;
-```
+Two surgical edits to one file plus one image swap in another:
 
-Safe because:
-- `SELECT count(*) ... WHERE paypal_email IS NOT NULL OR payout_method <> 'stripe'` returned **0**.
-- Code-wide `rg` for these column names returned **no hits**.
-- Aligns schema with the locked "Stripe Express only" payout rail.
+### 1. `src/components/dashboard/ABBYFrameworkDashboard.tsx`
+Remove the entire standalone "Your Journey Ahead" section (lines 400–409 — the `<section>` block containing the `<h2>` and the `<img src="/images/journey-staircase.webp" />`). Keep the `JourneyMapCTA` above it and the `Understanding Your 28 Revenue Streams` collapsible below it.
 
-### 2. Remove dead edge functions
+After removal the order becomes:
+- MultiBookPicker (if >1 book)
+- JourneyMapCTA  ← the only place the framework image appears
+- Monetization Universe + 28-streams flow diagram (collapsible)
+- (rest unchanged)
 
-Delete (code + deployed):
-- `supabase/functions/get-deployments/` — only reads the dropped `ghl_deployments` table; no callers.
-- `supabase/functions/provision-orphan-authors/` — one-off backfill script for 3 named legacy users; references dropped table in its `AUTHOR_ID_TABLES` list; no callers.
+### 2. `src/components/dashboard/framework-dashboard/JourneyMapCTA.tsx`
+Replace the import on line 4:
+- from: `import staircaseImg from "@/assets/abby_journey_staircase_v7.webp";`
+- to:   `import frameworkImg from "@/assets/abby_journey_framework_v14_bby.webp";`
 
-Use `supabase--delete_edge_functions` to remove them from the deployed runtime, and remove their entries from `supabase/config.toml`.
+Update the `<img>` on lines 57–61 to use `frameworkImg` and refresh the alt text to: `"The ABBY Journey Framework — Brand, Build, Yield"`.
 
-### 3. Documentation updates
+(The v14 asset already exists in `src/assets/`, so no upload is needed.)
 
-- Update `docs/05-sprint-records/01-sprint-log-master.md` — add Sprint 54 entry summarizing the cleanup.
-- Update `docs/05-sprint-records/06-reconciliation-matrix-2026-05-01.md` — flip the two "Deferred — Sprint 54" rows to "Resolved — Sprint 54".
-- Regenerate the Master Documentation artifacts:
-  - `AB_Master_Documentation_v3.8.pdf`
-  - `authors-bureau-docs-v3.8.zip`
+### 3. No other call sites need changes
+Other usages of the v7 staircase / framework imagery (`HowItWorks.tsx`, `ABBYFrameworkArticle.tsx`, public `Index.tsx`) are out of scope for this dashboard duplication report and use their own contextually-appropriate variants.
 
-### 4. Verification
-
-After applying:
-- Re-run `rg "ghl_deployments|paypal_email|payout_method"` → expect zero hits.
-- Confirm `author_payout_settings` schema has only Stripe-relevant columns.
-- Confirm `supabase/config.toml` function count drops from 69 → 67.
-
-### Out of scope
-
-- No UI changes (already cleaned in Sprint 53.2).
-- No changes to commerce, payout transfer logic, or RLS policies.
-- No touching the 28-node framework, prompts, or ABBY engines.
-
-### Deliverables
-
-- 1 migration (3-column drop)
-- 2 edge functions deleted (code + runtime + config.toml)
-- 2 docs updated, 2 artifacts regenerated (v3.8 PDF + ZIP)
+## Verification
+After the change, visit `/dashboard` — the framework infographic appears exactly once, inside the gold "Your book is the HOOK" card, using the v14 BBY artwork. The "Understanding Your 28 Revenue Streams" collapsible and Monetization Universe remain directly below.
