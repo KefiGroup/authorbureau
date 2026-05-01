@@ -14,7 +14,7 @@
  * Fix the file, re-run, and the build is safe again.
  */
 import { describe, it, expect } from "vitest";
-import { META as BUILDER_META } from "@/components/dashboard/builders/builderNodeConfig";
+import { ALL_BUILDER_NODES } from "@/components/dashboard/builders/builderNodeConfig";
 import { CANONICAL_NODE_LABELS } from "../../../supabase/functions/_shared/canonical-node-labels";
 import { NODE_SLUG_MAP } from "@/lib/node-slug-map";
 
@@ -26,7 +26,7 @@ const EXPECTED_IDS = [
 
 describe("canonical node labels parity (Sprint 51)", () => {
   it("exposes exactly 28 node IDs from the UI source of truth", () => {
-    const ids = BUILDER_META.map((m) => m.id).filter((id) => /^(BP|BA|YR)-\d+$/.test(id));
+    const ids = ALL_BUILDER_NODES.map((m) => m.id).filter((id) => /^(BP|BA|YR)-\d+$/.test(id));
     expect(ids.sort()).toEqual([...EXPECTED_IDS].sort());
   });
 
@@ -36,7 +36,7 @@ describe("canonical node labels parity (Sprint 51)", () => {
 
   it("agrees on the canonical label between UI and edge maps for every node", () => {
     for (const id of EXPECTED_IDS) {
-      const uiLabel = BUILDER_META.find((m) => m.id === id)?.label;
+      const uiLabel = ALL_BUILDER_NODES.find((m) => m.id === id)?.label;
       const edgeLabel = CANONICAL_NODE_LABELS[id];
       expect(uiLabel, `${id} missing from builderNodeConfig`).toBeDefined();
       expect(edgeLabel, `${id} missing from canonical-node-labels`).toBeDefined();
