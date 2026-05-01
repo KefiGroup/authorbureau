@@ -26,7 +26,7 @@ export interface BuilderNodeMeta {
   category: BuilderCategory;
 }
 
-// Single source of truth for all 30 nodes.
+// Single source of truth for all 28 nodes.
 const META: BuilderNodeMeta[] = [
   // Brand Products (BP) — category "build"
   { id: "BP-01", label: "Email Marketing", icon: "Mail", emoji: "📧", category: "build" },

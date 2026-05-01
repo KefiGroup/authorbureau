@@ -21,7 +21,7 @@ If a downstream doc disagrees with the master architecture reference, the downst
 | 01 | [Architecture](./01-architecture/) | What is built and why — the system at the highest level |
 | 02 | [Business Rules](./02-business-rules/) | How the system counts and decides — the rules that prevent bugs |
 | 03 | [ABBY AI](./03-abby-ai/) | What ABBY says and does — the most fragile and most valuable IP |
-| 04 | [Node Frameworks](./04-node-frameworks/) | One document per node (28 + BP-00 = 29 total) |
+| 04 | [Node Frameworks](./04-node-frameworks/) | One document per node (28 total). `BP-00` is an internal pre-step, not a node. |
 | 05 | [Sprint Records](./05-sprint-records/) | What was built, when, and why — the audit trail |
 | 06 | [User Experience](./06-user-experience/) | What the author and reader actually see |
 

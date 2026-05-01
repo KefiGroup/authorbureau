@@ -11,7 +11,7 @@ _Version 3.1 · 2026-05-01_
 
 ---
 
-Each of the 28 nodes (BP-00 is the analysis step and not counted) has its own framework document below. Every doc follows the same 7-section template defined by Manus:
+Each of the 28 nodes has its own framework document below. (`BP-00` is an internal book-analysis pre-step, not a node — see [master reference §3a](../01-architecture/01-master-architecture-reference.md).) Every doc follows the same 7-section template defined by Manus:
 
 1. **What it is** — plain-English description
 2. **What ABBY builds** — engine(s), edge function, data shape

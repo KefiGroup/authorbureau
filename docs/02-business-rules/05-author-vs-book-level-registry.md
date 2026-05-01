@@ -38,11 +38,10 @@ This affects:
 | YR-27 | Fundraising | Author's fundraising offers |
 | YR-28 | Sponsors | Author's sponsorship deck |
 
-## Book-level (12 counted + BP-00 uncounted)
+## Book-level (12)
 
 | ID | Label | Rationale | Counted in "X / 28 Live" |
 |---|---|---|---|
-| BP-00 | Initial Analysis | Per-book AI analysis | **No** (analysis step) |
 | BP-02 | Lead Magnet | Tied to the book's themes | Yes |
 | BP-04 | Author Website | The book's microsite | Yes |
 | BP-05 | Webinars | Book-specific webinar topic | Yes |
@@ -56,6 +55,8 @@ This affects:
 | BA-13 | Group Coaching | Book-specific cohort | Yes |
 | BA-17 | Bundles | Book-specific bundles | Yes |
 
-**Totals:** 12 book-level counted + 16 author-level counted = **28**. BP-00 brings the total ID count to **29** but is excluded from counters.
+**Totals:** 12 book-level + 16 author-level = **28 nodes**.
+
+> `BP-00` (`generate-bp00-analysis`) is an internal per-book analysis pre-step, not a node. It has no `author_nodes` row, no builder UI, and no Live status. See master reference §3a.
 
 This matches the table in [`01-count-business-rules-v2.md`](./01-count-business-rules-v2.md) and the master registry in [`01-architecture/01-master-architecture-reference.md`](../01-architecture/01-master-architecture-reference.md) §3.

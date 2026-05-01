@@ -8,11 +8,13 @@ _Version 3.0 · 2026-05-01_
 
 ---
 
-## 1. The Universe — 29 IDs, 28 counted
+## 1. The Universe — 28 nodes
 
-There are **29 node IDs** in the system (BP-00 through YR-28). Counters always denominate to **28** because **BP-00 (Initial Analysis) is excluded** — it is the analysis step, not a revenue node.
+There are exactly **28 revenue nodes** in the system: BP-01 → BP-09, BA-10 → BA-18, YR-19 → YR-28. Every counter denominates to **28**.
 
 Canonical source: `src/components/dashboard/builders/builderNodeConfig.ts` and the master registry in [`01-architecture/01-master-architecture-reference.md`](../01-architecture/01-master-architecture-reference.md) §3.
+
+> **Note on `BP-00`:** `generate-bp00-analysis` is an internal pre-step that writes the per-book `author_context` row consumed by every framework generator. It is NOT a node — no builder UI, no `author_nodes` row, no readiness gate, no Live status. See master reference §3a. Never count it.
 
 ## 2. Author-level vs Book-level scoping
 
@@ -21,10 +23,8 @@ Some nodes apply across the author's entire library (one email list, one podcast
 | Group | Count | IDs |
 |---|---|---|
 | Author-level | 16 | BP-01, BP-03, BA-14, BA-15, BA-16, BA-18, YR-19 through YR-28 |
-| Book-level (counted) | 12 | BP-02, BP-04, BP-05, BP-06, BP-07, BP-08, BP-09, BA-10, BA-11, BA-12, BA-13, BA-17 |
-| Book-level (uncounted) | 1 | BP-00 |
-| **Total counted** | **28** | |
-| **Total IDs** | **29** | |
+| Book-level | 12 | BP-02, BP-04, BP-05, BP-06, BP-07, BP-08, BP-09, BA-10, BA-11, BA-12, BA-13, BA-17 |
+| **Total** | **28** | |
 
 Defined in `AUTHOR_LEVEL_NODES` set in `supabase/functions/_shared/node-readiness.ts`. The author-level / book-level split for `05-author-vs-book-level-registry.md` matches this table exactly.
 
