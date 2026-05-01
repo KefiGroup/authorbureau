@@ -259,10 +259,28 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      const libraryAsset = await buildAndUploadDeliverable();
+      // Sprint 55c — surface upload failures instead of silently publishing
+      // without a library_asset (which leaves the workbook missing from the Library).
+      let libraryAsset: Awaited<ReturnType<typeof buildAndUploadDeliverable>> = null;
+      try {
+        libraryAsset = await buildAndUploadDeliverable({ silent: true });
+      } catch (uploadErr) {
+        const msg = (uploadErr as Error)?.message || "Upload failed";
+        console.error("[BP-06] publish: library upload failed", uploadErr);
+        toast.error("Couldn't save workbook to your Library", {
+          description: `${msg}. Publish was cancelled — try again or contact support.`,
+          duration: 14000,
+        });
+        setError(msg);
+        setStep(2);
+        return;
+      }
       await publishNodeToSite(authorId!, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      toast.success("Workbook published to your site", {
+        description: "Saved to My Library and live on your author page.",
+      });
     } catch (e: unknown) {
       if (e instanceof StripeRequiredError) {
         setStripeModalOpen(true);
@@ -283,10 +301,26 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      const libraryAsset = await buildAndUploadDeliverable();
+      let libraryAsset: Awaited<ReturnType<typeof buildAndUploadDeliverable>> = null;
+      try {
+        libraryAsset = await buildAndUploadDeliverable({ silent: true });
+      } catch (uploadErr) {
+        const msg = (uploadErr as Error)?.message || "Upload failed";
+        console.error("[BP-06] publish (free): library upload failed", uploadErr);
+        toast.error("Couldn't save workbook to your Library", {
+          description: `${msg}. Publish was cancelled — try again or contact support.`,
+          duration: 14000,
+        });
+        setError(msg);
+        setStep(2);
+        return;
+      }
       await publishNodeToSite(authorId, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      toast.success("Workbook published to your site", {
+        description: "Saved to My Library and live on your author page.",
+      });
     } catch (e: unknown) {
       setError((e as Error).message);
       setStep(2);
