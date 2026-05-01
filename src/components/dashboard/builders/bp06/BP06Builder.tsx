@@ -151,7 +151,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   }, [step, content?.activated]);
 
   const handleGenerate = async () => {
-    console.info("[BP-06] generate clicked", { authorId });
+    console.info("[BP-06] generate clicked", { authorId, activeBookId });
     setStep(1); setError(null);
     try {
       let token = await getActiveToken();
@@ -169,7 +169,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             Authorization: `Bearer ${token}`,
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ author_id: authorId }),
+          body: JSON.stringify({ author_id: authorId, book_id: activeBookId }),
         },
         180_000,
       );
@@ -178,7 +178,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       setContent(data.content);
       setStep(2);
       // Autosave so refresh restores the review step (matches BA-10 behaviour).
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: data.content, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: data.content, currentStep: 2, bookId: activeBookId });
     } catch (e: unknown) {
       const msg = toAbbyError((e as Error)?.message || "Generation failed");
       console.error("[BP-06] generate failed", e);
