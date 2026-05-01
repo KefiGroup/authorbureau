@@ -372,13 +372,18 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       return true;
     }
 
-    default:
-      // Generic gate: any object with at least one key passes. Used for the
-      // small remainder of nodes (BP-02 lead magnets, BP-05 webinars,
-      // BP-08 special editions, BA-16 affiliates, BA-18 JV) where richer
-      // builders write substantial content_json on save and per-shape gates
-      // would create more false negatives than they prevent.
-      return Object.keys(content).length > 0;
+    default: {
+      // Generic legacy gate: any object with at least one *substantive* key
+      // passes. We exclude `library_asset` from the count so a stale or
+      // mismatched-kind library_asset cannot accidentally satisfy the gate
+      // for nodes (BP-02, BP-05, BP-08, BA-16, BA-18) that have no
+      // dedicated legacy rule. The uniform-contract check above is the
+      // correct path for these nodes once builders are wired.
+      const keys = Object.keys(content).filter(
+        (k) => k !== "library_asset" && k !== "library_asset_history",
+      );
+      return keys.length > 0;
+    }
   }
 }
 
