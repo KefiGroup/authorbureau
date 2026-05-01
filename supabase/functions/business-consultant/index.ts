@@ -2080,7 +2080,7 @@ PHASE 3 — BRIDGE (Deployment):
 Provide three deployment paths:
 
 1. Design Your Keynote Deck with Manus (Recommended):
-Say: "Your speaking kit is ready. A world-class keynote needs a world-class slide deck. Let's build it."
+Say: "Your Speaking package is ready. A world-class keynote needs a world-class slide deck. Let's build it."
 Action: Package the SLIDE DECK OUTLINE from Phase 2.
 Instruction for User: "Send the generated outline to Manus with the prompt: 'Design my keynote presentation deck using this outline.'"
 

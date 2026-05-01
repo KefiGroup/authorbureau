@@ -108,7 +108,7 @@ export default function Index() {
             </motion.p>
 
             <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70">
-              Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking kits, memberships, and 24 more income streams, automatically. No business experience needed.
+              Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking topics, memberships, and 24 more income streams, automatically. No business experience needed.
             </motion.p>
 
             <motion.p variants={fadeUp} custom={3} className="mb-8 text-sm text-secondary font-semibold">

@@ -1,7 +1,7 @@
 /**
  * @deprecated Sprint 41 — Authors Bureau is now the Merchant of Record.
- * Authors no longer connect their own Stripe; they configure Wise/PayPal payouts
- * in Account Settings → Payouts. This component now delegates to RequirePayoutSetup.
+ * Authors connect Stripe Express in Account Settings → Payouts to receive their 92% payout
+ * (Sprint 44 made Stripe Express the only supported rail). This component now delegates to RequirePayoutSetup.
  */
 import RequirePayoutSetup from "@/components/dashboard/RequirePayoutSetup";
 
