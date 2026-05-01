@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import DynamicMeetOurAuthors from "@/components/DynamicMeetOurAuthors";
+import SectionBoundary from "@/components/SectionBoundary";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -304,7 +305,9 @@ export default function Index() {
       </section>
 
       {/* ===== SECTION 5: FEATURED AUTHORS ===== */}
-      <DynamicMeetOurAuthors />
+      <SectionBoundary name="DynamicMeetOurAuthors">
+        <DynamicMeetOurAuthors />
+      </SectionBoundary>
 
       {/* ===== SECTION 6: FREE TIER - BOOK PAGE SHOWCASE ===== */}
       <section className="py-24">
