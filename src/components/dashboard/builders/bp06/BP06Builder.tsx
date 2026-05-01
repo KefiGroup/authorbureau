@@ -191,31 +191,62 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   /**
    * Sprint 55 — Build the workbook DOCX + PDF, upload them to library-assets
    * storage, and stamp the canonical library_asset record on publish.
-   * Falls back to publish-without-asset if upload fails so the author isn't
-   * blocked from going live.
+   *
+   * Sprint 55c — Fail loudly. Previously this swallowed upload errors with a
+   * console.warn, which silently dropped the workbook from the Library and
+   * left authors confused. We now surface the real error so the user (and
+   * support) can see why a Library save failed.
    */
-  const buildAndUploadDeliverable = async () => {
+  const buildAndUploadDeliverable = async (opts?: { silent?: boolean }) => {
     if (!authorId || !content) return null;
-    try {
-      const [docxBlob, pdfBuilt] = await Promise.all([
-        buildWorkbookDocxBlob({ content, bookTitle: effectiveBookTitle, authorName }),
-        Promise.resolve(buildWorkbookPdfBlob({ content, bookTitle: effectiveBookTitle, authorName })),
-      ]);
-      const safeBook = effectiveBookTitle.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
-      const docxName = `${safeBook}-workbook.docx`;
-      const pdfName = pdfBuilt.filename;
-      const asset = await uploadAndRegisterLibraryAsset({
-        authorId,
-        nodeId: "BP-06",
-        title: content.workbook_title || "Workbook",
-        primary: { blob: docxBlob, filename: docxName, kind: "docx" },
-        pdf: { blob: pdfBuilt.blob, filename: pdfName },
-        isPaid: isPaidNode(content),
+    const [docxBlob, pdfBuilt] = await Promise.all([
+      buildWorkbookDocxBlob({ content, bookTitle: effectiveBookTitle, authorName }),
+      Promise.resolve(buildWorkbookPdfBlob({ content, bookTitle: effectiveBookTitle, authorName })),
+    ]);
+    const safeBook = effectiveBookTitle.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+    const docxName = `${safeBook}-workbook.docx`;
+    const pdfName = pdfBuilt.filename;
+    const asset = await uploadAndRegisterLibraryAsset({
+      authorId,
+      nodeId: "BP-06",
+      title: content.workbook_title || "Workbook",
+      primary: { blob: docxBlob, filename: docxName, kind: "docx" },
+      pdf: { blob: pdfBuilt.blob, filename: pdfName },
+      isPaid: isPaidNode(content),
+    });
+    if (!opts?.silent) {
+      toast.success("Workbook saved to your Library", {
+        description: "PDF and Word version are now available in My Library.",
       });
-      return asset;
-    } catch (err) {
-      console.warn("[BP-06] library_asset upload failed, publishing without it", err);
-      return null;
+    }
+    return asset;
+  };
+
+  /**
+   * Save-only: uploads the deliverable to the Library without flipping the
+   * node to live. Lets authors stash a copy before deciding to publish.
+   */
+  const [savingToLibrary, setSavingToLibrary] = useState(false);
+  const [savedToLibrary, setSavedToLibrary] = useState<boolean>(Boolean(content?.library_asset));
+  const handleSaveToLibrary = async () => {
+    if (!authorId || !content) return;
+    setSavingToLibrary(true);
+    try {
+      const asset = await buildAndUploadDeliverable();
+      if (asset) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setContent((prev: any) => ({ ...prev, library_asset: asset }));
+        setSavedToLibrary(true);
+      }
+    } catch (e: unknown) {
+      const msg = (e as Error)?.message || "Save failed";
+      console.error("[BP-06] save-to-library failed", e);
+      toast.error("Couldn't save to your Library", {
+        description: msg,
+        duration: 12000,
+      });
+    } finally {
+      setSavingToLibrary(false);
     }
   };
 
