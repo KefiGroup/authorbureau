@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-01
 **Scope:** 152 edge functions, 110 public DB tables, 28 nodes, 65 UI routes, 57 doc files.
-**Verdict:** All FAIL items remediated. Two items deferred with explicit reasons (see Deferred section).
+**Verdict:** All FAIL items remediated. **Both deferred items closed in Sprint 54** (see Deferred §1–§2 below).
 
 ---
 
@@ -50,7 +50,7 @@
 | `src/components/dashboard/PayoutsSettings.tsx:118` | Sets `paypal_email_v2: null` on save | **Acceptable** — defensive null-clear of vestigial DB column; will be removed when column drops |
 | `src/components/dashboard/builders/yr27/YR27Builder.tsx:130` | Mentions "PayPal Giving Fund" as charity site example | **Acceptable** — listed as external charity destination, not as a payout rail |
 | `supabase/functions/deploy-yr27-to-stripe/index.ts:3` | Comment lists "PayPal Giving Fund" as charity site example | **Acceptable** — same context as above |
-| DB columns `author_payout_settings.paypal_email`, `paypal_email_v2`, `payout_method` | Vestigial schema | **Deferred** — see Deferred §1 |
+| DB columns `author_payout_settings.paypal_email`, `paypal_email_v2`, `payout_method` | Vestigial schema | **RESOLVED — Sprint 54** dropped via migration |
 
 ## D. Edge function registry (FIXED — 11 phantoms removed from config.toml)
 
@@ -115,15 +115,15 @@ These are **historical references**, not active prose. Verdict: keep.
 
 ---
 
-## Deferred items (with explicit reasons)
+## Deferred items — RESOLVED in Sprint 54 (2026-05-01)
 
-### §1. Vestigial PayPal/Wise DB columns
+### §1. Vestigial PayPal/Wise DB columns — RESOLVED
 - **Tables:** `author_payout_settings.payout_method`, `paypal_email`, `paypal_email_v2`
-- **Why deferred:** Dropping columns requires a destructive migration. The columns are nullable, no longer written by any new code path, and `PayoutsSettings.tsx` defensively sets `paypal_email_v2: null` on save. Schedule for Sprint 54 alongside any other planned schema cleanup.
+- **Resolution:** Sprint 54 migration `ALTER TABLE ... DROP COLUMN` — verified zero non-Stripe rows pre-drop. `usePayoutReadiness.ts` and `PayoutsSettings.tsx` refactored to derive payout state from `stripe_onboarding_complete` alone.
 
-### §2. Vestigial `ghl_deployments` table reads
-- **Files:** `supabase/functions/get-deployments/index.ts:30`, `supabase/functions/provision-orphan-authors/index.ts:19`
-- **Why deferred:** Read-only references in admin-tooling functions. Removing requires either dropping the table (destructive) or refactoring these admin endpoints. Logged as a Sprint 54 cleanup item.
+### §2. Vestigial `ghl_deployments` table reads — RESOLVED
+- **Files:** `supabase/functions/get-deployments/index.ts`, `supabase/functions/provision-orphan-authors/index.ts`
+- **Resolution:** Sprint 54 deleted both edge functions (code + deployed runtime). Confirmed zero callers in `src/` and the `ghl_deployments` table was already dropped from the DB. Both functions were dead code.
 
 ---
 
