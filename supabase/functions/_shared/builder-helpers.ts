@@ -13,6 +13,10 @@ import {
   validateForPublic,
   ensurePrimaryCta,
 } from "./microsite-content-rules.ts";
+import {
+  getCanonicalNodeLabel,
+  isCanonicalNodeLabel,
+} from "./canonical-node-labels.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -144,6 +148,16 @@ export async function upsertAuthorNode(
   payload: Record<string, unknown>,
   bookId?: string | null,
 ) {
+  // ---- Canonical-label guard rail (Sprint 48) -----------------------------
+  // Force node_name to the canonical UI label whenever the id is known.
+  // Logs a warning if the caller passed something different — never blocks the write.
+  if (!isCanonicalNodeLabel(nodeId, nodeName)) {
+    console.warn(
+      `[upsertAuthorNode] non-canonical node_name for ${nodeId}: "${nodeName}" → "${getCanonicalNodeLabel(nodeId)}"`,
+    );
+  }
+  nodeName = getCanonicalNodeLabel(nodeId);
+
   // ---- Content quality gate (Layer 2) -------------------------------------
   // If the caller is writing content_json, route it through the same validate /
   // sanitise / ensure-CTA pipeline used by saveNodeContent(), and log any rule
