@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Globe, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import staircaseImg from "@/assets/abby_journey_staircase_v7.webp";
+import frameworkImg from "@/assets/abby_journey_framework_v14_bby.webp";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
 
 type StepState = "done" | "current" | "upcoming";
@@ -55,8 +55,8 @@ export default function JourneyMapCTA({ currentJourneyStep, bookApproved, onActi
         {/* Staircase image */}
         <div className="rounded-xl overflow-hidden">
           <img
-            src={staircaseImg}
-            alt="The ABBY Journey Framework - One Book. 28 Revenue Streams. Your Empire."
+            src={frameworkImg}
+            alt="The ABBY Journey Framework — Brand, Build, Yield"
             className="w-full h-auto"
           />
           <CopyrightCaption />

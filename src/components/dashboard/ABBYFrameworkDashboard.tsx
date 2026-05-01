@@ -397,18 +397,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         onAction={handleJourneyAction}
       />
 
-      {/* Section 2: Journey Staircase Infographic */}
-      <section className="space-y-3">
-        <h2 className="font-heading text-xl font-bold text-foreground">Your Journey Ahead</h2>
-        <img
-          src="/images/journey-staircase.webp"
-          alt="The ABBY Journey — AI Analysis to BRAND to BUILD to YIELD"
-          className="w-full rounded-2xl shadow-lg"
-          loading="lazy"
-        />
-      </section>
-
-      {/* Section 3: Monetization Universe with collapsible revenue flow */}
+      {/* Section 2: Monetization Universe with collapsible revenue flow */}
       <section className="space-y-4">
         <Collapsible defaultOpen={isFirstPostAnalysis}>
           <CollapsibleTrigger className="flex items-center gap-2 text-sm font-semibold text-foreground hover:text-foreground/80 transition-colors group">
