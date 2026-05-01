@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import DynamicMeetOurAuthors from "@/components/DynamicMeetOurAuthors";
+import SectionBoundary from "@/components/SectionBoundary";
 import { CopyrightCaption } from "@/components/ui/copyright-caption";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";

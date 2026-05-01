@@ -40,6 +40,7 @@ import BookSlugRedirect from "./pages/BookSlugRedirect";
 import ScrollToTop from "./components/ScrollToTop";
 import AbbyHelpChatbot from "./components/AbbyHelpChatbot";
 import GlobalErrorBoundary from "./components/GlobalErrorBoundary";
+import SectionBoundary from "./components/SectionBoundary";
 import PurchaseSuccess from "./pages/PurchaseSuccess";
 import ReaderContentViewer from "./pages/ReaderContentViewer";
 import OnlineCourseViewer from "./pages/OnlineCourseViewer";
@@ -217,7 +218,9 @@ const App = () => {
             <GlobalErrorBoundary>
               <AppRoutes />
             </GlobalErrorBoundary>
-            <AbbyHelpChatbot />
+            <SectionBoundary name="AbbyHelpChatbot">
+              <AbbyHelpChatbot />
+            </SectionBoundary>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
