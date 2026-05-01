@@ -175,8 +175,8 @@ export default function AdminPayouts() {
           <DialogContent>
             <DialogHeader><DialogTitle>Mark payout as paid</DialogTitle></DialogHeader>
             <div className="space-y-3 py-2">
-              <p className="text-sm text-muted-foreground">Enter the Wise/PayPal transaction reference.</p>
-              <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. WISE-12345-ABC" />
+              <p className="text-sm text-muted-foreground">Enter the Stripe transfer reference.</p>
+              <Input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. tr_1AbCdE..." />
             </div>
             <DialogFooter>
               <Button variant="ghost" onClick={() => setMarkingId(null)}>Cancel</Button>

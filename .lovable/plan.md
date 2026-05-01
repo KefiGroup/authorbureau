@@ -1,65 +1,87 @@
-## Goal
+## Admin Portal Audit Results
 
-Run a one-shot, **read-only audit** that flags broken links, dead buttons, and unreachable routes — without changing any app code. Results saved to `/mnt/documents/` so you can review and triage.
+I audited every page, tab, link, and button under `/admin*` against the route table, ran static handler checks, and queried the error log (clean — 0 errors in 48h). Found **5 real bugs**, ordered by severity.
 
-## What the audit will check
+---
 
-### 1. Static codebase audit (fast, no browser)
-Run ripgrep + a small Node script over the repo and produce `link-audit-report.md` with:
+### Bug 1 — High · Broken redirect to non-existent route
+**File:** `src/pages/AdminDashboard.tsx:271`
 
-- **Internal links pointing to non-existent routes** — extract every `to="/..."`, `href="/..."`, `navigate("/...")`, and `<Navigate to="/...">` and cross-check against the route table in `src/App.tsx` (lines 132–202). Flags typos like `/dasboard` or removed routes.
-- **Buttons with no handler** — find `<Button ...>` and `<button ...>` with no `onClick`, no `asChild`+`<Link>`, no `type="submit"`, and not inside a `<form>`. Likely dead.
-- **Empty `href` / `to` values** — `href=""`, `href="#"`, `to=""`.
-- **`<a>` tags missing `href`** and `<Link>` missing `to`.
-- **External links missing `rel="noopener"`** when `target="_blank"` (security, not breakage, but worth catching).
-- **Legacy builder slugs** referenced in the UI but missing from `LEGACY_BUILDER_REDIRECT` in `src/components/dashboard/builders/legacyBuilderRedirect.ts`.
-- **Microsite slugs** referenced in code but missing from `NODE_SLUG_MAP` / `SLUG_TO_NODE` in `src/lib/node-slug-map.ts`.
-
-### 2. Live HTTP audit of public routes
-Hit the published site (`https://authorsbureau.com`) for every static public route and report status codes:
-
-```text
-/                       /how-it-works           /directory
-/methodology            /faq                    /readers-bureau
-/contact                /terms                  /privacy
-/pricing                /solutions              /auth
-/admin-auth             /join                   /create-microsite
-/sitemap.xml            /robots.txt
+```tsx
+if (!user) return <Navigate to="/admin-login" replace />;
 ```
 
-Plus a sample of dynamic routes pulled from the DB:
-- Top 10 `author_profiles.author_slug` (listed/verified/featured) → `/:authorSlug`
-- Their primary book → `/:authorSlug/:bookSlug`
-- Common microsite slugs per author → `/:authorSlug/free-gift`, `/order`, `/coaching`, `/audiobook`, `/online-course`
+Route is registered as `/admin-auth` (App.tsx:142). A logged-out visit to `/admin` redirects to a 404 (catch-all NotFound).
 
-Anything returning ≠200 (excluding intentional redirects to 200) lands in the report.
+**Fix:** Change `/admin-login` → `/admin-auth`.
 
-### 3. Browser smoke test (key clickable surfaces)
-Use the headless browser to load 4 critical pages and verify primary CTAs render and are clickable (not disabled, not zero-size, have a handler). One screenshot per page saved for visual confirmation.
+---
 
-- `/` — Hero CTA, "Browse directory", Navbar links, Footer links
-- `/directory` — first author card click
-- `/pauline-teo` — Hero "Get the book" / lead-magnet CTA, About section, footer
-- `/dashboard` (will hit auth — recorded as "auth gate" rather than failure)
+### Bug 2 — High · Wise/PayPal copy violates "Stripe Express only" memory rule
+**File:** `src/pages/AdminPayouts.tsx:178`
 
-### 4. Edge-function health snapshot
-Pull the last 24h of error logs from the 6 most-trafficked edge functions (`get-microsite-page`, `verify-purchase`, `process-purchase`, `create-checkout-session`, `save-author-profile`, `admin-data`) and summarize error counts. Surfaces silent backend failures that make buttons "look broken" to users.
+```tsx
+<p>Enter the Wise/PayPal transaction reference.</p>
+<Input placeholder="e.g. WISE-12345-ABC" />
+```
 
-## Deliverables
+Memory rule: *"Stripe Express ONLY. PayPal/Wise code permanently removed (Sprint 44)."*
 
-- `/mnt/documents/link-audit-report.md` — categorized findings with file:line citations and suggested fixes
-- `/mnt/documents/link-audit-http-results.csv` — every URL probed + status code + redirect chain
-- `/mnt/documents/link-audit-screenshots/` — 4 PNGs from the browser smoke test
+**Fix:** Update copy to "Enter the Stripe transfer reference" and placeholder to `e.g. tr_1AbCdE...`. Same page also overlaps with the in-dashboard `Payouts` tab (`AdminPayoutsDashboard`) — flag for future consolidation but leave routing alone in this sprint.
 
-Each finding will be tagged **High / Medium / Low** so you can hand the High items straight to the next sprint without re-triaging.
+---
 
-## What this will NOT do
+### Bug 3 — Medium · Dead "AI Tokens Used" overview card
+**File:** `src/components/admin/OverviewTab.tsx:117`
 
-- No code changes, no DB writes, no destructive actions.
-- Won't click "Buy Now" or any payment/refund/destructive button.
-- Won't log in as a user — `/dashboard`, `/admin`, `/account-settings` are reported as "auth-gated, not tested" rather than failures.
-- Won't catch logic bugs inside button handlers (e.g. a button that runs but does the wrong thing) — only that the handler exists and the link target resolves.
+```tsx
+{ label: "AI Tokens Used", ..., action: () => {} }
+```
 
-## Approval to proceed
+Renders as a `<button>` with hover affordance but does nothing on click — looks broken.
 
-Approving this plan switches me to build mode and I'll run all four passes in one go (~3–5 min) and post the report paths back here.
+**Fix:** Remove the `<button>` wrapper for non-actionable cards (render as `<div>` without hover style), OR make it scroll to the AI Usage Dashboard panel below. Recommend the former for minimal change.
+
+---
+
+### Bug 4 — Medium · "View all" recent submissions points to non-existent tab
+**File:** `src/components/admin/OverviewTab.tsx:291`
+
+```tsx
+<Button onClick={() => onNavigate("submissions")}>View all</Button>
+```
+
+`"submissions"` is not in the `Tab` union (`overview | books | authors | admins | platforms | crm | messages | reading-club | support | payouts | node-gating | audit | errors`). Casting via `as Tab` swallows it, so the click sets an unknown tab and the content area renders **blank**.
+
+**Fix:** Change target to `"books"` (since recent submissions are book submissions) or hide the "View all" button entirely. Recommend routing to `books` with `filter="pending"`.
+
+---
+
+### Bug 5 — Low · Orphan `/admin/content-quality` page
+**Files:** `src/App.tsx:148`, `src/pages/admin/ContentQualityLog.tsx`
+
+Route is registered and the component exists, but no link anywhere in the admin UI navigates to it. Reachable only via direct URL.
+
+**Fix:** Add a quick-action button in `OverviewTab` (or a tab entry) linking to `/admin/content-quality`. If the page is intentionally retired, remove the route + file instead. Recommend adding a quick-action link.
+
+---
+
+### Verified Healthy
+- All 13 tab buttons in `AdminDashboard` have `onClick` handlers wired to setTab.
+- `AdminPayoutsDashboard`, `ErrorsTab`, `AuditLogTab`, `NodeGatingTab`, `AdminsTab`, `AuthorActionMenu`, `BooksTab` action buttons all have valid handlers or live inside Dialog/AlertDialog triggers.
+- `AdminNotificationBell` mounts correctly with `user.id` guard.
+- `system_error_log`: 0 entries in last 48h.
+- `Author Dashboard` link in admin header → `/dashboard` (valid).
+- Sign Out button → `signOut()` (valid).
+
+---
+
+### Implementation order (small sprint)
+1. AdminDashboard.tsx — fix redirect path (1 line).
+2. AdminPayouts.tsx — Stripe-only copy (2 lines).
+3. OverviewTab.tsx — non-clickable AI Tokens card + fix "View all" target (~6 lines).
+4. OverviewTab.tsx — add Content Quality Log quick action (~4 lines).
+
+No DB changes, no edge function changes, no new dependencies. Pure UI fixes.
+
+Approve and I'll implement all 5 in a single pass.
