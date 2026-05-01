@@ -114,7 +114,16 @@ editions must have exactly 3 items. Make everything specific.` }
       return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
     }
     const aiData = await aiRes.json();
-    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    const parsed = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    const occasionMeta = occasion
+      ? {
+          occasion: occasion.id,
+          occasion_label: occasion.label,
+          occasion_emoji: occasion.emoji,
+          peak_date: occasion.peakDateIso,
+        }
+      : {};
+    const content = { ...parsed, ...occasionMeta };
 
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",
