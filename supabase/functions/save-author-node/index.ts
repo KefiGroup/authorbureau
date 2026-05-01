@@ -161,6 +161,8 @@ function deriveLibraryAsset(
     saved_at,
   };
 }
+
+Deno.serve(async (req: Request) => {
   console.log("[save-author-node] request started", { method: req.method });
 
   if (req.method === "OPTIONS") {
