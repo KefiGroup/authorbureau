@@ -5,8 +5,9 @@ import {
   failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
 
+import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 const NODE_ID = "BP-08";
-const NODE_NAME = "Special Editions";
+const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
