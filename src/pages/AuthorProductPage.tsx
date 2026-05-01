@@ -26,6 +26,7 @@ import NotFound from "./NotFound";
 import SharedSalesCopyPreview from "@/components/dashboard/builders/shared/SharedSalesCopyPreview";
 import type { SalesCopyData } from "@/components/dashboard/builders/shared/salesCopyTypes";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
+import { stripHtml } from "@/lib/stripHtml";
 
 /* ---------- Types & Config ---------- */
 type ProductType =
@@ -389,7 +390,7 @@ export default function AuthorProductPage() {
   const quickStats = getQuickStats(pType, product);
   const checklistItems = parseChecklistItems(product.description);
   const bookDescShort = book?.description ? book.description.split(/[.!?]\s/).slice(0, 2).join(". ") + "." : "";
-  const authorBio = author.bio_short || "";
+  const authorBio = stripHtml(author.bio_short || "");
   const isPurchasable = product.price != null && product.price > 0 && ["homestudy", "onlinecourse", "workbook", "audiobook"].includes(pType);
 
   // Parse FAQs from salesPageContent
