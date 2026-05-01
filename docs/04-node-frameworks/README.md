@@ -1,14 +1,17 @@
 # 04 · Node Frameworks — Index
 
-_Version 3.0 · 2026-05-01_
+_Version 3.1 · 2026-05-01_
 
 **Source(s) of truth:**
+- [Master Architecture Reference §3](../01-architecture/01-master-architecture-reference.md) — the canonical registry
 - `src/components/dashboard/builders/builderNodeConfig.ts`
 - `supabase/functions/_shared/node-readiness.ts`
 
+> All node IDs, canonical labels, scopes, and edge function paths in the docs below are mirrored from the master registry. To regenerate: `node scripts/build-node-framework-docs.mjs`.
+
 ---
 
-Each of the 28 nodes has its own framework document below. Every doc follows the same 7-section template defined by Manus:
+Each of the 28 nodes (BP-00 is the analysis step and not counted) has its own framework document below. Every doc follows the same 7-section template defined by Manus:
 
 1. **What it is** — plain-English description
 2. **What ABBY builds** — engine(s), edge function, data shape

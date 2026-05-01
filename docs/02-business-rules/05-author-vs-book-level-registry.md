@@ -38,22 +38,24 @@ This affects:
 | YR-27 | Fundraising | Author's fundraising offers |
 | YR-28 | Sponsors | Author's sponsorship deck |
 
-## Book-level (12 nodes)
+## Book-level (12 counted + BP-00 uncounted)
 
-| ID | Label | Rationale |
-|---|---|---|
-| BP-00 | Initial Analysis | Per-book AI analysis |
-| BP-02 | Lead Magnet | Tied to the book's themes |
-| BP-04 | Author Website | The book's microsite |
-| BP-05 | Webinars | Book-specific webinar topic |
-| BP-06 | Workbook | Book-specific companion |
-| BP-07 | Home Study Course | Book-specific deep-dive |
-| BP-08 | Special Editions | Book-specific bundles |
-| BP-09 | Book Sales | Per-book sales channel config |
-| BA-10 | Online Course | Book-specific curriculum |
-| BA-11 | Audiobook | Book-specific narration |
-| BA-12 | Membership | Book-specific recurring offer |
-| BA-13 | Group Coaching | Book-specific cohort |
-| BA-17 | Bundles | Book-specific bundles |
+| ID | Label | Rationale | Counted in "X / 28 Live" |
+|---|---|---|---|
+| BP-00 | Initial Analysis | Per-book AI analysis | **No** (analysis step) |
+| BP-02 | Lead Magnet | Tied to the book's themes | Yes |
+| BP-04 | Author Website | The book's microsite | Yes |
+| BP-05 | Webinars | Book-specific webinar topic | Yes |
+| BP-06 | Workbook | Book-specific companion | Yes |
+| BP-07 | Home Study Course | Book-specific deep-dive | Yes |
+| BP-08 | Special Editions | Book-specific bundles | Yes |
+| BP-09 | Book Sales | Per-book sales channel config | Yes |
+| BA-10 | Online Course | Book-specific curriculum | Yes |
+| BA-11 | Audiobook | Book-specific narration | Yes |
+| BA-12 | Membership | Book-specific recurring offer | Yes |
+| BA-13 | Group Coaching | Book-specific cohort | Yes |
+| BA-17 | Bundles | Book-specific bundles | Yes |
 
-(BP-00 is the analysis step and not counted in the 28 revenue nodes.)
+**Totals:** 12 book-level counted + 16 author-level counted = **28**. BP-00 brings the total ID count to **29** but is excluded from counters.
+
+This matches the table in [`01-count-business-rules-v2.md`](./01-count-business-rules-v2.md) and the master registry in [`01-architecture/01-master-architecture-reference.md`](../01-architecture/01-master-architecture-reference.md) §3.
