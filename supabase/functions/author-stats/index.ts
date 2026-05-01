@@ -243,16 +243,32 @@ Deno.serve(async (req) => {
           return hasSchedule;
         }
         case "BA-14": {
+          // Mirror src/lib/node-readiness.ts: pass when distributed (RSS + episodes)
+          // OR when activated locally with episodes + a show title.
           const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
           const episodes = Array.isArray(content.episodes) ? content.episodes : [];
-          return rssReady && episodes.length > 0;
+          const activatedWithContent =
+            !!content.activated &&
+            episodes.length > 0 &&
+            !!(content.show_title || content.podcast_title);
+          return (rssReady && episodes.length > 0) || activatedWithContent;
         }
         case "BA-15": {
-          const hasPressRelease = !!(content.press_release || content.press_release_html || content?.assets?.press_release);
-          const hasMediaList = Array.isArray(content.media_list)
-            ? content.media_list.length > 0
-            : Array.isArray(content.outlets) ? content.outlets.length > 0 : false;
-          return hasPressRelease && hasMediaList;
+          // Mirror src/lib/node-readiness.ts: accept object-shaped press releases
+          // and the newer target_media_outlets field used by the current builder.
+          const pr = content.press_release ?? content.press_release_html ?? content?.assets?.press_release;
+          let hasPressRelease = false;
+          if (typeof pr === "string") {
+            hasPressRelease = pr.trim().length > 0;
+          } else if (pr && typeof pr === "object") {
+            const candidates = ["body", "html", "headline", "content", "text"];
+            hasPressRelease = candidates.some(
+              (k) => typeof (pr as any)[k] === "string" && (pr as any)[k].trim().length > 0
+            );
+          }
+          const outletArrays = [content.target_media_outlets, content.media_list, content.outlets];
+          const hasOutlets = outletArrays.some((a: any) => Array.isArray(a) && a.length > 0);
+          return hasPressRelease && hasOutlets;
         }
         default:
           return Object.keys(content).length > 0;
