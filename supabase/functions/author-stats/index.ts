@@ -347,11 +347,15 @@ Deno.serve(async (req) => {
         else if (row.status === "published" || row.status === "active") counts.published++;
 
         // Per-book counting — attach this row's node to its specific book.
-        // Author-scoped tables (no book_id) attribute to the primary book so they
-        // still surface somewhere in the per-book breakdown.
-        const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
-        if (bookId && nodeIdForTable) {
-          ensureBookSet(bookId).add(nodeIdForTable);
+        // Author-level nodes (e.g. BP-01 email, BP-03 social, YR-* services)
+        // fan out to every book; book-specific products scope to their own book.
+        if (nodeIdForTable) {
+          if (AUTHOR_LEVEL_NODES.has(nodeIdForTable)) {
+            fanOutToAllBooks(nodeIdForTable);
+          } else {
+            const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
+            if (bookId) ensureBookSet(bookId).add(nodeIdForTable);
+          }
         }
       }
 
@@ -361,11 +365,16 @@ Deno.serve(async (req) => {
       totalPublished += counts.published;
     }
 
-    // Attribute each *gated-built* author_node to its specific book when book_id is set;
-    // fall back to the primary (oldest) book for legacy author-level rows.
+    // Attribute each *gated-built* author_node row. Author-level nodes count
+    // toward every book; book-specific rows scope to their own book_id with a
+    // fallback to the primary (oldest) book for legacy un-stamped rows.
     for (const n of builtRows) {
-      const bid = n.book_id || primaryBookId;
-      if (bid) ensureBookSet(bid).add(n.node_id);
+      if (AUTHOR_LEVEL_NODES.has(n.node_id)) {
+        fanOutToAllBooks(n.node_id);
+      } else {
+        const bid = n.book_id || primaryBookId;
+        if (bid) ensureBookSet(bid).add(n.node_id);
+      }
     }
     if (profile?.author_slug && primaryBookId) {
       ensureBookSet(primaryBookId).add("BP-04");
