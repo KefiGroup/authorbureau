@@ -24,12 +24,13 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { publishNodeToSite, StripeRequiredError } from "@/lib/publish-node";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { downloadWorkbookPdf, estimateWorkbookPageCount, normalizeOutcome } from "@/lib/workbook-pdf";
-import { downloadWorkbookDocx } from "@/lib/workbook-docx";
+import { downloadWorkbookPdf, buildWorkbookPdfBlob, estimateWorkbookPageCount, normalizeOutcome } from "@/lib/workbook-pdf";
+import { downloadWorkbookDocx, buildWorkbookDocxBlob } from "@/lib/workbook-docx";
 import { parseWorkbookDocx } from "@/lib/workbook-docx-import";
 import { useStripeConnect } from "@/components/dashboard/StripeConnectBanner";
 import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
 import { isPaidNode } from "@/lib/is-paid-node";
+import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
