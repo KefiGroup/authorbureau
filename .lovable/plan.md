@@ -1,75 +1,104 @@
-# Correct Commerce Readiness: Decouple Stripe Express from "Live" Status
+# Documentation Sprint — /docs Baseline
 
-## Background
+Produce 6 Markdown reference documents covering everything built so far, commit them to `/docs/` (auto-syncs to GitHub), and deliver a downloadable ZIP. Establish a "docs-update" rule so future sprints maintain these files.
 
-The previous audit incorrectly added a `stripeConnected` gate to 17 commerce nodes in `node-readiness.ts`. This was based on a wrong mental model.
+## Deliverables
 
-**Correct model (locked in memory):**
-- Authors Bureau is **Merchant of Record** — the platform's Stripe account processes ALL reader payments
-- Readers can buy from any author's product the moment content is ready
-- Author's Stripe Express connection only matters for **payouts** (admin sending the author their 92%)
-- Whether payouts are automated (Stripe Express transfer) or manual (admin task) is a back-office decision — not a customer-facing readiness gate
+All files live in `/docs/` at the repo root. Markdown only. No emojis. No emdashes (per project rule).
 
-## Goal
+```
+docs/
+├── README.md                              ← index + maintenance rule
+├── 01-abby-master-prompt-architecture.md
+├── 02-abby-system-prompt-current.md       ← versioned (v1.0 — 2026-05-01)
+├── 03-abby-node-activation-prompts.md     ← all 28 node generators
+├── 04-ab-engine-architecture-map.md       ← 7 engines
+├── 05-ab-database-schema-current.md       ← live export from Supabase
+└── 06-ab-node-framework-be-suckcessful-test.md
+```
 
-Remove Stripe-connection from the commerce-readiness gate. A commerce node is "Live" when it has the required content + pricing assets. Payout setup is a separate, admin-side concern.
+A ZIP at `/mnt/documents/authors-bureau-docs-v1.zip` will be produced for download.
 
-## Changes
+## Per-document scope
 
-### 1. `supabase/functions/_shared/node-readiness.ts` and `src/lib/node-readiness.ts`
-- Remove `COMMERCE_NODES` set and the `ctx.stripeConnected === false` short-circuit at the top of `hasRequiredAssets()`
-- Remove `stripeConnected` from the `ReadinessContext` type (or keep the type field as optional/unused for backward compat, but stop reading it)
-- **Keep** all asset-specific gates added in the previous sprint:
-  - BP-01: requires `email_sequence_id` + `steps[]`
-  - BP-03: requires `posts_generated > 0` or `content_calendar_id`
-  - BA-11: requires `narration_script_url` / `acx_guide_generated` / `chapters[]`
-  - BA-17: ≥ 2 bundle items + commerce signal (price_usd > 0 OR stripe_price_id)
-  - YR-19..28: title + commerce signal; session-style nodes (YR-19/22/23/24) also require `session_type` or `booking_url`
-- Commerce signal stays as **`price_usd > 0` OR `stripe_price_id` set on the node** — this is product pricing, NOT author Stripe connection
+**01 — ABBY Master Prompt Architecture**
+Sourced from `mem://ai/abby-orchestration-and-specs`, `mem://ai/generation-constraints`, `mem://ai/lead-magnet-generation-specs`, `mem://architecture/lovable-ai-gateway-standard`, and the prompt blocks in `business-consultant`, `abby-chat`, `abby-help-chat`. Sections:
+- Persona rules (Abby = strategic AI Business Advisor, never "assistant")
+- Strategic philosophy ("book is the hook")
+- Forbidden phrases (Next-step, try this, exercise, emdashes, placeholders)
+- Model routing (gpt-5.2 generation, gemini-3-flash-preview chat) and the `temperature` ban on gpt-5*
+- Canonical node-name authority (`builderNodeConfig.ts`) and tier names (Brand/Build/Yield Package)
+- Token/timeout budgets (180s, 16k for complex structures, temp 0.2)
 
-### 2. `src/hooks/useBookNodeProgress.ts` and `src/hooks/useNodeLiveStats.ts`
-- Remove the `author_profiles.stripe_onboarding_complete` fetch added last sprint
-- Stop passing `stripeConnected` into `hasRequiredAssets()`
-- Simplifies the hooks back to a single query path
+**02 — ABBY System Prompt — Current Version**
+Verbatim extraction of the production system prompt from `supabase/functions/business-consultant/index.ts` and `supabase/functions/abby-chat/index.ts`, stamped:
+```
+Version: 1.0
+Effective: 2026-05-01
+Source: supabase/functions/business-consultant + abby-chat
+```
 
-### 3. `supabase/functions/author-stats/index.ts`
-- Remove the `stripe_onboarding_complete` lookup
-- Stop threading `stripeConnected` into the readiness call
-- Redeploy the function
+**03 — ABBY Node Activation Prompts**
+For each of the 28 node generators (BP-00..BP-09, BA-10..BA-18, YR-19..YR-28), one section containing:
+- Node ID + canonical label (from `builderNodeConfig.ts`)
+- Edge function path
+- Model used + token budget
+- The full prompt string (system + user template) extracted directly from the edge function source
+- Output schema / persisted fields
 
-### 4. `src/lib/__tests__/node-readiness.test.ts`
-- Delete the "commerce-rejected when Stripe not connected" fixture group
-- Keep all asset-specific fixture groups (these are still correct)
-- Add a positive fixture: commerce node with content + price but no author Stripe → must be **Live**
+**04 — AB Engine Architecture Map**
+One section per engine:
 
-### 5. Memory updates
-Update `mem://architecture/commerce-engine-v1` to add an explicit clause:
+| Engine | Primary tables | External services | Key edge functions |
+|---|---|---|---|
+| Email | `email_queue`, `email_flows`, `author_email_settings`, `email_sync_log` | Resend, Lovable AI | `process-email-queue`, `send-transactional-email`, `trigger-sequence` |
+| Funnel (Lead Magnet) | `funnels`, `funnel_responses`, `crm_contacts` | Lovable AI | `submit-funnel`, `generate-bp02-lead-magnets`, `track-funnel-view` |
+| Course | `courses`, `course_modules`, `course_lessons`, `course_enrollments` | Thinkific, ElevenLabs | `deploy-ba10-to-thinkific`, `deploy-bp07-to-thinkific`, `generate-ba10-online-course` |
+| Commerce | `author_nodes`, `purchases`, `platform_config`, `payouts` | Stripe (Authors Bureau MoR) | `create-checkout-session`, `verify-purchase`, `process-purchase`, `run-monthly-payouts` |
+| Sessions | `sessions`, `session_bookings` | Zoom, Stripe | `generate-yr19-coaching`, `consultation-session` |
+| Podcast | `podcasts`, `podcast_episodes` | Transistor.fm, ElevenLabs | `generate-ba14-podcast`, `deploy-ba14-to-transistor` |
+| CRM / Social / Nurture | `crm_contacts`, `social_connections`, `social_posts`, `notifications` | Buffer, LinkedIn | `crm-auto-capture`, `social-publish`, `social-scheduler`, `generate-nudges` |
 
-> **Stripe Express connection NEVER gates commerce readiness or "Live" status.** It only governs payout method (automated transfer vs. admin-handled manual payout). Authors Bureau collects all reader payments via the platform's Stripe account regardless of author payout setup.
+Each section also lists RLS posture and the relevant memory file for deeper rules.
 
-Add a Core rule line to `mem://index.md`:
+**05 — AB Database Schema — Current**
+Generated by querying `information_schema.tables` and `information_schema.columns` (public schema only) via `supabase--read_query`. Output as Markdown tables grouped by table, with columns: column_name, data_type, nullable, default. Includes the existing 30+ database functions (already enumerated) and the storage buckets list.
 
-> **Payout vs Commerce Separation**: Stripe Express connection is a back-office payout-method decision only. It must NEVER appear in `hasRequiredAssets()` or affect node Live status. Reader payments always flow to the Authors Bureau Stripe account; payouts to authors are a separate admin process.
+**06 — AB Node Framework — Be SUCKcessful Test**
+Using the Be SUCKcessful book as the worked example, document the 5 most-used nodes:
 
-## Out of scope
+| Node | Author journey | Reader journey |
+|---|---|---|
+| BP-04 Author Website | Open builder → AI generates → review → activate → public at `/{slug}/author-website` | Lands on microsite → CTA to lead magnet or Buy Now |
+| BP-02 Free Gift / Lead Magnet | Pick template → generate quiz/PDF → review headline → activate | Sees gate page → completes 8-Q quiz → 5-tier result → 3-headline next step |
+| BA-10 Online Course | Generate curriculum + lessons → deploy to Thinkific → set price | Buy via `BuyNowButton` (Stripe) → SSO into Thinkific |
+| YR-19 1:1 Coaching | Set session_type, duration, price, booking URL → activate | Microsite at `/{slug}/coaching` → click Book → Stripe checkout → session confirmation email |
+| BP-01 Email Marketing | Generate sequence → review steps → set trigger → activate | Receives author-branded "via Authors Bureau" email → unsubscribe per CAN-SPAM |
 
-- No changes to `BuyNowButton` — it already correctly routes to platform `create-checkout-session`
-- No changes to platform_fee (8%) or merchant-of-record copy
-- No changes to admin payout UI — manual vs automated payout remains an admin choice per the existing Automated Payouts Stripe-Only memory
-- No DB migrations
+Each row expands into a step-by-step diagram (ASCII) and notes which tables write/read at each step.
 
-## Verification
+## Maintenance rule (committed to docs/README.md and saved to memory)
 
-1. Run the updated Vitest fixtures — all 28 nodes should pass with content+price, regardless of any Stripe context
-2. Confirm a YR-22 node with title + price_usd=500 + curriculum but no `stripe_account_id` on the author shows as **Live** in the X/28 count
-3. Confirm `<BuyNowButton>` still routes purchases to platform Stripe (unchanged behavior)
+> Every sprint must update the relevant doc(s) under `/docs/` before being marked complete. New node → update 03 + 06. Schema change → re-export 05. New engine or table → update 04. ABBY prompt change → bump version in 02 and update 01 if persona/philosophy shifts.
 
-## Files touched
-- `supabase/functions/_shared/node-readiness.ts`
-- `src/lib/node-readiness.ts`
-- `src/hooks/useBookNodeProgress.ts`
-- `src/hooks/useNodeLiveStats.ts`
-- `supabase/functions/author-stats/index.ts`
-- `src/lib/__tests__/node-readiness.test.ts`
-- `mem://architecture/commerce-engine-v1`
-- `mem://index.md`
+A new memory entry `mem://process/docs-sprint-maintenance` will lock this rule into Core.
+
+## Execution steps (after approval)
+
+1. Create `/docs/` and write `README.md` (index + maintenance rule).
+2. Write 01 by consolidating ABBY-related memory files + scanning prompt blocks.
+3. Extract 02 verbatim from `business-consultant/index.ts` and `abby-chat/index.ts`; stamp v1.0 / 2026-05-01.
+4. Loop through the 28 `generate-*` edge functions and extract each prompt → write 03.
+5. Compile 04 from edge-function inventory + memory architecture files.
+6. Run `supabase--read_query` against `information_schema` to dump 05.
+7. Write 06 using Be SUCKcessful as the worked example, cross-referencing `compute_node_microsite_url` slugs and `BuyNowButton` flow.
+8. Save `mem://process/docs-sprint-maintenance` and update `mem://index.md` Core.
+9. Zip `/docs/` to `/mnt/documents/authors-bureau-docs-v1.zip` and emit `<lov-artifact>`.
+10. GitHub sync is automatic via the connected repo — confirm via the GitHub connector status; no manual git commands.
+
+## Notes / assumptions
+
+- **GitHub commit**: relies on the existing Lovable ↔ GitHub two-way sync. If the repo is not yet connected, I will flag it and ask you to connect via Connectors → GitHub before the ZIP step (the ZIP itself does not require GitHub).
+- **Prompt extraction is mechanical** — I will quote the prompts verbatim, not paraphrase, so 02 and 03 are faithful sources of truth.
+- **Schema export** uses live `information_schema` data so 05 reflects today's state, not a stale migration list.
+- No code behavior changes. This sprint is documentation only.
