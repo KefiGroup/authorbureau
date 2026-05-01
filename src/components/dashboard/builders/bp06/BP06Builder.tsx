@@ -369,6 +369,9 @@ export default function BP06Builder({ authorId, bookId }: Props) {
             stripeReady={stripeReady}
             stripeLoading={stripeLoading}
             onConnectStripe={() => setStripeModalOpen(true)}
+            onSaveToLibrary={handleSaveToLibrary}
+            savingToLibrary={savingToLibrary}
+            savedToLibrary={savedToLibrary || Boolean(content?.library_asset)}
           />
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
