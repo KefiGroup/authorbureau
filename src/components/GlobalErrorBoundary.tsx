@@ -25,11 +25,15 @@ export class GlobalErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    // Log for devtools; future: forward to telemetry.
-    if (import.meta.env.DEV) {
-      // eslint-disable-next-line no-console
-      console.error("[GlobalErrorBoundary]", error, info.componentStack);
-    }
+    // Always log in production too — without this the prod fallback shows
+    // but the underlying error is invisible in the browser console, which
+    // makes triage from a user screenshot impossible.
+    // eslint-disable-next-line no-console
+    console.error(
+      "[GlobalErrorBoundary]",
+      error?.message || error,
+      info?.componentStack
+    );
   }
 
   private handleRetry = () => {
