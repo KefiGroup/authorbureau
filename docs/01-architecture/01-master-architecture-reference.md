@@ -18,18 +18,19 @@ Authors Bureau (AB) is an **AI-driven platform that turns a single published boo
 
 | Letter | Phase | Node count |
 |---|---|---|
-| **A** | Analyse Book & Develop Strategies | 1 (BP-00) |
+| **A** | Analyse Book & Develop Strategies | 0 nodes (pre-step only — see §3a) |
 | **B** | Brand Products | 9 (BP-01 → BP-09) |
 | **B** | Build Authority | 9 (BA-10 → BA-18) |
 | **Y** | Yield Revenue | 10 (YR-19 → YR-28) |
 
 | Type | Count |
 |---|---|
-| Total node IDs | **29** (BP-00 through YR-28) |
-| **Counted toward "X / 28 Live"** | **28** (BP-00 is the analysis step and is excluded from counters) |
+| **Total nodes** | **28** (BP-01 → BP-09, BA-10 → BA-18, YR-19 → YR-28) |
+| **Counted toward "X / 28 Live"** | **28** (every node) |
 | Author-level | 16 |
-| Book-level (excluding BP-00) | 12 |
-| Book-level including BP-00 | 13 |
+| Book-level | 12 |
+
+There are exactly **28 revenue nodes**, as defined by `src/components/dashboard/builders/builderNodeConfig.ts`. The "A" phase of ABBY is a one-time book-analysis pre-step (`generate-bp00-analysis`), not a node — it has no builder UI, no `author_nodes` row, no readiness gate, and no Live status. It is documented in §3a below.
 
 The platform is single-tenant per author, multi-book per author, and all reader-facing purchases are processed by Authors Bureau as **Merchant of Record**.
 
