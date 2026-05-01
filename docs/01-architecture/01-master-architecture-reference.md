@@ -18,18 +18,19 @@ Authors Bureau (AB) is an **AI-driven platform that turns a single published boo
 
 | Letter | Phase | Node count |
 |---|---|---|
-| **A** | Analyse Book & Develop Strategies | 1 (BP-00) |
+| **A** | Analyse Book & Develop Strategies | 0 nodes (pre-step only — see §3a) |
 | **B** | Brand Products | 9 (BP-01 → BP-09) |
 | **B** | Build Authority | 9 (BA-10 → BA-18) |
 | **Y** | Yield Revenue | 10 (YR-19 → YR-28) |
 
 | Type | Count |
 |---|---|
-| Total node IDs | **29** (BP-00 through YR-28) |
-| **Counted toward "X / 28 Live"** | **28** (BP-00 is the analysis step and is excluded from counters) |
+| **Total nodes** | **28** (BP-01 → BP-09, BA-10 → BA-18, YR-19 → YR-28) |
+| **Counted toward "X / 28 Live"** | **28** (every node) |
 | Author-level | 16 |
-| Book-level (excluding BP-00) | 12 |
-| Book-level including BP-00 | 13 |
+| Book-level | 12 |
+
+There are exactly **28 revenue nodes**, as defined by `src/components/dashboard/builders/builderNodeConfig.ts`. The "A" phase of ABBY is a one-time book-analysis pre-step (`generate-bp00-analysis`), not a node — it has no builder UI, no `author_nodes` row, no readiness gate, and no Live status. It is documented in §3a below.
 
 The platform is single-tenant per author, multi-book per author, and all reader-facing purchases are processed by Authors Bureau as **Merchant of Record**.
 
@@ -58,7 +59,6 @@ Generator-internal `NODE_NAME` constants that differ from the canonical label ar
 
 | ID | Canonical label | Framework category | Scope | Edge function (verified on disk) | Notes / known divergences |
 |---|---|---|---|---|---|
-| BP-00 | Initial Analysis | Brand Products | Book | `generate-bp00-analysis` | Excluded from "X / 28 Live" |
 | BP-01 | Email Marketing | Brand Products | **Author** | `generate-bp01-email-marketing` | — |
 | BP-02 | Lead Magnet | Brand Products | Book | `generate-bp02-lead-magnets` (+ `generate-bp02-social-pack`, `bp02-activate-funnel`) | Multi-function node |
 | BP-03 | Social Media | Brand Products | **Author** | `generate-bp03-social-media` (+ `bp03-node-state`) | — |
@@ -91,7 +91,7 @@ Generator-internal `NODE_NAME` constants that differ from the canonical label ar
 ### Author-level vs Book-level (authoritative)
 
 - **Author-level (16)** — set in `node-readiness.ts → AUTHOR_LEVEL_NODES`: BP-01, BP-03, BA-14, BA-15, BA-16, BA-18, YR-19 through YR-28.
-- **Book-level (12 counted, 13 including BP-00)** — every other node.
+- **Book-level (12)** — every other node (BP-02, BP-04, BP-05, BP-06, BP-07, BP-08, BP-09, BA-10, BA-11, BA-12, BA-13, BA-17).
 
 ### Commerce nodes (informational only — does NOT gate Live)
 
@@ -100,6 +100,15 @@ Set in `node-readiness.ts → COMMERCE_NODES`: BP-06, BP-07, BP-09, BA-10, BA-12
 ### Session-style YR nodes (require `session_type` OR `booking_url`)
 
 YR-19, YR-22, YR-23, YR-24.
+
+## 3a. Pre-step: Initial Book Analysis (NOT a node)
+
+**Edge function:** `generate-bp00-analysis`
+**Status:** Internal pre-step. Not in `builderNodeConfig.ts`. No builder UI. No `author_nodes` row. No readiness gate. No Live counter.
+
+**What it does:** Runs ABBY's book analysis for a specific book and writes an `author_context` row keyed on `(author_id, book_id)`. This row is the prerequisite for every framework-heavy generator (BP-01..05, BA-10..18, YR-19..28). When a generator finds no context row for the active book it returns `contextBlocked` and the UI prompts the author to run this step via `AnalyseBookGate.tsx`.
+
+**Why the `BP-00` ID exists:** The function and gate component were named `bp00` for ordering / sort consistency with the Brand Products family. The `BP-00` string is an internal function identifier only — it is NOT a node ID and must never be counted, listed in the registry table, or rendered to authors as a revenue stream.
 
 ## 4. The 7 Native Engines
 
