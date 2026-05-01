@@ -47,6 +47,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
+  const [pendingReplace, setPendingReplace] = useState<{ existingLabel: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
@@ -179,14 +180,45 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     if (!autostart || !selectedOccasion) return;
     if (didAutostartRef.current) return;
     if (!authorId) return;
-    if (step !== 0) return;          // already past intro (e.g. resumed draft)
-    if (content) return;             // existing draft loaded
     if (isBookLoading) return;
     if (!hasResolvedBook) return;
+
+    // Case A: no existing draft -> autostart immediately
+    if (!content) {
+      didAutostartRef.current = true;
+      handleGenerate();
+      return;
+    }
+
+    // Case B: existing draft is for the SAME occasion -> just open it (current behaviour)
+    if (content.occasion === selectedOccasion.id) {
+      didAutostartRef.current = true;
+      return;
+    }
+
+    // Case C: existing draft is for a DIFFERENT occasion (or generic) -> ask before replacing
     didAutostartRef.current = true;
-    handleGenerate();
+    setPendingReplace({
+      existingLabel: content.occasion_label || content.edition_title || "your saved edition",
+    });
+    setStep(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autostart, selectedOccasion, authorId, step, content, isBookLoading, hasResolvedBook]);
+  }, [autostart, selectedOccasion, authorId, content, isBookLoading, hasResolvedBook]);
+
+  const confirmReplace = () => {
+    setPendingReplace(null);
+    setContent(null);
+    setPriceOverride(null);
+    handleGenerate();
+  };
+  const cancelReplace = () => {
+    setPendingReplace(null);
+    // Drop the calendar query params so a refresh doesn't re-prompt
+    navigate(`/node-builder/BP-08`, { replace: true });
+    // Open existing draft at Review
+    setStep(2);
+  };
+
 
   const handlePublish = async () => {
     setStep(3); setError(null);
@@ -234,6 +266,23 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can design your special editions, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-08")}>Complete Book Profile</Button>
               </>
+              ) : pendingReplace && selectedOccasion ? (
+                <div className="space-y-4">
+                  <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-4">
+                    <p className="font-semibold text-foreground mb-1">You already have a saved edition</p>
+                    <p className="text-sm text-muted-foreground">
+                      Your library currently holds <span className="font-medium text-foreground">"{pendingReplace.existingLabel}"</span>. Generating a new <span className="font-medium text-foreground">{selectedOccasion.emoji} {selectedOccasion.label}</span> edition will replace it. Only one Special Edition draft is stored per book.
+                    </p>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-3">
+                    <Button className="flex-1" size="lg" onClick={confirmReplace}>
+                      <Sparkles className="h-4 w-4 mr-2" /> Replace with {selectedOccasion.label} edition
+                    </Button>
+                    <Button variant="outline" size="lg" onClick={cancelReplace}>
+                      Keep current edition
+                    </Button>
+                  </div>
+                </div>
               ) : (<>
                 {selectedOccasion && (
                   <div className="mb-4 rounded-xl border border-secondary/40 bg-secondary/5 p-3 flex items-center gap-3">
