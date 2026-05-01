@@ -700,6 +700,38 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
               <FileDown className="h-4 w-4 mr-2" /> Download Word (.docx)
             </Button>
           </div>
+          {/* Sprint 55c — Save to Library without going live. Lets authors stash
+              the same branded PDF + DOCX in My Library before deciding to publish. */}
+          <div className="rounded-md border border-border bg-background/60 p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold flex items-center gap-2">
+                {savedToLibrary ? <Check className="h-4 w-4 text-emerald-600" /> : <Upload className="h-4 w-4 text-muted-foreground" />}
+                {savedToLibrary ? "Saved to your Library" : "Save a copy to your Library"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {savedToLibrary
+                  ? "Your branded PDF + Word version are in My Library. Re-save anytime after edits."
+                  : "Stash the branded PDF and Word version in My Library without publishing yet."}
+              </p>
+              {savedToLibrary && (
+                <a
+                  href="/dashboard?section=my-library"
+                  className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                >
+                  View in My Library →
+                </a>
+              )}
+            </div>
+            <Button
+              variant={savedToLibrary ? "outline" : "secondary"}
+              size="sm"
+              onClick={onSaveToLibrary}
+              disabled={savingToLibrary}
+              className="shrink-0"
+            >
+              {savingToLibrary ? "Saving…" : savedToLibrary ? "Re-save to Library" : "Save to Library"}
+            </Button>
+          </div>
           <WorkbookDocxImporter
             authorId={authorId}
             bookId={bookId ?? null}
