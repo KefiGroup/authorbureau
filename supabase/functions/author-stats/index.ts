@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "../_shared/node-readiness.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -223,57 +224,8 @@ Deno.serve(async (req) => {
           .in("status", ["content_ready", "live"])
       : { data: [] };
 
-    // Mirror src/lib/node-readiness.ts so the dashboard counter matches the
-    // Book Hub "Live vs Building" tile state. A node row may be status='live'
-    // but missing required content_json — those must NOT count as built.
-    function hasRequiredAssets(nodeId: string, content: any): boolean {
-      if (!content || typeof content !== "object") return false;
-      switch (nodeId) {
-        case "BP-04": {
-          const fields = ["hero_headline","hero_subheadline","about_long","about_short","cta_label","lead_magnet_id"];
-          const hasField = fields.some((k) => {
-            const v = content[k];
-            return typeof v === "string" ? v.trim().length > 0 : !!v;
-          });
-          const hasSections = Array.isArray(content.sections) && content.sections.length > 0;
-          return hasField || hasSections;
-        }
-        case "BA-13": {
-          const hasSchedule = Array.isArray(content.sessions) ? content.sessions.length > 0 : !!content.schedule;
-          return hasSchedule;
-        }
-        case "BA-14": {
-          // Mirror src/lib/node-readiness.ts: pass when distributed (RSS + episodes)
-          // OR when activated locally with episodes + a show title.
-          const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
-          const episodes = Array.isArray(content.episodes) ? content.episodes : [];
-          const activatedWithContent =
-            !!content.activated &&
-            episodes.length > 0 &&
-            !!(content.show_title || content.podcast_title);
-          return (rssReady && episodes.length > 0) || activatedWithContent;
-        }
-        case "BA-15": {
-          // Mirror src/lib/node-readiness.ts: accept object-shaped press releases
-          // and the newer target_media_outlets field used by the current builder.
-          const pr = content.press_release ?? content.press_release_html ?? content?.assets?.press_release;
-          let hasPressRelease = false;
-          if (typeof pr === "string") {
-            hasPressRelease = pr.trim().length > 0;
-          } else if (pr && typeof pr === "object") {
-            const candidates = ["body", "html", "headline", "content", "text"];
-            hasPressRelease = candidates.some(
-              (k) => typeof (pr as any)[k] === "string" && (pr as any)[k].trim().length > 0
-            );
-          }
-          const outletArrays = [content.target_media_outlets, content.media_list, content.outlets];
-          const hasOutlets = outletArrays.some((a: any) => Array.isArray(a) && a.length > 0);
-          return hasPressRelease && hasOutlets;
-        }
-        default:
-          return Object.keys(content).length > 0;
-      }
-    }
+    // hasRequiredAssets is imported from ../_shared/node-readiness.ts
+    // — the SAME module used by the frontend hooks. Do not inline a copy here.
 
     // Only count nodes that are truly built (status live + readiness gate).
     const builtNodeIds = new Set<string>();
@@ -331,15 +283,8 @@ Deno.serve(async (req) => {
     // or the entire query silently returns null and that table's rows are lost.
     const AUTHOR_SCOPED_TABLES = new Set<string>(["coaching_packages"]);
 
-    // Author-level nodes count toward EVERY book in the author's library
-    // (one email list, one podcast, one set of social channels, all YR services).
-    // MUST mirror src/lib/node-readiness.ts AUTHOR_LEVEL_NODES exactly so the
-    // dashboard book card matches the in-book Brand/Build/Yield tab counters.
-    const AUTHOR_LEVEL_NODES = new Set<string>([
-      "BP-01", "BP-03", "BA-14", "BA-15", "BA-16", "BA-18",
-      "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
-      "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
-    ]);
+    // AUTHOR_LEVEL_NODES is imported from ../_shared/node-readiness.ts
+    // — the SAME set used by the frontend hooks. Do not inline a copy here.
     const allBookIds = allBooks.map((b: any) => b.id);
     const fanOutToAllBooks = (nodeId: string) => {
       for (const bid of allBookIds) ensureBookSet(bid).add(nodeId);
