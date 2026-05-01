@@ -16,7 +16,7 @@ serve(async (req) => {
   let parsedBookId: string | null = null;
   const supabase = makeServiceClient();
   try {
-    const { author_id, book_id } = await req.json();
+    const { author_id, book_id, occasion } = await req.json();
     if (!author_id) throw new Error("author_id is required");
     parsedAuthorId = author_id;
     parsedBookId = book_id ?? null;
