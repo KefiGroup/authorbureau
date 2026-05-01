@@ -186,6 +186,7 @@ See `05-technology-stack-current.md` for the full table.
 | 48 | Canonical node-label alignment — `canonical-node-labels.ts` shared module + `upsertAuthorNode` guard rail + 4-row backfill + BA-15/BA-16 asset-pack swap | this file (§3 divergence flags cleared) |
 | 49 | DB-level node hardening — `node_registry` table, FKs, BEFORE trigger forcing canonical labels, `compute_node_microsite_url` reads from registry | this file (§3 hardening note) |
 | 50 | Edge function folder rename — 5 mismatched generators (`bp06-online-course→workbook`, `bp07-coaching→home-study`, `bp08-mastermind→special-editions`, `bp09-speaking→book-sales`, `ba17-upsells→bundles`) renamed; 5 client invoke sites updated; old functions deleted | this file (§3 filenames now canonical) |
+| 51 | Final root-cause cleanup — 18 generators converted from hardcoded `NODE_NAME` to `getCanonicalNodeLabel(NODE_ID)`; BA-10 local `upsertAuthorNode` removed in favour of shared helper; `get-microsite-page` now resolves slugs via `node_registry`; vitest parity test (`canonical-labels-parity`) + `scripts/check-slug-parity.mjs` lock TS↔edge↔DB agreement at build time | this file (v3.3) |
 
 ## 10. Competitive Position
 
