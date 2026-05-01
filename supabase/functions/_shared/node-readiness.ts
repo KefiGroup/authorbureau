@@ -256,9 +256,17 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       return hasSupporting;
     }
     case "BP-06": {
-      // Workbook — Commerce Engine product OR a delivered PDF.
-      if (!nonEmptyString(content.title)) return false;
-      return nonEmptyString(content.pdf_url) || hasCommerceSignal(content);
+      // Workbook — accept either canonical `title` or builder-native
+      // `workbook_title` (BP-06 builder writes the latter). Live when a
+      // delivered PDF exists, a commerce signal exists, or the workbook
+      // has substantive built sections (the builder writes `sections[]`
+      // and flips `activated=true` on publish).
+      const hasTitle = nonEmptyString(content.title) || nonEmptyString(content.workbook_title);
+      if (!hasTitle) return false;
+      if (nonEmptyString(content.pdf_url)) return true;
+      if (hasCommerceSignal(content)) return true;
+      if (content.activated === true && nonEmptyArray(content.sections)) return true;
+      return false;
     }
     case "BP-07": {
       // Home Study Course — Course Engine wired (course_id) OR commerce.
