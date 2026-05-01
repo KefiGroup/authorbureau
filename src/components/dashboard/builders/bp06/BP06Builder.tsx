@@ -141,6 +141,37 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     }
   };
 
+  /**
+   * Sprint 55 — Build the workbook DOCX + PDF, upload them to library-assets
+   * storage, and stamp the canonical library_asset record on publish.
+   * Falls back to publish-without-asset if upload fails so the author isn't
+   * blocked from going live.
+   */
+  const buildAndUploadDeliverable = async () => {
+    if (!authorId || !content) return null;
+    try {
+      const [docxBlob, pdfBuilt] = await Promise.all([
+        buildWorkbookDocxBlob({ content, bookTitle: effectiveBookTitle, authorName }),
+        Promise.resolve(buildWorkbookPdfBlob({ content, bookTitle: effectiveBookTitle, authorName })),
+      ]);
+      const safeBook = effectiveBookTitle.replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+      const docxName = `${safeBook}-workbook.docx`;
+      const pdfName = pdfBuilt.filename;
+      const asset = await uploadAndRegisterLibraryAsset({
+        authorId,
+        nodeId: "BP-06",
+        title: content.workbook_title || "Workbook",
+        primary: { blob: docxBlob, filename: docxName, kind: "docx" },
+        pdf: { blob: pdfBuilt.blob, filename: pdfName },
+        isPaid: isPaidNode(content),
+      });
+      return asset;
+    } catch (err) {
+      console.warn("[BP-06] library_asset upload failed, publishing without it", err);
+      return null;
+    }
+  };
+
   const handlePublish = async () => {
     // Pre-flight: paid workbook requires Stripe Connect.
     if (isPaidNode(content) && !stripeReady) {
@@ -150,9 +181,10 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      await publishNodeToSite(authorId!, "BP-06", authorSlug);
+      const libraryAsset = await buildAndUploadDeliverable();
+      await publishNodeToSite(authorId!, "BP-06", authorSlug, bookId ?? null, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
     } catch (e: unknown) {
       if (e instanceof StripeRequiredError) {
         setStripeModalOpen(true);
@@ -173,9 +205,10 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      await publishNodeToSite(authorId, "BP-06", authorSlug);
+      const libraryAsset = await buildAndUploadDeliverable();
+      await publishNodeToSite(authorId, "BP-06", authorSlug, bookId ?? null, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setContent((prev: any) => ({ ...prev, activated: true }));
+      setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
     } catch (e: unknown) {
       setError((e as Error).message);
       setStep(2);
