@@ -109,6 +109,74 @@ function hasCommerceSignal(content: any): boolean {
 }
 
 // ---------------------------------------------------------------------------
+// Uniform library_asset contract (Sprint 54 — Node Deliverables v2)
+// ---------------------------------------------------------------------------
+
+/**
+ * The canonical "100% Live" contract: every node, on publish, writes a
+ * `library_asset` object onto `content_json` describing the end-state
+ * deliverable saved to the author's library. A node is Live when
+ *   asset.url is set AND asset.kind === REQUIRED_KIND[nodeId].
+ *
+ * This is the single source of truth — see
+ *   docs/02-business-rules/02-node-readiness-gates-full-spec.md
+ *   mem://business/uniform-readiness-contract
+ *
+ * The legacy per-node switch below remains as a transitional fallback so
+ * rows that were marked Live before Sprint 54 don't regress before they
+ * are next published.
+ */
+export type LibraryAssetKind =
+  | "docx"
+  | "pptx"
+  | "audio_mp3"
+  | "audio_zip"
+  | "email_sequence"
+  | "podcast_pack"
+  | "external_url";
+
+export const REQUIRED_KIND: Record<string, LibraryAssetKind> = {
+  "BP-01": "email_sequence",
+  "BP-02": "docx",
+  "BP-03": "docx",
+  "BP-04": "external_url",
+  "BP-05": "pptx",
+  "BP-06": "docx",
+  "BP-07": "docx",
+  "BP-08": "docx",
+  "BP-09": "external_url",
+  "BA-10": "docx",
+  "BA-11": "audio_zip",
+  "BA-12": "docx",
+  "BA-13": "docx",
+  "BA-14": "podcast_pack",
+  "BA-15": "docx",
+  "BA-16": "docx",
+  "BA-17": "docx",
+  "BA-18": "docx",
+  "YR-19": "docx",
+  "YR-20": "docx",
+  "YR-21": "pptx",
+  "YR-22": "pptx",
+  "YR-23": "docx",
+  "YR-24": "docx",
+  "YR-25": "docx",
+  "YR-26": "docx",
+  "YR-27": "docx",
+  "YR-28": "docx",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function hasValidLibraryAsset(nodeId: string, content: any): boolean {
+  const asset = content?.library_asset;
+  if (!asset || typeof asset !== "object") return false;
+  if (!nonEmptyString(asset.url)) return false;
+  const required = REQUIRED_KIND[nodeId];
+  if (!required) return false;
+  return asset.kind === required;
+}
+
+// ---------------------------------------------------------------------------
 // Readiness gate
 // ---------------------------------------------------------------------------
 
@@ -116,10 +184,12 @@ function hasCommerceSignal(content: any): boolean {
  * Returns true when a node's `content_json` carries enough substantive
  * content to count as "truly built" for dashboard counters.
  *
- * A node may be marked status='live' in the DB, but if its required content
- * assets are missing the UI must NOT show a Live badge.
+ * Order of precedence:
+ *   1. Uniform contract: a valid library_asset whose kind matches REQUIRED_KIND.
+ *   2. Legacy per-node fallback (kept until every builder writes library_asset).
  *
- * Adding a new gated node? Add a case here only.
+ * A node may be marked status='live' in the DB, but if neither check passes
+ * the UI must NOT show a Live badge.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function hasRequiredAssets(
@@ -130,6 +200,15 @@ export function hasRequiredAssets(
 ): boolean {
   if (!content || typeof content !== "object") return false;
 
+  // 1. Uniform contract (Sprint 54+): library_asset.url + matching kind.
+  if (hasValidLibraryAsset(nodeId, content)) return true;
+
+  // 2. Legacy fallback — bridge for rows published before Sprint 54.
+  return legacyHasRequiredAssets(nodeId, content);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
   // NOTE: There is intentionally no Stripe-connection gate here.
   // Authors Bureau is Merchant of Record — reader payments always flow to
   // the platform Stripe account. Author payout setup is admin-side and
@@ -177,9 +256,17 @@ export function hasRequiredAssets(
       return hasSupporting;
     }
     case "BP-06": {
-      // Workbook — Commerce Engine product OR a delivered PDF.
-      if (!nonEmptyString(content.title)) return false;
-      return nonEmptyString(content.pdf_url) || hasCommerceSignal(content);
+      // Workbook — accept either canonical `title` or builder-native
+      // `workbook_title` (BP-06 builder writes the latter). Live when a
+      // delivered PDF exists, a commerce signal exists, or the workbook
+      // has substantive built sections (the builder writes `sections[]`
+      // and flips `activated=true` on publish).
+      const hasTitle = nonEmptyString(content.title) || nonEmptyString(content.workbook_title);
+      if (!hasTitle) return false;
+      if (nonEmptyString(content.pdf_url)) return true;
+      if (hasCommerceSignal(content)) return true;
+      if (content.activated === true && nonEmptyArray(content.sections)) return true;
+      return false;
     }
     case "BP-07": {
       // Home Study Course — Course Engine wired (course_id) OR commerce.
@@ -293,13 +380,18 @@ export function hasRequiredAssets(
       return true;
     }
 
-    default:
-      // Generic gate: any object with at least one key passes. Used for the
-      // small remainder of nodes (BP-02 lead magnets, BP-05 webinars,
-      // BP-08 special editions, BA-16 affiliates, BA-18 JV) where richer
-      // builders write substantial content_json on save and per-shape gates
-      // would create more false negatives than they prevent.
-      return Object.keys(content).length > 0;
+    default: {
+      // Generic legacy gate: any object with at least one *substantive* key
+      // passes. We exclude `library_asset` from the count so a stale or
+      // mismatched-kind library_asset cannot accidentally satisfy the gate
+      // for nodes (BP-02, BP-05, BP-08, BA-16, BA-18) that have no
+      // dedicated legacy rule. The uniform-contract check above is the
+      // correct path for these nodes once builders are wired.
+      const keys = Object.keys(content).filter(
+        (k) => k !== "library_asset" && k !== "library_asset_history",
+      );
+      return keys.length > 0;
+    }
   }
 }
 

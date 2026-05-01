@@ -1,13 +1,73 @@
 # 02 · AB Node Readiness Gates — Full Specification
 
-_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
+_Version: 2026-05-01 · Sprint 54 (uniform `library_asset` contract)_
 
 **Source(s) of truth:**
 - `supabase/functions/_shared/node-readiness.ts` (verbatim source below)
+- `mem://business/uniform-readiness-contract`
 
 ---
 
-For each of the 28 nodes, this document states the **exact** rule that `hasRequiredAssets()` applies before the dashboard counts the node as Live.
+## Sprint 54 — Uniform `library_asset` contract (PRIMARY GATE)
+
+A node is **100% Live** when `content_json.library_asset.url` is set AND `library_asset.kind === REQUIRED_KIND[nodeId]`. The legacy per-node switch documented below remains as a transitional fallback for rows published before Sprint 54.
+
+```json
+content_json.library_asset = {
+  "kind": "docx" | "pptx" | "audio_mp3" | "audio_zip" |
+          "email_sequence" | "podcast_pack" | "external_url",
+  "url": "https://…",
+  "pdf_url": "https://…" | null,
+  "txt_url": "https://…" | null,
+  "title": "…",
+  "saved_at": "ISO-8601"
+}
+```
+
+### REQUIRED_KIND — 28 nodes
+
+| Node | Name | `kind` |
+|------|------|--------|
+| BP-01 | Email Marketing | `email_sequence` |
+| BP-02 | Lead Magnet | `docx` |
+| BP-03 | Social Media | `docx` |
+| BP-04 | Author Microsite | `external_url` |
+| BP-05 | Webinar / Event | `pptx` |
+| BP-06 | Workbook | `docx` |
+| BP-07 | Home Study Course | `docx` |
+| BP-08 | Special Editions | `docx` |
+| BP-09 | Book Sales | `external_url` |
+| BA-10 | Online Course | `docx` |
+| BA-11 | Audiobook | `audio_zip` |
+| BA-12 | Membership | `docx` |
+| BA-13 | Group Coaching | `docx` |
+| BA-14 | Podcast | `podcast_pack` |
+| BA-15 | Media & PR | `docx` |
+| BA-16 | Affiliates | `docx` |
+| BA-17 | Bundles | `docx` |
+| BA-18 | JV Partnerships | `docx` |
+| YR-19 | 1-on-1 Coaching | `docx` |
+| YR-20 | Speaking | `docx` |
+| YR-21 | Workshops | `pptx` |
+| YR-22 | Corporate Training | `pptx` |
+| YR-23 | Mastermind | `docx` |
+| YR-24 | Retreat | `docx` |
+| YR-25 | Certification | `docx` |
+| YR-26 | Licensing | `docx` |
+| YR-27 | Fundraising | `docx` |
+| YR-28 | Sponsors | `docx` |
+
+**Three-format output policy**: any `docx` kind emits DOCX + PDF + TXT. PPTX kinds emit PPTX + PDF + TXT (script). Audio emits native + TXT (script). No "TXT not needed" exceptions.
+
+**Storage**: paid deliverables (BP-06, BP-07, BA-10, BA-12, BA-13, BA-17, YR-19, YR-21, YR-22, YR-23, YR-25) → private bucket `library-assets` with signed URLs. Free deliverables → public bucket `library-assets-public`.
+
+**Stripe still excluded**: payout setup is admin-side; Authors Bureau is Merchant of Record on every transaction.
+
+---
+
+## Legacy per-node fallback (transitional)
+
+For each of the 28 nodes, this document states the **exact** rule that `legacyHasRequiredAssets()` applies as a fallback when `library_asset` is absent. **BP-06 update (Sprint 54)**: now also accepts `workbook_title` (builder-native field) and `activated=true + sections[]`.
 
 ## Plain-English summary
 

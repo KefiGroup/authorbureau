@@ -104,3 +104,22 @@ When making an architectural decision:
 **Reason:** The function and its `AnalyseBookGate.tsx` consumer were named `bp00` for sort consistency with the Brand Products family. Sprint 46 misread the `BP-` prefix and elevated the pre-step to "node #29", introducing a "29 IDs / 28 counted" framing that contradicted the canonical source `src/components/dashboard/builders/builderNodeConfig.ts` (which contains 28 entries) and core memory (ABBY 9-9-10 = 28).
 
 **Implication:** Master reference §3a now documents BP-00 as a pre-step. All counters and registry tables across `/docs/` and the build scripts state 28 nodes. The stale `// Single source of truth for all 30 nodes` comment in `builderNodeConfig.ts` was also corrected to 28.
+
+## Sprint 54 — Uniform `library_asset` readiness contract (2026-05-01)
+
+**Decision**: Replace per-node readiness rules with a single uniform gate: `library_asset.url` + `library_asset.kind === REQUIRED_KIND[nodeId]`. Three-format output (DOCX + PDF + TXT) for every `docx` kind.
+
+**Why**: BP-06 Workbook showed 60% on the dashboard despite being marked Live, because the per-node legacy rule expected `title` while the builder writes `workbook_title`. The drift was likely to repeat across other nodes. A single contract removes the drift class.
+
+**Scope landed this sprint**:
+- New `REQUIRED_KIND` map + uniform gate in `supabase/functions/_shared/node-readiness.ts` (legacy switch retained as fallback).
+- BP-06 legacy rule relaxed to accept `workbook_title` + `activated`/`sections` (fixes the immediate bug).
+- Storage buckets `library-assets` (private) and `library-assets-public` (public) with author-folder RLS.
+- Scaffold edge function `render-library-asset` (modes: `register`, `txt_only`).
+- 84 new readiness test cases (152 total, all green).
+- Audit script `scripts/audit-stuck-live.mjs`.
+- Doc 02 + BP-06 framework updated; new memory `mem://business/uniform-readiness-contract`; governance rule added to `mem://process/docs-sprint-maintenance`.
+
+**Deferred to follow-up sprints**: per-builder publish-step writes for the 28 nodes (BP first, then BA, then YR), full DOCX/PPTX/PDF rendering inside `render-library-asset`, Library UI consolidation, `library_asset_history[]` versioning.
+
+**Stripe**: still excluded from readiness (Merchant-of-Record principle preserved).

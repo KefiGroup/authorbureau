@@ -377,3 +377,47 @@ describe("hasRequiredAssets — YR nodes (generic + session-style)", () => {
     ).toBe(true);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Sprint 54 — Uniform library_asset contract
+// ---------------------------------------------------------------------------
+
+import { REQUIRED_KIND } from "../../../supabase/functions/_shared/node-readiness";
+
+describe("REQUIRED_KIND map", () => {
+  it("covers exactly the 28 nodes (no BP-00, no extras)", () => {
+    const ids = Object.keys(REQUIRED_KIND).sort();
+    expect(ids.length).toBe(28);
+    expect(ids).not.toContain("BP-00");
+    expect(ids[0]).toBe("BA-10");
+    expect(ids[ids.length - 1]).toBe("YR-28");
+  });
+});
+
+describe("hasRequiredAssets — uniform library_asset contract", () => {
+  const sample = (kind: string, url = "https://files.example/x") => ({
+    library_asset: { kind, url, title: "T", saved_at: "2026-05-01T00:00:00Z" },
+  });
+
+  for (const [nodeId, kind] of Object.entries(REQUIRED_KIND)) {
+    it(`${nodeId}: passes when library_asset.kind = ${kind}`, () => {
+      expect(hasRequiredAssets(nodeId, sample(kind))).toBe(true);
+    });
+    it(`${nodeId}: fails when library_asset.kind is wrong`, () => {
+      const wrong = kind === "docx" ? "audio_zip" : "docx";
+      // Empty content + wrong kind so legacy fallback can't accidentally pass.
+      expect(hasRequiredAssets(nodeId, sample(wrong))).toBe(false);
+    });
+    it(`${nodeId}: fails when library_asset.url is missing`, () => {
+      expect(
+        hasRequiredAssets(nodeId, { library_asset: { kind, title: "T" } })
+      ).toBe(false);
+    });
+  }
+
+  it("legacy fallback still works (BP-06 with pdf_url + title)", () => {
+    expect(
+      hasRequiredAssets("BP-06", { title: "Workbook", pdf_url: "https://x/wb.pdf" })
+    ).toBe(true);
+  });
+});
