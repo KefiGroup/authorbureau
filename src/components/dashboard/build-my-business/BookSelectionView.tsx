@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { useAuthorStats } from "@/hooks/useAuthorStats";
 import {
   BookOpen, Loader2, Sparkles, TrendingUp, BarChart3, Hammer, CheckCircle2,
 } from "lucide-react";
@@ -32,13 +34,16 @@ export default function BookSelectionView({
   showManuscriptGate, setShowManuscriptGate, pendingBookSelection,
 }: BookSelectionViewProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { stats } = useAuthorStats(user?.id);
   const [viewPlanBook, setViewPlanBook] = useState<Book | null>(null);
 
   const analyzedBooks = books.filter(b => analyzedBookIds.has(b.id));
   const unanalyzedBooks = books.filter(b => !analyzedBookIds.has(b.id));
   const hasAnalyzed = analyzedBooks.length > 0;
   const totalStreams = Object.values(planSummaries).reduce((sum: number, p: any) => sum + (p?.products?.length || 0), 0);
-  const totalBuilt = 0;
+  // Pull live count from centralized author-stats so this matches the per-book chips.
+  const totalBuilt = stats?.products?.totalBuilt ?? 0;
 
   if (loadingBooks) {
     return (

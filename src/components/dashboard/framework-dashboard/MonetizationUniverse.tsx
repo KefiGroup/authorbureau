@@ -136,7 +136,7 @@ export default function MonetizationUniverse({ activatedCount, builtProducts, re
           </p>
           <div className="max-w-xs mx-auto space-y-1.5 pt-2">
             <div className="flex justify-between text-[10px] text-gray-400">
-              <span>{builtCount} of {totalStreams} activated</span>
+              <span>{builtCount} of {totalStreams} activated across all your books</span>
               <span>{Math.round((builtCount / totalStreams) * 100)}%</span>
             </div>
             <div className="h-2 rounded-full bg-gray-800 overflow-hidden">

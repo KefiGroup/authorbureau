@@ -1,106 +1,96 @@
-# Wave 4 — Error Visibility & Alerting
+# Sprint — Counter regression + bio normalization
 
-Right now the admin can see *audit* events but cannot see *failures*. Edge-function exceptions, webhook errors, cron failures, queue DLQ messages, and Stripe/Resend bounces all happen silently. This wave adds a single source of truth for errors with real-time visibility and admin notifications.
+## Findings (verified against your DB)
 
-## What the admin will see
+I pulled Pauline's actual `author_nodes` rows. Here's ground truth before we change anything:
 
-1. **Red dot on the bell** the moment a critical error is logged (real-time via Supabase Realtime).
-2. **New "Errors" tab** in the admin panel with:
-   - Live counters: `Critical / Error / Warning` in the last 1h, 24h, 7d.
-   - Filterable table: source, severity, time range, search.
-   - Detail dialog: full stack/payload, context, "Acknowledge" + "Mark resolved" actions.
-3. **Upgraded System Health card** on the Overview tab:
-   - Real error count from the new log (not approximated from audit_log).
-   - Per-source health pills (edge functions, Stripe webhook, Resend, payouts cron, email queue DLQ).
-   - "Stale cron" warnings when monthly payouts haven't run in >35 days.
-4. **Admin email digest** (optional, daily) when there are ≥1 unresolved critical errors.
+- **Pauline has 28 nodes with `status='live'` in the database.**
+- Of those, **22 have `book_id = "Be SUCKcessful"`** and **6 have `book_id = "Invest Like Buffett for Parents"`**.
+- Total = 28. So `22 + 6 = 28`.
 
-## Technical design
+This means two of your three reported issues need to be re-interpreted.
 
-### 1. New table `system_error_log`
+---
 
-| Column | Type | Notes |
-|---|---|---|
-| id | uuid | PK |
-| source | text | `edge_function` / `webhook` / `cron` / `email_queue` / `stripe` / `client` |
-| function_name | text | e.g. `create-checkout-session`, `run-monthly-payouts` |
-| severity | text | `critical` / `error` / `warning` |
-| message | text | Short error string |
-| stack | text | Full stack/details |
-| context | jsonb | Request params, user_id, etc. |
-| acknowledged_by | uuid | Admin who ack'd |
-| acknowledged_at | timestamptz | |
-| resolved_at | timestamptz | |
-| created_at | timestamptz | default now() |
+## Issue 1 — Real regression. Fix.
 
-RLS: admins read/update; service role inserts.
+**Symptom:** "Products Built So Far" stat on the Build-My-Business page shows **0** for the whole portfolio, even though the per-book chips are non-zero.
 
-### 2. Shared helper `_shared/log-error.ts`
-
-A thin Deno helper every edge function imports inside its `catch` block:
+**Root cause (confirmed):** `src/components/dashboard/build-my-business/BookSelectionView.tsx`, line 41:
 
 ```ts
-await logError({ source: "edge_function", function_name: "create-checkout-session",
-                 severity: "error", message: err.message, stack: err.stack, context });
+const totalBuilt = 0;   // hardcoded
 ```
 
-Inserts into `system_error_log` and, if `severity = critical`, calls `notify_all_admins` so the bell pings instantly.
+It never reads `centralStats.products.totalBuilt` (or any other source). The number was hardcoded to 0 when the portfolio summary was first scaffolded and was never wired up.
 
-### 3. Wire into hot paths (Phase A — highest-value 8 functions)
+**Fix:** Pass `centralStats` into `BookSelectionView` and compute:
 
-- `create-checkout-session`, `verify-purchase`, `process-purchase`, `refund-purchase` (commerce)
-- `run-monthly-payouts`, `generate-annual-statements` (financial cron)
-- `send-transactional-email`, `process-email-flows` (email)
+```ts
+const totalBuilt = centralStats?.products?.totalBuilt ?? 0;
+```
 
-Add try/catch wrappers; classify Stripe `card_declined` etc. as `warning`, infra errors as `error`, data corruption / failed payouts as `critical`.
+`centralStats` already exists upstream (`useAuthorStats`) — we just plumb it through `BuildMyBusiness` → `BookSelectionView`.
 
-### 4. Email queue DLQ surfacing
+> Note on your wording: this stat lives on the **Build My Business** screen, not on the My Books cards. The per-book card counters in `MyBooks.tsx` already use `centralStats.products.perBook[bookId].total` correctly — that's why the inner Book Hub shows 22/28 properly. If you ARE seeing 0/28 on the My Books cards specifically, please grab a screenshot — I couldn't reproduce it from code reading.
 
-Add a `email-queue-dlq` action to `admin-data` that calls `pgmq.read('emails_dlq', …)` and returns count + sample. Surface as a red pill on the health card when count > 0.
+---
 
-### 5. Realtime channel
+## Issue 2 — Not actually a bug.
 
-`ALTER PUBLICATION supabase_realtime ADD TABLE public.system_error_log;`
-`AdminNotificationBell` subscribes and increments unread badge on new `severity in ('critical','error')` rows.
+**Reported:** "Monetization Universe shows 28/28 but Be SUCKcessful only has 26 nodes built — should be 26/28."
 
-### 6. New `admin-data` actions
+**Reality:** Per-book counters and the Monetization Universe count different things:
 
-- `errors-list` — filtered query with source/severity/since/resolved filters.
-- `errors-summary` — count by severity buckets {1h, 24h, 7d}.
-- `errors-acknowledge` — sets ack fields for selected ids.
-- `errors-resolve` — sets resolved_at, audit-logs the action.
-- `email-queue-dlq` — pgmq read + counts.
+| Where | What it counts | Pauline today |
+|---|---|---|
+| Book Hub badge ("26/28 for Be SUCKcessful") | Live nodes attributable to **this book** (book_id match + author-level nodes) | ~22–26 depending on which author-level nodes get attributed |
+| Monetization Universe ("28/28") | All live nodes the **author** has built across **all** books | 28 (22 + 6) |
 
-### 7. New UI files
+The Monetization Universe is an **author-wide** map, not a per-book map. 28/28 is correct: Pauline has activated all 28 streams across her two books. If we changed it to per-book it would always under-report for multi-book authors.
 
-- `src/components/admin/ErrorsTab.tsx` — filters, table, detail dialog with ack/resolve.
-- `src/components/admin/ErrorBadge.tsx` — severity pill (reused).
-- Update `SystemHealthCard.tsx` to use `errors-summary` instead of approximated audit count.
-- Update `AdminDashboard.tsx` tabs array: insert "Errors" between Support and Payouts; superadmin or admin role.
-- Update `AdminNotificationBell.tsx` to listen on the realtime channel.
+**Recommended action:** Leave the count alone. Add a one-line clarifier under the progress bar so this isn't confusing:
 
-## Out of scope (this wave)
+> `28 of 28 activated across all your books`
 
-- Slack/PagerDuty integration (can layer on later via webhook).
-- Frontend exception capture (no Sentry yet — separate decision).
-- Auto-remediation (e.g. retry failed payouts from the UI).
+(Two-word change in `MonetizationUniverse.tsx` header copy.)
 
-## Files
+If you actually want it to show *only* the active book's count, that's a different design decision — say the word and we'll switch the data source. But it would drop to 22/28 for Be SUCKcessful and 6/28 for the other book, which is probably worse UX.
 
-- migration: `system_error_log` + RLS + realtime + ack/resolve audit.
-- new: `supabase/functions/_shared/log-error.ts`
-- new: `src/components/admin/ErrorsTab.tsx`
-- edited: 8 hot-path edge functions (try/catch + logError)
-- edited: `supabase/functions/admin-data/index.ts`
-- edited: `src/components/admin/SystemHealthCard.tsx`, `AdminNotificationBell.tsx`, `src/pages/AdminDashboard.tsx`
+---
 
-## Notification policy
+## Issue 3 — Bio still rendering "Specialist,who"
 
-- `critical` → in-app bell ping for all admins immediately.
-- `error` → counts toward 24h badge, no immediate ping.
-- `warning` → visible in tab, no badge.
+**Reality:** The DB stores `... Development Specialist,who previously ...` — literally no space before *or* after the comma. `stripHtml` already removes the space *before* punctuation but doesn't *insert* a space after when it's missing.
 
-## Defaults proposed (tell me if you want different)
+**Fix in `src/lib/stripHtml.ts`** (one extra line):
 
-- Daily digest email to all admins at 09:00 UTC when there are ≥1 unresolved `critical` errors. (Off by default — say "yes" to enable.)
-- Errors auto-archive after 30 days resolved.
+```ts
+// Existing: collapse "word ,word" → "word,word"
+.replace(/[ \t]+([,.;:!?])/g, "$1")
+// New: ensure single space after sentence punctuation when followed by a letter
+.replace(/([,.;:!?])([A-Za-z])/g, "$1 $2")
+```
+
+After fix, `Specialist,who` renders as `Specialist, who` everywhere (hero, About, cards, microsite — they all already pass through `stripHtml`).
+
+We should also offer Pauline an "auto-clean bio" pass on save in `ProfileEditor`, but that's a separate sprint item — for now the runtime fix covers all rendering surfaces.
+
+---
+
+## Files touched
+
+1. `src/components/dashboard/build-my-business/BookSelectionView.tsx` — accept `centralStats` prop, replace hardcoded `0`.
+2. `src/components/dashboard/build-my-business/BuildMyBusiness.tsx` (or its parent) — pass `centralStats` down.
+3. `src/components/dashboard/framework-dashboard/MonetizationUniverse.tsx` — append "across all your books" to the activated label.
+4. `src/lib/stripHtml.ts` — add the post-punctuation space rule.
+
+No DB migration. No edge-function changes. Three small text/prop diffs.
+
+---
+
+## Open question
+
+Confirm before I implement:
+
+- **Issue 2 wording:** Keep author-wide ("28 of 28 activated across all your books") **or** switch Monetization Universe to per-active-book counting (would show 22/28)? My recommendation is **keep author-wide** with the clarifier.
