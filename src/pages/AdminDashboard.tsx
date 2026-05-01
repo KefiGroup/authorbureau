@@ -268,7 +268,7 @@ export default function AdminDashboard() {
   };
 
   if (loading) return null;
-  if (!user) return <Navigate to="/admin-login" replace />;
+  if (!user) return <Navigate to="/admin-auth" replace />;
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const tabs: { key: Tab; label: string; icon: typeof BarChart3; superOnly?: boolean; pnAdminOnly?: boolean }[] = [

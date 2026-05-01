@@ -114,7 +114,7 @@ export default function OverviewTab({ stats, loading, onRefresh, onNavigate, pen
           : aiUsage.totalTokens
         : 0,
       icon: Cpu,
-      action: () => {},
+      action: null,
     },
   ];
 
