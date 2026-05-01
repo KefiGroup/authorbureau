@@ -17,12 +17,11 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, upsertAuthorNode } from "../_shared/builder-helpers.ts";
+import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const NODE_ID = "BA-10";
+const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
 
 const AI_TIMEOUT_MS = 55_000;
 
@@ -88,39 +87,9 @@ function failResponse(error: string, diagnostics?: unknown) {
   );
 }
 
-async function upsertAuthorNode(
-  supabase: ReturnType<typeof createClient>,
-  authorId: string,
-  payload: Record<string, unknown>,
-  bookId?: string | null,
-) {
-  let q = supabase
-    .from("author_nodes")
-    .select("id, book_id")
-    .eq("author_id", authorId)
-    .eq("node_id", "BA-10");
-  q = bookId ? q.eq("book_id", bookId) : q.is("book_id", null);
-  const { data: existingNode, error: existingNodeError } = await q.maybeSingle();
-  if (existingNodeError) throw existingNodeError;
-
-  if (existingNode?.id) {
-    const updatePayload: Record<string, unknown> = { ...payload };
-    if (bookId && !existingNode.book_id) updatePayload.book_id = bookId;
-    const { error } = await supabase.from("author_nodes").update(updatePayload).eq("id", existingNode.id);
-    if (error) throw error;
-    return;
-  }
-
-  const insertPayload: Record<string, unknown> = {
-    author_id: authorId,
-    node_id: "BA-10",
-    node_name: "Online Course",
-    ...payload,
-  };
-  if (bookId) insertPayload.book_id = bookId;
-  const { error } = await supabase.from("author_nodes").insert(insertPayload);
-  if (error) throw error;
-}
+// upsertAuthorNode is imported from ../_shared/builder-helpers.ts (Sprint 51).
+// Signature: (supabase, authorId, nodeId, nodeName, payload, bookId?) — guard rail
+// in the shared helper forces nodeName to canonical via getCanonicalNodeLabel.
 
 async function resolveAuthorBook(
   supabase: ReturnType<typeof createClient>,
@@ -474,7 +443,7 @@ Strict rules:
       }
     }
 
-    await upsertAuthorNode(supabase, author_id, {
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",
       current_step: 2,
       content_json: { ...content, course_id: courseId, _currentStep: 2 },
@@ -494,6 +463,8 @@ Strict rules:
         await upsertAuthorNode(
           createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
           authorIdForRestore,
+          NODE_ID,
+          NODE_NAME,
           priorNodeState,
           bookIdForRestore,
         );

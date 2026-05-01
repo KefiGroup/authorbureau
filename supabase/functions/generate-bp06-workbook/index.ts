@@ -5,8 +5,9 @@ import {
   failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
 
+import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 const NODE_ID = "BP-06";
-const NODE_NAME = "Workbook";
+const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
 
 // Mirror of src/lib/workbook-pdf.ts normalizeOutcome — keeps copy clean even if the model slips.
 function normalizeOutcome(raw?: string): string {

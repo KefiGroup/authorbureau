@@ -5,8 +5,9 @@ import {
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
 } from "../_shared/builder-helpers.ts";
 
+import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 const NODE_ID = "BA-11";
-const NODE_NAME = "Audiobook";
+const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
