@@ -411,7 +411,7 @@ export default function AuthorsTab() {
                       <span>{author.genres.slice(0, 2).join(", ")}</span>
                     )}
                     {author.author_slug && (
-                      <a href={`/${author.author_slug}`} target="_blank" className="flex items-center gap-1 text-secondary hover:underline">
+                      <a href={`/${author.author_slug}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-secondary hover:underline">
                         <Globe className="h-3 w-3" /> View
                       </a>
                     )}

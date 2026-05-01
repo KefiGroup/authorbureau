@@ -209,8 +209,8 @@ export default function AuthorContactModal({
 
             <p className="text-[10px] leading-tight" style={{ color: v.mutedText }}>
               By submitting, you agree to our{" "}
-              <a href="/terms" target="_blank" className="underline">Terms of Service</a>,{" "}
-              <a href="/privacy" target="_blank" className="underline">Privacy Policy</a>, and to receive communications from {firstName} and promotional materials from Authors Bureau.
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline">Terms of Service</a>,{" "}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline">Privacy Policy</a>, and to receive communications from {firstName} and promotional materials from Authors Bureau.
             </p>
 
             <button
