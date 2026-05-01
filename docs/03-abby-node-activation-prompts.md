@@ -583,18 +583,45 @@ Be specific. Never default to generic finance, business, or self-help content un
 - **Model**: `google/gemini-2.5-flash`
 - **Max tokens**: `4000`
 - **Prompt blocks extracted**: 2
-- **Dynamic variables**: `systemPrompt`, `userPrompt`
+- **Dynamic variables**: `authorName`, `bookTitle`, `bookSubtitle`, `coreThesis`, `audiencePersona`, `keyFrameworks`, `uniqueInsights`, `commercialAngles`, `leadMagnetInfo`, `leadMagnet`
 
 ### system
 
 ```text
-${systemPrompt}
+You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.
 ```
 
 ### user
 
 ```text
-${userPrompt}
+Create a complete email marketing system for ${authorName}'s book '${bookTitle}'.
+
+Book details:
+- Title: ${bookTitle}
+- Subtitle: ${bookSubtitle || "N/A"}
+- Core thesis: ${coreThesis || "N/A"}
+- Target audience: ${audiencePersona}
+- Key frameworks: ${keyFrameworks}
+- Unique insights: ${uniqueInsights}
+- Commercial angles: ${commercialAngles}
+${leadMagnetInfo}
+
+Generate the following as a JSON object with these exact keys:
+{
+  "campaign_name": "A compelling name for this author's email marketing campaign (e.g., The [Book Theme] Insider Series)",
+  "welcome_sequence": [
+    {
+      "email_number": 1,
+      "subject": "Email subject line",
+      "preview_text": "Preview text (40-90 chars)",
+      "body": "Full email body (200-300 words, warm and personal, from the author)",
+      "send_delay_days": 0
+    }
+  ],
+  "lead_magnet_offer": {
+    "title": "${leadMagnet ? "Use the author's existing lead magnet title exactly as provided above" : "Name of the free resource to offer as a lead magnet"}",
+    "description": "${leadMagnet ? "Describe the existing lead magnet accurately based on the details above" : "One sentence describing what readers get"}",
+    "cta_text": "Button text for the opt-in form"${leadMagnetUrl ? 
 ```
 
 ---
@@ -604,19 +631,37 @@ ${userPrompt}
 - **Edge function**: `supabase/functions/generate-bp02-lead-magnets/index.ts`
 - **Model**: `google/gemini-2.5-flash`
 - **Max tokens**: `10000`
-- **Prompt blocks extracted**: 6
-- **Dynamic variables**: `systemPrompt`, `userPrompt`, `rawContent`
+- **Prompt blocks extracted**: 5
+- **Dynamic variables**: `authorName`, `bookTitle`, `bookSubtitle`, `coreThesis`, `audiencePersona`, `keyFrameworks`, `uniqueInsights`, `commercialAngles`, `rawContent`
 
 ### system (block 1)
 
 ```text
-${systemPrompt}
+You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.
+
+CRITICAL GENERATION CONSTRAINTS:
+- All lead magnets must be designed as SIMPLE 2-3 MINUTE actions focused on ASSESSMENT and SELF-DIAGNOSIS only.
+- Quizzes: 8-10 multiple-choice questions MAXIMUM. Self-scoring. Results gated behind contact form.
+- Do NOT include "Next-step plans", action items, or exercises.
+- Content must acknowledge that the reader is STUCK and provide exactly 3 specific product recommendations per scoring tier.
+- FORBIDDEN PHRASES: "Next step", "pick 1", "action step", "your task", "try this", "exercise", "I will ___ for".
+- All lead magnets must collect: First Name, Email, and Phone Number before delivering value.
 ```
 
 ### user (block 2)
 
 ```text
-${userPrompt}
+Create a complete lead magnet system for ${authorName}'s book '${bookTitle}'.
+
+Book details:
+- Title: ${bookTitle}
+- Subtitle: ${bookSubtitle || "N/A"}
+- Core thesis: ${coreThesis || "N/A"}
+- Target audience: ${audiencePersona}
+- Key frameworks: ${keyFrameworks}
+- Unique insights: ${uniqueInsights}
+- Commercial angles: ${commercialAngles}
+${businessPlanExcerpt ? 
 ```
 
 ### system (block 3)
@@ -643,12 +688,6 @@ Fix this into valid JSON:\n${rawContent.slice(0, 12000)}
 You are a JSON repair tool. Return ONLY valid JSON, no prose.
 ```
 
-### user (block 6)
-
-```text
-Fix this into valid JSON:\n${rawContent.slice(0, 12000)}
-```
-
 ---
 
 ## BP-02 (Social Pack) · Lead Magnet — Social Pack (companion to BP-02)
@@ -657,7 +696,7 @@ Fix this into valid JSON:\n${rawContent.slice(0, 12000)}
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `5000`
 - **Prompt blocks extracted**: 2
-- **Dynamic variables**: `prompt`
+- **Dynamic variables**: `authorName`, `leadMagnetTitle`, `bookTitle`, `optinUrl`, `audience`
 
 ### system
 
@@ -674,7 +713,75 @@ HARD CONTENT RULES (output that violates these will fail QA):
 ### user
 
 ```text
-${prompt}
+Generate a complete social media distribution pack for ${authorName}'s lead magnet "${leadMagnetTitle}" from the book "${bookTitle}".
+
+Opt-in URL: ${optinUrl}
+Target audience: ${audience}
+
+Return valid JSON only (no markdown, no code fences) with these exact keys:
+
+{
+  "linkedin_posts": [
+    { "type": "announcement", "caption": "150-word announcement post", "hashtags": ["relevant"] },
+    { "type": "value", "caption": "200-word value post sharing an insight from the quiz topic", "hashtags": ["relevant"] },
+    { "type": "social_proof", "caption": "Post template for sharing testimonial/result (with placeholder for real testimonial)", "hashtags": ["relevant"] }
+  ],
+  "instagram_posts": [
+    { "type": "carousel", "caption": "Carousel caption for 5-slide post", "slide_topics": ["Slide 1 topic", "Slide 2", "Slide 3", "Slide 4", "Slide 5 CTA"], "hashtags": ["relevant"] },
+    { "type": "story", "frames": [
+      { "frame": 1, "text": "Hook frame", "sticker_suggestion": "poll or question sticker" },
+      { "frame": 2, "text": "Value frame" },
+      { "frame": 3, "text": "CTA frame with swipe-up link" }
+    ]},
+    { "type": "reel", "script": "30-second reel script with hook, value, and CTA", "caption": "Reel caption", "hashtags": ["relevant"] }
+  ],
+  "facebook_posts": [
+    { "type": "community_group", "caption": "Post for Facebook groups (educational, not salesy)", "hashtags": [] },
+    { "type": "personal_profile", "caption": "Personal announcement post", "hashtags": [] }
+  ],
+  "twitter_thread": [
+    { "tweet_number": 1, "text": "Hook tweet building curiosity" },
+    { "tweet_number": 2, "text": "Insight tweet" },
+    { "tweet_number": 3, "text": "Surprising stat or fact" },
+    { "tweet_number": 4, "text": "Personal story or example" },
+    { "tweet_number": 5, "text": "CTA tweet with link" }
+  ],
+  "email_to_list": {
+    "subject_variants": ["Subject line 1", "Subject line 2", "Subject line 3"],
+    "body": "150-word email body announcing the quiz/lead magnet"
+  },
+  "visual_assets_brief": [
+    {
+      "format": "square",
+      "dimensions": "1080x1080",
+      "background_color": "#hex",
+      "headline_text": "Main text overlay",
+      "subheadline_text": "Supporting text",
+      "cta_text": "CTA text",
+      "include_book_cover": true
+    },
+    {
+      "format": "story",
+      "dimensions": "1080x1920",
+      "background_color": "#hex",
+      "headline_text": "Main text overlay",
+      "subheadline_text": "Supporting text",
+      "cta_text": "CTA text",
+      "include_book_cover": false
+    },
+    {
+      "format": "linkedin_banner",
+      "dimensions": "1200x627",
+      "background_color": "#hex",
+      "headline_text": "Main text overlay",
+      "subheadline_text": "Supporting text",
+      "cta_text": "CTA text",
+      "include_book_cover": true
+    }
+  ]
+}
+
+Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the opt-in URL "${optinUrl}" in all CTAs. Never be generic.
 ```
 
 ---
@@ -707,18 +814,84 @@ ${userPrompt}
 - **Model**: `openai/gpt-5.2`
 - **Max tokens**: `6000`
 - **Prompt blocks extracted**: 3
-- **Dynamic variables**: `systemPrompt`, `userPrompt`, `extraReminder`
+- **Dynamic variables**: `authorName`, `bookTitle`, `bookSubtitle`, `coreThesis`, `audiencePersona`, `keyFrameworks`, `uniqueInsights`, `genre`, `extraReminder`
 
 ### system (block 1)
 
 ```text
-${systemPrompt}
+You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging.
+
+CRITICAL ANTI-HALLUCINATION RULES:
+1. You MUST write everything specifically for the EXACT book title, subtitle, and core thesis provided by the user. The book title appears verbatim in the user prompt — copy it exactly, never paraphrase or invent a new title.
+2. NEVER substitute a different topic, niche, or domain — even if the title or thesis seems unusual or unfamiliar.
+3. NEVER default to generic finance, business, self-help, leadership, or productivity content unless the user prompt explicitly says the book is about that topic.
+4. The "site_name" must include the author's pen name exactly as provided. The "book_page.headline" and "book_page.book_description" MUST reference the exact book title verbatim at least once.
+5. Derive the niche/genre ONLY from the "Genre/Niche" and "Core thesis" fields supplied. If both are missing, ask for them via "abby_summary" — do NOT fabricate.
+6. Always respond with valid JSON only — no markdown, no code fences, no commentary outside the JSON object.
 ```
 
 ### user (block 2)
 
 ```text
-${userPrompt}
+Create complete author website copy for ${authorName}'s book '${bookTitle}'.
+
+Author details:
+- Author name: ${authorName}
+- Book title: ${bookTitle}
+- Book subtitle: ${bookSubtitle || "N/A"}
+- Core thesis: ${coreThesis || "N/A"}
+- Target audience: ${audiencePersona}
+- Key frameworks: ${keyFrameworks}
+- Unique insights: ${uniqueInsights}
+- Genre/Niche: ${genre}
+
+Generate the following as a JSON object with these exact keys:
+{
+  "site_name": "The website name (e.g., ${authorName} | Author & Expert)",
+  "tagline": "A compelling one-line tagline for the author brand",
+  "homepage": {
+    "hero_headline": "Main headline for the homepage hero section",
+    "hero_subheadline": "Supporting subheadline (1-2 sentences)",
+    "hero_cta_primary": "Primary CTA button text",
+    "hero_cta_secondary": "Secondary CTA button text",
+    "about_teaser": "A 2-3 sentence teaser about the author",
+    "book_teaser": "A 2-3 sentence teaser about the book",
+    "social_proof_headline": "Headline for the testimonials section",
+    "placeholder_testimonials": [
+      { "quote": "A realistic placeholder testimonial (2-3 sentences)", "name": "Reader Name", "title": "Title or Role" },
+      { "quote": "A second realistic placeholder testimonial", "name": "Reader Name 2", "title": "Title or Role 2" }
+    ]
+  },
+  "about_page": {
+    "headline": "Headline for the About page",
+    "bio_short": "A short 2-3 sentence bio",
+    "bio_long": "A full 4-6 paragraph author bio",
+    "credentials": ["Credential 1", "Credential 2", "Credential 3"],
+    "personal_note": "A short personal note from the author (2-3 sentences)"
+  },
+  "book_page": {
+    "headline": "Headline for the book page",
+    "book_description": "Full book description (3-4 paragraphs)",
+    "what_youll_learn": ["Takeaway 1", "Takeaway 2", "Takeaway 3", "Takeaway 4", "Takeaway 5"],
+    "who_its_for": "A 2-3 sentence description of who this book is for",
+    "buy_cta": "CTA button text for buying",
+    "bonus_offer": "A free bonus offer for book buyers"
+  },
+  "contact_page": {
+    "headline": "Headline for the contact page",
+    "intro_text": "1-2 sentence intro",
+    "speaking_topics": ["Topic 1", "Topic 2", "Topic 3"],
+    "media_note": "A short note for media/press inquiries"
+  },
+  "seo": {
+    "meta_title": "SEO meta title (under 60 characters)",
+    "meta_description": "SEO meta description (under 160 characters)",
+    "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
+  },
+  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created"
+}
+
+Make everything specific to this author's book, niche, and audience. Never use generic placeholder text except where explicitly marked as 'placeholder' (testimonials only).
 ```
 
 ### system (block 3)
@@ -735,7 +908,7 @@ ${extraReminder}
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `default`
 - **Prompt blocks extracted**: 2
-- **Dynamic variables**: `userPrompt`
+- **Dynamic variables**: `author`, `bookTitle`, `ctxBundle`, `JSON`, `niche`
 
 ### system
 
@@ -752,7 +925,64 @@ HARD CONTENT RULES (output that violates these will fail QA):
 ### user
 
 ```text
-${userPrompt}
+Create a complete webinar system for ${author.pen_name}'s book '${bookTitle}'.
+
+Author details:
+- Author name: ${author.pen_name}
+- Book title: ${bookTitle}
+- Book subtitle: ${ctxBundle.bookSubtitle || "N/A"}
+- Core thesis: ${ctxBundle.coreThesis}
+- Target audience: ${JSON.stringify(ctx?.target_audience_persona || {})}
+- Key frameworks: ${JSON.stringify(ctx?.key_frameworks || [])}
+- Unique insights: ${JSON.stringify(ctx?.unique_insights || [])}
+- Niche: ${niche}
+
+Generate the following as a JSON object with these exact keys:
+
+{
+  "webinar_topics": [
+    {
+      "number": 1,
+      "title": "Compelling webinar title (specific, benefit-driven, creates curiosity)",
+      "subtitle": "One-line subtitle that clarifies the promise",
+      "duration_minutes": 60,
+      "format": "Format type (e.g., Live Training, Q&A Session, Workshop, Masterclass)",
+      "description": "2-3 sentences describing what attendees will learn and the transformation they will experience",
+      "key_points": ["Key teaching point 1", "Key teaching point 2", "Key teaching point 3", "Key teaching point 4"],
+      "ideal_for": "One sentence describing exactly who this webinar is for",
+      "hook": "A compelling one-sentence hook to open the webinar (creates urgency or curiosity)"
+    }
+  ],
+  "recommended_webinar": 1,
+  "recommended_reason": "One sentence explaining why webinar #1 is the best starting point for this author",
+  "registration_page": {
+    "headline": "Main headline for the registration page (powerful, specific, benefit-driven)",
+    "subheadline": "Supporting subheadline (1-2 sentences)",
+    "bullet_points": ["What attendees will learn 1", "What attendees will learn 2", "What attendees will learn 3", "What attendees will learn 4"],
+    "presenter_bio": "A 2-3 sentence bio positioning the author as the expert for this webinar",
+    "cta_button_text": "Registration button text (e.g., Reserve My Spot)",
+    "urgency_note": "A short urgency or scarcity note (e.g., Limited spots available)"
+  },
+  "follow_up_emails": [
+    { "send_time": "Immediately after registration", "subject": "...", "preview_text": "...", "body_summary": "..." },
+    { "send_time": "24 hours before the webinar", "subject": "...", "preview_text": "...", "body_summary": "..." },
+    { "send_time": "1 hour before the webinar", "subject": "...", "preview_text": "...", "body_summary": "..." },
+    { "send_time": "24 hours after the webinar", "subject": "...", "preview_text": "...", "body_summary": "..." }
+  ],
+  "promotion_strategy": {
+    "launch_timeline": "Recommended number of days to promote before the webinar (e.g., 14 days)",
+    "channels": ["Channel 1", "Channel 2", "Channel 3"],
+    "promotional_posts": [
+      { "day": "Day 1 (Announcement)", "platform": "LinkedIn", "caption": "..." },
+      { "day": "Day 7 (Reminder)", "platform": "Instagram", "caption": "..." },
+      { "day": "Day 13 (Last chance)", "platform": "Email", "caption": "..." }
+    ]
+  },
+  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created and why this webinar system will grow this author's audience and revenue"
+}
+
+The webinar_topics array must have exactly 3 items, each covering a different angle of the book's content.
+Make everything specific to this author's book, niche, and audience. Never use generic placeholder text.
 ```
 
 ---
