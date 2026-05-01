@@ -6,6 +6,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ManuscriptUpload from "@/components/dashboard/ManuscriptUpload";
 import FullPlanDialog from "@/components/dashboard/FullPlanDialog";
+import { useAuth } from "@/hooks/useAuth";
+import { useAuthorStats } from "@/hooks/useAuthorStats";
 import {
   BookOpen, Loader2, Sparkles, TrendingUp, BarChart3, Hammer, CheckCircle2,
 } from "lucide-react";
