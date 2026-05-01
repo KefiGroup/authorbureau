@@ -345,14 +345,15 @@ export default function BP03Builder({ authorId, bookId }: Props) {
     }
   };
 
-  const persistNodeState = async (nextStatus: "content_ready" | "live") => {
+  const persistNodeState = async (nextStatus: "content_ready" | "live", overrideContent?: any) => {
     if (!authorId) throw new Error("Please wait for your author profile to finish loading.");
-    if (!hasUsableSocialKit(content)) throw new Error("Generate your starter kit before saving it.");
+    const payload = overrideContent ?? content;
+    if (!hasUsableSocialKit(payload)) throw new Error("Generate your starter kit before saving it.");
     const result = await fetchBp03NodeState({
       action: "save",
       author_id: authorId,
       status: nextStatus,
-      content,
+      content: payload,
     });
     return result.node;
   };
