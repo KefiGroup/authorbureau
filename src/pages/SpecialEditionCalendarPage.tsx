@@ -264,7 +264,7 @@ function OccasionRow({
         )}
 
         <div className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-          {status === "not-started" ? "Plan edition" : "Open builder"}{" "}
+          {status === "not-started" ? "Generate edition" : "Open builder"}{" "}
           <ArrowRight className="h-3 w-3" />
         </div>
       </button>
