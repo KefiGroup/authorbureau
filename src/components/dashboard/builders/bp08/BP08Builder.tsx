@@ -101,8 +101,20 @@ export default function BP08Builder({ authorId, bookId }: Props) {
       await supabase.auth.refreshSession().catch(() => null);
       token = await getActiveToken();
     }
-    console.info("[BP-08] token resolved", { hasToken: !!token });
+    console.info("[BP-08] token resolved", { hasToken: !!token, occasion: selectedOccasion?.id });
     if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
+    const occasionPayload = selectedOccasion
+      ? {
+          id: selectedOccasion.id,
+          label: selectedOccasion.label,
+          emoji: selectedOccasion.emoji,
+          peakWindow: selectedOccasion.peakWindow,
+          peakDateIso: nextOccurrence(selectedOccasion).toISOString().slice(0, 10),
+          defaultEditionType: selectedOccasion.defaultEditionType,
+          defaultPriceUsd: selectedOccasion.defaultPriceUsd,
+          defaultIncludes: selectedOccasion.defaultIncludes,
+        }
+      : null;
     const res = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp08-special-editions`,
       {
@@ -112,14 +124,22 @@ export default function BP08Builder({ authorId, bookId }: Props) {
           Authorization: `Bearer ${token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ author_id: authorId }),
+        body: JSON.stringify({ author_id: authorId, book_id: bookId ?? null, occasion: occasionPayload }),
       },
       180_000,
     );
     console.info("[BP-08] http status", res.status);
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
-    const newContent = { ...(data.content || {}), _currentStep: 2 };
+    const occasionMeta = selectedOccasion
+      ? {
+          occasion: selectedOccasion.id,
+          occasion_label: selectedOccasion.label,
+          occasion_emoji: selectedOccasion.emoji,
+          peak_date: nextOccurrence(selectedOccasion).toISOString().slice(0, 10),
+        }
+      : {};
+    const newContent = { ...(data.content || {}), ...occasionMeta, _currentStep: 2 };
     if (authorId) {
       await autosaveBuilderDraft({
         authorId,
