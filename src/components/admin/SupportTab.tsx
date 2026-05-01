@@ -385,17 +385,38 @@ export default function SupportTab() {
           <DialogHeader><DialogTitle>Bug Report</DialogTitle></DialogHeader>
           {selectedBug && (
             <div className="space-y-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className={priorityColors[selectedBug.priority]}>{selectedBug.priority}</Badge>
+                <Badge variant="outline" className={statusColors[selectedBug.status]}>{selectedBug.status}</Badge>
+                <SlaBadge bug={selectedBug} />
+              </div>
               <div><span className="text-sm font-medium">Page:</span> <span className="text-sm">{selectedBug.page_url}</span></div>
-              <div><span className="text-sm font-medium">Priority:</span> <Badge variant="outline" className={priorityColors[selectedBug.priority]}>{selectedBug.priority}</Badge></div>
               <div><span className="text-sm font-medium">Description:</span><p className="text-sm mt-1 whitespace-pre-wrap">{selectedBug.description}</p></div>
               {selectedBug.screenshot_url && (
                 <div><span className="text-sm font-medium">Screenshot:</span><img src={selectedBug.screenshot_url} className="mt-1 rounded border max-h-48" /></div>
               )}
+              <div className="text-xs text-muted-foreground space-y-0.5">
+                <div>Reported: {format(new Date(selectedBug.created_at), "MMM d, yyyy HH:mm")}</div>
+                {selectedBug.first_response_due_at && (
+                  <div>First-response due: {format(new Date(selectedBug.first_response_due_at), "MMM d, HH:mm")} {selectedBug.first_response_at && "✓ responded"}</div>
+                )}
+                {selectedBug.resolution_due_at && (
+                  <div>Resolution due: {format(new Date(selectedBug.resolution_due_at), "MMM d, HH:mm")}</div>
+                )}
+                <div>
+                  Assigned to: {selectedBug.assigned_to ? (selectedBug.assigned_to === user?.id ? "You" : <span className="font-mono">{selectedBug.assigned_to.slice(0, 8)}…</span>) : "—"}
+                </div>
+              </div>
               <div>
                 <span className="text-sm font-medium">Admin Notes:</span>
                 <Textarea value={adminNotes} onChange={e => setAdminNotes(e.target.value)} className="mt-1" rows={3} placeholder="Add notes..." />
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
+                {selectedBug.assigned_to !== user?.id && (
+                  <Button size="sm" variant="outline" onClick={() => assignBugToMe(selectedBug.id)}>
+                    <UserCheck className="h-4 w-4 mr-1" /> Assign to me
+                  </Button>
+                )}
                 <Button size="sm" variant="outline" onClick={() => updateBugStatus(selectedBug.id, "in_progress")}>Mark In Progress</Button>
                 <Button size="sm" onClick={() => updateBugStatus(selectedBug.id, "resolved")} className="bg-green-600 hover:bg-green-700 text-white">Mark Resolved</Button>
               </div>
