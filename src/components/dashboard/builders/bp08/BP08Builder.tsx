@@ -180,14 +180,45 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     if (!autostart || !selectedOccasion) return;
     if (didAutostartRef.current) return;
     if (!authorId) return;
-    if (step !== 0) return;          // already past intro (e.g. resumed draft)
-    if (content) return;             // existing draft loaded
     if (isBookLoading) return;
     if (!hasResolvedBook) return;
+
+    // Case A: no existing draft -> autostart immediately
+    if (!content) {
+      didAutostartRef.current = true;
+      handleGenerate();
+      return;
+    }
+
+    // Case B: existing draft is for the SAME occasion -> just open it (current behaviour)
+    if (content.occasion === selectedOccasion.id) {
+      didAutostartRef.current = true;
+      return;
+    }
+
+    // Case C: existing draft is for a DIFFERENT occasion (or generic) -> ask before replacing
     didAutostartRef.current = true;
-    handleGenerate();
+    setPendingReplace({
+      existingLabel: content.occasion_label || content.edition_title || "your saved edition",
+    });
+    setStep(0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autostart, selectedOccasion, authorId, step, content, isBookLoading, hasResolvedBook]);
+  }, [autostart, selectedOccasion, authorId, content, isBookLoading, hasResolvedBook]);
+
+  const confirmReplace = () => {
+    setPendingReplace(null);
+    setContent(null);
+    setPriceOverride(null);
+    handleGenerate();
+  };
+  const cancelReplace = () => {
+    setPendingReplace(null);
+    // Drop the calendar query params so a refresh doesn't re-prompt
+    navigate(`/node-builder/BP-08`, { replace: true });
+    // Open existing draft at Review
+    setStep(2);
+  };
+
 
   const handlePublish = async () => {
     setStep(3); setError(null);
