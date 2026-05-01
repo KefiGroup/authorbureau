@@ -279,6 +279,7 @@ export default function AdminDashboard() {
     { key: "reading-club", label: "Reading Club", icon: BookMarked },
     { key: "support", label: "Support", icon: Headphones },
     { key: "payouts", label: "Payouts", icon: Wallet },
+    { key: "errors", label: "Errors", icon: AlertOctagon },
     { key: "node-gating", label: "Node Gating", icon: ToggleRight, superOnly: true },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "audit", label: "Audit", icon: FileSearch, superOnly: true },
@@ -368,6 +369,7 @@ export default function AdminDashboard() {
           {tab === "payouts" && <AdminPayoutsDashboard />}
           {tab === "node-gating" && <NodeGatingTab />}
           {tab === "audit" && <AuditLogTab />}
+          {tab === "errors" && <ErrorsTab />}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab
