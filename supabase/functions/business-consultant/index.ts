@@ -679,7 +679,7 @@ Provide three options:
 
 Free Option — "Download Sales Page as HTML": A standalone HTML file with embedded CSS, ready to host anywhere. Professional design with responsive layout.
 
-Pro Option — "Connect Stripe": Step-by-step guide to creating a Stripe payment link for the book. Include direct link to dashboard.stripe.com. Cover both standard and signed copy products. Authors Bureau retains an 8% platform fee on sales to cover all payment-processing costs (Stripe / Wise / PayPal) — no extra processing fees are ever deducted from the author's share. Always show take-home revenue (92%) after the platform fee.
+Pro Option — "Connect Stripe": Step-by-step guide to creating a Stripe payment link for the book. Include direct link to dashboard.stripe.com. Cover both standard and signed copy products. Authors Bureau retains an 8% platform fee on sales to cover all payment-processing costs (Stripe checkout + Stripe Connect transfer fees) — no extra processing fees are ever deducted from the author's share. Always show take-home revenue (92%) after the platform fee.
 
 Pro Option — "Generate QR Code": Using the QR code spec from Phase 2, provide instructions to generate a downloadable QR code image (300x300px minimum) for use in:
 - The physical book (back cover or inside back cover)

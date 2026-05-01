@@ -59,8 +59,8 @@ serve(async (req) => {
     if (!existing) {
       // Estimated Stripe processing fee (2.9% + $0.30 for US cards) — recorded
       // for INTERNAL margin tracking only. The 8% platform fee covers ALL
-      // gateway costs (Stripe / Wise / PayPal); the author always receives
-      // exactly 92% of gross. NEVER subtract stripeFee from the author's net.
+      // Stripe gateway costs (checkout + Connect transfer); the author always
+      // receives exactly 92% of gross. NEVER subtract stripeFee from author net.
       const stripeFee = Math.round(((amount * 0.029) + 0.30) * 100) / 100;
       const netForAuthor = Math.max(0, authorEarnings);
 
