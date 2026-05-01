@@ -389,12 +389,30 @@ export default function BP03Builder({ authorId, bookId }: Props) {
     setError(null);
     setIsActivating(true);
     try {
+      // Sprint 55: build a TXT compilation and upload before persisting so
+      // the saved content_json carries the canonical library_asset record.
+      let activeContent = content;
+      try {
+        const txtBlob = buildBp03Txt(content, authorName, bookTitle || "your book");
+        const safeName = (bookTitle || "social-kit").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+        const asset = await uploadAndRegisterLibraryAsset({
+          authorId,
+          nodeId: "BP-03",
+          title: "Social Media Kit",
+          primary: { blob: txtBlob, filename: `${safeName}-social-kit.txt`, kind: "docx" },
+        });
+        activeContent = { ...content, library_asset: asset };
+        setContent(activeContent);
+      } catch (e) {
+        console.warn("[BP-03] library_asset upload failed, activating without it", e);
+      }
+
       const savedNode = await persistNodeState("live");
 
       // Default schedule: start tomorrow, every 3 days
       const start = new Date();
       start.setDate(start.getDate() + 1);
-      const { saved } = await persistSocialPostsToCalendar(authorId, content, start, "every_3_days");
+      const { saved } = await persistSocialPostsToCalendar(authorId, activeContent, start, "every_3_days");
       setSavedCount(saved);
 
       setContent({
