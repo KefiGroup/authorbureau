@@ -1620,7 +1620,7 @@ The reader finds the author via:
 ## Stage 4 — First purchase
 
 1. A sequence step OR microsite CTA points to a paid offer.
-2. Reader clicks `<BuyNowButton>` → \`create-checkout-session\` → Stripe Checkout (platform Stripe account, MoR).
+2. Reader clicks the Buy Now button → \`create-checkout-session\` → Stripe Checkout (platform Stripe account, MoR).
 3. \`verify-purchase\` confirms synchronously; \`process-purchase\` completes async.
 4. Reader receives confirmation email (author-branded From if author has set sender preferences).
 5. CRM score +30; stage advances to Customer (≥ 81).
