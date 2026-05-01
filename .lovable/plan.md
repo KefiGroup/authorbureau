@@ -1,96 +1,65 @@
-# Sprint — Counter regression + bio normalization
+## Goal
 
-## Findings (verified against your DB)
+Run a one-shot, **read-only audit** that flags broken links, dead buttons, and unreachable routes — without changing any app code. Results saved to `/mnt/documents/` so you can review and triage.
 
-I pulled Pauline's actual `author_nodes` rows. Here's ground truth before we change anything:
+## What the audit will check
 
-- **Pauline has 28 nodes with `status='live'` in the database.**
-- Of those, **22 have `book_id = "Be SUCKcessful"`** and **6 have `book_id = "Invest Like Buffett for Parents"`**.
-- Total = 28. So `22 + 6 = 28`.
+### 1. Static codebase audit (fast, no browser)
+Run ripgrep + a small Node script over the repo and produce `link-audit-report.md` with:
 
-This means two of your three reported issues need to be re-interpreted.
+- **Internal links pointing to non-existent routes** — extract every `to="/..."`, `href="/..."`, `navigate("/...")`, and `<Navigate to="/...">` and cross-check against the route table in `src/App.tsx` (lines 132–202). Flags typos like `/dasboard` or removed routes.
+- **Buttons with no handler** — find `<Button ...>` and `<button ...>` with no `onClick`, no `asChild`+`<Link>`, no `type="submit"`, and not inside a `<form>`. Likely dead.
+- **Empty `href` / `to` values** — `href=""`, `href="#"`, `to=""`.
+- **`<a>` tags missing `href`** and `<Link>` missing `to`.
+- **External links missing `rel="noopener"`** when `target="_blank"` (security, not breakage, but worth catching).
+- **Legacy builder slugs** referenced in the UI but missing from `LEGACY_BUILDER_REDIRECT` in `src/components/dashboard/builders/legacyBuilderRedirect.ts`.
+- **Microsite slugs** referenced in code but missing from `NODE_SLUG_MAP` / `SLUG_TO_NODE` in `src/lib/node-slug-map.ts`.
 
----
+### 2. Live HTTP audit of public routes
+Hit the published site (`https://authorsbureau.com`) for every static public route and report status codes:
 
-## Issue 1 — Real regression. Fix.
-
-**Symptom:** "Products Built So Far" stat on the Build-My-Business page shows **0** for the whole portfolio, even though the per-book chips are non-zero.
-
-**Root cause (confirmed):** `src/components/dashboard/build-my-business/BookSelectionView.tsx`, line 41:
-
-```ts
-const totalBuilt = 0;   // hardcoded
+```text
+/                       /how-it-works           /directory
+/methodology            /faq                    /readers-bureau
+/contact                /terms                  /privacy
+/pricing                /solutions              /auth
+/admin-auth             /join                   /create-microsite
+/sitemap.xml            /robots.txt
 ```
 
-It never reads `centralStats.products.totalBuilt` (or any other source). The number was hardcoded to 0 when the portfolio summary was first scaffolded and was never wired up.
+Plus a sample of dynamic routes pulled from the DB:
+- Top 10 `author_profiles.author_slug` (listed/verified/featured) → `/:authorSlug`
+- Their primary book → `/:authorSlug/:bookSlug`
+- Common microsite slugs per author → `/:authorSlug/free-gift`, `/order`, `/coaching`, `/audiobook`, `/online-course`
 
-**Fix:** Pass `centralStats` into `BookSelectionView` and compute:
+Anything returning ≠200 (excluding intentional redirects to 200) lands in the report.
 
-```ts
-const totalBuilt = centralStats?.products?.totalBuilt ?? 0;
-```
+### 3. Browser smoke test (key clickable surfaces)
+Use the headless browser to load 4 critical pages and verify primary CTAs render and are clickable (not disabled, not zero-size, have a handler). One screenshot per page saved for visual confirmation.
 
-`centralStats` already exists upstream (`useAuthorStats`) — we just plumb it through `BuildMyBusiness` → `BookSelectionView`.
+- `/` — Hero CTA, "Browse directory", Navbar links, Footer links
+- `/directory` — first author card click
+- `/pauline-teo` — Hero "Get the book" / lead-magnet CTA, About section, footer
+- `/dashboard` (will hit auth — recorded as "auth gate" rather than failure)
 
-> Note on your wording: this stat lives on the **Build My Business** screen, not on the My Books cards. The per-book card counters in `MyBooks.tsx` already use `centralStats.products.perBook[bookId].total` correctly — that's why the inner Book Hub shows 22/28 properly. If you ARE seeing 0/28 on the My Books cards specifically, please grab a screenshot — I couldn't reproduce it from code reading.
+### 4. Edge-function health snapshot
+Pull the last 24h of error logs from the 6 most-trafficked edge functions (`get-microsite-page`, `verify-purchase`, `process-purchase`, `create-checkout-session`, `save-author-profile`, `admin-data`) and summarize error counts. Surfaces silent backend failures that make buttons "look broken" to users.
 
----
+## Deliverables
 
-## Issue 2 — Not actually a bug.
+- `/mnt/documents/link-audit-report.md` — categorized findings with file:line citations and suggested fixes
+- `/mnt/documents/link-audit-http-results.csv` — every URL probed + status code + redirect chain
+- `/mnt/documents/link-audit-screenshots/` — 4 PNGs from the browser smoke test
 
-**Reported:** "Monetization Universe shows 28/28 but Be SUCKcessful only has 26 nodes built — should be 26/28."
+Each finding will be tagged **High / Medium / Low** so you can hand the High items straight to the next sprint without re-triaging.
 
-**Reality:** Per-book counters and the Monetization Universe count different things:
+## What this will NOT do
 
-| Where | What it counts | Pauline today |
-|---|---|---|
-| Book Hub badge ("26/28 for Be SUCKcessful") | Live nodes attributable to **this book** (book_id match + author-level nodes) | ~22–26 depending on which author-level nodes get attributed |
-| Monetization Universe ("28/28") | All live nodes the **author** has built across **all** books | 28 (22 + 6) |
+- No code changes, no DB writes, no destructive actions.
+- Won't click "Buy Now" or any payment/refund/destructive button.
+- Won't log in as a user — `/dashboard`, `/admin`, `/account-settings` are reported as "auth-gated, not tested" rather than failures.
+- Won't catch logic bugs inside button handlers (e.g. a button that runs but does the wrong thing) — only that the handler exists and the link target resolves.
 
-The Monetization Universe is an **author-wide** map, not a per-book map. 28/28 is correct: Pauline has activated all 28 streams across her two books. If we changed it to per-book it would always under-report for multi-book authors.
+## Approval to proceed
 
-**Recommended action:** Leave the count alone. Add a one-line clarifier under the progress bar so this isn't confusing:
-
-> `28 of 28 activated across all your books`
-
-(Two-word change in `MonetizationUniverse.tsx` header copy.)
-
-If you actually want it to show *only* the active book's count, that's a different design decision — say the word and we'll switch the data source. But it would drop to 22/28 for Be SUCKcessful and 6/28 for the other book, which is probably worse UX.
-
----
-
-## Issue 3 — Bio still rendering "Specialist,who"
-
-**Reality:** The DB stores `... Development Specialist,who previously ...` — literally no space before *or* after the comma. `stripHtml` already removes the space *before* punctuation but doesn't *insert* a space after when it's missing.
-
-**Fix in `src/lib/stripHtml.ts`** (one extra line):
-
-```ts
-// Existing: collapse "word ,word" → "word,word"
-.replace(/[ \t]+([,.;:!?])/g, "$1")
-// New: ensure single space after sentence punctuation when followed by a letter
-.replace(/([,.;:!?])([A-Za-z])/g, "$1 $2")
-```
-
-After fix, `Specialist,who` renders as `Specialist, who` everywhere (hero, About, cards, microsite — they all already pass through `stripHtml`).
-
-We should also offer Pauline an "auto-clean bio" pass on save in `ProfileEditor`, but that's a separate sprint item — for now the runtime fix covers all rendering surfaces.
-
----
-
-## Files touched
-
-1. `src/components/dashboard/build-my-business/BookSelectionView.tsx` — accept `centralStats` prop, replace hardcoded `0`.
-2. `src/components/dashboard/build-my-business/BuildMyBusiness.tsx` (or its parent) — pass `centralStats` down.
-3. `src/components/dashboard/framework-dashboard/MonetizationUniverse.tsx` — append "across all your books" to the activated label.
-4. `src/lib/stripHtml.ts` — add the post-punctuation space rule.
-
-No DB migration. No edge-function changes. Three small text/prop diffs.
-
----
-
-## Open question
-
-Confirm before I implement:
-
-- **Issue 2 wording:** Keep author-wide ("28 of 28 activated across all your books") **or** switch Monetization Universe to per-active-book counting (would show 22/28)? My recommendation is **keep author-wide** with the clarifier.
+Approving this plan switches me to build mode and I'll run all four passes in one go (~3–5 min) and post the report paths back here.
