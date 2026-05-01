@@ -145,7 +145,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
         const asset = await uploadAndRegisterLibraryAsset({
           authorId: authorId!,
           nodeId: "BP-09",
-          title: safe(content?.kit_title) || "Live Audience Toolkit",
+          title: (typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit",
           primary: { blob: txtBlob, filename: `${safeName}-live-toolkit.txt`, kind: "txt" },
         });
         libraryAsset = asset as unknown as Record<string, unknown>;
