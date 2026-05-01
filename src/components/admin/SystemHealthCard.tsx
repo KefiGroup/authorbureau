@@ -14,6 +14,7 @@ interface HealthData {
     last_email_sync_at: string | null;
   };
   error_count_24h: number;
+  unresolved_critical?: number;
   recent_activity: { event_key: string; created_at: string; target_type?: string | null; payload?: Record<string, unknown> | null }[];
 }
 
@@ -66,8 +67,14 @@ export default function SystemHealthCard() {
           <Activity className="h-5 w-5 text-secondary" />
           <h3 className="font-heading font-bold">System Health</h3>
         </div>
-        {data.error_count_24h > 0 ? (
-          <Badge variant="destructive">{data.error_count_24h} issues / 24h</Badge>
+        {data.unresolved_critical && data.unresolved_critical > 0 ? (
+          <a href="/admin?tab=errors" className="no-underline">
+            <Badge variant="destructive">{data.unresolved_critical} unresolved critical</Badge>
+          </a>
+        ) : data.error_count_24h > 0 ? (
+          <a href="/admin?tab=errors" className="no-underline">
+            <Badge className="bg-amber-600 hover:bg-amber-700">{data.error_count_24h} errors / 24h</Badge>
+          </a>
         ) : (
           <Badge className="bg-emerald-600 hover:bg-emerald-700">All clear</Badge>
         )}

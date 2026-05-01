@@ -1,3 +1,4 @@
+import { logError } from "../_shared/log-error.ts";
 /**
  * process-purchase
  * ----------------
@@ -90,6 +91,13 @@ serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[process-purchase] Unhandled:", msg);
+    // Webhook handler failure → critical (Stripe will retry but data may be lost)
+    await logError({
+      source: "webhook",
+      function_name: "process-purchase",
+      severity: "critical",
+      error,
+    });
     return new Response(JSON.stringify({ error: msg }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

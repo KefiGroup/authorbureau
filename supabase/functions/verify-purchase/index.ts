@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { logError } from "../_shared/log-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -180,6 +181,12 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("[verify-purchase] Error:", error);
+    await logError({
+      source: "edge_function",
+      function_name: "verify-purchase",
+      severity: "error",
+      error,
+    });
     return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,

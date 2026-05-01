@@ -2,6 +2,7 @@
 // Called by admin-data proxy. Verifies admin via SUPABASE_SERVICE_ROLE_KEY + user_roles.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { logError } from "../_shared/log-error.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -121,6 +122,12 @@ Deno.serve(async (req) => {
 
     return json({ success: true, status: 200, message: "Refund issued", refund_id: refund.id });
   } catch (err) {
+    await logError({
+      source: "edge_function",
+      function_name: "refund-purchase",
+      severity: "error",
+      error: err,
+    });
     return json({ success: false, status: 500, message: (err as Error).message }, 500);
   }
 });

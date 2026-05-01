@@ -22,7 +22,7 @@
  */
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
+import { logError } from "../_shared/log-error.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -192,6 +192,14 @@ Deno.serve(async (req) => {
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[create-checkout-session]", msg);
+    // Stripe card errors are user-side (warning); infra errors are real errors.
+    const isCardErr = msg.toLowerCase().includes("card") || msg.includes("declined");
+    await logError({
+      source: "edge_function",
+      function_name: "create-checkout-session",
+      severity: isCardErr ? "warning" : "error",
+      error,
+    });
     return new Response(JSON.stringify({ error: msg }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
