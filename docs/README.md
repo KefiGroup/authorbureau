@@ -1,6 +1,6 @@
 # Authors Bureau — Engineering Documentation
 
-_Version 3.1 · 2026-05-01_
+_Version 3.5 · 2026-05-01 · Sprint 53 (Documentation High-Integrity Rewrite)_
 
 This folder is the **single source of truth** for the Authors Bureau platform's architecture, business rules, AI prompts, schema, node behaviour, and process. It is committed to GitHub alongside the code so every sprint can reference and update it.
 

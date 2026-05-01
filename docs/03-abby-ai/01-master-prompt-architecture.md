@@ -1,6 +1,6 @@
 # 01 · ABBY Master Prompt Architecture
 
-_Version 1.0 · 2026-05-01_
+_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 This document captures the design philosophy, persona rules, and forbidden terms that govern every prompt ABBY uses across the platform. All node generators and chat surfaces inherit from these rules.
 

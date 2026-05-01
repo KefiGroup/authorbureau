@@ -1,6 +1,6 @@
 # 05 · AB Database Schema — Current
 
-_Version 1.0 · 2026-05-01_
+_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 Live export of all tables and columns in the `public` schema, generated directly from `information_schema.columns`. **109** tables, **1311** columns total.
 

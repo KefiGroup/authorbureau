@@ -1,6 +1,6 @@
 # 04 · AB Node Connector Map
 
-_Version 3.0 · 2026-05-01_
+_Version: 2026-05-01 · Verified by Sprint 53 (audit + targeted rewrite)_
 
 **Source(s) of truth:**
 - `mem://architecture/third-party-connector-registry-v2`
