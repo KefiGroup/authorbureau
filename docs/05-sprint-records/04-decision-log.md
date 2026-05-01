@@ -69,6 +69,26 @@ Every architectural decision and the reason for it. Append-only.
 
 ---
 
+## 2026-05-01 — Master Architecture Registry as single source for node metadata (Sprint 47)
+
+**Decision:** All node IDs, canonical labels, scopes, edge function paths, and category mappings live in a single registry table at `01-architecture/01-master-architecture-reference.md` §3. Every other doc derives from it; downstream divergences are bugs.
+
+**Reason:** Sprint 46 produced 56 docs in parallel and several inherited stale facts (legacy generator paths, divergent NODE_NAME constants, BP-00 placement inconsistencies). A single authoritative table prevents drift.
+
+**Implication:** When adding or renaming a node generator, the registry row MUST be updated first; `scripts/build-node-framework-docs.mjs` regenerates all 28 node docs from a mirrored TypeScript NODES array.
+
+---
+
+## 2026-05-01 — Defer generator file-path renames
+
+**Decision:** Do NOT rename legacy generator file paths (`generate-bp06-online-course`, `generate-bp07-coaching`, `generate-bp08-mastermind`, `generate-bp09-speaking`, `generate-ba17-upsells`) in Sprint 47.
+
+**Reason:** Edge function URLs are baked into deployed clients and cron jobs. A rename requires a coordinated client update + dual-deploy window. The internal `NODE_ID` constants are already correct, so functionality is unaffected.
+
+**Implication:** Documentation flags the divergence (Master Architecture §3, bug #11). Rename can be scheduled when a deploy window opens.
+
+---
+
 ## Adding new decisions
 
 When making an architectural decision:

@@ -21,6 +21,10 @@ Every bug ever found. Never delete entries — keep as history.
 | 8 | 2026-04 | Low | Microsite copy occasionally rendered em-dashes | ongoing | DB trigger `scrub_microsite_jsonb` strips on write |
 | 9 | 2026-Q1 | Medium | Lead-magnet copy contained banned phrases ("next-step", "exercise") | ongoing | Copy validator runs pre-persist |
 | 10 | 2026-04 | Low | Email change in PublishNow didn't sync to AB `books.owner_email` | sprint 43 | Fixed — `sync-author-email` edge function |
+| 11 | 2026-05-01 | Low | Generator file paths use legacy names that don't match the node they serve (`generate-bp06-online-course` serves Workbook, `generate-bp07-coaching` serves Home Study, `generate-bp08-mastermind` serves Special Editions, `generate-bp09-speaking` serves Book Sales, `generate-ba17-upsells` serves Bundles) | open | Documented in Master Architecture §3; rename deferred to avoid breaking deployed function URLs |
+| 12 | 2026-05-01 | Low | Generator `NODE_NAME` constants diverge from canonical labels: BP-09 = "Live Audience Conversion Toolkit" (canonical "Book Sales"), BA-16 = "Affiliate Programme" (canonical "Affiliates"), BA-17 = "Upsells & Bundles" (canonical "Bundles"), YR-20 = "Big Ticket Offers" (canonical "Big Ticket Consulting") | open | Documented in Master Architecture §3; fix in next generator pass — must align with `builderNodeConfig.ts` per Core memory rule |
+| 13 | 2026-05-01 | Low | Counter math diverged across docs (some said 16+12=28, others implicitly 16+13=29 by including BP-00) | sprint 47 | Fixed — `01-count-business-rules-v2.md` and `05-author-vs-book-level-registry.md` now state 28 counted + 1 uncounted = 29 IDs |
+| 14 | 2026-05-01 | Low | BA-13 readiness gate code comment claims "BA-13 is a paid offer" but rule does not enforce a commerce signal | open | Documented as known divergence in `02-node-readiness-gates-full-spec.md`; either tighten rule or remove comment in next sprint |
 
 ## Adding new entries
 

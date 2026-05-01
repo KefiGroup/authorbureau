@@ -19,8 +19,11 @@ Running log of every sprint. Pauline maintains; Lovable provides per-sprint summ
 | 37 | ABBY Social Designer | 2026-Q1 | Buffer removed; native composer | `compose-social-post` 2-step renderer; 6 templates × 5 platforms |
 | 39 | Commerce Engine v1 | 2026-Q1 | MoR commerce shipped | `author_nodes` registry; 8% fee; dual webhook; `<BuyNowButton>` |
 | 44 | Stripe-only payouts | 2026-04 | PayPal + Wise removed | Stripe Express only; admin manual fallback |
+| 43 | Cross-platform email sync | 2026-04 | PublishNow→AB email sync | `sync-author-email`; `email_sync_log` audit |
+| 44 | Stripe-only payouts | 2026-04 | PayPal + Wise removed | Stripe Express only; admin manual fallback |
 | 45 | GHL fully removed | 2026-04 | Cleanup | All GHL refs deleted from code, DB, copy |
-| 46 | Documentation Sprint v3 | 2026-05-01 | This sprint | 6-category /docs structure; Manus framework alignment |
+| 46 | Documentation Sprint v3 | 2026-05-01 | Initial 6-category /docs structure | 56 markdown files; Manus framework alignment |
+| 47 | Documentation Corrections | 2026-05-01 | Master registry + cross-doc alignment | Master Architecture §3 (canonical registry); all 28 node docs regenerated; counter math reconciled; legacy filename divergences logged as bugs |
 
 ## Schema of this table
 
