@@ -55,7 +55,9 @@ The platform is single-tenant per author, multi-book per author, and all reader-
 3. The author-level / book-level set in `node-readiness.ts`
 4. The edge function path on disk
 
-Generator-internal `NODE_NAME` constants are now centrally enforced via `supabase/functions/_shared/canonical-node-labels.ts` (Sprint 48). Each generator calls `getCanonicalNodeLabel(NODE_ID)`, and `upsertAuthorNode` overrides any non-canonical string at write time. Filename divergences (e.g. `generate-bp09-speaking` serves Book Sales) remain — they are tracked for Sprint 49 and do NOT affect runtime behaviour.
+Generator-internal `NODE_NAME` constants are centrally enforced via `supabase/functions/_shared/canonical-node-labels.ts` (Sprint 48). Each generator calls `getCanonicalNodeLabel(NODE_ID)`, and `upsertAuthorNode` overrides any non-canonical string at write time.
+
+**Sprint 49 — DB-level node hardening (Half A):** A `public.node_registry` table now holds the 28 canonical nodes (id, label, category, archetype, microsite slug, display order) as a SQL source of truth. `author_nodes.node_id` and `crm_contacts.last_node_id` are now FK-constrained to it (unknown IDs are rejected at the DB layer). A `BEFORE INSERT/UPDATE` trigger on `author_nodes` forces `node_name` to `node_registry.canonical_label` on every write — a DB-level mirror of the TS guard rail. `compute_node_microsite_url` reads slugs from the registry instead of a hardcoded `CASE`. Filename divergences (e.g. `generate-bp09-speaking` serves Book Sales) remain cosmetic — tracked for Sprint 50 — and do NOT affect runtime behaviour.
 
 | ID | Canonical label | Framework category | Scope | Edge function (verified on disk) | Notes / known divergences |
 |---|---|---|---|---|---|
