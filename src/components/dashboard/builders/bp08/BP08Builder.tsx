@@ -167,12 +167,26 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   };
 
   const handleGenerate = async () => {
-    console.info("[BP-08] generate clicked", { authorId });
+    console.info("[BP-08] generate clicked", { authorId, occasion: selectedOccasion?.id });
     if (!authorId) return;
     setStep(1); setError(null);
     const promise = startGeneration(authorId, "BP-08", runGeneration);
     await attachToGeneration(promise);
   };
+
+  // Auto-start generation when arriving from the calendar with ?occasion=...&autostart=1
+  useEffect(() => {
+    if (!autostart || !selectedOccasion) return;
+    if (didAutostartRef.current) return;
+    if (!authorId) return;
+    if (step !== 0) return;          // already past intro (e.g. resumed draft)
+    if (content) return;             // existing draft loaded
+    if (isBookLoading) return;
+    if (!hasResolvedBook) return;
+    didAutostartRef.current = true;
+    handleGenerate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autostart, selectedOccasion, authorId, step, content, isBookLoading, hasResolvedBook]);
 
   const handlePublish = async () => {
     setStep(3); setError(null);
