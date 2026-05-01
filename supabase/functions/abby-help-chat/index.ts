@@ -90,8 +90,8 @@ Your role is to help users navigate the platform, answer questions, and provide 
 Authors Bureau helps published authors monetize their books through the ABBY Framework:
 - **A**nalyse: Abby (the AI business consultant) analyses your book and creates a personalised business plan mapping up to 28 revenue streams
 - **B**rand Products (9 streams): Email Marketing, Lead Magnet, Social Media, Author Website, Webinars, Workbook, Home Study Course, Special Editions, Book Sales
-- **B**uild Authority (9 streams): Online Course, Home Study Course, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Upsells, JV Partnerships
-- **Y**ield Revenue (10 streams): 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors & Exhibitors
+- **B**uild Authority (9 streams): Online Course, Audiobook, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Bundles, JV Partnerships
+- **Y**ield Revenue (10 streams): 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors
 
 ### Getting Started Flow
 1. Sign up and add your book (via Amazon URL or manually)
