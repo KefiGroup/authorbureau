@@ -260,7 +260,9 @@ export default function SupportTab() {
                   <TableHead>Page</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Priority</TableHead>
+                  <TableHead>SLA</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Assigned</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
@@ -270,12 +272,18 @@ export default function SupportTab() {
                     <TableCell className="text-sm">{bug.page_url}</TableCell>
                     <TableCell className="text-sm max-w-[200px] truncate">{bug.description}</TableCell>
                     <TableCell><Badge variant="outline" className={priorityColors[bug.priority]}>{bug.priority}</Badge></TableCell>
+                    <TableCell><SlaBadge bug={bug} /></TableCell>
                     <TableCell><Badge variant="outline" className={statusColors[bug.status]}>{bug.status}</Badge></TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {bug.assigned_to ? (
+                        bug.assigned_to === user?.id ? <span className="text-emerald-700 font-medium">You</span> : <span className="font-mono">{bug.assigned_to.slice(0, 6)}</span>
+                      ) : <span className="text-muted-foreground/60">—</span>}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">{format(new Date(bug.created_at), "MMM d, yyyy")}</TableCell>
                   </TableRow>
                 ))}
                 {filteredBugs.length === 0 && hasBugData && (
-                  <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No bug reports match the current filters</TableCell></TableRow>
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No bug reports match the current filters</TableCell></TableRow>
                 )}
               </TableBody>
             </Table>
