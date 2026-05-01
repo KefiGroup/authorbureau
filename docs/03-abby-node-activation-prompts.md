@@ -15,9 +15,240 @@ Prompts are extracted verbatim from each `supabase/functions/generate-*/index.ts
 - **Edge function**: `supabase/functions/generate-ba10-online-course/index.ts`
 - **Model**: `google/gemini-2.5-flash`
 - **Max tokens**: `6000`
-- **Prompt blocks extracted**: 0
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `resolvedBookTitle`, `author`, `ctx`, `coreThesis`, `targetAudience`, `keyFrameworks`, `uniqueInsights`, `genre`, `errorMessage(fetchErr)`, `aiRes`, `)`, `1,`, `mi`, `li`
 
-_Could not auto-extract prompt blocks — see source file for details._
+### system
+
+```text
+You are ABBY, the AI business agent for Authors Bureau. You design online courses using Bloom's Taxonomy (Remember → Understand → Apply → Analyze → Evaluate → Create) and Kolb's Experiential Learning Cycle (Concrete Experience → Reflective Observation → Abstract Conceptualisation → Active Experimentation). Modules MUST progress from lower-order to higher-order thinking. Each module specifies its primary Bloom's level and Kolb's stage with measurable, Bloom-aligned learning objectives. Respond with ONLY valid JSON. Every lesson MUST include a 1-sentence `outline`.
+```
+
+### user
+
+```text
+${`Create a complete online course for ${author.pen_name}'s book '${resolvedBookTitle}'.
+
+Book context:
+- Author: ${author.pen_name}
+- Title: ${resolvedBookTitle}
+- Subtitle: ${ctx?.book_subtitle || "N/A"}
+- Core thesis: ${coreThesis || "Use the description and context to infer the main promise."}
+- Target audience: ${targetAudience}
+- Key frameworks: ${keyFrameworks}
+- Unique insights: ${uniqueInsights}
+- Genre: ${genre}
+
+Return JSON exactly in this shape (concise — keep prose short to fit token budget):
+{
+  "course_title": "string (compelling, NOT just the book title)",
+  "course_subtitle": "string (one-line promise)",
+  "tagline": "string (memorable hook)",
+  "duration": "string e.g. '6 weeks · 6 modules'",
+  "difficulty_level": "Beginner|Intermediate|Advanced",
+  "transformation_promise": "string",
+  "who_its_for": "string (specific persona)",
+  "what_youll_get": ["4 short bullets"],
+  "suggested_price_usd": 197,
+  "pricing_rationale": "1 sentence",
+  "course_description_long": "2 short paragraphs",
+  "pedagogical_approach": "1 sentence summarising how Bloom's + Kolb's structure this course",
+  "modules": [
+    {
+      "number": 1,
+      "title": "string",
+      "description": "1-2 sentences",
+      "blooms_level": "Remember|Understand|Apply|Analyze|Evaluate|Create",
+      "kolbs_stage": "Concrete Experience|Reflective Observation|Abstract Conceptualisation|Active Experimentation",
+      "learning_objectives": ["By the end, students will <Bloom-aligned verb> ...", "..."],
+      "outcome": "1 sentence",
+      "lessons": [
+        { "number": 1, "title": "string", "type": "video|reading|exercise|quiz", "duration_minutes": 12, "outline": "1 sentence" }
+      ]
+    }
+  ],
+  "sales_copy": {
+    "headline": "string", "subheadline": "string",
+    "problem": "1-2 sentences", "solution": "1-2 sentences",
+    "outcomes": ["string","string","string"],
+    "cta": "string"
+  },
+  "abby_summary": "1-2 sentences summarising what was built and the pedagogical approach"
+}
+
+Strict rules:
+- EXACTLY 6 modules
+- EXACTLY 3 lessons per module
+- Bloom progression: M1 Remember, M2 Understand, M3 Apply, M4 Analyze, M5 Evaluate, M6 Create
+- Each module has 2 measurable Bloom-aligned learning_objectives
+- Every lesson has an outline
+- Specific to '${resolvedBookTitle}' — no generic placeholders
+- Keep all prose short to stay within token limit`,
+            },
+          ],
+        }),
+      });
+    } catch (fetchErr) {
+      clearTimeout(timeoutId);
+      const msg = (fetchErr as Error)?.name === "AbortError"
+        ? "ABBY took too long to respond. Please click Try Again."
+        : `AI gateway request failed: ${errorMessage(fetchErr)}`;
+      return failResponse(msg);
+    }
+    clearTimeout(timeoutId);
+
+    if (!aiRes.ok) {
+      const details = await aiRes.text();
+      if (aiRes.status === 429) return failResponse("ABBY is rate-limited right now. Please wait a few seconds and try again.", details.slice(0, 300));
+      if (aiRes.status === 402) return failResponse("ABBY's AI credits need topping up. Please add credits in Settings → Workspace → Usage.", details.slice(0, 300));
+      return failResponse(`AI gateway error (${aiRes.status}). Please try again.`, details.slice(0, 300));
+    }
+
+    const aiData = await aiRes.json();
+    const raw = aiData.choices?.[0]?.message?.content || "";
+    let content: any;
+    try {
+      content = parseAiJson(raw);
+    } catch (parseErr) {
+      return failResponse(
+        "ABBY returned malformed content. Please click Try Again.",
+        { parseErr: errorMessage(parseErr), preview: raw.slice(0, 400) },
+      );
+    }
+
+    // Validate required top-level fields
+    const required = ["course_title", "modules", "suggested_price_usd"];
+    const missing = required.filter((k) => content[k] === undefined || content[k] === null);
+    if (missing.length || !Array.isArray(content.modules) || content.modules.length === 0) {
+      return failResponse(
+        "ABBY's response was incomplete. Please click Try Again.",
+        { missing, hasModules: Array.isArray(content.modules), moduleCount: content.modules?.length },
+      );
+    }
+
+    // ============ Populate relational tables ============
+    const coursePayload: Record<string, unknown> = {
+      author_id: courseOwnerId,
+      book_id: book?.id ?? null,
+      title: content.course_title,
+      subtitle: content.course_subtitle ?? null,
+      tagline: content.tagline ?? null,
+      description: content.course_description_long ?? null,
+      target_student: content.who_its_for ?? null,
+      transformation_promises: content.what_youll_get ?? [],
+      cover_image_url: book?.cover_image_url ?? null,
+      price: content.suggested_price_usd ?? 197,
+      currency: "usd",
+      status: "draft",
+      course_format: "self_paced",
+    };
+
+    const { data: existingCourse } = await supabase
+      .from("courses")
+      .select("id")
+      .eq("author_id", courseOwnerId)
+      .eq("book_id", book?.id ?? null)
+      .maybeSingle();
+
+    let courseId: string;
+    if (existingCourse?.id) {
+      courseId = existingCourse.id;
+      const { error: updateCourseError } = await supabase.from("courses").update(coursePayload).eq("id", courseId);
+      if (updateCourseError) throw updateCourseError;
+
+      const { data: existingModules } = await supabase
+        .from("course_modules")
+        .select("id")
+        .eq("course_id", courseId);
+
+      const moduleIds = (existingModules ?? []).map((m) => m.id);
+      if (moduleIds.length > 0) {
+        await supabase.from("course_lessons").delete().in("module_id", moduleIds);
+      }
+      await supabase.from("course_modules").delete().eq("course_id", courseId);
+    } else {
+      const { data: newCourse, error: courseErr } = await supabase
+        .from("courses")
+        .insert(coursePayload)
+        .select("id")
+        .single();
+      if (courseErr) throw courseErr;
+      courseId = newCourse.id;
+    }
+
+    const modules: Array<Record<string, unknown>> = Array.isArray(content.modules) ? content.modules : [];
+    for (let mi = 0; mi < modules.length; mi}${}${) {
+      const m = modules[mi] as Record<string, unknown>;
+      const { data: newModule, error: modErr } = await supabase
+        .from("course_modules")
+        .insert({
+          course_id: courseId,
+          module_number: (m as { number?: number }).number ?? mi}${1,
+          title: (m as { title?: string }).title ?? `Module ${mi + 1}`,
+          description: (m as { description?: string }).description ?? null,
+          position: mi,
+          blooms_level: (m as { blooms_level?: string }).blooms_level ?? null,
+          kolbs_stage: (m as { kolbs_stage?: string }).kolbs_stage ?? null,
+          learning_objectives: Array.isArray((m as { learning_objectives?: unknown }).learning_objectives)
+            ? (m as { learning_objectives: unknown[] }).learning_objectives
+            : ((m as { outcome?: string }).outcome ? [(m as { outcome: string }).outcome] : []),
+        })
+        .select("id")
+        .single();
+      if (modErr) throw modErr;
+
+      const lessons: Array<Record<string, unknown>> = Array.isArray((m as { lessons?: unknown[] }).lessons)
+        ? ((m as { lessons: unknown[] }).lessons as Record<string, unknown>[])
+        : [];
+      for (let li = 0; li < lessons.length; li}${}${) {
+        const l = lessons[li];
+        await supabase.from("course_lessons").insert({
+          module_id: newModule.id,
+          title: (l as { title?: string }).title ?? `Lesson ${li + 1}`,
+          outline: (l as { outline?: string }).outline ?? null,
+          content: JSON.stringify({
+            type: (l as { type?: string }).type ?? "video",
+            duration_minutes: (l as { duration_minutes?: number }).duration_minutes ?? null,
+            outline: (l as { outline?: string }).outline ?? null,
+          }),
+          position: li,
+          video_url: null,
+        });
+      }
+    }
+
+    await upsertAuthorNode(supabase, author_id, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, course_id: courseId, _currentStep: 2 },
+      personalised_name: content.course_title,
+      price_usd: content.suggested_price_usd ?? 197,
+      currency: "usd",
+      delivery_type: "course",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(
+      JSON.stringify({ success: true, content: { ...content, course_id: courseId } }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (err) {
+    if (priorNodeState && authorIdForRestore) {
+      try {
+        await upsertAuthorNode(
+          createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!),
+          authorIdForRestore,
+          priorNodeState,
+          bookIdForRestore,
+        );
+      } catch (restoreErr) {
+        console.error("generate-ba10-online-course restore error:", errorMessage(restoreErr));
+      }
+    }
+    return failResponse(errorMessage(err));
+  }
+});}
+```
+
 ---
 
 ## BA-11 · Audiobook
@@ -25,13 +256,25 @@ _Could not auto-extract prompt blocks — see source file for details._
 - **Edge function**: `supabase/functions/generate-ba11-audiobook/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY, the AI business agent for Authors Bureau. Personalise everything to the author's specific book. Respond with ONLY valid JSON (no markdown, no code fences).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a complete audiobook production package for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a complete audiobook production package for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -45,7 +288,39 @@ Book context:
 
 Generate JSON: {"audiobook_title","narrator_style","estimated_duration_hours":6,"narrator_brief":"3-4 sentences","chapter_guides":[5 items with chapter_number/chapter_title/key_emphasis_points(2 items)/pacing_note/pronunciation_notes],"distribution_platforms":[3 items with platform/royalty_rate/timeline],"production_checklist":[5 items],"suggested_retail_price_usd":19.99,"abby_summary"}
 
-Make everything specific to this book. No placeholders.
+Make everything specific to this book. No placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.audiobook_title,
+      price_usd: Number(content.suggested_retail_price_usd ?? 19.99),
+      currency: "usd",
+      delivery_type: "audiobook",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -55,13 +330,25 @@ Make everything specific to this book. No placeholders.
 - **Edge function**: `supabase/functions/generate-ba12-membership/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `author`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY for Authors Bureau. Design a 3-tier monthly membership community personalised to the author's book. Respond with ONLY valid JSON (no markdown, no code fences).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a 3-tier monthly membership for ${author.pen_name}'s book '${bookTitle}'.
+${`Design a 3-tier monthly membership for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -91,7 +378,41 @@ Return JSON in this EXACT shape (field names matter):
   "abby_summary": "string"
 }
 
-3 tiers exactly. Prices ascending. No generic placeholders.
+3 tiers exactly. Prices ascending. No generic placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    const tiers = Array.isArray(content.tiers) ? content.tiers : [];
+    const entryPrice = Number(tiers[0]?.price ?? content.monthly_price_usd ?? 27);
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.membership_title || content.membership_name,
+      price_usd: entryPrice,
+      currency: "usd",
+      delivery_type: "membership",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -101,13 +422,25 @@ Return JSON in this EXACT shape (field names matter):
 - **Edge function**: `supabase/functions/generate-ba13-group-coaching/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a complete group coaching programme for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a complete group coaching programme for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -144,7 +477,39 @@ Return JSON in this EXACT shape (field names matter):
   "abby_summary": "string"
 }
 
-8 weeks exactly. No placeholders.
+8 weeks exactly. No placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.programme_title,
+      price_usd: Number(content.suggested_price_usd ?? 1997),
+      currency: "usd",
+      delivery_type: "group_coaching",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -154,13 +519,25 @@ Return JSON in this EXACT shape (field names matter):
 - **Edge function**: `supabase/functions/generate-ba14-podcast/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a complete podcast for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a complete podcast for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -193,7 +570,38 @@ Return JSON in this EXACT shape (field names matter):
   "abby_summary": "string"
 }
 
-Exactly 10 episodes. No placeholders.
+Exactly 10 episodes. No placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.podcast_title || content.show_title,
+      currency: "usd",
+      delivery_type: "podcast",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -203,13 +611,25 @@ Exactly 10 episodes. No placeholders.
 - **Edge function**: `supabase/functions/generate-ba15-media-pr/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences). All listed fields must be PLAIN STRINGS unless explicitly an object/array.
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a complete media kit and PR strategy for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a complete media kit and PR strategy for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -234,7 +654,38 @@ Return JSON in this EXACT shape (note: press_release and pitch_template are STRI
   "abby_summary": "string"
 }
 
-5 outlets. press_release and pitch_template MUST be strings. No placeholders.
+5 outlets. press_release and pitch_template MUST be strings. No placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.speaker_headline,
+      currency: "usd",
+      delivery_type: "media_pr",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -244,13 +695,25 @@ Return JSON in this EXACT shape (note: press_release and pitch_template are STRI
 - **Edge function**: `supabase/functions/generate-ba16-affiliate/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a complete affiliate programme for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a complete affiliate programme for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -283,7 +746,38 @@ Return JSON in this EXACT shape (field names matter):
   "abby_summary": "string"
 }
 
-4 resources. No placeholders.
+4 resources. No placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.programme_title,
+      currency: "usd",
+      delivery_type: "affiliate",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -293,13 +787,25 @@ Return JSON in this EXACT shape (field names matter):
 - **Edge function**: `supabase/functions/generate-ba17-upsells/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a complete upsell and bundle system for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a complete upsell and bundle system for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -322,7 +828,38 @@ Return JSON in this EXACT shape (field names matter):
   "abby_summary": "string"
 }
 
-3 bundles, 3 upsell_sequences. No placeholders.
+3 bundles, 3 upsell_sequences. No placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.product_ladder_title,
+      currency: "usd",
+      delivery_type: "upsells",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -332,13 +869,25 @@ Return JSON in this EXACT shape (field names matter):
 - **Edge function**: `supabase/functions/generate-ba18-jv-partnerships/index.ts`
 - **Model**: `openai/gpt-5-mini`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences). pitch_template MUST be a plain string.
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a complete JV partnership strategy for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a complete JV partnership strategy for ${author.pen_name}'s book '${bookTitle}'.
 
 Book context:
 - Author: ${author.pen_name}
@@ -362,7 +911,38 @@ Return JSON in this EXACT shape (field names matter):
   "abby_summary": "string"
 }
 
-3 partners. pitch_template MUST be a string. No placeholders.
+3 partners. pitch_template MUST be a string. No placeholders.` },
+        ],
+      }),
+    });
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.jv_strategy_title,
+      currency: "usd",
+      delivery_type: "jv_partnerships",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -372,9 +952,46 @@ Return JSON in this EXACT shape (field names matter):
 - **Edge function**: `supabase/functions/generate-bp00-analysis/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 0
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Research`
 
-_Could not auto-extract prompt blocks — see source file for details._
+### system
+
+```text
+You are ABBY, the AI business agent for Authors Bureau. You research published books and extract commercial intelligence. CRITICAL: write everything specifically for the EXACT book title and description provided — never substitute a different topic, niche, or domain. Always respond with valid JSON only — no markdown, no code fences.
+```
+
+### user
+
+```text
+${`Research this book and extract commercial intelligence:
+
+${searchContext}
+
+Return JSON with these exact keys:
+{
+  "book_title": "Exact book title",
+  "book_subtitle": "Subtitle or null",
+  "core_thesis": "Central argument in 2-3 sentences, specific to THIS book",
+  "key_frameworks": ["Framework 1","Framework 2","Framework 3","Framework 4","Framework 5"],
+  "target_audience_persona": {
+    "demographics": "Age, profession, life stage",
+    "psychographics": "Values, pain points, aspirations",
+    "buying_triggers": "What makes them buy this book"
+  },
+  "unique_insights": ["Insight 1","Insight 2","Insight 3"],
+  "commercial_angles": ["Angle 1","Angle 2","Angle 3"],
+  "competitor_books": [{"title":"...","author":"...","differentiation":"..."}],
+  "review_themes": ["Theme 1","Theme 2","Theme 3"],
+  "review_count_estimate": 50,
+  "genre": "Primary genre",
+  "abby_message": "I have analysed your book [Title] and identified [N] commercial opportunities. Here is what stands out: [brief specific insight]."
+}
+
+Be specific. Never default to generic finance, business, or self-help content unless that is exactly what THIS book is about.`,
+          }}
+```
+
 ---
 
 ## BP-01 · Email Marketing
@@ -383,45 +1000,18 @@ _Could not auto-extract prompt blocks — see source file for details._
 - **Model**: `google/gemini-2.5-flash`
 - **Max tokens**: `4000`
 - **Prompt blocks extracted**: 2
-- **Dynamic variables**: `authorName`, `bookTitle`, `bookSubtitle`, `coreThesis`, `audiencePersona`, `keyFrameworks`, `uniqueInsights`, `commercialAngles`, `leadMagnetInfo`, `leadMagnet`
+- **Dynamic variables**: `systemPrompt`, `userPrompt`
 
-### systemPrompt
+### system
 
 ```text
-You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.
+${systemPrompt}
 ```
 
-### userPrompt
+### user
 
 ```text
-Create a complete email marketing system for ${authorName}'s book '${bookTitle}'.
-
-Book details:
-- Title: ${bookTitle}
-- Subtitle: ${bookSubtitle || "N/A"}
-- Core thesis: ${coreThesis || "N/A"}
-- Target audience: ${audiencePersona}
-- Key frameworks: ${keyFrameworks}
-- Unique insights: ${uniqueInsights}
-- Commercial angles: ${commercialAngles}
-${leadMagnetInfo}
-
-Generate the following as a JSON object with these exact keys:
-{
-  "campaign_name": "A compelling name for this author's email marketing campaign (e.g., The [Book Theme] Insider Series)",
-  "welcome_sequence": [
-    {
-      "email_number": 1,
-      "subject": "Email subject line",
-      "preview_text": "Preview text (40-90 chars)",
-      "body": "Full email body (200-300 words, warm and personal, from the author)",
-      "send_delay_days": 0
-    }
-  ],
-  "lead_magnet_offer": {
-    "title": "${leadMagnet ? "Use the author's existing lead magnet title exactly as provided above" : "Name of the free resource to offer as a lead magnet"}",
-    "description": "${leadMagnet ? "Describe the existing lead magnet accurately based on the details above" : "One sentence describing what readers get"}",
-    "cta_text": "Button text for the opt-in form"${leadMagnetUrl ? 
+${userPrompt}
 ```
 
 ---
@@ -431,19 +1021,49 @@ Generate the following as a JSON object with these exact keys:
 - **Edge function**: `supabase/functions/generate-bp02-lead-magnets/index.ts`
 - **Model**: `google/gemini-2.5-flash`
 - **Max tokens**: `10000`
-- **Prompt blocks extracted**: 2
-- **Dynamic variables**: `rawContent`
+- **Prompt blocks extracted**: 6
+- **Dynamic variables**: `systemPrompt`, `userPrompt`, ``Fix`
 
-### user
+### system (block 1)
 
 ```text
-Fix this into valid JSON:\n${rawContent.slice(0, 12000)}
+${systemPrompt}
 ```
 
-### user
+### user (block 2)
 
 ```text
-Fix this into valid JSON:\n${rawContent.slice(0, 12000)}
+${userPrompt}
+```
+
+### system (block 3)
+
+```text
+You are a JSON repair tool. Return ONLY valid JSON, no prose.
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
+
+### user (block 4)
+
+```text
+${`Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` }}
+```
+
+### system (block 5)
+
+```text
+You are a JSON repair tool. Return ONLY valid JSON, no prose.
+```
+
+### user (block 6)
+
+```text
+${`Fix this into valid JSON:\n${rawContent.slice(0, 12000)}` }}
 ```
 
 ---
@@ -453,81 +1073,25 @@ Fix this into valid JSON:\n${rawContent.slice(0, 12000)}
 - **Edge function**: `supabase/functions/generate-bp02-social-pack/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `5000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `authorName`, `leadMagnetTitle`, `bookTitle`, `optinUrl`, `audience`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: `prompt`
 
-### prompt
+### system
 
 ```text
-Generate a complete social media distribution pack for ${authorName}'s lead magnet "${leadMagnetTitle}" from the book "${bookTitle}".
+You are ABBY, the AI business agent for Authors Bureau. Generate social media content that is warm, expert, and specific to the author's book. Return valid JSON only.
 
-Opt-in URL: ${optinUrl}
-Target audience: ${audience}
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
-Return valid JSON only (no markdown, no code fences) with these exact keys:
+### user
 
-{
-  "linkedin_posts": [
-    { "type": "announcement", "caption": "150-word announcement post", "hashtags": ["relevant"] },
-    { "type": "value", "caption": "200-word value post sharing an insight from the quiz topic", "hashtags": ["relevant"] },
-    { "type": "social_proof", "caption": "Post template for sharing testimonial/result (with placeholder for real testimonial)", "hashtags": ["relevant"] }
-  ],
-  "instagram_posts": [
-    { "type": "carousel", "caption": "Carousel caption for 5-slide post", "slide_topics": ["Slide 1 topic", "Slide 2", "Slide 3", "Slide 4", "Slide 5 CTA"], "hashtags": ["relevant"] },
-    { "type": "story", "frames": [
-      { "frame": 1, "text": "Hook frame", "sticker_suggestion": "poll or question sticker" },
-      { "frame": 2, "text": "Value frame" },
-      { "frame": 3, "text": "CTA frame with swipe-up link" }
-    ]},
-    { "type": "reel", "script": "30-second reel script with hook, value, and CTA", "caption": "Reel caption", "hashtags": ["relevant"] }
-  ],
-  "facebook_posts": [
-    { "type": "community_group", "caption": "Post for Facebook groups (educational, not salesy)", "hashtags": [] },
-    { "type": "personal_profile", "caption": "Personal announcement post", "hashtags": [] }
-  ],
-  "twitter_thread": [
-    { "tweet_number": 1, "text": "Hook tweet building curiosity" },
-    { "tweet_number": 2, "text": "Insight tweet" },
-    { "tweet_number": 3, "text": "Surprising stat or fact" },
-    { "tweet_number": 4, "text": "Personal story or example" },
-    { "tweet_number": 5, "text": "CTA tweet with link" }
-  ],
-  "email_to_list": {
-    "subject_variants": ["Subject line 1", "Subject line 2", "Subject line 3"],
-    "body": "150-word email body announcing the quiz/lead magnet"
-  },
-  "visual_assets_brief": [
-    {
-      "format": "square",
-      "dimensions": "1080x1080",
-      "background_color": "#hex",
-      "headline_text": "Main text overlay",
-      "subheadline_text": "Supporting text",
-      "cta_text": "CTA text",
-      "include_book_cover": true
-    },
-    {
-      "format": "story",
-      "dimensions": "1080x1920",
-      "background_color": "#hex",
-      "headline_text": "Main text overlay",
-      "subheadline_text": "Supporting text",
-      "cta_text": "CTA text",
-      "include_book_cover": false
-    },
-    {
-      "format": "linkedin_banner",
-      "dimensions": "1200x627",
-      "background_color": "#hex",
-      "headline_text": "Main text overlay",
-      "subheadline_text": "Supporting text",
-      "cta_text": "CTA text",
-      "include_book_cover": true
-    }
-  ]
-}
-
-Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the opt-in URL "${optinUrl}" in all CTAs. Never be generic.
+```text
+${prompt}
 ```
 
 ---
@@ -537,9 +1101,21 @@ Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the
 - **Edge function**: `supabase/functions/generate-bp03-social-media/index.ts`
 - **Model**: `openai/gpt-5.2`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 0
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: `SYSTEM_PROMPT`, `userPrompt`
 
-_Could not auto-extract prompt blocks — see source file for details._
+### system
+
+```text
+${SYSTEM_PROMPT}
+```
+
+### user
+
+```text
+${userPrompt}
+```
+
 ---
 
 ## BP-04 · Author Website
@@ -547,85 +1123,25 @@ _Could not auto-extract prompt blocks — see source file for details._
 - **Edge function**: `supabase/functions/generate-bp04-website/index.ts`
 - **Model**: `openai/gpt-5.2`
 - **Max tokens**: `6000`
-- **Prompt blocks extracted**: 2
-- **Dynamic variables**: `authorName`, `bookTitle`, `bookSubtitle`, `coreThesis`, `audiencePersona`, `keyFrameworks`, `uniqueInsights`, `genre`
+- **Prompt blocks extracted**: 3
+- **Dynamic variables**: `systemPrompt`, `userPrompt`, `extraReminder`
 
-### systemPrompt
+### system (block 1)
 
 ```text
-You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging.
-
-CRITICAL ANTI-HALLUCINATION RULES:
-1. You MUST write everything specifically for the EXACT book title, subtitle, and core thesis provided by the user. The book title appears verbatim in the user prompt — copy it exactly, never paraphrase or invent a new title.
-2. NEVER substitute a different topic, niche, or domain — even if the title or thesis seems unusual or unfamiliar.
-3. NEVER default to generic finance, business, self-help, leadership, or productivity content unless the user prompt explicitly says the book is about that topic.
-4. The "site_name" must include the author's pen name exactly as provided. The "book_page.headline" and "book_page.book_description" MUST reference the exact book title verbatim at least once.
-5. Derive the niche/genre ONLY from the "Genre/Niche" and "Core thesis" fields supplied. If both are missing, ask for them via "abby_summary" — do NOT fabricate.
-6. Always respond with valid JSON only — no markdown, no code fences, no commentary outside the JSON object.
+${systemPrompt}
 ```
 
-### userPrompt
+### user (block 2)
 
 ```text
-Create complete author website copy for ${authorName}'s book '${bookTitle}'.
+${userPrompt}
+```
 
-Author details:
-- Author name: ${authorName}
-- Book title: ${bookTitle}
-- Book subtitle: ${bookSubtitle || "N/A"}
-- Core thesis: ${coreThesis || "N/A"}
-- Target audience: ${audiencePersona}
-- Key frameworks: ${keyFrameworks}
-- Unique insights: ${uniqueInsights}
-- Genre/Niche: ${genre}
+### system (block 3)
 
-Generate the following as a JSON object with these exact keys:
-{
-  "site_name": "The website name (e.g., ${authorName} | Author & Expert)",
-  "tagline": "A compelling one-line tagline for the author brand",
-  "homepage": {
-    "hero_headline": "Main headline for the homepage hero section",
-    "hero_subheadline": "Supporting subheadline (1-2 sentences)",
-    "hero_cta_primary": "Primary CTA button text",
-    "hero_cta_secondary": "Secondary CTA button text",
-    "about_teaser": "A 2-3 sentence teaser about the author",
-    "book_teaser": "A 2-3 sentence teaser about the book",
-    "social_proof_headline": "Headline for the testimonials section",
-    "placeholder_testimonials": [
-      { "quote": "A realistic placeholder testimonial (2-3 sentences)", "name": "Reader Name", "title": "Title or Role" },
-      { "quote": "A second realistic placeholder testimonial", "name": "Reader Name 2", "title": "Title or Role 2" }
-    ]
-  },
-  "about_page": {
-    "headline": "Headline for the About page",
-    "bio_short": "A short 2-3 sentence bio",
-    "bio_long": "A full 4-6 paragraph author bio",
-    "credentials": ["Credential 1", "Credential 2", "Credential 3"],
-    "personal_note": "A short personal note from the author (2-3 sentences)"
-  },
-  "book_page": {
-    "headline": "Headline for the book page",
-    "book_description": "Full book description (3-4 paragraphs)",
-    "what_youll_learn": ["Takeaway 1", "Takeaway 2", "Takeaway 3", "Takeaway 4", "Takeaway 5"],
-    "who_its_for": "A 2-3 sentence description of who this book is for",
-    "buy_cta": "CTA button text for buying",
-    "bonus_offer": "A free bonus offer for book buyers"
-  },
-  "contact_page": {
-    "headline": "Headline for the contact page",
-    "intro_text": "1-2 sentence intro",
-    "speaking_topics": ["Topic 1", "Topic 2", "Topic 3"],
-    "media_note": "A short note for media/press inquiries"
-  },
-  "seo": {
-    "meta_title": "SEO meta title (under 60 characters)",
-    "meta_description": "SEO meta description (under 160 characters)",
-    "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
-  },
-  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created"
-}
-
-Make everything specific to this author's book, niche, and audience. Never use generic placeholder text except where explicitly marked as 'placeholder' (testimonials only).
+```text
+${extraReminder}
 ```
 
 ---
@@ -635,70 +1151,25 @@ Make everything specific to this author's book, niche, and audience. Never use g
 - **Edge function**: `supabase/functions/generate-bp05-webinars/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `default`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `ctxBundle`, `JSON`, `niche`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: `userPrompt`
 
-### userPrompt
+### system
 
 ```text
-Create a complete webinar system for ${author.pen_name}'s book '${bookTitle}'.
+You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. You always personalise everything to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.
 
-Author details:
-- Author name: ${author.pen_name}
-- Book title: ${bookTitle}
-- Book subtitle: ${ctxBundle.bookSubtitle || "N/A"}
-- Core thesis: ${ctxBundle.coreThesis}
-- Target audience: ${JSON.stringify(ctx?.target_audience_persona || {})}
-- Key frameworks: ${JSON.stringify(ctx?.key_frameworks || [])}
-- Unique insights: ${JSON.stringify(ctx?.unique_insights || [])}
-- Niche: ${niche}
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
-Generate the following as a JSON object with these exact keys:
+### user
 
-{
-  "webinar_topics": [
-    {
-      "number": 1,
-      "title": "Compelling webinar title (specific, benefit-driven, creates curiosity)",
-      "subtitle": "One-line subtitle that clarifies the promise",
-      "duration_minutes": 60,
-      "format": "Format type (e.g., Live Training, Q&A Session, Workshop, Masterclass)",
-      "description": "2-3 sentences describing what attendees will learn and the transformation they will experience",
-      "key_points": ["Key teaching point 1", "Key teaching point 2", "Key teaching point 3", "Key teaching point 4"],
-      "ideal_for": "One sentence describing exactly who this webinar is for",
-      "hook": "A compelling one-sentence hook to open the webinar (creates urgency or curiosity)"
-    }
-  ],
-  "recommended_webinar": 1,
-  "recommended_reason": "One sentence explaining why webinar #1 is the best starting point for this author",
-  "registration_page": {
-    "headline": "Main headline for the registration page (powerful, specific, benefit-driven)",
-    "subheadline": "Supporting subheadline (1-2 sentences)",
-    "bullet_points": ["What attendees will learn 1", "What attendees will learn 2", "What attendees will learn 3", "What attendees will learn 4"],
-    "presenter_bio": "A 2-3 sentence bio positioning the author as the expert for this webinar",
-    "cta_button_text": "Registration button text (e.g., Reserve My Spot)",
-    "urgency_note": "A short urgency or scarcity note (e.g., Limited spots available)"
-  },
-  "follow_up_emails": [
-    { "send_time": "Immediately after registration", "subject": "...", "preview_text": "...", "body_summary": "..." },
-    { "send_time": "24 hours before the webinar", "subject": "...", "preview_text": "...", "body_summary": "..." },
-    { "send_time": "1 hour before the webinar", "subject": "...", "preview_text": "...", "body_summary": "..." },
-    { "send_time": "24 hours after the webinar", "subject": "...", "preview_text": "...", "body_summary": "..." }
-  ],
-  "promotion_strategy": {
-    "launch_timeline": "Recommended number of days to promote before the webinar (e.g., 14 days)",
-    "channels": ["Channel 1", "Channel 2", "Channel 3"],
-    "promotional_posts": [
-      { "day": "Day 1 (Announcement)", "platform": "LinkedIn", "caption": "..." },
-      { "day": "Day 7 (Reminder)", "platform": "Instagram", "caption": "..." },
-      { "day": "Day 13 (Last chance)", "platform": "Email", "caption": "..." }
-    ]
-  },
-  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created and why this webinar system will grow this author's audience and revenue"
-}
-
-The webinar_topics array must have exactly 3 items, each covering a different angle of the book's content.
-Make everything specific to this author's book, niche, and audience. Never use generic placeholder text.
+```text
+${userPrompt}
 ```
 
 ---
@@ -708,13 +1179,25 @@ Make everything specific to this author's book, niche, and audience. Never use g
 - **Edge function**: `supabase/functions/generate-bp06-online-course/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `12000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. You are warm, expert, and encouraging. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences.
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a companion workbook for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a companion workbook for ${author.pen_name}'s book '${bookTitle}'.
 
 Author details:
 - Author name: ${author.pen_name}
@@ -774,7 +1257,50 @@ CRITICAL STRUCTURE RULES:
 - Re-check every "outcome" before returning.
 
 PRICING GUIDANCE — Recommend whichever path serves THIS author best, but ALWAYS provide both rationales.
-Make everything specific to this author's book.
+Make everything specific to this author's book.` }
+        ],
+      }),
+    });
+
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    if (Array.isArray(content.sections)) {
+      content.sections = content.sections.map((s: Record<string, unknown>) => ({
+        ...s,
+        outcome: normalizeOutcome(s.outcome as string | undefined),
+      }));
+    }
+
+    content.abby_recommendation = content.pricing_recommendation === "paid" ? "paid" : "free";
+    content.abby_recommended_price_usd = Number(content.suggested_price_usd) || 0;
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.workbook_title,
+      price_usd: Number(content.suggested_price_usd ?? 0),
+      currency: "usd",
+      delivery_type: "workbook",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -784,13 +1310,25 @@ Make everything specific to this author's book.
 - **Edge function**: `supabase/functions/generate-bp07-coaching/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `8192`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY, the AI business agent for Authors Bureau. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences.
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create a self-paced home study course for ${author.pen_name}'s book '${bookTitle}'.
+${`Create a self-paced home study course for ${author.pen_name}'s book '${bookTitle}'.
 
 Author details:
 - Author name: ${author.pen_name}
@@ -828,7 +1366,40 @@ Generate as JSON with these exact keys:
   "abby_summary": "2-3 sentence summary"
 }
 
-study_weeks must have exactly 3 items (Week 1, Week 2, Week 3). Each week must have exactly 7 days. Make everything specific to this author's book content.
+study_weeks must have exactly 3 items (Week 1, Week 2, Week 3). Each week must have exactly 7 days. Make everything specific to this author's book content.` }
+        ],
+      }),
+    });
+
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.programme_title,
+      price_usd: Number(content.suggested_price_usd ?? 47),
+      currency: "usd",
+      delivery_type: "home_study",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -838,13 +1409,25 @@ study_weeks must have exactly 3 items (Week 1, Week 2, Week 3). Each week must h
 - **Edge function**: `supabase/functions/generate-bp08-mastermind/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `8000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Create`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY, the AI business agent for Authors Bureau. Always personalise everything. Always respond with valid JSON only — no markdown, no code fences.
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Create special edition book concepts for ${author.pen_name}'s book '${bookTitle}'.
+${`Create special edition book concepts for ${author.pen_name}'s book '${bookTitle}'.
 
 Author details:
 - Author name: ${author.pen_name}
@@ -891,7 +1474,40 @@ Generate as JSON with these exact keys:
   "abby_summary": "2-3 sentence summary"
 }
 
-editions must have exactly 3 items. Make everything specific.
+editions must have exactly 3 items. Make everything specific.` }
+        ],
+      }),
+    });
+
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.edition_title,
+      price_usd: Number(content.suggested_price_usd ?? 49),
+      currency: "usd",
+      delivery_type: "special_edition",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -901,13 +1517,25 @@ editions must have exactly 3 items. Make everything specific.
 - **Edge function**: `supabase/functions/generate-bp09-speaking/index.ts`
 - **Model**: `openai/gpt-5.2`
 - **Max tokens**: `12000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Build`, `bookTitle`, `author`, `bookSubtitle`, `coreThesis`, `JSON`, `ctx`, `NODE_ID`
+
+### system
+
+```text
+You are ABBY, the AI business agent for Authors Bureau. You build live-audience conversion toolkits — sales pitches, slide decks, scripts — that help authors sell books and book speaking gigs at workshops, signings, and corporate lunches. Always personalise to the author's book, framework, and audience. Always respond with valid JSON only — no markdown, no code fences.
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Build a Live Audience Conversion Toolkit for ${author.pen_name}'s book "${bookTitle}".
+${`Build a Live Audience Conversion Toolkit for ${author.pen_name}'s book "${bookTitle}".
 
 Author details:
 - Pen name: ${author.pen_name}
@@ -1034,7 +1662,40 @@ Rules:
 - Speaker notes on every slide must be 1-2 sentences of practical delivery guidance.
 - Pitch script and back-of-room close must be word-for-word, ready to read aloud.
 - Bulk proposal pricing should reflect a realistic per-book discount as quantity scales.
-- No emdashes (use commas, parentheses, or "and"). No markdown.
+- No emdashes (use commas, parentheses, or "and"). No markdown.` }
+        ],
+      }),
+    });
+
+    if (!aiRes.ok) {
+      const errText = await aiRes.text();
+      console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));
+      return failResponse(aiGatewayErrorMessage(aiRes.status, errText));
+    }
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready",
+      current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.kit_title,
+      price_usd: 0,
+      currency: "usd",
+      delivery_type: "speaking_kit",
+    }, book?.id ?? book_id ?? null);
+
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  } catch (err) {
+    if (priorNodeState && parsedAuthorId) {
+      try { await upsertAuthorNode(supabase, parsedAuthorId, NODE_ID, NODE_NAME, priorNodeState, parsedBookId); }
+      catch (e) { console.error(`generate-${NODE_ID} restore error:`, errorMessage(e)); }
+    }
+    const message = errorMessage(err);
+    console.error(`generate-${NODE_ID} error:`, message);
+    return failResponse(message);
+  }
+});}
 ```
 
 ---
@@ -1044,14 +1705,39 @@ Rules:
 - **Edge function**: `supabase/functions/generate-yr19-coaching/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`, `ctx`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`, `ctx`
+
+### system
+
+```text
+You are ABBY. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a complete 1-on-1 coaching practice for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}. Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}.
-Generate JSON: {"practice_title","tagline","coaching_philosophy":"2-3 sentences","packages":[3 items: entry($297), mid($2997), premium($4997), each with package_name/duration/price_usd/description/outcomes[3]/ideal_for],"discovery_call_script":{"opening","key_questions":[5],"closing"},"client_agreement_outline":[5 clauses],"abby_summary"}
+${`Design a complete 1-on-1 coaching practice for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Target audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Key frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}. Genre: ${ctx?.genre || book?.genre || author.genres?.[0] || "General"}.
+Generate JSON: {"practice_title","tagline","coaching_philosophy":"2-3 sentences","packages":[3 items: entry($297), mid($2997), premium($4997), each with package_name/duration/price_usd/description/outcomes[3]/ideal_for],"discovery_call_script":{"opening","key_questions":[5],"closing"},"client_agreement_outline":[5 clauses],"abby_summary"}` }
+      ], max_completion_tokens: 16000 }),
+    });
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
+      status: "content_ready", current_step: 2,
+      content_json: { ...content, _currentStep: 2 },
+      personalised_name: content.practice_title,
+      price_usd: Number(content.packages?.[1]?.price_usd ?? 2997),
+      currency: "usd", delivery_type: "coaching",
+    }, book?.id ?? book_id ?? null);
+    return new Response(JSON.stringify({ success: true, content }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });}
 ```
 
 ---
@@ -1061,14 +1747,32 @@ Generate JSON: {"practice_title","tagline","coaching_philosophy":"2-3 sentences"
 - **Edge function**: `supabase/functions/generate-yr20-big-ticket/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design 3 premium big-ticket transformation packages for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
-Generate JSON: {"offers":[3 items at $5000/$12000/$25000 each with offer_name/price_usd/duration/format/transformation_promise/what_included[5-7]/ideal_client/urgency_element],"sales_conversation_guide":{"opening","discovery_questions":[3],"presenting_the_offer","handling_objections":["Objection + response","Objection + response"]},"abby_summary"}
+${`Design 3 premium big-ticket transformation packages for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
+Generate JSON: {"offers":[3 items at $5000/$12000/$25000 each with offer_name/price_usd/duration/format/transformation_promise/what_included[5-7]/ideal_client/urgency_element],"sales_conversation_guide":{"opening","discovery_questions":[3],"presenting_the_offer","handling_objections":["Objection + response","Objection + response"]},"abby_summary"}` }
+      ], max_completion_tokens: 16000 }),
+    });
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await upsertAuthorNode(supabase}
 ```
 
 ---
@@ -1078,14 +1782,32 @@ Generate JSON: {"offers":[3 items at $5000/$12000/$25000 each with offer_name/pr
 - **Edge function**: `supabase/functions/generate-yr21-speaking/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Build`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Build a complete keynote speaking business for ${author.pen_name}, author of '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
-Generate JSON: {"speaker_brand","speaker_tagline","signature_talks":[3 items with talk_title/duration_options[4]/audience/key_takeaways[3]/description/opening_hook],"fee_schedule":{"keynote_half_day":{"label","fee_range"},"keynote_full_day":{"label","fee_range"},"virtual_keynote":{"label","fee_range"},"corporate_training":{"label","fee_range"},"international":{"label","fee_range"}},"speaker_one_sheet":{"headline","bio_short","bio_long","topics":[3],"past_clients_placeholder":[3]},"booking_process":[4 steps],"abby_summary"}
+${`Build a complete keynote speaking business for ${author.pen_name}, author of '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
+Generate JSON: {"speaker_brand","speaker_tagline","signature_talks":[3 items with talk_title/duration_options[4]/audience/key_takeaways[3]/description/opening_hook],"fee_schedule":{"keynote_half_day":{"label","fee_range"},"keynote_full_day":{"label","fee_range"},"virtual_keynote":{"label","fee_range"},"corporate_training":{"label","fee_range"},"international":{"label","fee_range"}},"speaker_one_sheet":{"headline","bio_short","bio_long","topics":[3],"past_clients_placeholder":[3]},"booking_process":[4 steps],"abby_summary"}` }
+      ], max_completion_tokens: 16000 }),
+    });
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await upsertAuthorNode(supabase}
 ```
 
 ---
@@ -1095,14 +1817,32 @@ Generate JSON: {"speaker_brand","speaker_tagline","signature_talks":[3 items wit
 - **Edge function**: `supabase/functions/generate-yr22-corporate/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a corporate training programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
-Generate JSON: {"programme_title","tagline","target_organisations":[3],"training_formats":[4 items: Half-Day($5000)/Full-Day($10000)/2-Day($18000)/Online Cohort($8000), each with format/duration/participants/price_usd],"learning_outcomes":[5],"programme_outline":[4 modules with module/title/duration/description],"proposal_template":{"executive_summary","the_challenge","the_solution","investment","next_steps"},"abby_summary"}
+${`Design a corporate training programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
+Generate JSON: {"programme_title","tagline","target_organisations":[3],"training_formats":[4 items: Half-Day($5000)/Full-Day($10000)/2-Day($18000)/Online Cohort($8000), each with format/duration/participants/price_usd],"learning_outcomes":[5],"programme_outline":[4 modules with module/title/duration/description],"proposal_template":{"executive_summary","the_challenge","the_solution","investment","next_steps"},"abby_summary"}` }
+      ], max_completion_tokens: 16000 }),
+    });
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await upsertAuthorNode(supabase}
 ```
 
 ---
@@ -1112,14 +1852,32 @@ Generate JSON: {"programme_title","tagline","target_organisations":[3],"training
 - **Edge function**: `supabase/functions/generate-yr23-mastermind/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design an exclusive mastermind programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
-Generate JSON: {"mastermind_title","tagline","programme_promise","membership_tiers":[2 items: Inner Circle($5000/yr, 12 members) and Elite Circle($15000/yr, 6 members), each with tier_name/price_annual_usd/group_size/meeting_cadence/benefits[4-5]],"curriculum_pillars":[4],"application_questions":[5],"sales_page":{"headline","subheadline","who_its_for","what_youll_get":[4],"cta_button_text"},"abby_summary"}
+${`Design an exclusive mastermind programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
+Generate JSON: {"mastermind_title","tagline","programme_promise","membership_tiers":[2 items: Inner Circle($5000/yr, 12 members) and Elite Circle($15000/yr, 6 members), each with tier_name/price_annual_usd/group_size/meeting_cadence/benefits[4-5]],"curriculum_pillars":[4],"application_questions":[5],"sales_page":{"headline","subheadline","who_its_for","what_youll_get":[4],"cta_button_text"},"abby_summary"}` }
+      ], max_completion_tokens: 16000 }),
+    });
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await upsertAuthorNode(supabase}
 ```
 
 ---
@@ -1129,14 +1887,32 @@ Generate JSON: {"mastermind_title","tagline","programme_promise","membership_tie
 - **Edge function**: `supabase/functions/generate-yr24-retreats/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a complete retreat experience for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
-Generate JSON: {"retreat_title","tagline","retreat_concept","retreat_options":[2: Weekend($3000/person, 3 days/2 nights, 10-15 ppl) and Week-Long($10000/person, 7 days/6 nights, 8-10 ppl), each with format/duration/location_type/group_size/price_per_person_usd/includes[5-7]],"sample_itinerary":[3 days, each with day/title/morning/afternoon/evening],"transformation_arc","abby_summary"}
+${`Design a complete retreat experience for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
+Generate JSON: {"retreat_title","tagline","retreat_concept","retreat_options":[2: Weekend($3000/person, 3 days/2 nights, 10-15 ppl) and Week-Long($10000/person, 7 days/6 nights, 8-10 ppl), each with format/duration/location_type/group_size/price_per_person_usd/includes[5-7]],"sample_itinerary":[3 days, each with day/title/morning/afternoon/evening],"transformation_arc","abby_summary"}` }
+      ], max_completion_tokens: 16000 }),
+    });
+    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
+    const aiData = await aiRes.json();
+    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await upsertAuthorNode(supabase}
 ```
 
 ---
@@ -1146,14 +1922,27 @@ Generate JSON: {"retreat_title","tagline","retreat_concept","retreat_options":[2
 - **Edge function**: `supabase/functions/generate-yr25-certification/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a certification programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
-Generate JSON: {"certification_title","tagline","certification_promise","programme_structure":{"duration","format","assessment_method","pass_mark"},"modules":[6 items with number/title/description/assessment],"certification_levels":[3: Associate($2000)/Certified($3500)/Master($5000), each with level/price_usd/requirements],"badge_concept":{"badge_name","badge_description","display_guidance"},"abby_summary"}
+${`Design a certification programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
+Generate JSON: {"certification_title","tagline","certification_promise","programme_structure":{"duration","format","assessment_method","pass_mark"},"modules":[6 items with number/title/description/assessment],"certification_levels":[3: Associate($2000)/Certified($3500)/Master($5000), each with level/price_usd/requirements],"badge_concept":{"badge_name","badge_description","display_guidance"},"abby_summary"}` }
+      ], max_completion_tokens: 16000 })}
 ```
 
 ---
@@ -1163,14 +1952,27 @@ Generate JSON: {"certification_title","tagline","certification_promise","program
 - **Edge function**: `supabase/functions/generate-yr26-conference/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a conference for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
-Generate JSON: {"conference_title","tagline","conference_concept","event_formats":[3: Virtual Summit($97,unlimited)/In-Person($497,200)/VIP Day($1997,20), each with format/duration/capacity/ticket_price_usd/description],"programme_outline":[5 sessions with session_type/title/description],"sponsorship_packages":[3: Gold($5000)/Silver($2500)/Bronze($1000), each with tier/price_usd/benefits[1-3]],"abby_summary"}
+${`Design a conference for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
+Generate JSON: {"conference_title","tagline","conference_concept","event_formats":[3: Virtual Summit($97,unlimited)/In-Person($497,200)/VIP Day($1997,20), each with format/duration/capacity/ticket_price_usd/description],"programme_outline":[5 sessions with session_type/title/description],"sponsorship_packages":[3: Gold($5000)/Silver($2500)/Bronze($1000), each with tier/price_usd/benefits[1-3]],"abby_summary"}` }
+      ], max_completion_tokens: 16000 })}
 ```
 
 ---
@@ -1180,14 +1982,27 @@ Generate JSON: {"conference_title","tagline","conference_concept","event_formats
 - **Edge function**: `supabase/functions/generate-yr27-fundraising/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a fundraising campaign for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
-Generate JSON: {"campaign_title","tagline","cause_alignment","campaign_goal_usd":25000,"campaign_duration_days":30,"donation_tiers":[4: Supporter($25)/Champion($100)/Patron($500)/Benefactor($2500), each with tier_name/amount_usd/benefit],"donor_communication_plan":[5 emails at days 0/7/14/28/31, each with day/type/subject/summary],"impact_statement","abby_summary"}
+${`Design a fundraising campaign for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
+Generate JSON: {"campaign_title","tagline","cause_alignment","campaign_goal_usd":25000,"campaign_duration_days":30,"donation_tiers":[4: Supporter($25)/Champion($100)/Patron($500)/Benefactor($2500), each with tier_name/amount_usd/benefit],"donor_communication_plan":[5 emails at days 0/7/14/28/31, each with day/type/subject/summary],"impact_statement","abby_summary"}` }
+      ], max_completion_tokens: 16000 })}
 ```
 
 ---
@@ -1197,14 +2012,27 @@ Generate JSON: {"campaign_title","tagline","cause_alignment","campaign_goal_usd"
 - **Edge function**: `supabase/functions/generate-yr28-sponsors/index.ts`
 - **Model**: `openai/gpt-5`
 - **Max tokens**: `16000`
-- **Prompt blocks extracted**: 1
-- **Dynamic variables**: `author`, `bookTitle`, `coreThesis`, `JSON`
+- **Prompt blocks extracted**: 2
+- **Dynamic variables**: ``Design`, `bookTitle`, `coreThesis`, `JSON`
+
+### system
+
+```text
+You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).
+
+HARD CONTENT RULES (output that violates these will fail QA):
+- NEVER use the emdash character (—) or endash (–). Use commas, periods, or " - " for ranges only.
+- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.
+- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.
+- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns).
+```
 
 ### user
 
 ```text
-Design a sponsorship & exhibitor programme for ${author.pen_name}'s events around '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
-Generate JSON: {"programme_title","tagline","audience_profile","sponsorship_packages":[4: Platinum($25000,1 sponsor)/Gold($10000,max 3)/Silver($5000,max 5)/Exhibitor($500,limited), each with tier/price_usd/description/benefits[1-5]/exclusivity],"pitch_deck_outline":[5 slides with slide/title/content_summary],"outreach_strategy":{"target_sponsors","outreach_message","follow_up_cadence"},"abby_summary"}
+${`Design a sponsorship & exhibitor programme for ${author.pen_name}'s events around '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
+Generate JSON: {"programme_title","tagline","audience_profile","sponsorship_packages":[4: Platinum($25000,1 sponsor)/Gold($10000,max 3)/Silver($5000,max 5)/Exhibitor($500,limited), each with tier/price_usd/description/benefits[1-5]/exclusivity],"pitch_deck_outline":[5 slides with slide/title/content_summary],"outreach_strategy":{"target_sponsors","outreach_message","follow_up_cadence"},"abby_summary"}` }
+      ], max_completion_tokens: 16000 })}
 ```
 
 ---
