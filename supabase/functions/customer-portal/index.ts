@@ -46,13 +46,14 @@ async function resolveUserEmail(req: Request): Promise<string> {
     return decoded.email;
   }
 
-  // 2) Local Cloud auth
+  const localClient = createClient(
+    Deno.env.get("SUPABASE_URL") ?? "",
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
+    { auth: { persistSession: false } }
+  );
+
+  // 2) Local Cloud auth.getUser(token)
   try {
-    const localClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
     const { data: localUser } = await localClient.auth.getUser(token);
     if (localUser?.user?.email) {
       log("Resolved via local auth.getUser", { email: localUser.user.email });
@@ -62,7 +63,20 @@ async function resolveUserEmail(req: Request): Promise<string> {
     log("local auth.getUser threw", { error: String(e) });
   }
 
-  // 3) Shared backend auth.getUser
+  // 3) Local admin lookup by sub (handles tokens without email claim)
+  if (decoded?.sub) {
+    try {
+      const { data: byId } = await localClient.auth.admin.getUserById(decoded.sub);
+      if (byId?.user?.email) {
+        log("Resolved via local admin.getUserById", { email: byId.user.email });
+        return byId.user.email;
+      }
+    } catch (e) {
+      log("local admin.getUserById threw", { error: String(e) });
+    }
+  }
+
+  // 4) Shared backend auth.getUser
   const sharedUrl = "https://wuftdpnekscrsghqtssd.supabase.co";
   const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
   if (sharedKey) {
@@ -74,7 +88,7 @@ async function resolveUserEmail(req: Request): Promise<string> {
         return sharedUser.user.email;
       }
 
-      // 4) Final fallback: lookup by sub against shared auth.users via admin API
+      // 5) Shared admin lookup by sub
       if (decoded?.sub) {
         const { data: byId } = await sharedClient.auth.admin.getUserById(decoded.sub);
         if (byId?.user?.email) {
@@ -84,6 +98,24 @@ async function resolveUserEmail(req: Request): Promise<string> {
       }
     } catch (e) {
       log("shared backend lookup threw", { error: String(e) });
+    }
+  }
+
+  // 6) Last resort: look up books.owner_email by sub
+  if (decoded?.sub) {
+    try {
+      const { data: book } = await localClient
+        .from("books")
+        .select("owner_email")
+        .eq("user_id", decoded.sub)
+        .limit(1)
+        .maybeSingle();
+      if (book?.owner_email) {
+        log("Resolved via books.owner_email", { email: book.owner_email });
+        return book.owner_email;
+      }
+    } catch (e) {
+      log("books lookup threw", { error: String(e) });
     }
   }
 
