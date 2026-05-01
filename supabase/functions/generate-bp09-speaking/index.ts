@@ -4,9 +4,10 @@ import {
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
   failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
+import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 
 const NODE_ID = "BP-09";
-const NODE_NAME = "Live Audience Conversion Toolkit";
+const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });

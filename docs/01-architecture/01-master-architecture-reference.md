@@ -55,7 +55,7 @@ The platform is single-tenant per author, multi-book per author, and all reader-
 3. The author-level / book-level set in `node-readiness.ts`
 4. The edge function path on disk
 
-Generator-internal `NODE_NAME` constants that differ from the canonical label are **bugs in the generator**, not in the docs. Known divergences are flagged in the rightmost column.
+Generator-internal `NODE_NAME` constants are now centrally enforced via `supabase/functions/_shared/canonical-node-labels.ts` (Sprint 48). Each generator calls `getCanonicalNodeLabel(NODE_ID)`, and `upsertAuthorNode` overrides any non-canonical string at write time. Filename divergences (e.g. `generate-bp09-speaking` serves Book Sales) remain — they are tracked for Sprint 49 and do NOT affect runtime behaviour.
 
 | ID | Canonical label | Framework category | Scope | Edge function (verified on disk) | Notes / known divergences |
 |---|---|---|---|---|---|
@@ -67,18 +67,18 @@ Generator-internal `NODE_NAME` constants that differ from the canonical label ar
 | BP-06 | Workbook | Brand Products | Book | `generate-bp06-online-course` | Function file is legacy-named; `NODE_ID="BP-06"`, `NODE_NAME="Workbook"` inside |
 | BP-07 | Home Study Course | Brand Products | Book | `generate-bp07-coaching` | Legacy filename; internal NODE_NAME correct |
 | BP-08 | Special Editions | Brand Products | Book | `generate-bp08-mastermind` | Legacy filename; internal NODE_NAME correct |
-| BP-09 | Book Sales | Brand Products | Book | `generate-bp09-speaking` | Legacy filename. **Generator's `NODE_NAME` = "Live Audience Conversion Toolkit"** — diverges from canonical "Book Sales". Bug logged. |
+| BP-09 | Book Sales | Brand Products | Book | `generate-bp09-speaking` | Legacy filename; NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
 | BA-10 | Online Course | Build Authority | Book | `generate-ba10-online-course` | — |
 | BA-11 | Audiobook | Build Authority | Book | `generate-ba11-audiobook` (+ `ba11-audiobook-generate`, `ba11-publish-audiobook`, `ba11-voice-preview`) | Multi-function node (TTS pipeline) |
 | BA-12 | Membership | Build Authority | Book | `generate-ba12-membership` | — |
 | BA-13 | Group Coaching | Build Authority | Book | `generate-ba13-group-coaching` | Code comment in readiness gate says "BA-13 is a paid offer" but rule does not enforce a commerce signal. Documented in readiness spec. |
 | BA-14 | Podcast Tour | Build Authority | **Author** | `generate-ba14-podcast` | — |
 | BA-15 | Media & PR | Build Authority | **Author** | `generate-ba15-media-pr` | — |
-| BA-16 | Affiliates | Build Authority | **Author** | `generate-ba16-affiliate` (singular) | Generator's `NODE_NAME` = "Affiliate Programme" — diverges from canonical "Affiliates". |
-| BA-17 | Bundles | Build Authority | Book | `generate-ba17-upsells` | Legacy filename. Generator's `NODE_NAME` = "Upsells & Bundles" — diverges from canonical "Bundles". |
+| BA-16 | Affiliates | Build Authority | **Author** | `generate-ba16-affiliate` (singular) | NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
+| BA-17 | Bundles | Build Authority | Book | `generate-ba17-upsells` | Legacy filename; NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
 | BA-18 | JV Partnerships | Build Authority | **Author** | `generate-ba18-jv-partnerships` | — |
 | YR-19 | 1-on-1 Coaching | Yield Revenue | **Author** | `generate-yr19-coaching` | Session-style |
-| YR-20 | Big Ticket Consulting | Yield Revenue | **Author** | `generate-yr20-big-ticket` | Generator's `NODE_NAME` = "Big Ticket Offers" — minor divergence. |
+| YR-20 | Big Ticket Consulting | Yield Revenue | **Author** | `generate-yr20-big-ticket` | NODE_NAME now resolved via canonical-node-labels (Sprint 48) |
 | YR-21 | Speaking | Yield Revenue | **Author** | `generate-yr21-speaking` | — |
 | YR-22 | Corporate Training | Yield Revenue | **Author** | `generate-yr22-corporate` | Session-style |
 | YR-23 | Mastermind | Yield Revenue | **Author** | `generate-yr23-mastermind` | Session-style |
@@ -179,6 +179,7 @@ See `05-technology-stack-current.md` for the full table.
 | 45 | GHL fully removed from code, DB, copy | terminology |
 | 46 | Documentation Sprint v3 — 6-category /docs | every category |
 | 47 | Documentation corrections — canonical registry | this file + every other doc |
+| 48 | Canonical node-label alignment — `canonical-node-labels.ts` shared module + `upsertAuthorNode` guard rail + 4-row backfill + BA-15/BA-16 asset-pack swap | this file (§3 divergence flags cleared) |
 
 ## 10. Competitive Position
 
