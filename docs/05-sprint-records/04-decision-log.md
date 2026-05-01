@@ -96,3 +96,11 @@ When making an architectural decision:
 1. Append a section to this file with **Decision / Reason / Implication**.
 2. Cross-link from the relevant sprint row in `01-sprint-log-master.md`.
 3. Update affected docs in 01–04 same sprint.
+
+## 2026-05-01 — `BP-00` is a pre-step, not a node (Sprint 47 follow-up)
+
+**Decision:** There are exactly **28 nodes**. `BP-00` (`generate-bp00-analysis`) is an internal per-book book-analysis pre-step and MUST NOT be counted, listed in the node registry table, or surfaced to authors as a revenue stream.
+
+**Reason:** The function and its `AnalyseBookGate.tsx` consumer were named `bp00` for sort consistency with the Brand Products family. Sprint 46 misread the `BP-` prefix and elevated the pre-step to "node #29", introducing a "29 IDs / 28 counted" framing that contradicted the canonical source `src/components/dashboard/builders/builderNodeConfig.ts` (which contains 28 entries) and core memory (ABBY 9-9-10 = 28).
+
+**Implication:** Master reference §3a now documents BP-00 as a pre-step. All counters and registry tables across `/docs/` and the build scripts state 28 nodes. The stale `// Single source of truth for all 30 nodes` comment in `builderNodeConfig.ts` was also corrected to 28.

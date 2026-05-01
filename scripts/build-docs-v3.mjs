@@ -123,12 +123,12 @@ Authors Bureau (AB) is an **AI-driven platform that turns a single published boo
 
 | Letter | Phase | # Nodes |
 |---|---|---|
-| **A** | Analyse Book & Develop Strategies | 1 |
+| **A** | Analyse Book & Develop Strategies | 0 (pre-step only) |
 | **B** | Brand Products | 9 |
 | **B** | Build Authority | 9 |
 | **Y** | Yield Revenue | 10 |
 
-Total: **29 nodes** (BP-00 = analysis + 28 revenue / asset nodes BP-01 through YR-28).
+Total: **28 nodes** (BP-01 → BP-09, BA-10 → BA-18, YR-19 → YR-28). The "A" phase is a one-time book-analysis pre-step (\`generate-bp00-analysis\`), not a node — no builder UI, no \`author_nodes\` row, no Live status.
 
 The platform is **single-tenant per author**, multi-book per author, and all reader-facing purchases are processed by Authors Bureau as **Merchant of Record**.
 
@@ -159,7 +159,6 @@ External services used (and their role):
 
 | ID | Label | Category | Author / Book scope |
 |---|---|---|---|
-| BP-00 | Initial Analysis | Brand | Book |
 | BP-01 | Email Marketing | Brand | **Author** |
 | BP-02 | Lead Magnet | Brand | Book |
 | BP-03 | Social Media | Brand | **Author** |
@@ -394,7 +393,7 @@ w(
   ]) +
     `## 1. The Universe — 28 nodes
 
-Counters across the dashboard, microsite, and admin views always denominate to **28**. (BP-00 is excluded from counters because it is the analysis step, not a revenue node.) Source: \`builderNodeConfig.ts\`.
+Counters across the dashboard, microsite, and admin views always denominate to **28**. Source: \`builderNodeConfig.ts\` (28 entries: BP-01 → BP-09, BA-10 → BA-18, YR-19 → YR-28). \`BP-00\` is an internal book-analysis pre-step, not a node — never count it.
 
 ## 2. Author-level vs Book-level scoping
 
@@ -656,7 +655,6 @@ This affects:
 
 | ID | Label | Rationale |
 |---|---|---|
-| BP-00 | Initial Analysis | Per-book AI analysis |
 | BP-02 | Lead Magnet | Tied to the book's themes |
 | BP-04 | Author Website | The book's microsite |
 | BP-05 | Webinars | Book-specific webinar topic |
@@ -670,7 +668,7 @@ This affects:
 | BA-13 | Group Coaching | Book-specific cohort |
 | BA-17 | Bundles | Book-specific bundles |
 
-(BP-00 is the analysis step and not counted in the 28 revenue nodes.)
+> \`BP-00\` (\`generate-bp00-analysis\`) is an internal per-book analysis pre-step, not a node. No \`author_nodes\` row, no builder UI, no Live status.
 `,
 );
 
