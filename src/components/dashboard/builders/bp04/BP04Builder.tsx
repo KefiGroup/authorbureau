@@ -18,6 +18,7 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { toAbbyError } from "@/lib/abby-error";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
+import { publishNodeToSite } from "@/lib/publish-node";
 
 
 
@@ -174,27 +175,29 @@ export default function BP04Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      // Native activation: write status='live' directly to author_nodes.
-      const { data: row, error: upErr } = await supabase
-        .from("author_nodes")
-        .update({
-          status: "live",
-          activated_at: new Date().toISOString(),
-          content_json: content,
-        })
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-04")
-        .select("microsite_url")
-        .single();
-      if (upErr) throw new Error(upErr.message || "Activation failed");
-      const liveUrl = row?.microsite_url ?? undefined;
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "live", liveUrl }));
+      // Sprint 55: route through save-author-node:publish so the canonical
+      // library_asset record (kind=external_url, url=microsite) is stamped
+      // automatically by the deriveLibraryAsset fallback. The author website
+      // IS the deliverable; no file upload is needed.
+      const { micrositeUrl } = await publishNodeToSite(
+        authorId!,
+        "BP-04",
+        authorSlug,
+        activeBookId ?? null,
+      );
+      setContent((prev: any) => ({
+        ...prev,
+        activated: true,
+        publishStatus: "live",
+        liveUrl: micrositeUrl ?? prev?.liveUrl,
+      }));
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-04" });
       toast.success("Author Website is live! 🎉");
     } catch (e: any) {
       console.error("Publish error:", e.message);
       setError(e.message);
       toast.error("Publish failed", { description: e.message });
+      setStep(2);
     }
   };
 
