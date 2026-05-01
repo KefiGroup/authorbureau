@@ -753,9 +753,6 @@ export type Database = {
           created_at: string
           id: string
           minimum_payout_usd: number | null
-          payout_method: string
-          paypal_email: string | null
-          paypal_email_v2: string | null
           refund_window_days: number
           tax_self_declared_at: string | null
           updated_at: string
@@ -765,9 +762,6 @@ export type Database = {
           created_at?: string
           id?: string
           minimum_payout_usd?: number | null
-          payout_method?: string
-          paypal_email?: string | null
-          paypal_email_v2?: string | null
           refund_window_days?: number
           tax_self_declared_at?: string | null
           updated_at?: string
@@ -777,9 +771,6 @@ export type Database = {
           created_at?: string
           id?: string
           minimum_payout_usd?: number | null
-          payout_method?: string
-          paypal_email?: string | null
-          paypal_email_v2?: string | null
           refund_window_days?: number
           tax_self_declared_at?: string | null
           updated_at?: string

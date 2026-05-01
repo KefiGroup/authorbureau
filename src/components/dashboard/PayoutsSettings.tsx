@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { usePayoutReadiness, type PayoutMethod } from "@/hooks/usePayoutReadiness";
+import { usePayoutReadiness } from "@/hooks/usePayoutReadiness";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { toast } from "sonner";
 
@@ -114,8 +114,8 @@ export default function PayoutsSettings() {
     try {
       const payload = {
         author_id: authorId,
-        payout_method: "stripe" as PayoutMethod,
-        paypal_email_v2: null,
+        // Sprint 54 — payout_method, paypal_email, paypal_email_v2 columns dropped.
+        // Stripe Express is the only payout rail.
         tax_self_declared_at: agreementAck ? new Date().toISOString() : null,
         refund_window_days: refundWindow,
       };

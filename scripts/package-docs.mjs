@@ -11,7 +11,7 @@ import { mkdirSync, existsSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 
 const OUT_DIR = "/mnt/documents";
-const OUT_FILE = resolve(OUT_DIR, "authors-bureau-docs-v3.zip");
+const OUT_FILE = resolve(OUT_DIR, "authors-bureau-docs-v3.8.zip");
 const SRC = resolve(process.cwd(), "docs");
 
 if (!existsSync(SRC)) {
