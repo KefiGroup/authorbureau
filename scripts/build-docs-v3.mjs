@@ -675,3 +675,227 @@ This affects:
 );
 
 console.log("01 + 02 written");
+
+// ───────────────────────────────────────────────────────────────────────────
+// 03 — ABBY AI (04–07)
+// ───────────────────────────────────────────────────────────────────────────
+
+w(
+  "03-abby-ai/04-content-generation-prompts.md",
+  header("04 · ABBY Content Generation Prompts", [
+    "`supabase/functions/generate-email-sequence/index.ts`",
+    "`supabase/functions/generate-asset-pack/index.ts`",
+    "`supabase/functions/generate-author-bio/index.ts`",
+    "`supabase/functions/generate-consultation-promos/index.ts`",
+    "`supabase/functions/compose-social-post/index.ts`",
+    "`supabase/functions/generate-social-content/index.ts`",
+    "`supabase/functions/generate-social-graphic/index.ts`",
+    "`supabase/functions/generate-funnel/index.ts`",
+    "`supabase/functions/generate-podcast-season/index.ts`",
+    "`supabase/functions/generate-cover-image/index.ts`",
+  ]) +
+    `Beyond the 28 node activation generators, ABBY runs a set of **content generators** that produce specific marketing assets. These are invoked by builders, the Marketing Hub, and ABBY herself in chat.
+
+| Generator | Used by | Output | Model |
+|---|---|---|---|
+| \`generate-email-sequence\` | BP-01 builder, Marketing Hub | A 3–10 step email sequence with subject + body | \`openai/gpt-5.2\` |
+| \`generate-asset-pack\` | Cross-builder push, BP-02 | Bundled asset pack (intro email, social post set, headline variants) | \`openai/gpt-5.2\` |
+| \`generate-author-bio\` | BP-04 builder, BA-15 | Long + short bio variants in author voice | \`openai/gpt-5.2\` |
+| \`generate-consultation-promos\` | YR-19, YR-20, YR-23 | Promo copy for consultation offers | \`openai/gpt-5.2\` |
+| \`compose-social-post\` | BP-03 Social Designer | 2-step background + burn-in image, 6 templates × 5 platforms | \`google/gemini-3-flash-image-preview\` |
+| \`generate-social-content\` | BP-03, Marketing Hub | 30-day calendar of posts | \`openai/gpt-5.2\` |
+| \`generate-social-graphic\` | BP-03, lead magnets | Standalone social graphic | \`google/gemini-3-flash-image-preview\` |
+| \`generate-funnel\` | BP-02, BP-04, lead-magnet builder | Quiz, opt-in flow, results-page copy | \`openai/gpt-5.2\` |
+| \`generate-podcast-season\` | BA-14 | Season-arc proposal with episode topics | \`openai/gpt-5.2\` |
+| \`generate-cover-image\` | BP-06, BP-07, lead magnets | Cover graphic for workbook / course / lead magnet | \`google/gemini-3-flash-image-preview\` |
+
+## Common patterns
+
+All content generators:
+
+1. Use the **Lovable AI Gateway** (\`https://ai.gateway.lovable.dev/v1/chat/completions\`).
+2. Run with \`verify_jwt = false\` and validate the JWT in code via \`getActiveToken()\`.
+3. Bypass RLS via the service role key and write to \`generated_assets\` with a typed \`asset_type\`.
+4. Return \`{ success, status, message, data }\` per the platform contract.
+5. Fetch author + book context (pen name, niche, framework, audience level) before composing the prompt.
+
+## Forbidden phrases (universal)
+
+These are stripped from every output by validators before persistence:
+
+- "Next-step", "try this", "exercise" (lead-magnet copy rule)
+- Em-dashes (\`—\`, \`–\`) and bracket placeholders (\`[insert ...]\`, \`{{...}}\`, \`<<...>>\`) in any microsite-bound content (\`scrub_microsite_jsonb\` DB trigger enforces this)
+- "CLICK TO SELECT", "PICK ONE", "CHOOSE ONE", "SELECT ONE"
+- Brand-restricted technical terms ("Stripe", "GHL", "Supabase", "deploy", "API", "CRM")
+
+## Verbatim prompts
+
+The **verbatim** body of each generator's prompt block is captured by \`scripts/build-doc-03.mjs\` (which scans every \`generate-*\` function, including the content generators above). See \`03-node-activation-prompts.md\` for the full extracted text.
+
+> Future sprint: separate \`build-doc-04-content.mjs\` will split node-bound generators from content-bound generators into their own document. Until then, treat \`03-node-activation-prompts.md\` as the union.
+`,
+);
+
+w(
+  "03-abby-ai/05-crm-intelligence-prompts.md",
+  header("05 · ABBY CRM Intelligence Prompts", [
+    "`supabase/functions/abby-daily-report/index.ts`",
+    "`supabase/functions/abby-daily-report-dispatcher/index.ts`",
+    "`supabase/functions/generate-daily-insight/index.ts`",
+    "`supabase/functions/generate-nudges/index.ts`",
+    "`supabase/functions/crm-auto-capture/index.ts`",
+  ]) +
+    `ABBY's CRM intelligence layer produces **proactive coaching** for authors: a daily report, real-time nudges, hot-lead notifications, and re-engagement emails.
+
+## Daily Intelligence Report
+
+- **Edge function**: \`abby-daily-report\` (dispatched nightly by \`abby-daily-report-dispatcher\`).
+- **Output**: HTML email rendered via \`transactional-email-templates\`, From address = \`notify.authorsbureau.com\` (system email — no per-author branding).
+- **Sections**: New contacts, hot leads, sales last 24h, content opportunities, nudge prompts, top-performing assets.
+- **Model**: \`openai/gpt-5.2\` for narrative summary; deterministic SQL for numbers.
+- **Prompt verbatim**: see auto-extracted block in \`03-node-activation-prompts.md\` (or grep the function source).
+
+## Nudge Engine (real-time cards on the dashboard)
+
+- **Edge function**: \`generate-nudges\`
+- **Triggers monitored** (9 total): new lead with no follow-up; lead opened email twice; lead clicked sales page twice; sales-page visit no purchase; webinar registration; podcast episode published with no email push; revenue dip vs 7-day avg; hot lead inactive; new sale (celebrate).
+- **Output**: \`abby_nudges\` row + dashboard card. Author can dismiss, accept, or schedule.
+
+## Daily Insight (in-dashboard tile)
+
+- **Edge function**: \`generate-daily-insight\`
+- **Output**: One short paragraph rendered in the dashboard hero "ABBY's read on today" tile.
+- Uses the author's last 7 days of activity + open nudges as context.
+
+## Lead Scoring (deterministic — no LLM)
+
+| Event | Score change |
+|---|---|
+| Quiz completed | +10 |
+| Email opened | +2 |
+| Email link clicked | +5 |
+| Sales page visited (1st time) | +5 |
+| Sales page visited (2nd+) | +10 |
+| Session registered | +15 |
+| Session attended | +20 |
+| Purchase made | +30 |
+| No activity 7 days | -3 |
+| Unsubscribed | -50 |
+
+### Pipeline stages
+
+| Score | Stage |
+|---|---|
+| 0–15 | New |
+| 16–35 | Engaged |
+| 36–60 | Warm |
+| 61–80 | Hot |
+| 81–100 | Customer |
+| 100 | VIP |
+
+Implemented in \`crm-auto-capture\` and read by all dashboard surfaces. Authoritative table: \`crm_contacts.score\`.
+
+## Re-engagement copy
+
+When a lead drops to Engaged from Warm/Hot for ≥ 14 days, ABBY can compose a re-engagement email through \`generate-email-sequence\` (single-step variant). Author approves before send.
+
+## Hot-lead notifications
+
+When a contact's score crosses **61** for the first time in 24 h, the Nudge Engine fires both:
+
+1. A dashboard nudge card.
+2. A transactional email to the author (system-branded, From = \`notify.authorsbureau.com\`).
+`,
+);
+
+w(
+  "03-abby-ai/06-abby-score-algorithm.md",
+  header("06 · ABBY Score Algorithm — Documented", [
+    "`supabase/functions/crm-auto-capture/index.ts`",
+    "`crm_contacts.score` column",
+  ]) +
+    `## Event scoring
+
+| Event | Score change |
+|---|---|
+| Quiz completed | **+10** |
+| Email opened | **+2** |
+| Email link clicked | **+5** |
+| Sales page visited (1st) | **+5** |
+| Sales page visited (2nd+) | **+10** |
+| Session registered | **+15** |
+| Session attended | **+20** |
+| Purchase made | **+30** |
+| No activity for 7 days | **-3** |
+| Unsubscribed | **-50** |
+
+Scoring is **deterministic** — no LLM involvement. The \`crm-auto-capture\` edge function is the only writer to \`crm_contacts.score\`.
+
+## Pipeline stages (read-side derivation)
+
+| Score range | Stage label | Used in |
+|---|---|---|
+| 0 – 15 | New | dashboard, daily report |
+| 16 – 35 | Engaged | dashboard, daily report |
+| 36 – 60 | Warm | dashboard, daily report, hot-lead alert (entry threshold) |
+| 61 – 80 | Hot | dashboard, daily report, hot-lead alert (active) |
+| 81 – 99 | Customer | dashboard, retention nudges |
+| 100 | VIP | dashboard, VIP CTA |
+
+## Floor and ceiling
+
+- Score is clamped to \`[0, 100]\` at write time.
+- Scores below 0 are stored as 0 to keep stage maths simple.
+
+## Decay
+
+- The \`-3 for no activity in 7 days\` event is the only decay mechanism.
+- Decay is applied by a daily cron (within \`abby-daily-report-dispatcher\`) so scores reflect freshness without runtime cost.
+
+## Overrides
+
+Admins may override a contact's stage via \`crm_contact_tags\` ("VIP", "Founder Circle", etc.) without changing the numeric score. Tags take precedence in UI badges but not in counters.
+`,
+);
+
+w(
+  "03-abby-ai/07-autonomous-actions-registry.md",
+  header("07 · ABBY Autonomous Actions Registry", [
+    "`mem://features/abby-performance-coach-and-nudge-engine`",
+    "`mem://architecture/abby-nurture-engine-sprint28`",
+    "Edge function inventory: \`supabase/functions/\`",
+  ]) +
+    `Every "ABBY does this automatically" behaviour, mapped to its trigger and the side-effect it produces.
+
+| Trigger | ABBY action | Edge function / mechanism | Side effects |
+|---|---|---|---|
+| New author signs up | Seeds 28 \`author_nodes\` rows with status \`draft\` | DB trigger on \`auth.users\` insert | Author dashboard shows the full node grid |
+| Author uploads manuscript | Runs BP-00 analysis | \`generate-bp00-analysis\` | Writes \`generated_assets.business_plan\` |
+| Author lacks manuscript | Falls back to \`parse-published-book\` | \`parse-published-book\` | Same persistence |
+| Author activates a node | Generates that node's content + sets \`status='content_ready'\` | \`generate-<node-id>\` | Writes \`author_nodes.content_json\`; cross-builder push registry fires |
+| Author hits "Go Live" | Sets \`status='live'\` | builder UI + \`bp03-node-state\` etc. | Marketing Hub picks it up; readers see it |
+| Lead completes quiz | Creates / updates CRM contact + scores +10 | \`crm-auto-capture\` | New \`crm_contacts\` row or score bump |
+| Lead opens email | Score +2 | \`crm-auto-capture\` (Resend webhook) | \`crm_activity_log\` row |
+| Lead clicks email link | Score +5 | \`crm-auto-capture\` | activity row |
+| Sales page visited | Score +5 / +10 | client beacon → \`crm-auto-capture\` | activity row |
+| Lead crosses score 61 | Hot-lead nudge + transactional email | \`generate-nudges\` | \`abby_nudges\` row + email |
+| New sale | Celebrate nudge + revenue stat refresh | \`process-purchase\` + \`generate-nudges\` | nudge + \`author_revenue_snapshots\` |
+| Daily 06:00 cron | Generates Daily Intelligence Report | \`abby-daily-report-dispatcher\` → \`abby-daily-report\` | email to author + dashboard tile |
+| Daily 06:05 cron | Decays inactive scores by −3 | \`abby-daily-report-dispatcher\` | \`crm_contacts.score\` updates |
+| Author publishes podcast episode | Auto-pushes to email list (via opt-in) | \`generate-nudges\` watcher | optional Email Engine campaign |
+| Author goes live on a Brand product | Auto-Nurture engine starts the sequence | Marketing Hub watcher | enrols list, schedules sends |
+| Cross-builder push registered | Asset auto-flows to dependent builder | \`scripts\` registry + \`cross_builder_pushes\` | downstream builder pre-fills |
+| Reader completes lead magnet | Enrols in BP-01 sequence + score +10 | \`enroll-subscriber\` | enrolment + activity |
+| Email send fails / bounces | Adds to \`suppressed_emails\` | \`auth-email-hook\` + Resend webhook | future sends skip |
+| Author connects Stripe Express | Switches future payouts to automatic | \`payments--enable_stripe_payments\` flow | \`author_payout_settings\` |
+| Admin approves book | Unlocks public visibility + AI deep analysis | \`admin-books\` action | \`books.published_at\` set |
+
+## Guardrails
+
+- ABBY never sends external messages without the author having activated the relevant node.
+- All autonomous email writes route through \`send-transactional-email\` so unsubscribe + author-branded headers are uniform.
+- All nudges are dismissible; nothing forces an author into a workflow.
+`,
+);
+
+console.log("03 ABBY 04–07 written");
