@@ -1,89 +1,119 @@
-# Sprint 49 — Half A: Database-Level Node Hardening
+# Sprint 51 — Final Root-Cause Cleanup
 
-**Goal:** Make label/ID drift on `author_nodes` (and `crm_contacts.last_node_id`) **structurally impossible** at the database layer, complementing the TS-layer guard rail shipped in Sprint 48.
+After Sprints 48-50, the **data layer** is structurally safe (TS guard rail + DB FK + DB trigger + canonical folder names). But a focused audit found **three remaining classes of latent bugs** that the DB trigger silently masks today and that will bite the moment a label is renamed or someone reads the wrong file as the source of truth.
 
-**Out of scope (deferred to Sprint 50):** Renaming mismatched edge function directories.
+This sprint closes all three classes so future label/slug/folder changes flow through **one** edit, not five.
 
 ---
 
-## What we're building
+## What's actually still wrong
 
-### 1. New table: `public.node_registry` (28 rows, seed-only)
+### Class 1 — 15 generators still hardcode `NODE_NAME` strings
 
-Single SQL source of truth for every node, mirrored from `supabase/functions/_shared/canonical-node-labels.ts`.
+Sprint 48 introduced `getCanonicalNodeLabel(NODE_ID)` and only 3 generators were converted (BA-16, BP-09, BA-17, YR-20). The other **15 still hardcode** the label. Five of those hardcoded strings are **already wrong vs the canonical label** — the DB trigger silently overwrites them on write, hiding the bug:
 
-| Column | Type | Notes |
+| File | Hardcoded `NODE_NAME` | Canonical (`canonical-node-labels.ts`) |
 |---|---|---|
-| `node_id` | text PK | e.g. `BP-09` |
-| `canonical_label` | text NOT NULL | e.g. `Speaking Engagements` |
-| `category` | text NOT NULL CHECK in (`brand`,`build`,`yield`) | |
-| `archetype` | `node_archetype` NOT NULL | A/B/C/D |
-| `microsite_slug` | text NULL | e.g. `speaking`; NULL for non-microsite nodes |
-| `display_order` | int NOT NULL | 1..28 for stable ordering |
-| `created_at` | timestamptz default now() | |
+| `generate-ba14-podcast/index.ts` | `"Podcast"` | `"Podcast Tour"` |
+| `generate-yr21-speaking/index.ts` | `"Keynote Speaking"` | `"Speaking"` |
+| `generate-yr25-certification/index.ts` | `"Certification Programme"` | `"Certification"` |
+| `generate-yr27-fundraising/index.ts` | `"Fundraising Campaign"` | `"Fundraising"` |
+| `generate-yr28-sponsors/index.ts` | `"Sponsors & Exhibitors"` | `"Sponsors"` |
 
-- RLS enabled. SELECT open to `authenticated` + `anon` (it's reference data). No INSERT/UPDATE/DELETE policies for non-admins.
-- Seeded once via migration with all 28 rows, values copied from `canonical-node-labels.ts` and the slug `CASE` block in `compute_node_microsite_url`.
+These wrong strings are still used in **prompt templates, log lines, returned JSON, and email subjects** sent back to the client — only the DB column is corrected. So today's authors can see "Sponsors & Exhibitors" in a generated asset while the dashboard counter says "Sponsors". That is a real, visible inconsistency.
 
-### 2. Foreign keys
+The other 10 generators have correct hardcoded names but are landmines: rename a label and you must remember to grep+replace 10 files.
 
-- `author_nodes.node_id` → `node_registry.node_id` (`ON UPDATE CASCADE`, `ON DELETE RESTRICT`).
-- `crm_contacts.last_node_id` → `node_registry.node_id` (`ON UPDATE CASCADE`, `ON DELETE SET NULL`).
+### Class 2 — Two slug maps that can silently drift
 
-Pre-flight: migration runs a `SELECT DISTINCT node_id FROM author_nodes WHERE node_id NOT IN (SELECT node_id FROM node_registry)` check. If anything orphaned exists, the migration aborts and surfaces the bad rows so we can clean them before adding the FK.
+- `src/lib/node-slug-map.ts` (`NODE_SLUG_MAP`) — used by client router, `WebsiteBlueprintPage`, `AuthorBookPage`, microsite success screens.
+- `node_registry.microsite_slug` (DB) — used by `compute_node_microsite_url` and `get-microsite-page` edge function (via `SLUG_TO_NODE` re-import of the TS map — actually the edge function imports the TS map by URL, see below).
 
-### 3. Trigger: force canonical label on `author_nodes`
+Today they happen to match across all 28 nodes. There is no test or seed-parity check that enforces it. Sprint 49's parity assertion only ran inside the migration; nothing prevents a future PR from editing one side without the other.
 
-```text
-BEFORE INSERT OR UPDATE ON public.author_nodes
-  → set NEW.node_name = (SELECT canonical_label FROM node_registry WHERE node_id = NEW.node_id)
+### Class 3 — Edge function `get-microsite-page` re-imports the client TS map
+
+`supabase/functions/get-microsite-page/index.ts` reads `SLUG_TO_NODE` from a TS file. Edge functions cannot import from `src/`, so this is duplicated somewhere — let me verify and document the actual import path, then make it canonical (read from `node_registry`) instead of duplicating.
+
+---
+
+## What we will change
+
+### Step 1 — Convert the 15 remaining generators
+
+For each of the 15 files, replace:
+```ts
+const NODE_NAME = "<hardcoded string>";
+```
+with:
+```ts
+import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
+const NODE_NAME = getCanonicalNodeLabel(NODE_ID);
 ```
 
-DB-level mirror of the `upsertAuthorNode` guard rail from Sprint 48. Belt + suspenders: even raw SQL writes or future bypasses cannot poison `node_name`.
+Files touched (15):
+BP-01, BP-02, BP-03, BP-04, BP-05, BP-06, BP-07, BP-08, BA-10, BA-11, BA-12, BA-13, BA-14, BA-15, BA-18, YR-19, YR-21, YR-22, YR-23, YR-24, YR-25, YR-26, YR-27, YR-28.
 
-### 4. Refactor: `compute_node_microsite_url`
+(BA-16, BP-09, BA-17, YR-20 already migrated in Sprint 48.)
 
-Replace the giant hardcoded `CASE` statement with a lookup against `node_registry.microsite_slug`. Behavior identical, but slug source-of-truth moves into the registry.
+After this, **5 user-visible label drifts fix themselves automatically** (BA-14, YR-21, YR-25, YR-27, YR-28) — the prompts, logs, and return payloads will all start using the canonical label.
 
-### 5. Seed parity test (read-only)
+### Step 2 — Make the DB registry the single slug source of truth
 
-A short SQL `SELECT` migration step verifies row count = 28 and that every `(node_id, canonical_label)` pair matches the TS map exported in `_shared/canonical-node-labels.ts`. We capture the TS values into the migration as inline literals so the migration itself is the contract.
+- Add a tiny shared helper `supabase/functions/_shared/node-registry-slugs.ts` that **fetches** slugs from `node_registry` once per cold start (cached in module scope) instead of duplicating the TS map.
+- Refactor `get-microsite-page/index.ts` to use this helper.
+- Keep `src/lib/node-slug-map.ts` for the client (it can't query the DB at module load), but add a **build-time check** (`scripts/check-slug-parity.mjs`) that compares the TS map against the DB seed in the migration file and fails the build on drift. Run it from `npm test` / CI.
+
+### Step 3 — Add a vitest parity test
+
+Add `src/lib/__tests__/canonical-labels-parity.test.ts` that loads:
+- `builderNodeConfig.ts` META[]
+- `_shared/canonical-node-labels.ts` CANONICAL_NODE_LABELS
+
+…and asserts they have the same 28 keys and matching labels. This was previously a runtime-only check.
+
+### Step 4 — Update docs + memory
+
+- `docs/01-architecture/01-master-architecture-reference.md` — version bump to 3.3, add Sprint 51 row, remove the "Sprint 50 candidates" deferred bullet from Sprint 49 plan, update the source-of-truth list to add the parity test + slug helper.
+- `mem://architecture/canonical-node-labels` — append Sprint 51 section confirming all 28 generators now use `getCanonicalNodeLabel`, slug single-source-of-truth, and parity test.
 
 ---
 
-## Files touched
+## What we will NOT change (and why)
 
-- **New migration** (one file): create `node_registry`, RLS, seed 28 rows, pre-flight orphan check, add 2 FKs, create trigger function `author_nodes_force_canonical_name()`, attach `BEFORE INSERT/UPDATE` trigger, replace `compute_node_microsite_url`.
-- **No app code changes.** TS guard rail from Sprint 48 stays as-is and remains the first line of defense.
-- **Docs:**
-  - `docs/01-architecture/01-master-architecture-reference.md` — add "DB-Level Node Registry" subsection.
-  - `mem://architecture/canonical-node-labels` — append note that DB-level FK + trigger now enforce canonical labels independently of the TS layer.
+- **Folder names** — already canonical after Sprint 50.
+- **DB schema** — already hardened in Sprint 49.
+- **`builderNodeConfig.ts`** — it IS the UI source of truth; nothing to change.
+- **The `category` mismatch** (`build` = Brand Products, `bridge` = Build Authority) — historical, intentional, documented; renaming would touch 100+ files for zero functional gain.
 
 ---
 
-## Risk assessment
+## Risk
 
-- **Pre-flight orphan check** prevents the FK migration from failing mid-way on bad data.
-- **Trigger is `BEFORE` + idempotent** — overwriting `node_name` to its canonical value is safe even if the caller already passed the canonical value.
-- **`compute_node_microsite_url` refactor** is behavior-preserving; covered by existing microsite URL generation paths (no caller changes).
-- **No edge function redeploys required.** `_shared/builder-helpers.ts` still passes the canonical name; trigger is now redundant for compliant callers.
-- Rollback: drop trigger, drop FKs, drop table — single revert migration if needed.
+- **15 generator file edits** — mechanical, one-line change per file, all behind the same import. Low risk. Each generator has the same `_shared/builder-helpers.ts` `upsertAuthorNode` guard rail backstopping any mistake.
+- **Slug helper refactor** — only `get-microsite-page` is touched. Cached lookup is a 1-row SELECT on a 28-row table, negligible cost.
+- **Parity tests** — pure additions, can only catch bugs, never cause them.
+- **No DB migration needed.**
 
 ---
 
 ## Acceptance criteria
 
-1. `node_registry` exists with exactly 28 rows; row count assertion passes in migration.
-2. `author_nodes.node_id` and `crm_contacts.last_node_id` have FKs to `node_registry`.
-3. Inserting a row into `author_nodes` with a wrong `node_name` results in the canonical label being stored (verified via test insert in migration tail or manual check).
-4. Inserting `author_nodes` with an unknown `node_id` (e.g. `BP-99`) is rejected by FK.
-5. `compute_node_microsite_url('<author>', 'BA-15')` still returns `/<slug>/press` etc. — slugs unchanged.
-6. Existing Sprint 48 TS guard rail untouched and still active.
-7. Docs + memory updated.
+1. `rg 'const NODE_NAME\s*=\s*"' supabase/functions/generate-*` returns **zero** hits.
+2. All 28 generators import and use `getCanonicalNodeLabel(NODE_ID)`.
+3. New vitest parity test passes for all 28 nodes (label match between UI map and edge map).
+4. New `scripts/check-slug-parity.mjs` runs cleanly and is wired into the test script.
+5. `get-microsite-page` resolves slugs via `node_registry`, no TS-map import.
+6. Master architecture doc updated to v3.3 with Sprint 51 entry.
+7. Memory file `canonical-node-labels` updated with Sprint 51 section.
 
 ---
 
-## What this does NOT solve (Sprint 50 candidates)
+## After this sprint
 
-- Edge function folder names that don't match canonical IDs (e.g. `generate-yr20-big-ticket` vs label "VIP Day"). Cosmetic developer-experience issue; no longer a data-integrity risk once Half A ships.
-- A typed `node_id` enum at the Postgres level (would require app-wide column type migration; FK-to-registry gives 95% of the same safety with zero app churn).
+Adding or renaming a node becomes a **3-file change**:
+1. `builderNodeConfig.ts` (UI)
+2. `_shared/canonical-node-labels.ts` (edge)
+3. Migration row in `node_registry`
+
+The parity test catches you if you forget step 2; the FK + trigger catch you if you forget step 3. There is no fourth place to forget.
