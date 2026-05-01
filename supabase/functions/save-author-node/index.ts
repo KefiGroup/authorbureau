@@ -389,7 +389,13 @@ Deno.serve(async (req: Request) => {
       micrositeUrl: micrositeUrl ?? null,
     });
     const existingContent = (node.content_json ?? {}) as Record<string, unknown>;
-    const derivedAsset = deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
+    // Sprint 55: prefer caller-supplied library_asset (built from real uploaded
+    // files). Fall back to conservative server-side synthesis from legacy
+    // fields only if the caller didn't pass one.
+    const callerAsset = libraryAsset && typeof libraryAsset === "object" && libraryAsset.url
+      ? (libraryAsset as Record<string, unknown>)
+      : null;
+    const derivedAsset = callerAsset ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
     const previousAsset = existingContent.library_asset as Record<string, unknown> | undefined;
     const previousHistory = Array.isArray(existingContent.library_asset_history)
       ? (existingContent.library_asset_history as unknown[])
