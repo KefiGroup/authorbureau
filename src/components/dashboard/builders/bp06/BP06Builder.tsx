@@ -774,7 +774,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {stripeReady
                     ? "Readers can buy this workbook as soon as it's live."
-                    : `Connect Stripe before publishing this paid workbook ($${paidPrice}). Free workbooks can publish anytime.`}
+                    : `Connect Stripe before publishing this paid workbook ($${fmtPrice(paidPrice)}). Free workbooks can publish anytime.`}
                 </p>
                 {!stripeReady && !stripeLoading && (
                   <Button size="sm" variant="outline" className="mt-2" onClick={onConnectStripe}>
