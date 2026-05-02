@@ -800,7 +800,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
-        Your workbook will be published as {isPaid ? `a paid product at $${paidPrice}` : "a free lead magnet"} on your author site.
+        Your workbook will be published as {isPaid ? `a paid product at $${fmtPrice(paidPrice)}` : "a free lead magnet"} on your author site.
       </p>
     </div>
   );
