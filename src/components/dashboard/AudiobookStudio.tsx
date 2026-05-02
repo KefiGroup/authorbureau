@@ -53,20 +53,35 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   const [distributionStatus, setDistributionStatus] = useState<"idle" | "distributing" | "distributed">("idle");
   const [showDistributeModal, setShowDistributeModal] = useState(false);
 
-  // Load voices
+  // Load voices — use shared-backend token pattern so the call works on
+  // freshly-restored sessions where supabase.auth.getSession() is still empty.
   useEffect(() => {
-    async function loadVoices() {
+    (async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("elevenlabs-tts-audiobook", {
-          body: { action: "list-voices" },
-        });
-        if (error) throw error;
-        setVoices(data.voices || []);
+        const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+        let token = await getActiveToken();
+        for (let i = 0; i < 8 && !token; i++) {
+          await new Promise((r) => setTimeout(r, 300));
+          token = await getActiveToken();
+        }
+        const res = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ action: "list-voices" }),
+          },
+        );
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || `list-voices failed (${res.status})`);
+        setVoices(data?.voices || []);
       } catch (e) {
-        console.error("Failed to load voices:", e);
+        console.error("[AudiobookStudio] Failed to load voices:", e);
       }
-    }
-    loadVoices();
+    })();
   }, []);
 
   // Auto-load manuscript via edge function (handles shared-backend auth + service-role read).
