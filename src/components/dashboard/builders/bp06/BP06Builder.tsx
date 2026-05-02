@@ -465,6 +465,11 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
 
   const effectivePrice = pricingChoice === "paid" ? paidPrice : 0;
   const isPaid = effectivePrice > 0;
+  // Format prices: whole dollars stay short ($10), fractional always show 2 decimals ($9.90)
+  const fmtPrice = (n: number): string => {
+    const num = Number(n) || 0;
+    return Number.isInteger(num) ? `${num}` : num.toFixed(2);
+  };
   const pageCount = estimateWorkbookPageCount(content);
   const toolkitItems = normalizeWorkbookToolkit(content.what_youll_get);
 
