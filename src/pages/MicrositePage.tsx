@@ -1045,7 +1045,7 @@ function WorkbookSalesPage({
           {renderCta()}
           <ul className="mt-5 space-y-2 text-sm" style={{ color: v.bodyText }}>
             <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> {format}</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> Instant download after purchase</li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> {isFree ? "Instant download, no purchase required" : "Instant download after purchase"}</li>
             <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> Print at home or use on screen</li>
           </ul>
         </Card>
