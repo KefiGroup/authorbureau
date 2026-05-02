@@ -74,6 +74,19 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    const body = await req.json();
+    const { action } = body;
+
+    // === LIST VOICES (public — static catalogue, no auth needed) ===
+    // Keeps the narrator dropdown populated even before shared-backend session restoration.
+    if (action === "list-voices") {
+      const voices = Object.entries(VOICES).map(([key, v]) => ({ key, name: v.name, voiceId: v.id }));
+      return new Response(JSON.stringify({ voices }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Everything else requires auth.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Not signed in", code: "no_token" }), {
@@ -90,17 +103,7 @@ serve(async (req) => {
       });
     }
 
-    const body = await req.json();
-    const { action } = body;
     console.log("[elevenlabs-tts-audiobook]", { action, email: user.email });
-
-    // === LIST VOICES ===
-    if (action === "list-voices") {
-      const voices = Object.entries(VOICES).map(([key, v]) => ({ key, name: v.name, voiceId: v.id }));
-      return new Response(JSON.stringify({ voices }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     // === PREVIEW VOICE ===
     if (action === "preview-voice") {
