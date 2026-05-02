@@ -73,30 +73,13 @@ export default function BP05Builder({ authorId, bookId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
-      const { data: ctx } = await supabase
-        .from("author_context")
-        .select("book_title")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (ctx?.book_title) {
-        setBookTitle(ctx.book_title);
+      const { resolveBookTitle } = await import("@/lib/resolve-book-title");
+      const title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
+      if (title) {
+        setBookTitle(title);
         setHasContext(true);
       } else {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", profile?.user_id || authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (book?.title) {
-          setBookTitle(book.title);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
-        }
+        setHasContext(false);
       }
 
       // Load via save-author-node edge function (service role) to bypass
