@@ -231,6 +231,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body?.action as Action | undefined;
     const requestedAuthorId = body?.author_id as string | undefined;
+    const requestedBookId = (body?.book_id as string | undefined) ?? null;
 
     if (!action) {
       return respond({ success: false, error: "Action is required." });
@@ -248,36 +249,54 @@ Deno.serve(async (req) => {
     }
 
     if (action === "load") {
-      const { data: ctx, error: ctxError } = await cloudAdmin
-        .from("author_context")
-        .select("book_title")
-        .eq("author_id", authorProfile.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (ctxError) throw ctxError;
-
-      let bookTitle = ctx?.book_title || "";
-      if (!bookTitle) {
-        const { data: book, error: bookError } = await cloudAdmin
-          .from("books")
-          .select("title")
-          .eq("author_id", authorProfile.user_id)
+      // Per-book resolution mirrors BP-06/07. If a bookId is in scope, prefer
+      // (author_id, book_id) -> books.title, only falling back to "latest" when
+      // no bookId was passed.
+      let bookTitle = "";
+      if (requestedBookId) {
+        const { data: ctx } = await cloudAdmin
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorProfile.id)
+          .eq("book_id", requestedBookId)
+          .maybeSingle();
+        bookTitle = ctx?.book_title || "";
+        if (!bookTitle) {
+          const { data: book } = await cloudAdmin
+            .from("books")
+            .select("title")
+            .eq("id", requestedBookId)
+            .maybeSingle();
+          bookTitle = book?.title || "";
+        }
+      } else {
+        const { data: ctx } = await cloudAdmin
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorProfile.id)
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
-
-        if (bookError) throw bookError;
-        bookTitle = book?.title || "";
+        bookTitle = ctx?.book_title || "";
+        if (!bookTitle) {
+          const { data: book } = await cloudAdmin
+            .from("books")
+            .select("title")
+            .eq("author_id", authorProfile.user_id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          bookTitle = book?.title || "";
+        }
       }
 
-      const { data: node, error: nodeError } = await cloudAdmin
+      let nodeQuery = cloudAdmin
         .from("author_nodes")
         .select("id, status, current_step, activated_at, content_json")
         .eq("author_id", authorProfile.id)
-        .eq("node_id", "BP-03")
-        .maybeSingle();
+        .eq("node_id", "BP-03");
+      if (requestedBookId) nodeQuery = nodeQuery.eq("book_id", requestedBookId);
+      const { data: node, error: nodeError } = await nodeQuery.maybeSingle();
 
       if (nodeError) throw nodeError;
 
