@@ -895,6 +895,20 @@ function WebinarPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
   );
 }
 
+/**
+ * Normalize price formatting inside a CTA / label string.
+ * Converts patterns like "$9.9", "$9.5", "$10.0" into their proper 2-decimal
+ * forms ("$9.90", "$9.50", "$10.00"). Whole-dollar amounts without a decimal
+ * point ("$10") are left untouched.
+ */
+function normalizePriceInText(text: string): string {
+  if (!text) return text;
+  return text.replace(/\$(\d+)\.(\d{1,2})/g, (_m, dollars, cents) => {
+    const c = String(cents).padEnd(2, "0").slice(0, 2);
+    return `$${dollars}.${c}`;
+  });
+}
+
 /* ═══ BP-06 — WORKBOOK SALES PAGE (rich layout) ═══ */
 function WorkbookSalesPage({
   data, content, v, hFont, bgColor, cfg, buyUrl, hasStripeUrl,
@@ -967,7 +981,7 @@ function WorkbookSalesPage({
       />
     ) : hasStripeUrl ? (
       <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
-        <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{cfg.cta} <ArrowRight className="ml-2 h-4 w-4" /></a>
+        <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{normalizePriceInText(cfg.cta)} <ArrowRight className="ml-2 h-4 w-4" /></a>
       </Button>
     ) : null;
     return (
@@ -1168,7 +1182,7 @@ function LongFormSalesPage({
   const intro = sp.intro_paragraph || content.intro_paragraph || content.description || content.transformation_promise || "";
   const pain = sp.pain_point || content.pain_point || "";
   const solution = sp.solution_statement || content.solution_statement || content.transformation_promise || "";
-  const ctaLabel = sp.cta_button_text || content.cta_button_text || cfg.cta;
+  const ctaLabel = normalizePriceInText(sp.cta_button_text || content.cta_button_text || cfg.cta);
   const whoFor = content.who_its_for || sp.who_its_for || "";
   const format = content.format || (type === "home-study" ? "Self-paced online programme" : "Special edition bundle");
   const duration = content.duration || "";

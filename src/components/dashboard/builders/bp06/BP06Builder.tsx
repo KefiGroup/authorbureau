@@ -465,6 +465,11 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
 
   const effectivePrice = pricingChoice === "paid" ? paidPrice : 0;
   const isPaid = effectivePrice > 0;
+  // Format prices: whole dollars stay short ($10), fractional always show 2 decimals ($9.90)
+  const fmtPrice = (n: number): string => {
+    const num = Number(n) || 0;
+    return Number.isInteger(num) ? `${num}` : num.toFixed(2);
+  };
   const pageCount = estimateWorkbookPageCount(content);
   const toolkitItems = normalizeWorkbookToolkit(content.what_youll_get);
 
@@ -491,12 +496,12 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
   // Dynamic CTA: replace "Free" wording when priced
   const rawCta = content.sales_page?.cta_button_text || "Download Free Workbook";
   const displayCta = isPaid && /free/i.test(rawCta)
-    ? `Get the Workbook — $${paidPrice}`
+    ? `Get the Workbook — $${fmtPrice(paidPrice)}`
     : rawCta;
 
   const recommendationLine = abbyRec === "free"
     ? `Abby recommends FREE — ${content.free_rationale ? "see why below." : "great for list-building."}`
-    : `Abby recommends $${abbyPrice} — ${content.paid_rationale ? "see why below." : "the depth justifies a paid product."}`;
+    : `Abby recommends $${fmtPrice(abbyPrice)} — ${content.paid_rationale ? "see why below." : "the depth justifies a paid product."}`;
 
   return (
     <div className="space-y-4">
@@ -519,7 +524,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
               <span className="text-xs bg-muted px-2.5 py-1 rounded-full">8.5 × 11" PDF + Word</span>
               <span className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full font-medium">✓ Amazon KDP-ready</span>
               <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isPaid ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"}`}>
-                {isPaid ? `$${paidPrice}` : "FREE Lead Magnet"}
+                {isPaid ? `$${fmtPrice(paidPrice)}` : "FREE Lead Magnet"}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
@@ -769,7 +774,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {stripeReady
                     ? "Readers can buy this workbook as soon as it's live."
-                    : `Connect Stripe before publishing this paid workbook ($${paidPrice}). Free workbooks can publish anytime.`}
+                    : `Connect Stripe before publishing this paid workbook ($${fmtPrice(paidPrice)}). Free workbooks can publish anytime.`}
                 </p>
                 {!stripeReady && !stripeLoading && (
                   <Button size="sm" variant="outline" className="mt-2" onClick={onConnectStripe}>
@@ -795,7 +800,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
         </Button>
       </div>
       <p className="text-xs text-center text-muted-foreground">
-        Your workbook will be published as {isPaid ? `a paid product at $${paidPrice}` : "a free lead magnet"} on your author site.
+        Your workbook will be published as {isPaid ? `a paid product at $${fmtPrice(paidPrice)}` : "a free lead magnet"} on your author site.
       </p>
     </div>
   );
