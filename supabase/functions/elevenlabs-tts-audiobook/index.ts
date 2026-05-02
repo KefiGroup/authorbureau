@@ -125,19 +125,7 @@ serve(async (req) => {
 
     console.log("[elevenlabs-tts-audiobook]", { action, email: user.email });
 
-    // === PREVIEW VOICE ===
-    if (action === "preview-voice") {
-      const resolvedVoiceId = body.voiceId || VOICES[body.voiceKey]?.id;
-      if (!resolvedVoiceId) throw new Error("Missing voiceId or unknown voiceKey");
-
-      const sampleText = "Hello! This is a preview of how I would narrate your audiobook. I hope you enjoy the sound of my voice.";
-      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, resolvedVoiceId, sampleText);
-      const audioBase64 = base64Encode(audioBuffer);
-
-      return new Response(JSON.stringify({ audioBase64, format: "mp3" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // (preview-voice handled above without auth)
 
     // === GENERATE SINGLE CHUNK (new: one chunk at a time) ===
     if (action === "generate-chunk") {
