@@ -108,7 +108,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
         return;
       }
 
-      const draft = await loadBuilderDraft(authorId, "BP-07", bookId ?? null);
+      const draft = await loadBuilderDraft(authorId, "BP-07", activeBookId);
       const cj = draft.content as any;
       if (cj && (cj?.programme_title || cj?.study_weeks)) {
         setContent(cj);
