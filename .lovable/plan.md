@@ -1,75 +1,93 @@
-## Goal
+## Problem
 
-Make every builder (BP / BA / YR — 28 nodes) read the active book correctly on the Introduction step, so "Complete Book Profile" never shows when an `activeBookId` exists. This is a parity sweep of the BP-06 / BP-07 fix.
+In Audiobook Studio (BA-11), the **Narrator Voice dropdown is empty** (per screenshot). Note: the request says "BP-11" but the failing screen is **BA-11 Audiobook Studio** rendered by the legacy `src/components/dashboard/AudiobookStudio.tsx` (not the newer `BA11Builder.tsx`).
 
-## Root cause (recap)
+### Root cause
 
-Every builder uses the `useAuthorBook` hook + an `useEffect` that calls `setResolvedBookTitle`. The bug pattern is the same in 12 builders: the effect queries `author_context` / `books` by **author only** (latest book), ignoring `activeBookId`. When the author has multiple books, this returns the wrong book — or nothing — and the gating check (`hasResolvedBook`) flips to `false`, showing the "Complete Book Profile" CTA.
+`AudiobookStudio.tsx` loads the voice list with:
 
-## Fix — single shared helper, then call it everywhere
-
-### 1. Create `src/lib/resolve-book-title.ts`
-
-A single helper that mirrors the BP-06 logic exactly:
-- If `activeBookId` is provided → query `author_context` filtered by both `author_id` AND `book_id`; on miss, fall back to `books.title` for that exact id.
-- If no `activeBookId` → fall back to "latest book by author" (current behavior).
-- Returns `""` on miss; never throws.
-
-Signature: `resolveBookTitle(authorId, activeBookId, ownerUserId?) => Promise<string>`
-
-### 2. Refactor each builder's intro effect to use the helper
-
-Replace the inline `author_context`/`books` block with:
 ```ts
-const title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
-if (title) setResolvedBookTitle(title);
+supabase.functions.invoke("elevenlabs-tts-audiobook", { body: { action: "list-voices" } })
 ```
 
-Where needed, ensure the component has `activeBookId = bookId ?? hookBookId ?? null` (most already do).
+This violates the project's **Auth Standardization** memory rule: shared-backend sessions must call edge functions via `getActiveToken()` + `fetchWithTimeout()`, never `supabase.functions.invoke` / `supabase.auth.getSession()`. On a fresh load the project-local Supabase client has no session, so no `Authorization` header is sent. The edge function's `resolveUser()` then throws → returns `401 Unauthorized` → `voices` stays `[]` → empty dropdown.
 
-Also fix the gating CTA so the returnTo preserves the bookId, matching BP-06:
+A second smaller issue: `list-voices` returns purely static data (a hard-coded `VOICES` map) but is gated behind auth. It should be openable without a token so the picker always renders even before session restoration.
+
+## Fix (2 small, surgical changes)
+
+### 1. `src/components/dashboard/AudiobookStudio.tsx` — switch voice load to shared-backend pattern
+
+Replace the `loadVoices` effect (lines ~56-70) so it uses the same pattern already used elsewhere in this file for `loadManuscript`:
+
 ```ts
-navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/<NODE-ID>${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)
+useEffect(() => {
+  (async () => {
+    try {
+      const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+      let token = await getActiveToken();
+      for (let i = 0; i < 8 && !token; i++) {
+        await new Promise(r => setTimeout(r, 300));
+        token = await getActiveToken();
+      }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ action: "list-voices" }),
+        },
+      );
+      const data = await res.json();
+      setVoices(data?.voices || []);
+    } catch (e) {
+      console.error("[AudiobookStudio] Failed to load voices:", e);
+    }
+  })();
+}, []);
 ```
 
-### 3. Files to edit (14 builders)
+Also apply the same `getActiveToken` + `fetchWithTimeout` pattern to the second `supabase.functions.invoke("elevenlabs-tts-audiobook", ...)` call at line 297 (used for chapter generation) — same root cause will hit there next.
 
-Builders that already use `setResolvedBookTitle` and need the helper swap + bookId-aware navigate:
+### 2. `supabase/functions/elevenlabs-tts-audiobook/index.ts` — make `list-voices` public
 
-- `bp01/BP01Builder.tsx`
-- `bp02/BP02Builder.tsx`
-- `bp03/BP03Builder.tsx`
-- `bp04/BP04Builder.tsx`
-- `bp05/BP05Builder.tsx`
-- `bp08/BP08Builder.tsx`
-- `bp09/BP09Builder.tsx`
-- `ba10/BA10Builder.tsx`
-- `ba11/BA11Builder.tsx`
-- `ba12/BA12Builder.tsx`
-- `ba13/BA13Builder.tsx`
-- `ba14/BA14Builder.tsx`
-- `ba15/BA15Builder.tsx`
-- `ba16/BA16Builder.tsx`
-- `ba17/BA17Builder.tsx`
-- `ba18/BA18Builder.tsx`
+Move the `if (action === "list-voices")` branch **before** the auth check (the `resolveUser` block, lines 77-91). The voice list is fully static and contains no PII; no reason to require a token. This guarantees the dropdown populates even if shared-backend token restoration is still in flight.
 
-Plus YR builders (yr19–yr28) — I'll inspect each and apply the same pattern wherever the lookup is author-only. Most YR builders have similar structure based on the gating-message scan.
+Sketch:
 
-### 4. What is intentionally NOT changed
+```ts
+const body = await req.json();
+const { action } = body;
 
-- `useAuthorBook` hook itself (already returns the correct id).
-- Server-side generation calls (already pass `book_id: activeBookId`).
-- Publishing flow (`publishNodeToSite`) — Sprint 55g already aligned this.
-- BP-06 and BP-07 — already fixed.
+// Public: static list, no auth needed
+if (action === "list-voices") {
+  const voices = Object.entries(VOICES).map(([key, v]) => ({ key, name: v.name, voiceId: v.id }));
+  return new Response(JSON.stringify({ voices }), {
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
 
-## Verification
+// Everything else requires auth
+const authHeader = req.headers.get("Authorization");
+// ...existing resolveUser logic...
+```
 
-After edits, on `/dashboard/book/<id>` open each node's Introduction step:
-- Should show "...based on '<correct book title>'..."
-- Should NOT show the "Complete Book Profile" gate when the book exists.
-- "Complete Book Profile" CTA (when correctly shown for a brand-new author) should round-trip back to the right node + bookId.
+`verify_jwt = false` is already set for this function in `supabase/config.toml`, so this just works.
 
-## Memory note
+## Why this matches the memory rules
 
-After implementation, append a one-line note to `mem://architecture/library-asset-adoption`:
-> "All builders use `resolveBookTitle(authorId, activeBookId)` from `src/lib/resolve-book-title.ts` for intro-step book detection — never inline author-only queries."
+- **Auth Standardization** (Core): "Always use `getActiveToken()` and `fetchWithTimeout()` for shared backend, NOT `supabase.auth.getSession()`." — exactly what we're switching to.
+- **Edge Function Protection**: `verify_jwt = false` already set; we keep auth enforcement in code for everything except the static voice list.
+
+## Files changed
+
+- `src/components/dashboard/AudiobookStudio.tsx` (2 edits: voice load + chapter generation invoke)
+- `supabase/functions/elevenlabs-tts-audiobook/index.ts` (move `list-voices` above auth gate)
+
+## Out of scope
+
+- The newer `BA11Builder` flow already uses the dedicated `ba11-voice-preview` / `ba11-audiobook-generate` functions with in-code JWT decode and a static `AUDIOBOOK_VOICES` constant — it's unaffected and stays as-is.
+- No DB migrations, no new functions, no UI redesign.
