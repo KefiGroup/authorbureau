@@ -1182,7 +1182,7 @@ function LongFormSalesPage({
   const intro = sp.intro_paragraph || content.intro_paragraph || content.description || content.transformation_promise || "";
   const pain = sp.pain_point || content.pain_point || "";
   const solution = sp.solution_statement || content.solution_statement || content.transformation_promise || "";
-  const ctaLabel = sp.cta_button_text || content.cta_button_text || cfg.cta;
+  const ctaLabel = normalizePriceInText(sp.cta_button_text || content.cta_button_text || cfg.cta);
   const whoFor = content.who_its_for || sp.who_its_for || "";
   const format = content.format || (type === "home-study" ? "Self-paced online programme" : "Special edition bundle");
   const duration = content.duration || "";
