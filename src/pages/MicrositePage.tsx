@@ -967,7 +967,7 @@ function WorkbookSalesPage({
       />
     ) : hasStripeUrl ? (
       <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
-        <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{cfg.cta} <ArrowRight className="ml-2 h-4 w-4" /></a>
+        <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{normalizePriceInText(cfg.cta)} <ArrowRight className="ml-2 h-4 w-4" /></a>
       </Button>
     ) : null;
     return (
