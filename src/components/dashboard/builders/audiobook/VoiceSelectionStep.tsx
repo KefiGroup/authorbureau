@@ -36,8 +36,24 @@ export default function VoiceSelectionStep({ stepData, setStepData, onMarkEdited
     stopPlayback();
     setLoadingVoiceId(voiceId);
     try {
-      const { data, error } = await supabase.functions.invoke("ba11-voice-preview", { body: { voiceId } });
-      if (error) throw new Error(error.message);
+      // Use shared-backend token pattern so the call works on freshly-restored
+      // sessions where supabase.auth.getSession() is still empty. The endpoint
+      // is public, so we send the token only when available.
+      const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+      const token = await getActiveToken();
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ba11-voice-preview`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ voiceId }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data?.error || `preview failed (${res.status})`);
       if (!data?.audioBase64) throw new Error("No audio returned from preview");
       const audio = new Audio(`data:audio/mpeg;base64,${data.audioBase64}`);
       audio.onended = () => setPlayingVoiceId(null);
