@@ -20,6 +20,8 @@ import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/component
 import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { publishNodeToSite } from "@/lib/publish-node";
+import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
+import { buildBp08Txt } from "@/lib/build-library-txt";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
@@ -50,7 +52,8 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   const [pendingReplace, setPendingReplace] = useState<{ existingLabel: string } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
   const hasResolvedBook = hasBook || Boolean(resolvedBookTitle) || Boolean(detectedBookTitle && detectedBookTitle !== "your book");
 
@@ -76,7 +79,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         return;
       }
 
-      const draft = await loadBuilderDraft(authorId, "BP-08", bookId ?? null);
+      const draft = await loadBuilderDraft(authorId, "BP-08", activeBookId);
       const cj = draft.content as any;
       if (cj && Object.keys(cj).length > 0) {
         setContent(cj);
@@ -128,7 +131,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
           Authorization: `Bearer ${token}`,
           apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
         },
-        body: JSON.stringify({ author_id: authorId, book_id: bookId ?? null, occasion: occasionPayload }),
+        body: JSON.stringify({ author_id: authorId, book_id: activeBookId, occasion: occasionPayload }),
       },
       180_000,
     );
@@ -150,7 +153,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         nodeId: "BP-08",
         nodeName: "Special Editions",
         content: newContent,
-        currentStep: 2, bookId: bookId ?? null });
+        currentStep: 2, bookId: activeBookId });
     }
     return newContent;
   };
@@ -235,11 +238,30 @@ export default function BP08Builder({ authorId, bookId }: Props) {
           nodeId: "BP-08",
           nodeName: "Special Editions",
           content: merged,
-          currentStep: 3, bookId: bookId ?? null });
+          currentStep: 3, bookId: activeBookId });
         setContent(merged);
       }
-      await publishNodeToSite(authorId!, "BP-08", authorSlug);
-      setContent((prev: any) => ({ ...prev, activated: true }));
+
+      // Sprint 55g — TXT compilation + library_asset before publish (BP-06 pattern).
+      let libraryAsset: Record<string, unknown> | null = null;
+      try {
+        const effectiveTitle =
+          (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book";
+        const txtBlob = buildBp08Txt(content, authorName, effectiveTitle);
+        const safeName = (effectiveTitle || "special-editions").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+        libraryAsset = (await uploadAndRegisterLibraryAsset({
+          authorId: authorId!,
+          nodeId: "BP-08",
+          title: (typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions",
+          primary: { blob: txtBlob, filename: `${safeName}-special-editions.txt`, kind: "txt" },
+          isPaid: true,
+        })) as unknown as Record<string, unknown>;
+      } catch (uploadErr) {
+        console.warn("[BP-08] library_asset upload failed, publishing without it", uploadErr);
+      }
+
+      await publishNodeToSite(authorId!, "BP-08", authorSlug, activeBookId, libraryAsset);
+      setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Publish failed");
       setError(msg);
