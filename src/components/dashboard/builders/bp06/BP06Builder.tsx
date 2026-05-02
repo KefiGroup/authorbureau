@@ -496,12 +496,12 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
   // Dynamic CTA: replace "Free" wording when priced
   const rawCta = content.sales_page?.cta_button_text || "Download Free Workbook";
   const displayCta = isPaid && /free/i.test(rawCta)
-    ? `Get the Workbook — $${paidPrice}`
+    ? `Get the Workbook — $${fmtPrice(paidPrice)}`
     : rawCta;
 
   const recommendationLine = abbyRec === "free"
     ? `Abby recommends FREE — ${content.free_rationale ? "see why below." : "great for list-building."}`
-    : `Abby recommends $${abbyPrice} — ${content.paid_rationale ? "see why below." : "the depth justifies a paid product."}`;
+    : `Abby recommends $${fmtPrice(abbyPrice)} — ${content.paid_rationale ? "see why below." : "the depth justifies a paid product."}`;
 
   return (
     <div className="space-y-4">
