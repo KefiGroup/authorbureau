@@ -51,23 +51,9 @@ Deno.serve(async (req: Request) => {
     return json(405, { error: "Method not allowed" });
   }
 
-  const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
-  console.log("[ba11-voice-preview] auth header present:", !!authHeader);
-
-  if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-    return json(401, { error: "Missing Authorization bearer token" });
-  }
-
-  const token = authHeader.slice(7).trim();
-  const claims = decodeJwtSub(token);
-  console.log("[ba11-voice-preview] jwt decode:", {
-    ok: !!claims?.sub,
-    email: claims?.email,
-  });
-
-  if (!claims?.sub) {
-    return json(401, { error: "Could not resolve user identity from token" });
-  }
+  // Public endpoint — voice preview only synthesises a static sample sentence
+  // with no PII or per-user data. Skipping the JWT gate avoids 401s when the
+  // shared-backend auth lock is briefly contended on dashboard mount.
 
   let body: { voiceId?: string; text?: string };
   try {
@@ -84,7 +70,6 @@ Deno.serve(async (req: Request) => {
   console.log("[ba11-voice-preview] params:", {
     voiceId,
     textLen: text.length,
-    user: claims.sub,
   });
 
   if (!voiceId || typeof voiceId !== "string") {

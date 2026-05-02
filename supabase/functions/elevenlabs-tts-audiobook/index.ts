@@ -86,6 +86,26 @@ serve(async (req) => {
       });
     }
 
+    // === PREVIEW VOICE (public — generic sample sentence, no PII) ===
+    // The shared-backend auth lock can be contended on dashboard mount, leaving
+    // getActiveToken() momentarily null. Since the preview only synthesises a
+    // static "Hello, this is a preview…" line with no per-user data, we skip
+    // the auth gate so the button works regardless of session-restoration timing.
+    if (action === "preview-voice") {
+      const resolvedVoiceId = body.voiceId || VOICES[body.voiceKey]?.id;
+      if (!resolvedVoiceId) {
+        return new Response(JSON.stringify({ error: "Missing voiceId or unknown voiceKey" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const sampleText = "Hello! This is a preview of how I would narrate your audiobook. I hope you enjoy the sound of my voice.";
+      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, resolvedVoiceId, sampleText);
+      const audioBase64 = base64Encode(audioBuffer);
+      return new Response(JSON.stringify({ audioBase64, format: "mp3" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Everything else requires auth.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -105,19 +125,7 @@ serve(async (req) => {
 
     console.log("[elevenlabs-tts-audiobook]", { action, email: user.email });
 
-    // === PREVIEW VOICE ===
-    if (action === "preview-voice") {
-      const resolvedVoiceId = body.voiceId || VOICES[body.voiceKey]?.id;
-      if (!resolvedVoiceId) throw new Error("Missing voiceId or unknown voiceKey");
-
-      const sampleText = "Hello! This is a preview of how I would narrate your audiobook. I hope you enjoy the sound of my voice.";
-      const audioBuffer = await generateTTS(ELEVENLABS_API_KEY, resolvedVoiceId, sampleText);
-      const audioBase64 = base64Encode(audioBuffer);
-
-      return new Response(JSON.stringify({ audioBase64, format: "mp3" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // (preview-voice handled above without auth)
 
     // === GENERATE SINGLE CHUNK (new: one chunk at a time) ===
     if (action === "generate-chunk") {
