@@ -1,117 +1,33 @@
+## Issue
 
-# Sprint 55g — End-to-end BP audit fixes (Introduction → Final destination)
+BP-07 (Home Study Course) shows "Complete Book Profile" even when the active book exists, while BP-06 works. Root cause: BP-07's book-resolution effect ignores `activeBookId` and only looks up the *latest* book/context for the author. When you're inside `/dashboard/book/<id>`, that query may return nothing (or the wrong book), so `resolvedBookTitle` stays empty and `hasResolvedBook` is false.
 
-Audited every BP builder along the BP-06 reference path:
+Master Architecture **was** aligned for `activeBookId` usage in *publishing* (Sprint 55g Phase 1) — but the **introduction-step book detection** for BP-07 was not ported to the BP-06 pattern. That's the gap.
 
-```text
-Introduction (book detection)
-    └─► Generate  (generator must receive book_id)
-          └─► Review (Abby content)
-                └─► Publish
-                      ├─► Build branded deliverable (DOCX/PDF/TXT)
-                      ├─► uploadAndRegisterLibraryAsset()
-                      ├─► publishNodeToSite(... libraryAsset)   ◄── stamps library_asset
-                      └─► Final destinations:
-                            • Library (download card on success screen)
-                            • Microsite (free download / Buy Now)
-```
+## Fix (BP-07 only — mirror BP-06 exactly)
 
-## Findings
+1. **Per-book resolution in the load effect** (`src/components/dashboard/builders/bp07/BP07Builder.tsx`, ~lines 53–65):
+   - If `activeBookId` is present, query `author_context` filtered by `author_id` AND `book_id = activeBookId`; on miss, fall back to `books.title where id = activeBookId`.
+   - Only when there is no `activeBookId` at all, fall back to "latest book" by `author_id`.
+   - Use `useAuthorBook` hook's `bookId` as fallback (already in `activeBookId`).
 
-| Node | Sends `book_id` | Has `library_asset` | Verdict |
-|------|---|---|---|
-| BP-01 Email Marketing | ✅ | ✅ TXT | OK; add PDF + success-screen download card |
-| **BP-02** Lead Magnets | ✅ | ❌ | **Add DOCX + PDF library_asset** |
-| BP-03 Social Media | ⚠ raw `bookId` | ✅ TXT | Switch to `activeBookId`; add PDF + download card |
-| BP-04 Author Website | ✅ | ✅ external_url | OK (microsite IS the deliverable) |
-| **BP-05** Webinars | ✅ | ❌ | **Add DOCX + PDF library_asset** |
-| BP-06 Workbook | ✅ | ✅ DOCX + PDF | Reference — no change |
-| **BP-07** Home Study | ❌ | ❌ | **Pass `activeBookId` to generator + add DOCX + PDF library_asset** |
-| **BP-08** Special Editions | ⚠ raw `bookId` | ❌ | Switch to `activeBookId`; **add DOCX + PDF library_asset** |
-| BP-09 Live Audience Toolkit | ❌ | ✅ TXT | **Pass `bookId` to generator**; add PDF + download card |
+2. **Pass bookId through the gating CTA** (~line 259):
+   - Change `navigate("/my-books?returnTo=/node-builder/BP-07")` to include the active book in the returnTo so the user lands back on the right book context, matching BP-06:
+     `navigate(\`/my-books?returnTo=${encodeURIComponent(\`/node-builder/BP-07${activeBookId ? \`?bookId=${activeBookId}\` : ""}\`)}\`)`
 
-## What changes
+3. **Use `activeBookId` for draft load** (~line 76):
+   - `loadBuilderDraft(authorId, "BP-07", activeBookId)` instead of raw `bookId`, so the hook's resolved book id participates.
 
-### A. Book-context plumbing (small, surgical)
+4. **No DB / RLS changes** — pure client-side parity fix.
 
-1. **BP-07** — derive `activeBookId = bookId ?? hookBookId` like BP-06; pass `book_id: activeBookId` in the `generate-bp07-home-study` body and in `publishNodeToSite(..., activeBookId)`.
-2. **BP-09** — derive `activeBookId = bookId ?? hookBookId`; pass `book_id: activeBookId` to `generate-bp09-book-sales`; pass it to `publishNodeToSite` and `autosaveBuilderDraft`.
-3. **BP-03** — switch `bookId ?? null` to `activeBookId` (already on `useAuthorBook`; just expose `hookBookId`).
-4. **BP-08** — same `activeBookId` switch; pass it to the generator and to `publishNodeToSite`.
+## Why other BP nodes are not in this patch
 
-These bring all 8 builders to the BP-06 single-source-of-book pattern: route `bookId` wins, hook fallback for users who land without a route param.
+A quick scan shows the same potential drift exists in other intro screens (BP-02, BP-03, BP-05, BP-08, BP-09). The user reported this specifically for BP-07 and asked us to mirror BP-06. After BP-07 is verified, I'll do the same single-file parity sweep for the remaining BP nodes in a follow-up sprint (Sprint 55h: "Intro-Step Book Detection Parity").
 
-### B. Library + downloadable deliverables
+## Files to edit
 
-Adopt the BP-06 publish recipe verbatim on the four builders that don't yet write a `library_asset`:
+- `src/components/dashboard/builders/bp07/BP07Builder.tsx` (one effect + one navigate call + one draft-load arg)
 
-**BP-02 Lead Magnets** (free, public bucket)
-- Build branded **DOCX + PDF** containing: cover, the lead magnet itself (quiz/checklist), opt-in copy, thank-you, nurture preview.
-- `uploadAndRegisterLibraryAsset({ kind: "docx", isPaid: false })`.
-- Stamp on publish: replace the direct `author_nodes.update(...)` with `publishNodeToSite("BP-02", ..., libraryAsset)` so the canonical record lands on `content_json`.
-- Add `BANodeDownloadCard` on the post-publish screen.
+## Memory note
 
-**BP-05 Webinars** (free, public bucket)
-- Build **DOCX** = full webinar script + promo emails + follow-up sequence + registration page copy.
-- Build **PDF** companion = slide outline (reuse `workbook-pdf.ts` layout helpers).
-- Same upload + `publishNodeToSite` stamp + download card.
-
-**BP-07 Home Study Course** (paid, private bucket, signed URL)
-- Build **DOCX + PDF** of the 21-day programme (daily readings, exercises, reflections, action items).
-- Stripe pre-flight (mirror BP-06's `StripeRequiredModal` "Make it free and publish" path).
-- `uploadAndRegisterLibraryAsset({ kind: "docx", isPaid: true })` then `publishNodeToSite(..., libraryAsset)`.
-- Add `BANodeDownloadCard` + a primary `Download Course PDF` button on success screen.
-
-**BP-08 Special Editions** (paid, private bucket)
-- Build **PDF + DOCX** edition spec (KDP Large 8.5×11 trim like BP-06): cover plan, signed-edition insert text, fulfilment notes, pricing tiers, occasion framing.
-- Same upload + publish + download card.
-
-### C. Companion files and success-screen polish on the three that already write a library_asset
-
-- **BP-01**: add a PDF companion alongside the existing TXT (cover + sequence steps formatted), and surface `BANodeDownloadCard` on the success screen.
-- **BP-03**: add a PDF companion to the existing TXT (social calendar formatted), surface `BANodeDownloadCard`.
-- **BP-09**: keep TXT primary; surface `BANodeDownloadCard` on the success screen so the toolkit is one click away.
-
-### D. Microsite parity
-
-`MicrositePage.tsx` already prefers `library_asset.pdf_url` for the BP-06 free-download CTA. Apply the same priority resolver to the BP-02 lead-magnet, BP-05 webinar, BP-07 home-study, and BP-08 edition microsite blocks so the public page never says "Available shortly" once a library_asset exists.
-
-## What stays untouched (guard rails)
-
-- `supabase/functions/_shared/node-readiness.ts` — already accepts `library_asset` first, legacy fallback second.
-- `supabase/functions/save-author-node` — already preserves caller-written `library_asset` and runs the `deriveLibraryAsset` fallback for BP-04.
-- `src/lib/publish-library-asset.ts` — already supports paid/free buckets, signed URLs, optional pdf/txt companions.
-- `builderNodeConfig.ts` canonical labels, the 28-node count, BP-00 framing — all untouched.
-- All readiness gates and dashboard counter math — untouched.
-
-## Files to be edited
-
-- `src/components/dashboard/builders/bp01/BP01Builder.tsx` — add PDF companion + download card
-- `src/components/dashboard/builders/bp02/BP02Builder.tsx` — add deliverable + library_asset + publishNodeToSite + download card
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx` — switch to `activeBookId`, add PDF companion, add download card
-- `src/components/dashboard/builders/bp05/BP05Builder.tsx` — add deliverable + library_asset + publishNodeToSite + download card
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx` — pass `activeBookId` to generator + publish; add deliverable + library_asset; Stripe pre-flight; download card
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — switch to `activeBookId`; add deliverable + library_asset; download card
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — pass `activeBookId` to generator + publish; add download card
-- `src/lib/build-library-txt.ts` (or new `src/lib/builder-deliverables.ts`) — add `buildBp01Pdf`, `buildBp02Docx/Pdf`, `buildBp03Pdf`, `buildBp05Docx/Pdf`, `buildBp07Docx/Pdf`, `buildBp08Docx/Pdf` (small wrappers around the existing `workbook-docx`/`workbook-pdf` layout helpers)
-- `src/pages/MicrositePage.tsx` — extend the BP-06 download-URL resolver to BP-02 / BP-05 / BP-07 / BP-08 sections
-
-## Acceptance per node
-
-For BP-02, BP-05, BP-07, BP-08 after this sprint:
-1. Pressing **Publish** uploads a real DOCX (and PDF where applicable) and stamps `content_json.library_asset.{kind,url,pdf_url,title,saved_at}`.
-2. Node shows Live in the X / 28 counter via the **uniform contract**, not the legacy fallback.
-3. The post-publish screen surfaces a `BANodeDownloadCard` with PDF + DOCX buttons.
-4. The author's **Library** lists the file; signed URL works for paid, public for free.
-5. The public **microsite** (where one exists) shows a working CTA driven by `library_asset` (no more "Available shortly").
-
-For BP-01, BP-03, BP-09:
-1. PDF companion (BP-01, BP-03) lands in the Library alongside the TXT.
-2. Success screen shows `BANodeDownloadCard` so the file is one click away.
-
-For BP-07, BP-09 specifically:
-3. The generator request body now includes `book_id`, so multi-book authors get the correct book.
-
-## Out of scope (next sprints)
-
-- BA-10 → BA-18 and YR-19 → YR-28 in Sprint 55h / 55i. We're keeping this sprint to BP only to avoid the broad-blast changes that historically destabilised counters.
+After verification, append a short note to `mem://architecture/library-asset-adoption` clarifying that **`activeBookId` must drive both the publish path AND the intro-step book lookup**, not just publishing. Sprint 55g covered publish; intro lookup is the missing half.

@@ -56,12 +56,47 @@ export default function BP07Builder({ authorId, bookId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setResolvedBookTitle(ctx.book_title);
+      // Per-book resolution. If we have an explicit activeBookId in scope, prefer:
+      //   1. author_context for that exact book
+      //   2. that book's title from `books`
+      // Only fall back to "latest book" when no activeBookId is in scope at all.
+      if (activeBookId) {
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
+          .eq("book_id", activeBookId)
+          .maybeSingle();
+        if (ctx?.book_title) {
+          setResolvedBookTitle(ctx.book_title);
+        } else {
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("id", activeBookId)
+            .maybeSingle();
+          if (book?.title) setResolvedBookTitle(book.title);
+        }
       } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (book?.title) setResolvedBookTitle(book.title);
+        const { data: ctx } = await supabase
+          .from("author_context")
+          .select("book_title")
+          .eq("author_id", authorId)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (ctx?.book_title) {
+          setResolvedBookTitle(ctx.book_title);
+        } else {
+          const { data: book } = await supabase
+            .from("books")
+            .select("title")
+            .eq("author_id", profile?.user_id || authorId)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (book?.title) setResolvedBookTitle(book.title);
+        }
       }
 
       // If a generation is already running in the background (user navigated
@@ -73,7 +108,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
         return;
       }
 
-      const draft = await loadBuilderDraft(authorId, "BP-07", bookId ?? null);
+      const draft = await loadBuilderDraft(authorId, "BP-07", activeBookId);
       const cj = draft.content as any;
       if (cj && (cj?.programme_title || cj?.study_weeks)) {
         setContent(cj);
@@ -256,7 +291,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
             {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your home study course, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-07")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-07${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : (
               <><p className="text-muted-foreground mb-4">Hi {authorName}! A self-paced home study course is perfect for readers who want to go deeper with your ideas. I'm going to design a 21-day programme based on '{(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' — with daily readings, exercises, reflections, and action items. Ready?</p><div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-07"]} /></div><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> Design My Programme</Button></>
