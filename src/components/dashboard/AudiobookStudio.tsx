@@ -309,10 +309,21 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
     }
     setLoadingPreview(true);
     try {
-      const { data, error } = await supabase.functions.invoke("elevenlabs-tts-audiobook", {
-        body: { action: "preview-voice", voiceKey: selectedVoice },
-      });
-      if (error) throw error;
+      const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+      const token = await getActiveToken();
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/elevenlabs-tts-audiobook`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ action: "preview-voice", voiceKey: selectedVoice }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `preview failed (${res.status})`);
       const audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
       const audio = new Audio(audioUrl);
       audio.onended = () => { setIsPreviewPlaying(false); setPreviewAudio(null); };
