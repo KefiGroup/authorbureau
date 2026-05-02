@@ -158,7 +158,8 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const progressPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasResumed = useRef(false);
   const { isReady: isAuthReady } = useAuthReady();
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
 
   // Check which social accounts the author has connected. Re-checks every time we land on Review.
   useEffect(() => {
@@ -314,7 +315,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
 
     try {
       const { data, error: fnErr } = await supabase.functions.invoke("generate-bp03-social-media", {
-        body: { author_id: authorId, book_id: bookId ?? null },
+        body: { author_id: authorId, book_id: activeBookId },
       });
       if (data?.status === "context_blocked") {
         setContextBlocked(true);

@@ -53,7 +53,8 @@ export default function BP09Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [downloading, setDownloading] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
   const hasResolvedBook = hasBook || Boolean(resolvedBookTitle) || Boolean(detectedBookTitle && detectedBookTitle !== "your book");
 
@@ -73,7 +74,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       const inflight = getGeneration<any>(authorId, "BP-09");
       if (inflight) { setStep(1); attachToGeneration(inflight); return; }
 
-      const draft = await loadBuilderDraft(authorId, "BP-09", bookId ?? null);
+      const draft = await loadBuilderDraft(authorId, "BP-09", activeBookId);
       const cj = draft.content as any;
       if (cj && Object.keys(cj).length > 0) {
         setContent(cj);
@@ -100,13 +101,13 @@ export default function BP09Builder({ authorId, bookId }: Props) {
     if (!token) throw new Error("We couldn't verify your sign-in. Please refresh and try again.");
     const res = await fetchWithTimeout(
       `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp09-book-sales`,
-      { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId }) },
+      { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId, book_id: activeBookId }) },
       180_000,
     );
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
     const newContent = { ...(data.content || {}), _currentStep: 2 };
-    if (authorId) await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: newContent, currentStep: 2, bookId: bookId ?? null });
+    if (authorId) await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: newContent, currentStep: 2, bookId: activeBookId });
     return newContent;
   };
 
@@ -155,10 +156,10 @@ export default function BP09Builder({ authorId, bookId }: Props) {
 
       if (content && authorId) {
         const merged = { ...content, _currentStep: 3, ...(libraryAsset ? { library_asset: libraryAsset } : {}) };
-        await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: merged, currentStep: 3, bookId: bookId ?? null });
+        await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: merged, currentStep: 3, bookId: activeBookId });
         setContent(merged);
       }
-      await publishNodeToSite(authorId!, "BP-09", authorSlug, bookId ?? null, libraryAsset);
+      await publishNodeToSite(authorId!, "BP-09", authorSlug, activeBookId, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Publish failed");

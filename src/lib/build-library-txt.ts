@@ -98,6 +98,241 @@ export function buildBp03Txt(content: any, authorName: string, bookTitle: string
   return new Blob([joinNonEmpty(out)], { type: "text/plain" });
 }
 
+/** BP-02 Lead Magnets — quiz/checklist + opt-in + thank-you + nurture. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildBp02Txt(content: any, authorName: string, bookTitle: string): Blob {
+  const c = content || {};
+  const out: string[] = [];
+  out.push(`LEAD MAGNET KIT`);
+  out.push(`${authorName} · ${bookTitle}`);
+  out.push(`Generated ${new Date().toLocaleDateString()}`);
+
+  const lm = c.leadMagnetContent || c;
+  const optin = lm.optin_page || c.optin_page || {};
+  if (Object.keys(optin).length) {
+    out.push(divider("Opt-in Page"));
+    if (safe(optin.headline)) out.push(`Headline: ${safe(optin.headline)}`);
+    if (safe(optin.subheadline)) out.push(`Subheadline: ${safe(optin.subheadline)}`);
+    if (safe(optin.cta_text)) out.push(`CTA: ${safe(optin.cta_text)}`);
+    if (Array.isArray(optin.bullets)) {
+      out.push("\nBullets:");
+      optin.bullets.forEach((b: string, i: number) => out.push(`  ${i + 1}. ${safe(b)}`));
+    }
+  }
+
+  const quiz = lm.quiz || c.quiz || {};
+  if (Object.keys(quiz).length) {
+    out.push(divider("Quiz / Assessment"));
+    if (safe(quiz.title)) out.push(`Title: ${safe(quiz.title)}`);
+    if (Array.isArray(quiz.questions)) {
+      quiz.questions.forEach((q: any, i: number) => {
+        out.push(`\nQ${i + 1}: ${safe(q?.text || q?.question)}`);
+        if (Array.isArray(q?.options)) {
+          q.options.forEach((opt: any, j: number) =>
+            out.push(`  ${String.fromCharCode(65 + j)}. ${safe(typeof opt === "string" ? opt : opt?.text)}`),
+          );
+        }
+      });
+    }
+    if (Array.isArray(quiz.results)) {
+      out.push("\nResult Tiers:");
+      quiz.results.forEach((r: any, i: number) =>
+        out.push(`  ${i + 1}. ${safe(r?.title)} — ${safe(r?.description)}`),
+      );
+    }
+  }
+
+  const checklist = lm.checklist || c.checklist || {};
+  if (Object.keys(checklist).length) {
+    out.push(divider("Checklist"));
+    if (safe(checklist.title)) out.push(`Title: ${safe(checklist.title)}`);
+    if (Array.isArray(checklist.items)) {
+      checklist.items.forEach((it: any, i: number) =>
+        out.push(`  ${i + 1}. ${safe(typeof it === "string" ? it : it?.text)}`),
+      );
+    }
+  }
+
+  const ty = lm.thank_you || c.thank_you || {};
+  if (Object.keys(ty).length) {
+    out.push(divider("Thank-You Page"));
+    if (safe(ty.headline)) out.push(`Headline: ${safe(ty.headline)}`);
+    if (safe(ty.body)) out.push(`\n${safe(ty.body)}`);
+  }
+
+  const nurture = Array.isArray(c.nurture_sequence) ? c.nurture_sequence : [];
+  if (nurture.length) {
+    out.push(divider("Nurture Sequence Preview"));
+    nurture.forEach((email: any, i: number) => {
+      out.push(`\n— Email ${i + 1} (Day ${email?.send_delay_days ?? i}) —`);
+      out.push(`Subject: ${safe(email?.subject)}`);
+      out.push("");
+      out.push(safe(email?.body));
+    });
+  }
+
+  return new Blob([joinNonEmpty(out)], { type: "text/plain" });
+}
+
+/** BP-05 Webinars — topics, registration, follow-up, promo plan. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildBp05Txt(content: any, authorName: string, bookTitle: string): Blob {
+  const c = content || {};
+  const out: string[] = [];
+  out.push(`WEBINAR KIT`);
+  out.push(`${authorName} · ${bookTitle}`);
+  out.push(`Generated ${new Date().toLocaleDateString()}`);
+
+  const topics = Array.isArray(c.webinar_topics) ? c.webinar_topics : Array.isArray(c.topics) ? c.topics : [];
+  if (topics.length) {
+    out.push(divider("Signature Webinar Topics"));
+    topics.forEach((t: any, i: number) => {
+      out.push(`\n— Topic ${i + 1} —`);
+      if (safe(t?.title)) out.push(`Title: ${safe(t.title)}`);
+      if (safe(t?.hook)) out.push(`Hook: ${safe(t.hook)}`);
+      if (safe(t?.outline)) out.push(`Outline:\n${safe(t.outline)}`);
+      if (Array.isArray(t?.key_points)) {
+        out.push("Key points:");
+        t.key_points.forEach((kp: string, j: number) => out.push(`  ${j + 1}. ${safe(kp)}`));
+      }
+    });
+  }
+
+  const reg = c.registration_page || {};
+  if (Object.keys(reg).length) {
+    out.push(divider("Registration Page"));
+    if (safe(reg.headline)) out.push(`Headline: ${safe(reg.headline)}`);
+    if (safe(reg.subheadline)) out.push(`Subheadline: ${safe(reg.subheadline)}`);
+    if (Array.isArray(reg.bullets)) {
+      out.push("\nBullets:");
+      reg.bullets.forEach((b: string, i: number) => out.push(`  ${i + 1}. ${safe(b)}`));
+    }
+    if (safe(reg.cta_text)) out.push(`\nCTA: ${safe(reg.cta_text)}`);
+  }
+
+  const followup = Array.isArray(c.follow_up_emails) ? c.follow_up_emails : [];
+  if (followup.length) {
+    out.push(divider("Follow-up Email Sequence"));
+    followup.forEach((email: any, i: number) => {
+      out.push(`\n— Email ${i + 1} (Day ${email?.send_delay_days ?? i}) —`);
+      out.push(`Subject: ${safe(email?.subject)}`);
+      out.push("");
+      out.push(safe(email?.body));
+    });
+  }
+
+  const promo = c.promotional_strategy || c.promo_plan || {};
+  if (Object.keys(promo).length) {
+    out.push(divider("Promotional Strategy"));
+    Object.entries(promo).forEach(([k, v]) => {
+      const label = String(k).replace(/_/g, " ");
+      out.push(`\n${label.charAt(0).toUpperCase() + label.slice(1)}:`);
+      if (Array.isArray(v)) v.forEach((line: any, i: number) => out.push(`  ${i + 1}. ${safe(typeof line === "string" ? line : JSON.stringify(line))}`));
+      else out.push(safe(typeof v === "string" ? v : JSON.stringify(v)));
+    });
+  }
+
+  return new Blob([joinNonEmpty(out)], { type: "text/plain" });
+}
+
+/** BP-07 Home Study Course — 21-day programme + sales page. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildBp07Txt(content: any, authorName: string, bookTitle: string): Blob {
+  const c = content || {};
+  const out: string[] = [];
+  out.push(`HOME STUDY COURSE`);
+  out.push(`${authorName} · ${bookTitle}`);
+  if (safe(c.programme_title)) out.push(safe(c.programme_title));
+  if (safe(c.programme_subtitle)) out.push(safe(c.programme_subtitle));
+  if (safe(c.tagline)) out.push(`"${safe(c.tagline)}"`);
+  out.push(`Generated ${new Date().toLocaleDateString()}`);
+
+  if (safe(c.transformation_promise)) {
+    out.push(divider("Transformation Promise"));
+    out.push(safe(c.transformation_promise));
+  }
+
+  const weeks = Array.isArray(c.study_weeks) ? c.study_weeks : [];
+  if (weeks.length) {
+    out.push(divider("Study Schedule"));
+    weeks.forEach((w: any, i: number) => {
+      out.push(`\n— Week ${w?.week ?? i + 1}: ${safe(w?.theme || w?.title)} —`);
+      const days = Array.isArray(w?.days) ? w.days : [];
+      days.forEach((d: any, j: number) => {
+        out.push(`  Day ${d?.day ?? j + 1}: ${safe(d?.title || d?.theme)}`);
+        if (safe(d?.reading)) out.push(`    Reading: ${safe(d.reading)}`);
+        if (safe(d?.exercise)) out.push(`    Exercise: ${safe(d.exercise)}`);
+        if (safe(d?.reflection)) out.push(`    Reflection: ${safe(d.reflection)}`);
+        if (safe(d?.action)) out.push(`    Action: ${safe(d.action)}`);
+      });
+    });
+  }
+
+  if (c.pricing) {
+    out.push(divider("Pricing"));
+    out.push(JSON.stringify(c.pricing, null, 2));
+  }
+
+  if (c.sales_page) {
+    out.push(divider("Sales Page Copy"));
+    Object.entries(c.sales_page).forEach(([k, v]) => {
+      out.push(`\n${String(k).replace(/_/g, " ").toUpperCase()}`);
+      out.push(safe(typeof v === "string" ? v : JSON.stringify(v, null, 2)));
+    });
+  }
+
+  return new Blob([joinNonEmpty(out)], { type: "text/plain" });
+}
+
+/** BP-08 Special Editions — edition tiers + bundle + sales page. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildBp08Txt(content: any, authorName: string, bookTitle: string): Blob {
+  const c = content || {};
+  const out: string[] = [];
+  out.push(`SPECIAL EDITIONS`);
+  out.push(`${authorName} · ${bookTitle}`);
+  if (safe(c.edition_title)) out.push(safe(c.edition_title));
+  if (safe(c.occasion_label)) out.push(`Occasion: ${safe(c.occasion_label)}`);
+  out.push(`Generated ${new Date().toLocaleDateString()}`);
+
+  const editions = Array.isArray(c.editions) ? c.editions : Array.isArray(c.tiers) ? c.tiers : [];
+  if (editions.length) {
+    out.push(divider("Edition Tiers"));
+    editions.forEach((ed: any, i: number) => {
+      out.push(`\n— Tier ${i + 1}: ${safe(ed?.name || ed?.title)} —`);
+      if (ed?.price !== undefined) out.push(`Price: $${ed.price}`);
+      if (safe(ed?.description)) out.push(`Description: ${safe(ed.description)}`);
+      if (Array.isArray(ed?.includes)) {
+        out.push("Includes:");
+        ed.includes.forEach((it: string, j: number) => out.push(`  ${j + 1}. ${safe(it)}`));
+      }
+      if (safe(ed?.fulfilment_notes || ed?.fulfillment_notes)) {
+        out.push(`Fulfilment: ${safe(ed.fulfilment_notes || ed.fulfillment_notes)}`);
+      }
+    });
+  }
+
+  if (c.bundle) {
+    out.push(divider("Bundle"));
+    out.push(JSON.stringify(c.bundle, null, 2));
+  }
+
+  if (c.pricing_strategy) {
+    out.push(divider("Pricing Strategy"));
+    out.push(safe(typeof c.pricing_strategy === "string" ? c.pricing_strategy : JSON.stringify(c.pricing_strategy, null, 2)));
+  }
+
+  if (c.sales_page) {
+    out.push(divider("Sales Page Copy"));
+    Object.entries(c.sales_page).forEach(([k, v]) => {
+      out.push(`\n${String(k).replace(/_/g, " ").toUpperCase()}`);
+      out.push(safe(typeof v === "string" ? v : JSON.stringify(v, null, 2)));
+    });
+  }
+
+  return new Blob([joinNonEmpty(out)], { type: "text/plain" });
+}
+
 /** BP-09 Live Audience Toolkit — workshop, signing, corporate, shared. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function buildBp09Txt(content: any, authorName: string, bookTitle: string): Blob {

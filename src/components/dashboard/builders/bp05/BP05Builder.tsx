@@ -18,6 +18,9 @@ import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTh
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 import { toAbbyError } from "@/lib/abby-error";
+import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
+import { buildBp05Txt } from "@/lib/build-library-txt";
+import { publishNodeToSite } from "@/lib/publish-node";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 
@@ -180,21 +183,29 @@ export default function BP05Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      // Native activation: write status='live' directly to author_nodes.
-      const { data: row, error: upErr } = await supabase
-        .from("author_nodes")
-        .update({
-          status: "live",
-          activated_at: new Date().toISOString(),
-          content_json: content,
-        })
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-05")
-        .select("microsite_url")
-        .single();
-      if (upErr) throw new Error(upErr.message || "Activation failed");
-      const liveUrl = row?.microsite_url ?? undefined;
-      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "live", liveUrl }));
+      // Sprint 55g — build a TXT compilation of the webinar kit and stamp the
+      // canonical library_asset before publishing (BP-06 pattern). Webinars are
+      // free, so use the public bucket.
+      let libraryAsset: Record<string, unknown> | null = null;
+      try {
+        const effectiveTitle = bookTitle || detectedBookTitle || "your book";
+        const txtBlob = buildBp05Txt(content, authorName, effectiveTitle);
+        const safeName = (effectiveTitle || "webinar-kit").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+        libraryAsset = (await uploadAndRegisterLibraryAsset({
+          authorId: authorId!,
+          nodeId: "BP-05",
+          title: "Webinar Kit",
+          primary: { blob: txtBlob, filename: `${safeName}-webinar-kit.txt`, kind: "txt" },
+          isPaid: false,
+        })) as unknown as Record<string, unknown>;
+      } catch (uploadErr) {
+        console.warn("[BP-05] library_asset upload failed, publishing without it", uploadErr);
+      }
+
+      // Native activation: write status='live' directly to author_nodes,
+      // routed via publishNodeToSite so the canonical library_asset stamp lands.
+      await publishNodeToSite(authorId!, "BP-05", authorSlug, activeBookId, libraryAsset);
+      setContent((prev: any) => ({ ...prev, activated: true, publishStatus: "live", ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-05" });
       ensureFunnel({ authorId: authorId!, nodeId: "BP-05", funnelType: "webinar" });
       toast.success("Webinars are live! 🎉");
@@ -202,6 +213,7 @@ export default function BP05Builder({ authorId, bookId }: Props) {
       console.error("Publish error:", e.message);
       setError(e.message);
       toast.error("Publish failed", { description: e.message });
+      setStep(2);
     }
   };
 
