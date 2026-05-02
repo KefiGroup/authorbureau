@@ -70,7 +70,6 @@ Deno.serve(async (req: Request) => {
   console.log("[ba11-voice-preview] params:", {
     voiceId,
     textLen: text.length,
-    user: claims.sub,
   });
 
   if (!voiceId || typeof voiceId !== "string") {
