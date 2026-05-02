@@ -41,15 +41,10 @@ export default function BA18Builder({ authorId, bookId }: Props) {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
-      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-      if (ctx?.book_title) {
-        setResolvedBookTitle(ctx.book_title);
-        console.log(`[BA-18] book resolution`, { authorId, detectedBookTitle, ctxTitle: ctx?.book_title ?? null, bookTitle: null });
-      } else {
-        const { data: book } = await supabase.from("books").select("title").eq("author_id", profile?.user_id || authorId).order("created_at", { ascending: false }).limit(1).maybeSingle();
-        if (book?.title) setResolvedBookTitle(book.title);
-        console.log(`[BA-18] book resolution`, { authorId, detectedBookTitle, ctxTitle: null, bookTitle: book?.title ?? null });
-      }
+      const { resolveBookTitle } = await import("@/lib/resolve-book-title");
+      const _title = await resolveBookTitle(authorId, bookId ?? null, profile?.user_id);
+      if (_title) setResolvedBookTitle(_title);
+      console.log(`[BA-18] book resolution`, { authorId, bookId, detectedBookTitle, resolved: _title });
       const __draft = await loadBuilderDraft(authorId, "BA-18", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);
@@ -122,7 +117,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
             {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your revenue sharing strategy, I need to confirm your book details. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-18")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-18${bookId ? `?bookId=${bookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : !isIntroReady ? (
               <p className="text-muted-foreground mb-4">Loading your book details…</p>

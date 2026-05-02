@@ -192,7 +192,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
       setError(null);
 
       try {
-        const result = await fetchBp03NodeState({ action: "load", author_id: authorId });
+        const result = await fetchBp03NodeState({ action: "load", author_id: authorId, book_id: activeBookId ?? undefined });
         if (cancelled) return;
 
         const profile = result.profile as { pen_name?: string; author_slug?: string } | null;
@@ -480,7 +480,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
             {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your social media kit, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-03")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-03${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : (
               <>

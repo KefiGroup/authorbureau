@@ -36,7 +36,13 @@ export default function YR27Builder({ authorId, bookId }: Props) {
     const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
     setAuthorName(p?.pen_name || "there");
     setAuthorSlug(p?.author_slug || "");
-    if (detectedBookTitle && detectedBookTitle !== "your book") setBookTitle(detectedBookTitle);
+    if (detectedBookTitle && detectedBookTitle !== "your book") {
+      setBookTitle(detectedBookTitle);
+    } else {
+      const { resolveBookTitle: _rbt } = await import("@/lib/resolve-book-title");
+      const _t = await _rbt(authorId, bookId ?? null, p?.user_id);
+      if (_t) setBookTitle(_t);
+    }
     const __draft = await loadBuilderDraft(authorId, "YR-27", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);

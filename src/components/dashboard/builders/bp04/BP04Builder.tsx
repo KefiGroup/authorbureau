@@ -69,25 +69,9 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
-      const { data: ctx } = await supabase
-        .from("author_context")
-        .select("book_title")
-        .eq("author_id", authorId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (ctx?.book_title) {
-        setResolvedBookTitle(ctx.book_title);
-      } else {
-        const { data: book } = await supabase
-          .from("books")
-          .select("title")
-          .eq("author_id", profile?.user_id || authorId)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (book?.title) setResolvedBookTitle(book.title);
-      }
+      const { resolveBookTitle } = await import("@/lib/resolve-book-title");
+      const _title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
+      if (_title) setResolvedBookTitle(_title);
 
 
       // Load via save-author-node edge function (service role) to bypass
@@ -243,7 +227,7 @@ export default function BP04Builder({ authorId, bookId }: Props) {
             {!isBookLoading && !hasBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your author website, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-04")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-04${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : (
               <>

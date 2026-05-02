@@ -43,7 +43,18 @@ export default function BA11Builder({ authorId, bookId }: Props) {
         .single();
       setAuthorName(profile?.pen_name || "there");
       setUserId(profile?.user_id || "");
-      if (!detectedBookTitle || detectedBookTitle === "your book") {
+      // Per-book resolution: prefer the bookId in scope, then fall back to author's latest.
+      if (bookId) {
+        const { data: book } = await supabase
+          .from("books")
+          .select("id, title")
+          .eq("id", bookId)
+          .maybeSingle();
+        if (book) {
+          setResolvedBookTitle(book.title || "");
+          setResolvedBookId(book.id);
+        }
+      } else if (!detectedBookTitle || detectedBookTitle === "your book") {
         const { data: book } = await supabase
           .from("books")
           .select("id, title")
@@ -210,7 +221,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before we record, I need to know about your book. Please complete your book profile first.
                 </p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-11")}>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-11${bookId ? `?bookId=${bookId}` : ""}`)}`)}>
                   Complete Book Profile
                 </Button>
               </>
