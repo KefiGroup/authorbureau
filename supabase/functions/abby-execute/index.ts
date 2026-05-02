@@ -54,18 +54,27 @@ async function resolveUser(token: string): Promise<{ id: string; email: string }
     }
   }
 
-  // 5. JWT-only fallback: accept sub even if email isn't a top-level claim,
-  //    look it up in books.owner_email as a last resort.
+  // 5. JWT-only fallback: accept sub even if email isn't a top-level claim
   if (decoded?.sub) {
-    if (decoded.email) return { id: decoded.sub, email: decoded.email };
+    const claimEmail =
+      decoded.email ||
+      decoded.user_metadata?.email ||
+      decoded.app_metadata?.email ||
+      null;
+    if (claimEmail) return { id: decoded.sub, email: claimEmail };
+
+    // Last resort: look up via books.author_id -> owner_email
     try {
       const { data: book } = await localClient
         .from("books").select("owner_email")
-        .eq("user_id", decoded.sub)
+        .eq("author_id", decoded.sub)
         .not("owner_email", "is", null)
         .limit(1).maybeSingle();
       if (book?.owner_email) return { id: decoded.sub, email: book.owner_email };
     } catch { /* ignore */ }
+
+    // Accept sub even without email (downstream code mostly needs id)
+    return { id: decoded.sub, email: "" };
   }
 
   throw new Error("Unauthorized");
