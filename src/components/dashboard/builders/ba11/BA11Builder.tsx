@@ -43,7 +43,18 @@ export default function BA11Builder({ authorId, bookId }: Props) {
         .single();
       setAuthorName(profile?.pen_name || "there");
       setUserId(profile?.user_id || "");
-      if (!detectedBookTitle || detectedBookTitle === "your book") {
+      // Per-book resolution: prefer the bookId in scope, then fall back to author's latest.
+      if (bookId) {
+        const { data: book } = await supabase
+          .from("books")
+          .select("id, title")
+          .eq("id", bookId)
+          .maybeSingle();
+        if (book) {
+          setResolvedBookTitle(book.title || "");
+          setResolvedBookId(book.id);
+        }
+      } else if (!detectedBookTitle || detectedBookTitle === "your book") {
         const { data: book } = await supabase
           .from("books")
           .select("id, title")
