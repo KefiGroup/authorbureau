@@ -242,7 +242,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
             {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your toolkit, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BP-09")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-09${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : (
               <>

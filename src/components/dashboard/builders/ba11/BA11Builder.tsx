@@ -221,7 +221,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! Before we record, I need to know about your book. Please complete your book profile first.
                 </p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-11")}>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-11${bookId ? `?bookId=${bookId}` : ""}`)}`)}>
                   Complete Book Profile
                 </Button>
               </>

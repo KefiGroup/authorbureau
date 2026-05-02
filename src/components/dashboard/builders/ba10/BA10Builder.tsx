@@ -127,7 +127,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
             {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I can build your course, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate("/my-books?returnTo=/node-builder/BA-10")}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-10${bookId ? `?bookId=${bookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : !isIntroReady ? (
               <p className="text-muted-foreground mb-4">Loading your book details…</p>
