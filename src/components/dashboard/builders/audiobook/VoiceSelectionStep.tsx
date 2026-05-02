@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Play, Pause, Loader2, Check, Mic } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+
 import { toast } from "@/hooks/use-toast";
 import { toAbbyError } from "@/lib/abby-error";
 import { AUDIOBOOK_VOICES } from "./voices";
