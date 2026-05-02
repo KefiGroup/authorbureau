@@ -1,33 +1,75 @@
-## Issue
+## Goal
 
-BP-07 (Home Study Course) shows "Complete Book Profile" even when the active book exists, while BP-06 works. Root cause: BP-07's book-resolution effect ignores `activeBookId` and only looks up the *latest* book/context for the author. When you're inside `/dashboard/book/<id>`, that query may return nothing (or the wrong book), so `resolvedBookTitle` stays empty and `hasResolvedBook` is false.
+Make every builder (BP / BA / YR — 28 nodes) read the active book correctly on the Introduction step, so "Complete Book Profile" never shows when an `activeBookId` exists. This is a parity sweep of the BP-06 / BP-07 fix.
 
-Master Architecture **was** aligned for `activeBookId` usage in *publishing* (Sprint 55g Phase 1) — but the **introduction-step book detection** for BP-07 was not ported to the BP-06 pattern. That's the gap.
+## Root cause (recap)
 
-## Fix (BP-07 only — mirror BP-06 exactly)
+Every builder uses the `useAuthorBook` hook + an `useEffect` that calls `setResolvedBookTitle`. The bug pattern is the same in 12 builders: the effect queries `author_context` / `books` by **author only** (latest book), ignoring `activeBookId`. When the author has multiple books, this returns the wrong book — or nothing — and the gating check (`hasResolvedBook`) flips to `false`, showing the "Complete Book Profile" CTA.
 
-1. **Per-book resolution in the load effect** (`src/components/dashboard/builders/bp07/BP07Builder.tsx`, ~lines 53–65):
-   - If `activeBookId` is present, query `author_context` filtered by `author_id` AND `book_id = activeBookId`; on miss, fall back to `books.title where id = activeBookId`.
-   - Only when there is no `activeBookId` at all, fall back to "latest book" by `author_id`.
-   - Use `useAuthorBook` hook's `bookId` as fallback (already in `activeBookId`).
+## Fix — single shared helper, then call it everywhere
 
-2. **Pass bookId through the gating CTA** (~line 259):
-   - Change `navigate("/my-books?returnTo=/node-builder/BP-07")` to include the active book in the returnTo so the user lands back on the right book context, matching BP-06:
-     `navigate(\`/my-books?returnTo=${encodeURIComponent(\`/node-builder/BP-07${activeBookId ? \`?bookId=${activeBookId}\` : ""}\`)}\`)`
+### 1. Create `src/lib/resolve-book-title.ts`
 
-3. **Use `activeBookId` for draft load** (~line 76):
-   - `loadBuilderDraft(authorId, "BP-07", activeBookId)` instead of raw `bookId`, so the hook's resolved book id participates.
+A single helper that mirrors the BP-06 logic exactly:
+- If `activeBookId` is provided → query `author_context` filtered by both `author_id` AND `book_id`; on miss, fall back to `books.title` for that exact id.
+- If no `activeBookId` → fall back to "latest book by author" (current behavior).
+- Returns `""` on miss; never throws.
 
-4. **No DB / RLS changes** — pure client-side parity fix.
+Signature: `resolveBookTitle(authorId, activeBookId, ownerUserId?) => Promise<string>`
 
-## Why other BP nodes are not in this patch
+### 2. Refactor each builder's intro effect to use the helper
 
-A quick scan shows the same potential drift exists in other intro screens (BP-02, BP-03, BP-05, BP-08, BP-09). The user reported this specifically for BP-07 and asked us to mirror BP-06. After BP-07 is verified, I'll do the same single-file parity sweep for the remaining BP nodes in a follow-up sprint (Sprint 55h: "Intro-Step Book Detection Parity").
+Replace the inline `author_context`/`books` block with:
+```ts
+const title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
+if (title) setResolvedBookTitle(title);
+```
 
-## Files to edit
+Where needed, ensure the component has `activeBookId = bookId ?? hookBookId ?? null` (most already do).
 
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx` (one effect + one navigate call + one draft-load arg)
+Also fix the gating CTA so the returnTo preserves the bookId, matching BP-06:
+```ts
+navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/<NODE-ID>${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)
+```
+
+### 3. Files to edit (14 builders)
+
+Builders that already use `setResolvedBookTitle` and need the helper swap + bookId-aware navigate:
+
+- `bp01/BP01Builder.tsx`
+- `bp02/BP02Builder.tsx`
+- `bp03/BP03Builder.tsx`
+- `bp04/BP04Builder.tsx`
+- `bp05/BP05Builder.tsx`
+- `bp08/BP08Builder.tsx`
+- `bp09/BP09Builder.tsx`
+- `ba10/BA10Builder.tsx`
+- `ba11/BA11Builder.tsx`
+- `ba12/BA12Builder.tsx`
+- `ba13/BA13Builder.tsx`
+- `ba14/BA14Builder.tsx`
+- `ba15/BA15Builder.tsx`
+- `ba16/BA16Builder.tsx`
+- `ba17/BA17Builder.tsx`
+- `ba18/BA18Builder.tsx`
+
+Plus YR builders (yr19–yr28) — I'll inspect each and apply the same pattern wherever the lookup is author-only. Most YR builders have similar structure based on the gating-message scan.
+
+### 4. What is intentionally NOT changed
+
+- `useAuthorBook` hook itself (already returns the correct id).
+- Server-side generation calls (already pass `book_id: activeBookId`).
+- Publishing flow (`publishNodeToSite`) — Sprint 55g already aligned this.
+- BP-06 and BP-07 — already fixed.
+
+## Verification
+
+After edits, on `/dashboard/book/<id>` open each node's Introduction step:
+- Should show "...based on '<correct book title>'..."
+- Should NOT show the "Complete Book Profile" gate when the book exists.
+- "Complete Book Profile" CTA (when correctly shown for a brand-new author) should round-trip back to the right node + bookId.
 
 ## Memory note
 
-After verification, append a short note to `mem://architecture/library-asset-adoption` clarifying that **`activeBookId` must drive both the publish path AND the intro-step book lookup**, not just publishing. Sprint 55g covered publish; intro lookup is the missing half.
+After implementation, append a one-line note to `mem://architecture/library-asset-adoption`:
+> "All builders use `resolveBookTitle(authorId, activeBookId)` from `src/lib/resolve-book-title.ts` for intro-step book detection — never inline author-only queries."
