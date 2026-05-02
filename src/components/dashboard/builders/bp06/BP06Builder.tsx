@@ -524,7 +524,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
               <span className="text-xs bg-muted px-2.5 py-1 rounded-full">8.5 × 11" PDF + Word</span>
               <span className="text-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full font-medium">✓ Amazon KDP-ready</span>
               <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${isPaid ? "bg-primary/10 text-primary" : "bg-emerald-500/10 text-emerald-600"}`}>
-                {isPaid ? `$${paidPrice}` : "FREE Lead Magnet"}
+                {isPaid ? `$${fmtPrice(paidPrice)}` : "FREE Lead Magnet"}
               </span>
             </div>
             <p className="text-xs text-muted-foreground">
