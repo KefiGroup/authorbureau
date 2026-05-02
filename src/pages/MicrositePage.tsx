@@ -912,21 +912,48 @@ function WorkbookSalesPage({
   const isFree = content.pricing_recommendation === "free" || Number(content.suggested_price_usd) === 0;
   const priceNum = Number(content.suggested_price_usd) || 0;
   const priceLabel = isFree ? "Free" : (priceNum > 0 ? `$${priceNum.toFixed(2)}` : null);
-  const deliveryUrl = data.node.delivery_url;
+
+  // Resolve a real downloadable file URL for the free workbook.
+  // Priority: branded library_asset PDF → library_asset primary url (.pdf/.docx)
+  // → legacy content.pdf_url → node.delivery_url ONLY if it points at a file.
+  const libAsset = (content.library_asset ?? {}) as Record<string, unknown>;
+  const isFileUrl = (u: unknown): u is string =>
+    typeof u === "string" && /\.(pdf|docx)(\?|$)/i.test(u);
+  const libPdf = typeof libAsset.pdf_url === "string" ? libAsset.pdf_url : null;
+  const libPrimary = isFileUrl(libAsset.url) ? (libAsset.url as string) : null;
+  const legacyPdf = typeof (content as Record<string, unknown>).pdf_url === "string"
+    ? ((content as Record<string, unknown>).pdf_url as string)
+    : null;
+  const deliveryFile = isFileUrl(data.node.delivery_url) ? data.node.delivery_url : null;
+
+  const downloadPdfUrl = libPdf || (libPrimary && libPrimary.toLowerCase().endsWith(".pdf") ? libPrimary : null) || legacyPdf || deliveryFile;
+  const downloadDocxUrl = libPrimary && libPrimary.toLowerCase().endsWith(".docx") ? libPrimary : null;
 
   const amazonPaperbackUrl = content.amazon_paperback_url || content.amazon_url || data.book?.amazon_url;
   const amazonKindleUrl = content.amazon_kindle_url;
 
   const renderCta = () => {
     if (isFree) {
-      return deliveryUrl ? (
-        <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
-          <a href={deliveryUrl} target="_blank" rel="noopener noreferrer">
-            Download Workbook <ArrowRight className="ml-2 h-4 w-4" />
-          </a>
-        </Button>
-      ) : (
-        <Button className="w-full rounded-full" disabled>Available shortly</Button>
+      if (!downloadPdfUrl && !downloadDocxUrl) {
+        return <Button className="w-full rounded-full" disabled>Available shortly</Button>;
+      }
+      return (
+        <div className="space-y-2">
+          {downloadPdfUrl && (
+            <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
+              <a href={downloadPdfUrl} target="_blank" rel="noopener noreferrer">
+                Download Workbook (PDF) <ArrowRight className="ml-2 h-4 w-4" />
+              </a>
+            </Button>
+          )}
+          {downloadDocxUrl && (
+            <Button variant="outline" className="w-full rounded-full text-sm py-2" asChild>
+              <a href={downloadDocxUrl} target="_blank" rel="noopener noreferrer">
+                Download Word version
+              </a>
+            </Button>
+          )}
+        </div>
       );
     }
     const directButton = priceNum > 0 && data.node.id ? (

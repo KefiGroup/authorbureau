@@ -1,81 +1,43 @@
-## What you actually have today (good news)
+## What's wrong
 
-The BP-06 builder already produces a **fully branded workbook** — not a plain PDF. The PDF renderer (`src/lib/workbook-pdf.ts`) builds:
+Your "Be SUCKcessful Workbook" published correctly:
+- Status = `live`
+- Price = $0 (free)
+- Branded PDF + Word doc are uploaded to the public library bucket and are publicly downloadable
 
-- Navy branded **cover page** with book title + author name
-- Welcome page
-- Table of contents
-- 2 pages per section (prompt page + ruled response lines)
-- Toolkit pages (Canvas grid, 90-day planner, weekly tracker, playbook table, story template, vision page)
-- Action plan page
-- Back cover
+But the microsite still shows a disabled **"Available shortly"** button, and one of the feature bullets ("Instant download after purchase") doesn't fit a free workbook.
 
-All print-ready US Letter (8.5 × 11", KDP-compatible).
+### Root causes
 
-## How the three things you asked about work
+In `src/pages/MicrositePage.tsx` → `WorkbookSalesPage`:
 
-```text
-┌──────────────────────────────────────────────────────────────────────┐
-│  Review screen (where you are now)                                   │
-│                                                                      │
-│  [Download PDF]  ──►  saves the branded PDF to your computer         │
-│  [Download Word] ──►  editable .docx (re-import after edits)         │
-│                                                                      │
-│  [Publish to My Site] ──► does ALL of the following in one click:    │
-│        1. Builds the branded PDF (same one as Download PDF)          │
-│        2. Builds the .docx                                           │
-│        3. Uploads both to library-assets storage bucket              │
-│        4. Registers a library_asset record (title, pdf_url, docx)    │
-│        5. Sets BP-06 status = live on your microsite                 │
-│        6. Workbook now appears in My Library AND on your site        │
-└──────────────────────────────────────────────────────────────────────┘
-```
+1. **Line 920–930** — the free-CTA branch only looks at `data.node.delivery_url` for the download link. It ignores `content.library_asset.pdf_url` and `content.library_asset.url` (the real branded files Publish just uploaded). On top of that, `delivery_url` for this node was set to the microsite's *own* URL, not a file URL — so even if used, it's wrong.
+2. **Line 1021** — the bullet "Instant download after purchase" is hard-coded; it doesn't switch wording when the workbook is free.
 
-So the answer to "how do I save to library + publish to site": **clicking Publish to My Site does both.** The Library entry only appears *after* a successful Publish — Download PDF alone does not populate the Library.
+Pricing itself is consistent (free everywhere) — only the button and one bullet are off.
 
-## The actual problem from the previous session
+## Fix
 
-The earlier session found that for "Be SUCKcessful" the BP-06 record is stuck at `status: 'content_ready'` with `library_asset: null` and zero server logs — meaning Publish to My Site was never successfully fired. Two likely reasons:
+In `src/pages/MicrositePage.tsx`, `WorkbookSalesPage`:
 
-1. **Silent failure**: `BP06Builder.tsx:217` catches upload errors with `console.warn` and proceeds — so if upload fails you see nothing in the UI and nothing reaches the Library.
-2. **Click never reached publish**: an earlier render crash or a disabled button state may have blocked it.
+**A. Resolve the download URL from real fields, in this priority order:**
+1. `content.library_asset.pdf_url` (preferred — branded PDF written by Publish)
+2. `content.library_asset.url` if it ends in `.pdf` or `.docx`
+3. `content.pdf_url` (legacy)
+4. `data.node.delivery_url` only when it ends in `.pdf` / `.docx` (i.e., a real file, not the microsite URL)
 
-## What I'll do (one focused pass)
+If any are found → render an enabled **"Download Workbook (PDF)"** button (and a secondary **"Download Word version"** button when a `.docx` is also available). Otherwise keep "Available shortly".
 
-1. **Make the publish flow loud, not silent**
-   - In `BP06Builder.tsx` `buildAndUploadDeliverable`, replace the swallowed `console.warn` with a toast error and abort publish if upload fails — so if storage rejects the PDF you'll see exactly why instead of a quiet no-op.
-   - Add a `toast.success("Workbook saved to your Library")` when upload succeeds.
+**B. Make the feature bullet pricing-aware:**
+- When `isFree` → "Instant download, no purchase required"
+- When paid → keep "Instant download after purchase"
 
-2. **Add a "Save to Library" affordance on the Review screen**
-   - Right now Review only shows Download PDF / Download Word / Publish to My Site. Add a third button: **"Save to Library"** that runs `buildAndUploadDeliverable` only (uploads PDF + DOCX, registers the asset) without flipping the node to `live`. This lets you stash the file in your Library before deciding to publish to the site.
-   - Publish to My Site keeps doing both (save + go live).
+## Why this is safe
 
-3. **Surface the existing Library link from Review**
-   - Add a small "View in My Library →" link that appears after a successful save, deep-linking to `/dashboard?section=my-library`.
+- Microsite-rendering only — no DB migration, no edge function change, no regenerating the workbook
+- Already-published workbook starts working the moment the change ships
+- Paid-workbook flow (BuyNowButton, Amazon links) is untouched
 
-4. **Diagnose your specific book**
-   - Open `Be SUCKcessful` BP-06 → click the new **Save to Library** button → watch `render-library-asset` and `save-author-node` logs in real time. If storage upload fails, the new toast will tell us the exact bucket / path / RLS error.
+## Files to change
 
-## Files I'll touch
-
-- `src/components/dashboard/builders/bp06/BP06Builder.tsx` — fail-loud, new Save-to-Library button, post-save link
-- (no schema or edge-function changes — the storage bucket, `render-library-asset`, and `save-author-node` already do the right thing)
-
-## What you'll see after this lands
-
-On the Review step:
-
-```text
-[Download PDF]    [Download Word (.docx)]
-[Save to Library]                              ← new
-─────────────────────────────────────────────
-[ Publish to My Site → ]                       ← still does save + go-live
-```
-
-After Publish succeeds, the workbook shows up in **Dashboard → My Library** (PDF + DOCX download links) AND on your public author site as a free/paid lead magnet — using the same branded PDF the Download button gives you.
-
-## Out of scope (ask separately if you want them)
-
-- Custom cover artwork upload (today the cover is the auto-generated navy branded cover)
-- Inline PDF preview inside the builder
-- Re-styling the PDF interior (current layout is the Sprint 55 print-ready spec)
+- `src/pages/MicrositePage.tsx` — `WorkbookSalesPage` (`renderCta()` free branch around lines 920–930 and the feature bullets around line 1021). No other files affected.
