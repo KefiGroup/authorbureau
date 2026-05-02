@@ -192,7 +192,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
       setError(null);
 
       try {
-        const result = await fetchBp03NodeState({ action: "load", author_id: authorId });
+        const result = await fetchBp03NodeState({ action: "load", author_id: authorId, book_id: activeBookId ?? undefined });
         if (cancelled) return;
 
         const profile = result.profile as { pen_name?: string; author_slug?: string } | null;
