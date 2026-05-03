@@ -20,7 +20,7 @@ import SocialDistributionPack from "./SocialDistributionPack";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 import { toAbbyError } from "@/lib/abby-error";
-import { autosaveBuilderDraft } from "@/lib/builder-autosave";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { publishNodeToSite } from "@/lib/publish-node";
 import BuilderIntroBlock, { BP_INTRO_SPECS } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
