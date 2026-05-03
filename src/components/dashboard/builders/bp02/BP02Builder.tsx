@@ -203,37 +203,19 @@ export default function BP02Builder({ authorId, bookId }: Props) {
       setContent(data.content);
       setStep(2);
 
-      // Auto-save as draft immediately after generation
+      // Auto-save as draft immediately after generation, via the safe
+      // save-author-node edge function (avoids browser RLS / shared-JWT issues
+      // that were surfacing as the generic "ABBY hit a snag" message).
       if (authorId && data.content) {
         try {
-          const { data: existingNode } = await supabase
-            .from("author_nodes")
-            .select("id, status, activated_at, microsite_url")
-            .eq("author_id", authorId)
-            .eq("node_id", "BP-02")
-            .maybeSingle();
-
-          const nextStatus = existingNode?.status === "live" || !!existingNode?.activated_at || !!existingNode?.microsite_url
-            ? "live" as const
-            : "content_ready" as const;
-          const payload = {
-            content_json: { ...data.content, _currentStep: 2 },
-            current_step: 2,
-            status: nextStatus,
-          };
-
-          if (existingNode) {
-            const { error: upErr } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
-            if (upErr) console.error("[BP02] Auto-save update failed:", upErr);
-          } else {
-            const { error: insErr } = await supabase.from("author_nodes").insert({
-              author_id: authorId,
-              node_id: "BP-02",
-              node_name: "Lead Magnets",
-              ...payload,
-            });
-            if (insErr) console.error("[BP02] Auto-save insert failed:", insErr);
-          }
+          await autosaveBuilderDraft({
+            authorId,
+            nodeId: "BP-02",
+            nodeName: "Lead Magnets",
+            content: { ...data.content, _currentStep: 2 },
+            currentStep: 2,
+            bookId: activeBookId ?? null,
+          });
           console.log("[BP02] Auto-saved draft after generation");
         } catch (saveErr) {
           console.error("[BP02] Auto-save exception:", saveErr);
