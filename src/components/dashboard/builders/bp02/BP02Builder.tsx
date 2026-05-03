@@ -16,10 +16,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { categoryStyles } from "../shared/BuilderTheme";
 import { QRCodeSVG } from "qrcode.react";
 import SocialDistributionPack from "./SocialDistributionPack";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+// Auth + persistence are handled by autosaveBuilderDraft / publishNodeToSite below.
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import { ensureFunnel } from "@/lib/funnel-hook";
 import { toAbbyError } from "@/lib/abby-error";
+import { autosaveBuilderDraft } from "@/lib/builder-autosave";
+import { publishNodeToSite } from "@/lib/publish-node";
 import BuilderIntroBlock, { BP_INTRO_SPECS } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
@@ -201,44 +203,27 @@ export default function BP02Builder({ authorId, bookId }: Props) {
       setContent(data.content);
       setStep(2);
 
-      // Auto-save as draft immediately after generation
+      // Auto-save as draft immediately after generation, via the safe
+      // save-author-node edge function (avoids browser RLS / shared-JWT issues
+      // that were surfacing as the generic "ABBY hit a snag" message).
       if (authorId && data.content) {
         try {
-          const { data: existingNode } = await supabase
-            .from("author_nodes")
-            .select("id, status, activated_at, microsite_url")
-            .eq("author_id", authorId)
-            .eq("node_id", "BP-02")
-            .maybeSingle();
-
-          const nextStatus = existingNode?.status === "live" || !!existingNode?.activated_at || !!existingNode?.microsite_url
-            ? "live" as const
-            : "content_ready" as const;
-          const payload = {
-            content_json: { ...data.content, _currentStep: 2 },
-            current_step: 2,
-            status: nextStatus,
-          };
-
-          if (existingNode) {
-            const { error: upErr } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
-            if (upErr) console.error("[BP02] Auto-save update failed:", upErr);
-          } else {
-            const { error: insErr } = await supabase.from("author_nodes").insert({
-              author_id: authorId,
-              node_id: "BP-02",
-              node_name: "Lead Magnets",
-              ...payload,
-            });
-            if (insErr) console.error("[BP02] Auto-save insert failed:", insErr);
-          }
+          await autosaveBuilderDraft({
+            authorId,
+            nodeId: "BP-02",
+            nodeName: "Lead Magnets",
+            content: { ...data.content, _currentStep: 2 },
+            currentStep: 2,
+            bookId: activeBookId ?? null,
+          });
           console.log("[BP02] Auto-saved draft after generation");
         } catch (saveErr) {
           console.error("[BP02] Auto-save exception:", saveErr);
         }
       }
     } catch (e: any) {
-      setError(e.message);
+      console.error("[BP02] Generate failed:", e);
+      setError(toAbbyError(e?.message || "Generation failed"));
       setStep(0);
     }
   };
@@ -247,37 +232,17 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     if (!authorId || !content) return;
     setIsSavingDraft(true);
     try {
-      const { data: existingNode } = await supabase
-        .from("author_nodes")
-        .select("id, status, activated_at, microsite_url")
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-02")
-        .maybeSingle();
-
-      const nextStatus = existingNode?.status === "live" || !!existingNode?.activated_at || !!existingNode?.microsite_url
-        ? "live" as const
-        : "content_ready" as const;
-      const payload = {
-        content_json: { ...content, _currentStep: step },
-        current_step: step,
-        status: nextStatus,
-      };
-
-      if (existingNode) {
-        const { error: upErr } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
-        if (upErr) throw new Error(upErr.message);
-      } else {
-        const { error: insErr } = await supabase.from("author_nodes").insert({
-          author_id: authorId,
-          node_id: "BP-02",
-          node_name: "Lead Magnets",
-          ...payload,
-        });
-        if (insErr) throw new Error(insErr.message);
-      }
+      await autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-02",
+        nodeName: "Lead Magnets",
+        content: { ...content, _currentStep: step },
+        currentStep: step,
+        bookId: activeBookId ?? null,
+      });
       toast.success("Draft saved!");
     } catch (e: any) {
-      toast.error("Failed to save draft: " + e.message);
+      toast.error(toAbbyError(e?.message || "Failed to save draft"));
     } finally {
       setIsSavingDraft(false);
     }
@@ -290,61 +255,50 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     try {
       const slug = authorSlug || authorName.toLowerCase().replace(/\s+/g, "-");
       const fallbackMicrositeUrl = `${window.location.origin}/${slug}/free-gift`;
-      const token = await getActiveToken();
-      if (!token) throw new Error("Not authenticated");
 
-      // Native activation: write status=live directly. The DB trigger
-      // (author_nodes_autofill_delivery_url) computes the canonical microsite_url.
-      const { data: updated, error: upErr } = await supabase
-        .from("author_nodes")
-        .update({
-          status: "live",
-          activated_at: new Date().toISOString(),
-          content_json: { ...content, publishChannels, _currentStep: 4 },
-        })
-        .eq("author_id", authorId!)
-        .eq("node_id", "BP-02")
-        .select("microsite_url, delivery_url")
-        .maybeSingle();
+      // 1) Persist final content (with publishChannels) via the safe edge function
+      //    so the publish step never races a browser-side RLS write.
+      await autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-02",
+        nodeName: "Lead Magnets",
+        content: { ...content, publishChannels, _currentStep: 4 },
+        currentStep: 4,
+        bookId: activeBookId ?? null,
+      });
 
-      if (upErr) {
-        throw new Error(upErr.message || "Failed to publish your lead magnet.");
-      }
+      // 2) Flip to live via save-author-node:publish (server-side ownership
+      //    check + canonical microsite_url + library_asset stamp).
+      const { micrositeUrl: publishedUrl } = await publishNodeToSite(
+        authorId!,
+        "BP-02",
+        slug,
+        activeBookId ?? null,
+      );
+      const micrositeUrl = publishedUrl ?? fallbackMicrositeUrl;
 
-      const micrositeUrl =
-        (typeof updated?.microsite_url === "string" && updated.microsite_url) ||
-        (typeof updated?.delivery_url === "string" && updated.delivery_url) ||
-        fallbackMicrositeUrl;
-
-      // Push nurture emails to BP-04 (Email Marketing) — only if channel selected
+      // 3) Push nurture emails to BP-04 (Email Marketing) — only if channel selected
       if (publishChannels.emailNurture && (content.nurture_sequence || content.nurture_emails)) {
         const emailContent = content.nurture_sequence || content.nurture_emails;
-        const { data: bp04Node } = await supabase
-          .from("author_nodes")
-          .select("id")
-          .eq("author_id", authorId!)
-          .eq("node_id", "BP-04")
-          .maybeSingle();
-
-        const bp04Payload = {
-          content_json: { nurture_sequence: emailContent, source: "BP-02" },
-          status: "content_ready",
-          personalised_name: "Lead Magnet Nurture Sequence",
-        };
-
-        if (bp04Node) {
-          await supabase.from("author_nodes").update(bp04Payload).eq("id", bp04Node.id);
-        } else {
-          await supabase.from("author_nodes").insert({
-            author_id: authorId!,
-            node_id: "BP-04",
-            node_name: "Email Marketing",
-            ...bp04Payload,
+        try {
+          await autosaveBuilderDraft({
+            authorId: authorId!,
+            nodeId: "BP-04",
+            nodeName: "Email Marketing",
+            content: {
+              nurture_sequence: emailContent,
+              source: "BP-02",
+              personalised_name: "Lead Magnet Nurture Sequence",
+            },
+            currentStep: 0,
+            bookId: activeBookId ?? null,
           });
+        } catch (pushErr) {
+          console.warn("[BP02] BP-04 push failed (non-fatal):", pushErr);
         }
       }
 
-      // Push social posts to BP-03 (Social Media) — only selected platforms
+      // 4) Push social posts to BP-03 (Social Media) — only selected platforms
       const anySocial = publishChannels.linkedin || publishChannels.instagram || publishChannels.facebook || publishChannels.x;
       if (anySocial && (content.social_media_posts || content.social_posts)) {
         const allSocial = content.social_media_posts || content.social_posts;
@@ -362,29 +316,22 @@ export default function BP02Builder({ authorId, bookId }: Props) {
               return key ? publishChannels[key] : false;
             })
           : allSocial;
-
-        const { data: bp03Node } = await supabase
-          .from("author_nodes")
-          .select("id")
-          .eq("author_id", authorId!)
-          .eq("node_id", "BP-03")
-          .maybeSingle();
-
-        const bp03Payload = {
-          content_json: { social_posts: filteredSocial, quiz_insights: content.quiz_insights_for_social, source: "BP-02" },
-          status: "content_ready",
-          personalised_name: "Lead Magnet Social Posts",
-        };
-
-        if (bp03Node) {
-          await supabase.from("author_nodes").update(bp03Payload).eq("id", bp03Node.id);
-        } else {
-          await supabase.from("author_nodes").insert({
-            author_id: authorId!,
-            node_id: "BP-03",
-            node_name: "Social Media",
-            ...bp03Payload,
+        try {
+          await autosaveBuilderDraft({
+            authorId: authorId!,
+            nodeId: "BP-03",
+            nodeName: "Social Media",
+            content: {
+              social_posts: filteredSocial,
+              quiz_insights: content.quiz_insights_for_social,
+              source: "BP-02",
+              personalised_name: "Lead Magnet Social Posts",
+            },
+            currentStep: 0,
+            bookId: activeBookId ?? null,
           });
+        } catch (pushErr) {
+          console.warn("[BP02] BP-03 push failed (non-fatal):", pushErr);
         }
       }
 
@@ -420,8 +367,10 @@ export default function BP02Builder({ authorId, bookId }: Props) {
 
       toast.success("Your lead magnet is live! 🎉");
     } catch (e: any) {
-      toast.error(e.message || "Something went wrong during publishing.");
-      setError(e.message);
+      console.error("[BP02] Publish failed:", e);
+      const friendly = toAbbyError(e?.message || "Publish failed");
+      toast.error(friendly);
+      setError(friendly);
       setStep(3);
     } finally {
       setIsPublishing(false);
@@ -534,17 +483,17 @@ export default function BP02Builder({ authorId, bookId }: Props) {
             onNext={async () => {
               setStep(3);
               if (authorId && content) {
-                const { data: n } = await supabase
-                  .from("author_nodes")
-                  .select("id")
-                  .eq("author_id", authorId)
-                  .eq("node_id", "BP-02")
-                  .maybeSingle();
-                if (n) {
-                  await supabase.from("author_nodes").update({
-                    content_json: { ...content, _currentStep: 3 },
-                    current_step: 3,
-                  }).eq("id", n.id);
+                try {
+                  await autosaveBuilderDraft({
+                    authorId,
+                    nodeId: "BP-02",
+                    nodeName: "Lead Magnets",
+                    content: { ...content, _currentStep: 3 },
+                    currentStep: 3,
+                    bookId: activeBookId ?? null,
+                  });
+                } catch (saveErr) {
+                  console.warn("[BP02] Step transition autosave failed:", saveErr);
                 }
               }
             }}
