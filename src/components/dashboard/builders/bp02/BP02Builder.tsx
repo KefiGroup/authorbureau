@@ -94,7 +94,8 @@ export default function BP02Builder({ authorId, bookId }: Props) {
   const [publishChannels, setPublishChannels] = useState<PublishChannels>({ ...DEFAULT_CHANNELS });
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { user: authUser, isReady: isAuthReady } = useAuthReady();
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
 
   useEffect(() => {
     if (!isAuthReady) return; // Wait for auth session to restore
@@ -103,6 +104,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
       return;
     }
 
+    let cancelled = false;
     (async () => {
       try {
         const { data: profile, error: profileErr } = await supabase
@@ -111,38 +113,57 @@ export default function BP02Builder({ authorId, bookId }: Props) {
           .eq("id", authorId)
           .maybeSingle();
 
-        console.log("[BP02] Profile load:", { authorId, profile: !!profile, profileErr });
-
         if (profileErr) {
           console.error("[BP02] Profile query failed (RLS?):", profileErr.message);
         }
 
-        if (profile) {
+        if (!cancelled && profile) {
           setAuthorName(profile.pen_name || "there");
           setAuthorSlug(profile.author_slug || (profile.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
         }
 
         const { resolveBookTitle } = await import("@/lib/resolve-book-title");
-        const _title = await resolveBookTitle(authorId, bookId ?? null, profile?.user_id);
-        if (_title) {
-          setBookTitle(_title);
-          setHasContext(true);
-        } else {
-          setHasContext(false);
+        const _title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
+        if (!cancelled) {
+          if (_title) {
+            setBookTitle(_title);
+            setHasContext(true);
+          } else {
+            setHasContext(false);
+          }
         }
 
-        const { data: node, error: nodeErr } = await supabase
+        // Resume order (BP-06 reference pattern):
+        //   1. loadBuilderDraft (safe edge-function path, per-book scoped)
+        //   2. Direct author_nodes read as a fallback for legacy rows
+        const draft = await loadBuilderDraft(authorId, "BP-02", activeBookId);
+        if (cancelled) return;
+        if (draft.content) {
+          const savedContent = draft.content as any;
+          const savedChannels = savedContent?.publishChannels;
+          if (savedChannels) setPublishChannels(savedChannels);
+          if (draft.isLive) {
+            setContent({ ...savedContent, activated: true });
+            setStep(4);
+            setLiveUrl(draft.micrositeUrl || null);
+          } else {
+            setContent(savedContent);
+            setStep(Math.max(draft.currentStep, 2) >= 3 ? 3 : 2);
+          }
+          // Successful resume — clear any stale snag banner.
+          setError(null);
+          return;
+        }
+
+        let nodeQuery = supabase
           .from("author_nodes")
           .select("content_json, status, microsite_url, activated_at, current_step")
           .eq("author_id", authorId)
-          .eq("node_id", "BP-02")
-          .maybeSingle();
-
-        console.log("[BP02] Node load:", { authorId, nodeStatus: node?.status, hasContent: !!node?.content_json, nodeErr });
-
-        if (nodeErr) {
-          console.error("[BP02] Node query failed (RLS?):", nodeErr.message);
-        }
+          .eq("node_id", "BP-02");
+        if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
+        const { data: node, error: nodeErr } = await nodeQuery.maybeSingle();
+        if (nodeErr) console.error("[BP02] Node query failed (RLS?):", nodeErr.message);
+        if (cancelled) return;
 
         if (node?.content_json) {
           const savedContent = node.content_json as any;
@@ -159,15 +180,19 @@ export default function BP02Builder({ authorId, bookId }: Props) {
           } else {
             setStep(savedStep >= 3 ? 3 : 2);
           }
+          setError(null);
         } else {
           setStep(0);
         }
       } catch (err) {
         console.error("[BP02] Init effect error:", err);
-        setStep(0);
+        if (!cancelled) setStep(0);
       }
     })();
-  }, [authorId, isAuthReady]);
+    return () => {
+      cancelled = true;
+    };
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 4 && !content?.activated)) {
@@ -181,8 +206,6 @@ export default function BP02Builder({ authorId, bookId }: Props) {
   }, [step]);
 
   const [contextBlocked, setContextBlocked] = useState(false);
-  const { bookId: hookBookId } = useAuthorBook();
-  const activeBookId = bookId ?? hookBookId ?? null;
 
   const handleGenerate = async () => {
     setStep(1);
