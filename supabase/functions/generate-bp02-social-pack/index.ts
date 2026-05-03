@@ -44,12 +44,13 @@ serve(async (req) => {
       ? JSON.stringify(context.target_audience_persona)
       : "readers";
 
-    const { data: node } = await supabase
+    let nodeQuery = supabase
       .from("author_nodes")
-      .select("content_json, microsite_url")
+      .select("content_json, microsite_url, book_id")
       .eq("author_id", author_id)
-      .eq("node_id", "BP-02")
-      .single();
+      .eq("node_id", "BP-02");
+    if (bookId) nodeQuery = nodeQuery.eq("book_id", bookId);
+    const { data: node } = await nodeQuery.maybeSingle();
 
     const contentJson = node?.content_json as any;
     if (!contentJson) throw new Error("No BP-02 content found. Build your lead magnet first.");
