@@ -503,8 +503,10 @@ export default function BP02Builder({ authorId, bookId }: Props) {
             setContent={setContent}
             authorName={authorName}
             authorId={authorId!}
+            bookId={activeBookId}
             onNext={async () => {
               setStep(3);
+              setError(null);
               if (authorId && content) {
                 try {
                   await autosaveBuilderDraft({
@@ -521,7 +523,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
               }
             }}
             onSaveDraft={handleSaveDraft}
-            error={toAbbyError(error)}
+            error={error ? toAbbyError(error) : null}
             isSavingDraft={isSavingDraft}
           />
         )}
@@ -532,11 +534,11 @@ export default function BP02Builder({ authorId, bookId }: Props) {
             publishChannels={publishChannels}
             setPublishChannels={setPublishChannels}
             onPublish={handlePublish}
-            onBack={() => setStep(2)}
+            onBack={() => { setStep(2); setError(null); }}
             onSaveDraft={handleSaveDraft}
             isPublishing={isPublishing}
             isSavingDraft={isSavingDraft}
-            error={toAbbyError(error)}
+            error={error ? toAbbyError(error) : null}
           />
         )}
 
