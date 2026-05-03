@@ -687,6 +687,7 @@ function ReviewStep({
   authorId,
   onNext,
   onSaveDraft,
+  onSocialPackPersist,
   error,
   isSavingDraft,
   bookId,
@@ -698,6 +699,7 @@ function ReviewStep({
   bookId: string | null;
   onNext: () => void;
   onSaveDraft: () => void;
+  onSocialPackPersist: (socialPack: any) => Promise<void>;
   error: string | null;
   isSavingDraft?: boolean;
 }) {
