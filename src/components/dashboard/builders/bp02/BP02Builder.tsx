@@ -664,11 +664,13 @@ function ReviewStep({
   onSaveDraft,
   error,
   isSavingDraft,
+  bookId,
 }: {
   content: any;
   setContent: (c: any) => void;
   authorName: string;
   authorId: string;
+  bookId: string | null;
   onNext: () => void;
   onSaveDraft: () => void;
   error: string | null;
@@ -694,7 +696,9 @@ function ReviewStep({
 
   const headlineVariants = content.headline_variants || content.optin_page?.headline_variants || [];
 
-  // Auto-save edits to author_nodes.content_json (debounced)
+  // Auto-save edits via the safe save-author-node edge function (debounced).
+  // Previously this hit `author_nodes` directly from the browser, which races
+  // against shared-backend RLS and surfaced as "ABBY hit a snag".
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
@@ -704,18 +708,14 @@ function ReviewStep({
     saveTimerRef.current = setTimeout(async () => {
       try {
         setSavingEdit(true);
-        const { data: existingNode } = await supabase
-          .from("author_nodes")
-          .select("id")
-          .eq("author_id", authorId)
-          .eq("node_id", "BP-02")
-          .maybeSingle();
-        if (existingNode) {
-          await supabase
-            .from("author_nodes")
-            .update({ content_json: nextContent })
-            .eq("id", existingNode.id);
-        }
+        await autosaveBuilderDraft({
+          authorId,
+          nodeId: "BP-02",
+          nodeName: "Lead Magnets",
+          content: nextContent,
+          currentStep: 2,
+          bookId: bookId ?? null,
+        });
         setSavedAt(Date.now());
       } catch (e) {
         console.error("[BP02] Auto-save failed:", e);
@@ -724,7 +724,7 @@ function ReviewStep({
         setSavingEdit(false);
       }
     }, 700);
-  }, [authorId]);
+  }, [authorId, bookId]);
 
   const updateField = useCallback((path: (string | number)[], value: any) => {
     setContent((prev: any) => {
