@@ -482,17 +482,17 @@ export default function BP02Builder({ authorId, bookId }: Props) {
             onNext={async () => {
               setStep(3);
               if (authorId && content) {
-                const { data: n } = await supabase
-                  .from("author_nodes")
-                  .select("id")
-                  .eq("author_id", authorId)
-                  .eq("node_id", "BP-02")
-                  .maybeSingle();
-                if (n) {
-                  await supabase.from("author_nodes").update({
-                    content_json: { ...content, _currentStep: 3 },
-                    current_step: 3,
-                  }).eq("id", n.id);
+                try {
+                  await autosaveBuilderDraft({
+                    authorId,
+                    nodeId: "BP-02",
+                    nodeName: "Lead Magnets",
+                    content: { ...content, _currentStep: 3 },
+                    currentStep: 3,
+                    bookId: activeBookId ?? null,
+                  });
+                } catch (saveErr) {
+                  console.warn("[BP02] Step transition autosave failed:", saveErr);
                 }
               }
             }}
