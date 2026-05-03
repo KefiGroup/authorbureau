@@ -13,8 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, book_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
+    const bookId: string | null = book_id ?? null;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
