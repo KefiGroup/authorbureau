@@ -547,6 +547,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
               }
             }}
             onSaveDraft={handleSaveDraft}
+            onSocialPackPersist={handleSocialPackLoaded}
             error={error ? toAbbyError(error) : null}
             isSavingDraft={isSavingDraft}
           />
