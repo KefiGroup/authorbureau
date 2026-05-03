@@ -231,37 +231,17 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     if (!authorId || !content) return;
     setIsSavingDraft(true);
     try {
-      const { data: existingNode } = await supabase
-        .from("author_nodes")
-        .select("id, status, activated_at, microsite_url")
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-02")
-        .maybeSingle();
-
-      const nextStatus = existingNode?.status === "live" || !!existingNode?.activated_at || !!existingNode?.microsite_url
-        ? "live" as const
-        : "content_ready" as const;
-      const payload = {
-        content_json: { ...content, _currentStep: step },
-        current_step: step,
-        status: nextStatus,
-      };
-
-      if (existingNode) {
-        const { error: upErr } = await supabase.from("author_nodes").update(payload).eq("id", existingNode.id);
-        if (upErr) throw new Error(upErr.message);
-      } else {
-        const { error: insErr } = await supabase.from("author_nodes").insert({
-          author_id: authorId,
-          node_id: "BP-02",
-          node_name: "Lead Magnets",
-          ...payload,
-        });
-        if (insErr) throw new Error(insErr.message);
-      }
+      await autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-02",
+        nodeName: "Lead Magnets",
+        content: { ...content, _currentStep: step },
+        currentStep: step,
+        bookId: activeBookId ?? null,
+      });
       toast.success("Draft saved!");
     } catch (e: any) {
-      toast.error("Failed to save draft: " + e.message);
+      toast.error(toAbbyError(e?.message || "Failed to save draft"));
     } finally {
       setIsSavingDraft(false);
     }
