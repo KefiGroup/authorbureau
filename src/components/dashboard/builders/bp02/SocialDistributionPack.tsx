@@ -8,8 +8,16 @@ import { Sparkles, Copy, Loader2, Linkedin, Instagram, Facebook, Twitter, Mail, 
 
 interface Props {
   authorId: string;
+  bookId?: string | null;
   content: any | null;
   onContentLoaded: (content: any) => void;
+  /**
+   * Persistence contract: any builder embedding this component MUST pass
+   * onPersist to write the generated pack into author_nodes.content_json
+   * (typically via autosaveBuilderDraft). Without it, the pack lives only
+   * in React state and is lost on navigation. See BP-02 for reference.
+   */
+  onPersist?: (content: any) => Promise<void> | void;
 }
 
 function CopyButton({ text }: { text: string }) {
