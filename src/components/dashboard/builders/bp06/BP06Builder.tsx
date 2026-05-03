@@ -119,7 +119,17 @@ export default function BP06Builder({ authorId, bookId }: Props) {
           if (book?.title) setResolvedBookTitle(book.title);
         }
       }
-      // Hydrate from author_nodes first; fall back to draft store so half-edited drafts survive a refresh.
+      // Resume order:
+      //   1. loadBuilderDraft (safe, edge-function path — works under both
+      //      project-local and shared-backend auth)
+      //   2. Direct author_nodes read as a fallback (legacy rows that may not
+      //      have been touched by the autosave pipeline yet)
+      const draft = await loadBuilderDraft(authorId, "BP-06", activeBookId);
+      if (draft.content) {
+        setContent(draft.content);
+        setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
+        return;
+      }
       let nodeQuery = supabase
         .from("author_nodes")
         .select("content_json, status")
@@ -131,12 +141,6 @@ export default function BP06Builder({ authorId, bookId }: Props) {
         const baseContent = node.content_json as Record<string, unknown>;
         setContent(node.status === "live" ? { ...baseContent, activated: true } : baseContent);
         setStep(node.status === "live" ? 3 : 2);
-        return;
-      }
-      const draft = await loadBuilderDraft(authorId, "BP-06", activeBookId);
-      if (draft.content) {
-        setContent(draft.content);
-        setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
       }
     })();
   }, [authorId, activeBookId]);
@@ -830,14 +834,10 @@ function WorkbookDocxImporter({ authorId, bookId, content, setContent }: Importe
       const merged = { ...content, ...patch };
       setContent(merged);
       if (authorId) {
+        // Single canonical save path — autosaveBuilderDraft routes through
+        // save-author-node (service role + per-book scope) so we no longer
+        // need a second direct author_nodes write.
         await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: merged, currentStep: 2, bookId: bookId ?? null });
-        let q = supabase
-          .from("author_nodes")
-          .update({ content_json: merged, personalised_name: merged.workbook_title })
-          .eq("author_id", authorId)
-          .eq("node_id", "BP-06");
-        q = bookId ? q.eq("book_id", bookId) : q.is("book_id", null);
-        await q;
       }
       toast.success("Workbook updated from your Word edits.");
     } catch (e) {
