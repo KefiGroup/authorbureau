@@ -222,7 +222,8 @@ export default function BP02Builder({ authorId, bookId }: Props) {
         }
       }
     } catch (e: any) {
-      setError(e.message);
+      console.error("[BP02] Generate failed:", e);
+      setError(toAbbyError(e?.message || "Generation failed"));
       setStep(0);
     }
   };
