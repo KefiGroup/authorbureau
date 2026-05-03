@@ -1302,10 +1302,10 @@ function ReviewStep({
           </div>
           <SocialDistributionPack
             authorId={authorId}
-            bookId={activeBookId}
+            bookId={bookId}
             content={content?.social_pack || null}
-            onContentLoaded={handleSocialPackLoaded}
-            onPersist={handleSocialPackLoaded}
+            onContentLoaded={(socialPack) => setContent({ ...(content || {}), social_pack: socialPack })}
+            onPersist={onSocialPackPersist}
           />
         </TabsContent>
 
