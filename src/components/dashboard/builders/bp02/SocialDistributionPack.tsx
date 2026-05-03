@@ -8,8 +8,16 @@ import { Sparkles, Copy, Loader2, Linkedin, Instagram, Facebook, Twitter, Mail, 
 
 interface Props {
   authorId: string;
+  bookId?: string | null;
   content: any | null;
   onContentLoaded: (content: any) => void;
+  /**
+   * Persistence contract: any builder embedding this component MUST pass
+   * onPersist to write the generated pack into author_nodes.content_json
+   * (typically via autosaveBuilderDraft). Without it, the pack lives only
+   * in React state and is lost on navigation. See BP-02 for reference.
+   */
+  onPersist?: (content: any) => Promise<void> | void;
 }
 
 function CopyButton({ text }: { text: string }) {
@@ -53,17 +61,24 @@ function PostCard({ caption, hashtags, label }: { caption: string; hashtags?: st
   );
 }
 
-export default function SocialDistributionPack({ authorId, content, onContentLoaded }: Props) {
+export default function SocialDistributionPack({ authorId, bookId, content, onContentLoaded, onPersist }: Props) {
   const [generating, setGenerating] = useState(false);
 
   const handleGenerate = async () => {
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke("generate-bp02-social-pack", {
-        body: { author_id: authorId },
+        body: { author_id: authorId, book_id: bookId ?? null },
       });
       if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
       onContentLoaded(data.content);
+      try {
+        await onPersist?.(data.content);
+      } catch (persistErr: any) {
+        console.error("[SocialDistributionPack] persist failed:", persistErr);
+        toast.error("Generated, but failed to save: " + (persistErr?.message || "unknown error"));
+        return;
+      }
       toast.success("Social media pack generated!");
     } catch (e: any) {
       toast.error(e.message);

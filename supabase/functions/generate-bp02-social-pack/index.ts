@@ -13,8 +13,9 @@ serve(async (req) => {
   }
 
   try {
-    const { author_id } = await req.json();
+    const { author_id, book_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
+    const bookId: string | null = book_id ?? null;
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -43,12 +44,13 @@ serve(async (req) => {
       ? JSON.stringify(context.target_audience_persona)
       : "readers";
 
-    const { data: node } = await supabase
+    let nodeQuery = supabase
       .from("author_nodes")
-      .select("content_json, microsite_url")
+      .select("content_json, microsite_url, book_id")
       .eq("author_id", author_id)
-      .eq("node_id", "BP-02")
-      .single();
+      .eq("node_id", "BP-02");
+    if (bookId) nodeQuery = nodeQuery.eq("book_id", bookId);
+    const { data: node } = await nodeQuery.maybeSingle();
 
     const contentJson = node?.content_json as any;
     if (!contentJson) throw new Error("No BP-02 content found. Build your lead magnet first.");
@@ -167,19 +169,28 @@ Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the
       }
     }
 
-    // Store in cross_builder_pushes
-    const { data: bookData } = await supabase
-      .from("books")
-      .select("id")
-      .eq("author_id", author?.user_id || author_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // Persist social_pack into author_nodes.content_json so it survives reloads.
+    try {
+      const mergedContent = { ...(contentJson || {}), social_pack: parsedContent };
+      let updateQuery = supabase
+        .from("author_nodes")
+        .update({ content_json: mergedContent })
+        .eq("author_id", author_id)
+        .eq("node_id", "BP-02");
+      if (bookId) updateQuery = updateQuery.eq("book_id", bookId);
+      const { error: updErr } = await updateQuery;
+      if (updErr) console.warn("[generate-bp02-social-pack] persist social_pack failed:", updErr.message);
+    } catch (persistErr) {
+      console.warn("[generate-bp02-social-pack] persist social_pack threw:", persistErr);
+    }
 
-    if (bookData?.id) {
+    // Store in cross_builder_pushes
+    const effectiveBookId = bookId || node?.book_id || null;
+
+    if (effectiveBookId) {
       await supabase.from("cross_builder_pushes").insert({
         author_id,
-        book_id: bookData.id,
+        book_id: effectiveBookId,
         source_builder: "lead-magnet",
         destination_builder: "social-media",
         push_type: "social-distribution-pack",

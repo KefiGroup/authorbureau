@@ -271,6 +271,30 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     }
   };
 
+  // Persist a generated social pack to author_nodes.content_json so it
+  // survives navigation. Without this, the pack lives only in React state
+  // and gets dropped on remount (the bug you saw on the Share tab).
+  const handleSocialPackLoaded = useCallback(
+    async (socialPack: any) => {
+      setContent((prev: any) => ({ ...(prev || {}), social_pack: socialPack }));
+      if (!authorId) return;
+      try {
+        await autosaveBuilderDraft({
+          authorId,
+          nodeId: "BP-02",
+          nodeName: "Lead Magnets",
+          content: { ...(content || {}), social_pack: socialPack, _currentStep: step },
+          currentStep: step,
+          bookId: activeBookId ?? null,
+        });
+      } catch (e) {
+        console.error("[BP02] Persist social pack failed:", e);
+        throw e;
+      }
+    },
+    [authorId, content, step, activeBookId],
+  );
+
   const handlePublish = async () => {
     setIsPublishing(true);
     setStep(4);
@@ -523,6 +547,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
               }
             }}
             onSaveDraft={handleSaveDraft}
+            onSocialPackPersist={handleSocialPackLoaded}
             error={error ? toAbbyError(error) : null}
             isSavingDraft={isSavingDraft}
           />
@@ -662,6 +687,7 @@ function ReviewStep({
   authorId,
   onNext,
   onSaveDraft,
+  onSocialPackPersist,
   error,
   isSavingDraft,
   bookId,
@@ -673,6 +699,7 @@ function ReviewStep({
   bookId: string | null;
   onNext: () => void;
   onSaveDraft: () => void;
+  onSocialPackPersist: (socialPack: any) => Promise<void>;
   error: string | null;
   isSavingDraft?: boolean;
 }) {
@@ -1275,8 +1302,10 @@ function ReviewStep({
           </div>
           <SocialDistributionPack
             authorId={authorId}
+            bookId={bookId}
             content={content?.social_pack || null}
-            onContentLoaded={(socialPack) => setContent({ ...content, social_pack: socialPack })}
+            onContentLoaded={(socialPack) => setContent({ ...(content || {}), social_pack: socialPack })}
+            onPersist={onSocialPackPersist}
           />
         </TabsContent>
 
