@@ -331,30 +331,30 @@ function renderCaseStudy(ctx: RenderCtx) {
     fontFace: FONT_HEAD, fontSize: 26, bold: true, color: C.ink,
   });
   const rows = [
-    { label: "THE CHALLENGE", text: s.case?.challenge || "", bg: C.ice, fg: C.navy },
-    { label: "THE MOVE", text: s.case?.move || "", bg: C.paper, fg: C.ink, border: true },
-    { label: "THE RESULT", text: s.case?.result || "", bg: C.navy, fg: C.paper },
+    { label: "THE CHALLENGE", text: s.case?.challenge || "", bg: C.ice, fg: C.navy, labelColor: C.coral },
+    { label: "THE MOVE", text: s.case?.move || "", bg: C.paper, fg: C.ink, border: true, labelColor: C.coral },
+    { label: "THE RESULT", text: s.case?.result || "", bg: C.navy, fg: C.paper, labelColor: C.coral },
   ];
   const startY = 2.5;
-  const rowH = 1.4;
+  const rowH = 1.35;
   rows.forEach((r, i) => {
-    const y = startY + i * (rowH + 0.15);
+    const y = startY + i * (rowH + 0.12);
     slide.addShape("rect", {
       x: 0.6, y, w: 12.13, h: rowH,
       fill: { color: r.bg },
       line: r.border ? { color: C.ice, width: 1 } : { color: r.bg },
     });
     if (i === 2) {
-      // Coral accent strip on result
       slide.addShape("rect", { x: 0.6, y, w: 0.12, h: rowH, fill: { color: C.coral }, line: { color: C.coral } });
     }
+    // Label stacked ABOVE body (not side-by-side) so wrapping body never overlaps it
     slide.addText(r.label, {
-      x: 0.95, y: y + 0.15, w: 2.5, h: 0.4,
-      fontFace: FONT_HEAD, fontSize: 11, bold: true, color: i === 2 ? C.coral : C.coral, charSpacing: 3,
+      x: 0.95, y: y + 0.12, w: 11.0, h: 0.3,
+      fontFace: FONT_HEAD, fontSize: 10, bold: true, color: r.labelColor, charSpacing: 3,
     });
     slide.addText(r.text, {
-      x: 3.6, y: y + 0.15, w: 9.0, h: rowH - 0.3,
-      fontFace: FONT_BODY, fontSize: 14, color: r.fg, valign: "middle",
+      x: 0.95, y: y + 0.45, w: 11.0, h: rowH - 0.5,
+      fontFace: FONT_BODY, fontSize: 14, color: r.fg, valign: "top",
     });
   });
   addFooter(ctx);
