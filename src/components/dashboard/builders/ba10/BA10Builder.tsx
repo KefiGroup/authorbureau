@@ -63,7 +63,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
       }
           setHydrated(true);
 })();
-  }, [authorId, isAuthReady]);
+  }, [authorId, isAuthReady, bookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {

@@ -1,78 +1,42 @@
-# Bug: Bulk proposal (and other exports) download wrong book's content
+## Scope
 
-## What you're seeing
-You're on **Be Suckcessful** in BP-09. You click *Download HTML/PDF* on the Bulk-order proposal and the file contains **Invest Like Buffett for Parents** content (different book on your account).
+Three bugs from the audit report, strictly within BA-10 → BA-12.
 
-## Root cause
-This is a Builder Book Resolution violation in 4 export edge functions plus 3 frontend call sites. The exports completely ignore which book you have open and instead grab the **most recently created** book on your account.
+## Bug 1 — BA-10 refresh-safety (Critical)
 
-Specifically, every one of these functions does:
+**File:** `src/components/dashboard/builders/ba10/BA10Builder.tsx`
 
-```ts
-// WRONG — picks newest book regardless of what user is viewing
-author_context ... eq("author_id", author_id).order("created_at", desc).limit(1)
-author_nodes   ... eq("author_id", author_id).eq("node_id", "BP-09").single()
+The hydration `useEffect` (line ~43) reads the draft and restores `_currentStep`, but its dependency array is `[authorId, isAuthReady]` — missing `bookId`. When the active book changes (or the URL `bookId` param hydrates after first render), the effect doesn't re-run, so the builder stays on Step 0 with stale state.
+
+**Fix:** Add `bookId` to the dependency array so the effect re-fires when the book context changes, re-loading the correct draft and restoring the saved step.
+
+## Bug 2 — Step 4 label inconsistency (Minor, platform-wide)
+
+**File:** `src/components/dashboard/builders/shared/CategoryBuilderShared.tsx` (line 8)
+
+The shared `STEPS` array used by all BA-/YR- builders reads:
 ```
-
-`author_nodes` already has a `book_id` column (confirmed). The exports just aren't filtering on it, and the frontend isn't even sending `book_id` for 3 of the 4 calls. *Invest Like Buffett* was your most recent book, so it always wins.
-
-## Fix (5 small, surgical edits)
-
-### 1. Frontend — send `book_id` (3 call sites, 1-line each)
-
-**`src/components/dashboard/builders/bp09/BP09Builder.tsx`**
-- `downloadDoc(...)` (line ~216): add `book_id: bookId` to the JSON body
-- `generateSlides(...)`: same — add `book_id: bookId` to body
-
-**`src/components/dashboard/builders/bp08/BP08Builder.tsx`**
-- `downloadEditionsDocx()` (line 291): add `book_id: activeBookId`
-- `downloadOrderForm()` (line 320): add `book_id: activeBookId`
-
-### 2. Backend — resolve by `book_id` (4 edge functions)
-
-In each of:
-- `supabase/functions/export-bp09-handout/index.ts`
-- `supabase/functions/export-bp09-slides/index.ts`
-- `supabase/functions/export-bp08-editions-docx/index.ts`
-- `supabase/functions/export-bp08-order-form/index.ts`
-
-Replace the two queries with book-scoped versions:
-
-```ts
-const { author_id, book_id /*, ...existing*/ } = await req.json();
-
-// Title: prefer per-book author_context, fall back to books table
-let bookTitle = "Your Book";
-if (book_id) {
-  const { data: ctx } = await supabase
-    .from("author_context").select("book_title")
-    .eq("author_id", author_id).eq("book_id", book_id).maybeSingle();
-  if (ctx?.book_title) bookTitle = ctx.book_title;
-  else {
-    const { data: bk } = await supabase
-      .from("books").select("title").eq("id", book_id).maybeSingle();
-    if (bk?.title) bookTitle = bk.title;
-  }
-}
-
-// Node content: scope to this book
-let nodeQuery = supabase.from("author_nodes")
-  .select("content_json")
-  .eq("author_id", author_id)
-  .eq("node_id", NODE_ID);
-if (book_id) nodeQuery = nodeQuery.eq("book_id", book_id);
-const { data: node } = await nodeQuery.maybeSingle();
-if (!node?.content_json) throw new Error(`${NODE_ID} content not found for this book`);
+["Introduction", "Generating", "Review", "Activate"]
 ```
+But the actual action button on Step 3 says **"Publish to My Site"** (confirmed in both BA-10 line 240 and BA-12 line 224).
 
-Backwards compatible: if an old client sends no `book_id`, behaviour is unchanged (falls back to current "latest" logic), so no broken downloads during the rollout.
+**Fix:** Change the stepper label from `"Activate"` to `"Publish"` so the stepper word matches the button verb. (Using "Publish" rather than "Publish to My Site" keeps the stepper compact on mobile.)
 
-### 3. Deploy the 4 edge functions
+## Bug 3 — BA-12 intro CTA click interception (Minor)
 
-`export-bp09-handout`, `export-bp09-slides`, `export-bp08-editions-docx`, `export-bp08-order-form`.
+**File:** `src/components/dashboard/builders/ba12/BA12Builder.tsx` (line 134)
 
-## Verification
-After deploy, on the **Be Suckcessful** book, click *Download HTML/PDF* on the Bulk-order proposal — the file should contain Be Suckcessful tiers, not Invest Like Buffett. Repeat the test from the Invest Like Buffett book to confirm the other direction still works.
+The "Design My Membership" button on the Step 0 intro card sits in the same screen region as the floating ABBY chat widget. Per the audit, the chat widget overlay can intercept clicks on this CTA.
+
+**Fix:** Add `relative z-20` to the intro CTA's wrapping element so it sits above the chat widget's overlay layer. Pure CSS change, no behavioural impact.
 
 ## Out of scope
-No DB migration, no canonical-label change, no schema change. Pure data-scoping fix.
+
+BA-11 (no confirmed bugs in the report), node-count discussion, and any other nodes. Nothing else will be touched.
+
+## Verification
+
+After changes:
+1. Open BA-10 with a draft → refresh → should land on Step 2 (Review), not Step 0.
+2. Open any BA-/YR- node → stepper Step 4 reads "Publish".
+3. Open BA-12 intro → click "Design My Membership" → fires reliably even with chat widget visible.

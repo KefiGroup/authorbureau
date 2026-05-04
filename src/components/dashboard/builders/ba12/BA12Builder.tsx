@@ -131,7 +131,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
             ) : !isIntroReady ? (
               <p className="text-muted-foreground mb-4">Loading your book details…</p>
             ) : (
-              <><p className="text-muted-foreground mb-4">Hi {authorName}! A membership community gives you recurring monthly income from your most engaged readers. I'll design a membership programme based on '{displayBookTitle}' — with tiers, benefits, and a content calendar. Ready?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Membership</Button></>
+              <><p className="text-muted-foreground mb-4">Hi {authorName}! A membership community gives you recurring monthly income from your most engaged readers. I'll design a membership programme based on '{displayBookTitle}' — with tiers, benefits, and a content calendar. Ready?</p><div className="relative z-20"><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}><Sparkles className="h-4 w-4 mr-2" /> Design My Membership</Button></div></>
             )}
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
