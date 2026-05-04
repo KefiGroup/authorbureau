@@ -278,6 +278,61 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     }
   };
 
+  const downloadEditionsDocx = async () => {
+    if (!authorId) return;
+    setDownloading("docx");
+    try {
+      const token = await getActiveToken();
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bp08-editions-docx`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ author_id: authorId }),
+        },
+        60_000,
+      );
+      const data = await res.json();
+      if (!data?.success) throw new Error(data?.error || "Export failed");
+      const binary = atob(data.base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = data.filename; a.click();
+      URL.revokeObjectURL(url);
+      toast.success("DOCX downloaded");
+    } catch (e: any) {
+      toast.error(toAbbyError(e?.message || "Download failed"));
+    } finally { setDownloading(null); }
+  };
+
+  const downloadOrderForm = async () => {
+    if (!authorId) return;
+    setDownloading("orderform");
+    try {
+      const token = await getActiveToken();
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bp08-order-form`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ author_id: authorId }),
+        },
+        60_000,
+      );
+      const data = await res.json();
+      if (!data?.success) throw new Error(data?.error || "Export failed");
+      const blob = new Blob([data.html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = data.filename; a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Order form downloaded — open in browser to print");
+    } catch (e: any) {
+      toast.error(toAbbyError(e?.message || "Download failed"));
+    } finally { setDownloading(null); }
+  };
+
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
   return (
