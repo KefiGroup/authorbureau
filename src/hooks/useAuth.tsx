@@ -259,36 +259,82 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
-    let sessionResolved = false;
+    // Safari race fix: on a deep-link refresh, onAuthStateChange fires
+    // INITIAL_SESSION with `null` BEFORE getSharedSession() has had a chance
+    // to read the sessionStorage fallback and call setSession (which would
+    // then fire a second auth event with the real user). If we apply that
+    // first null snapshot eagerly, every protected page mounts with
+    // user=null, runs its data effect against no session, and renders an
+    // empty / "complete your profile" state.
+    //
+    // Hold loading until BOTH async paths have reported. If either delivers
+    // a session, apply it. Only mark signed-out when BOTH report null
+    // (or the 8s safety timeout fires).
+    let initialEventSession: Session | null = null;
+    let initialEventArrived = false;
+    let restoreSession: Session | null = null;
+    let restoreSettled = false;
+    let applied = false;
+
+    const settle = () => {
+      if (applied) return;
+      if (!initialEventArrived || !restoreSettled) return;
+      applied = true;
+      const winner = initialEventSession ?? restoreSession ?? null;
+      applySessionSnapshot(winner);
+    };
 
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       (event, nextSession) => {
+        if (!applied) {
+          if (event === "INITIAL_SESSION") {
+            initialEventArrived = true;
+            initialEventSession = nextSession ?? null;
+            settle();
+            return;
+          }
+          // A non-INITIAL event with a real session means restore beat us
+          // to the punch — apply immediately and stop waiting.
+          if (nextSession) {
+            applied = true;
+            initialEventArrived = true;
+            restoreSettled = true;
+            applySessionSnapshot(nextSession);
+            return;
+          }
+        }
+
+        // After the initial gate has settled, behave normally:
+        // ignore the stale empty INITIAL_SESSION echo, otherwise apply.
         if (event === "INITIAL_SESSION" && !nextSession?.user && latestUserRef.current) {
           return;
         }
-
-        sessionResolved = true;
-        window.setTimeout(() => {
-          applySessionSnapshot(nextSession);
-        }, 0);
+        window.setTimeout(() => applySessionSnapshot(nextSession), 0);
       }
     );
 
     getSharedSession().then((session) => {
-      sessionResolved = true;
-      applySessionSnapshot(session);
+      restoreSession = session;
+      restoreSettled = true;
+      if (!applied && session) {
+        // We have a real session in hand — apply it now without waiting
+        // for the (possibly null) INITIAL_SESSION echo.
+        applied = true;
+        applySessionSnapshot(session);
+        return;
+      }
+      settle();
     }).catch(() => {
-      sessionResolved = true;
-      setAuthLoading(false);
+      restoreSettled = true;
+      settle();
     });
 
-    // Safety timeout: only fire if session restoration genuinely stalled.
-    // Bumped to 8s for Safari, where cross-domain cookie/localStorage reads
-    // can outrun the previous 3s budget and falsely flip loading→false
-    // while the user is still null (causing protected routes to bounce
-    // to /auth and lose the deep link).
+    // Safety net: if neither path reports within 8s (Safari cold cache),
+    // give up waiting and apply whatever we have (likely null → /auth).
     const timeout = window.setTimeout(() => {
-      if (!sessionResolved) setAuthLoading(false);
+      if (applied) return;
+      applied = true;
+      applySessionSnapshot(initialEventSession ?? restoreSession ?? null);
     }, 8000);
 
     return () => {
