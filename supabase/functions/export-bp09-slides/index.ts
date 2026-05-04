@@ -120,8 +120,8 @@ function addEyebrow(slide: any, text: string, x: number, y: number, color = C.co
 function renderTitle(ctx: RenderCtx) {
   const { slide, s } = ctx;
   slide.background = { color: C.navy };
-  // Coral underline
-  slide.addShape("rect", { x: 0.8, y: 4.15, w: 1.2, h: 0.08, fill: { color: C.coral }, line: { color: C.coral } });
+  // Coral accent bar ABOVE the eyebrow (does not collide with wrapping headline)
+  slide.addShape("rect", { x: 0.8, y: 2.4, w: 1.2, h: 0.08, fill: { color: C.coral }, line: { color: C.coral } });
   if (s.eyebrow) {
     slide.addText(s.eyebrow.toUpperCase(), {
       x: 0.8, y: 2.6, w: 11, h: 0.4,
@@ -129,12 +129,12 @@ function renderTitle(ctx: RenderCtx) {
     });
   }
   slide.addText(s.headline || ctx.bookTitle, {
-    x: 0.8, y: 3.05, w: 11.5, h: 1.1,
-    fontFace: FONT_HEAD, fontSize: 48, bold: true, color: C.paper,
+    x: 0.8, y: 3.1, w: 11.7, h: 2.2,
+    fontFace: FONT_HEAD, fontSize: 40, bold: true, color: C.paper, valign: "top",
   });
   if (s.subhead) {
     slide.addText(s.subhead, {
-      x: 0.8, y: 4.35, w: 11.5, h: 0.6,
+      x: 0.8, y: 5.4, w: 11.5, h: 0.6,
       fontFace: FONT_BODY, fontSize: 20, color: C.ice,
     });
   }
