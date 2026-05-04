@@ -289,7 +289,7 @@ const NODE_TO_NODE_BUILDER: Record<string, string> = {
   masterminds: "YR-23",
   retreats: "YR-24",
   certification: "YR-25",
-  "special-editions": "YR-26",
+  "special-editions": "BP-08",
 };
 
 /**
