@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ interface Props { authorId: string | null; bookId?: string | null; }
 export default function YR24Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
@@ -32,7 +34,7 @@ export default function YR24Builder({ authorId, bookId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
 
-  useEffect(() => { if (!authorId) return; (async () => {
+  useEffect(() => { if (!isAuthReady || !authorId) return; (async () => {
     const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
     setAuthorName(p?.pen_name || "there");
     setAuthorSlug(p?.author_slug || "");
@@ -44,7 +46,7 @@ export default function YR24Builder({ authorId, bookId }: Props) {
         setContent(__draft.content);
         setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
       }
-    })(); }, [authorId]);
+    })(); }, [authorId, isAuthReady]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
   useEffect(() => { if (step === 2 && content) console.log("[YR-24] step-2 render", content); }, [step, content]);

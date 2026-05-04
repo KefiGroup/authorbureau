@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
@@ -46,6 +47,7 @@ function isLegacyShape(c: any): boolean {
 export default function BP09Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
   const [content, setContent] = useState<any>(null);
@@ -59,7 +61,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
   const hasResolvedBook = hasBook || Boolean(resolvedBookTitle) || Boolean(detectedBookTitle && detectedBookTitle !== "your book");
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!isAuthReady || !authorId) return;
     (async () => {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
       setAuthorName(profile?.pen_name || "there");
@@ -81,7 +83,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorId]);
+  }, [authorId, isAuthReady]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
