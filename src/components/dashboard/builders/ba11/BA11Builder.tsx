@@ -33,6 +33,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const { isReady: isAuthReady } = useAuthReady();
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
