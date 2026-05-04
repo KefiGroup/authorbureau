@@ -26,6 +26,7 @@ interface Props { authorId: string | null; bookId?: string | null; }
 export default function BA17Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState<any>(null);
@@ -52,7 +53,8 @@ export default function BA17Builder({ authorId, bookId }: Props) {
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
         { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
       }
-    })();
+          setHydrated(true);
+})();
   }, [authorId, isAuthReady]);
 
   useEffect(() => {
@@ -91,6 +93,20 @@ export default function BA17Builder({ authorId, bookId }: Props) {
   const displayBookTitle = (detectedBookTitle && detectedBookTitle !== "your book") ? detectedBookTitle : resolvedBookTitle;
   const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
+
+  if (isAuthReady && authorId && !hydrated) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-background">
+
+        <p className="text-muted-foreground">Loading…</p>
+
+      </div>
+
+    );
+
+  }
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 

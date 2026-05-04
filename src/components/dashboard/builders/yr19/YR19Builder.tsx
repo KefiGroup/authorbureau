@@ -27,6 +27,7 @@ export default function YR19Builder({ authorId, bookId }: Props) {
   const [searchParams] = useSearchParams();
   const devUnlock = searchParams.get("unlock") === "true";
   const [step, setStep] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
@@ -51,7 +52,8 @@ export default function YR19Builder({ authorId, bookId }: Props) {
         setContent(__draft.content);
         { const _saved = (__draft.content as any)?._currentStep; setStep(__draft.isLive ? (3) : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
       }
-    })();
+          setHydrated(true);
+})();
   }, [authorId, isAuthReady]);
 
   useEffect(() => {
@@ -85,6 +87,20 @@ export default function YR19Builder({ authorId, bookId }: Props) {
       setStep(2);
     }
   };
+
+  if (isAuthReady && authorId && !hydrated) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-background">
+
+        <p className="text-muted-foreground">Loading…</p>
+
+      </div>
+
+    );
+
+  }
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 

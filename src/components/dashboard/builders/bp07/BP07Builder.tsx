@@ -37,6 +37,7 @@ interface Props { authorId: string | null; bookId?: string | null; }
 export default function BP07Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
@@ -125,7 +126,8 @@ export default function BP07Builder({ authorId, bookId }: Props) {
         setStep(Math.min(3, Math.max(2, savedStep)));
         if (draft.isLive) setContent((p: any) => ({ ...p, activated: true }));
       }
-    })();
+          setHydrated(true);
+})();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorId, isAuthReady]);
 
@@ -191,6 +193,13 @@ export default function BP07Builder({ authorId, bookId }: Props) {
 
   const handleGenerate = async () => {
     console.info("[BP-07] generate clicked", { authorId, hasBook, bookTitle: detectedBookTitle });
+    if (isAuthReady && authorId && !hydrated) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <p className="text-muted-foreground">Loading…</p>
+        </div>
+      );
+    }
     if (!authorId) return;
     setStep(1); setError(null);
     const promise = startGeneration(authorId, "BP-07", runGeneration);

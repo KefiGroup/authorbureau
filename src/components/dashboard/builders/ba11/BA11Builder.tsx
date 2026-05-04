@@ -30,6 +30,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   const [resolvedBookId, setResolvedBookId] = useState<string>("");
   const [intro, setIntro] = useState(true);
   const [stepIdx, setStepIdx] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -83,10 +84,13 @@ export default function BA11Builder({ authorId, bookId }: Props) {
           return c;
         });
         setStepData({ ...studio, chapters: sanitized });
-        setStepIdx(Math.min(draft.currentStep || 0, STUDIO_STEPS.length - 1));
+        const savedStep = (draft.content as any)?._currentStep;
+        const resumeIdx = typeof savedStep === "number" ? savedStep : (draft.currentStep || 0);
+        setStepIdx(Math.min(resumeIdx, STUDIO_STEPS.length - 1));
         setIntro(false);
       }
-    })();
+          setHydrated(true);
+})();
   }, [authorId, detectedBookTitle, isAuthReady]);
 
   // Re-attach permanent storage URLs to chapters once we know the bookId.
@@ -123,7 +127,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
         authorId,
         nodeId: "BA-11",
         nodeName: "Audiobook",
-        content: { studio: nextStudio },
+        content: { studio: nextStudio, _currentStep: stepIdx },
         currentStep: stepIdx,
       });
     })();
@@ -137,12 +141,19 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle;
 
   const persistDraft = (data: Record<string, any>, currentStep: number) => {
+    if (isAuthReady && authorId && !hydrated) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-background">
+          <p className="text-muted-foreground">Loading…</p>
+        </div>
+      );
+    }
     if (!authorId) return;
     void autosaveBuilderDraft({
       authorId,
       nodeId: "BA-11",
       nodeName: "Audiobook",
-      content: { studio: data },
+      content: { studio: data, _currentStep: currentStep },
       currentStep,
     });
   };
