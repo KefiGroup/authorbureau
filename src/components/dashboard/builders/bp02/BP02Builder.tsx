@@ -255,7 +255,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     if (!authorId || !content) return;
     setIsSavingDraft(true);
     try {
-      await autosaveBuilderDraft({
+      const result = await autosaveBuilderDraft({
         authorId,
         nodeId: "BP-02",
         nodeName: "Lead Magnets",
@@ -263,7 +263,11 @@ export default function BP02Builder({ authorId, bookId }: Props) {
         currentStep: step,
         bookId: activeBookId ?? null,
       });
-      toast.success("Draft saved!");
+      if (result.ok) {
+        toast.success("Draft saved!");
+      } else {
+        toast.error(toAbbyError(result.error || "Failed to save draft"));
+      }
     } catch (e: any) {
       toast.error(toAbbyError(e?.message || "Failed to save draft"));
     } finally {
@@ -278,18 +282,18 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     async (socialPack: any) => {
       setContent((prev: any) => ({ ...(prev || {}), social_pack: socialPack }));
       if (!authorId) return;
-      try {
-        await autosaveBuilderDraft({
-          authorId,
-          nodeId: "BP-02",
-          nodeName: "Lead Magnets",
-          content: { ...(content || {}), social_pack: socialPack, _currentStep: step },
-          currentStep: step,
-          bookId: activeBookId ?? null,
-        });
-      } catch (e) {
-        console.error("[BP02] Persist social pack failed:", e);
-        throw e;
+      const result = await autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-02",
+        nodeName: "Lead Magnets",
+        content: { ...(content || {}), social_pack: socialPack, _currentStep: step },
+        currentStep: step,
+        bookId: activeBookId ?? null,
+      });
+      if (!result.ok) {
+        const msg = result.error || "Failed to save social pack";
+        console.error("[BP02] Persist social pack failed:", msg);
+        throw new Error(msg);
       }
     },
     [authorId, content, step, activeBookId],
