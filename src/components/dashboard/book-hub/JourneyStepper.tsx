@@ -66,7 +66,7 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
             <div className={`h-px flex-1 ${accent.divider}`} />
           </div>
           <ol className="space-y-2">
-            {group.nodes.map((n) => {
+            {group.nodes.map((n, idx) => {
               const meta = stateMeta[n.state];
               const isHighlight = highlightNodeId === n.id;
               const Icon = n.icon;
@@ -89,12 +89,11 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                   {isHighlight && (
                     <span className={`absolute -left-px top-3 bottom-3 w-1 rounded-full ${accent.bg}`} />
                   )}
-                  {/* Bug 3 fix: drop the sequence-number badge — it visually concatenated with the
-                      code (e.g. "BP-01" + "3" read as "BP-013"). Code alone is the identifier;
-                      completion state is shown as a check icon below. */}
-                  <div className="flex flex-col items-center justify-center w-14 shrink-0 gap-1.5">
-                    <span className={`text-[11px] font-mono font-bold tracking-tight ${isHighlight ? accent.text : "text-muted-foreground"}`}>
-                      {n.code}
+                  {/* Sequence number per group — friendly to authors. The internal
+                      node code (BP-/BA-/YR-) is intentionally not shown. */}
+                  <div className="flex flex-col items-center justify-center w-10 shrink-0 gap-1.5">
+                    <span className={`text-sm font-semibold ${isHighlight ? accent.text : "text-muted-foreground"}`}>
+                      {idx + 1}
                     </span>
                     {n.state === "completed" && (
                       <span className="w-5 h-5 rounded-full flex items-center justify-center bg-emerald-500 text-white">
@@ -102,7 +101,6 @@ export default function JourneyStepper({ nodes, bookId, bookTitle, highlightNode
                       </span>
                     )}
                   </div>
-
                   <div className={`shrink-0 w-9 h-9 rounded-lg flex items-center justify-center ${
                     n.state === "completed" ? "bg-emerald-100 text-emerald-700" :
                     isHighlight ? `${accent.bgSoft} ${accent.text}` :
