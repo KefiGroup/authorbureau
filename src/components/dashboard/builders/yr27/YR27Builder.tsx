@@ -24,6 +24,7 @@ interface Props { authorId: string | null; bookId?: string | null; }
 export default function YR27Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
