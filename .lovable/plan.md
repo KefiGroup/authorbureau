@@ -1,117 +1,71 @@
-## Why this happens (and why BP-02 is unaffected)
+## Audit results: BP-02 vs BP-06
 
-On Safari, when you refresh a deep link, the shared-backend session cookie/localStorage takes longer than the React tree's first render. Every component that does:
+**BP-02 (gold standard) — has all 4 safeguards:**
+1. `const { isReady: isAuthReady } = useAuthReady();` imported and used
+2. `useState(-1)` for `step` (renders skeleton, not "Intro", during hydration)
+3. Resume effect gated: `if (!isAuthReady) return;` and deps `[authorId, isAuthReady, activeBookId]`
+4. Edge-first hydration via `loadBuilderDraft`, with direct `author_nodes` read only as fallback
+5. Restores `_currentStep` from saved content (not just live/draft)
 
+**BP-06 — only partially compliant:**
+- Uses `useState(0)` (flashes Intro before resume completes)
+- Does NOT import `useAuthReady` — effect fires the moment `authorId` exists, before Safari finishes session restore
+- Effect deps are `[authorId, activeBookId]` (missing `isAuthReady`)
+- Does call `loadBuilderDraft` first (good), but only restores to step 2 or 3 — never to step 0/1
+- No skeleton state while loading
+
+The global `useAuth.tsx` fix already prevents the dashboard-redirect bug, but BP-06 can still flash the Intro screen for a frame on Safari refresh, and any builder still doing direct `author_nodes` reads first will miss drafts when RLS races.
+
+## Plan
+
+### Phase 1 — Bring BP-06 up to BP-02 standard
+Edit `src/components/dashboard/builders/bp06/BP06Builder.tsx`:
+- Import `useAuthReady`, destructure `isReady: isAuthReady`
+- Change `useState(0)` → `useState(-1)` for `step`
+- Gate resume effect with `if (!isAuthReady) return;`
+- Add `isAuthReady` to dep array
+- After draft/node lookup, if no saved content set `setStep(0)` explicitly (so skeleton clears)
+- Render a small skeleton/null when `step === -1`
+
+### Phase 2 — Define the canonical template
+Create one tiny shared helper or inline pattern (no new abstraction file needed) so each builder has:
 ```ts
-const { user } = useAuth();
+const { isReady: isAuthReady } = useAuthReady();
+const [step, setStep] = useState(-1);
 useEffect(() => {
-  if (!user) return;
-  // …query data…
-}, [user]);
+  if (!isAuthReady || !authorId) return;
+  let cancelled = false;
+  (async () => {
+    const draft = await loadBuilderDraft(authorId, "<NODE-ID>", activeBookId);
+    if (cancelled) return;
+    if (draft.content) {
+      setContent(draft.isLive ? { ...draft.content, activated: true } : draft.content);
+      setStep(draft.isLive ? LIVE_STEP : Math.max(draft.currentStep, 2));
+      return;
+    }
+    // ...optional legacy author_nodes fallback...
+    setStep(0);
+  })();
+  return () => { cancelled = true; };
+}, [authorId, isAuthReady, activeBookId]);
 ```
+Render `if (step === -1) return <BuilderSkeleton />;` before the main JSX.
 
-…fires its data effect with `user = null` once, gets back nothing, and renders the empty / fallback / "go set up your profile" UI. By the time the session resolves, the effect doesn't re-run because `user` is now stable. The page **looks** like the dashboard reset, but really it's just every individual page resolving to its empty state.
+### Phase 3 — Roll out to the remaining 25 builders
+Apply the template to:
+- BP-01, BP-03, BP-04, BP-05, BP-07, BP-08, BP-09
+- BA-10, BA-11, BA-12, BA-13, BA-14, BA-15, BA-16, BA-17, BA-18
+- YR-19, YR-20, YR-21, YR-22, YR-23, YR-24, YR-25, YR-26, YR-27, YR-28
 
-`BP-02` is the only screen that already gates on `useAuthReady().isReady` (which waits for the shared session restore to fire `INITIAL_SESSION`), which is why it survives the refresh.
+For each: keep node-specific generation/publish logic untouched — only standardise the auth-gate, initial step state, deps, and skeleton.
 
-## Fix — make `useAuthReady` the universal mount gate
+### Phase 4 — Verify
+- Manual Safari refresh test on one node per category (e.g. BP-04, BA-14, YR-22)
+- Confirm no console errors, no Intro-flash, draft resumes to correct step
+- Confirm live nodes still resume to the Live step
 
-Apply one mechanical pattern to every page that loads user-scoped data:
+### Out of scope
+- CRM/Library/Hub pages (already fixed by the global `useAuth.tsx` change in the previous turn — leave alone unless a specific one regresses)
+- No DB migrations, no edge function changes
 
-```ts
-const { user, isReady } = useAuthReady();   // ← was useAuth()
-useEffect(() => {
-  if (!isReady) return;     // wait for Safari to finish session restore
-  if (!user) return;        // truly signed out
-  // …existing query…
-}, [user, isReady, /* other deps */]);
-```
-
-And while loading, render the existing skeleton instead of the empty / "no data" state. Specifically: if `!isReady`, return the page's loading skeleton; only render "no data" when `isReady && !data`.
-
-For pages that gate on a fetched profile id (CRM, Funnels, Library, Marketing Hub), keep the local `loading` state initialized to `true` and only set it to `false` once the actual fetch resolves — never inside an early `if (!user) return` branch.
-
-## Files to update
-
-### Builders (28 — same as previously approved)
-
-```text
-src/components/dashboard/builders/bp01/BP01Builder.tsx
-src/components/dashboard/builders/bp03/BP03Builder.tsx   (extend dep array w/ activeBookId)
-src/components/dashboard/builders/bp04/BP04Builder.tsx
-src/components/dashboard/builders/bp05/BP05Builder.tsx
-src/components/dashboard/builders/bp06/BP06Builder.tsx
-src/components/dashboard/builders/bp07/BP07Builder.tsx
-src/components/dashboard/builders/bp08/BP08Builder.tsx
-src/components/dashboard/builders/bp09/BP09Builder.tsx
-src/components/dashboard/builders/ba10..ba18/*Builder.tsx
-src/components/dashboard/builders/yr19..yr28/*Builder.tsx
-```
-
-For each:
-1. `useAuthReady` gate before the resume effect.
-2. Add `isAuthReady` and `activeBookId` to the dep array.
-3. Initial `step = -1` and render skeleton while `step === -1`.
-4. Prefer `loadBuilderDraft()` first; direct `author_nodes` read only as fallback.
-5. Never `setStep(0)` on a thrown error — only on a confirmed empty draft + empty fallback.
-
-### Dashboard pages
-
-Same `useAuthReady` swap + skeleton-while-`!isReady` pattern:
-
-```text
-src/components/dashboard/AuthorCRMPage.tsx
-src/components/dashboard/AuthorMessagesPage.tsx
-src/components/dashboard/FunnelsHub.tsx
-src/components/dashboard/MarketingHub.tsx
-src/components/dashboard/MyBooks.tsx
-src/components/dashboard/ReviewProductsPage.tsx
-src/components/dashboard/PayoutSettingsPage.tsx
-src/components/dashboard/RevenueDashboard.tsx
-src/components/dashboard/MicrositeManager.tsx
-src/components/dashboard/EmailMarketing.tsx
-src/components/dashboard/SocialMediaManager.tsx
-src/components/dashboard/AudiobookStudio.tsx
-src/components/dashboard/CoachingCRM.tsx
-src/components/dashboard/ProfileEditor.tsx
-src/components/dashboard/AuthorReadingClub.tsx
-```
-
-### Standalone pages
-
-```text
-src/pages/AuthorLibrary.tsx        (currently uses [] dep array — add user/isReady)
-src/pages/BookHub.tsx              (already gates on authLoading; add isReady to fetchBook deps)
-src/pages/AbbyCoachPage.tsx
-src/pages/AccountSettings.tsx
-src/pages/ConnectSettings.tsx
-src/pages/EarningsDashboard.tsx
-src/pages/AdminPayouts.tsx
-src/pages/admin/ContentQualityLog.tsx
-```
-
-### One supporting helper
-
-`src/hooks/useAuth.tsx` exposes `loading` but not `isReady`. The fix uses `useAuthReady()` (already in the codebase, already correctly listens to `INITIAL_SESSION`). No edit needed there.
-
-## Out of scope
-
-- No DB migrations.
-- No edge function changes.
-- The earlier `App.tsx ProtectedRoute` redirect-preservation fix and the `useAuth` 8s timeout stay as-is.
-- Public pages (microsites, directory, reading club guest views) are unaffected — they don't read user-scoped data on mount.
-
-## Verification (Safari, published site)
-
-Sign in, navigate into each of these, then hit Cmd-R:
-
-1. Builder: `/node-builder/BP-01?bookId=…` (and a BA + a YR node)
-2. CRM: `/dashboard?section=author-crm`
-3. Funnels: `/dashboard?section=my-funnels`
-4. Library: `/dashboard?section=library`
-5. Marketing Hub: `/marketing-hub`
-6. Messages: `/dashboard?section=messages`
-7. Revenue Dashboard: `/revenue-dashboard`
-8. Book Hub: `/dashboard/book/<id>?tab=revenue-streams`
-
-Each page must stay on its own URL with its data populated, never flash to "no data" or bounce to `/dashboard`.
+Approve to proceed with Phase 1 + 2 first; once BP-06 looks clean, roll Phase 3 across the remaining builders.

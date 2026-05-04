@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
@@ -32,9 +33,10 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const { isReady: isAuthReady } = useAuthReady();
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!isAuthReady || !authorId) return;
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
@@ -85,7 +87,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
         setIntro(false);
       }
     })();
-  }, [authorId, detectedBookTitle]);
+  }, [authorId, detectedBookTitle, isAuthReady]);
 
   // Re-attach permanent storage URLs to chapters once we know the bookId.
   // This heals existing rows that were saved with stale blob: URLs and

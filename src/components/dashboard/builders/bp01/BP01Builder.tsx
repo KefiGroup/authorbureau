@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
@@ -50,6 +51,7 @@ interface Props {
 export default function BP01Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
   const [bookTitle, setBookTitle] = useState("");
@@ -66,7 +68,7 @@ export default function BP01Builder({ authorId, bookId }: Props) {
 
   // Load author info
   useEffect(() => {
-    if (!authorId) return;
+    if (!isAuthReady || !authorId) return;
     (async () => {
       const { data: profile } = await supabase
         .from("author_profiles")
@@ -121,7 +123,7 @@ export default function BP01Builder({ authorId, bookId }: Props) {
         }
       }
     })();
-  }, [authorId]);
+  }, [authorId, isAuthReady]);
 
   // Cycling messages for generating / activating
   useEffect(() => {

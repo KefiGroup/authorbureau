@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,7 +51,8 @@ interface Props { authorId: string | null; bookId?: string | null; }
 
 export default function BP06Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const { isReady: isAuthReady } = useAuthReady();
+  const [step, setStep] = useState(-1);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,9 +73,12 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   const effectiveBookTitle = (resolvedBookTitle || (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : "")) || "Authors-Bureau";
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!isAuthReady) return; // Wait for Safari to finish session restore
+    if (!authorId) { setStep(0); return; }
+    let cancelled = false;
     (async () => {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
+      if (cancelled) return;
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
@@ -125,6 +130,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       //   2. Direct author_nodes read as a fallback (legacy rows that may not
       //      have been touched by the autosave pipeline yet)
       const draft = await loadBuilderDraft(authorId, "BP-06", activeBookId);
+      if (cancelled) return;
       if (draft.content) {
         setContent(draft.content);
         setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
@@ -137,13 +143,17 @@ export default function BP06Builder({ authorId, bookId }: Props) {
         .eq("node_id", "BP-06");
       if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
       const { data: node } = await nodeQuery.maybeSingle();
+      if (cancelled) return;
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         const baseContent = node.content_json as Record<string, unknown>;
         setContent(node.status === "live" ? { ...baseContent, activated: true } : baseContent);
         setStep(node.status === "live" ? 3 : 2);
+      } else {
+        setStep(0);
       }
     })();
-  }, [authorId, activeBookId]);
+    return () => { cancelled = true; };
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -332,6 +342,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
+  if (step === -1) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground animate-pulse">Loading…</p></div>;
 
   return (
     <div className="min-h-screen bg-background">
