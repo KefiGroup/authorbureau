@@ -1,73 +1,78 @@
-## Plan — BP-09 + BP-08 audit fixes (revised, no canonical-label changes)
+# Bug: Bulk proposal (and other exports) download wrong book's content
 
-Five surgical changes. Zero canonical-label/DB/docs-sprint impact.
+## What you're seeing
+You're on **Be Suckcessful** in BP-09. You click *Download HTML/PDF* on the Bulk-order proposal and the file contains **Invest Like Buffett for Parents** content (different book on your account).
 
----
+## Root cause
+This is a Builder Book Resolution violation in 4 export edge functions plus 3 frontend call sites. The exports completely ignore which book you have open and instead grab the **most recently created** book on your account.
 
-### BP-09 changes (label "Book Sales" stays unchanged)
+Specifically, every one of these functions does:
 
-**1. Add an Amazon / bookstore purchase URL field**
+```ts
+// WRONG — picks newest book regardless of what user is viewing
+author_context ... eq("author_id", author_id).order("created_at", desc).limit(1)
+author_nodes   ... eq("author_id", author_id).eq("node_id", "BP-09").single()
+```
 
-The BP-09 `content_json` schema already allows `amazon_url` and `sales_page_url`, but the builder UI doesn't expose them and the QR on Slide 13 of the workshop deck currently uses a placeholder.
+`author_nodes` already has a `book_id` column (confirmed). The exports just aren't filtering on it, and the frontend isn't even sending `book_id` for 3 of the 4 calls. *Invest Like Buffett* was your most recent book, so it always wins.
 
-Files:
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — add a small "Where readers buy your book" group near the top of the Workshop tab with two inputs: `amazon_url` and `bookstore_url` (free-text URL, optional). Persist into `content_json.amazon_url` / `content_json.bookstore_url` using the existing autosave path. No new state machinery — reuse the `data` / `onChange` props that the tab already takes.
-- `supabase/functions/export-bp09-slides/index.ts` — when rendering the QR slide, use `content_json.amazon_url || content_json.bookstore_url` as the QR target. Fall back to the microsite book URL if neither is set, then to a placeholder only if even that is missing.
-- `supabase/functions/export-bp09-handout/index.ts` — same fallback chain in the printed handout footer so the printed copy matches the deck.
+## Fix (5 small, surgical edits)
 
-**2. Clarify the "Mark Toolkit Ready" CTA**
+### 1. Frontend — send `book_id` (3 call sites, 1-line each)
 
-Audit flagged "ready for what?" confusion.
+**`src/components/dashboard/builders/bp09/BP09Builder.tsx`**
+- `downloadDoc(...)` (line ~216): add `book_id: bookId` to the JSON body
+- `generateSlides(...)`: same — add `book_id: bookId` to body
 
-Files:
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` line ~357 — relabel button to "Save Toolkit to My Library" and add a one-line muted helper underneath: "Saves all four tabs to your Author Library. Nothing is published publicly." Same handler, same behaviour — copy-only change.
+**`src/components/dashboard/builders/bp08/BP08Builder.tsx`**
+- `downloadEditionsDocx()` (line 291): add `book_id: activeBookId`
+- `downloadOrderForm()` (line 320): add `book_id: activeBookId`
 
----
+### 2. Backend — resolve by `book_id` (4 edge functions)
 
-### BP-08 changes
+In each of:
+- `supabase/functions/export-bp09-handout/index.ts`
+- `supabase/functions/export-bp09-slides/index.ts`
+- `supabase/functions/export-bp08-editions-docx/index.ts`
+- `supabase/functions/export-bp08-order-form/index.ts`
 
-**3. "Download as DOCX" on the Editions tab**
+Replace the two queries with book-scoped versions:
 
-Author needs to send tier descriptions to a printer or gift buyer without copy-pasting.
+```ts
+const { author_id, book_id /*, ...existing*/ } = await req.json();
 
-Files:
-- New edge function `supabase/functions/export-bp08-editions-docx/index.ts` — generates a .docx with one section per tier (name, price, physical specs, includes list, who-it's-for) plus the bundle offer at the end. Auth: dual-token via `_shared/builder-helpers.ts` pattern, service-role DB read.
-- `supabase/functions/config.toml` entry — `verify_jwt = false` to match other export functions.
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — add "Download as DOCX" button on the Editions tab header. Wire via `fetchWithTimeout` + `getActiveToken` per Shared Backend Token Standard.
+// Title: prefer per-book author_context, fall back to books table
+let bookTitle = "Your Book";
+if (book_id) {
+  const { data: ctx } = await supabase
+    .from("author_context").select("book_title")
+    .eq("author_id", author_id).eq("book_id", book_id).maybeSingle();
+  if (ctx?.book_title) bookTitle = ctx.book_title;
+  else {
+    const { data: bk } = await supabase
+      .from("books").select("title").eq("id", book_id).maybeSingle();
+    if (bk?.title) bookTitle = bk.title;
+  }
+}
 
-**4. Printable event order form template**
+// Node content: scope to this book
+let nodeQuery = supabase.from("author_nodes")
+  .select("content_json")
+  .eq("author_id", author_id)
+  .eq("node_id", NODE_ID);
+if (book_id) nodeQuery = nodeQuery.eq("book_id", book_id);
+const { data: node } = await nodeQuery.maybeSingle();
+if (!node?.content_json) throw new Error(`${NODE_ID} content not found for this book`);
+```
 
-For manual sales at events.
+Backwards compatible: if an old client sends no `book_id`, behaviour is unchanged (falls back to current "latest" logic), so no broken downloads during the rollout.
 
-Files:
-- New edge function `supabase/functions/export-bp08-order-form/index.ts` — generates a print-ready HTML page (uses the same HTML→browser-print pattern as `printExportHtml`). Pre-fills book title and the 3 editions + prices from `content_json.editions`. Blank fields for buyer name, email, delivery address, edition choice, qty, payment method, signature.
-- `supabase/functions/config.toml` entry — `verify_jwt = false`.
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — add "Download Event Order Form" button on the Bundle/Sales-Page area.
+### 3. Deploy the 4 edge functions
 
-**5. Confirm library save + show inline download links**
+`export-bp09-handout`, `export-bp09-slides`, `export-bp08-editions-docx`, `export-bp08-order-form`.
 
-Audit: "Save to My Library" gives no confirmation of what was saved or how to access it.
+## Verification
+After deploy, on the **Be Suckcessful** book, click *Download HTML/PDF* on the Bulk-order proposal — the file should contain Be Suckcessful tiers, not Invest Like Buffett. Repeat the test from the Invest Like Buffett book to confirm the other direction still works.
 
-Files:
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — after `handlePublish` succeeds, render a confirmation panel below the CTA: "Saved 3 editions + bundle to your library" plus three inline buttons: "Open Author Library", "Download DOCX now", "Download Order Form now". Keep the existing CTA copy; only the post-save state expands.
-
----
-
-### Out of scope (deliberately deferred)
-
-- BP-09 rename — keeping "Book Sales" canonical; subtitle line already disambiguates.
-- BP-08 bundle pricing calculator — Pricing tab content needs visual inspection first; will revisit once we see what ABBY puts there.
-- BP-08 stale-badge cosmetic — likely already fixed by last turn's eager-shell change in `NodeBuilder.tsx`. Verify in spot-check; only revisit if it persists.
-- BP-09 generation timing copy — minor; not bundling into this set to keep the diff focused.
-
----
-
-### Verification after deploy
-
-1. Open BP-09 → Workshop tab shows the Amazon/bookstore URL inputs; CTA reads "Save Toolkit to My Library" with the helper line.
-2. Set Amazon URL on BP-09, regenerate the workshop .pptx → QR slide encodes the Amazon URL (not a placeholder).
-3. Open BP-08 → "Download as DOCX" produces a clean printer-ready file with all 3 tiers + bundle.
-4. Open BP-08 → "Download Event Order Form" produces a single printable page with editions pre-filled and blank buyer fields.
-5. Click BP-08 "Save to My Library" → confirmation panel appears with three inline action buttons.
-
-Approve to proceed.
+## Out of scope
+No DB migration, no canonical-label change, no schema change. Pure data-scoping fix.
