@@ -264,11 +264,8 @@ export default function SmartProductCard({
       <Card className={`relative overflow-hidden p-5 space-y-3.5 transition-all hover:shadow-lg h-full flex flex-col ${config.borderClass} ${config.cardBg}`}>
         {/* Left color strip */}
         <div className={`absolute left-0 top-0 bottom-0 w-1 ${config.stripColor}`} />
-        {code && (
-          <span className="absolute top-2 right-2 text-[9px] font-mono font-bold tracking-wider text-muted-foreground/70 bg-muted/60 rounded px-1.5 py-0.5">
-            {code}
-          </span>
-        )}
+        {/* Internal node code (BP-/BA-/YR-) intentionally hidden from authors —
+            it's an engineering identifier, not user-facing. Still visible in admin. */}
         {/* Header */}
         <div className="flex items-start gap-3">
           <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
