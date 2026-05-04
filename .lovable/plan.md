@@ -1,91 +1,73 @@
-## Plan — Fix the 3 audit bugs (BP-05 routing · BP-07 refresh · BP-08 slow load)
+## Plan — BP-09 + BP-08 audit fixes (revised, no canonical-label changes)
 
-I traced each bug to a specific root cause. All three are small, surgical fixes.
-
----
-
-### Bug 1 — HIGH · BP-05 "Build This Product" routes to BP-09 (Book Sales)
-
-**Root cause.** `src/config/abbyFrameworkConfig.ts` lines 260-293 — the `NODE_TO_NODE_BUILDER` slug→ID map drifted out of sync after the Sprint 50 BP-05/06/07/08/09 renames. Every Brand-Products slot from Webinars onward is wrong:
-
-| Slug                  | Currently maps to | Canonical (per docs §3) |
-| --------------------- | ----------------- | ----------------------- |
-| `book-sales-events`   | BP-05 ❌          | **BP-09**               |
-| `workbooks`           | BP-06 ✅          | BP-06                   |
-| `home-study`          | BP-07 ✅          | BP-07                   |
-| `courses`             | BP-08 ❌          | **BA-10** (Online Course) |
-| `webinars`            | BP-09 ❌          | **BP-05**               |
-| `special-editions`    | YR-26 ❌          | **BP-08**               |
-
-That's why the Webinars card lands on Book Sales — the slug literally points to BP-09.
-
-**Fix.** Replace the broken entries in `NODE_TO_NODE_BUILDER`:
-
-```ts
-"book-sales-events": "BP-09",   // was BP-05
-"webinars":          "BP-05",   // was BP-09
-"special-editions":  "BP-08",   // was YR-26
-"courses":           "BA-10",   // was BP-08
-```
-
-Leave the other 22 entries untouched. No DB / edge-function changes needed.
+Five surgical changes. Zero canonical-label/DB/docs-sprint impact.
 
 ---
 
-### Bug 2 — HIGH · BP-07 refresh resets to Step 1
+### BP-09 changes (label "Book Sales" stays unchanged)
 
-**Root cause.** `src/components/dashboard/builders/bp07/BP07Builder.tsx` has a `bookId` mismatch between save and load:
+**1. Add an Amazon / bookstore purchase URL field**
 
-- **Resume** (line 114) calls `loadBuilderDraft(authorId, "BP-07", activeBookId)` where `activeBookId = bookId ?? hookBookId ?? null`.
-- **Save** on the generation result (line 174) and channel toggle (line 223) pass `bookId: bookId ?? null` — i.e. the raw URL prop only, ignoring the `useAuthorBook` fallback.
+The BP-09 `content_json` schema already allows `amazon_url` and `sales_page_url`, but the builder UI doesn't expose them and the QR on Slide 13 of the workshop deck currently uses a placeholder.
 
-When the URL omits `?bookId=...` (common when arriving via the recommendation card or a stale link), the save writes `book_id = NULL` while the load queries `book_id = <hookBookId>`. The edge function returns no draft → builder falls through to step 0.
+Files:
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — add a small "Where readers buy your book" group near the top of the Workshop tab with two inputs: `amazon_url` and `bookstore_url` (free-text URL, optional). Persist into `content_json.amazon_url` / `content_json.bookstore_url` using the existing autosave path. No new state machinery — reuse the `data` / `onChange` props that the tab already takes.
+- `supabase/functions/export-bp09-slides/index.ts` — when rendering the QR slide, use `content_json.amazon_url || content_json.bookstore_url` as the QR target. Fall back to the microsite book URL if neither is set, then to a placeholder only if even that is missing.
+- `supabase/functions/export-bp09-handout/index.ts` — same fallback chain in the printed handout footer so the printed copy matches the deck.
 
-The publish-step save (line 252) already uses `activeBookId` correctly, which is why already-Live nodes work and only mid-flow drafts break.
+**2. Clarify the "Mark Toolkit Ready" CTA**
 
-**Fix.** In `BP07Builder.tsx`, change the two stray `bookId: bookId ?? null` autosave args (lines 174 and 223) to `bookId: activeBookId`. One-line change in two places. Mirrors the pattern already used by BP-08 line 156 and the BP-07 publish call on line 252.
+Audit flagged "ready for what?" confusion.
 
----
-
-### Bug 3 — LOW · BP-08 shows a blank generic skeleton for 8-10s
-
-**Root cause.** `src/pages/NodeBuilder.tsx` lines 112-122 — while waiting for `authorId` to resolve from `author_profiles`, NodeBuilder renders a content-free placeholder (one short skeleton, one wide skeleton, one tall block) with no node title, no stepper, no "How this node works" panel. Because BP-08 also pulls in `useAuthorBook` (and a heavier intro that imports `resolve-book-title` lazily on mount), the gap between route arrival and BP-08's internal hydration looks especially long. The user sees no orienting UI during that window.
-
-This is the same shell delay every node hits, but BP-08 is the slowest because of its extra imports + occasion-calendar logic, so it's the most visible.
-
-**Fix.** Replace the generic skeleton in NodeBuilder with the canonical builder shell (header + stepper + "How this node works" panel) rendered eagerly from the URL `nodeId` — so the moment the route mounts, the user sees the right node title, the 4-step stepper at step 1, and the explanatory panel. Only the body below swaps in once `authorId` resolves.
-
-Concretely, in `src/pages/NodeBuilder.tsx`:
-
-1. While `authLoading || loading`, instead of rendering the generic 3-skeleton block, render:
-   - `<BuilderHeader nodeId={nodeId} title={...} icon={...} onBack={...} />`
-   - `<UnifiedStepper nodeId={nodeId} steps={["Introduction","Generating","Review","Publish"]} current={0} />`
-   - `<NodeHowItWorks nodeId={nodeId} />`
-   - A single small skeleton block beneath for the body that's still loading.
-2. Pull the title/icon from a tiny `NODE_META` lookup keyed by `nodeId` (BP-05 → "Webinars" / Video icon, BP-08 → "Special Editions" / Gift icon, etc.). All 28 entries already exist in `abbyFrameworkConfig.ts` — reuse that data, no duplication.
-
-Side benefits: every other node also gets a faster perceived load, not just BP-08. Pure UX polish, no behaviour change.
+Files:
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx` line ~357 — relabel button to "Save Toolkit to My Library" and add a one-line muted helper underneath: "Saves all four tabs to your Author Library. Nothing is published publicly." Same handler, same behaviour — copy-only change.
 
 ---
 
-### Files touched
+### BP-08 changes
 
-- `src/config/abbyFrameworkConfig.ts` — fix 4 entries in `NODE_TO_NODE_BUILDER`
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx` — change 2 autosave bookId args
-- `src/pages/NodeBuilder.tsx` — eager builder shell during loading state
-- (Possibly a tiny `src/lib/node-meta.ts` helper exposing `{ title, icon }` per nodeId, sourced from existing config)
+**3. "Download as DOCX" on the Editions tab**
 
-### Out of scope
+Author needs to send tier descriptions to a printer or gift buyer without copy-pasting.
 
-- Database, edge-function, or auth changes
-- Renaming any node IDs (we agreed not to)
-- Touching the 25 other builders' resume logic — only BP-07 has the mismatch
+Files:
+- New edge function `supabase/functions/export-bp08-editions-docx/index.ts` — generates a .docx with one section per tier (name, price, physical specs, includes list, who-it's-for) plus the bundle offer at the end. Auth: dual-token via `_shared/builder-helpers.ts` pattern, service-role DB read.
+- `supabase/functions/config.toml` entry — `verify_jwt = false` to match other export functions.
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — add "Download as DOCX" button on the Editions tab header. Wire via `fetchWithTimeout` + `getActiveToken` per Shared Backend Token Standard.
 
-### Verification
+**4. Printable event order form template**
 
-After build I'll spot-check:
-1. From Brand tab, click "Build This Product" on Webinars card → lands on `/node-builder/BP-05` (not BP-09).
-2. Open BP-07, generate, leave, return → lands on Review (Step 3) with content intact.
-3. Open BP-08 cold → header + stepper + "How this node works" visible immediately, body fills in within 1-2s.
+For manual sales at events.
+
+Files:
+- New edge function `supabase/functions/export-bp08-order-form/index.ts` — generates a print-ready HTML page (uses the same HTML→browser-print pattern as `printExportHtml`). Pre-fills book title and the 3 editions + prices from `content_json.editions`. Blank fields for buyer name, email, delivery address, edition choice, qty, payment method, signature.
+- `supabase/functions/config.toml` entry — `verify_jwt = false`.
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — add "Download Event Order Form" button on the Bundle/Sales-Page area.
+
+**5. Confirm library save + show inline download links**
+
+Audit: "Save to My Library" gives no confirmation of what was saved or how to access it.
+
+Files:
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — after `handlePublish` succeeds, render a confirmation panel below the CTA: "Saved 3 editions + bundle to your library" plus three inline buttons: "Open Author Library", "Download DOCX now", "Download Order Form now". Keep the existing CTA copy; only the post-save state expands.
+
+---
+
+### Out of scope (deliberately deferred)
+
+- BP-09 rename — keeping "Book Sales" canonical; subtitle line already disambiguates.
+- BP-08 bundle pricing calculator — Pricing tab content needs visual inspection first; will revisit once we see what ABBY puts there.
+- BP-08 stale-badge cosmetic — likely already fixed by last turn's eager-shell change in `NodeBuilder.tsx`. Verify in spot-check; only revisit if it persists.
+- BP-09 generation timing copy — minor; not bundling into this set to keep the diff focused.
+
+---
+
+### Verification after deploy
+
+1. Open BP-09 → Workshop tab shows the Amazon/bookstore URL inputs; CTA reads "Save Toolkit to My Library" with the helper line.
+2. Set Amazon URL on BP-09, regenerate the workshop .pptx → QR slide encodes the Amazon URL (not a placeholder).
+3. Open BP-08 → "Download as DOCX" produces a clean printer-ready file with all 3 tiers + bundle.
+4. Open BP-08 → "Download Event Order Form" produces a single printable page with editions pre-filled and blank buyer fields.
+5. Click BP-08 "Save to My Library" → confirmation panel appears with three inline action buttons.
 
 Approve to proceed.
