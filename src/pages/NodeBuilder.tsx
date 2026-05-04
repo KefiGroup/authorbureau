@@ -115,13 +115,49 @@ export default function NodeBuilder() {
   }, [user, authLoading]);
 
   if (authLoading || loading) {
+    // Eager builder shell — show the right node title, stepper, and
+    // "How this node works" panel immediately while authorId resolves,
+    // instead of a content-free placeholder. Fixes the BP-08 "blank for
+    // 8-10s" perception (and benefits every other node too).
+    const meta = nodeId ? BUILDER_NODE_MAP[nodeId] : null;
+    const IconComp =
+      (meta?.lucideIcon && (LucideIcons as Record<string, unknown>)[meta.lucideIcon]) || Sparkles;
     return (
       <DashboardLayout>
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          <Skeleton className="h-5 w-40 mb-6" />
-          <Skeleton className="h-8 w-64 mb-4" />
-          <Skeleton className="h-64 rounded-xl" />
+        <div className="max-w-5xl mx-auto px-4 pt-4">
+          <Link
+            to={getHubPath(nodeId ?? "", bookId, from)}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to {getHubLabel(nodeId ?? "", bookId, from)}
+          </Link>
         </div>
+        {nodeId && meta ? (
+          <>
+            <div className="max-w-3xl mx-auto px-4 pt-4 pb-2 space-y-3">
+              <BuilderHeader
+                nodeId={nodeId}
+                title={meta.label}
+                icon={IconComp as never}
+              />
+              <UnifiedStepper
+                nodeId={nodeId}
+                steps={["Introduction", "Generating", "Review", "Publish"]}
+                current={0}
+              />
+            </div>
+            <div className="max-w-3xl mx-auto px-4 py-4 space-y-4">
+              <NodeHowItWorks nodeId={nodeId} />
+              <Skeleton className="h-48 rounded-xl" />
+            </div>
+          </>
+        ) : (
+          <div className="max-w-4xl mx-auto px-4 py-8">
+            <Skeleton className="h-8 w-64 mb-4" />
+            <Skeleton className="h-64 rounded-xl" />
+          </div>
+        )}
       </DashboardLayout>
     );
   }
