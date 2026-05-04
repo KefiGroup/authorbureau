@@ -13,6 +13,10 @@ function handoutHtml(penName: string, bookTitle: string, content: any): string {
   const outline = (w.talk_outline || []).map((o: any) =>
     `<li><strong>${escape(o.section)} (${escape(o.duration_min)} min):</strong> ${escape(o.content)}</li>`
   ).join("");
+  const buyUrl = String(content?.amazon_url || content?.bookstore_url || "").trim();
+  const buyBlock = buyUrl
+    ? `<h2>Get the book</h2><p><a href="${escape(buyUrl)}" style="color:#1E2761;">${escape(buyUrl)}</a></p>`
+    : "";
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escape(bookTitle)} — Workshop Handout</title>
 <style>
   body { font-family: Georgia, serif; max-width: 760px; margin: 40px auto; padding: 0 30px; color: #1A1A2E; line-height: 1.55; }
@@ -30,6 +34,7 @@ function handoutHtml(penName: string, bookTitle: string, content: any): string {
 <div>${escape(w.handout_outline || "")}</div>
 <h2>Pitch Script</h2>
 <p style="font-style: italic; background: #F5F5F5; padding: 14px; border-left: 3px solid #1E2761;">${escape(w.pitch_script || "")}</p>
+${buyBlock}
 <div class="footer">Powered by Authors Bureau</div>
 </body></html>`;
 }

@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Gift } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Gift, Download, ExternalLink } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
@@ -54,6 +54,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [pendingReplace, setPendingReplace] = useState<{ existingLabel: string } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
@@ -277,6 +278,61 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     }
   };
 
+  const downloadEditionsDocx = async () => {
+    if (!authorId) return;
+    setDownloading("docx");
+    try {
+      const token = await getActiveToken();
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bp08-editions-docx`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ author_id: authorId }),
+        },
+        60_000,
+      );
+      const data = await res.json();
+      if (!data?.success) throw new Error(data?.error || "Export failed");
+      const binary = atob(data.base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const blob = new Blob([bytes], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = data.filename; a.click();
+      URL.revokeObjectURL(url);
+      toast.success("DOCX downloaded");
+    } catch (e: any) {
+      toast.error(toAbbyError(e?.message || "Download failed"));
+    } finally { setDownloading(null); }
+  };
+
+  const downloadOrderForm = async () => {
+    if (!authorId) return;
+    setDownloading("orderform");
+    try {
+      const token = await getActiveToken();
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bp08-order-form`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
+          body: JSON.stringify({ author_id: authorId }),
+        },
+        60_000,
+      );
+      const data = await res.json();
+      if (!data?.success) throw new Error(data?.error || "Export failed");
+      const blob = new Blob([data.html], { type: "text/html" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = url; a.download = data.filename; a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Order form downloaded — open in browser to print");
+    } catch (e: any) {
+      toast.error(toAbbyError(e?.message || "Download failed"));
+    } finally { setDownloading(null); }
+  };
+
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
 
   return (
@@ -345,10 +401,19 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 <TabsTrigger value="sales" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Sales Page</TabsTrigger>
               </TabsList>
               <TabsContent value="editions" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-2">
-                  <h3 className="text-xl font-bold">{content.edition_title}</h3>
-                  {content.edition_subtitle && <p className="text-muted-foreground">{content.edition_subtitle}</p>}
-                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
+                <Card><CardContent className="pt-6 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">{content.edition_title}</h3>
+                      {content.edition_subtitle && <p className="text-muted-foreground">{content.edition_subtitle}</p>}
+                      {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
+                    </div>
+                    <Button size="sm" onClick={downloadEditionsDocx} disabled={downloading === "docx"}>
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      {downloading === "docx" ? "Building..." : "Download as DOCX"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">DOCX includes all 3 tier descriptions, specs, and bundle — ready to send to a printer or gift buyer.</p>
                 </CardContent></Card>
                 {content.editions?.map((ed: any, i: number) => (
                   <Card key={i}><CardContent className="pt-6 space-y-3">
@@ -370,6 +435,18 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                     <div className="text-center py-4"><p className="text-3xl font-bold text-primary">${content.bundle_offer.suggested_price_usd}</p><p className="text-xs text-green-600 font-semibold mt-1">{content.bundle_offer.savings_note}</p></div>
                   </CardContent></Card>
                 )}
+                <Card><CardContent className="pt-6 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-sm">Event order form</h4>
+                      <p className="text-xs text-muted-foreground mt-1">Printable, ready-to-fill order form for selling editions in person — name, address, edition choice, payment method, signatures.</p>
+                    </div>
+                    <Button size="sm" onClick={downloadOrderForm} disabled={downloading === "orderform"}>
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      {downloading === "orderform" ? "Building..." : "Download Event Order Form"}
+                    </Button>
+                  </div>
+                </CardContent></Card>
                 <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
                 <div><p className="text-xs font-semibold text-muted-foreground mb-1">Marketing Angle</p><p className="text-sm">{content.marketing_angle}</p></div>
               </TabsContent>
@@ -400,7 +477,33 @@ export default function BP08Builder({ authorId, bookId }: Props) {
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 5–10 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-08" authorName={authorName} penNameSlug={authorSlug} abbyMessage={`Your special editions are saved to your library, ${authorName}. When a gift buyer asks for one — at an event, in your DMs, or via your contact form — open your library, copy the edition details, and quote them directly. You stay in control of pricing, signing, and timing for each premium order.`} /><BackToReviewLink onClick={() => setStep(2)} /></>}
+        {step === 3 && content?.activated && (
+          <>
+            <PublishSuccessScreen
+              nodeId="BP-08"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              abbyMessage={`Saved ${Array.isArray(content?.editions) ? content.editions.length : 3} editions${content?.bundle_offer ? " + bundle" : ""} to your library, ${authorName}. When a gift buyer asks for one, open your library, copy the edition details, and quote them directly. You stay in control of pricing, signing, and timing for each premium order.`}
+            />
+            <Card className="mt-4">
+              <CardContent className="pt-6 space-y-3">
+                <p className="text-sm font-semibold">Quick actions</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate("/dashboard?section=library")}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open Author Library
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={downloadEditionsDocx} disabled={downloading === "docx"}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> {downloading === "docx" ? "Building..." : "Download DOCX now"}
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={downloadOrderForm} disabled={downloading === "orderform"}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> {downloading === "orderform" ? "Building..." : "Download Order Form"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <BackToReviewLink onClick={() => setStep(2)} />
+          </>
+        )}
       </div>
     </div>
   );

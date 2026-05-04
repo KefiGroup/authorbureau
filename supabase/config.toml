@@ -135,9 +135,8 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.generate-cover-image]
     verify_jwt = false
-
-  [functions.abby-daily-report]
+  [functions.export-bp08-editions-docx]
     verify_jwt = false
-  [functions.abby-daily-report-dispatcher]
+  [functions.export-bp08-order-form]
     verify_jwt = false
 
