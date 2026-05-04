@@ -152,8 +152,14 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       if (cancelled) return;
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         const baseContent = node.content_json as Record<string, unknown>;
+        const savedStep = typeof (baseContent as any)?._currentStep === "number"
+          ? ((baseContent as any)._currentStep as number)
+          : null;
         setContent(node.status === "live" ? { ...baseContent, activated: true } : baseContent);
-        setStep(node.status === "live" ? 3 : 2);
+        setStep(
+          node.status === "live" ? 3 :
+          savedStep !== null ? savedStep : 2,
+        );
       } else {
         setStep(0);
       }
