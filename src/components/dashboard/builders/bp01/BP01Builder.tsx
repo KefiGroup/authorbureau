@@ -179,6 +179,15 @@ export default function BP01Builder({ authorId, bookId }: Props) {
       }
       setContent(data.content);
       setStep(2);
+      // Persist draft so refresh restores Review step (BP-02 reference pattern)
+      void autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-01",
+        nodeName: "Email Marketing",
+        content: { ...data.content, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId ?? null,
+      });
     } catch (e: any) {
       setError(e.message);
       setStep(0);
