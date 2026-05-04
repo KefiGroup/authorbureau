@@ -40,6 +40,7 @@ type Slide = {
   columns?: { left?: { h?: string; body?: string }; right?: { h?: string; body?: string } };
   chips?: { label?: string; name?: string }[];
   case?: { challenge?: string; move?: string; result?: string };
+  tiers?: { name?: string; books?: number; highlight?: string }[];
   speaker_notes?: string;
   // legacy
   title?: string;
