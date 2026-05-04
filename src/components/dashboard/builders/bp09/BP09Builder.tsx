@@ -349,13 +349,58 @@ export default function BP09Builder({ authorId, bookId }: Props) {
               </TabsContent>
             </Tabs>
 
+            {/* Where readers buy your book — used as QR target on closing slide and handout footer */}
+            <Card>
+              <CardContent className="pt-6 space-y-3">
+                <div>
+                  <h4 className="font-bold text-sm">Where readers buy your book</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Optional. We'll print these on the closing slide of your decks and the bottom of your handout, so audiences can buy on the spot.
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground">Amazon link</label>
+                  <input
+                    type="url"
+                    placeholder="https://www.amazon.com/dp/..."
+                    className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background"
+                    value={content?.amazon_url || ""}
+                    onChange={(e) => {
+                      const next = { ...content, amazon_url: e.target.value };
+                      setContent(next);
+                      if (authorId) autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: next, currentStep: 2, bookId: activeBookId }).catch(() => null);
+                    }}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold text-muted-foreground">Bookstore / own website link</label>
+                  <input
+                    type="url"
+                    placeholder="https://yourbookstore.com/your-book"
+                    className="w-full px-3 py-2 text-sm rounded-md border border-input bg-background"
+                    value={content?.bookstore_url || ""}
+                    onChange={(e) => {
+                      const next = { ...content, bookstore_url: e.target.value };
+                      setContent(next);
+                      if (authorId) autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: next, currentStep: 2, bookId: activeBookId }).catch(() => null);
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="ghost" className="sm:w-auto" onClick={() => setStep(0)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Previous
               </Button>
-              <Button className="flex-1" size="lg" onClick={handlePublish}>
-                Mark Toolkit Ready <ArrowRight className="h-4 w-4 ml-2" />
-              </Button>
+              <div className="flex-1 flex flex-col gap-1">
+                <Button className="w-full" size="lg" onClick={handlePublish}>
+                  Save Toolkit to My Library <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  Saves all four tabs to your Author Library. Nothing is published publicly.
+                </p>
+              </div>
             </div>
             <p className="text-xs text-center text-muted-foreground">This is a private author toolkit, not a public page. You can keep editing or download anytime.</p>
           </div>
