@@ -83,7 +83,9 @@ export default function BA11Builder({ authorId, bookId }: Props) {
           return c;
         });
         setStepData({ ...studio, chapters: sanitized });
-        setStepIdx(Math.min(draft.currentStep || 0, STUDIO_STEPS.length - 1));
+        const savedStep = (draft.content as any)?._currentStep;
+        const resumeIdx = typeof savedStep === "number" ? savedStep : (draft.currentStep || 0);
+        setStepIdx(Math.min(resumeIdx, STUDIO_STEPS.length - 1));
         setIntro(false);
       }
     })();
