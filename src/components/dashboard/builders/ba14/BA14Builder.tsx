@@ -53,7 +53,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
         const normalised = normalisePodcast(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
         setContent({ ...normalised, activated: isActuallyLive });
-        setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
+        { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
         if (wasLegacy) {
           void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }

@@ -62,7 +62,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
         const isHalfPublished = !isActuallyLive && savedStep >= 3;
         setContent({ ...normalised, activated: isActuallyLive });
         setPriceOverride(normalised?.suggested_price_usd || null);
-        setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : Math.max(savedStep, 2));
+        { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : (typeof _saved === "number" ? _saved : Math.max(savedStep, 2))); }
         if (isHalfPublished) {
           toast.info("Your last publish didn't complete — please click Publish again.");
         }
