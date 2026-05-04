@@ -14,7 +14,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Gift } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Check, BookOpen, LayoutList, DollarSign, FileText, Gift, Download, ExternalLink } from "lucide-react";
 import PublishSuccessScreen from "@/components/dashboard/builders/shared/PublishSuccessScreen";
 
 import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/components/dashboard/builders/shared/BuilderIntroBlock";
@@ -401,10 +401,19 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 <TabsTrigger value="sales" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Sales Page</TabsTrigger>
               </TabsList>
               <TabsContent value="editions" className="space-y-4 mt-4">
-                <Card><CardContent className="pt-6 space-y-2">
-                  <h3 className="text-xl font-bold">{content.edition_title}</h3>
-                  {content.edition_subtitle && <p className="text-muted-foreground">{content.edition_subtitle}</p>}
-                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
+                <Card><CardContent className="pt-6 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h3 className="text-xl font-bold">{content.edition_title}</h3>
+                      {content.edition_subtitle && <p className="text-muted-foreground">{content.edition_subtitle}</p>}
+                      {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
+                    </div>
+                    <Button size="sm" onClick={downloadEditionsDocx} disabled={downloading === "docx"}>
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      {downloading === "docx" ? "Building..." : "Download as DOCX"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">DOCX includes all 3 tier descriptions, specs, and bundle — ready to send to a printer or gift buyer.</p>
                 </CardContent></Card>
                 {content.editions?.map((ed: any, i: number) => (
                   <Card key={i}><CardContent className="pt-6 space-y-3">
@@ -426,6 +435,18 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                     <div className="text-center py-4"><p className="text-3xl font-bold text-primary">${content.bundle_offer.suggested_price_usd}</p><p className="text-xs text-green-600 font-semibold mt-1">{content.bundle_offer.savings_note}</p></div>
                   </CardContent></Card>
                 )}
+                <Card><CardContent className="pt-6 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <h4 className="font-bold text-sm">Event order form</h4>
+                      <p className="text-xs text-muted-foreground mt-1">Printable, ready-to-fill order form for selling editions in person — name, address, edition choice, payment method, signatures.</p>
+                    </div>
+                    <Button size="sm" onClick={downloadOrderForm} disabled={downloading === "orderform"}>
+                      <Download className="h-3.5 w-3.5 mr-1.5" />
+                      {downloading === "orderform" ? "Building..." : "Download Event Order Form"}
+                    </Button>
+                  </div>
+                </CardContent></Card>
                 <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
                 <div><p className="text-xs font-semibold text-muted-foreground mb-1">Marketing Angle</p><p className="text-sm">{content.marketing_angle}</p></div>
               </TabsContent>
