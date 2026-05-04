@@ -25,6 +25,11 @@ export interface AutosaveOptions {
   bookId?: string | null;
 }
 
+export interface AutosaveResult {
+  ok: boolean;
+  error?: string;
+}
+
 export async function autosaveBuilderDraft({
   authorId,
   nodeId,
@@ -32,13 +37,13 @@ export async function autosaveBuilderDraft({
   content,
   currentStep,
   bookId,
-}: AutosaveOptions): Promise<void> {
-  if (!authorId || !content) return;
+}: AutosaveOptions): Promise<AutosaveResult> {
+  if (!authorId || !content) return { ok: false, error: "Missing authorId or content" };
   try {
     const token = await getActiveToken();
     if (!token) {
       console.warn(`[autosave ${nodeId}] no active token, skipping`);
-      return;
+      return { ok: false, error: "No active session" };
     }
     const res = await fetchWithTimeout(
       SAVE_URL,
@@ -63,9 +68,18 @@ export async function autosaveBuilderDraft({
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
       console.error(`[autosave ${nodeId}] save failed:`, res.status, errBody.slice(0, 300));
+      let msg = `Save failed (HTTP ${res.status})`;
+      try {
+        const parsed = JSON.parse(errBody);
+        if (parsed?.error) msg = String(parsed.error);
+      } catch { /* not JSON */ }
+      return { ok: false, error: msg };
     }
-  } catch (err) {
-    console.error(`[autosave ${nodeId}] exception:`, err);
+    return { ok: true };
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[autosave ${nodeId}] exception:`, msg);
+    return { ok: false, error: msg };
   }
 }
 
