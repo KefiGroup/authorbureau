@@ -576,6 +576,7 @@ function CorporateTab({ data, onDownloadDeck, onDownloadProposal, downloading, o
   downloading: string | null;
   onCopy: (t: string, l: string) => void;
 }) {
+  const bp = data.bulk_proposal || {};
   const slidesArr = (data.slides || []) as any[];
   const isLegacyDeck = slidesArr.length > 0 && !slidesArr.some((s) => s?.layout);
   return (
