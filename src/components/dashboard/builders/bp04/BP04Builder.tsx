@@ -77,29 +77,16 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       if (_title) setResolvedBookTitle(_title);
 
 
-      // Load via save-author-node edge function (service role) to bypass
-      // project-local RLS/uid mismatch on shared-backend sessions.
+      // Hydrate via the shared registry helper first; fall back to a direct
+      // author_nodes read only if the edge function returned nothing.
       let node: { content_json: any; status?: string } | null = null;
       try {
-        const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
-        const token = await getActiveToken();
-        if (token) {
-          const res = await fetchWithTimeout(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-node`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ action: "load", authorId, nodeId: "BP-04", bookId: activeBookId ?? undefined }),
-            },
-            15000,
-          );
-          if (res.ok) {
-            const j = await res.json();
-            if (j?.content_json) node = { content_json: j.content_json, status: j.status };
-          }
+        const draft = await loadBuilderDraft(authorId, "BP-04", activeBookId);
+        if (draft.content) {
+          node = { content_json: draft.content, status: draft.status ?? undefined };
         }
       } catch (e) {
-        console.warn("[BP-04] edge load failed, falling back to direct read", e);
+        console.warn("[BP-04] registry load failed, falling back to direct read", e);
       }
       if (!node) {
         const { data } = await supabase
