@@ -43,7 +43,7 @@ export default function YR23Builder({ authorId, bookId }: Props) {
     const __draft = await loadBuilderDraft(authorId, "YR-23", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);
-        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+        { const _saved = (__draft.content as any)?._currentStep; setStep(__draft.isLive ? (3) : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
       }
     })(); }, [authorId, isAuthReady]);
 
