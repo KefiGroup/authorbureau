@@ -288,7 +288,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-          body: JSON.stringify({ author_id: authorId }),
+          body: JSON.stringify({ author_id: authorId, book_id: activeBookId }),
         },
         60_000,
       );
@@ -317,7 +317,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY },
-          body: JSON.stringify({ author_id: authorId }),
+          body: JSON.stringify({ author_id: authorId, book_id: activeBookId }),
         },
         60_000,
       );

@@ -95,17 +95,31 @@ function orderFormHtml(penName: string, bookTitle: string, content: any): string
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { author_id } = await req.json();
+    const { author_id, book_id } = await req.json();
     if (!author_id) throw new Error("author_id is required");
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const { data: author } = await supabase.from("author_profiles").select("pen_name").eq("id", author_id).single();
-    const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
-    const { data: node } = await supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BP-08").single();
-    if (!node?.content_json) throw new Error("BP-08 special editions not found");
+
+    let bookTitle = "Your Book";
+    if (book_id) {
+      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", author_id).eq("book_id", book_id).maybeSingle();
+      if (ctx?.book_title) bookTitle = ctx.book_title;
+      else {
+        const { data: bk } = await supabase.from("books").select("title").eq("id", book_id).maybeSingle();
+        if (bk?.title) bookTitle = bk.title;
+      }
+    } else {
+      const { data: ctx } = await supabase.from("author_context").select("book_title").eq("author_id", author_id).order("created_at", { ascending: false }).limit(1).maybeSingle();
+      if (ctx?.book_title) bookTitle = ctx.book_title;
+    }
+
+    let nodeQuery = supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BP-08");
+    if (book_id) nodeQuery = nodeQuery.eq("book_id", book_id);
+    const { data: node } = await nodeQuery.maybeSingle();
+    if (!node?.content_json) throw new Error("BP-08 special editions not found for this book");
 
     const penName = author?.pen_name || "Author";
-    const bookTitle = ctx?.book_title || "Your Book";
     const html = orderFormHtml(penName, bookTitle, node.content_json);
     const filename = `${penName.replace(/\s+/g, "_")}_special_edition_order_form.html`;
 
