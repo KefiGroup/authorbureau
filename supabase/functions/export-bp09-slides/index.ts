@@ -11,15 +11,17 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
-    const { author_id, deck } = await req.json();
+    const { author_id, book_id, deck } = await req.json();
     if (!author_id || !deck) throw new Error("author_id and deck are required");
     if (deck !== "workshop" && deck !== "corporate_lunch") throw new Error("deck must be 'workshop' or 'corporate_lunch'");
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     const { data: author } = await supabase.from("author_profiles").select("pen_name").eq("id", author_id).single();
-    const { data: node } = await supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BP-09").single();
-    if (!node?.content_json) throw new Error("BP-09 toolkit not found");
+    let nodeQuery = supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BP-09");
+    if (book_id) nodeQuery = nodeQuery.eq("book_id", book_id);
+    const { data: node } = await nodeQuery.maybeSingle();
+    if (!node?.content_json) throw new Error("BP-09 toolkit not found for this book");
 
     const content = node.content_json as any;
     const slides = content?.[deck]?.slides || [];
