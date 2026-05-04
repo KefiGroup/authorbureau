@@ -322,7 +322,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
     if (!authorId) return;
     const next = { ...content, suggested_price_usd: 0, pricing_recommendation: "free" };
     setContent(next);
-    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: activeBookId });
+    await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: { ...next, _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     // Continue with publish now that it's free.
     setStep(3);
     setError(null);
@@ -516,7 +516,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
     const next = { ...content, suggested_price_usd: choice === "paid" ? price : 0, pricing_recommendation: choice };
     setContent(next);
     if (authorId) {
-      void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: { ...next, _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
     }
   };
 
@@ -677,7 +677,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
                   onChange={(e) => {
                     const next = { ...content, amazon_paperback_url: e.target.value };
                     setContent(next);
-                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
+                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: { ...next, _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
                   }}
                 />
               </div>
@@ -691,7 +691,7 @@ function ReviewStep({ content, setContent, authorId, bookId, authorName, bookTit
                   onChange={(e) => {
                     const next = { ...content, amazon_kindle_url: e.target.value };
                     setContent(next);
-                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: next, currentStep: 2, bookId: bookId ?? null });
+                    if (authorId) void autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: { ...next, _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
                   }}
                 />
               </div>
@@ -860,7 +860,7 @@ function WorkbookDocxImporter({ authorId, bookId, content, setContent }: Importe
         // Single canonical save path — autosaveBuilderDraft routes through
         // save-author-node (service role + per-book scope) so we no longer
         // need a second direct author_nodes write.
-        await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: merged, currentStep: 2, bookId: bookId ?? null });
+        await autosaveBuilderDraft({ authorId, nodeId: "BP-06", nodeName: "Workbook", content: { ...merged, _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
       }
       toast.success("Workbook updated from your Word edits.");
     } catch (e) {
