@@ -576,22 +576,28 @@ function CorporateTab({ data, onDownloadDeck, onDownloadProposal, downloading, o
   downloading: string | null;
   onCopy: (t: string, l: string) => void;
 }) {
-  const bp = data.bulk_proposal || {};
+  const slidesArr = (data.slides || []) as any[];
+  const isLegacyDeck = slidesArr.length > 0 && !slidesArr.some((s) => s?.layout);
   return (
     <>
       <Card><CardContent className="pt-6 space-y-3">
         <div className="flex items-center justify-between">
-          <h4 className="font-bold flex items-center gap-2"><Presentation className="h-4 w-4" /> Corporate pitch deck ({(data.slides || []).length} slides)</h4>
+          <h4 className="font-bold flex items-center gap-2"><Presentation className="h-4 w-4" /> Corporate pitch deck ({slidesArr.length} slides)</h4>
           <Button size="sm" onClick={onDownloadDeck} disabled={downloading === "slides-corporate_lunch"}>
             <Download className="h-3.5 w-3.5 mr-1.5" />
             {downloading === "slides-corporate_lunch" ? "Building..." : "Download .pptx"}
           </Button>
         </div>
+        {isLegacyDeck && (
+          <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900 rounded-md px-3 py-2">
+            Regenerate the toolkit to refresh these slides with the latest professional layouts (stat callouts, framework grid, ROI two-column, tiered offer).
+          </p>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {(data.slides || []).map((s: any, i: number) => (
+          {slidesArr.map((s: any, i: number) => (
             <div key={i} className="p-2 rounded border border-border bg-muted/20 text-xs">
-              <p className="font-semibold truncate">#{s.n} — {s.title}</p>
-              <p className="text-muted-foreground line-clamp-2 mt-1">{s.body}</p>
+              <p className="font-semibold truncate">#{s.n} — {s.headline || s.title || `Slide ${s.n}`}</p>
+              <p className="text-muted-foreground line-clamp-2 mt-1">{s.subhead || s.body || (s.bullets || []).join(" • ")}</p>
             </div>
           ))}
         </div>
