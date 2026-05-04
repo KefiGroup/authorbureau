@@ -138,13 +138,16 @@ Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-5",
+        // gemini-3-flash-preview is 3-5x faster than gpt-5 for JSON generation
+        // and easily handles this schema.
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: "You are ABBY, the AI business agent for Authors Bureau. Generate social media content that is warm, expert, and specific to the author's book. Return valid JSON only.\n\nHARD CONTENT RULES (output that violates these will fail QA):\n- NEVER use the emdash character (\u2014) or endash (\u2013). Use commas, periods, or \" - \" for ranges only.\n- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.\n- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.\n- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns)." },
           { role: "user", content: prompt },
         ],
-        max_completion_tokens: 5000,
+        max_completion_tokens: 3500,
       }),
+      signal: AbortSignal.timeout(90_000),
     });
 
     if (!aiResponse.ok) {

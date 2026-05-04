@@ -1,61 +1,63 @@
-# Make BP-02 + BP-06 Social Pack Persistence Bulletproof
+## Goals
 
-## Problem
+1. Social Media Distribution Pack (BP-02 → Share tab) generates much faster.
+2. Leaving the page does NOT kill in-flight generation, and the generated pack is always restored when the user returns.
+3. Refreshing any page (especially a builder page like `/node-builder/BP-02?bookId=...`) returns the user to that exact page, never the dashboard root.
 
-In BP-02, after clicking **Generate Social Pack** in the Share tab, the AI returns successfully but the result is **never written to `author_nodes.content_json`**. It only lives in local React state via `setContent({ ...content, social_pack })`. The moment the user navigates away (or the page re-mounts), `loadBuilderDraft` returns the prior saved content **without** the social pack, so the UI appears to "jump back" and the work is lost.
+Once BP-02 is rock-solid we replicate the same pattern to BP-06 and the rest of BP / BA / YR.
 
-Two contributing bugs:
+---
 
-1. **Edge function** `generate-bp02-social-pack` writes only to `cross_builder_pushes`, not to the node's `content_json`.
-2. **Parent component** `BP02Builder.tsx` (line 1279) only updates local state in `onContentLoaded` — no `autosaveBuilderDraft` call. It also uses a stale-closure spread (`...content`) instead of a functional updater, which can drop concurrent edits.
+## Issue 1 — Generation is slow
 
-BP-06 doesn't have a Share / Social Pack tab today, but we want the same persistence contract everywhere social packs / sub-assets get generated, so we make it a reusable pattern.
+Root cause: `generate-bp02-social-pack` calls `openai/gpt-5` with `max_completion_tokens: 5000` and asks for a single huge JSON blob (LinkedIn + IG + FB + X thread + email + visual brief). GPT-5 large completions routinely take 60–120 s.
 
-## Fix (BP-02 first, BP-06 audit second)
+Fix:
+- Switch the model to `google/gemini-3-flash-preview` (3–5× faster, JSON-friendly, already our default chat model per memory).
+- Drop `max_completion_tokens` to ~3500 — the schema doesn't need more.
+- Keep the prompt and JSON schema unchanged so downstream rendering is untouched.
+- Add a 90 s `fetchWithTimeout` wrapper around the AI call so a hung gateway can't strand the function.
 
-### 1. `SocialDistributionPack.tsx`
-- Accept new optional props: `bookId: string | null` and `onPersist?: (socialPack) => Promise<void>`.
-- After successful generation: call `onContentLoaded(socialPack)` **and then** `await onPersist?.(socialPack)`. Surface persistence errors via a toast (do NOT swallow).
+Expected wall-time: ~15–25 s instead of 60–120 s.
 
-### 2. `BP02Builder.tsx`
-- Pass `bookId={activeBookId}` to `<SocialDistributionPack>`.
-- Replace the inline `onContentLoaded` with a stable handler:
-  ```ts
-  const handleSocialPackLoaded = useCallback(async (socialPack) => {
-    setContent((prev) => ({ ...(prev || {}), social_pack: socialPack }));
-    if (!authorId) return;
-    await autosaveBuilderDraft({
-      authorId,
-      nodeId: "BP-02",
-      nodeName: "Lead Magnets",
-      content: { ...(content || {}), social_pack: socialPack, _currentStep: step },
-      currentStep: step,
-      bookId: activeBookId ?? null,
-    });
-  }, [authorId, content, step, activeBookId]);
-  ```
-  Wire it as both `onContentLoaded` and `onPersist` (single source of truth).
-- Remove the second redundant `<SocialDistributionPack>` instance at line 1656 if it isn't reachable, or wire it the same way.
+## Issue 2 — Generation is "killed" when leaving the page
 
-### 3. `generate-bp02-social-pack/index.ts` (defence in depth)
-- After parsing AI JSON, also merge into `author_nodes.content_json.social_pack` via `upsertAuthorNode` (same helper BP-06 generator uses), scoped by `author_id` + `book_id`. This guarantees persistence even if the client crashes between AI return and autosave.
+Two separate symptoms, two fixes:
 
-### 4. BP-06 audit
-- BP-06 has no Share/Social tab today, so no immediate regression. Confirm by grep — no `SocialDistributionPack` import.
-- Document the contract: any builder that generates a sub-asset (social pack, marketing pack, distribution pack) **must** persist via `autosaveBuilderDraft` immediately after the AI returns. Add a short comment block at the top of `SocialDistributionPack.tsx` describing the `onPersist` contract so future builders (BP-03, BA-*, YR-*) follow it.
+**(a) The promise dies on unmount.** `SocialDistributionPack.handleGenerate` keeps the in-flight request in component state (`generating`). When the user navigates away, the component unmounts, React drops `setGenerating`, and even though the edge function is still running, the next mount has no idea — so the user sees the empty "Generate" CTA again.
 
-### 5. Verification
-- Generate social pack on BP-02 → reload page → Share tab still shows the generated content (read from `author_nodes.content_json.social_pack`).
-- Re-confirm BP-06 publish/save flow still works (no changes to its files).
+Fix: route the call through the existing single-flight registry (`src/lib/builder-generation-registry.ts`). On mount, check `getGeneration(authorId, "BP-02::social-pack")`; if a promise exists, show "Generating…" and `await` it. On click, use `startGeneration` so a second mount joins the same promise instead of starting a new one.
 
-## Files Touched
+**(b) The result isn't restored after navigation.** The edge function already upserts `social_pack` into `author_nodes.content_json` (hardened in the previous sprint), but `BP02Builder`'s resume effect doesn't rehydrate it into `SocialDistributionPack` state because `SocialDistributionPack` only reads from local React state set during the generate click.
 
-- `src/components/dashboard/builders/bp02/SocialDistributionPack.tsx` — add `bookId` + `onPersist` props, await persistence
-- `src/components/dashboard/builders/bp02/BP02Builder.tsx` — `handleSocialPackLoaded` with autosave; functional setContent
-- `supabase/functions/generate-bp02-social-pack/index.ts` — also write `social_pack` into `author_nodes.content_json` via `upsertAuthorNode`
+Fix: pass the persisted pack down as a prop. `BP02Builder` already stores `content.social_pack` after `handleSocialPackLoaded`. Update `SocialDistributionPack` to render whenever `content?.social_pack` is present (it already does — but currently the parent passes `content` = the whole BP-02 content, not the social pack). Refactor the parent to pass `content.social_pack` and have `onContentLoaded(pack)` call back into `handleSocialPackLoaded`. This way after a refresh the pack renders immediately from the stored draft.
 
-No DB migrations. No changes to BP-06 source (audit only).
+## Issue 3 — Refresh always returns to dashboard
 
-## Out of Scope
+Root cause: BP-02 sidebar navigation funnels through `setActiveSection("lead-magnet")` → URL becomes `/dashboard?section=lead-magnet&bookId=…`. The per-book redirect in `AuthorDashboard` then bounces to `/dashboard/book/:bookId?tab=...` (the Book Hub) instead of the actual builder page. On refresh you land on the Book Hub, not BP-02. From the Book Hub the user has to click in again — which feels like "dashboard reset".
 
-Rolling this pattern out to BA / YR builders — that's the next pass once BP-02 + BP-06 are confirmed solid.
+Fix: when the user opens BP-02 from the sidebar/Book-Hub, navigate directly to `/node-builder/BP-02?bookId=…`. That URL already survives refresh because `NodeBuilder` reads `nodeId` and `bookId` from params. Concretely:
+- Add `BP-02` (and other builder nodes that exist as direct builders: BP-01, BP-03, BP-04, BP-05, BP-06, BP-09, BA-10..BA-12) to `NODE_TO_NODE_BUILDER` in `src/config/abbyFrameworkConfig.ts` so `getStudioPath` returns `/node-builder/<NODE_ID>?bookId=…` for them.
+- In `AuthorDashboard.setActiveSection`, when a section maps to a node that has a direct builder route AND a `bookId` is present, push to `/node-builder/<NODE_ID>?bookId=…` instead of the `?section=` URL.
+
+Result: refresh on a builder page stays on that builder page. The "introduction" reset disappears because `BP02Builder`'s resume effect (already correct) pulls the saved draft and lands on Review (step 2) or Live (step 4).
+
+---
+
+## Files touched
+
+- `supabase/functions/generate-bp02-social-pack/index.ts` — model swap, lower token cap, timeout wrapper.
+- `src/components/dashboard/builders/bp02/SocialDistributionPack.tsx` — wire to `builder-generation-registry`, render from `content` prop directly.
+- `src/components/dashboard/builders/bp02/BP02Builder.tsx` — pass `content.social_pack` (not whole content) into the pack component; small render tweak.
+- `src/config/abbyFrameworkConfig.ts` — extend `NODE_TO_NODE_BUILDER` with all nodes that have dedicated builders.
+- `src/pages/AuthorDashboard.tsx` — when `setActiveSection` is called for a node with a direct builder + active `bookId`, route to `/node-builder/<NODE_ID>?bookId=…`.
+
+## After BP-02 verifies
+
+Replicate to BP-06 (already the gold reference for resume — only needs the same `setActiveSection` routing fix), then roll the same three patterns out to all remaining BP / BA / YR builders. No further plan needed for that wave; it's mechanical once BP-02 + BP-06 are confirmed perfect.
+
+## Out of scope
+
+- No DB schema changes.
+- No changes to `loadBuilderDraft` / `autosaveBuilderDraft` (already correct).
+- No new edge functions.
