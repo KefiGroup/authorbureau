@@ -204,7 +204,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       setContent(data.content);
       setStep(2);
       // Autosave so refresh restores the review step (matches BA-10 behaviour).
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: data.content, currentStep: 2, bookId: activeBookId });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BP-06", nodeName: "Workbook", content: { ...data.content, _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: unknown) {
       const msg = toAbbyError((e as Error)?.message || "Generation failed");
       console.error("[BP-06] generate failed", e);
