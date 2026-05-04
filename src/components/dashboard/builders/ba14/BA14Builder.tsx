@@ -55,7 +55,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
         setContent({ ...normalised, activated: isActuallyLive });
         setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: normalised, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: __draft }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
       }
     })();
@@ -77,7 +77,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normalisePodcast(data.content || {});
       setContent(normalised); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast Tour", content: normalised, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

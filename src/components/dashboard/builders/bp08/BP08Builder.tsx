@@ -150,7 +150,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         authorId,
         nodeId: "BP-08",
         nodeName: "Special Editions",
-        content: newContent,
+        content: { ...(newContent), _currentStep: 2 },
         currentStep: 2, bookId: activeBookId });
     }
     return newContent;
@@ -235,7 +235,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
           authorId,
           nodeId: "BP-08",
           nodeName: "Special Editions",
-          content: merged,
+          content: { ...(merged), _currentStep: 3 },
           currentStep: 3, bookId: activeBookId });
         setContent(merged);
       }

@@ -106,7 +106,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
     const data = await res.json().catch(() => null);
     if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
     const newContent = { ...(data.content || {}), _currentStep: 2 };
-    if (authorId) await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: newContent, currentStep: 2, bookId: activeBookId });
+    if (authorId) await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: { ...(newContent), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     return newContent;
   };
 
@@ -155,7 +155,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
 
       if (content && authorId) {
         const merged = { ...content, _currentStep: 3, ...(libraryAsset ? { library_asset: libraryAsset } : {}) };
-        await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: merged, currentStep: 3, bookId: activeBookId });
+        await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: { ...(merged), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
         setContent(merged);
       }
       await publishNodeToSite(authorId!, "BP-09", authorSlug, activeBookId, libraryAsset);

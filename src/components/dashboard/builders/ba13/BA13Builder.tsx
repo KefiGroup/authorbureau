@@ -67,7 +67,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
           toast.info("Your last publish didn't complete — please click Publish again.");
         }
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: __draft }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
       }
     })();
@@ -92,7 +92,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
       setContent(normalised);
       setPriceOverride(normalised?.suggested_price_usd || null);
       setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: normalised, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
