@@ -40,6 +40,7 @@ type Slide = {
   columns?: { left?: { h?: string; body?: string }; right?: { h?: string; body?: string } };
   chips?: { label?: string; name?: string }[];
   case?: { challenge?: string; move?: string; result?: string };
+  tiers?: { name?: string; books?: number; highlight?: string }[];
   speaker_notes?: string;
   // legacy
   title?: string;
@@ -396,26 +397,65 @@ function renderExercise(ctx: RenderCtx) {
 function renderOffer(ctx: RenderCtx) {
   const { slide, s } = ctx;
   slide.background = { color: C.paper };
-  // Navy left panel with book mockup
+  // Navy left panel
   slide.addShape("rect", { x: 0, y: 0, w: 5.0, h: H, fill: { color: C.navy }, line: { color: C.navy } });
   slide.addShape("rect", { x: 5.0, y: 0, w: 0.08, h: H, fill: { color: C.coral }, line: { color: C.coral } });
-  // Book mockup rectangle
-  slide.addShape("rect", {
-    x: 1.4, y: 1.6, w: 2.2, h: 3.3,
-    fill: { color: C.ice }, line: { color: C.coral, width: 2 },
-  });
-  slide.addText(ctx.bookTitle, {
-    x: 1.5, y: 2.4, w: 2.0, h: 1.6,
-    fontFace: FONT_HEAD, fontSize: 13, bold: true, color: C.navy, align: "center",
-  });
-  slide.addText(`by ${ctx.penName}`, {
-    x: 1.5, y: 4.2, w: 2.0, h: 0.4,
-    fontFace: FONT_BODY, fontSize: 10, color: C.navy, italic: true, align: "center",
-  });
-  slide.addText("AT THE BACK OF THE ROOM", {
-    x: 0.5, y: 5.4, w: 4.0, h: 0.3,
-    fontFace: FONT_HEAD, fontSize: 10, bold: true, color: C.ice, charSpacing: 4, align: "center",
-  });
+
+  const tiers = (s.tiers || []).slice(0, 3);
+  if (tiers.length === 3) {
+    // 3 stacked tier cards (corporate offer)
+    slide.addText("CHOOSE A STARTING TIER", {
+      x: 0.5, y: 0.7, w: 4.0, h: 0.35,
+      fontFace: FONT_HEAD, fontSize: 11, bold: true, color: C.coral, charSpacing: 4,
+    });
+    const cardH = 1.7;
+    const startY = 1.25;
+    tiers.forEach((t, i) => {
+      const y = startY + i * (cardH + 0.18);
+      const isMid = i === 1;
+      slide.addShape("rect", {
+        x: 0.5, y, w: 4.0, h: cardH,
+        fill: { color: isMid ? C.coral : C.ice },
+        line: { color: isMid ? C.coral : C.ice },
+      });
+      slide.addText(String(t.name || `Tier ${i + 1}`), {
+        x: 0.7, y: y + 0.15, w: 3.6, h: 0.5,
+        fontFace: FONT_HEAD, fontSize: 18, bold: true,
+        color: isMid ? C.paper : C.navy,
+      });
+      slide.addText(`${t.books ?? ""} books`, {
+        x: 0.7, y: y + 0.65, w: 3.6, h: 0.4,
+        fontFace: FONT_HEAD, fontSize: 14, bold: true,
+        color: isMid ? C.paper : C.navy,
+      });
+      if (t.highlight) {
+        slide.addText(String(t.highlight), {
+          x: 0.7, y: y + 1.05, w: 3.6, h: 0.5,
+          fontFace: FONT_BODY, fontSize: 11, italic: true,
+          color: isMid ? C.paper : C.navy,
+        });
+      }
+    });
+  } else {
+    // Workshop offer: book mockup
+    slide.addShape("rect", {
+      x: 1.4, y: 1.6, w: 2.2, h: 3.3,
+      fill: { color: C.ice }, line: { color: C.coral, width: 2 },
+    });
+    slide.addText(ctx.bookTitle, {
+      x: 1.5, y: 2.4, w: 2.0, h: 1.6,
+      fontFace: FONT_HEAD, fontSize: 13, bold: true, color: C.navy, align: "center",
+    });
+    slide.addText(`by ${ctx.penName}`, {
+      x: 1.5, y: 4.2, w: 2.0, h: 0.4,
+      fontFace: FONT_BODY, fontSize: 10, color: C.navy, italic: true, align: "center",
+    });
+    slide.addText("AT THE BACK OF THE ROOM", {
+      x: 0.5, y: 5.4, w: 4.0, h: 0.3,
+      fontFace: FONT_HEAD, fontSize: 10, bold: true, color: C.ice, charSpacing: 4, align: "center",
+    });
+  }
+
   // Right column
   addEyebrow(slide, s.eyebrow || "TAKE IT WITH YOU", 5.5, 1.0);
   slide.addText(s.headline || "", {
