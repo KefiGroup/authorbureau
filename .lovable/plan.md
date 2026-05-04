@@ -1,58 +1,117 @@
-## Problem
+## Why this happens (and why BP-02 is unaffected)
 
-When you refresh `/node-builder/BP-02?bookId=...` (or any protected deep link) on Safari, you land on `/dashboard` instead of the page you were on.
+On Safari, when you refresh a deep link, the shared-backend session cookie/localStorage takes longer than the React tree's first render. Every component that does:
 
-## Root cause
-
-Two bugs combine on refresh:
-
-1. **`ProtectedRoute` in `src/App.tsx` (line 103)** redirects unauthenticated users to `/auth` **without preserving the URL**:
-   ```tsx
-   if (!user) return <Navigate to="/auth" replace />;
-   ```
-   It should pass `?redirect=<original path+search>` so login returns the user to the same builder page.
-
-2. **`useAuth` safety timeout (line 281)** force-resolves `authLoading` after only **3 seconds**. On Safari, the shared-backend session restore (`getSharedSession()`) can take longer than 3s due to cross-domain cookie/localStorage handling. When the timeout fires while `user` is still `null`, `ProtectedRoute` sees "not loading + no user" and bounces to `/auth`. By the time login completes, the original URL is gone and Auth.tsx sends them to its default `/dashboard`.
-
-## Fix
-
-**File 1: `src/App.tsx` — preserve return URL in `ProtectedRoute`**
-
-```tsx
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth();
-  const location = useLocation();
-
-  if (loading) { /* existing skeleton */ }
-
-  if (!user) {
-    const redirect = encodeURIComponent(location.pathname + location.search);
-    return <Navigate to={`/auth?redirect=${redirect}`} replace />;
-  }
-  return <>{children}</>;
-}
+```ts
+const { user } = useAuth();
+useEffect(() => {
+  if (!user) return;
+  // …query data…
+}, [user]);
 ```
 
-`Auth.tsx` already reads `?redirect=` (line 49) and navigates there after sign-in, so this single change carries the full path through the round-trip.
+…fires its data effect with `user = null` once, gets back nothing, and renders the empty / fallback / "go set up your profile" UI. By the time the session resolves, the effect doesn't re-run because `user` is now stable. The page **looks** like the dashboard reset, but really it's just every individual page resolving to its empty state.
 
-**File 2: `src/hooks/useAuth.tsx` — extend the safety timeout and gate the bail-out on actual completion**
+`BP-02` is the only screen that already gates on `useAuthReady().isReady` (which waits for the shared session restore to fire `INITIAL_SESSION`), which is why it survives the refresh.
 
-- Bump the `setAuthLoading(false)` safety timeout from **3000 ms to 8000 ms** so Safari's session restore has time to complete.
-- Have it only fire if `getSharedSession()` hasn't already resolved (track via a ref / `Promise.race`-style guard). This eliminates the "loading flips false while user is still null" race that triggers the false redirect.
+## Fix — make `useAuthReady` the universal mount gate
 
-**File 3 (defensive): `src/pages/Auth.tsx`** — no change required; it already honours the `redirect` param.
+Apply one mechanical pattern to every page that loads user-scoped data:
 
-## Why this fixes the symptoms you saw
+```ts
+const { user, isReady } = useAuthReady();   // ← was useAuth()
+useEffect(() => {
+  if (!isReady) return;     // wait for Safari to finish session restore
+  if (!user) return;        // truly signed out
+  // …existing query…
+}, [user, isReady, /* other deps */]);
+```
 
-- The Social Media draft is now correctly persisted (last sprint), so the data is fine.
-- After this fix, refreshing on `/node-builder/BP-02?bookId=...` will:
-  1. Show the auth skeleton until the Safari session truly restores (up to 8s).
-  2. If the session restores → render NodeBuilder at the same URL (no bounce).
-  3. If the session is genuinely gone → land on `/auth?redirect=/node-builder/BP-02?bookId=...` and after login return to that exact URL.
+And while loading, render the existing skeleton instead of the empty / "no data" state. Specifically: if `!isReady`, return the page's loading skeleton; only render "no data" when `isReady && !data`.
 
-## Files touched
+For pages that gate on a fetched profile id (CRM, Funnels, Library, Marketing Hub), keep the local `loading` state initialized to `true` and only set it to `false` once the actual fetch resolves — never inside an early `if (!user) return` branch.
 
-- `src/App.tsx` (ProtectedRoute)
-- `src/hooks/useAuth.tsx` (safety timeout)
+## Files to update
 
-No DB or edge-function changes required.
+### Builders (28 — same as previously approved)
+
+```text
+src/components/dashboard/builders/bp01/BP01Builder.tsx
+src/components/dashboard/builders/bp03/BP03Builder.tsx   (extend dep array w/ activeBookId)
+src/components/dashboard/builders/bp04/BP04Builder.tsx
+src/components/dashboard/builders/bp05/BP05Builder.tsx
+src/components/dashboard/builders/bp06/BP06Builder.tsx
+src/components/dashboard/builders/bp07/BP07Builder.tsx
+src/components/dashboard/builders/bp08/BP08Builder.tsx
+src/components/dashboard/builders/bp09/BP09Builder.tsx
+src/components/dashboard/builders/ba10..ba18/*Builder.tsx
+src/components/dashboard/builders/yr19..yr28/*Builder.tsx
+```
+
+For each:
+1. `useAuthReady` gate before the resume effect.
+2. Add `isAuthReady` and `activeBookId` to the dep array.
+3. Initial `step = -1` and render skeleton while `step === -1`.
+4. Prefer `loadBuilderDraft()` first; direct `author_nodes` read only as fallback.
+5. Never `setStep(0)` on a thrown error — only on a confirmed empty draft + empty fallback.
+
+### Dashboard pages
+
+Same `useAuthReady` swap + skeleton-while-`!isReady` pattern:
+
+```text
+src/components/dashboard/AuthorCRMPage.tsx
+src/components/dashboard/AuthorMessagesPage.tsx
+src/components/dashboard/FunnelsHub.tsx
+src/components/dashboard/MarketingHub.tsx
+src/components/dashboard/MyBooks.tsx
+src/components/dashboard/ReviewProductsPage.tsx
+src/components/dashboard/PayoutSettingsPage.tsx
+src/components/dashboard/RevenueDashboard.tsx
+src/components/dashboard/MicrositeManager.tsx
+src/components/dashboard/EmailMarketing.tsx
+src/components/dashboard/SocialMediaManager.tsx
+src/components/dashboard/AudiobookStudio.tsx
+src/components/dashboard/CoachingCRM.tsx
+src/components/dashboard/ProfileEditor.tsx
+src/components/dashboard/AuthorReadingClub.tsx
+```
+
+### Standalone pages
+
+```text
+src/pages/AuthorLibrary.tsx        (currently uses [] dep array — add user/isReady)
+src/pages/BookHub.tsx              (already gates on authLoading; add isReady to fetchBook deps)
+src/pages/AbbyCoachPage.tsx
+src/pages/AccountSettings.tsx
+src/pages/ConnectSettings.tsx
+src/pages/EarningsDashboard.tsx
+src/pages/AdminPayouts.tsx
+src/pages/admin/ContentQualityLog.tsx
+```
+
+### One supporting helper
+
+`src/hooks/useAuth.tsx` exposes `loading` but not `isReady`. The fix uses `useAuthReady()` (already in the codebase, already correctly listens to `INITIAL_SESSION`). No edit needed there.
+
+## Out of scope
+
+- No DB migrations.
+- No edge function changes.
+- The earlier `App.tsx ProtectedRoute` redirect-preservation fix and the `useAuth` 8s timeout stay as-is.
+- Public pages (microsites, directory, reading club guest views) are unaffected — they don't read user-scoped data on mount.
+
+## Verification (Safari, published site)
+
+Sign in, navigate into each of these, then hit Cmd-R:
+
+1. Builder: `/node-builder/BP-01?bookId=…` (and a BA + a YR node)
+2. CRM: `/dashboard?section=author-crm`
+3. Funnels: `/dashboard?section=my-funnels`
+4. Library: `/dashboard?section=library`
+5. Marketing Hub: `/marketing-hub`
+6. Messages: `/dashboard?section=messages`
+7. Revenue Dashboard: `/revenue-dashboard`
+8. Book Hub: `/dashboard/book/<id>?tab=revenue-streams`
+
+Each page must stay on its own URL with its data populated, never flash to "no data" or bounce to `/dashboard`.
