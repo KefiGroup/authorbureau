@@ -477,7 +477,33 @@ export default function BP08Builder({ authorId, bookId }: Props) {
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 5–10 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-08" authorName={authorName} penNameSlug={authorSlug} abbyMessage={`Your special editions are saved to your library, ${authorName}. When a gift buyer asks for one — at an event, in your DMs, or via your contact form — open your library, copy the edition details, and quote them directly. You stay in control of pricing, signing, and timing for each premium order.`} /><BackToReviewLink onClick={() => setStep(2)} /></>}
+        {step === 3 && content?.activated && (
+          <>
+            <PublishSuccessScreen
+              nodeId="BP-08"
+              authorName={authorName}
+              penNameSlug={authorSlug}
+              abbyMessage={`Saved ${Array.isArray(content?.editions) ? content.editions.length : 3} editions${content?.bundle_offer ? " + bundle" : ""} to your library, ${authorName}. When a gift buyer asks for one, open your library, copy the edition details, and quote them directly. You stay in control of pricing, signing, and timing for each premium order.`}
+            />
+            <Card className="mt-4">
+              <CardContent className="pt-6 space-y-3">
+                <p className="text-sm font-semibold">Quick actions</p>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button variant="outline" size="sm" className="flex-1" onClick={() => navigate("/dashboard?section=library")}>
+                    <ExternalLink className="h-3.5 w-3.5 mr-1.5" /> Open Author Library
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={downloadEditionsDocx} disabled={downloading === "docx"}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> {downloading === "docx" ? "Building..." : "Download DOCX now"}
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" onClick={downloadOrderForm} disabled={downloading === "orderform"}>
+                    <Download className="h-3.5 w-3.5 mr-1.5" /> {downloading === "orderform" ? "Building..." : "Download Order Form"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            <BackToReviewLink onClick={() => setStep(2)} />
+          </>
+        )}
       </div>
     </div>
   );
