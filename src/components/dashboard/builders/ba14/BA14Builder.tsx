@@ -55,7 +55,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
         setContent({ ...normalised, activated: isActuallyLive });
         setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: __draft }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
       }
     })();

@@ -67,7 +67,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
           toast.info("Your last publish didn't complete — please click Publish again.");
         }
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: __draft }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
       }
     })();
