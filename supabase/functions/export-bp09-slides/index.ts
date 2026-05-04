@@ -27,6 +27,7 @@ serve(async (req) => {
 
     const penName = author?.pen_name || "Author";
     const kitTitle = content?.kit_title || "Book Sales kit";
+    const buyUrl: string = String(content?.amazon_url || content?.bookstore_url || "").trim();
 
     const pptx = new PptxGenJS();
     pptx.author = penName;
@@ -37,7 +38,9 @@ serve(async (req) => {
     const accentLight = "CADCFC";
     const ink = "1A1A2E";
 
-    for (const s of slides) {
+    for (let idx = 0; idx < slides.length; idx++) {
+      const s = slides[idx];
+      const isLast = idx === slides.length - 1;
       const slide = pptx.addSlide();
       slide.background = { color: "FFFFFF" };
 
@@ -50,15 +53,21 @@ serve(async (req) => {
         fontFace: "Calibri", fontSize: 32, bold: true, color: ink,
       });
 
-      // Body
-      slide.addText(String(s.body || ""), {
+      // Body — append the buy URL on the final slide so audiences can act
+      const bodyText = isLast && buyUrl
+        ? `${String(s.body || "")}\n\nGet the book: ${buyUrl}`
+        : String(s.body || "");
+      slide.addText(bodyText, {
         x: 0.6, y: 1.9, w: 12.1, h: 4.8,
         fontFace: "Calibri", fontSize: 20, color: ink, valign: "top",
       });
 
       // Footer
       slide.addShape("rect", { x: 0, y: 7.15, w: 13.33, h: 0.35, fill: { color: accentLight } });
-      slide.addText(`${penName} — ${kitTitle}   ·   Slide ${s.n}`, {
+      const footerText = buyUrl
+        ? `${penName} — ${kitTitle}   ·   Slide ${s.n}   ·   ${buyUrl}`
+        : `${penName} — ${kitTitle}   ·   Slide ${s.n}`;
+      slide.addText(footerText, {
         x: 0.6, y: 7.18, w: 12.1, h: 0.3,
         fontFace: "Calibri", fontSize: 10, color: accent, italic: true,
       });
