@@ -63,18 +63,40 @@ function PostCard({ caption, hashtags, label }: { caption: string; hashtags?: st
 }
 
 export default function SocialDistributionPack({ authorId, bookId, content, onContentLoaded, onPersist }: Props) {
-  const [generating, setGenerating] = useState(false);
+  // Single-flight key scoped per author+book so navigating away doesn't kill it.
+  const genKey = `BP-02::social-pack::${bookId ?? "no-book"}`;
+  const [generating, setGenerating] = useState(() => isGenerating(authorId, genKey));
+
+  // On mount, if a generation is in-flight from a previous mount, attach to it.
+  useEffect(() => {
+    const existing = getGeneration<any>(authorId, genKey);
+    if (!existing) return;
+    setGenerating(true);
+    existing
+      .then(async (pack) => {
+        if (!pack) return;
+        onContentLoaded(pack);
+        try { await onPersist?.(pack); } catch (e) { console.error("[SocialPack] persist (resumed) failed:", e); }
+        toast.success("Social media pack generated!");
+      })
+      .catch((e: any) => toast.error(e?.message || "Generation failed"))
+      .finally(() => setGenerating(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authorId, genKey]);
 
   const handleGenerate = async () => {
     setGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-bp02-social-pack", {
-        body: { author_id: authorId, book_id: bookId ?? null },
+      const pack = await startGeneration(authorId, genKey, async () => {
+        const { data, error } = await supabase.functions.invoke("generate-bp02-social-pack", {
+          body: { author_id: authorId, book_id: bookId ?? null },
+        });
+        if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
+        return data.content;
       });
-      if (error || !data?.success) throw new Error(data?.error || error?.message || "Failed");
-      onContentLoaded(data.content);
+      onContentLoaded(pack);
       try {
-        await onPersist?.(data.content);
+        await onPersist?.(pack);
       } catch (persistErr: any) {
         console.error("[SocialDistributionPack] persist failed:", persistErr);
         toast.error("Generated, but failed to save: " + (persistErr?.message || "unknown error"));
