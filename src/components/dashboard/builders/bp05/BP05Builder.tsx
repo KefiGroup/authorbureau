@@ -160,6 +160,14 @@ export default function BP05Builder({ authorId, bookId }: Props) {
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);
       setStep(2);
+      void autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-05",
+        nodeName: "Webinars",
+        content: { ...data.content, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId ?? null,
+      });
     } catch (e: any) {
       setError(e.message);
       setStep(0);
