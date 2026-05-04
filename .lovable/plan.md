@@ -1,61 +1,79 @@
-## Goal
+# Plan
 
-Bring the BP-09 **corporate lunch deck** up to the same professional standard we just shipped for the workshop deck. Right now it still uses the old `{n, title, body}` schema, which is why your screenshot shows generic labels ("Title slide", "Why this matters to your bu…", "Framework overview") instead of real headlines, and why it renders as flat black-on-white slides with no visual design.
+## Diagnosis
+Yes, I know what the issue is. There are two separate BP-09 problems:
 
-## What changes
+1. The slide exporter is currently broken at boot.
+   - `supabase/functions/export-bp09-slides/index.ts` imports `qrPng` from `qr-image`, but the deployed runtime reports:
+   - `The requested module 'https://esm.sh/qr-image@3.2.0?bundle' does not provide an export named 'qrPng'`
+   - That means the deck download function never starts, so any slide export attempt falls back to the generic “ABBY hit a snag” message.
 
-### 1. Generator (`generate-bp09-book-sales/index.ts`)
+2. BP-09 does not expose a proper regenerate action once you are on the Review step.
+   - In `src/components/dashboard/builders/bp09/BP09Builder.tsx`, the normal review screen has download actions but no always-available “Regenerate toolkit” button.
+   - Right now the practical workaround is exactly what you described: click **Previous** to go back to step 0 and trigger generation there.
+   - There is also a bad no-op path in `handleGenerate()` that returns JSX while hydration is incomplete instead of handling the click safely.
 
-Replace the corporate `slides` schema with the same layout-aware shape we use for the workshop deck, and assign a deliberate layout per slide:
+## What I will change
 
-```text
-1  title       — "Be SUCKcessful, for [Company]" + author/role
-2  stat        — "Why this matters" as a stat callout (e.g. "73% of teams cite confidence dips during change")
-3  stat        — "The cost of not addressing this" as a money/time stat with sentence underneath
-4  framework_grid — 8-stage SUCKCESS overview (chips grid, same as workshop slide 5)
-5  framework   — Application: Productivity (3-4 specific moves with bullets)
-6  framework   — Application: Leadership (3-4 specific moves with bullets)
-7  framework   — Application: Retention (3-4 specific moves with bullets)
-8  two_column  — ROI snapshot: "What you measure" | "What changes" (3 metric rows each)
-9  bullets     — How to roll this out (3 numbered phases)
-10 offer       — Next steps: bulk order tiers + Q&A CTA
-```
+### 1) Repair the BP-09 slide export function
+Update `supabase/functions/export-bp09-slides/index.ts` so the exporter can boot and return `.pptx` files again.
 
-Tighten the prompt rules so:
-- `headline` must be a sentence the speaker reads aloud, never a wireframe label like "Title slide", "ROI snapshot", "Next steps".
-- Stat slides must include a real number with units in `stat.value`.
-- Application slides must reference the actual book's framework stages by name.
-- Speaker notes 1-2 sentences each.
+Planned fix:
+- Replace the invalid QR import with a supported QR generation method for the edge runtime.
+- Keep QR optional so a QR failure never crashes the entire deck export.
+- Preserve the new professional layout rendering already added for workshop and corporate decks.
 
-### 2. Exporter (`export-bp09-slides/index.ts`)
+### 2) Add a real regenerate action in BP-09 review
+Update `src/components/dashboard/builders/bp09/BP09Builder.tsx` so regeneration is available without backing up a step.
 
-The exporter already supports all these layouts because we built them for the workshop deck. We add:
+Planned UX changes:
+- Add a clear **Regenerate toolkit** button on the Review step.
+- Keep it visible when content already exists.
+- Show a loading state while regeneration is running.
+- Prevent double-submits by respecting the existing single-flight generation registry.
+- Keep the current content visible until the new generation starts, then move cleanly into the generating state.
 
-- A `normaliseSlide()` pass for corporate that maps any legacy `{title, body}` field gracefully (so existing toolkits exported during the gap don't crash).
-- An `offer` layout polish: navy left panel with bulk tier rectangles (Tier 10 / Tier 50 / Tier 200) instead of book mockup, since this is the corporate-lunch CTA.
-- Reuse the same Midnight Executive palette, coral accent bar motif, and slide-number footer as the workshop deck so both decks look like they belong to the same kit.
+### 3) Fix the dead-click hydration path
+In `BP09Builder.tsx`, fix `handleGenerate()` so it no longer returns JSX from an event handler.
 
-### 3. UI hint on the corporate deck card
+Planned behavior:
+- If the builder is still hydrating, disable the generate/regenerate action or show a short “Loading your saved toolkit…” state.
+- Remove the silent no-op click behavior.
 
-Add a one-line caption under the deck title in `BP09Builder.tsx` that says *"Regenerate the toolkit to refresh slides with the latest layouts"* — only shown when the existing slides are missing the `layout` field (i.e. older content). This makes it obvious to you (and any author who landed on the in-between version) that a regenerate is needed to see the upgrade.
+### 4) Improve failure messaging around BP-09 exports
+Tighten BP-09 error handling so exporter failures read like export failures, not vague generation failures.
 
-### 4. QA loop (mandatory)
+Planned improvement:
+- Surface deck-export problems as a specific download/export issue in the BP-09 UI.
+- Keep the friendly ABBY tone, but avoid masking a backend boot failure as generic content-generation trouble.
 
-1. Deploy `generate-bp09-book-sales` and `export-bp09-slides`.
-2. Regenerate Pauline's BP-09 toolkit.
-3. Export both decks (workshop + corporate), convert PPTX → PDF → JPG, inspect every slide.
-4. Verify: no leftover labels like "Why this matters to your business" as a headline, real stats on slide 2 and 3, framework chips render, application slides have bullets, offer slide has visible bulk tiers, no overlapping text, footer slide-number visible.
-5. Iterate until clean.
+## Technical details
 
-## Files touched
+### Files to update
+- `supabase/functions/export-bp09-slides/index.ts`
+  - Fix QR import/runtime compatibility
+  - Add graceful QR fallback
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+  - Add review-step regenerate CTA
+  - Fix hydration/no-op click path
+  - Add regeneration loading/disabled states
+- Optional if needed after implementation:
+  - `src/lib/abby-error.ts`
+    - Only if BP-09 still needs a clearer export-specific message mapping
 
-- `supabase/functions/generate-bp09-book-sales/index.ts` — new corporate slide schema + layout assignments + tightened rules.
-- `supabase/functions/export-bp09-slides/index.ts` — `offer` layout for bulk tiers, normalise pass for legacy corporate slides.
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` — small "regenerate to refresh" hint on deck cards when `layout` is missing.
+### What I do not expect to change
+- No database schema changes
+- No auth changes
+- No BP-09 content schema changes unless QA shows a remaining content-shape issue after regeneration
 
-## Out of scope
+## Validation
+After implementation I will verify:
 
-- The "ABBY hit a snag" toast in your screenshot. It's from the background Nudge Engine, unrelated to BP-09. If it keeps appearing on the dashboard, mention it and I'll trace it separately.
-- BP-09 handout PDF (`export-bp09-handout`).
+1. BP-09 opens with saved content and shows a direct regenerate control on Review.
+2. Regenerate works without using the Previous button.
+3. Workshop deck download works.
+4. Corporate deck download works.
+5. The exporter no longer throws the `qrPng` boot error.
+6. If QR generation fails, the deck still exports successfully.
 
-Approve and I'll implement, deploy, and run the QA pass.
+Once you approve, I’ll implement these fixes directly.

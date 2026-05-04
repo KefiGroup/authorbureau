@@ -120,18 +120,23 @@ export default function BP09Builder({ authorId, bookId }: Props) {
     }
   };
 
+  const [regenerating, setRegenerating] = useState(false);
+
   const handleGenerate = async () => {
-    if (isAuthReady && authorId && !hydrated) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <p className="text-muted-foreground">Loading…</p>
-        </div>
-      );
-    }
     if (!authorId) return;
-    setStep(1); setError(null);
-    const promise = startGeneration(authorId, "BP-09", runGeneration);
-    await attachToGeneration(promise);
+    if (isAuthReady && !hydrated) {
+      toast.message("Loading your saved toolkit…", { description: "One moment while we restore your draft." });
+      return;
+    }
+    setStep(1);
+    setError(null);
+    setRegenerating(true);
+    try {
+      const promise = startGeneration(authorId, "BP-09", runGeneration);
+      await attachToGeneration(promise);
+    } finally {
+      setRegenerating(false);
+    }
   };
 
   const handlePublish = async () => {
@@ -386,6 +391,26 @@ export default function BP09Builder({ authorId, bookId }: Props) {
                     }}
                   />
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/30 bg-primary/5">
+              <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-sm">Regenerate this toolkit</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Rebuild every tab (workshop, signing, corporate, shared) with a fresh draft. Your downloads will use the latest professional layouts.
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerate}
+                  disabled={regenerating || !hydrated}
+                >
+                  <Sparkles className="h-4 w-4 mr-1.5" />
+                  {regenerating ? "Regenerating…" : "Regenerate toolkit"}
+                </Button>
               </CardContent>
             </Card>
 
