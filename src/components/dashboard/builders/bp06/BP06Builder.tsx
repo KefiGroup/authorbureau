@@ -132,8 +132,14 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       const draft = await loadBuilderDraft(authorId, "BP-06", activeBookId);
       if (cancelled) return;
       if (draft.content) {
-        setContent(draft.content);
-        setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
+        const savedContent = draft.content as any;
+        const savedStep = typeof savedContent?._currentStep === "number" ? savedContent._currentStep : null;
+        setContent(savedContent);
+        setStep(
+          draft.isLive ? 3 :
+          savedStep !== null ? savedStep :
+          Math.max(draft.currentStep, 2),
+        );
         return;
       }
       let nodeQuery = supabase
