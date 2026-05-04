@@ -51,7 +51,7 @@ export default function YR27Builder({ authorId, bookId }: Props) {
         setContent(__draft.content);
         { const _saved = (__draft.content as any)?._currentStep; setStep(__draft.isLive ? (3) : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
       }
-    })(); }, [authorId, detectedBookTitle, isAuthReady]);
+    setHydrated(true); })(); }, [authorId, detectedBookTitle, isAuthReady]);
 
   useEffect(() => { if (step === 1 || (step === 3 && !content?.activated)) { const msgs = step === 1 ? GEN_MSGS : ACT_MSGS; setMsgIndex(0); intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000); return () => { if (intervalRef.current) clearInterval(intervalRef.current); }; } }, [step]);
   useEffect(() => { if (step === 2 && content) console.log("[YR-27] step-2 render", content); }, [step, content]);
