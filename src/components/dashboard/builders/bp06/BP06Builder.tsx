@@ -342,6 +342,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
+  if (step === -1) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground animate-pulse">Loading…</p></div>;
 
   return (
     <div className="min-h-screen bg-background">
