@@ -130,6 +130,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       //   2. Direct author_nodes read as a fallback (legacy rows that may not
       //      have been touched by the autosave pipeline yet)
       const draft = await loadBuilderDraft(authorId, "BP-06", activeBookId);
+      if (cancelled) return;
       if (draft.content) {
         setContent(draft.content);
         setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
@@ -142,13 +143,17 @@ export default function BP06Builder({ authorId, bookId }: Props) {
         .eq("node_id", "BP-06");
       if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
       const { data: node } = await nodeQuery.maybeSingle();
+      if (cancelled) return;
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         const baseContent = node.content_json as Record<string, unknown>;
         setContent(node.status === "live" ? { ...baseContent, activated: true } : baseContent);
         setStep(node.status === "live" ? 3 : 2);
+      } else {
+        setStep(0);
       }
     })();
-  }, [authorId, activeBookId]);
+    return () => { cancelled = true; };
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
