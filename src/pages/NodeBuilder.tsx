@@ -119,7 +119,9 @@ export default function NodeBuilder() {
     // "How this node works" panel immediately while authorId resolves,
     // instead of a content-free placeholder. Fixes the BP-08 "blank for
     // 8-10s" perception (and benefits every other node too).
-    const meta = nodeId ? BUILDER_NODE_MAP[nodeId] : null;
+    const meta = nodeId
+      ? (BUILDER_NODE_MAP[nodeId] as (typeof BUILDER_NODE_MAP[string] & { lucideIcon?: string }) | undefined)
+      : null;
     const IconComp =
       (meta?.lucideIcon && (LucideIcons as Record<string, unknown>)[meta.lucideIcon]) || Sparkles;
     return (
