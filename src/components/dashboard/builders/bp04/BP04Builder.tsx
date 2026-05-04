@@ -20,7 +20,7 @@ import { toAbbyError } from "@/lib/abby-error";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 import { publishNodeToSite } from "@/lib/publish-node";
-import { autosaveBuilderDraft } from "@/lib/builder-autosave";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 
 
