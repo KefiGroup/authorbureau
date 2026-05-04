@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -50,7 +51,8 @@ interface Props { authorId: string | null; bookId?: string | null; }
 
 export default function BP06Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
+  const { isReady: isAuthReady } = useAuthReady();
+  const [step, setStep] = useState(-1);
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -71,9 +73,12 @@ export default function BP06Builder({ authorId, bookId }: Props) {
   const effectiveBookTitle = (resolvedBookTitle || (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : "")) || "Authors-Bureau";
 
   useEffect(() => {
-    if (!authorId) return;
+    if (!isAuthReady) return; // Wait for Safari to finish session restore
+    if (!authorId) { setStep(0); return; }
+    let cancelled = false;
     (async () => {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
+      if (cancelled) return;
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
 
