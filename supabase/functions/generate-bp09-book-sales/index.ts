@@ -169,7 +169,14 @@ Generate a JSON object with EXACTLY these keys (no extras, no markdown):
 
 Rules:
 - Ground every word in the actual book thesis, frameworks, and audience above. No generic filler.
-- Workshop slides: exactly 14. Corporate slides: exactly 10. QA seed questions: exactly 8. Inscription templates: exactly 5. Objection responses: exactly 5. Reading passages: exactly 3. Talk outline: exactly 5 sections. Followup emails: exactly 3.
+- Workshop slides: exactly 14, each with the EXACT layout shown in the schema (do not change layout values, do not add or remove slides).
+- For workshop slides, "headline" must be a real sentence the speaker reads aloud, NEVER a wireframe label like "Pain point 1", "Framework pillar 2", "Title slide", "Offer slide", "Case study 1", "Live exercise", "Thank you" — those are forbidden as headlines.
+- "eyebrow" is a 1-4 word ALL-CAPS tag (e.g. "PILLAR 1 OF 3"). Never put the headline in eyebrow.
+- For layout "stat", produce a real number with units in stat.value (e.g. "73%", "1 in 4", "12 years"). If you cannot find a credible stat, use a striking ratio drawn from the book.
+- For layout "framework_grid", chips length must equal the actual number of stages in the author's framework (between 4 and 9).
+- For layout "framework", bullets length is 3-4. For "bullets" layout, exactly 3 bullets. For "exercise", exactly 3 steps.
+- For layout "case_study", populate case.challenge, case.move, case.result — each a complete sentence, never "...".
+- Corporate slides: exactly 10 (keep the existing simple {n,title,body} shape for now). QA seed questions: exactly 8. Inscription templates: exactly 5. Objection responses: exactly 5. Reading passages: exactly 3. Talk outline: exactly 5 sections. Followup emails: exactly 3.
 - Speaker notes on every slide must be 1-2 sentences of practical delivery guidance.
 - Pitch script and back-of-room close must be word-for-word, ready to read aloud.
 - Bulk proposal pricing should reflect a realistic per-book discount as quantity scales.
