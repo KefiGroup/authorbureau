@@ -213,7 +213,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       const token = await getActiveToken();
       const res = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bp09-handout`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId, document }) },
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId, book_id: activeBookId, document }) },
         60_000,
       );
       const data = await res.json();
