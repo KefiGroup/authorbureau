@@ -85,30 +85,16 @@ export default function BP05Builder({ authorId, bookId }: Props) {
         setHasContext(false);
       }
 
-      // Load via save-author-node edge function (service role) to bypass
-      // the project-local RLS/uid mismatch that left some shared-backend
-      // sessions seeing empty content despite a live row in author_nodes.
+      // Hydrate via the shared registry helper first; fall back to a direct
+      // author_nodes read only if the edge function returned nothing.
       let node: { content_json: any; status?: string } | null = null;
       try {
-        const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
-        const token = await getActiveToken();
-        if (token) {
-          const res = await fetchWithTimeout(
-            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-node`,
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ action: "load", authorId, nodeId: "BP-05", bookId: bookId ?? undefined }),
-            },
-            15000,
-          );
-          if (res.ok) {
-            const j = await res.json();
-            if (j?.content_json) node = { content_json: j.content_json, status: j.status };
-          }
+        const draft = await loadBuilderDraft(authorId, "BP-05", bookId ?? null);
+        if (draft.content) {
+          node = { content_json: draft.content, status: draft.status ?? undefined };
         }
       } catch (e) {
-        console.warn("[BP-05] edge load failed, falling back to direct read", e);
+        console.warn("[BP-05] registry load failed, falling back to direct read", e);
       }
       if (!node) {
         // Scope by book_id when known so multi-book authors never see another book's BP-05.
