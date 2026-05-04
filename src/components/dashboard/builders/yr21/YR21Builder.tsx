@@ -47,7 +47,7 @@ export default function YR21Builder({ authorId, bookId }: Props) {
       const __draft = await loadBuilderDraft(authorId, "YR-21", bookId ?? null);
       if (__draft.content) {
         setContent(__draft.content);
-        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+        { const _saved = (__draft.content as any)?._currentStep; setStep(__draft.isLive ? (3) : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
       }
     })();
   }, [authorId, isAuthReady]);
@@ -67,7 +67,7 @@ export default function YR21Builder({ authorId, bookId }: Props) {
       const { data, error: e } = await supabase.functions.invoke("generate-yr21-speaking", { body: { author_id: authorId, book_id: bookId ?? null } });
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Generation failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-21", nodeName: "Keynotes", content: data.content, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-21", nodeName: "Keynotes", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

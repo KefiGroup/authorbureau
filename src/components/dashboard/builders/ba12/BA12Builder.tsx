@@ -53,9 +53,9 @@ export default function BA12Builder({ authorId, bookId }: Props) {
         const normalised = normaliseMembership(__draft.content);
         setContent(normalised);
         setPriceOverride(Number(normalised?.tiers?.[0]?.price ?? 27));
-        setStep(__draft.isLive ? 3 : Math.max(__draft.currentStep, 2));
+        { const _saved = (__draft.content as any)?._currentStep; setStep(__draft.isLive ? (3) : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-12", nodeName: "Memberships", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
         }
       }
     })();
@@ -77,7 +77,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normaliseMembership(data.content || {});
       setContent(normalised); setPriceOverride(Number(normalised.tiers?.[0]?.price ?? 27)); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: normalised, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-12", nodeName: "Memberships", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 

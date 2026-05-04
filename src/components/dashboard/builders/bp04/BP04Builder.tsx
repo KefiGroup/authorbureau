@@ -20,6 +20,7 @@ import { toAbbyError } from "@/lib/abby-error";
 import { ensureEmailSequence } from "@/lib/email-sequence-hook";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 import { publishNodeToSite } from "@/lib/publish-node";
+import { autosaveBuilderDraft } from "@/lib/builder-autosave";
 
 
 
@@ -111,8 +112,10 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       }
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
+        const loaded = node.content_json as any;
+        const savedStep = typeof loaded?._currentStep === "number" ? loaded._currentStep : null;
+        setContent(loaded);
+        setStep(node.status === "live" ? 3 : (savedStep !== null ? savedStep : 2));
         if (node.status === "live") {
           setContent((prev: any) => ({ ...prev, activated: true }));
         }
@@ -151,6 +154,14 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       }
       setContent(data.content);
       setStep(2);
+      void autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-04",
+        nodeName: "Author Website",
+        content: { ...data.content, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId ?? null,
+      });
     } catch (e: any) {
       setError(e.message);
       setStep(0);

@@ -58,7 +58,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
       const draft = await loadBuilderDraft(authorId, "BA-10", bookId ?? null);
       if (draft.content) {
         setContent(draft.content);
-        setStep(draft.isLive ? 3 : Math.max(draft.currentStep, 2));
+        { const _saved = (draft.content as any)?._currentStep; setStep(draft.isLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(draft.currentStep, 2))); }
       }
     })();
   }, [authorId, isAuthReady]);
@@ -83,7 +83,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
       setPriceOverride(data.content?.suggested_price_usd || null);
       setStep(2);
       // Auto-save draft so a refresh won't bump the author back to step 0
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: data.content, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-10", nodeName: "Online Course", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) {
       console.error("[BA-10] generate error", e);
       const raw = String(e?.message || "");

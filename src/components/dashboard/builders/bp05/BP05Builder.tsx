@@ -24,6 +24,7 @@ import { buildBp05Txt } from "@/lib/build-library-txt";
 import { publishNodeToSite } from "@/lib/publish-node";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
+import { autosaveBuilderDraft } from "@/lib/builder-autosave";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
@@ -122,8 +123,10 @@ export default function BP05Builder({ authorId, bookId }: Props) {
       }
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
+        const loaded = node.content_json as any;
+        const savedStep = typeof loaded?._currentStep === "number" ? loaded._currentStep : null;
+        setContent(loaded);
+        setStep(node.status === "live" ? 3 : (savedStep !== null ? savedStep : 2));
         if (node.status === "live") {
           setContent((prev: any) => ({ ...prev, activated: true }));
         }
@@ -158,6 +161,14 @@ export default function BP05Builder({ authorId, bookId }: Props) {
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);
       setStep(2);
+      void autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-05",
+        nodeName: "Webinars",
+        content: { ...data.content, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId ?? null,
+      });
     } catch (e: any) {
       setError(e.message);
       setStep(0);

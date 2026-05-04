@@ -51,7 +51,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
       if (__draft.content) {
         setContent(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
-        setStep(isActuallyLive ? 3 : Math.max(__draft.currentStep, 2));
+        { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
       }
     })();
   }, [authorId, isAuthReady]);
@@ -85,7 +85,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
             : [],
       };
       setContent(normalised); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: normalised, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
