@@ -104,7 +104,22 @@ export default function BP01Builder({ authorId, bookId }: Props) {
         if (title) setLeadMagnetTitle(title);
       }
 
-      // Check if content already generated
+      // Resume order (BP-02 reference pattern):
+      //   1. loadBuilderDraft (safe edge-function path, per-book scoped)
+      //   2. Direct author_nodes read as a fallback for legacy rows
+      const draft = await loadBuilderDraft(authorId, "BP-01", activeBookId);
+      if (draft.content) {
+        const savedContent = draft.content as any;
+        const savedStep = typeof savedContent?._currentStep === "number" ? savedContent._currentStep : null;
+        if (draft.isLive) {
+          setContent({ ...savedContent, activated: true, publishStatus: savedContent.publishStatus || "live" });
+          setStep(3);
+        } else {
+          setContent(savedContent);
+          setStep(savedStep !== null ? savedStep : Math.max(draft.currentStep, 2));
+        }
+        return;
+      }
       const { data: node } = await supabase
         .from("author_nodes")
         .select("content_json, status")
@@ -114,13 +129,13 @@ export default function BP01Builder({ authorId, bookId }: Props) {
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
         const loaded = node.content_json as any;
-        // If node is live, mark content as activated so we don't re-run the activation loader
+        const savedStep = typeof loaded?._currentStep === "number" ? loaded._currentStep : null;
         if (node.status === "live") {
           setContent({ ...loaded, activated: true, publishStatus: loaded.publishStatus || "live" });
           setStep(3);
         } else {
           setContent(loaded);
-          setStep(2);
+          setStep(savedStep !== null ? savedStep : 2);
         }
       }
     })();
