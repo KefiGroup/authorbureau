@@ -481,7 +481,8 @@ function renderQR(ctx: RenderCtx) {
 function renderThanks(ctx: RenderCtx) {
   const { slide, s } = ctx;
   slide.background = { color: C.navy };
-  slide.addShape("rect", { x: 5.7, y: 3.6, w: 1.9, h: 0.08, fill: { color: C.coral }, line: { color: C.coral } });
+  // Centered coral accent above the eyebrow (avoids landing inside long centered headlines)
+  slide.addShape("rect", { x: (W - 1.2) / 2, y: 2.05, w: 1.2, h: 0.08, fill: { color: C.coral }, line: { color: C.coral } });
   slide.addText(s.eyebrow || "THANK YOU", {
     x: 0.6, y: 2.3, w: 12.13, h: 0.5,
     fontFace: FONT_HEAD, fontSize: 14, bold: true, color: C.coral, charSpacing: 6, align: "center",
