@@ -171,7 +171,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
         nodeId: "BP-07",
         nodeName: "Home Study Course",
         content: newContent,
-        currentStep: 2, bookId: bookId ?? null });
+        currentStep: 2, bookId: activeBookId });
     }
     return newContent;
   };
