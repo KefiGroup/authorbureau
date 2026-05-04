@@ -144,7 +144,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
       authorId,
       nodeId: "BA-11",
       nodeName: "Audiobook",
-      content: { studio: data },
+      content: { studio: data, _currentStep: currentStep },
       currentStep,
     });
   };
