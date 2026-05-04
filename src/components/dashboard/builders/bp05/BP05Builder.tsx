@@ -122,8 +122,10 @@ export default function BP05Builder({ authorId, bookId }: Props) {
       }
 
       if (node?.content_json && (node.status === "content_ready" || node.status === "live")) {
-        setContent(node.content_json);
-        setStep(node.status === "live" ? 3 : 2);
+        const loaded = node.content_json as any;
+        const savedStep = typeof loaded?._currentStep === "number" ? loaded._currentStep : null;
+        setContent(loaded);
+        setStep(node.status === "live" ? 3 : (savedStep !== null ? savedStep : 2));
         if (node.status === "live") {
           setContent((prev: any) => ({ ...prev, activated: true }));
         }
