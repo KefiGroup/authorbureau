@@ -267,11 +267,11 @@ const NODE_TO_NODE_BUILDER: Record<string, string> = {
   "social-media": "BP-03",
   microsite: "BP-04",
   website: "BP-04",
-  "book-sales-events": "BP-05",
+  "book-sales-events": "BP-09",
   workbooks: "BP-06",
   "home-study": "BP-07",
-  courses: "BP-08",
-  webinars: "BP-09",
+  courses: "BA-10",
+  webinars: "BP-05",
   // Build Authority
   audiobook: "BA-11",
   memberships: "BA-12",
@@ -289,7 +289,7 @@ const NODE_TO_NODE_BUILDER: Record<string, string> = {
   masterminds: "YR-23",
   retreats: "YR-24",
   certification: "YR-25",
-  "special-editions": "YR-26",
+  "special-editions": "BP-08",
 };
 
 /**
