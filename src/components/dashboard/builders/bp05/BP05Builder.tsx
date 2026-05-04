@@ -24,6 +24,7 @@ import { buildBp05Txt } from "@/lib/build-library-txt";
 import { publishNodeToSite } from "@/lib/publish-node";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
+import { autosaveBuilderDraft } from "@/lib/builder-autosave";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
