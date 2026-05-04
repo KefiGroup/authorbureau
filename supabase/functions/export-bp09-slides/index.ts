@@ -2,8 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 // @ts-ignore - npm specifier
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
-// @ts-ignore - npm specifier (PNG QR generator that works in Deno)
-import { qrPng } from "https://esm.sh/qr-image@3.2.0?bundle";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,13 +59,26 @@ function normaliseSlide(s: any, idx: number): Slide {
 }
 
 /* ------------------------------------------------------------------ */
-/*  QR generator → returns base64 PNG data URI or null                 */
+/*  QR generator → returns a Google Chart QR PNG data URI or null.     */
+/*                                                                     */
+/*  We previously used `qr-image`, but the esm.sh bundle does not      */
+/*  expose a usable named export in the edge runtime, which crashed    */
+/*  the function at boot. Fetching a hosted PNG keeps the deck export  */
+/*  resilient with no native QR dependency, and any failure falls      */
+/*  through silently so the .pptx still exports.                       */
 /* ------------------------------------------------------------------ */
 async function makeQrDataUri(url: string): Promise<string | null> {
   if (!url) return null;
   try {
-    // qr-image returns a Node-style stream; we ask for buffer instead via the PNG sync helper
-    const buf = qrPng(url, { type: "png", margin: 2, size: 12 }) as Uint8Array;
+    const endpoint =
+      "https://api.qrserver.com/v1/create-qr-code/?size=480x480&margin=8&data=" +
+      encodeURIComponent(url);
+    const res = await fetch(endpoint);
+    if (!res.ok) {
+      console.warn("[export-bp09-slides] QR fetch non-200:", res.status);
+      return null;
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
     let bin = "";
     for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i]);
     const b64 = btoa(bin);
