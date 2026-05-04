@@ -153,6 +153,14 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       }
       setContent(data.content);
       setStep(2);
+      void autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-04",
+        nodeName: "Author Website",
+        content: { ...data.content, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId ?? null,
+      });
     } catch (e: any) {
       setError(e.message);
       setStep(0);
