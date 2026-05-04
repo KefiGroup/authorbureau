@@ -49,6 +49,7 @@ interface Props {
 export default function BP04Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
@@ -109,7 +110,8 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       }
       // (Removed legacy auto-redirect to microsite-manager — authors must stay on
       // /node-builder/BP-04 so they can run the unified Introduction → Live flow.)
-    })();
+          setHydrated(true);
+})();
   }, [authorId, isAuthReady]);
 
   useEffect(() => {
@@ -184,6 +186,20 @@ export default function BP04Builder({ authorId, bookId }: Props) {
       setStep(2);
     }
   };
+
+  if (isAuthReady && authorId && !hydrated) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-background">
+
+        <p className="text-muted-foreground">Loading…</p>
+
+      </div>
+
+    );
+
+  }
 
   if (!authorId) {
     return (

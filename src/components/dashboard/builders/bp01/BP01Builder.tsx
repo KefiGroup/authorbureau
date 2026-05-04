@@ -52,6 +52,7 @@ interface Props {
 export default function BP01Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
+  const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");
@@ -138,7 +139,8 @@ export default function BP01Builder({ authorId, bookId }: Props) {
           setStep(savedStep !== null ? savedStep : 2);
         }
       }
-    })();
+          setHydrated(true);
+})();
   }, [authorId, isAuthReady]);
 
   // Cycling messages for generating / activating
@@ -240,6 +242,20 @@ export default function BP01Builder({ authorId, bookId }: Props) {
       toast.error("Activation failed", { description: e.message });
     }
   };
+
+  if (isAuthReady && authorId && !hydrated) {
+
+    return (
+
+      <div className="min-h-screen flex items-center justify-center bg-background">
+
+        <p className="text-muted-foreground">Loading…</p>
+
+      </div>
+
+    );
+
+  }
 
   if (!authorId) {
     return (
