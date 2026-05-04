@@ -5,7 +5,7 @@ import { Sparkles, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { categoryStyles, getBuilderCategory, type BuilderCategory } from "./BuilderTheme";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 
 /**
  * Unified shared building blocks used by both BA-* and YR-* builders.
