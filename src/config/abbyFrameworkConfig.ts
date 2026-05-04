@@ -258,12 +258,38 @@ export function getNodeSection(nodeId: string): { section: string; extraParams?:
  * src/components/dashboard/builders/ba14..ba18, so we route straight there.
  */
 const NODE_TO_NODE_BUILDER: Record<string, string> = {
+  // Brand Products — all have dedicated /node-builder/<ID> builders.
+  // Routing through the direct URL means refresh stays on the builder
+  // instead of bouncing to Book Hub.
+  "email-marketing": "BP-01",
+  "lead-magnet": "BP-02",
+  "lead-magnets": "BP-02",
+  "social-media": "BP-03",
+  microsite: "BP-04",
+  website: "BP-04",
+  "book-sales-events": "BP-05",
+  workbooks: "BP-06",
+  "home-study": "BP-07",
+  courses: "BP-08",
+  webinars: "BP-09",
+  // Build Authority
+  audiobook: "BA-11",
+  memberships: "BA-12",
   "group-coaching": "BA-13",
   "podcast-guest": "BA-14",
   "in-house-speaker": "BA-15",
   affiliates: "BA-16",
   upsells: "BA-17",
   "revenue-sharing": "BA-18",
+  // Yield Revenue
+  "coaching-1on1": "YR-19",
+  keynotes: "YR-20",
+  "big-ticket": "YR-21",
+  training: "YR-22",
+  masterminds: "YR-23",
+  retreats: "YR-24",
+  certification: "YR-25",
+  "special-editions": "YR-26",
 };
 
 /**
