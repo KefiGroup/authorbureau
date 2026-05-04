@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { Sparkles, Copy, Loader2, Linkedin, Instagram, Facebook, Twitter, Mail, Image } from "lucide-react";
+import { startGeneration, getGeneration, isGenerating } from "@/lib/builder-generation-registry";
 
 interface Props {
   authorId: string;
