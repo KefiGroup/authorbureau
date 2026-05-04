@@ -259,12 +259,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   useEffect(() => {
+    let sessionResolved = false;
+
     const { data: { subscription: authSub } } = supabase.auth.onAuthStateChange(
       (event, nextSession) => {
         if (event === "INITIAL_SESSION" && !nextSession?.user && latestUserRef.current) {
           return;
         }
 
+        sessionResolved = true;
         window.setTimeout(() => {
           applySessionSnapshot(nextSession);
         }, 0);
@@ -272,13 +275,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     getSharedSession().then((session) => {
+      sessionResolved = true;
       applySessionSnapshot(session);
     }).catch(() => {
+      sessionResolved = true;
       setAuthLoading(false);
     });
 
-    // Safety timeout: ensure auth restoration resolves
-    const timeout = window.setTimeout(() => setAuthLoading(false), 3000);
+    // Safety timeout: only fire if session restoration genuinely stalled.
+    // Bumped to 8s for Safari, where cross-domain cookie/localStorage reads
+    // can outrun the previous 3s budget and falsely flip loading→false
+    // while the user is still null (causing protected routes to bounce
+    // to /auth and lose the deep link).
+    const timeout = window.setTimeout(() => {
+      if (!sessionResolved) setAuthLoading(false);
+    }, 8000);
 
     return () => {
       authSub.unsubscribe();
