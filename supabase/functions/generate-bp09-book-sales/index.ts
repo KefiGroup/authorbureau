@@ -90,20 +90,20 @@ Generate a JSON object with EXACTLY these keys (no extras, no markdown):
     ],
     "pitch_script": "Word-for-word 3-minute transition script that bridges teaching to book sale. Keep it personal, value-first, no hard sell.",
     "slides": [
-      { "n": 1, "title": "Title slide", "body": "${bookTitle} by ${author.pen_name}", "speaker_notes": "Welcome the room. Thank the host." },
-      { "n": 2, "title": "Pain point 1", "body": "...", "speaker_notes": "..." },
-      { "n": 3, "title": "Pain point 2", "body": "...", "speaker_notes": "..." },
-      { "n": 4, "title": "Pain point 3", "body": "...", "speaker_notes": "..." },
-      { "n": 5, "title": "Framework introduction", "body": "...", "speaker_notes": "..." },
-      { "n": 6, "title": "Framework pillar 1", "body": "...", "speaker_notes": "..." },
-      { "n": 7, "title": "Framework pillar 2", "body": "...", "speaker_notes": "..." },
-      { "n": 8, "title": "Framework pillar 3", "body": "...", "speaker_notes": "..." },
-      { "n": 9, "title": "Case study 1", "body": "...", "speaker_notes": "..." },
-      { "n": 10, "title": "Case study 2", "body": "...", "speaker_notes": "..." },
-      { "n": 11, "title": "Live exercise", "body": "...", "speaker_notes": "..." },
-      { "n": 12, "title": "Offer slide", "body": "Get the book — back of room", "speaker_notes": "..." },
-      { "n": 13, "title": "QR code slide", "body": "Scan to grab your copy + bonus", "speaker_notes": "..." },
-      { "n": 14, "title": "Thank you", "body": "Connect with me", "speaker_notes": "..." }
+      { "n": 1, "layout": "title", "eyebrow": "WORKSHOP", "headline": "${bookTitle}", "subhead": "A live session with ${author.pen_name}", "speaker_notes": "Welcome the room. Thank the host. Set the promise in one sentence." },
+      { "n": 2, "layout": "stat", "eyebrow": "THE PROBLEM", "headline": "A real, audience-felt headline that names pain point 1 as a sentence (not a label)", "stat": { "value": "e.g. 73%", "label": "Short label that quantifies the pain (replace with a real, source-able stat from the audience or genre)" }, "subhead": "One sentence on why this number matters today.", "speaker_notes": "Ask for a show of hands. Normalize the feeling." },
+      { "n": 3, "layout": "two_column", "eyebrow": "THE PROBLEM", "headline": "Sentence headline naming pain point 2", "columns": { "left": { "h": "What it looks like", "body": "2-3 sentences describing the lived experience." }, "right": { "h": "What it costs", "body": "2-3 sentences quantifying the real cost — time, money, relationships, momentum." } }, "speaker_notes": "Use one personal example and one audience example. Keep it grounded." },
+      { "n": 4, "layout": "bullets", "eyebrow": "THE PROBLEM", "headline": "Sentence headline naming pain point 3", "bullets": ["Concrete bullet 1, max 12 words", "Concrete bullet 2, max 12 words", "Concrete bullet 3, max 12 words"], "speaker_notes": "Make this practical. Name systems and protections, not theory." },
+      { "n": 5, "layout": "framework_grid", "eyebrow": "THE METHOD", "headline": "Name of the framework, written out", "subhead": "One-line promise of what the framework delivers", "chips": [ { "label": "Letter or step 1", "name": "Stage name 1" }, { "label": "Letter or step 2", "name": "Stage name 2" }, { "label": "Letter or step 3", "name": "Stage name 3" }, { "label": "Letter or step 4", "name": "Stage name 4" } ], "speaker_notes": "Say the full name once. Tell them they will pick a stage in the live exercise." },
+      { "n": 6, "layout": "framework", "eyebrow": "PILLAR 1 OF 3", "headline": "Sentence headline for the first cluster of stages", "bullets": ["Sub-stage 1: one-line description", "Sub-stage 2: one-line description", "Why this pillar matters: one line"], "speaker_notes": "Emphasize permission to be imperfect, then pivot to self-awareness." },
+      { "n": 7, "layout": "framework", "eyebrow": "PILLAR 2 OF 3", "headline": "Sentence headline for the second cluster", "bullets": ["Sub-stage 1: one-line description", "Sub-stage 2: one-line description", "Why this pillar matters: one line"], "speaker_notes": "Give a quick example of saying no, focusing on one direction." },
+      { "n": 8, "layout": "framework", "eyebrow": "PILLAR 3 OF 3", "headline": "Sentence headline for the final cluster", "bullets": ["Sub-stage 1: one-line description", "Sub-stage 2: one-line description", "Sub-stage 3: one-line description", "Sub-stage 4: one-line description"], "speaker_notes": "Deliver as a sequence: people, pressure, vision, service." },
+      { "n": 9, "layout": "case_study", "eyebrow": "CASE STUDY 1", "headline": "Short, named case-study headline (sentence form)", "case": { "challenge": "1-2 sentences naming the situation.", "move": "1-2 sentences naming the move they made, tied to a framework stage.", "result": "1 sentence with a concrete outcome (number, change, or shift)." }, "speaker_notes": "Keep it principle-based. Do not overshare details." },
+      { "n": 10, "layout": "case_study", "eyebrow": "CASE STUDY 2", "headline": "Short, named case-study headline (sentence form)", "case": { "challenge": "1-2 sentences naming the situation.", "move": "1-2 sentences naming the move they made.", "result": "1 sentence with a concrete outcome." }, "speaker_notes": "Name the reality, then the choice, then the first aligned action." },
+      { "n": 11, "layout": "exercise", "eyebrow": "LIVE EXERCISE", "headline": "Name of the exercise as a sentence the audience will do", "steps": ["Step 1: short imperative (max 10 words)", "Step 2: short imperative", "Step 3: short imperative"], "subhead": "You have 3 minutes. Specificity beats ambition.", "speaker_notes": "Walk the room. Encourage specificity and small actions." },
+      { "n": 12, "layout": "offer", "eyebrow": "TAKE IT WITH YOU", "headline": "Get the book at the back of the room", "bullets": ["Signed to your current stage", "Bonus framework one-pager inside", "Reader community access"], "speaker_notes": "Calm and invitational. Repeat the benefit, not the price." },
+      { "n": 13, "layout": "qr", "eyebrow": "SCAN TO CONTINUE", "headline": "Grab your copy and the bonus", "bullets": ["Framework one-pager (PDF)", "Discussion prompts for your team", "Three reflection questions"], "speaker_notes": "Pause long enough for everyone to scan." },
+      { "n": 14, "layout": "thanks", "eyebrow": "THANK YOU", "headline": "Tell me your stage after the talk", "subhead": "Find me at the table. Bring one specific question.", "speaker_notes": "End with one clear invitation. Move to the table." }
     ],
     "back_of_room_close": "Word-for-word 90-second script for what to say standing at the table after the talk",
     "handout_outline": "One-page handout text — title, 5 key takeaways, framework summary, where to learn more"
@@ -169,7 +169,14 @@ Generate a JSON object with EXACTLY these keys (no extras, no markdown):
 
 Rules:
 - Ground every word in the actual book thesis, frameworks, and audience above. No generic filler.
-- Workshop slides: exactly 14. Corporate slides: exactly 10. QA seed questions: exactly 8. Inscription templates: exactly 5. Objection responses: exactly 5. Reading passages: exactly 3. Talk outline: exactly 5 sections. Followup emails: exactly 3.
+- Workshop slides: exactly 14, each with the EXACT layout shown in the schema (do not change layout values, do not add or remove slides).
+- For workshop slides, "headline" must be a real sentence the speaker reads aloud, NEVER a wireframe label like "Pain point 1", "Framework pillar 2", "Title slide", "Offer slide", "Case study 1", "Live exercise", "Thank you" — those are forbidden as headlines.
+- "eyebrow" is a 1-4 word ALL-CAPS tag (e.g. "PILLAR 1 OF 3"). Never put the headline in eyebrow.
+- For layout "stat", produce a real number with units in stat.value (e.g. "73%", "1 in 4", "12 years"). If you cannot find a credible stat, use a striking ratio drawn from the book.
+- For layout "framework_grid", chips length must equal the actual number of stages in the author's framework (between 4 and 9).
+- For layout "framework", bullets length is 3-4. For "bullets" layout, exactly 3 bullets. For "exercise", exactly 3 steps.
+- For layout "case_study", populate case.challenge, case.move, case.result — each a complete sentence, never "...".
+- Corporate slides: exactly 10 (keep the existing simple {n,title,body} shape for now). QA seed questions: exactly 8. Inscription templates: exactly 5. Objection responses: exactly 5. Reading passages: exactly 3. Talk outline: exactly 5 sections. Followup emails: exactly 3.
 - Speaker notes on every slide must be 1-2 sentences of practical delivery guidance.
 - Pitch script and back-of-room close must be word-for-word, ready to read aloud.
 - Bulk proposal pricing should reflect a realistic per-book discount as quantity scales.
