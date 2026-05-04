@@ -220,7 +220,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
         nodeId: "BP-07",
         nodeName: "Home Study Course",
         content: updated,
-        currentStep: Number(updated?._currentStep ?? 2), bookId: bookId ?? null });
+        currentStep: Number(updated?._currentStep ?? 2), bookId: activeBookId });
       if (next.thinkific && !content?.thinkific_url) {
         // Provision a Thinkific URL once when first enabled
         const token = await getActiveToken();
