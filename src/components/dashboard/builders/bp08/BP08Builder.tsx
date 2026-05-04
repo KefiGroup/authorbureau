@@ -54,6 +54,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [pendingReplace, setPendingReplace] = useState<{ existingLabel: string } | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
