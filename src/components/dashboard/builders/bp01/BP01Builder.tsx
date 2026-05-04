@@ -24,6 +24,7 @@ import { ensureFunnel } from "@/lib/funnel-hook";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
 import { buildBp01Txt } from "@/lib/build-library-txt";
+import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
