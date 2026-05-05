@@ -70,6 +70,12 @@ export default function DistributeAudiobookModal({
       setConfirmed(false);
       return;
     }
+    // Prefill recommended narrator credit if empty or still on the legacy default
+    setNarratorCredit((prev) => {
+      const t = prev.trim();
+      if (!t || t === DEFAULT_CREDIT) return recommendedCredit;
+      return prev;
+    });
     (async () => {
       setLoadingMeta(true);
       try {
@@ -86,7 +92,7 @@ export default function DistributeAudiobookModal({
       } catch (error) { console.error(error); }
       setLoadingMeta(false);
     })();
-  }, [open, bookId]);
+  }, [open, bookId, recommendedCredit]);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
