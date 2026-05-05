@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Rocket, Send, Headphones, Clock } from "lucide-react";
+import { Loader2, Rocket, Send, Headphones, Clock, Library, CheckCircle2 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { toAbbyError } from "@/lib/abby-error";
 import DistributeAudiobookModal from "@/components/dashboard/audiobook/DistributeAudiobookModal";
@@ -84,6 +85,19 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         {published ? "Open distribution again" : "Publish & Open Distribution"}
       </Button>
 
+      {published ? (
+        <div className="flex items-center justify-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md py-2">
+          <CheckCircle2 className="h-4 w-4" />
+          <span>Saved to your Library.</span>
+          <Link to="/dashboard?section=library" className="underline font-medium">Open My Library</Link>
+        </div>
+      ) : (
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <Library className="h-3.5 w-3.5" />
+          <span>Your audiobook ZIP + ACX guide will be saved to <strong>My Library</strong> automatically when you publish.</span>
+        </div>
+      )}
+
       <p className="text-xs text-muted-foreground text-center">
         We'll prepare retailer-specific packages for ACX (Audible), Spotify, Apple Books, Findaway and your own
         Authors Bureau storefront. You confirm metadata and we generate a downloadable ZIP per channel.
@@ -103,9 +117,10 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         bookId={bookId}
         bookTitle={bookTitle}
         userId={userId}
+        voiceName={voiceName}
         chapters={ready.map((c) => ({ index: c.index, title: c.title, audioUrl: c.audioUrl }))}
         onDistributed={() => {
-          toast({ title: "Distribution package ready", description: "Check your library for the download links." });
+          toast({ title: "Audiobook saved to My Library", description: "ZIP + ACX guide ready to download." });
         }}
       />
     </div>

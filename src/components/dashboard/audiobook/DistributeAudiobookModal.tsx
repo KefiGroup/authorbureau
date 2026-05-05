@@ -25,7 +25,10 @@ interface DistributeAudiobookModalProps {
   userId: string;
   chapters: Chapter[];
   onDistributed: () => void;
+  voiceName?: string;
 }
+
+const DEFAULT_CREDIT = "Narrated by a digital voice using ElevenLabs technology";
 
 export default function DistributeAudiobookModal({
   open,
@@ -35,9 +38,14 @@ export default function DistributeAudiobookModal({
   userId,
   chapters,
   onDistributed,
+  voiceName,
 }: DistributeAudiobookModalProps) {
+  const recommendedCredit = voiceName && voiceName !== "Selected voice"
+    ? `${voiceName} (ElevenLabs AI voice)`
+    : DEFAULT_CREDIT;
+
   const [step, setStep] = useState(1);
-  const [narratorCredit, setNarratorCredit] = useState("Narrated by a digital voice using ElevenLabs technology");
+  const [narratorCredit, setNarratorCredit] = useState(recommendedCredit);
   const [previewChapterIndex, setPreviewChapterIndex] = useState("0");
   const [description, setDescription] = useState("");
   const [authorName, setAuthorName] = useState("");
@@ -46,6 +54,15 @@ export default function DistributeAudiobookModal({
   const [sending, setSending] = useState(false);
   const [loadingMeta, setLoadingMeta] = useState(false);
 
+  const trimmed = narratorCredit.trim();
+  const matchesBookTitle = !!bookTitle && trimmed.toLowerCase() === bookTitle.trim().toLowerCase();
+  const isEmpty = trimmed.length === 0;
+  const validationError = isEmpty
+    ? "Narrator name is required."
+    : matchesBookTitle
+    ? `This looks like your book title, not a narrator name. Try "${recommendedCredit}".`
+    : null;
+
   // Load book metadata when modal opens
   useEffect(() => {
     if (!open) {
@@ -53,6 +70,12 @@ export default function DistributeAudiobookModal({
       setConfirmed(false);
       return;
     }
+    // Prefill recommended narrator credit if empty or still on the legacy default
+    setNarratorCredit((prev) => {
+      const t = prev.trim();
+      if (!t || t === DEFAULT_CREDIT) return recommendedCredit;
+      return prev;
+    });
     (async () => {
       setLoadingMeta(true);
       try {
@@ -69,7 +92,7 @@ export default function DistributeAudiobookModal({
       } catch (error) { console.error(error); }
       setLoadingMeta(false);
     })();
-  }, [open, bookId]);
+  }, [open, bookId, recommendedCredit]);
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -129,12 +152,33 @@ export default function DistributeAudiobookModal({
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Narrator Name for Credits</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium">Narrator Name for Credits</label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto py-0.5 px-2 text-xs"
+                    onClick={() => setNarratorCredit(recommendedCredit)}
+                    disabled={trimmed === recommendedCredit}
+                  >
+                    Reset to recommended
+                  </Button>
+                </div>
                 <Input
                   value={narratorCredit}
                   onChange={e => setNarratorCredit(e.target.value)}
                   maxLength={200}
+                  className={validationError ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {validationError ? (
+                  <p className="text-xs text-destructive mt-1.5">{validationError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Shown as "Narrated by …" on Audible, Spotify, Apple Books and your microsite. ACX requires you
+                    to disclose AI/synthetic narration — keep "ElevenLabs AI voice" (or similar wording) in the credit.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Select Chapter for Audio Preview</label>
@@ -157,7 +201,7 @@ export default function DistributeAudiobookModal({
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={() => setStep(2)} disabled={!narratorCredit.trim()}>
+              <Button onClick={() => setStep(2)} disabled={!!validationError}>
                 Next: Review Metadata <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>

@@ -1,149 +1,38 @@
-# Permanent fix plan for the node intro flash
+## Goal
 
-## Diagnosis
-This is a coding / state-hydration race condition, not an LLM issue and not primarily a token quota issue.
+Make BA-11 audiobook publish flow consistent with other BP nodes: clearly state the audiobook gets saved to **My Library**, and improve the "Narrator Name for Credits" field with a recommended default, a one-click reset, and inline validation.
 
-Do I know what the issue is? Yes.
+## Changes
 
-### What is actually happening
-On refresh, most builders first render their default state:
-- `step = 0`, or
-- `intro = true`
+### 1. "Saved to Library" messaging (consistency with BP nodes)
 
-Then, only after async auth/session restoration and draft loading complete, they jump to the saved step.
+**`src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`**
+- Under the main `Publish & Open Distribution` button, add a small library badge / helper line:
+  > *"Your audiobook ZIP + ACX guide will be saved to **My Library** automatically when you publish."*
+- After successful publish (`published === true`), swap that line for a green confirmation: *"Saved to your Library"* with a `Library` icon link to `/dashboard?section=library` (matches the pattern other BP builders use).
+- Update the post-distribution toast to read: *"Audiobook saved to My Library — ZIP + ACX guide ready to download."*
 
-That is why you briefly see the Introduction screen for 2–3 seconds before the builder snaps back to the real saved page.
+### 2. Narrator Name for Credits — helper, reset, validation
 
-## Why it happens across all nodes
-I found the same pattern repeated across the builder files:
-- `src/components/dashboard/builders/ba10/BA10Builder.tsx`
-- `src/components/dashboard/builders/ba11/BA11Builder.tsx`
-- `src/components/dashboard/builders/ba12/BA12Builder.tsx`
-- `src/components/dashboard/builders/ba13/BA13Builder.tsx`
-- `src/components/dashboard/builders/ba14/BA14Builder.tsx`
-- `src/components/dashboard/builders/ba15/BA15Builder.tsx`
-- `src/components/dashboard/builders/ba16/BA16Builder.tsx`
-- `src/components/dashboard/builders/ba17/BA17Builder.tsx`
-- `src/components/dashboard/builders/ba18/BA18Builder.tsx`
-- `src/components/dashboard/builders/bp01/BP01Builder.tsx`
-- `src/components/dashboard/builders/bp04/BP04Builder.tsx`
-- `src/components/dashboard/builders/bp05/BP05Builder.tsx`
-- `src/components/dashboard/builders/bp07/BP07Builder.tsx`
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
-- `src/components/dashboard/builders/yr19/YR19Builder.tsx`
-- `src/components/dashboard/builders/yr20/YR20Builder.tsx`
-- `src/components/dashboard/builders/yr21/YR21Builder.tsx`
-- `src/components/dashboard/builders/yr22/YR22Builder.tsx`
-- `src/components/dashboard/builders/yr23/YR23Builder.tsx`
-- `src/components/dashboard/builders/yr24/YR24Builder.tsx`
-- `src/components/dashboard/builders/yr25/YR25Builder.tsx`
-- `src/components/dashboard/builders/yr26/YR26Builder.tsx`
-- `src/components/dashboard/builders/yr27/YR27Builder.tsx`
-- `src/components/dashboard/builders/yr28/YR28Builder.tsx`
+**`src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`**
+- Pass `voiceName` (already in scope) and `bookTitle` into `<DistributeAudiobookModal>` as new props.
 
-## Root causes
-### 1. Builders render before their saved state is hydrated
-Most builders initialize to intro state immediately, then run async resume logic in `useEffect`.
+**`src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`** (Step 1)
+- Accept new props: `voiceName?: string`, `bookTitle?: string`.
+- Compute `recommendedCredit = "${voiceName} (ElevenLabs AI voice)"` (fallback to current default if no voiceName).
+- On modal open, if `narratorCredit` is empty OR equals the previous default, prefill with `recommendedCredit`.
+- Add a small **"Reset to recommended"** ghost button to the right of the field label that sets the input back to `recommendedCredit`.
+- Add helper text under the input:
+  > *"Shown as 'Narrated by …' on Audible, Spotify, Apple Books and your microsite. ACX requires you to disclose AI/synthetic narration — keep 'ElevenLabs AI voice' (or similar wording) in the credit."*
+- Add inline validation (red text + disable Next button) when:
+  - empty / whitespace, OR
+  - trimmed value equals `bookTitle` (case-insensitive) → *"This looks like your book title, not a narrator name. Try '{recommendedCredit}'."*
+- Validation message + disabled state replace the existing `disabled={!narratorCredit.trim()}` on the Next button.
 
-### 2. The loading gate is attached to the wrong condition
-Many builders only show their loading placeholder when this is true:
-- `isAuthReady && authorId && !hydrated`
+## Out of scope
+- No DB / edge function changes — `distribute-audiobook` already accepts `narratorCredit` as-is.
+- No changes to Voice step or library asset writer (BA-11 already writes `audio_zip` per Sprint 54).
 
-But on the first render, `isAuthReady` is often still `false`, so the loading gate does not activate yet. The intro page renders instead.
-
-### 3. Two auth-readiness systems are involved
-- `NodeBuilder.tsx` uses `useAuth()`
-- many builders use `useAuthReady()`
-
-Those can settle at slightly different times, which creates a gap where the builder mounts but has not restored its own session-dependent draft state yet.
-
-### 4. BA-11 has an extra bug
-In `src/components/dashboard/builders/ba11/BA11Builder.tsx`, the loading guard is accidentally placed inside `persistDraft()`, so it never protects the page render at all.
-
-## Evidence from the code
-- `src/pages/NodeBuilder.tsx` mounts the correct builder after user/author resolution.
-- `src/hooks/useAuthReady.ts` restores auth asynchronously.
-- `src/lib/builder-autosave.ts` loads saved builder state asynchronously via `loadBuilderDraft()`.
-- Example builder pattern:
-  - `BA10Builder.tsx`: starts at `step = 0`, then later updates from `loadBuilderDraft()`.
-  - `BA11Builder.tsx`: starts with `intro = true`, then later flips to saved state.
-- BP-03 is a useful reference because it already uses a dedicated `isResuming` state and avoids showing the intro while resuming.
-
-## Implementation plan
-### 1. Introduce one canonical builder hydration gate
-Create a shared pattern so builders do not render intro/review/publish UI until resume is finished.
-
-Target outcome:
-- if the builder is still restoring auth or draft state, show a neutral loading skeleton/card
-- only render Introduction if resume truly found no saved state
-- only render Review/Publish/Live when the saved state has been loaded
-
-### 2. Standardize all affected builders to the same resume contract
-Replace the current ad hoc pattern:
-- default `step = 0`
-- async `useEffect`
-- `hydrated` boolean
-- gate requiring `isAuthReady`
-
-With a safer pattern like:
-- `isResuming = true` initially
-- run resume logic once
-- render loading until resume finishes
-- then render either saved step or true intro
-
-### 3. Fix BA-11 specifically
-Move the misplaced loading guard out of `persistDraft()` and into the component render path.
-
-Also keep BA-11’s existing resume normalization logic, because that part is already needed for draft/live audiobook states.
-
-### 4. Reduce auth timing drift
-Align builder hydration with the app’s canonical auth readiness so builders do not mount in a half-restored state.
-
-Possible implementation:
-- either use one shared readiness source everywhere, or
-- make builder loading state independent of `isAuthReady` so it stays hidden until resume explicitly completes.
-
-### 5. Roll the fix across all nodes
-Apply the same permanent pattern to all builders that currently use the flash-prone `hydrated + isAuthReady` combination.
-
-### 6. Verify with refresh testing
-Check that on refresh:
-- saved builders reopen directly on the correct step
-- no intro flash appears first
-- nodes with no saved state still open on Introduction normally
-- BA-11 still resumes properly for live/distributed audiobook states
-
-## Technical details
-Recommended permanent approach:
-
-```text
-Builder mounts
-  -> show loading shell immediately
-  -> restore auth/draft state
-  -> if saved content exists, jump directly to saved step
-  -> else show true intro
-```
-
-This is better than trying to make `step=0` invisible after the fact.
-
-## Files most likely to change
-- `src/pages/NodeBuilder.tsx`
-- `src/hooks/useAuthReady.ts` or shared builder resume helper if needed
-- `src/components/dashboard/builders/ba11/BA11Builder.tsx`
-- the 24 other builders using the same hydration pattern
-- possibly a new shared helper/component for builder loading state
-
-## Expected result
-After this fix, refreshing any node should:
-- stop showing the Introduction screen first
-- resume directly on the saved step
-- behave consistently across all 28 nodes instead of only some of them
-
-<lov-actions>
-  <lov-open-history>View History</lov-open-history>
-</lov-actions>
-
-<lov-actions>
-<lov-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</lov-link>
-</lov-actions>
+## Files touched
+- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
+- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`
