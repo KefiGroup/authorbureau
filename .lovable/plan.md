@@ -1,59 +1,129 @@
-## What’s actually broken
+## What’s actually causing the recurring BA-11 snag
 
-I do know what the issue is. This is not one random glitch - it is a small cluster of BA-11 architectural bugs.
+This is **not primarily an LLM problem**.
 
-### Root cause 1: refresh/publish drops you back to Introduction
-BA-11 currently has two resume defects:
+It is mainly a **token/auth + code-path problem** in BA-11 production, with one separate UI bug:
 
-1. The builder loads saved state using only the raw route `bookId`, not the resolved effective book ID. If the page is reopened without the query param, it misses the book-scoped saved row.
-2. The builder only resumes when saved content looks like `{ studio: ... }`, but the publish/distribution flow writes a different live payload shape. After publishing, refresh can see a live row but still fail the `content.studio` check, so the UI falls back to the intro screen.
+1. **Primary root cause: token/auth mismatch in chapter generation**
+   - `ChapterProductionStep.tsx` still calls `supabase.functions.invoke("ba11-audiobook-generate")`.
+   - The deployed `ba11-audiobook-generate` function still uses a **custom JWT decoder** instead of the shared resolver.
+   - Live logs show repeated requests with:
+     - `auth header present: true`
+     - `jwt decode: { ok: false, email: undefined }`
+   - That means the request is reaching the function, but the function rejects the token **before any ElevenLabs call happens**.
+   - So the recurring “ABBY hit a snag” is coming from **auth handling in code**, not from the model itself.
 
-### Root cause 2: manuscript split still throws the generic snag
-The manuscript step is still calling the older retrieval path in a fragile way:
+2. **Secondary root cause: regenerate buttons become unclickable during batch mode**
+   - In `ChapterProductionStep.tsx`, individual chapter buttons are disabled by `batchActive`.
+   - That matches your report that regeneration becomes unavailable and you can only move by using the previous button / navigation workaround.
 
-1. It uses the client helper that depends on session restoration timing, so it is vulnerable during refresh/bootstrap.
-2. It calls the older manuscript backend function directly, while the older Audiobook Studio already has a more resilient pattern.
-3. That older manuscript function is stricter than it should be when matching manuscript ownership, so it can fail even for a valid book if the manuscript asset was written under a different historical author ID.
+3. **Remaining BA-11 risk area: inconsistent auth patterns across audiobook flows**
+   - Some BA-11 paths already use the durable shared-token pattern (`getActiveToken()` + `fetchWithTimeout()`), for example manuscript retrieval and voice preview.
+   - Other BA-11 paths still use direct client calls / custom token parsing.
+   - That inconsistency is why this bug keeps resurfacing in a different place each time.
 
-## Plan
+## Files implicated
 
-### 1) Normalize BA-11 resume logic
-- Update `BA11Builder.tsx` to load using the resolved effective book ID, not only the route param.
-- Add a BA-11 state normalizer so the builder can resume from both:
-  - draft shape: `{ studio: ... }`
-  - live/published shape: flat audiobook payload written during distribution
-- Derive the deepest valid step from saved markers instead of requiring `content.studio` to exist.
-- Ensure a live or published audiobook always skips Introduction on refresh.
+- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
+- `supabase/functions/ba11-audiobook-generate/index.ts`
+- `supabase/functions/_shared/resolve-user.ts`
+- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`
+- `supabase/functions/distribute-audiobook/index.ts`
+- `src/components/dashboard/builders/audiobook/AudiobookSetupStep.tsx`
 
-### 2) Replace the fragile manuscript fetch path
-- Update `ManuscriptOptimizationStep.tsx` to use the project’s shared token pattern with retry-on-restore behavior.
-- Use the stronger manuscript retrieval flow first, with a safe fallback only if needed.
-- Stop masking real backend responses behind the generic snag when a specific message is available.
+## Do I know what the issue is?
 
-### 3) Preserve BA-11 state when publishing
-- Update the publish/distribution path so it preserves the builder’s working audiobook state instead of replacing it with a thin live payload.
-- Persist the correct final step/current progress so refresh returns to Review/Publish instead of resetting.
-- Audit the BA-11 live row write to make sure book-scoped state cannot be overwritten incorrectly.
+Yes.
 
-### 4) Add regression guardrails
-- Add tests for BA-11 resume from:
-  - draft state
-  - published state
-  - refresh without explicit `bookId` in the route
-- Add a focused regression check for manuscript retrieval so authorized books with existing manuscript assets do not fail because of historical author ID mismatches.
-- Add lightweight logging around resume resolution and manuscript lookup so future repeats are diagnosable quickly.
+The permanent bug is: **BA-11 production still relies on an old auth path that cannot reliably recognize the project’s active user token, so chapter generation fails before audio synthesis starts.**
+
+## Permanent fix plan
+
+### 1) Replace BA-11 generation with the platform-standard auth path
+Update `ChapterProductionStep.tsx` to stop using `supabase.functions.invoke()` for chapter generation.
+
+Instead:
+- use `getActiveToken()`
+- retry briefly while session restore finishes
+- call the function with `fetchWithTimeout()`
+- support one forced token refresh retry if the first call returns auth-style failure
+- preserve the current chapter state if a single request fails
+
+This aligns BA-11 production with the same durable pattern already used in manuscript retrieval and voice preview.
+
+### 2) Refactor `ba11-audiobook-generate` to use the canonical resolver
+Replace the custom `decodeJwtSub()` logic in `supabase/functions/ba11-audiobook-generate/index.ts` with the shared helper from `supabase/functions/_shared/resolve-user.ts`.
+
+Implementation goals:
+- accept both Cloud and shared-backend sessions consistently
+- resolve `{ id, email }` using the shared helper
+- return a specific auth error only if both identity signals are missing
+- use the resolved user id for storage paths
+- keep the service-role upload, but stop depending on raw JWT parsing
+
+This removes the fragile part shown in live logs.
+
+### 3) Make BA-11 errors explicit instead of surfacing as a generic snag
+Keep returning clear backend messages for:
+- auth/session restore problems
+- missing `bookId`
+- missing voice
+- ElevenLabs upstream failure
+- storage upload failure
+
+On the client, surface these through `toAbbyError()` without collapsing everything into the default generic copy.
+
+### 4) Fix the unclickable regenerate buttons
+Adjust `ChapterProductionStep.tsx` so a batch run does not hard-disable all chapter controls indefinitely.
+
+Planned behavior:
+- disable only the row currently generating
+- allow retry/regenerate for failed chapters after a batch pass
+- make batch progress state separate from row action state
+- ensure a failed chapter returns to a clickable state immediately
+
+### 5) Audit the rest of BA-11 for the same auth drift
+While implementing, I’ll harden the remaining audiobook actions that still use older direct-call patterns so this doesn’t reappear elsewhere:
+
+- `DistributeAudiobookModal.tsx`
+- `distribute-audiobook/index.ts`
+- `AudiobookSetupStep.tsx` reads that currently depend on the project client
+
+Goal: make BA-11 use **one auth pattern everywhere**, instead of mixing shared-token fetches with direct client invocations.
+
+### 6) Add regression guardrails
+I’ll add lightweight regression coverage for the exact failure modes that keep recurring:
+- shared token present but custom JWT decode would fail
+- chapter generation auth retry on refresh
+- post-failure button remains clickable
+- batch generation does not lock manual regeneration
+- published/resumed BA-11 still preserves production state
 
 ## Technical details
 
-Likely files to update:
-- `src/components/dashboard/builders/ba11/BA11Builder.tsx`
-- `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx`
-- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
-- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`
-- `supabase/functions/get-manuscript-source/index.ts` and/or `supabase/functions/get-book-manuscript/index.ts`
-- possibly BA-11 publish backend helpers if the live payload needs to retain builder state
+```text
+Current failure path
+UI: supabase.functions.invoke("ba11-audiobook-generate")
+ -> Function receives Authorization header
+ -> Custom decodeJwtSub() cannot resolve user
+ -> 401-style failure before ElevenLabs
+ -> UI shows generic snag toast
 
-Once you approve, I’ll implement this as a permanent BA-11 fix rather than another patch on top.
+Target path
+UI: getActiveToken() + fetchWithTimeout()
+ -> Function uses shared resolveUser()
+ -> Resolved user id/email works for both auth sources
+ -> ElevenLabs runs
+ -> audio uploads to canonical storage path
+ -> UI stores durable chapter URL and keeps controls usable
+```
+
+## Expected outcome after implementation
+
+- The repeated BA-11 production snag should stop recurring from token mismatch.
+- If ElevenLabs genuinely fails, you’ll see a real upstream error instead of the same vague snag.
+- Regenerate buttons will remain usable after failures.
+- BA-11 will use one consistent authentication approach across manuscript, voice preview, production, and distribution.
 
 <lov-actions>
   <lov-open-history>View History</lov-open-history>

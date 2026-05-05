@@ -1,8 +1,11 @@
-// BA-11 Audiobook chapter generation - fresh endpoint, no client-side gateway issues.
-// Mirrors ba11-voice-preview pattern: in-code JWT decode, ElevenLabs TTS, returns base64 MP3.
-// Also uploads the MP3 to the audiobook-audio storage bucket so the publish step can package it.
+// BA-11 Audiobook chapter generation.
+// Uses the canonical shared resolver (_shared/resolve-user.ts) so both Cloud
+// and shared-backend tokens authenticate consistently. Renders one chapter
+// via ElevenLabs TTS, uploads to the audiobook-audio storage bucket, and
+// returns a permanent public URL.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -16,19 +19,6 @@ const json = (status: number, body: unknown) =>
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
-
-function decodeJwtSub(token: string): { sub?: string; email?: string } | null {
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const padded = payload + "=".repeat((4 - (payload.length % 4)) % 4);
-    const claims = JSON.parse(atob(padded));
-    return { sub: claims.sub, email: claims.email };
-  } catch {
-    return null;
-  }
-}
 
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
@@ -48,7 +38,6 @@ Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-
   if (req.method !== "POST") {
     return json(405, { error: "Method not allowed" });
   }
@@ -56,16 +45,14 @@ Deno.serve(async (req: Request) => {
   const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
   console.log("[ba11-audiobook-generate] auth header present:", !!authHeader);
 
-  if (!authHeader || !authHeader.toLowerCase().startsWith("bearer ")) {
-    return json(401, { error: "Missing Authorization bearer token" });
-  }
+  // Use the canonical shared resolver — supports Cloud + shared-backend tokens.
+  const user = await resolveUser(authHeader);
+  console.log("[ba11-audiobook-generate] resolved:", user);
 
-  const token = authHeader.slice(7).trim();
-  const claims = decodeJwtSub(token);
-  console.log("[ba11-audiobook-generate] jwt decode:", { ok: !!claims?.sub, email: claims?.email });
-
-  if (!claims?.sub) {
-    return json(401, { error: "Could not resolve user identity from token" });
+  if (!user.id && !user.email) {
+    return json(401, {
+      error: "AUTH_RESTORING: Your session is still restoring. Please wait a moment and click Try Again.",
+    });
   }
 
   let body: {
@@ -73,7 +60,6 @@ Deno.serve(async (req: Request) => {
     chapterText?: string;
     chapterIndex?: number;
     bookId?: string;
-    action?: string;
   };
   try {
     body = await req.json();
@@ -87,27 +73,25 @@ Deno.serve(async (req: Request) => {
     chapterIndex,
     bookId,
     textLen: chapterText?.length || 0,
-    user: claims.sub,
+    user: user.id ?? user.email,
   });
 
   if (!voiceId || typeof voiceId !== "string") {
-    return json(400, { error: "voiceId is required" });
+    return json(400, { error: "MISSING_VOICE: Pick a narrator voice before generating chapter audio." });
   }
   if (!chapterText || typeof chapterText !== "string" || chapterText.trim().length === 0) {
-    return json(400, { error: "chapterText is required" });
+    return json(400, { error: "MISSING_TEXT: This chapter is empty. Add chapter text before generating audio." });
   }
 
   const apiKey = Deno.env.get("ELEVENLABS_API_KEY");
   if (!apiKey) {
     console.error("[ba11-audiobook-generate] ELEVENLABS_API_KEY missing");
-    return json(500, { error: "ELEVENLABS_API_KEY is not configured" });
+    return json(500, { error: "TTS_NOT_CONFIGURED: Audio service is not configured. Please contact support." });
   }
 
-  // Truncate extremely long chapters to keep within ElevenLabs limits (~5000 chars per request).
-  // For the BA-11 MVP we cap at 4500 to be safe; longer chapters can be chunked in a future pass.
+  // ElevenLabs caps single requests around 5000 chars; keep a safety margin.
   const MAX_CHARS = 4500;
-  const text =
-    chapterText.length > MAX_CHARS ? chapterText.slice(0, MAX_CHARS) : chapterText;
+  const text = chapterText.length > MAX_CHARS ? chapterText.slice(0, MAX_CHARS) : chapterText;
   if (chapterText.length > MAX_CHARS) {
     console.log("[ba11-audiobook-generate] truncated chapter from", chapterText.length, "to", MAX_CHARS);
   }
@@ -141,7 +125,7 @@ Deno.serve(async (req: Request) => {
       const errText = await ttsRes.text();
       console.error("[ba11-audiobook-generate] elevenlabs error", ttsRes.status, errText);
       return json(502, {
-        error: `ElevenLabs error ${ttsRes.status}`,
+        error: `TTS_UPSTREAM: ElevenLabs returned ${ttsRes.status}. Please wait a moment and click Try Again.`,
         details: errText.slice(0, 500),
       });
     }
@@ -156,43 +140,55 @@ Deno.serve(async (req: Request) => {
     try {
       const supabaseUrl = Deno.env.get("SUPABASE_URL");
       const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-      if (supabaseUrl && serviceKey && bookId) {
+      if (supabaseUrl && serviceKey && bookId && user.id) {
         const admin = createClient(supabaseUrl, serviceKey, {
           auth: { persistSession: false, autoRefreshToken: false },
         });
-        // Canonical path: {user_id}/{book_id}/chapter-NNN.mp3 (3-digit, 0-indexed).
-        // Matches legacy elevenlabs-tts-audiobook-v2 + distribute-audiobook readers.
         const idx = typeof chapterIndex === "number" ? chapterIndex : 0;
         const padded = String(idx).padStart(3, "0");
-        const path = `${claims.sub}/${bookId}/chapter-${padded}.mp3`;
+        const path = `${user.id}/${bookId}/chapter-${padded}.mp3`;
         const { error: upErr } = await admin.storage
           .from("audiobook-audio")
           .upload(path, buf, { contentType: "audio/mpeg", upsert: true });
         if (upErr) {
           console.error("[ba11-audiobook-generate] storage upload failed:", upErr.message);
-          audioUrlError = `storage upload failed: ${upErr.message}`;
+          audioUrlError = `STORAGE_FAILED: ${upErr.message}`;
         } else {
           const { data: pub } = admin.storage.from("audiobook-audio").getPublicUrl(path);
           audioUrl = pub.publicUrl;
           console.log("[ba11-audiobook-generate] uploaded to", path);
         }
       } else if (!bookId) {
-        audioUrlError = "bookId missing from request";
+        audioUrlError = "MISSING_BOOK: bookId missing from request — please reload the page.";
+      } else if (!user.id) {
+        audioUrlError = "AUTH_RESTORING: Your session could not be reconciled to upload audio.";
       }
     } catch (storageErr) {
       const m = storageErr instanceof Error ? storageErr.message : String(storageErr);
       console.error("[ba11-audiobook-generate] storage exception:", m);
-      audioUrlError = `storage exception: ${m}`;
+      audioUrlError = `STORAGE_EXCEPTION: ${m}`;
     }
 
-    return json(200, {
+    if (!audioUrl) {
+      // Surface storage failure as the primary error so the UI can show a real message
+      // instead of a generic snag. Still return audioBase64 so the user can preview.
+      return json(200, {
+        audioBase64,
+        audioUrl: "",
+        error: audioUrlError || "STORAGE_FAILED: Audio rendered but could not be saved.",
+        format: "mp3",
+        bytes: buf.length,
+        chapterIndex,
+      });
+    }
+
+    return new Response(JSON.stringify({
       audioBase64,
       audioUrl,
-      audioUrlError: audioUrl ? "" : audioUrlError,
       format: "mp3",
       bytes: buf.length,
       chapterIndex,
-    });
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error("[ba11-audiobook-generate] exception", msg);

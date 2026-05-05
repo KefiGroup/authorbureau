@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Loader2, Wand2, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { toAbbyError } from "@/lib/abby-error";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface Chapter {
   index: number;
@@ -23,6 +23,38 @@ interface Props {
   bookId: string;
 }
 
+const FN_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ba11-audiobook-generate`;
+
+/**
+ * Resolve a fresh token, retrying briefly if the shared-auth restore is in
+ * flight (matches the manuscript-retrieval pattern). Returns null only if
+ * no token can be obtained after retries.
+ */
+async function resolveTokenWithRetry(): Promise<string | null> {
+  let token = await getActiveToken();
+  for (let i = 0; i < 6 && !token; i++) {
+    await new Promise((r) => setTimeout(r, 250));
+    token = await getActiveToken();
+  }
+  return token;
+}
+
+async function callGenerate(payload: Record<string, unknown>, token: string) {
+  const resp = await fetchWithTimeout(
+    FN_URL,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    },
+    60000,
+  );
+  const text = await resp.text();
+  let data: any = null;
+  try { data = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+  return { ok: resp.ok, status: resp.status, data };
+}
+
 export default function ChapterProductionStep({ stepData, setStepData, onMarkEdited, bookId }: Props) {
   const chapters: Chapter[] = stepData.chapters ?? [];
   const voiceId: string = stepData.selectedVoiceId || "";
@@ -37,13 +69,27 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
     if (!c) return list;
     setBusyIdx(idx);
     try {
-      const { data, error } = await supabase.functions.invoke("ba11-audiobook-generate", {
-        body: { voiceId, chapterText: c.text, chapterIndex: idx, bookId },
-      });
-      if (error) throw new Error(error.message);
-      if (data?.error) throw new Error(data.error);
+      let token = await resolveTokenWithRetry();
+      if (!token) throw new Error("AUTH_RESTORING: Your session is still restoring. Please wait a moment and try again.");
+
+      let { ok, status, data } = await callGenerate(
+        { voiceId, chapterText: c.text, chapterIndex: idx, bookId },
+        token,
+      );
+
+      // Auth-style failure: force one token refresh and retry once.
+      if (!ok && (status === 401 || /AUTH_RESTORING|Unauthorized|invalid jwt/i.test(String(data?.error || "")))) {
+        token = (await getActiveToken({ forceRefresh: true })) ?? token;
+        ({ ok, status, data } = await callGenerate(
+          { voiceId, chapterText: c.text, chapterIndex: idx, bookId },
+          token,
+        ));
+      }
+
+      if (!ok) throw new Error(data?.error || `Chapter generation failed (${status})`);
       const audioUrl: string = data?.audioUrl || "";
-      if (!audioUrl) throw new Error("No audio URL returned");
+      if (!audioUrl) throw new Error(data?.error || "STORAGE_FAILED: No audio URL returned.");
+
       const next = list.map((x, i) =>
         i === idx ? { ...x, audioUrl, status: "audio-generated" as const } : x,
       );
@@ -82,7 +128,7 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
       await new Promise((r) => setTimeout(r, 1500));
     }
     setBatchActive(false);
-    toast({ title: "Production complete", description: `${pending.length} chapter${pending.length === 1 ? "" : "s"} generated.` });
+    toast({ title: "Production complete", description: `${pending.length} chapter${pending.length === 1 ? "" : "s"} processed.` });
   };
 
   const generatedCount = chapters.filter((c) => c.status === "audio-generated").length;
@@ -117,6 +163,9 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
         {chapters.map((c, i) => {
           const isBusy = busyIdx === i;
           const ready = c.status === "audio-generated" && !!c.audioUrl;
+          // Only disable the row currently generating. Keep regenerate / generate
+          // buttons clickable during a batch run so the author can intervene.
+          const disabled = isBusy;
           return (
             <Card key={i} className="p-3">
               <div className="flex items-center gap-3 flex-wrap">
@@ -133,7 +182,7 @@ export default function ChapterProductionStep({ stepData, setStepData, onMarkEdi
                   size="sm"
                   variant={ready ? "outline" : "default"}
                   onClick={() => generateOne(i)}
-                  disabled={isBusy || batchActive}
+                  disabled={disabled}
                 >
                   {isBusy ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> :
                    ready ? <RefreshCw className="h-3 w-3 mr-1" /> :
