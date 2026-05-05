@@ -94,7 +94,7 @@ export default function BA17Builder({ authorId, bookId }: Props) {
   const isIntroReady = Boolean(authorName && authorName !== "there" && displayBookTitle);
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
 
-  if (isAuthReady && authorId && !hydrated) {
+  if (authorId && !hydrated) {
 
     return (
 

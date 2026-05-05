@@ -88,7 +88,7 @@ export default function YR19Builder({ authorId, bookId }: Props) {
     }
   };
 
-  if (isAuthReady && authorId && !hydrated) {
+  if (authorId && !hydrated) {
 
     return (
 

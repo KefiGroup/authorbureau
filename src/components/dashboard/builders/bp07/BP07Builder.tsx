@@ -193,7 +193,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
 
   const handleGenerate = async () => {
     console.info("[BP-07] generate clicked", { authorId, hasBook, bookTitle: detectedBookTitle });
-    if (isAuthReady && authorId && !hydrated) {
+    if (authorId && !hydrated) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-background">
           <p className="text-muted-foreground">Loading…</p>

@@ -201,7 +201,7 @@ export default function BP05Builder({ authorId, bookId }: Props) {
     }
   };
 
-  if (isAuthReady && authorId && !hydrated) {
+  if (authorId && !hydrated) {
 
     return (
 
