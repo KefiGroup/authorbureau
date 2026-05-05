@@ -277,6 +277,14 @@ export default function BA11Builder({ authorId, bookId }: Props) {
     );
   }
 
+  if (!hydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Loading…</p>
+      </div>
+    );
+  }
+
   const currentStep = STUDIO_STEPS[stepIdx];
 
   return (
