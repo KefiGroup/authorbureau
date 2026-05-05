@@ -25,7 +25,10 @@ interface DistributeAudiobookModalProps {
   userId: string;
   chapters: Chapter[];
   onDistributed: () => void;
+  voiceName?: string;
 }
+
+const DEFAULT_CREDIT = "Narrated by a digital voice using ElevenLabs technology";
 
 export default function DistributeAudiobookModal({
   open,
@@ -35,9 +38,14 @@ export default function DistributeAudiobookModal({
   userId,
   chapters,
   onDistributed,
+  voiceName,
 }: DistributeAudiobookModalProps) {
+  const recommendedCredit = voiceName && voiceName !== "Selected voice"
+    ? `${voiceName} (ElevenLabs AI voice)`
+    : DEFAULT_CREDIT;
+
   const [step, setStep] = useState(1);
-  const [narratorCredit, setNarratorCredit] = useState("Narrated by a digital voice using ElevenLabs technology");
+  const [narratorCredit, setNarratorCredit] = useState(recommendedCredit);
   const [previewChapterIndex, setPreviewChapterIndex] = useState("0");
   const [description, setDescription] = useState("");
   const [authorName, setAuthorName] = useState("");
@@ -45,6 +53,15 @@ export default function DistributeAudiobookModal({
   const [confirmed, setConfirmed] = useState(false);
   const [sending, setSending] = useState(false);
   const [loadingMeta, setLoadingMeta] = useState(false);
+
+  const trimmed = narratorCredit.trim();
+  const matchesBookTitle = !!bookTitle && trimmed.toLowerCase() === bookTitle.trim().toLowerCase();
+  const isEmpty = trimmed.length === 0;
+  const validationError = isEmpty
+    ? "Narrator name is required."
+    : matchesBookTitle
+    ? `This looks like your book title, not a narrator name. Try "${recommendedCredit}".`
+    : null;
 
   // Load book metadata when modal opens
   useEffect(() => {
