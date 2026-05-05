@@ -193,14 +193,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
 
   const handleGenerate = async () => {
     console.info("[BP-07] generate clicked", { authorId, hasBook, bookTitle: detectedBookTitle });
-    if (isAuthReady && authorId && !hydrated) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <p className="text-muted-foreground">Loading…</p>
-        </div>
-      );
-    }
-    if (!authorId) return;
+    if (!authorId || !hydrated) return;
     setStep(1); setError(null);
     const promise = startGeneration(authorId, "BP-07", runGeneration);
     await attachToGeneration(promise);
@@ -283,6 +276,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
   };
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
+  if (!hydrated) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Loading…</p></div>;
 
   return (
     <div className="min-h-screen bg-background">

@@ -85,7 +85,7 @@ export default function YR20Builder({ authorId, bookId }: Props) {
     }
   };
 
-  if (isAuthReady && authorId && !hydrated) {
+  if (authorId && !hydrated) {
 
     return (
 

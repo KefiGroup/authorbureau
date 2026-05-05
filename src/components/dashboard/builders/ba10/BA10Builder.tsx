@@ -111,7 +111,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
     }
   };
 
-  if (isAuthReady && authorId && !hydrated) {
+  if (authorId && !hydrated) {
 
     return (
 

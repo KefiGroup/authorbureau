@@ -1,129 +1,144 @@
-## What’s actually causing the recurring BA-11 snag
+# Permanent fix plan for the node intro flash
 
-This is **not primarily an LLM problem**.
+## Diagnosis
+This is a coding / state-hydration race condition, not an LLM issue and not primarily a token quota issue.
 
-It is mainly a **token/auth + code-path problem** in BA-11 production, with one separate UI bug:
+Do I know what the issue is? Yes.
 
-1. **Primary root cause: token/auth mismatch in chapter generation**
-   - `ChapterProductionStep.tsx` still calls `supabase.functions.invoke("ba11-audiobook-generate")`.
-   - The deployed `ba11-audiobook-generate` function still uses a **custom JWT decoder** instead of the shared resolver.
-   - Live logs show repeated requests with:
-     - `auth header present: true`
-     - `jwt decode: { ok: false, email: undefined }`
-   - That means the request is reaching the function, but the function rejects the token **before any ElevenLabs call happens**.
-   - So the recurring “ABBY hit a snag” is coming from **auth handling in code**, not from the model itself.
+### What is actually happening
+On refresh, most builders first render their default state:
+- `step = 0`, or
+- `intro = true`
 
-2. **Secondary root cause: regenerate buttons become unclickable during batch mode**
-   - In `ChapterProductionStep.tsx`, individual chapter buttons are disabled by `batchActive`.
-   - That matches your report that regeneration becomes unavailable and you can only move by using the previous button / navigation workaround.
+Then, only after async auth/session restoration and draft loading complete, they jump to the saved step.
 
-3. **Remaining BA-11 risk area: inconsistent auth patterns across audiobook flows**
-   - Some BA-11 paths already use the durable shared-token pattern (`getActiveToken()` + `fetchWithTimeout()`), for example manuscript retrieval and voice preview.
-   - Other BA-11 paths still use direct client calls / custom token parsing.
-   - That inconsistency is why this bug keeps resurfacing in a different place each time.
+That is why you briefly see the Introduction screen for 2–3 seconds before the builder snaps back to the real saved page.
 
-## Files implicated
+## Why it happens across all nodes
+I found the same pattern repeated across the builder files:
+- `src/components/dashboard/builders/ba10/BA10Builder.tsx`
+- `src/components/dashboard/builders/ba11/BA11Builder.tsx`
+- `src/components/dashboard/builders/ba12/BA12Builder.tsx`
+- `src/components/dashboard/builders/ba13/BA13Builder.tsx`
+- `src/components/dashboard/builders/ba14/BA14Builder.tsx`
+- `src/components/dashboard/builders/ba15/BA15Builder.tsx`
+- `src/components/dashboard/builders/ba16/BA16Builder.tsx`
+- `src/components/dashboard/builders/ba17/BA17Builder.tsx`
+- `src/components/dashboard/builders/ba18/BA18Builder.tsx`
+- `src/components/dashboard/builders/bp01/BP01Builder.tsx`
+- `src/components/dashboard/builders/bp04/BP04Builder.tsx`
+- `src/components/dashboard/builders/bp05/BP05Builder.tsx`
+- `src/components/dashboard/builders/bp07/BP07Builder.tsx`
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx`
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
+- `src/components/dashboard/builders/yr19/YR19Builder.tsx`
+- `src/components/dashboard/builders/yr20/YR20Builder.tsx`
+- `src/components/dashboard/builders/yr21/YR21Builder.tsx`
+- `src/components/dashboard/builders/yr22/YR22Builder.tsx`
+- `src/components/dashboard/builders/yr23/YR23Builder.tsx`
+- `src/components/dashboard/builders/yr24/YR24Builder.tsx`
+- `src/components/dashboard/builders/yr25/YR25Builder.tsx`
+- `src/components/dashboard/builders/yr26/YR26Builder.tsx`
+- `src/components/dashboard/builders/yr27/YR27Builder.tsx`
+- `src/components/dashboard/builders/yr28/YR28Builder.tsx`
 
-- `src/components/dashboard/builders/audiobook/ChapterProductionStep.tsx`
-- `supabase/functions/ba11-audiobook-generate/index.ts`
-- `supabase/functions/_shared/resolve-user.ts`
-- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`
-- `supabase/functions/distribute-audiobook/index.ts`
-- `src/components/dashboard/builders/audiobook/AudiobookSetupStep.tsx`
+## Root causes
+### 1. Builders render before their saved state is hydrated
+Most builders initialize to intro state immediately, then run async resume logic in `useEffect`.
 
-## Do I know what the issue is?
+### 2. The loading gate is attached to the wrong condition
+Many builders only show their loading placeholder when this is true:
+- `isAuthReady && authorId && !hydrated`
 
-Yes.
+But on the first render, `isAuthReady` is often still `false`, so the loading gate does not activate yet. The intro page renders instead.
 
-The permanent bug is: **BA-11 production still relies on an old auth path that cannot reliably recognize the project’s active user token, so chapter generation fails before audio synthesis starts.**
+### 3. Two auth-readiness systems are involved
+- `NodeBuilder.tsx` uses `useAuth()`
+- many builders use `useAuthReady()`
 
-## Permanent fix plan
+Those can settle at slightly different times, which creates a gap where the builder mounts but has not restored its own session-dependent draft state yet.
 
-### 1) Replace BA-11 generation with the platform-standard auth path
-Update `ChapterProductionStep.tsx` to stop using `supabase.functions.invoke()` for chapter generation.
+### 4. BA-11 has an extra bug
+In `src/components/dashboard/builders/ba11/BA11Builder.tsx`, the loading guard is accidentally placed inside `persistDraft()`, so it never protects the page render at all.
 
-Instead:
-- use `getActiveToken()`
-- retry briefly while session restore finishes
-- call the function with `fetchWithTimeout()`
-- support one forced token refresh retry if the first call returns auth-style failure
-- preserve the current chapter state if a single request fails
+## Evidence from the code
+- `src/pages/NodeBuilder.tsx` mounts the correct builder after user/author resolution.
+- `src/hooks/useAuthReady.ts` restores auth asynchronously.
+- `src/lib/builder-autosave.ts` loads saved builder state asynchronously via `loadBuilderDraft()`.
+- Example builder pattern:
+  - `BA10Builder.tsx`: starts at `step = 0`, then later updates from `loadBuilderDraft()`.
+  - `BA11Builder.tsx`: starts with `intro = true`, then later flips to saved state.
+- BP-03 is a useful reference because it already uses a dedicated `isResuming` state and avoids showing the intro while resuming.
 
-This aligns BA-11 production with the same durable pattern already used in manuscript retrieval and voice preview.
+## Implementation plan
+### 1. Introduce one canonical builder hydration gate
+Create a shared pattern so builders do not render intro/review/publish UI until resume is finished.
 
-### 2) Refactor `ba11-audiobook-generate` to use the canonical resolver
-Replace the custom `decodeJwtSub()` logic in `supabase/functions/ba11-audiobook-generate/index.ts` with the shared helper from `supabase/functions/_shared/resolve-user.ts`.
+Target outcome:
+- if the builder is still restoring auth or draft state, show a neutral loading skeleton/card
+- only render Introduction if resume truly found no saved state
+- only render Review/Publish/Live when the saved state has been loaded
 
-Implementation goals:
-- accept both Cloud and shared-backend sessions consistently
-- resolve `{ id, email }` using the shared helper
-- return a specific auth error only if both identity signals are missing
-- use the resolved user id for storage paths
-- keep the service-role upload, but stop depending on raw JWT parsing
+### 2. Standardize all affected builders to the same resume contract
+Replace the current ad hoc pattern:
+- default `step = 0`
+- async `useEffect`
+- `hydrated` boolean
+- gate requiring `isAuthReady`
 
-This removes the fragile part shown in live logs.
+With a safer pattern like:
+- `isResuming = true` initially
+- run resume logic once
+- render loading until resume finishes
+- then render either saved step or true intro
 
-### 3) Make BA-11 errors explicit instead of surfacing as a generic snag
-Keep returning clear backend messages for:
-- auth/session restore problems
-- missing `bookId`
-- missing voice
-- ElevenLabs upstream failure
-- storage upload failure
+### 3. Fix BA-11 specifically
+Move the misplaced loading guard out of `persistDraft()` and into the component render path.
 
-On the client, surface these through `toAbbyError()` without collapsing everything into the default generic copy.
+Also keep BA-11’s existing resume normalization logic, because that part is already needed for draft/live audiobook states.
 
-### 4) Fix the unclickable regenerate buttons
-Adjust `ChapterProductionStep.tsx` so a batch run does not hard-disable all chapter controls indefinitely.
+### 4. Reduce auth timing drift
+Align builder hydration with the app’s canonical auth readiness so builders do not mount in a half-restored state.
 
-Planned behavior:
-- disable only the row currently generating
-- allow retry/regenerate for failed chapters after a batch pass
-- make batch progress state separate from row action state
-- ensure a failed chapter returns to a clickable state immediately
+Possible implementation:
+- either use one shared readiness source everywhere, or
+- make builder loading state independent of `isAuthReady` so it stays hidden until resume explicitly completes.
 
-### 5) Audit the rest of BA-11 for the same auth drift
-While implementing, I’ll harden the remaining audiobook actions that still use older direct-call patterns so this doesn’t reappear elsewhere:
+### 5. Roll the fix across all nodes
+Apply the same permanent pattern to all builders that currently use the flash-prone `hydrated + isAuthReady` combination.
 
-- `DistributeAudiobookModal.tsx`
-- `distribute-audiobook/index.ts`
-- `AudiobookSetupStep.tsx` reads that currently depend on the project client
-
-Goal: make BA-11 use **one auth pattern everywhere**, instead of mixing shared-token fetches with direct client invocations.
-
-### 6) Add regression guardrails
-I’ll add lightweight regression coverage for the exact failure modes that keep recurring:
-- shared token present but custom JWT decode would fail
-- chapter generation auth retry on refresh
-- post-failure button remains clickable
-- batch generation does not lock manual regeneration
-- published/resumed BA-11 still preserves production state
+### 6. Verify with refresh testing
+Check that on refresh:
+- saved builders reopen directly on the correct step
+- no intro flash appears first
+- nodes with no saved state still open on Introduction normally
+- BA-11 still resumes properly for live/distributed audiobook states
 
 ## Technical details
+Recommended permanent approach:
 
 ```text
-Current failure path
-UI: supabase.functions.invoke("ba11-audiobook-generate")
- -> Function receives Authorization header
- -> Custom decodeJwtSub() cannot resolve user
- -> 401-style failure before ElevenLabs
- -> UI shows generic snag toast
-
-Target path
-UI: getActiveToken() + fetchWithTimeout()
- -> Function uses shared resolveUser()
- -> Resolved user id/email works for both auth sources
- -> ElevenLabs runs
- -> audio uploads to canonical storage path
- -> UI stores durable chapter URL and keeps controls usable
+Builder mounts
+  -> show loading shell immediately
+  -> restore auth/draft state
+  -> if saved content exists, jump directly to saved step
+  -> else show true intro
 ```
 
-## Expected outcome after implementation
+This is better than trying to make `step=0` invisible after the fact.
 
-- The repeated BA-11 production snag should stop recurring from token mismatch.
-- If ElevenLabs genuinely fails, you’ll see a real upstream error instead of the same vague snag.
-- Regenerate buttons will remain usable after failures.
-- BA-11 will use one consistent authentication approach across manuscript, voice preview, production, and distribution.
+## Files most likely to change
+- `src/pages/NodeBuilder.tsx`
+- `src/hooks/useAuthReady.ts` or shared builder resume helper if needed
+- `src/components/dashboard/builders/ba11/BA11Builder.tsx`
+- the 24 other builders using the same hydration pattern
+- possibly a new shared helper/component for builder loading state
+
+## Expected result
+After this fix, refreshing any node should:
+- stop showing the Introduction screen first
+- resume directly on the saved step
+- behave consistently across all 28 nodes instead of only some of them
 
 <lov-actions>
   <lov-open-history>View History</lov-open-history>
