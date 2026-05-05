@@ -205,13 +205,6 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle;
 
   const persistDraft = (data: Record<string, any>, currentStep: number) => {
-    if (authorId && !hydrated) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <p className="text-muted-foreground">Loading…</p>
-        </div>
-      );
-    }
     if (!authorId) return;
     void autosaveBuilderDraft({
       authorId,
