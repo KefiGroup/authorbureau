@@ -11,6 +11,69 @@ import AudiobookStepRenderer from "../audiobook/AudiobookStepRenderer";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft, listAudiobookChapters } from "@/lib/builder-autosave";
 
+/**
+ * Normalises any saved BA-11 content into a `{ studio, inferredStep }` pair.
+ * Handles three shapes:
+ *  - Draft autosave: { studio: {...}, _currentStep }
+ *  - Live distribution payload: { audiobook_id, chapters: [...], chapter_urls, ... }
+ *  - Legacy/empty
+ *
+ * Why: after publishing, the live row no longer carries `studio`, so the
+ * builder used to fall back to the intro screen on refresh.
+ */
+function normalizeBA11Content(content: any): { studio: Record<string, any>; inferredStep: number } | null {
+  if (!content || typeof content !== "object") return null;
+
+  const sanitizeChapters = (raw: any[]): any[] =>
+    (raw || []).map((c, i) => {
+      const url = typeof c?.audioUrl === "string" ? c.audioUrl
+        : typeof c?.audio_url === "string" ? c.audio_url
+        : "";
+      const cleanUrl = url.startsWith("blob:") ? "" : url;
+      return {
+        index: typeof c?.index === "number" ? c.index : i,
+        title: c?.title || `Chapter ${i + 1}`,
+        text: c?.text || "",
+        status: cleanUrl ? "audio-generated" : (c?.status || "script-ready"),
+        audioUrl: cleanUrl,
+      };
+    });
+
+  // Shape A — draft
+  if (content.studio && typeof content.studio === "object") {
+    const studio = { ...content.studio };
+    studio.chapters = sanitizeChapters(studio.chapters || []);
+    const inferred = studio.publishedAt ? 4
+      : studio.chapters.some((c: any) => c.audioUrl) ? 3
+      : studio.selectedVoiceId ? 2
+      : studio.chapters.length ? 1 : 0;
+    return { studio, inferredStep: inferred };
+  }
+
+  // Shape B — live distribution payload
+  if (content.audiobook_id || content.chapter_urls || content.chapter_count) {
+    const rawChapters = Array.isArray(content.chapters) ? content.chapters
+      : Array.isArray(content.chapter_urls)
+        ? content.chapter_urls.map((u: string, i: number) => ({ index: i, audio_url: u, title: `Chapter ${i + 1}` }))
+        : [];
+    const studio: Record<string, any> = {
+      chapters: sanitizeChapters(rawChapters),
+      selectedVoiceId: content.selected_voice_id || "live",
+      selectedVoiceName: content.narrator_credit || "Selected voice",
+      setup: {
+        narration: content.narration || "conversational",
+        narratorCredit: content.narrator_credit || "",
+        retailPriceUsd: content.price ?? content.retail_price_usd ?? 14.99,
+        description: content.description || "",
+      },
+      publishedAt: content.published_at || new Date().toISOString(),
+    };
+    return { studio, inferredStep: 4 };
+  }
+
+  return null;
+}
+
 interface Props { authorId: string | null; bookId?: string | null; }
 
 const STUDIO_STEPS = [
@@ -70,28 +133,29 @@ export default function BA11Builder({ authorId, bookId }: Props) {
           setResolvedBookId(book.id);
         }
       }
-      const draft = await loadBuilderDraft(authorId, "BA-11", bookId ?? null);
-      if (draft.content?.studio) {
-        // Sanitize: strip any blob: URLs that died with the previous session.
-        // They will be re-attached from storage in a follow-up effect once bookId is known.
-        const studio = draft.content.studio as Record<string, unknown>;
-        const rawChapters = Array.isArray(studio.chapters) ? (studio.chapters as Array<Record<string, unknown>>) : [];
-        const sanitized = rawChapters.map((c) => {
-          const url = typeof c?.audioUrl === "string" ? c.audioUrl : "";
-          if (url.startsWith("blob:")) {
-            return { ...c, audioUrl: "", status: "script-ready" };
-          }
-          return c;
-        });
-        setStepData({ ...studio, chapters: sanitized });
-        const savedStep = (draft.content as any)?._currentStep;
-        const resumeIdx = typeof savedStep === "number" ? savedStep : (draft.currentStep || 0);
-        setStepIdx(Math.min(resumeIdx, STUDIO_STEPS.length - 1));
+      // Try book-scoped first, then author-scoped (legacy rows). Prevents
+      // refresh from snapping back to Introduction when the route lacks bookId
+      // or when the live row was written under a different scoping.
+      const candidateIds = bookId ? [bookId, null] : [null];
+      let draft: Awaited<ReturnType<typeof loadBuilderDraft>> | null = null;
+      for (const candidate of candidateIds) {
+        const d = await loadBuilderDraft(authorId, "BA-11", candidate);
+        if (d?.content) { draft = d; break; }
+      }
+      const normalized = normalizeBA11Content(draft?.content ?? null);
+      if (normalized) {
+        setStepData(normalized.studio);
+        const savedStep = (draft?.content as any)?._currentStep;
+        const resumeIdx =
+          typeof savedStep === "number" ? savedStep :
+          draft?.isLive ? STUDIO_STEPS.length - 1 :
+          (draft?.currentStep || normalized.inferredStep);
+        setStepIdx(Math.min(Math.max(resumeIdx, normalized.inferredStep), STUDIO_STEPS.length - 1));
         setIntro(false);
       }
           setHydrated(true);
 })();
-  }, [authorId, detectedBookTitle, isAuthReady]);
+  }, [authorId, detectedBookTitle, isAuthReady, bookId]);
 
   // Re-attach permanent storage URLs to chapters once we know the bookId.
   // This heals existing rows that were saved with stale blob: URLs and
