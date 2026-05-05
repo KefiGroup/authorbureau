@@ -152,12 +152,33 @@ export default function DistributeAudiobookModal({
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
-                <label className="text-sm font-medium mb-1.5 block">Narrator Name for Credits</label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-sm font-medium">Narrator Name for Credits</label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-auto py-0.5 px-2 text-xs"
+                    onClick={() => setNarratorCredit(recommendedCredit)}
+                    disabled={trimmed === recommendedCredit}
+                  >
+                    Reset to recommended
+                  </Button>
+                </div>
                 <Input
                   value={narratorCredit}
                   onChange={e => setNarratorCredit(e.target.value)}
                   maxLength={200}
+                  className={validationError ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {validationError ? (
+                  <p className="text-xs text-destructive mt-1.5">{validationError}</p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1.5">
+                    Shown as "Narrated by …" on Audible, Spotify, Apple Books and your microsite. ACX requires you
+                    to disclose AI/synthetic narration — keep "ElevenLabs AI voice" (or similar wording) in the credit.
+                  </p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium mb-1.5 block">Select Chapter for Audio Preview</label>
