@@ -11,6 +11,69 @@ import AudiobookStepRenderer from "../audiobook/AudiobookStepRenderer";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft, listAudiobookChapters } from "@/lib/builder-autosave";
 
+/**
+ * Normalises any saved BA-11 content into a `{ studio, inferredStep }` pair.
+ * Handles three shapes:
+ *  - Draft autosave: { studio: {...}, _currentStep }
+ *  - Live distribution payload: { audiobook_id, chapters: [...], chapter_urls, ... }
+ *  - Legacy/empty
+ *
+ * Why: after publishing, the live row no longer carries `studio`, so the
+ * builder used to fall back to the intro screen on refresh.
+ */
+function normalizeBA11Content(content: any): { studio: Record<string, any>; inferredStep: number } | null {
+  if (!content || typeof content !== "object") return null;
+
+  const sanitizeChapters = (raw: any[]): any[] =>
+    (raw || []).map((c, i) => {
+      const url = typeof c?.audioUrl === "string" ? c.audioUrl
+        : typeof c?.audio_url === "string" ? c.audio_url
+        : "";
+      const cleanUrl = url.startsWith("blob:") ? "" : url;
+      return {
+        index: typeof c?.index === "number" ? c.index : i,
+        title: c?.title || `Chapter ${i + 1}`,
+        text: c?.text || "",
+        status: cleanUrl ? "audio-generated" : (c?.status || "script-ready"),
+        audioUrl: cleanUrl,
+      };
+    });
+
+  // Shape A — draft
+  if (content.studio && typeof content.studio === "object") {
+    const studio = { ...content.studio };
+    studio.chapters = sanitizeChapters(studio.chapters || []);
+    const inferred = studio.publishedAt ? 4
+      : studio.chapters.some((c: any) => c.audioUrl) ? 3
+      : studio.selectedVoiceId ? 2
+      : studio.chapters.length ? 1 : 0;
+    return { studio, inferredStep: inferred };
+  }
+
+  // Shape B — live distribution payload
+  if (content.audiobook_id || content.chapter_urls || content.chapter_count) {
+    const rawChapters = Array.isArray(content.chapters) ? content.chapters
+      : Array.isArray(content.chapter_urls)
+        ? content.chapter_urls.map((u: string, i: number) => ({ index: i, audio_url: u, title: `Chapter ${i + 1}` }))
+        : [];
+    const studio: Record<string, any> = {
+      chapters: sanitizeChapters(rawChapters),
+      selectedVoiceId: content.selected_voice_id || "live",
+      selectedVoiceName: content.narrator_credit || "Selected voice",
+      setup: {
+        narration: content.narration || "conversational",
+        narratorCredit: content.narrator_credit || "",
+        retailPriceUsd: content.price ?? content.retail_price_usd ?? 14.99,
+        description: content.description || "",
+      },
+      publishedAt: content.published_at || new Date().toISOString(),
+    };
+    return { studio, inferredStep: 4 };
+  }
+
+  return null;
+}
+
 interface Props { authorId: string | null; bookId?: string | null; }
 
 const STUDIO_STEPS = [
