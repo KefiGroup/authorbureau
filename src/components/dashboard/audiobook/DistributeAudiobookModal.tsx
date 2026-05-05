@@ -201,7 +201,7 @@ export default function DistributeAudiobookModal({
             </div>
             <div className="flex justify-end gap-2 mt-6">
               <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button onClick={() => setStep(2)} disabled={!narratorCredit.trim()}>
+              <Button onClick={() => setStep(2)} disabled={!!validationError}>
                 Next: Review Metadata <ArrowRight className="h-4 w-4 ml-1" />
               </Button>
             </div>
