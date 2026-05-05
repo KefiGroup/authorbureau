@@ -3,6 +3,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ABBY_CATEGORIES, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "@/lib/node-readiness";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+
+// COUNTER CONSISTENCY CONTRACT
+// ----------------------------
+// The X / 28 number this hook produces MUST equal the number that the
+// `author-stats` edge function returns in `perBook[bookId].nodeIds`.
+// To guarantee that, we treat `author-stats.perBook[bookId].nodeIds` as the
+// authoritative "completed" set and only consult `author_nodes` for the
+// in-progress (content_ready / draft) overlay.
+// Any new code that wants to display an X / 28 number MUST go through this
+// hook OR call `author-stats` directly. Do NOT roll your own count from
+// `author_nodes` alone — it will silently disagree with the dashboard.
 
 export type NodeStatus = "completed" | "in-progress" | "available" | "locked" | "coming-soon";
 
