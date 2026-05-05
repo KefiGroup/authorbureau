@@ -87,10 +87,54 @@ export default function ManuscriptOptimizationStep({ stepData, setStepData, onMa
     setError(null);
     setLoading(true);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("get-manuscript-source", { body: { bookId } });
-      if (fnErr) throw new Error(fnErr.message);
-      if (!data?.success) throw new Error(data?.error || "Could not load manuscript");
-      const split = splitIntoChapters(data.content as string);
+      const { getActiveToken, fetchWithTimeout } = await import("@/lib/get-active-token");
+      // Wait for shared-auth restore on refresh — same pattern as AudiobookStudio.
+      let token = await getActiveToken();
+      for (let i = 0; i < 8 && !token; i++) {
+        await new Promise((r) => setTimeout(r, 300));
+        token = await getActiveToken();
+      }
+      if (!token) throw new Error("Your session is still restoring. Please wait a moment and try again.");
+
+      const callEndpoint = async (path: string, payload: Record<string, unknown>) => {
+        const resp = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${path}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify(payload),
+          },
+          25000,
+        );
+        const text = await resp.text();
+        let data: any = null;
+        try { data = text ? JSON.parse(text) : null; } catch { /* ignore */ }
+        return { ok: resp.ok, status: resp.status, data };
+      };
+
+      // Primary: get-book-manuscript (more resilient ownership lookup).
+      let content: string | null = null;
+      let lastError: string | null = null;
+      const primary = await callEndpoint("get-book-manuscript", { book_id: bookId });
+      if (primary.ok && typeof primary.data?.content === "string" && primary.data.content.length > 0) {
+        content = primary.data.content;
+      } else if (primary.data?.error) {
+        lastError = primary.data.error;
+      }
+      // Fallback: legacy get-manuscript-source.
+      if (!content) {
+        const fallback = await callEndpoint("get-manuscript-source", { bookId });
+        if (fallback.data?.success && typeof fallback.data?.content === "string") {
+          content = fallback.data.content;
+        } else if (fallback.data?.error) {
+          lastError = fallback.data.error;
+        }
+      }
+      if (!content) {
+        throw new Error(lastError || "MANUSCRIPT_MISSING: No manuscript found. Please upload it in your Library before splitting chapters.");
+      }
+
+      const split = splitIntoChapters(content);
       if (split.length === 0) {
         setError("Manuscript was empty after parsing.");
         return;
