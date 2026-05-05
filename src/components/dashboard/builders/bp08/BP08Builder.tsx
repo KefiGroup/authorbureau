@@ -176,14 +176,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
 
   const handleGenerate = async () => {
     console.info("[BP-08] generate clicked", { authorId, occasion: selectedOccasion?.id });
-    if (authorId && !hydrated) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <p className="text-muted-foreground">Loading…</p>
-        </div>
-      );
-    }
-    if (!authorId) return;
+    if (!authorId || !hydrated) return;
     setStep(1); setError(null);
     const promise = startGeneration(authorId, "BP-08", runGeneration);
     await attachToGeneration(promise);
