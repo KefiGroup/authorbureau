@@ -70,28 +70,29 @@ export default function BA11Builder({ authorId, bookId }: Props) {
           setResolvedBookId(book.id);
         }
       }
-      const draft = await loadBuilderDraft(authorId, "BA-11", bookId ?? null);
-      if (draft.content?.studio) {
-        // Sanitize: strip any blob: URLs that died with the previous session.
-        // They will be re-attached from storage in a follow-up effect once bookId is known.
-        const studio = draft.content.studio as Record<string, unknown>;
-        const rawChapters = Array.isArray(studio.chapters) ? (studio.chapters as Array<Record<string, unknown>>) : [];
-        const sanitized = rawChapters.map((c) => {
-          const url = typeof c?.audioUrl === "string" ? c.audioUrl : "";
-          if (url.startsWith("blob:")) {
-            return { ...c, audioUrl: "", status: "script-ready" };
-          }
-          return c;
-        });
-        setStepData({ ...studio, chapters: sanitized });
-        const savedStep = (draft.content as any)?._currentStep;
-        const resumeIdx = typeof savedStep === "number" ? savedStep : (draft.currentStep || 0);
-        setStepIdx(Math.min(resumeIdx, STUDIO_STEPS.length - 1));
+      // Try book-scoped first, then author-scoped (legacy rows). Prevents
+      // refresh from snapping back to Introduction when the route lacks bookId
+      // or when the live row was written under a different scoping.
+      const candidateIds = bookId ? [bookId, null] : [null];
+      let draft: Awaited<ReturnType<typeof loadBuilderDraft>> | null = null;
+      for (const candidate of candidateIds) {
+        const d = await loadBuilderDraft(authorId, "BA-11", candidate);
+        if (d?.content) { draft = d; break; }
+      }
+      const normalized = normalizeBA11Content(draft?.content ?? null);
+      if (normalized) {
+        setStepData(normalized.studio);
+        const savedStep = (draft?.content as any)?._currentStep;
+        const resumeIdx =
+          typeof savedStep === "number" ? savedStep :
+          draft?.isLive ? STUDIO_STEPS.length - 1 :
+          (draft?.currentStep || normalized.inferredStep);
+        setStepIdx(Math.min(Math.max(resumeIdx, normalized.inferredStep), STUDIO_STEPS.length - 1));
         setIntro(false);
       }
           setHydrated(true);
 })();
-  }, [authorId, detectedBookTitle, isAuthReady]);
+  }, [authorId, detectedBookTitle, isAuthReady, bookId]);
 
   // Re-attach permanent storage URLs to chapters once we know the bookId.
   // This heals existing rows that were saved with stale blob: URLs and
