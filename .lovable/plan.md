@@ -1,79 +1,57 @@
-# Plan
+# Permanently fix the two recurring bugs
 
-## Diagnosis
-Yes, I know what the issue is. There are two separate BP-09 problems:
+## Bug 1 — Counter discrepancy (Dashboard 5/28 vs Book Hub 4/28)
 
-1. The slide exporter is currently broken at boot.
-   - `supabase/functions/export-bp09-slides/index.ts` imports `qrPng` from `qr-image`, but the deployed runtime reports:
-   - `The requested module 'https://esm.sh/qr-image@3.2.0?bundle' does not provide an export named 'qrPng'`
-   - That means the deck download function never starts, so any slide export attempt falls back to the generic “ABBY hit a snag” message.
+**Real root cause:** Dashboard and Book Hub count from *different data sources*. `author-stats` counts product-table rows (`coaching_packages`, `email_flows`, etc.) AND `author_nodes`. `useBookNodeProgress` only reads `author_nodes`. A YR-19 row in `coaching_packages` with no matching `author_nodes` row is counted by Dashboard, ignored by Book Hub.
 
-2. BP-09 does not expose a proper regenerate action once you are on the Review step.
-   - In `src/components/dashboard/builders/bp09/BP09Builder.tsx`, the normal review screen has download actions but no always-available “Regenerate toolkit” button.
-   - Right now the practical workaround is exactly what you described: click **Previous** to go back to step 0 and trigger generation there.
-   - There is also a bad no-op path in `handleGenerate()` that returns JSX while hydration is incomplete instead of handling the click safely.
+### Fix
+1. Make `useBookNodeProgress` call the same `author-stats` edge function the Dashboard uses, then read `perBook[bookId].nodeIds` and reconcile against `ABBY_CATEGORIES`. This guarantees identical numbers in all three places (Book Hub headers, Dashboard card, MultiBookPicker).
+2. Keep the existing `author_nodes` query as a fallback only for when `author-stats` is unreachable.
+3. Add a Vitest assertion that the two counters return identical totals for a fixture author.
 
-## What I will change
+### Files
+- `src/hooks/useBookNodeProgress.ts` — switch primary source to `author-stats` perBook output
+- `src/lib/__tests__/counter-parity.test.ts` *(new)* — parity test
 
-### 1) Repair the BP-09 slide export function
-Update `supabase/functions/export-bp09-slides/index.ts` so the exporter can boot and return `.pptx` files again.
+---
 
-Planned fix:
-- Replace the invalid QR import with a supported QR generation method for the edge runtime.
-- Keep QR optional so a QR failure never crashes the entire deck export.
-- Preserve the new professional layout rendering already added for workshop and corporate decks.
+## Bug 2 — "ABBY hit a snag" on Split Manuscript (BA-11)
 
-### 2) Add a real regenerate action in BP-09 review
-Update `src/components/dashboard/builders/bp09/BP09Builder.tsx` so regeneration is available without backing up a step.
+**Real root cause:** `supabase/functions/get-manuscript-source/index.ts` has a custom `resolveUser()` that fails for current shared-backend tokens. Logs show `missing sub claim` (local) and `Invalid API key` (shared), so the function returns `{success:false, error:"Unauthorized"}` before any AI call. Frontend masks this as a generic ABBY error.
 
-Planned UX changes:
-- Add a clear **Regenerate toolkit** button on the Review step.
-- Keep it visible when content already exists.
-- Show a loading state while regeneration is running.
-- Prevent double-submits by respecting the existing single-flight generation registry.
-- Keep the current content visible until the new generation starts, then move cleanly into the generating state.
+### Fix
+1. Replace the custom `resolveUser()` in `get-manuscript-source` with the standard dual-token resolver used by `get-author-book` (book-ownership-lookup-standard memory). That resolver already handles project-local + shared-backend + `owner_email` fallback correctly.
+2. Improve the frontend error path in `ManuscriptOptimizationStep.tsx` so an `Unauthorized` or `No manuscript found` response surfaces a *specific* message ("Re-link your account" / "Upload manuscript in Library"), not a generic ABBY snag.
+3. Add a one-line audit test against `get-manuscript-source` using `supabase--curl_edge_functions` after deploy to confirm a real session token resolves.
 
-### 3) Fix the dead-click hydration path
-In `BP09Builder.tsx`, fix `handleGenerate()` so it no longer returns JSX from an event handler.
+### Files
+- `supabase/functions/get-manuscript-source/index.ts` — adopt shared resolver
+- `src/components/dashboard/builders/audiobook/ManuscriptOptimizationStep.tsx` — specific error mapping
+- `src/lib/abby-error.ts` — pass through known specific error strings instead of collapsing to the generic message
 
-Planned behavior:
-- If the builder is still hydrating, disable the generate/regenerate action or show a short “Loading your saved toolkit…” state.
-- Remove the silent no-op click behavior.
+---
 
-### 4) Improve failure messaging around BP-09 exports
-Tighten BP-09 error handling so exporter failures read like export failures, not vague generation failures.
+## Architectural guardrail (so these stop recurring)
 
-Planned improvement:
-- Surface deck-export problems as a specific download/export issue in the BP-09 UI.
-- Keep the friendly ABBY tone, but avoid masking a backend boot failure as generic content-generation trouble.
+Add a documented + enforced rule:
 
-## Technical details
+1. **Counters:** any new code that wants to display an X/28 number MUST consume `author-stats.perBook` — never query `author_nodes` directly for counting. Add a lint comment block at the top of `useBookNodeProgress.ts` and `author-stats/index.ts`.
+2. **Edge-function auth:** any edge function that needs to identify the calling user MUST use the shared dual-token resolver pattern (project-local → shared-backend → `owner_email`), not a custom `resolveUser`. Extract the resolver from `get-author-book` into `supabase/functions/_shared/resolve-user.ts` and refactor `get-manuscript-source` to import it. Future functions just import the shared helper.
+3. Update `mem://architecture/shared-backend-token-standard` with: "All edge functions resolving a user MUST import `_shared/resolve-user.ts`. Custom inline resolvers are forbidden."
 
-### Files to update
-- `supabase/functions/export-bp09-slides/index.ts`
-  - Fix QR import/runtime compatibility
-  - Add graceful QR fallback
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx`
-  - Add review-step regenerate CTA
-  - Fix hydration/no-op click path
-  - Add regeneration loading/disabled states
-- Optional if needed after implementation:
-  - `src/lib/abby-error.ts`
-    - Only if BP-09 still needs a clearer export-specific message mapping
+### Files
+- `supabase/functions/_shared/resolve-user.ts` *(new — extracted)*
+- `supabase/functions/get-manuscript-source/index.ts` — use shared
+- Memory update via `code--write mem://...`
 
-### What I do not expect to change
-- No database schema changes
-- No auth changes
-- No BP-09 content schema changes unless QA shows a remaining content-shape issue after regeneration
+---
 
 ## Validation
-After implementation I will verify:
+1. Hit Split Manuscript on Be SUCKcessful → either succeeds or shows a specific "Upload manuscript" / "Re-link account" message (no more generic ABBY snag).
+2. Dashboard and Book Hub both show **the same** X/28 for every book (5/28 currently expected).
+3. Parity test passes in CI.
+4. Edge logs for `get-manuscript-source` show successful user resolution.
 
-1. BP-09 opens with saved content and shows a direct regenerate control on Review.
-2. Regenerate works without using the Previous button.
-3. Workshop deck download works.
-4. Corporate deck download works.
-5. The exporter no longer throws the `qrPng` boot error.
-6. If QR generation fails, the deck still exports successfully.
-
-Once you approve, I’ll implement these fixes directly.
+## Out of scope
+- BP-09 slide regeneration UX (already shipped last sprint)
+- BA-11 Voice / Production / Distribute audit (blocked until Manuscript step passes; will follow in next sprint)
