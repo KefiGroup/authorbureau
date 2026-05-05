@@ -225,10 +225,21 @@ serve(async (req) => {
     }
     logStep("Audiobook record saved", { audiobookId });
 
-    // Write author_nodes row so storefront/microsite picks up the audiobook as a buyable product
+    // Write author_nodes row so storefront/microsite picks up the audiobook as a buyable product.
+    // IMPORTANT: merge with existing content_json so we never wipe the BA-11 builder's
+    // `studio` payload — that's what powers refresh-to-Review instead of refresh-to-Intro.
     if (authorProfileId) {
       const micrositeUrl = authorSlug ? `/${authorSlug}/audiobook` : null;
       const samplePreviewUrl = chapters[baseManifest.preview_chapter_index]?.audio_url || chapters[0]?.audio_url || null;
+
+      const { data: existing } = await supabase
+        .from("author_nodes")
+        .select("content_json")
+        .eq("author_id", authorProfileId)
+        .eq("node_id", "BA-11")
+        .maybeSingle();
+      const existingContent = (existing?.content_json ?? {}) as Record<string, any>;
+
       await supabase.from("author_nodes").upsert({
         author_id: authorProfileId,
         node_id: "BA-11",
@@ -241,14 +252,23 @@ serve(async (req) => {
         currency: "USD",
         activated_at: new Date().toISOString(),
         content_json: {
+          ...existingContent,
           audiobook_id: audiobookId,
+          book_id: bookId,
           book_title: book.title,
           chapter_count: chapters.length,
           preview_url: samplePreviewUrl,
+          chapter_urls: chapters.map((c) => c.audio_url),
+          chapters: chapters.map((c) => ({ index: c.index, title: `Chapter ${c.index + 1}`, audio_url: c.audio_url })),
           channels: channelPackages.map((c) => c.channel),
+          narrator_credit: (narratorCredit || "").slice(0, 200),
+          description: (description || book.description || "").slice(0, 4000),
+          price: baseManifest.retail_price_usd,
+          published_at: new Date().toISOString(),
+          _currentStep: 4,
         } as any,
       } as any, { onConflict: "author_id,node_id" });
-      logStep("author_nodes row upserted");
+      logStep("author_nodes row upserted (studio preserved)");
     }
 
     // Email the author with submission packages + ACX-spec re-encode note
