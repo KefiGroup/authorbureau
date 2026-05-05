@@ -3,6 +3,18 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { ABBY_CATEGORIES, type AbbyCategory, type AbbyNode } from "@/config/abbyFrameworkConfig";
 import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "@/lib/node-readiness";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+
+// COUNTER CONSISTENCY CONTRACT
+// ----------------------------
+// The X / 28 number this hook produces MUST equal the number that the
+// `author-stats` edge function returns in `perBook[bookId].nodeIds`.
+// To guarantee that, we treat `author-stats.perBook[bookId].nodeIds` as the
+// authoritative "completed" set and only consult `author_nodes` for the
+// in-progress (content_ready / draft) overlay.
+// Any new code that wants to display an X / 28 number MUST go through this
+// hook OR call `author-stats` directly. Do NOT roll your own count from
+// `author_nodes` alone — it will silently disagree with the dashboard.
 
 export type NodeStatus = "completed" | "in-progress" | "available" | "locked" | "coming-soon";
 
@@ -84,8 +96,6 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
     let cancelled = false;
     async function load() {
       if (!user) { setLoading(false); return; }
-      // Only show the loading shimmer the first time. On refetch, keep showing the
-      // previous counters so the badge never flashes "0 of 28".
       if (!hasLoadedOnce) setLoading(true);
       try {
         const { data: profile } = await supabase
@@ -95,30 +105,50 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
           .maybeSingle();
 
         const map: Record<string, "completed" | "in-progress"> = {};
+
+        // ---- AUTHORITATIVE COMPLETED SET — from author-stats ----
+        // Same source the Dashboard card uses, so the two counters cannot drift.
+        try {
+          const token = await getActiveToken();
+          if (token) {
+            const resp = await fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/author-stats`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              },
+            );
+            if (resp.ok) {
+              const stats = await resp.json();
+              const completedIds: string[] = bookId
+                ? (stats?.products?.perBook?.[bookId]?.nodeIds ?? [])
+                : Object.values(stats?.products?.perBook ?? {}).flatMap(
+                    (b: any) => b?.nodeIds ?? [],
+                  );
+              completedIds.forEach((nid) => { map[nid] = "completed"; });
+            }
+          }
+        } catch (e) {
+          console.warn("useBookNodeProgress: author-stats unreachable, falling back", e);
+        }
+
+        // ---- IN-PROGRESS OVERLAY — only adds rows that author-stats hasn't already counted ----
         if (profile?.id) {
-          // Always fetch ALL of the author's nodes. We then apply scoping
-          // per-row so author-level nodes (email, podcast, social, YR-*)
-          // count on every book hub, while book-specific products only
-          // count for their own book_id.
           const { data: nodes } = await supabase
             .from("author_nodes")
             .select("node_id, status, content_json, book_id")
             .eq("author_id", profile.id);
 
           (nodes || []).forEach((n: any) => {
-            // Per-row scope check.
             const isAuthorLevel = AUTHOR_LEVEL_NODES.has(n.node_id);
             const matchesBook = !bookId || !n.book_id || n.book_id === bookId;
             if (!isAuthorLevel && !matchesBook) return;
 
-            // Use the shared readiness gate so Book Hub tile state matches
-            // the Live-badge logic in useNodeLiveStats. Adding a new gated
-            // node? Update src/lib/node-readiness.ts in one place.
-            // Stripe Express connection is NOT consulted: payout setup is
-            // admin-side only — Authors Bureau is Merchant of Record.
             const passesGate = hasRequiredAssets(n.node_id, n.content_json);
             const isLiveStatus = n.status === "live";
             if (isLiveStatus && passesGate) {
+              // Already covered by author-stats; ensure marked completed even
+              // if author-stats was unreachable.
               map[n.node_id] = "completed";
             } else if (
               n.status === "content_ready" ||

@@ -48,9 +48,17 @@ const FRIENDLY_PUBLISH =
   "ABBY couldn't publish this just now. Please click 'Try Again'. If it keeps happening, save as draft and reach out to support.";
 
 export function toAbbyError(err: any): string {
-  const raw = extractMessage(err).toLowerCase();
+  const rawOriginal = extractMessage(err);
+  const raw = rawOriginal.toLowerCase();
 
   if (!raw) return FRIENDLY_DEFAULT;
+
+  // Pass-through: backend marked this as a user-actionable, specific message.
+  // Convention: prefix the error string with an UPPER_SNAKE code followed by
+  // ": " and the human message. Example: "MANUSCRIPT_MISSING: ..."
+  if (/^[A-Z][A-Z0-9_]+:\s/.test(rawOriginal)) {
+    return rawOriginal.replace(/^[A-Z][A-Z0-9_]+:\s*/, "");
+  }
 
   if (raw.includes("429") || raw.includes("rate limit") || raw.includes("too many requests")) {
     return FRIENDLY_RATE_LIMIT;
