@@ -34,8 +34,10 @@ export default function BA18Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [checkedItems, setCheckedItems] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
@@ -45,18 +47,36 @@ export default function BA18Builder({ authorId, bookId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { resolveBookTitle } = await import("@/lib/resolve-book-title");
-      const _title = await resolveBookTitle(authorId, bookId ?? null, profile?.user_id);
+      const _title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
       if (_title) setResolvedBookTitle(_title);
-      console.log(`[BA-18] book resolution`, { authorId, bookId, detectedBookTitle, resolved: _title });
-      const __draft = await loadBuilderDraft(authorId, "BA-18", bookId ?? null);
+      console.log(`[BA-18] book resolution`, { authorId, activeBookId, detectedBookTitle, resolved: _title });
+      const __draft = await loadBuilderDraft(authorId, "BA-18", activeBookId);
+      let hydratedFromDraft = false;
       if (__draft.content) {
+        hydratedFromDraft = true;
         setContent(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
-        { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
+        const _saved = (__draft.content as any)?._currentStep;
+        let nextStep = isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2));
+        if (nextStep >= 3 && !isActuallyLive) {
+          nextStep = 2;
+          toast.info("Resuming from review — please publish again.");
+        }
+        setStep(nextStep);
       }
-          setHydrated(true);
-})();
-  }, [authorId, isAuthReady]);
+      if (!hydratedFromDraft) {
+        let q = supabase.from("author_nodes").select("content_json,status,microsite_url,activated_at").eq("author_id", authorId).eq("node_id", "BA-18");
+        if (activeBookId) q = q.eq("book_id", activeBookId);
+        const { data: node } = await q.maybeSingle();
+        if (node?.content_json) {
+          const isPublished = node.status === "live" || !!node.activated_at || !!node.microsite_url;
+          setContent(isPublished ? { ...(node.content_json as any), activated: true } : node.content_json);
+          setStep(isPublished ? 3 : (node.status === "content_ready" ? 2 : 0));
+        }
+      }
+      setHydrated(true);
+    })();
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -71,7 +91,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
     setStep(1); setError(null);
     try {
       const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
-      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba18-jv-partnerships", { author_id: authorId }, 90000);
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba18-jv-partnerships", { author_id: authorId, book_id: activeBookId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       // Normalise legacy field names so the UI tabs render
       const raw = data.content || {};
@@ -87,21 +107,26 @@ export default function BA18Builder({ authorId, bookId }: Props) {
             : [],
       };
       setContent(normalised); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     setError(null);
+    setIsPublishing(true);
     setStep(3);
     try {
-      await publishNodeToSite(authorId!, "BA-18", authorSlug);
+      await autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(content || {}), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
+      await publishNodeToSite(authorId!, "BA-18", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
       toast.success("Your JV Partners page is live on your site.");
     } catch (e: any) {
       setError(e.message);
       setStep(2);
       toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -135,7 +160,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
             {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your revenue sharing strategy, I need to confirm your book details. Please complete your book profile first.</p>
-                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-18${bookId ? `?bookId=${bookId}` : ""}`)}`)}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-18${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : !isIntroReady ? (
               <p className="text-muted-foreground mb-4">Loading your book details…</p>
@@ -201,7 +226,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
             />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish} disabled={isPublishing}>{isPublishing ? "Publishing…" : <>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></>}</Button>
             </div>
           </div>
         )}
