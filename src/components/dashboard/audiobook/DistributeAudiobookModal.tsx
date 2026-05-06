@@ -317,18 +317,29 @@ export default function DistributeAudiobookModal({
         {step === 3 && (
           <>
             <DialogHeader>
-              <DialogTitle>Ready to Distribute?</DialogTitle>
+              <DialogTitle>Publish Your Audiobook</DialogTitle>
+              <DialogDescription>Here's what happens when you publish.</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 mt-4">
-              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-2 text-sm">
+              <div className="rounded-lg border border-border bg-muted/30 p-4 space-y-3 text-sm">
                 <p>
-                  Your audiobook, <span className="font-semibold">{bookTitle}</span>, is ready to be sent to
-                  PublishNow for distribution to all major platforms, including Amazon Audible, Spotify, and Apple Books.
+                  <span className="font-semibold">{bookTitle}</span> ({doneChapters.length} chapter
+                  {doneChapters.length !== 1 ? "s" : ""}) will be:
                 </p>
-                <p className="text-muted-foreground">
-                  We have packaged your <span className="font-semibold">{doneChapters.length}</span> audio
-                  file{doneChapters.length !== 1 ? "s" : ""} (one for each chapter), your cover art, and all the necessary metadata.
-                </p>
+                <ul className="space-y-2">
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <span><strong>Saved to your Library</strong> for future reuse and edits.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <span><strong>Published on your author site</strong> with a Buy button so readers can pay to download.</span>
+                  </li>
+                  <li className="flex gap-2">
+                    <CheckCircle2 className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+                    <span><strong>Packaged as an Export Pack</strong> formatted for ACX, Spotify, and Apple Books — you upload to each retailer when ready.</span>
+                  </li>
+                </ul>
               </div>
 
               <div className="flex items-start gap-3 p-3 rounded-lg border border-border">
@@ -339,8 +350,7 @@ export default function DistributeAudiobookModal({
                   className="mt-0.5"
                 />
                 <label htmlFor="confirm-rights" className="text-sm leading-snug cursor-pointer">
-                  I confirm that I have the rights to publish this audiobook and that it complies with the terms of
-                  service of all distribution platforms.
+                  I confirm that I have the rights to publish this audiobook on my author site and to upload it to any retailer I choose.
                 </label>
               </div>
             </div>
@@ -351,11 +361,62 @@ export default function DistributeAudiobookModal({
               </Button>
               <Button onClick={handleSend} disabled={!confirmed || sending}>
                 {sending ? (
-                  <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />Sending…</>
+                  <><Loader2 className="h-4 w-4 animate-spin mr-1.5" />Publishing…</>
                 ) : (
-                  <><Send className="h-4 w-4 mr-1.5" />Send to PublishNow</>
+                  <><Send className="h-4 w-4 mr-1.5" />Publish Audiobook</>
                 )}
               </Button>
+            </div>
+          </>
+        )}
+
+        {step === 4 && (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CheckCircle2 className="h-5 w-5 text-primary" /> Audiobook Published
+              </DialogTitle>
+              <DialogDescription>
+                Your audiobook is saved to your Library and live on your author site.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-3 mt-4 text-sm">
+              {resultMicrositeUrl && (
+                <a
+                  href={resultMicrositeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
+                >
+                  <div>
+                    <p className="font-medium">View on your author site</p>
+                    <p className="text-xs text-muted-foreground">Readers can buy and download here.</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </a>
+              )}
+              {resultZipUrl && (
+                <a
+                  href={resultZipUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between rounded-lg border border-border p-3 hover:bg-muted/30 transition-colors"
+                >
+                  <div>
+                    <p className="font-medium">Download Export Pack (.zip)</p>
+                    <p className="text-xs text-muted-foreground">
+                      Manifest + per-channel specs + chapter URLs for ACX, Spotify, Apple Books.
+                    </p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </a>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Authors Bureau does not submit to retailers on your behalf. Use the Export Pack to upload to ACX, Findaway/Spotify, or Apple Books for Authors when you're ready.
+              </p>
+            </div>
+            <div className="flex justify-end mt-6">
+              <Button onClick={() => onOpenChange(false)}>Done</Button>
             </div>
           </>
         )}
