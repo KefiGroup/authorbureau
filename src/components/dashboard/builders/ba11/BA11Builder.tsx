@@ -39,10 +39,33 @@ function normalizeBA11Content(content: any): { studio: Record<string, any>; infe
       };
     });
 
-  // Shape A — draft
+  // Shape A — draft (may also be a published row that still carries the
+  // original `studio` block alongside the top-level publish fields). We
+  // hoist top-level publish metadata (published_at, zip_url, payment link,
+  // chapter_urls, narrator credit, price) into `studio` so the Publish step
+  // re-renders the published success state on refresh, instead of falling
+  // back to the pre-publish CTA.
   if (content.studio && typeof content.studio === "object") {
-    const studio = { ...content.studio };
-    studio.chapters = sanitizeChapters(studio.chapters || []);
+    const studio: Record<string, any> = { ...content.studio };
+    // If the live row has chapter audio URLs at the top level but the
+    // embedded studio.chapters lost them, re-attach.
+    const topChapters = Array.isArray(content.chapters) ? content.chapters
+      : Array.isArray(content.chapter_urls)
+        ? content.chapter_urls.map((u: string, i: number) => ({ index: i, audio_url: u, title: `Chapter ${i + 1}` }))
+        : null;
+    const baseChapters = (studio.chapters && studio.chapters.length) ? studio.chapters : (topChapters || []);
+    studio.chapters = sanitizeChapters(baseChapters);
+    if (content.published_at && !studio.publishedAt) studio.publishedAt = content.published_at;
+    if (content.zip_url && !studio.zipUrl) studio.zipUrl = content.zip_url;
+    if (content.stripe_checkout_url && !studio.paymentLinkUrl) studio.paymentLinkUrl = content.stripe_checkout_url;
+    if (content.audiobook_id && !studio.audiobookId) studio.audiobookId = content.audiobook_id;
+    studio.setup = {
+      narration: studio.setup?.narration || content.narration || "conversational",
+      narratorCredit: studio.setup?.narratorCredit || content.narrator_credit || "",
+      retailPriceUsd: studio.setup?.retailPriceUsd ?? content.price ?? content.retail_price_usd ?? 14.99,
+      description: studio.setup?.description || content.description || "",
+      ...(studio.setup || {}),
+    };
     const inferred = studio.publishedAt ? 4
       : studio.chapters.some((c: any) => c.audioUrl) ? 3
       : studio.selectedVoiceId ? 2
