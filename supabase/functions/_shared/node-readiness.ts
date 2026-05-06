@@ -381,16 +381,14 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
     }
 
     default: {
-      // Generic legacy gate: any object with at least one *substantive* key
-      // passes. We exclude `library_asset` from the count so a stale or
-      // mismatched-kind library_asset cannot accidentally satisfy the gate
-      // for nodes (BP-02, BP-05, BP-08, BA-16, BA-18) that have no
-      // dedicated legacy rule. The uniform-contract check above is the
-      // correct path for these nodes once builders are wired.
-      const keys = Object.keys(content).filter(
-        (k) => k !== "library_asset" && k !== "library_asset_history",
-      );
-      return keys.length > 0;
+      // Strict default (Sprint 56 consistency fix): nodes without an
+      // explicit legacy rule MUST satisfy the uniform library_asset
+      // contract to count as Live. Any non-empty content_json without a
+      // valid library_asset stays in "Building" status, which is what the
+      // dashboard cards render as 🔨 Building 60%.
+      // Affected fallback nodes: BP-02, BP-05, BP-08, BA-16, BA-18.
+      // (The library_asset check has already run above in hasRequiredAssets.)
+      return false;
     }
   }
 }
