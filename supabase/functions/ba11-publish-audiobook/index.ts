@@ -114,7 +114,8 @@ Deno.serve(async (req: Request) => {
     coverImageUrl?: string;
     retailPriceUsd?: number;
     channels?: string[];
-    mode?: "publish" | "package_only";
+    mode?: "publish" | "package_only" | "update_price" | "update_distribution_status";
+    distributionStatus?: Record<string, boolean>;
   };
   try {
     body = await req.json();
@@ -131,7 +132,10 @@ Deno.serve(async (req: Request) => {
     retailPriceUsd = 14.99,
     channels = ["platform", "acx", "spotify", "apple"],
     mode = "publish",
-  } = body;
+  } = body as typeof body & { distributionStatus?: Record<string, boolean> };
+  const distributionStatusUpdate = (body as any).distributionStatus as
+    | Record<string, boolean>
+    | undefined;
 
   if (!bookId) {
     return json(400, { error: "bookId is required" });
@@ -168,6 +172,55 @@ Deno.serve(async (req: Request) => {
     .maybeSingle();
 
   const bookTitle = book?.title || "Audiobook";
+
+  // Lightweight modes — no chapter listing, no ZIP rebuild, no Stripe round-trip.
+  if (mode === "update_price" || mode === "update_distribution_status") {
+    const { data: nodeRow } = await admin
+      .from("author_nodes")
+      .select("id, content_json")
+      .eq("author_id", authorProfileId)
+      .eq("node_id", "BA-11")
+      .maybeSingle();
+    if (!nodeRow) {
+      return json(404, { error: "Audiobook node not found. Publish first." });
+    }
+    const cj = (nodeRow.content_json ?? {}) as Record<string, unknown>;
+    const patch: Record<string, unknown> = {};
+
+    if (mode === "update_price") {
+      const newPrice = Number(retailPriceUsd);
+      if (!Number.isFinite(newPrice) || newPrice <= 0) {
+        return json(400, { error: "retailPriceUsd must be a positive number" });
+      }
+      patch.price_usd = newPrice;
+      cj.price = newPrice;
+      // Mirror to audiobooks row.
+      await admin
+        .from("audiobooks")
+        .update({ price: newPrice } as never)
+        .eq("book_id", bookId)
+        .eq("author_id", authorProfileId);
+    }
+
+    if (mode === "update_distribution_status" && distributionStatusUpdate) {
+      const prev = (cj.distribution_status ?? {}) as Record<string, boolean>;
+      cj.distribution_status = { ...prev, ...distributionStatusUpdate };
+    }
+
+    patch.content_json = cj;
+    const { error: updErr } = await admin
+      .from("author_nodes")
+      .update(patch as never)
+      .eq("id", nodeRow.id);
+    if (updErr) return json(500, { error: updErr.message });
+
+    return json(200, {
+      success: true,
+      mode,
+      price_usd: cj.price ?? null,
+      distribution_status: cj.distribution_status ?? null,
+    });
+  }
 
   // List MP3 files from BOTH possible prefixes (canonical user_id and legacy author_profile_id).
   const userFolder = `${profile.user_id}/${bookId}`;
