@@ -1,109 +1,122 @@
-## Honest answer first
+## Goal
 
-**Will this make the platform buggy?** There is real risk. The current pipeline works end-to-end (chapters generate, ZIP builds, node goes Live). Adding ACX-compliant transcoding touches the hottest path in BA-11. If we just bolt ffmpeg into the existing functions, three things can break:
+Author downloads a ZIP containing the audiobook MP3s + a clear printed guide telling them exactly how to prep and upload to ACX, Spotify, Apple Books, and Findaway themselves.
 
-1. **Edge function memory** — Supabase edge functions have a hard memory cap. We already hit it once (that's why the current ZIP intentionally does NOT bundle MP3s, line 333 of `ba11-publish-audiobook`). Loading ffmpeg-wasm + a 33-chapter audio buffer in one process will OOM.
-2. **Cold-start latency** — ffmpeg-wasm is ~25 MB. First call after deploy can take 10–20s just to boot. Users would see "publish hangs".
-3. **Existing audio gets re-processed** — if we change the source format (PCM instead of MP3), every author who already generated chapters has to regenerate. That breaks their work.
+No transcoding on our side. No new infrastructure. Two surgical changes only.
 
-So the answer is: **yes it can introduce bugs if we do it inline. The safe path is a separate, opt-in transcoding step that does NOT change anything about the current generate/publish flow.**
+## Change 1 — Bump ElevenLabs output to 192 kbps
 
-## How you'd actually know it's ACX-compliant (verification, not promises)
+File: `supabase/functions/ba11-audiobook-generate/index.ts`, line 102.
 
-This is the part I cannot fake. ACX has two layers of compliance:
-
-| Layer | How we verify |
-|---|---|
-| **Technical specs** (192 kbps CBR, mono, 44.1 kHz, peak ≤ −3 dB, RMS −23 to −18 dB, ≤120 min/file, ≥0.5s room tone head/tail) | Run `ffprobe` on the output and assert each value. Output a machine-readable `acx-compliance-report.json` inside the ZIP that the author can verify themselves. |
-| **Content specs** (retail audio sample 1–5 min, opening credits "{Title}, written by {Author}, narrated by {Narrator}", closing credits "The end of {Title} by {Author}") | We generate these as separate audio files using the same ElevenLabs voice and include them in the ZIP. |
-
-The ONLY 100% truth is uploading to ACX itself and having their QA team accept it. Everything else is a strong proxy. I'm telling you this upfront because previously I've described things as "done" when they only passed local checks.
-
-## Proposed approach — opt-in, isolated, verifiable
-
-### Architecture
-
-```text
-[ Existing path - UNCHANGED ]
-ba11-audiobook-generate  -->  chapter-NNN.mp3 (128k stereo, ElevenLabs default)
-ba11-publish-audiobook   -->  node goes Live, microsite live, current ZIP
-
-[ NEW path - additive, opt-in ]
-ba11-audiobook-acx-pack  -->  per-chapter ffmpeg transcode + credits + report
-                              -->  acx-submission-package.zip  (separate file)
+```diff
+- `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
++ `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_192`,
 ```
 
-Key constraints:
-- Current Publish flow is untouched. If the new function fails, going Live still works.
-- New function processes **one chapter at a time** (avoids OOM). Author clicks "Build ACX Pack", we queue work and stream progress.
-- The output ZIP is a separate artifact (`acx-submission-package.zip`), saved alongside the existing `submission-package.zip`. Existing ZIP keeps the current "needs re-encoding" README.
+Why: 192 kbps is the bitrate ACX requires. Output is still stereo (ACX wants mono) — author handles that in Audacity per the guide below. Existing already-generated chapters keep working at 128 kbps; only new generations are 192.
 
-### What ships in the ACX pack
+## Change 2 — Add `ACX-UPLOAD-GUIDE.txt` to the ZIP
 
-1. `chapter-NN.mp3` — 192 kbps CBR, mono, 44.1 kHz, normalized to RMS −20 dB, peak −3 dB, 0.75s room tone head + 1.5s tail.
-2. `00-opening-credits.mp3` — auto-generated from book metadata using the same ElevenLabs voice.
-3. `99-closing-credits.mp3` — same.
-4. `retail-sample.mp3` — auto-extracted ~3 min from chapter 1 (ACX requires a separate retail sample).
-5. `acx-compliance-report.json` — ffprobe output for every file with pass/fail per ACX rule.
-6. `acx-compliance-report.html` — human-readable version, green/red checklist.
-7. `README-ACX.txt` — exact step-by-step ACX upload instructions.
+File: `supabase/functions/ba11-publish-audiobook/index.ts`, around line 331 where we write `README.txt`.
 
-### Verification you can run yourself (this is the answer to "how do I know")
+Add a second file `ACX-UPLOAD-GUIDE.txt` with this content (verbatim, no emdashes per microsite rule):
 
-After we ship, you can:
+```
+HOW TO UPLOAD YOUR AUDIOBOOK TO ACX, SPOTIFY, APPLE BOOKS AND FINDAWAY
+======================================================================
 
-1. Click "Build ACX Pack" on any audiobook.
-2. Download the ZIP.
-3. Open `acx-compliance-report.html` — every chapter shows green/red against each ACX rule with the actual measured value (e.g., "Bitrate: 192 kbps ✓", "Peak: −3.2 dB ✓").
-4. Upload one chapter to ACX's free "Audiobook Audio Quality Check" tool: https://www.acx.com/help/narrators/200484930 — this is ACX's own checker. If it passes there, ACX QA will accept it.
+WHAT YOU HAVE IN THIS PACK
+--------------------------
+- chapter-001.mp3 ... chapter-NNN.mp3   (your narrated chapters)
+- chapter-urls.txt                       (direct download URLs)
+- manifest.json                          (technical metadata)
 
-If the report says green and ACX's own checker says green, it's truly compliant. If either disagrees, we have an exact spec to fix.
 
-### Technical details
+STEP 1 - PREP YOUR FILES (10 minutes, free)
+-------------------------------------------
+The MP3s are 192 kbps stereo at 44.1 kHz. ACX and Findaway require MONO.
+Spotify, Apple Books and Google Play accept stereo as is.
 
-- **Transcoding library**: `@ffmpeg/ffmpeg` WASM build, imported via `npm:` specifier in Deno.
-- **Per-chapter processing**: New function `ba11-audiobook-acx-transcode` takes `{ bookId, chapterIndex }`, reads the source MP3 from storage, runs ffmpeg with:
-  ```
-  -ac 1 -ar 44100 -b:a 192k -filter:a "loudnorm=I=-20:TP=-3:LRA=7"
-  ```
-  Then writes `chapter-NN-acx.mp3` to a parallel storage prefix `audiobook-audio-acx/{userId}/{bookId}/`.
-- **Orchestrator**: New function `ba11-audiobook-acx-pack` lists processed chapters, runs ffprobe on each, generates credits + retail sample, builds the report, builds the ZIP, returns URL.
-- **Client**: New "Make ACX-Ready (beta)" button on the Publish step, separate from the current "Open distribution again" CTA. Shows per-chapter progress. Does NOT block Publish status.
-- **Feature flag**: `acx_pack_enabled` boolean column on `audiobooks` so we can disable per-author if it misbehaves.
+To convert to mono for ACX / Findaway:
 
-### Files to add (no edits to existing publish path)
+  1. Download Audacity (free): https://www.audacityteam.org/
+  2. File > Open > select all chapter-*.mp3 files
+  3. For each file: Tracks > Mix > Mix Stereo Down to Mono
+  4. Effect > Loudness Normalization > Target -20 LUFS
+  5. Effect > Limiter > Soft Limit, Limit to -3 dB
+  6. File > Export > Export as MP3 > 192 kbps, Constant
+  7. Save back over the original filename
 
-- `supabase/functions/ba11-audiobook-acx-transcode/index.ts` — single chapter, ffmpeg WASM.
-- `supabase/functions/ba11-audiobook-acx-pack/index.ts` — assembles credits, retail sample, report, ZIP.
-- `src/components/dashboard/builders/audiobook/AcxPackPanel.tsx` — new UI panel on Publish step.
-- Migration: storage bucket `audiobook-audio-acx` (public read), column `audiobooks.acx_pack_url`, `audiobooks.acx_compliance_json`.
+That is the full ACX spec: 192 kbps CBR, mono, 44.1 kHz,
+peak <= -3 dB, RMS between -23 and -18 dB.
 
-### What I will NOT claim until you verify
+VERIFY before uploading: ACX has a free audio quality checker at
+https://www.acx.com/help/narrators/200484930
+Drop one chapter in. If it passes there, ACX will accept it.
 
-- I will not say "ACX-compliant" in any toast or UI text. The button label will be **"Build ACX-Ready Pack (beta — verify with ACX checker before submitting)"**.
-- I will not flip any node status based on the ACX pack. It's a downloadable artifact only.
-- After shipping I will run the function on your existing audiobook, send you the compliance report, and you confirm it before we mark this done.
 
-### Other retailers
+STEP 2 - PER-RETAILER UPLOAD INSTRUCTIONS
+-----------------------------------------
 
-The same transcoded files satisfy Findaway Voices and Apple Books. Spotify and Google Play already accept the current 128 kbps stereo MP3 — no extra work. So this single ACX-grade pack covers all four retailers.
+[ACX / AUDIBLE]
+  1. Sign up: https://www.acx.com/
+  2. Add your book (search by title, or claim it via your Amazon KDP account)
+  3. Upload the mono 192 kbps files from Step 1
+  4. Record a separate 1-5 minute "retail audio sample" (use chapter 1 intro)
+  5. Add opening credits at the start of file 1:
+       "{Book Title}, written by {Your Name}, narrated by {Narrator Name}"
+  6. Add closing credits at the end of the final file:
+       "The end of {Book Title} by {Your Name}"
+  7. Submit for ACX QA review (typically 2 to 4 weeks)
+  Royalty: 25% non-exclusive, 40% exclusive to Audible.
 
-## Risk summary
+[FINDAWAY VOICES]  (distributes to Audible, Spotify, Scribd, Hoopla, libraries, 40+ retailers)
+  1. Sign up: https://findawayvoices.com/
+  2. Use the same mono 192 kbps files from Step 1
+  3. Set your retail price (you keep 80%)
+  4. Pick which retailers to distribute to
+  Recommended if you want one upload to reach Audible AND everyone else.
 
-| Risk | Mitigation |
-|---|---|
-| ffmpeg-wasm OOM in edge function | One chapter per invocation, never bundle audio in a single function call. |
-| Cold start latency | Show explicit "preparing transcoder…" progress, use `npm:` cached imports. |
-| Breaking existing publish | Zero edits to `ba11-publish-audiobook` or `ba11-audiobook-generate`. New functions only. |
-| False compliance claims | Ship machine-readable ffprobe report + tell author to run ACX's own free checker. |
-| Author confusion (two ZIPs) | Old ZIP renamed to "Quick distribution pack (Spotify/Google ready)". New ZIP labeled "ACX-Ready pack (beta)". |
+[SPOTIFY FOR AUTHORS]
+  Spotify ingests audiobooks via Findaway Voices only. See above.
 
-## Approval gate
+[APPLE BOOKS]
+  1. Sign up: https://authors.apple.com/
+  2. Use the original 192 kbps stereo files (Apple accepts stereo)
+  3. Cover art must be 3000 x 3000 px JPG or PNG
+  4. Submit for review
+  Royalty: 70% to you, 30% to Apple.
 
-Before I implement, please confirm:
+[GOOGLE PLAY BOOKS]
+  1. Sign up: https://play.google.com/books/publish/
+  2. Use the original 192 kbps stereo files
+  Royalty: 52% to you, 48% to Google.
 
-1. You accept the **opt-in, separate-ZIP approach** (vs. modifying the current publish path).
-2. You accept that final compliance is verified by ACX's own free checker tool, not by my word.
-3. OK to add the `audiobook-audio-acx` storage bucket and the two new columns on `audiobooks`.
 
-If yes, I'll implement and then run it against your existing "Be SUCKcessful" audiobook so you can download the report and verify with ACX's checker before we call it done.
+STEP 3 - WHAT IS ALREADY DONE FOR YOU
+-------------------------------------
+- Your audiobook is LIVE on your Authors Bureau site (Buy Now enabled)
+- Saved to your Library
+- This export pack is ready for retailer upload
+
+You can take as long as you like to submit to retailers. Your Authors
+Bureau storefront keeps selling in the meantime.
+
+
+QUESTIONS? support@authorsbureau.com
+```
+
+That's it. No new functions, no migrations, no new dependencies, no UI changes. Two file edits.
+
+## What stays exactly as-is
+
+- Publish flow, "Live" status logic, microsite, Stripe link, library_asset stamping, distribution checklist UI you already approved — none of it touched.
+- Existing 128 kbps chapters: still work, still sell, still in the ZIP. Author can either re-generate to get 192 kbps or upload the 128 kbps to Spotify/Apple/Google as-is.
+
+## Risk
+
+Effectively zero. The only behavior change is one URL parameter (128→192) and one extra text file in a ZIP. If 192 kbps somehow fails at ElevenLabs, we rollback the one-line change.
+
+## Approval
+
+Please approve and I'll make the two edits and redeploy `ba11-publish-audiobook` and `ba11-audiobook-generate`.
