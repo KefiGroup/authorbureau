@@ -34,65 +34,128 @@ export default function BA14Builder({ authorId, bookId }: Props) {
   const [msgIndex, setMsgIndex] = useState(0);
   const [expandedEpisodes, setExpandedEpisodes] = useState<Record<number, boolean>>({});
   const [authorSlug, setAuthorSlug] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
+    let cancelled = false;
     (async () => {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
+      if (cancelled) return;
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { resolveBookTitle } = await import("@/lib/resolve-book-title");
-      const _title = await resolveBookTitle(authorId, bookId ?? null, profile?.user_id);
+      const _title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
+      if (cancelled) return;
       if (_title) setResolvedBookTitle(_title);
-      console.log(`[BA-14] book resolution`, { authorId, bookId, detectedBookTitle, resolved: _title });
-      const __draft = await loadBuilderDraft(authorId, "BA-14", bookId ?? null);
+
+      const __draft = await loadBuilderDraft(authorId, "BA-14", activeBookId);
+      if (cancelled) return;
       if (__draft.content) {
         const wasLegacy = isLegacyPodcast(__draft.content);
         const normalised = normalisePodcast(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
+        const savedStep = __draft.currentStep ?? 0;
+        const isHalfPublished = !isActuallyLive && savedStep >= 3;
         setContent({ ...normalised, activated: isActuallyLive });
-        { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
-        if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
+        const _saved = (__draft.content as any)?._currentStep;
+        setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : (typeof _saved === "number" ? _saved : Math.max(savedStep, 2)));
+        if (isHalfPublished) {
+          toast.info("Your last publish didn't complete — please click Publish again.");
         }
+        if (wasLegacy) {
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: activeBookId });
+        }
+        setHydrated(true);
+        return;
       }
-          setHydrated(true);
-})();
-  }, [authorId, isAuthReady]);
+
+      // Tier 2: direct author_nodes scoped by activeBookId
+      let nodeQuery = supabase
+        .from("author_nodes")
+        .select("content_json, status, microsite_url, activated_at, current_step")
+        .eq("author_id", authorId)
+        .eq("node_id", "BA-14");
+      if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
+      const { data: node } = await nodeQuery.maybeSingle();
+      if (cancelled) return;
+      if (node?.content_json) {
+        const baseContent = node.content_json as any;
+        const normalised = normalisePodcast(baseContent);
+        const isPublished = node.status === "live" || !!node.activated_at || !!node.microsite_url;
+        const savedStep = typeof baseContent?._currentStep === "number" ? baseContent._currentStep : null;
+        setContent(isPublished ? { ...normalised, activated: true } : normalised);
+        setStep(isPublished ? 3 : (savedStep !== null ? savedStep : 2));
+      }
+      setHydrated(true);
+    })();
+    return () => { cancelled = true; };
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
-    if (step === 1 || (step === 3 && !content?.activated)) {
+    if (step === 1 || (isPublishing && !content?.activated)) {
       const msgs = step === 1 ? GEN_MSGS : ACT_MSGS;
       setMsgIndex(0);
       intervalRef.current = setInterval(() => setMsgIndex((i) => (i + 1) % msgs.length), 3000);
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
-  }, [step]);
+  }, [step, isPublishing, content?.activated]);
 
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba14-podcast", { body: { author_id: authorId, book_id: bookId ?? null } });
+      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba14-podcast", { author_id: authorId, book_id: activeBookId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normalisePodcast(data.content || {});
       setContent(normalised); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
-  const handlePublish = async () => {
-    setError(null);
+  const handleSaveDraft = async () => {
+    if (!authorId || !content) return;
+    setIsSavingDraft(true);
     try {
-      await publishNodeToSite(authorId!, "BA-14", authorSlug);
+      const result = await autosaveBuilderDraft({
+        authorId, nodeId: "BA-14", nodeName: "Podcast Tour",
+        content: { ...content, _currentStep: step },
+        currentStep: step, bookId: activeBookId,
+      });
+      if (result.ok) toast.success("Draft saved!");
+      else toast.error(toAbbyError(result.error || "Failed to save draft"));
+    } finally { setIsSavingDraft(false); }
+  };
+
+  const handlePublish = async () => {
+    if (isPublishing) return;
+    if (!authorId || !authorSlug) {
+      toast.error("Author profile not loaded yet — please wait a moment and try again.");
+      return;
+    }
+    setError(null);
+    setIsPublishing(true);
+    try {
+      await autosaveBuilderDraft({
+        authorId, nodeId: "BA-14", nodeName: "Podcast Tour",
+        content: { ...content, _currentStep: 3 },
+        currentStep: 3, bookId: activeBookId,
+      });
+      await publishNodeToSite(authorId, "BA-14", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
       setStep(3);
       toast.success("Your Podcast page is live on your site.");
     } catch (e: any) {
-      setError(e.message);
-      toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+      console.error("[BA14] publish failed", e);
+      setError(e?.message || "Unknown error");
+      toast.error(`Publish failed: ${e?.message ?? "Unknown error"}`);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
@@ -101,17 +164,11 @@ export default function BA14Builder({ authorId, bookId }: Props) {
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
 
   if (authorId && !hydrated) {
-
     return (
-
       <div className="min-h-screen flex items-center justify-center bg-background">
-
         <p className="text-muted-foreground">Loading…</p>
-
       </div>
-
     );
-
   }
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
@@ -126,7 +183,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
             {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your podcast, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-14${bookId ? `?bookId=${bookId}` : ""}`)}`)}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-14${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : !isIntroReady ? (
               <p className="text-muted-foreground mb-4">Loading your book details…</p>
@@ -139,7 +196,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
           <div className="space-y-4">
             <AbbyCard>
               <p className="text-sm">Your content is ready, but it isn't live on your site yet. Click below to publish your Podcast page.</p>
-              <Button onClick={handlePublish} className="mt-3">Re-publish to My Site <ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button onClick={handlePublish} className="mt-3" disabled={isPublishing || !authorSlug}>{isPublishing ? "Publishing…" : "Re-publish to My Site"} <ArrowRight className="h-4 w-4 ml-2" /></Button>
             </AbbyCard>
             <AbbyCard><p className="text-muted-foreground">{content.abby_summary}</p></AbbyCard>
             <Tabs defaultValue="concept" className="w-full">
@@ -178,13 +235,13 @@ export default function BA14Builder({ authorId, bookId }: Props) {
               guidance="Export your full podcast package — episodes, scripts, launch plan. Upload to Spotify for Podcasters, Apple Podcasts, or any platform."
             />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
-              <Button className="flex-1" size="lg" onClick={handlePublish}>Publish to My Site<ArrowRight className="h-4 w-4 ml-2" /></Button>
+              <Button variant="outline" className="flex-1" onClick={handleSaveDraft} disabled={isSavingDraft}>{isSavingDraft ? "Saving…" : "Save Draft"}</Button>
+              <Button className="flex-1" size="lg" onClick={handlePublish} disabled={isPublishing || !authorSlug}>{isPublishing ? "Publishing…" : "Publish to My Site"}<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
         )}
-        {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && (
+        {isPublishing && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
+        {step === 3 && content?.activated && !isPublishing && (
           <>
             <PublishSuccessScreen nodeId="BA-14" authorName={authorName} penNameSlug={authorSlug} />
             <BANodeDownloadCard content={content} nodeName="Podcast" bookTitle={(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "Authors-Bureau"} authorName={authorName} guidance="Your podcast package is ready. Download it and use it with Spotify for Podcasters, Apple Podcasts, or any podcast platform of your choice to start growing your audience." />
