@@ -114,7 +114,8 @@ Deno.serve(async (req: Request) => {
     coverImageUrl?: string;
     retailPriceUsd?: number;
     channels?: string[];
-    mode?: "publish" | "package_only";
+    mode?: "publish" | "package_only" | "update_price" | "update_distribution_status";
+    distributionStatus?: Record<string, boolean>;
   };
   try {
     body = await req.json();
