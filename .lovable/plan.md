@@ -1,42 +1,38 @@
-## Fix BA-11 publish 401 Unauthorized
+## Fix BA-11 distribution: "Memory limit exceeded"
 
-Replace the `supabase.functions.invoke('ba11-publish-audiobook', ...)` call in `DistributeAudiobookModal.tsx` with a direct `fetch` using the project's standard shared-backend auth pattern.
+Auth is now working. Edge function logs show the real failure:
 
-### Change
+```
+2026-05-06T00:54:02Z INFO  found 33 chapters across both prefixes
+2026-05-06T00:54:27Z ERROR Memory limit exceeded
+2026-05-06T00:54:27Z LOG   shutdown
+```
 
-In `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`:
+`ba11-publish-audiobook` fetches every chapter MP3 (~33 files for this book) and stuffs them into a single in-memory JSZip. That blows past the edge function memory cap and the runtime kills the process — the client sees a non-2xx and shows "Distribution failed (compute resources)".
 
-1. Import `getActiveToken` and `fetchWithTimeout` from `@/lib/get-active-token`.
-2. Replace the `supabase.functions.invoke(...)` call with:
-   - Resolve token via `await getActiveToken()`.
-   - On missing token, show a clear "Please sign in again" error.
-   - POST to `https://${VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/ba11-publish-audiobook` with headers:
-     - `Authorization: Bearer <token>`
-     - `apikey: <VITE_SUPABASE_PUBLISHABLE_KEY>`
-     - `Content-Type: application/json`
-   - Use `fetchWithTimeout` (90s) to avoid premature aborts on ZIP packaging.
-   - Parse response; on non-2xx surface `data.error || data.message` to toast.
-   - On retryable 401, do one `getActiveToken({ forceRefresh: true })` retry.
-3. Keep payload identical (`mode: "publish"`, bookId, chapters, voiceName, etc.).
-4. Only call `onDistributed()` after a confirmed 2xx success — preserves the existing fix where Published badge + Library confirmation only appear post-success.
+### Fix
 
-### Why
+In `supabase/functions/ba11-publish-audiobook/index.ts` (the ZIP-build block, lines ~280-294):
 
-- Edge function logs show 401 on `ba11-publish-audiobook`.
-- This project uses the shared backend; valid JWT lives in localStorage under `authorsbureau-shared-auth`, not the project-local Supabase client session.
-- `supabase.functions.invoke` attaches the project-local session/anon key, which the function's resolver rejects.
-- `getActiveToken()` + direct fetch is the canonical pattern (per Shared Backend Token Standard memory) used across BA-11 generators and all other working builders.
+- Stop bundling MP3s server-side.
+- Keep `manifest.json` and `README.txt` in the submission ZIP.
+- Add `chapter-urls.txt` listing each chapter filename + its public storage URL so the author can fetch the audio directly (or use the existing client-side "Download Full ZIP (33 chapters + ACX guide)" button on the Publish page, which already handles full-audio bundling client-side).
+- Redeploy `ba11-publish-audiobook`.
+
+This keeps the submission package useful for ACX/Spotify/Apple Books uploads (manifest + per-channel specs + direct chapter URLs) while staying well under the edge memory limit, regardless of chapter count.
 
 ### Files
 
-- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx` (only file changed)
+- `supabase/functions/ba11-publish-audiobook/index.ts` (edit ZIP-build section only — no other logic touched).
 
 ### Out of scope
 
-- No edge function changes (`ba11-publish-audiobook` already uses canonical `_shared/resolve-user.ts`).
-- No DB or schema changes.
-- No changes to `AudiobookPublishStep.tsx` — already correct after prior fix.
+- No frontend changes (auth fix already merged; "Download Full ZIP" client button already exists for the full-audio package).
+- No DB / schema changes.
+- No changes to channel manifest, audiobooks row upsert, or live-state flip.
 
 ### Expected result
 
-- "Send to PublishNow" returns 200, ZIP + ACX guide save to Library, Published badge + green Library link render only after success.
+- "Send to PublishNow" returns 200 even for books with many chapters.
+- Submission ZIP downloads with manifest + README + chapter URL list.
+- "Published" badge + green Library link render only after success (already correct from prior fix).

@@ -277,21 +277,21 @@ Deno.serve(async (req: Request) => {
     ].join("\n");
     zip.file("README.txt", readme);
 
-    // Fetch each chapter MP3 and add to zip
-    const audioFolder = zip.folder("chapters");
-    for (const ch of chapters) {
-      try {
-        const res = await fetch(ch.audio_url);
-        if (res.ok) {
-          const ab = new Uint8Array(await res.arrayBuffer());
-          audioFolder?.file(ch.filename, ab);
-        } else {
-          console.warn("[ba11-publish-audiobook] skipping chapter, fetch", res.status, ch.filename);
-        }
-      } catch (e) {
-        console.warn("[ba11-publish-audiobook] chapter fetch failed", ch.filename, e);
-      }
-    }
+    // NOTE: We intentionally do NOT bundle MP3s into the submission ZIP here.
+    // Edge functions have a hard memory cap that ~33+ chapters of MP3 audio
+    // blows past ("Memory limit exceeded"). The client "Download Full ZIP"
+    // button on the Publish step handles the full-audio bundle browser-side.
+    // This server-side package is the submission manifest + README + per-
+    // chapter direct URLs so authors can upload to ACX/Spotify/etc. without
+    // re-running this function.
+    const chapterUrlList = [
+      "Chapter audio URLs (download these directly):",
+      "=".repeat(40),
+      "",
+      ...chapters.map((ch, i) => `${String(i + 1).padStart(2, "0")}. ${ch.filename}\n   ${ch.audio_url}`),
+      "",
+    ].join("\n");
+    zip.file("chapter-urls.txt", chapterUrlList);
 
     const zipBytes = await zip.generateAsync({ type: "uint8array" });
     const zipPath = `${folderPath}/submission-package.zip`;
