@@ -106,10 +106,12 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         voiceName={voiceName}
         chapters={ready.map((c) => ({ index: c.index, title: c.title, audioUrl: c.audioUrl }))}
         onDistributed={() => {
+          // Backend (ba11-publish-audiobook) is the source of truth: it has already
+          // saved the audiobook row, the BA-11 author_nodes row (status=live, with a
+          // canonical library_asset) and built the export ZIP by the time this fires.
           const next = { ...stepData, publishedAt: new Date().toISOString() };
           setStepData(next);
           onMarkEdited("publish");
-          toast({ title: "Audiobook saved to My Library", description: "ZIP + ACX guide ready to download." });
         }}
       />
     </div>
