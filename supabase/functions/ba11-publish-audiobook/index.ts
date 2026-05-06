@@ -131,7 +131,10 @@ Deno.serve(async (req: Request) => {
     retailPriceUsd = 14.99,
     channels = ["platform", "acx", "spotify", "apple"],
     mode = "publish",
-  } = body;
+  } = body as typeof body & { distributionStatus?: Record<string, boolean> };
+  const distributionStatusUpdate = (body as any).distributionStatus as
+    | Record<string, boolean>
+    | undefined;
 
   if (!bookId) {
     return json(400, { error: "bookId is required" });
