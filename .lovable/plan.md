@@ -1,53 +1,48 @@
-# Audit: YR-22 / YR-23 / YR-24 / YR-25 vs BP-02 / BP-06
+## Audit: YR-26 (Conferences), YR-27 (Fundraising), YR-28 (Sponsors / JV)
 
-All four builders share the identical legacy shape that YR-19/20/21 had before their fix. Same five gaps, same expected symptoms (ABBY snag on slow gen, refresh sometimes drops to step 0, publish writes against the wrong book row when an author has multiple books, "published" not reflected on dashboard, X/28 count not updating).
+All three builders share the same legacy gaps as YR-19→YR-25 (now fixed):
 
-## Differences found
+| Gap | YR-26 | YR-27 | YR-28 |
+|---|---|---|---|
+| Uses `bookId` only (no `activeBookId` from `useAuthorBook`) | yes | yes | yes |
+| `loadBuilderDraft` only — no `author_nodes` DB fallback | yes | yes | yes |
+| `publishNodeToSite` not passed `activeBookId` | yes | yes | yes |
+| No mandatory `autosaveBuilderDraft` immediately before publish | yes | yes | yes |
+| No `isPublishing` guard | yes | yes | yes |
+| No half-published recovery (Step 3 + status≠live) | yes | yes | yes |
+| Generation calls lack `invokeWithTimeout` (90s) | yes | yes | yes |
+| Hydration `useEffect` deps don't include `activeBookId` | yes | yes | yes |
 
-| Concern | BP-02 / BP-06 (good) | YR-22 (Corporate Training) | YR-23 (Mastermind) | YR-24 (Retreats) | YR-25 (Certification) |
-|---|---|---|---|---|---|
-| Active book id | `activeBookId = bookId ?? hookBookId ?? null` from `useAuthorBook` | `bookId` prop only; `hookBookId` not destructured | Same | Same | Same |
-| `useEffect` deps | `[authorId, isAuthReady, activeBookId]` re-hydrates on book switch | `[authorId, isAuthReady]` — stale on book switch | Same | Same | Same |
-| Hydration | Two-tier: `loadBuilderDraft` then fallback `author_nodes` query filtered by `author_id` + `book_id` | Single-tier `loadBuilderDraft` only | Same | Same | Same |
-| Publish call | `publishNodeToSite(authorId, nodeId, slug, activeBookId)` after a forced `autosaveBuilderDraft`, guarded by `isPublishing` | `publishNodeToSite(authorId, "YR-22", authorSlug)` — no bookId, no pre-save, no guard | Same (YR-23) | Same (YR-24) | Same (YR-25) |
-| Generation timeout | `invokeWithTimeout(..., 90000)` | Plain `supabase.functions.invoke` — can hang past gateway 30s | Plain invoke — can hang | Plain invoke — can hang | Plain invoke — can hang |
-| Half-published recovery | Step≥3 but node not actually live → reset to step 2 + toast | None | None | None | None |
+## Plan — apply the same BP-02/BP-06 standardization
 
-Net: YR-22/23/24/25 are functionally the pre-fix YR-19/20/21. Same standardisation pass fixes them.
-
-## Plan
-
-Apply the BP-02/BP-06 pattern to YR-22, YR-23, YR-24, YR-25:
+For each of `YR26Builder.tsx`, `YR27Builder.tsx`, `YR28Builder.tsx`:
 
 1. **Active book scoping**
-   - Destructure `bookId: hookBookId` from `useAuthorBook()`.
-   - Compute `const activeBookId = bookId ?? hookBookId ?? null;`
-   - Replace `bookId ?? null` in autosave/publish/resolveBookTitle/loadBuilderDraft with `activeBookId`.
-   - Add `activeBookId` to the hydration `useEffect` dependency array.
+   - `const { bookId: hookBookId } = useAuthorBook();`
+   - `const activeBookId = bookId ?? hookBookId ?? null;`
+   - Use `activeBookId` in all autosave/load/publish calls.
+   - Add `activeBookId` to hydration `useEffect` deps.
 
 2. **Two-tier hydration**
-   - After `loadBuilderDraft(...)` returns empty, run a fallback query against `author_nodes` filtered by `author_id`, `node_id`, and `book_id = activeBookId` when present.
-   - If `status === "live" || activated_at || microsite_url` → set content + step 3.
-   - Else if a saved `_currentStep` exists → use it; otherwise step 2.
+   - Try `loadBuilderDraft(authorId, nodeId, activeBookId)` first.
+   - If empty, fallback query `author_nodes` filtered by `author_id`, `node_id`, and `activeBookId` to recover `content_json`, `status`, `microsite_url`, `current_step`.
 
 3. **Publishing reliability**
-   - Add `const [isPublishing, setIsPublishing] = useState(false);` and guard `handlePublish`.
-   - Immediately before `publishNodeToSite`, await `autosaveBuilderDraft(...)` with current content + `_currentStep: 3`.
-   - Pass `activeBookId` to `publishNodeToSite(authorId, nodeId, authorSlug, activeBookId)`.
-   - Disable Publish button while `isPublishing`; switch the activation loader from `step === 3` to `isPublishing`.
+   - Add `isPublishing` state; disable Publish button while true.
+   - Force `await autosaveBuilderDraft({ ..., currentStep: 3, content: { ..., _currentStep: 3 }, bookId: activeBookId })` immediately before `publishNodeToSite(authorId, nodeId, authorSlug, activeBookId)`.
+   - On error, revert to Step 2 and clear `isPublishing`.
 
-4. **Generation timeout**
-   - Replace `supabase.functions.invoke("generate-yr22-corporate" | "generate-yr23-mastermind" | "generate-yr24-retreats" | "generate-yr25-certification", ...)` with `invokeWithTimeout(name, body, 90000)` from `@/lib/invoke-with-timeout`.
+4. **Half-published recovery**
+   - On hydrate, if `current_step === 3` and `status !== 'live'`, set step to 2 and toast "Resumed — please re-publish".
 
-5. **Half-published recovery**
-   - In hydration: if `__draft.currentStep >= 3` but node isn't actually live, force `step = 2` and `toast.info("Your last publish didn't complete — please click Publish again.")`.
+5. **Generation timeouts**
+   - Replace `supabase.functions.invoke("generate-yr2X-...")` with `invokeWithTimeout(..., 90_000)` and surface timeout as a friendly error.
 
 ## Files to edit
-- `src/components/dashboard/builders/yr22/YR22Builder.tsx`
-- `src/components/dashboard/builders/yr23/YR23Builder.tsx`
-- `src/components/dashboard/builders/yr24/YR24Builder.tsx`
-- `src/components/dashboard/builders/yr25/YR25Builder.tsx`
+- `src/components/dashboard/builders/yr26/YR26Builder.tsx`
+- `src/components/dashboard/builders/yr27/YR27Builder.tsx`
+- `src/components/dashboard/builders/yr28/YR28Builder.tsx`
 
-No edge function or DB changes required — `generate-yr22-corporate`, `generate-yr23-mastermind`, `generate-yr24-retreats`, `generate-yr25-certification` already exist and the readiness gates are unchanged.
+No DB migrations, no edge function changes — purely client-side parity work matching the YR-22→YR-25 fixes.
 
-Approve and I'll switch out of plan mode and apply the edits in one pass.
+Approve to implement.
