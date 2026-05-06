@@ -393,7 +393,7 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       // contract to count as Live. Any non-empty content_json without a
       // valid library_asset stays in "Building" status, which is what the
       // dashboard cards render as 🔨 Building 60%.
-      // Affected fallback nodes: BP-02, BP-05, BP-08, BA-16, BA-18.
+      // Affected fallback nodes: BP-02, BP-08, BA-16, BA-18.
       // (The library_asset check has already run above in hasRequiredAssets.)
       return false;
     }
