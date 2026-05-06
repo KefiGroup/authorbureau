@@ -29,7 +29,6 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const [step, setStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
-  const activeBookId = bookId ?? hookBookId ?? null;
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -39,7 +38,8 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const [isPublishing, setIsPublishing] = useState(false);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
