@@ -1,7 +1,6 @@
 // @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  corsHeaders, makeServiceClient, buildAuthorContext, upsertAuthorNode,
+import { fetchAiGateway, corsHeaders, makeServiceClient, buildAuthorContext, upsertAuthorNode,
   failResponse, errorMessage,
 } from "../_shared/builder-helpers.ts";
 
@@ -100,7 +99,7 @@ Generate the following as a JSON object with these exact keys:
 The webinar_topics array must have exactly 3 items, each covering a different angle of the book's content.
 Make everything specific to this author's book, niche, and audience. Never use generic placeholder text.`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetchAiGateway({
       method: "POST",
       headers: {
         "Authorization": `Bearer ${Deno.env.get("LOVABLE_API_KEY")}`,
@@ -113,7 +112,7 @@ Make everything specific to this author's book, niche, and audience. Never use g
           { role: "user", content: userPrompt },
         ],
       }),
-    });
+    }, "generate-bp05-webinars");
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -750,7 +751,7 @@ EXISTING PRODUCTS: ${existingProducts || "None built yet."}`;
     if (act === 1) {
       const builderPrompt = ACT1_PROMPTS[builderId] || `You are Abby. Analyze this book and design a complete ${builderLabel || builderId} product. Provide title options, structure, pricing, target audience, and cross-builder outputs.`;
 
-      const response = await fetch(AI_URL, {
+      const response = await fetchAiGateway({
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -780,7 +781,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
           temperature: 0.7,
           max_completion_tokens: 16384,
         }),
-      });
+      }, "abby-builder-generate");
 
       if (!response.ok) {
         const status = response.status;
@@ -970,7 +971,7 @@ SELF-CHECK BEFORE FINALIZING:
 3) Is there any text outside delimiters? If yes, remove it.
 4) If any check fails, rewrite and fix before responding.`;
 
-      const response = await fetch(AI_URL, {
+      const response = await fetchAiGateway({
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -986,7 +987,7 @@ SELF-CHECK BEFORE FINALIZING:
           max_completion_tokens: 16000,
           stream: true,
         }),
-      });
+      }, "abby-builder-generate");
 
       if (!response.ok) {
         const status = response.status;

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // ── CORS Origin Whitelist ──────────────────────────────────────────
@@ -328,7 +329,7 @@ serve(async (req) => {
       systemContent += `\n\n## CURRENT CONTEXT\nThe user is currently on: ${currentPage}`;
     }
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetchAiGateway({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -342,7 +343,7 @@ serve(async (req) => {
         ],
         stream: true,
       }),
-    });
+    }, "abby-help-chat");
 
     if (!response.ok) {
       if (response.status === 429) {

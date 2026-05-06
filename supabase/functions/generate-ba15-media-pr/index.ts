@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  corsHeaders, makeServiceClient, parseAiJson, errorMessage, failResponse,
+import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage, failResponse,
   verifyAuthUser, aiGatewayErrorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
 } from "../_shared/builder-helpers.ts";
@@ -48,7 +47,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return failResponse("AI service not configured");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetchAiGateway({
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -84,7 +83,7 @@ Return JSON in this EXACT shape (note: press_release and pitch_template are STRI
 5 outlets. press_release and pitch_template MUST be strings. No placeholders.` },
         ],
       }),
-    });
+    }, "generate-ba15-media-pr");
     if (!aiRes.ok) {
       const errText = await aiRes.text();
       console.error(`generate-${NODE_ID} ai-gateway error:`, aiRes.status, errText.slice(0, 500));

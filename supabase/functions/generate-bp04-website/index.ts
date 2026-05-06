@@ -1,7 +1,7 @@
 // @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildAuthorContext, upsertAuthorNode } from "../_shared/builder-helpers.ts";
+import { fetchAiGateway, buildAuthorContext, upsertAuthorNode } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -147,7 +147,7 @@ Make everything specific to this author's book, niche, and audience. Never use g
       if (extraReminder) {
         messages.push({ role: "system", content: extraReminder });
       }
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const r = await fetchAiGateway({
         method: "POST",
         headers: {
           "Authorization": `Bearer ${LOVABLE_API_KEY}`,
@@ -158,7 +158,7 @@ Make everything specific to this author's book, niche, and audience. Never use g
           messages,
           max_completion_tokens: 6000,
         }),
-      });
+      }, "generate-bp04-website");
       return r;
     };
 

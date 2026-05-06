@@ -14,6 +14,7 @@
  */
 // @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -83,7 +84,7 @@ serve(async (req) => {
       book.genre ? `Genre: ${book.genre}` : null,
     ].filter(Boolean).join("\n");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetchAiGateway({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -127,7 +128,7 @@ Be specific. Never default to generic finance, business, or self-help content un
           },
         ],
       }),
-    });
+    }, "generate-bp00-analysis");
 
     if (!aiRes.ok) {
       const txt = await aiRes.text();

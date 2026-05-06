@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -107,7 +108,7 @@ Extract 1-5 frameworks. For each, identify the name, a clear description, and th
 
     const truncatedManuscript = manuscript.slice(0, 200000);
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetchAiGateway({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -165,7 +166,7 @@ Extract the author's unique frameworks, theories, and methodologies from this ma
         ],
         tool_choice: { type: "function", function: { name: "extract_frameworks" } },
       }),
-    });
+    }, "extract-frameworks");
 
     if (!response.ok) {
       if (response.status === 429) {

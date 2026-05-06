@@ -161,10 +161,14 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
     const token = await getToken();
     const baseUrl = getFunctionsBaseUrl();
 
+    // Retry on network failures AND transient 5xx (502/503/504) AND 408/429.
+    const TRANSIENT_STATUS = new Set([408, 429, 502, 503, 504]);
+    const MAX_ATTEMPTS = 3;
     let lastError: unknown = null;
-    for (let attempt = 0; attempt < 2; attempt++) {
+
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
       try {
-        return await fetch(`${baseUrl}/functions/v1/abby-builder-generate`, {
+        const res = await fetch(`${baseUrl}/functions/v1/abby-builder-generate`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -173,10 +177,15 @@ export function useBuilderGeneration(builderId: string, builderLabel: string) {
           body: JSON.stringify(payload),
           signal,
         });
-      } catch (err) {
+        if (res.ok || !TRANSIENT_STATUS.has(res.status)) return res;
+        lastError = new Error(`HTTP ${res.status}`);
+      } catch (err: any) {
         lastError = err;
         if (signal?.aborted || err?.name === "AbortError") throw err;
-        if (attempt === 0) await new Promise(resolve => setTimeout(resolve, 500));
+      }
+      if (attempt < MAX_ATTEMPTS - 1) {
+        const delay = 600 * Math.pow(2, attempt) + Math.floor(Math.random() * 250);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 

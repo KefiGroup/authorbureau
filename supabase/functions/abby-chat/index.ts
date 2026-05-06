@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -122,7 +123,7 @@ YOUR RULES:
 8. If asked about revenue projections, use the actual node data to calculate realistic estimates`;
 
     // Call AI
-    const aiResp = await fetch(AI_URL, {
+    const aiResp = await fetchAiGateway({
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -137,7 +138,7 @@ YOUR RULES:
         ],
         max_completion_tokens: 800,
       }),
-    });
+    }, "abby-chat");
 
     if (!aiResp.ok) {
       console.error("AI error:", await aiResp.text());

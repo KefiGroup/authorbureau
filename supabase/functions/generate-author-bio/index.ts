@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +44,7 @@ Do NOT wrap in markdown code blocks. Return raw JSON only.`;
 
     const userMessage = contextParts.join("\n");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetchAiGateway({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -56,7 +57,7 @@ Do NOT wrap in markdown code blocks. Return raw JSON only.`;
           { role: "user", content: userMessage },
         ],
       }),
-    });
+    }, "generate-author-bio");
 
     if (!response.ok) {
       if (response.status === 429) {

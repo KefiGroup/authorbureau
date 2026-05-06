@@ -2,6 +2,7 @@
 // Idempotent: re-runs upsert by (book_id, author_id, asset_type=`<type>:<node_id>`).
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { ASSET_PACK_REGISTRY } from "../_shared/assetPackRegistry.ts";
 
@@ -84,7 +85,7 @@ Personalize everything to this author's book and methodology.`;
 
     // Helper: call gateway
     const callAI = async (model: string) => {
-      const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const r = await fetchAiGateway({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,7 +100,7 @@ Personalize everything to this author's book and methodology.`;
           response_format: { type: "json_object" },
           // NOTE: no `temperature` override — gpt-5* only accepts default(1).
         }),
-      });
+      }, "generate-asset-pack");
       const text = await r.text();
       let parsed: any = null;
       try { parsed = JSON.parse(text); } catch { /* ignore */ }

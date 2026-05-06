@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -87,7 +88,7 @@ Return ONLY a valid JSON object matching this schema exactly:
 
   const userPrompt = `Here is the author's complete context. Analyze it and generate the website blueprint:\n\n${JSON.stringify(authorContext, null, 2)}`;
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetchAiGateway({
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -101,7 +102,7 @@ Return ONLY a valid JSON object matching this schema exactly:
       ],
       temperature: 0.3,
     }),
-  });
+  }, "abby-website-builder");
 
   if (!resp.ok) {
     const errText = await resp.text();
@@ -175,7 +176,7 @@ Enabled pages: ${JSON.stringify(enabledPages)}
 Author context:
 ${JSON.stringify(authorContext, null, 2)}`;
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetchAiGateway({
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -189,7 +190,7 @@ ${JSON.stringify(authorContext, null, 2)}`;
       ],
       temperature: 0.4,
     }),
-  });
+  }, "abby-website-builder");
 
   if (!resp.ok) {
     const errText = await resp.text();

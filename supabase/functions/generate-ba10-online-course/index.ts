@@ -17,7 +17,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders, upsertAuthorNode } from "../_shared/builder-helpers.ts";
+import { fetchAiGateway, corsHeaders, upsertAuthorNode } from "../_shared/builder-helpers.ts";
 import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 
 const NODE_ID = "BA-10";
@@ -233,7 +233,7 @@ serve(async (req) => {
 
     let aiRes: Response;
     try {
-      aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      aiRes = await fetchAiGateway({
         method: "POST",
         signal: controller.signal,
         headers: {
@@ -313,7 +313,7 @@ Strict rules:
             },
           ],
         }),
-      });
+      }, "generate-ba10-online-course");
     } catch (fetchErr) {
       clearTimeout(timeoutId);
       const msg = (fetchErr as Error)?.name === "AbortError"

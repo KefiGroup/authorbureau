@@ -172,6 +172,80 @@ export async function callAiGateway(
 }
 
 /**
+ * Drop-in replacement for `fetch("https://ai.gateway.lovable.dev/v1/chat/completions", init)`.
+ *
+ * Returns a Response-shaped object that supports `.ok`, `.status`, `.text()`, `.json()`.
+ * Internally retries 408/425/429/500/502/503/504 + network errors with exponential
+ * backoff (3 attempts), so most transient failures are absorbed silently.
+ *
+ * On exhausted retries it returns a synthetic 503 Response carrying a coded body
+ * (`AI_TRANSIENT: ...`) so existing callers' error-handling paths still work and
+ * `toAbbyError()` shows the friendly message.
+ *
+ * Usage (one-line swap):
+ *   const aiRes = await fetchAiGateway({
+ *     headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+ *     body: JSON.stringify({ model, messages, ... }),
+ *   }, "generate-bp07-home-study");
+ */
+export async function fetchAiGateway(
+  init: { headers?: Record<string, string>; body?: string | Uint8Array; method?: string; signal?: AbortSignal },
+  functionName?: string,
+): Promise<Response> {
+  const TRANSIENT = new Set([408, 425, 429, 500, 502, 503, 504]);
+  const max = 2; // 3 attempts total
+  let lastStatus = 0;
+  let lastBody = "";
+  let lastNetErr: unknown = null;
+
+  for (let attempt = 0; attempt <= max; attempt++) {
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: init.method ?? "POST",
+        headers: init.headers,
+        body: init.body,
+        signal: init.signal,
+      });
+      if (res.ok) return res;
+      lastStatus = res.status;
+      // Pull the body so we can re-emit it on the final synthetic Response.
+      try { lastBody = await res.text(); } catch { lastBody = ""; }
+      // Hard, non-retryable errors → return immediately so caller sees real status.
+      if (res.status === 401 || res.status === 403 || res.status === 402 || !TRANSIENT.has(res.status)) {
+        return new Response(lastBody || JSON.stringify({ error: aiGatewayErrorMessage(res.status, lastBody) }), {
+          status: res.status,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
+    } catch (e) {
+      lastNetErr = e;
+      if (init.signal?.aborted) throw e;
+    }
+
+    if (attempt < max) {
+      const delay = 400 * Math.pow(3, attempt) + Math.floor(Math.random() * 200);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+
+  // Retries exhausted — log and synthesise a 503 with the coded message.
+  try {
+    await logError({
+      source: "edge_function",
+      function_name: functionName ?? "fetchAiGateway",
+      severity: "error",
+      message: lastNetErr ? errorMessage(lastNetErr) : `AI gateway ${lastStatus}: ${lastBody.slice(0, 200)}`,
+      context: { stage: "ai_gateway_exhausted", last_status: lastStatus },
+    });
+  } catch (_e) { /* swallow */ }
+
+  const codedBody = JSON.stringify({
+    error: "AI_TRANSIENT: ABBY's brain is briefly offline. Please click Try Again in a few seconds.",
+  });
+  return new Response(codedBody, { status: 503, headers: { "Content-Type": "application/json" } });
+}
+
+/**
  * Robust JSON parser with one auto-repair pass.
  *  - First tries strict parse.
  *  - On failure, asks the AI gateway to re-emit valid JSON only (cheap, fast).

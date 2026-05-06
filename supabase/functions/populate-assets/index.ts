@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -401,7 +402,7 @@ async function populateSpeakingTopics(supabase: any, authorId: string, bookId: s
 }
 
 async function extractStructuredData(apiKey: string, systemPrompt: string, content: string) {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetchAiGateway({
     method: "POST",
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -427,7 +428,7 @@ async function extractStructuredData(apiKey: string, systemPrompt: string, conte
       }],
       tool_choice: { type: "function", function: { name: "extract_data" } },
     }),
-  });
+  }, "populate-assets");
 
   if (!resp.ok) {
     const t = await resp.text();

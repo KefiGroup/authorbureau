@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  corsHeaders, makeServiceClient, parseAiJson, errorMessage,
+import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
   failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
@@ -53,7 +52,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetchAiGateway({
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -124,7 +123,7 @@ PRICING GUIDANCE — Recommend whichever path serves THIS author best, but ALWAY
 Make everything specific to this author's book.` }
         ],
       }),
-    });
+    }, "generate-bp06-workbook");
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();

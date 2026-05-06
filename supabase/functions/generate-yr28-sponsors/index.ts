@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  corsHeaders, makeServiceClient, parseAiJson, errorMessage,
+import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
   failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
@@ -30,14 +29,14 @@ serve(async (req) => {
     if (!bookTitle) throw new Error("No book found. Please add a book first.");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("AI service not configured");
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetchAiGateway({
       method: "POST", headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({ model: "openai/gpt-5", messages: [
         { role: "system", content: "You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).\n\nHARD CONTENT RULES (output that violates these will fail QA):\n- NEVER use the emdash character (\u2014) or endash (\u2013). Use commas, periods, or \" - \" for ranges only.\n- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.\n- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.\n- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns)." },
         { role: "user", content: `Design a sponsorship & exhibitor programme for ${author.pen_name}'s events around '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}.
 Generate JSON: {"programme_title","tagline","audience_profile","sponsorship_packages":[4: Platinum($25000,1 sponsor)/Gold($10000,max 3)/Silver($5000,max 5)/Exhibitor($500,limited), each with tier/price_usd/description/benefits[1-5]/exclusivity],"pitch_deck_outline":[5 slides with slide/title/content_summary],"outreach_strategy":{"target_sponsors","outreach_message","follow_up_cadence"},"abby_summary"}` }
       ], max_completion_tokens: 16000 }),
-    });
+    }, "generate-yr28-sponsors");
     if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");

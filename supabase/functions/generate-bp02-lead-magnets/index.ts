@@ -1,7 +1,7 @@
 // @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { buildAuthorContext, upsertAuthorNode } from "../_shared/builder-helpers.ts";
+import { fetchAiGateway, buildAuthorContext, upsertAuthorNode } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -312,7 +312,7 @@ IMPORTANT RULES:
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetchAiGateway({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -327,7 +327,7 @@ IMPORTANT RULES:
         max_completion_tokens: 10000,
         response_format: { type: "json_object" },
       }),
-    });
+    }, "generate-bp02-lead-magnets");
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
@@ -356,7 +356,7 @@ IMPORTANT RULES:
         } catch {
           // Retry: ask AI to fix the JSON
           console.log("First parse failed, retrying with JSON-fix prompt...");
-          const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          const retryResp = await fetchAiGateway({
             method: "POST",
             headers: {
               Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -371,14 +371,14 @@ IMPORTANT RULES:
               max_completion_tokens: 10000,
               response_format: { type: "json_object" },
             }),
-          });
+          }, "generate-bp02-lead-magnets");
           const retryData = await retryResp.json();
           const retryRaw = retryData.choices?.[0]?.message?.content || "";
           parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());
         }
       } else {
         console.log("No JSON object found, retrying with JSON-fix prompt...");
-        const retryResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const retryResp = await fetchAiGateway({
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -393,7 +393,7 @@ IMPORTANT RULES:
             max_completion_tokens: 10000,
             response_format: { type: "json_object" },
           }),
-        });
+        }, "generate-bp02-lead-magnets");
         const retryData = await retryResp.json();
         const retryRaw = retryData.choices?.[0]?.message?.content || "";
         parsedContent = JSON.parse(retryRaw.replace(/^```(?:json)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim());

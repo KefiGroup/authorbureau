@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -122,7 +123,7 @@ serve(async (req) => {
 
       if (stepType === "generate") {
         const systemPrompt = buildGenerationPrompt(productNode, context);
-        const response = await fetch(AI_GATEWAY, {
+        const response = await fetchAiGateway({
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -136,7 +137,7 @@ serve(async (req) => {
             ],
             stream: true,
           }),
-        });
+        }, "abby-execute");
 
         if (!response.ok) {
           const t = await response.text();
@@ -179,7 +180,7 @@ Return a JSON object with:
 - suggested_description: string (1-2 sentences)
 - reasoning: string (why these settings)`;
 
-        const configResp = await fetch(AI_GATEWAY, {
+        const configResp = await fetchAiGateway({
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -211,7 +212,7 @@ Return a JSON object with:
             }],
             tool_choice: { type: "function", function: { name: "configure_product" } },
           }),
-        });
+        }, "abby-execute");
 
         const configData = await configResp.json();
         let config = {};
@@ -301,7 +302,7 @@ Return the updated plan in the same JSON structure as the original, with these a
 - Add a "completion_percentage" number (0-100)
 - Add an "abby_insight" string with a personalized strategic observation`;
 
-      const resp = await fetch(AI_GATEWAY, {
+      const resp = await fetchAiGateway({
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -314,7 +315,7 @@ Return the updated plan in the same JSON structure as the original, with these a
             { role: "user", content: updatePrompt },
           ],
         }),
-      });
+      }, "abby-execute");
 
       const data = await resp.json();
       let updatedPlan = businessPlan;
