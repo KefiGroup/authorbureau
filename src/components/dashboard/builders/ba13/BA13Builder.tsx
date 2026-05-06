@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useActiveBookId } from "@/hooks/useActiveBookId";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const [step, setStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
+  const hookBookId = useActiveBookId();
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,44 +39,69 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const [priceOverride, setPriceOverride] = useState<number | null>(null);
   const [authorSlug, setAuthorSlug] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
+    let cancelled = false;
     (async () => {
       const { data: profile } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
+      if (cancelled) return;
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { resolveBookTitle } = await import("@/lib/resolve-book-title");
-      const _title = await resolveBookTitle(authorId, bookId ?? null, profile?.user_id);
+      const _title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
+      if (cancelled) return;
       if (_title) setResolvedBookTitle(_title);
-      const __draft = await loadBuilderDraft(authorId, "BA-13", bookId ?? null);
+
+      // Tier 1: shared autosave draft
+      const __draft = await loadBuilderDraft(authorId, "BA-13", activeBookId);
+      if (cancelled) return;
       if (__draft.content) {
         const wasLegacy = isLegacyGroupCoaching(__draft.content);
         const normalised = normaliseGroupCoaching(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
         const savedStep = __draft.currentStep ?? 0;
-        // Half-published recovery: if a previous publish wrote step=3 but the
-        // row never reached the live state (no microsite_url), drop back to
-        // Step 2 so the user can re-publish. Without this guard the UI would
-        // sit on the passive "Publishing…" animation forever with no request
-        // in flight.
         const isHalfPublished = !isActuallyLive && savedStep >= 3;
         setContent({ ...normalised, activated: isActuallyLive });
         setPriceOverride(normalised?.suggested_price_usd || null);
-        { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : (typeof _saved === "number" ? _saved : Math.max(savedStep, 2))); }
+        const _saved = (__draft.content as any)?._currentStep;
+        setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : (typeof _saved === "number" ? _saved : Math.max(savedStep, 2)));
         if (isHalfPublished) {
           toast.info("Your last publish didn't complete — please click Publish again.");
         }
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: bookId ?? null });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: activeBookId });
         }
+        setHydrated(true);
+        return;
       }
-          setHydrated(true);
-})();
-  }, [authorId, isAuthReady]);
+
+      // Tier 2: direct author_nodes read scoped by activeBookId (matches BP-06)
+      let nodeQuery = supabase
+        .from("author_nodes")
+        .select("content_json, status, microsite_url, activated_at, current_step")
+        .eq("author_id", authorId)
+        .eq("node_id", "BA-13");
+      if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
+      const { data: node } = await nodeQuery.maybeSingle();
+      if (cancelled) return;
+      if (node?.content_json) {
+        const baseContent = node.content_json as any;
+        const normalised = normaliseGroupCoaching(baseContent);
+        const isPublished = node.status === "live" || !!node.activated_at || !!node.microsite_url;
+        const savedStep = typeof baseContent?._currentStep === "number" ? baseContent._currentStep : null;
+        setContent(isPublished ? { ...normalised, activated: true } : normalised);
+        setPriceOverride(normalised?.suggested_price_usd || null);
+        setStep(isPublished ? 3 : (savedStep !== null ? savedStep : 2));
+      }
+      setHydrated(true);
+    })();
+    return () => { cancelled = true; };
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (isPublishing && !content?.activated)) {
@@ -88,31 +116,45 @@ export default function BA13Builder({ authorId, bookId }: Props) {
     setStep(1); setError(null);
     try {
       const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
-      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba13-group-coaching", { author_id: authorId }, 90000);
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba13-group-coaching", { author_id: authorId, book_id: activeBookId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normaliseGroupCoaching(data.content || {});
       setContent(normalised);
       setPriceOverride(normalised?.suggested_price_usd || null);
       setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-13", nodeName: "Group Coaching", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
+  };
+
+  const handleSaveDraft = async () => {
+    if (!authorId || !content) return;
+    setIsSavingDraft(true);
+    try {
+      const result = await autosaveBuilderDraft({
+        authorId, nodeId: "BA-13", nodeName: "Group Coaching",
+        content: { ...content, suggested_price_usd: priceOverride ?? content.suggested_price_usd, _currentStep: step },
+        currentStep: step, bookId: activeBookId,
+      });
+      if (result.ok) toast.success("Draft saved!");
+      else toast.error(toAbbyError(result.error || "Failed to save draft"));
+    } finally { setIsSavingDraft(false); }
   };
 
   const handlePublish = async () => {
     if (isPublishing) return;
-    if (!authorId) {
-      toast.error("Author profile not loaded yet — please wait a moment and try again.");
-      return;
-    }
-    if (!authorSlug) {
-      toast.error("Your author URL slug isn't ready yet — please wait a moment and try again.");
-      return;
-    }
+    if (!authorId) { toast.error("Author profile not loaded yet — please wait a moment and try again."); return; }
+    if (!authorSlug) { toast.error("Your author URL slug isn't ready yet — please wait a moment and try again."); return; }
     setError(null);
     setIsPublishing(true);
-    console.log("[BA13] publish start", { authorId, bookId: bookId ?? null, authorSlug });
+    console.log("[BA13] publish start", { authorId, bookId: activeBookId, authorSlug });
     try {
-      const result = await publishNodeToSite(authorId, "BA-13", authorSlug, bookId ?? null);
+      // Persist final content first (matches BP-02/BP-06)
+      await autosaveBuilderDraft({
+        authorId, nodeId: "BA-13", nodeName: "Group Coaching",
+        content: { ...content, suggested_price_usd: priceOverride ?? content?.suggested_price_usd, _currentStep: 3 },
+        currentStep: 3, bookId: activeBookId,
+      });
+      const result = await publishNodeToSite(authorId, "BA-13", authorSlug, activeBookId);
       console.log("[BA13] publish ok", result);
       setContent((prev: any) => ({ ...prev, activated: true }));
       setStep(3);
@@ -131,17 +173,11 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const noBookFound = !isBookLoading && !hasBook && !resolvedBookTitle && !detectedBookTitle;
 
   if (authorId && !hydrated) {
-
     return (
-
       <div className="min-h-screen flex items-center justify-center bg-background">
-
         <p className="text-muted-foreground">Loading…</p>
-
       </div>
-
     );
-
   }
 
   if (!authorId) return <div className="min-h-screen flex items-center justify-center bg-background"><p className="text-muted-foreground">Please set up your author profile first.</p></div>;
@@ -156,7 +192,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
             {noBookFound ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I design your programme, I need to know about your book. Please complete your book profile first.</p>
-                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-13${bookId ? `?bookId=${bookId}` : ""}`)}`)}>Complete Book Profile</Button>
+                <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BA-13${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
               </>
             ) : !isIntroReady ? (
               <p className="text-muted-foreground mb-4">Loading your book details…</p>
@@ -217,7 +253,7 @@ export default function BA13Builder({ authorId, bookId }: Props) {
               guidance="Export your full group coaching package — curriculum, schedule, sales copy. Upload to Teachable, Kajabi, Thinkific, or any platform."
             />
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => toast.info("Manual editing coming soon.")}>Edit</Button>
+              <Button variant="outline" className="flex-1" onClick={handleSaveDraft} disabled={isSavingDraft}>{isSavingDraft ? "Saving…" : "Save Draft"}</Button>
               <Button className="flex-1" size="lg" onClick={handlePublish} disabled={isPublishing || !authorSlug}>{isPublishing ? "Publishing…" : !authorSlug ? "Preparing…" : "Publish to My Site"}<ArrowRight className="h-4 w-4 ml-2" /></Button>
             </div>
           </div>
