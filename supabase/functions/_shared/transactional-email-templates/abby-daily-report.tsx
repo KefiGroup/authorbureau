@@ -102,20 +102,26 @@ const AbbyDailyReportEmail = ({
       </Container>
     </Body>
   </Html>
-)
+  )
+}
 
 export const template = {
   component: AbbyDailyReportEmail,
-  subject: (data: Record<string, any>) =>
-    data.hotLeads && data.hotLeads > 0
-      ? `🔥 ${data.hotLeads} hot lead${data.hotLeads === 1 ? '' : 's'} today + your daily report`
-      : `Your daily business report from ABBY`,
-  displayName: 'ABBY daily report',
+  subject: (data: Record<string, any>) => {
+    const freq = (data.frequencyLabel as string) || 'daily'
+    const cadence = freq === 'weekly' ? 'weekly' : freq === 'monthly' ? 'monthly' : 'daily'
+    return data.hotLeads && data.hotLeads > 0
+      ? `🔥 ${data.hotLeads} hot lead${data.hotLeads === 1 ? '' : 's'} + your ${cadence} report`
+      : `Your ${cadence} business report from ABBY`
+  },
+  displayName: 'ABBY business report',
   previewData: {
     authorName: 'Pauline',
-    insight: 'You added 12 new leads this week — a 40% jump. Time to send a follow-up sequence to convert them.',
-    leadsToday: 4, leadsWeek: 12, revenueMonth: 1450, activeNodes: 8, hotLeads: 2,
-    topAction: 'Follow up with your 2 hot leads — they have ABBY scores above 60.',
+    frequencyLabel: 'weekly',
+    periodLabel: 'This week',
+    insight: 'You added 12 new leads this week, a 40% jump. Time to send a follow-up sequence to convert them.',
+    leadsPeriod: 12, revenuePeriod: 320, revenueMonth: 1450, activeNodes: 8, hotLeads: 2,
+    topAction: 'Follow up with your 2 hot leads, they have ABBY scores above 60.',
     dashboardUrl: 'https://authorsbureau.com/dashboard',
   },
 } satisfies TemplateEntry
