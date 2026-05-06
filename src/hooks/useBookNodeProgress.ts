@@ -156,11 +156,11 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
         }
 
         // ---- IN-PROGRESS OVERLAY — only adds rows that author-stats hasn't already counted ----
-        if (profile?.id) {
+        if (profileIds.length > 0) {
           const { data: nodes } = await supabase
             .from("author_nodes")
             .select("node_id, status, content_json, book_id")
-            .eq("author_id", profile.id);
+            .in("author_id", profileIds);
 
           (nodes || []).forEach((n: any) => {
             const isAuthorLevel = AUTHOR_LEVEL_NODES.has(n.node_id);
