@@ -945,6 +945,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_speaker: boolean | null
+          last_report_sent_at: string | null
           last_synced_at: string | null
           linkedin_url: string | null
           location_city: string | null
@@ -959,6 +960,9 @@ export type Database = {
           podcast_rss_url: string | null
           podcast_spotify_url: string | null
           quiz_name: string | null
+          report_frequency: string
+          report_monthly_day: number
+          report_weekly_day: number
           sign_off_phrase: string | null
           site_theme: string
           speaker_fee_range: string | null
@@ -1002,6 +1006,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null
+          last_report_sent_at?: string | null
           last_synced_at?: string | null
           linkedin_url?: string | null
           location_city?: string | null
@@ -1016,6 +1021,9 @@ export type Database = {
           podcast_rss_url?: string | null
           podcast_spotify_url?: string | null
           quiz_name?: string | null
+          report_frequency?: string
+          report_monthly_day?: number
+          report_weekly_day?: number
           sign_off_phrase?: string | null
           site_theme?: string
           speaker_fee_range?: string | null
@@ -1059,6 +1067,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null
+          last_report_sent_at?: string | null
           last_synced_at?: string | null
           linkedin_url?: string | null
           location_city?: string | null
@@ -1073,6 +1082,9 @@ export type Database = {
           podcast_rss_url?: string | null
           podcast_spotify_url?: string | null
           quiz_name?: string | null
+          report_frequency?: string
+          report_monthly_day?: number
+          report_weekly_day?: number
           sign_off_phrase?: string | null
           site_theme?: string
           speaker_fee_range?: string | null
