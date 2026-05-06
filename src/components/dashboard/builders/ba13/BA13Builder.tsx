@@ -29,7 +29,6 @@ export default function BA13Builder({ authorId, bookId }: Props) {
   const [step, setStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
   const { isReady: isAuthReady } = useAuthReady();
-  const hookBookId = useActiveBookId();
   const activeBookId = bookId ?? hookBookId ?? null;
   const [authorName, setAuthorName] = useState("");
   const [content, setContent] = useState<any>(null);
