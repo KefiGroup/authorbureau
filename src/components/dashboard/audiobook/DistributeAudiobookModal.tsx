@@ -181,7 +181,7 @@ export default function DistributeAudiobookModal({
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Step indicator */}
         <div className="flex items-center gap-2 mb-2">
-          {[1, 2, 3].map(s => (
+          {[1, 2, 3, 4].map(s => (
             <div key={s} className={`h-1.5 flex-1 rounded-full transition-colors ${s <= step ? "bg-primary" : "bg-muted"}`} />
           ))}
         </div>
