@@ -1,38 +1,34 @@
-## Goal
+## Fix BA-11 distribution failure
 
-Make BA-11 audiobook publish flow consistent with other BP nodes: clearly state the audiobook gets saved to **My Library**, and improve the "Narrator Name for Credits" field with a recommended default, a one-click reset, and inline validation.
+I found the issue: the BA-11 modal is still wired to the old `distribute-audiobook` backend, but the current BA-11 flow expects `ba11-publish-audiobook`.
 
-## Changes
+For this book, the old function rejects the request because it checks ownership using `books.author_id === loggedInUserId`, while this project has books where `books.author_id` stores the author profile ID instead. That causes the 403/non-2xx error you saw. The UI also marks the audiobook as Published before the backend call actually succeeds, which makes the state feel inconsistent.
 
-### 1. "Saved to Library" messaging (consistency with BP nodes)
+### What I’ll change
 
-**`src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`**
-- Under the main `Publish & Open Distribution` button, add a small library badge / helper line:
-  > *"Your audiobook ZIP + ACX guide will be saved to **My Library** automatically when you publish."*
-- After successful publish (`published === true`), swap that line for a green confirmation: *"Saved to your Library"* with a `Library` icon link to `/dashboard?section=library` (matches the pattern other BP builders use).
-- Update the post-distribution toast to read: *"Audiobook saved to My Library — ZIP + ACX guide ready to download."*
+1. Update the BA-11 distribution modal to call `ba11-publish-audiobook` instead of `distribute-audiobook`.
+2. Pass the same payload the newer BA-11 publish function expects, so the publish/package flow uses the backend already built for this node.
+3. Remove the premature local `publishedAt` success state from the button flow so BA-11 only shows Published / Library success after the backend returns success.
+4. Keep the existing narrator-credit helper text, reset button, and validation exactly as implemented.
+5. Make the success toast and library messaging reflect the real backend outcome, so users only see “saved to My Library” after a successful publish.
 
-### 2. Narrator Name for Credits — helper, reset, validation
+### Files to update
 
-**`src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`**
-- Pass `voiceName` (already in scope) and `bookTitle` into `<DistributeAudiobookModal>` as new props.
-
-**`src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`** (Step 1)
-- Accept new props: `voiceName?: string`, `bookTitle?: string`.
-- Compute `recommendedCredit = "${voiceName} (ElevenLabs AI voice)"` (fallback to current default if no voiceName).
-- On modal open, if `narratorCredit` is empty OR equals the previous default, prefill with `recommendedCredit`.
-- Add a small **"Reset to recommended"** ghost button to the right of the field label that sets the input back to `recommendedCredit`.
-- Add helper text under the input:
-  > *"Shown as 'Narrated by …' on Audible, Spotify, Apple Books and your microsite. ACX requires you to disclose AI/synthetic narration — keep 'ElevenLabs AI voice' (or similar wording) in the credit."*
-- Add inline validation (red text + disable Next button) when:
-  - empty / whitespace, OR
-  - trimmed value equals `bookTitle` (case-insensitive) → *"This looks like your book title, not a narrator name. Try '{recommendedCredit}'."*
-- Validation message + disabled state replace the existing `disabled={!narratorCredit.trim()}` on the Next button.
-
-## Out of scope
-- No DB / edge function changes — `distribute-audiobook` already accepts `narratorCredit` as-is.
-- No changes to Voice step or library asset writer (BA-11 already writes `audio_zip` per Sprint 54).
-
-## Files touched
-- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
 - `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`
+- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
+
+### Expected result
+
+- “Send to PublishNow” stops throwing the edge-function non-2xx error for this flow.
+- The audiobook publish flow uses the correct BA-11 backend.
+- The page will no longer look published before the publish actually succeeds.
+- Library confirmation and Published badge will stay consistent with the real outcome.
+
+### Technical notes
+
+- Root cause confirmed from code and backend data:
+  - UI currently invokes `distribute-audiobook`
+  - Current BA-11 comment/path expects `ba11-publish-audiobook`
+  - The affected book stores `books.author_id` as the author profile ID, not the auth user ID
+- The newer `ba11-publish-audiobook` function already handles author profile resolution, legacy/canonical audio paths, ZIP generation, author_nodes live state, and library-facing publish metadata more safely.
+- No database schema changes are needed for this fix.
