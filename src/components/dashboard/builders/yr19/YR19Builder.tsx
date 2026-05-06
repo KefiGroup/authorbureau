@@ -100,22 +100,30 @@ export default function YR19Builder({ authorId, bookId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: e } = await supabase.functions.invoke("generate-yr19-coaching", { body: { author_id: authorId, book_id: bookId ?? null } });
+      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
+      const { data, error: e } = await invokeWithTimeout<any>("generate-yr19-coaching", { author_id: authorId, book_id: activeBookId }, 90000);
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Generation failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-19", nodeName: "Coaching", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-19", nodeName: "Coaching", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
   const handlePublish = async () => {
-    setStep(3);
+    if (isPublishing) return;
+    if (!authorId || !authorSlug) { toast.error("Profile not ready — please wait a moment."); return; }
     setError(null);
+    setIsPublishing(true);
     try {
-      await publishNodeToSite(authorId!, "YR-19", authorSlug);
+      await autosaveBuilderDraft({ authorId, nodeId: "YR-19", nodeName: "Coaching", content: { ...(content || {}), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
+      await publishNodeToSite(authorId, "YR-19", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
+      setStep(3);
+      toast.success("Your Coaching practice is live on your site.");
     } catch (e: any) {
       setError(e.message);
-      setStep(2);
+      toast.error(`Publish failed: ${e?.message ?? "Unknown error"}`);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
