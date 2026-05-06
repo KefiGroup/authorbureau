@@ -99,7 +99,9 @@ Deno.serve(async (req: Request) => {
   try {
     const startedAt = Date.now();
     const ttsRes = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_128`,
+      // 192 kbps — closest ElevenLabs preset to ACX/Audible spec (192 kbps CBR).
+      // Still stereo + 44.1 kHz; author converts to mono in Audacity per ACX-UPLOAD-GUIDE.txt in the export pack.
+      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?output_format=mp3_44100_192`,
       {
         method: "POST",
         headers: {
