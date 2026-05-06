@@ -36,25 +36,56 @@ export default function YR19Builder({ authorId, bookId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
+  const [isPublishing, setIsPublishing] = useState(false);
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
+    let cancelled = false;
     (async () => {
       const { data: p } = await supabase.from("author_profiles").select("pen_name, author_slug, user_id").eq("id", authorId).single();
+      if (cancelled) return;
       setAuthorName(p?.pen_name || "there");
       setAuthorSlug(p?.author_slug || "");
       const { resolveBookTitle: _rbt } = await import("@/lib/resolve-book-title");
-      const _t = await _rbt(authorId, bookId ?? null, p?.user_id);
+      const _t = await _rbt(authorId, activeBookId, p?.user_id);
+      if (cancelled) return;
       if (_t) setBookTitle(_t);
-      const __draft = await loadBuilderDraft(authorId, "YR-19", bookId ?? null);
+
+      // Tier 1: shared autosave draft
+      const __draft = await loadBuilderDraft(authorId, "YR-19", activeBookId);
+      if (cancelled) return;
       if (__draft.content) {
-        setContent(__draft.content);
-        { const _saved = (__draft.content as any)?._currentStep; setStep(__draft.isLive ? (3) : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
+        const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
+        const savedStep = __draft.currentStep ?? 0;
+        const isHalfPublished = !isActuallyLive && savedStep >= 3;
+        setContent({ ...(__draft.content as any), activated: isActuallyLive });
+        const _saved = (__draft.content as any)?._currentStep;
+        setStep(isActuallyLive ? 3 : isHalfPublished ? 2 : (typeof _saved === "number" ? _saved : Math.max(savedStep, 2)));
+        if (isHalfPublished) toast.info("Your last publish didn't complete — please click Publish again.");
+        setHydrated(true);
+        return;
       }
-          setHydrated(true);
-})();
-  }, [authorId, isAuthReady]);
+
+      // Tier 2: direct author_nodes read scoped by activeBookId
+      let nodeQuery = supabase.from("author_nodes")
+        .select("content_json, status, microsite_url, activated_at, current_step")
+        .eq("author_id", authorId).eq("node_id", "YR-19");
+      if (activeBookId) nodeQuery = nodeQuery.eq("book_id", activeBookId);
+      const { data: node } = await nodeQuery.maybeSingle();
+      if (cancelled) return;
+      if (node?.content_json) {
+        const baseContent = node.content_json as any;
+        const isPublished = node.status === "live" || !!node.activated_at || !!node.microsite_url;
+        const savedStep = typeof baseContent?._currentStep === "number" ? baseContent._currentStep : null;
+        setContent(isPublished ? { ...baseContent, activated: true } : baseContent);
+        setStep(isPublished ? 3 : (savedStep !== null ? savedStep : 2));
+      }
+      setHydrated(true);
+    })();
+    return () => { cancelled = true; };
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
