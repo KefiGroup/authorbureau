@@ -94,6 +94,18 @@ export function toAbbyError(err: any): string {
   if (raw.includes("failed to fetch") || raw.includes("network") || raw.includes("networkerror")) {
     return FRIENDLY_NETWORK;
   }
+  if (
+    raw.includes("ai gateway") ||
+    raw.includes("502") ||
+    raw.includes("503") ||
+    raw.includes("504") ||
+    (raw.includes("500") && raw.includes("ai"))
+  ) {
+    return FRIENDLY_AI_TRANSIENT;
+  }
+  if (raw.includes("did not contain valid json") || raw.includes("malformed") || raw.includes("unexpected token")) {
+    return FRIENDLY_AI_MALFORMED;
+  }
   if (raw.includes("publish failed") || raw.includes("activate") && raw.includes("fail")) {
     return FRIENDLY_PUBLISH;
   }
