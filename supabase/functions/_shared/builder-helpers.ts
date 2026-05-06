@@ -44,6 +44,20 @@ export function errorMessage(err: unknown): string {
  * swallowing the body behind a non-2xx error.
  */
 export function failResponse(error: string, diagnostics?: Record<string, unknown>) {
+  // Best-effort log so admins see the underlying failure even when the
+  // friendly message is shown to the user. Coded errors (UPPER_SNAKE: ...)
+  // are user-actionable and skipped to avoid log noise.
+  if (!/^[A-Z][A-Z0-9_]+:\s/.test(error)) {
+    try {
+      logError({
+        source: "edge_function",
+        function_name: diagnostics?.function_name as string | undefined,
+        severity: "error",
+        message: error,
+        context: diagnostics ?? null,
+      });
+    } catch (_e) { /* swallow */ }
+  }
   return new Response(
     JSON.stringify({ success: false, error, diagnostics: diagnostics ?? null }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
