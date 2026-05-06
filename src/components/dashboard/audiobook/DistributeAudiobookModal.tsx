@@ -163,8 +163,10 @@ export default function DistributeAudiobookModal({
       }
       if (data?.error) throw new Error(data.error);
       if (data && data.success === false) throw new Error(data.message || "Publish failed");
-      toast({ title: "Audiobook sent to PublishNow!", description: "You can track distribution status in the AI Publishing Studio." });
-      onOpenChange(false);
+      setResultZipUrl(data?.zipUrl || "");
+      setResultMicrositeUrl(data?.micrositeUrl || data?.publicAuthorPageUrl || "");
+      toast({ title: "Audiobook published", description: "Live on your author site. Export pack ready for ACX, Spotify & Apple Books." });
+      setStep(4);
       onDistributed();
     } catch (e: any) {
       toast({ title: "Distribution failed", description: e?.message || "Please try again.", variant: "destructive" });
