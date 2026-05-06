@@ -14,7 +14,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { author_id, dry_run = false } = await req.json();
+    const { author_id, dry_run = false, frequency: bodyFreq } = await req.json();
     if (!author_id) throw new Error("author_id required");
 
     const supabase = createClient(
@@ -25,10 +25,18 @@ serve(async (req) => {
     // 1. Author + email
     const { data: author } = await supabase
       .from("author_profiles")
-      .select("id, pen_name, user_id, author_slug")
+      .select("id, pen_name, user_id, author_slug, report_frequency")
       .eq("id", author_id)
       .maybeSingle();
     if (!author) throw new Error("Author not found");
+
+    const frequency: "daily" | "weekly" | "monthly" =
+      (bodyFreq as any) || (author as any).report_frequency || "weekly";
+    const periodLabel = frequency === "daily" ? "Yesterday"
+      : frequency === "weekly" ? "This week" : "This month";
+    const frequencyLabel = frequency === "daily" ? "daily"
+      : frequency === "weekly" ? "weekly" : "monthly";
+    const windowDays = frequency === "daily" ? 1 : frequency === "weekly" ? 7 : 30;
 
     const { data: userData } = await supabase.auth.admin.getUserById(author.user_id);
     const email = userData?.user?.email;
