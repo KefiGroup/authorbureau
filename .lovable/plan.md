@@ -1,22 +1,30 @@
-## Why it looks unpublished
+## Fix: BA-15, BA-16, BA-17, BA-18, YR-26, YR-28 stuck on "Coming Soon"
 
-Both top steppers are static — they only check the in-memory `stepIdx` (which step the user is on), not whether the audiobook is actually published. So even after publish + refresh, the icons stay grey because the user is still "on" step 4, not past it.
+### Cause
+`useBookNodeProgress.ts` ignores DB gating for any node hard-coded as `status: "planned"` in `abbyFrameworkConfig.ts`. The companion helper `getEffectiveNodeStatus` already handles this correctly — the hook just diverged.
 
-## Fix — two tiny edits in `src/components/dashboard/builders/ba11/BA11Builder.tsx`
+### Change (1 file, 1 line)
+**`src/hooks/useBookNodeProgress.ts`** (around line 188–190)
 
-**1. Top stepper (Introduction → Generating → Review → Publish)** — line 317:
-```tsx
-<StepHeader nodeId="BA-11" nodeName="Audiobook"
-  step={stepData.publishedAt ? 4 : intro ? 0 : 2} />
+Replace:
+```ts
+const isOpen = !openNodeIds || openNodeIds.has(n.id) || n.status === "available";
+const effectiveStatus: AbbyNode["status"] =
+  n.status === "planned" ? "planned" : isOpen ? "available" : (n.status as any);
 ```
-When `publishedAt` exists, pass step=4 so all 4 circles render as ✓ done.
 
-**2. Inner 5-icon stepper (Setup → Manuscript → Voice → Production → Publish & Distribute)** — lines 356–360:
-```tsx
-const isPublished = !!stepData.publishedAt;
-const active = i === stepIdx && !isPublished;
-const done = i < stepIdx || isPublished;
+With:
+```ts
+const isOpen = !openNodeIds || openNodeIds.has(n.id) || n.status === "available";
+const effectiveStatus: AbbyNode["status"] = isOpen
+  ? "available"
+  : (n.status as any);
 ```
-When published, every icon flips to the "done" style (gold check on accent background).
 
-No backend changes. No new state. Approve and I'll make the edit.
+This mirrors the canonical rule already used in `getEffectiveNodeStatus()`: if `node_gating.is_open = true`, lift the status to `"available"` regardless of whether the hard-coded default was `"coming-soon"` or `"planned"`.
+
+### Result
+After the fix the six BA/YR cards will render as **Ready to Build** with their normal "Build This Product →" CTA on the Brand/Build/Yield product hubs and Book Hub stepper, matching their existing `node_gating.is_open = true` state in the DB.
+
+### Out of scope
+No DB changes (gating is already correct). No config changes (hard-coded `"planned"` defaults stay as the safe fallback when DB hasn't loaded). No changes to other consumers — `BusinessFramework.tsx` and `StepDetailView.tsx` already use the correct helper.
