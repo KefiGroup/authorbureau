@@ -186,8 +186,9 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
           const code = NODE_CODE_MAP[n.id] || n.id.toUpperCase();
           // Determine effective status from gating data
           const isOpen = !openNodeIds || openNodeIds.has(n.id) || n.status === "available";
-          const effectiveStatus: AbbyNode["status"] =
-            n.status === "planned" ? "planned" : isOpen ? "available" : (n.status as any);
+          const effectiveStatus: AbbyNode["status"] = isOpen
+            ? "available"
+            : (n.status as any);
 
           let state: NodeStatus;
           const dbStatus = statusByCode[code];
