@@ -193,6 +193,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
         nodeName: "Audiobook",
         content: { studio: nextStudio, _currentStep: stepIdx },
         currentStep: stepIdx,
+        bookId: targetBookId,
       });
     })();
     return () => { cancelled = true; };
@@ -212,6 +213,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
       nodeName: "Audiobook",
       content: { studio: data, _currentStep: currentStep },
       currentStep,
+      bookId: effectiveBookId || null,
     });
   };
 
