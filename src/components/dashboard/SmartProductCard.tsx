@@ -303,19 +303,29 @@ export default function SmartProductCard({
             ? personalizedDescription
             : state === "in-progress" && progressPercent !== undefined
             ? `${progressPercent}% complete — continue where you left off`
+            : state === "published"
+            ? `100% complete — Live`
             : description}
         </p>
 
-        {/* Progress bar for in-progress */}
-        {state === "in-progress" && progressPercent !== undefined && (
+        {/* Progress bar — shown for in-progress (partial) and published (full) */}
+        {((state === "in-progress" && progressPercent !== undefined) || state === "published") && (
           <div className="space-y-1">
             <div className="h-1.5 w-full rounded-full bg-muted">
               <div
-                className={`h-full rounded-full transition-all ${pendingTokens.strip}`}
-                style={{ width: `${progressPercent}%` }}
+                className={`h-full rounded-full transition-all ${
+                  state === "published" ? "bg-green-500" : pendingTokens.strip
+                }`}
+                style={{ width: `${state === "published" ? 100 : progressPercent}%` }}
               />
             </div>
-            <p className={`text-[9px] font-medium text-right ${pendingTokens.iconText}`}>{progressPercent}%</p>
+            <p
+              className={`text-[9px] font-medium text-right ${
+                state === "published" ? "text-green-600 dark:text-green-400" : pendingTokens.iconText
+              }`}
+            >
+              {state === "published" ? 100 : progressPercent}%
+            </p>
           </div>
         )}
         {showEconomics && (
