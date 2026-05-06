@@ -141,17 +141,20 @@ Generate this report's insight and top action.`,
     }
 
     // 4. Send transactional email
+    const today = now.toISOString().slice(0, 10);
     const sendRes = await supabase.functions.invoke("send-transactional-email", {
       body: {
         templateName: "abby-daily-report",
         recipientEmail: email,
-        idempotencyKey: `abby-daily-${author_id}-${yStart.toISOString().slice(0, 10)}`,
+        idempotencyKey: `abby-${frequency}-${author_id}-${today}`,
         templateData: {
           authorName: author.pen_name || "Author",
           insight,
           topAction,
-          leadsToday: stats.leadsToday,
-          leadsWeek: stats.leadsWeek,
+          frequencyLabel,
+          periodLabel,
+          leadsPeriod: stats.leadsPeriod,
+          revenuePeriod: stats.revenuePeriod,
           revenueMonth: stats.revenueMonth,
           activeNodes: stats.activeNodes,
           hotLeads: stats.hotLeads,
