@@ -110,27 +110,62 @@ export default function DistributeAudiobookModal({
     toast({ title: "Cover updated" });
   };
 
-  const handleSend = async () => {
-    setSending(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("ba11-publish-audiobook", {
-        body: {
+  const callPublish = async (token: string) => {
+    const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+    const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+    const url = `https://${projectId}.supabase.co/functions/v1/ba11-publish-audiobook`;
+    return fetchWithTimeout(
+      url,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: anonKey,
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           bookId,
           narratorCredit: narratorCredit.trim(),
           previewChapterIndex: parseInt(previewChapterIndex),
           description: description.trim(),
           coverImageUrl,
           mode: "publish",
-        },
-      });
-      if (error) throw error;
+        }),
+      },
+      90000,
+    );
+  };
+
+  const handleSend = async () => {
+    setSending(true);
+    try {
+      let token = await getActiveToken();
+      if (!token) {
+        toast({ title: "Please sign in again", description: "Your session has expired.", variant: "destructive" });
+        setSending(false);
+        return;
+      }
+      let res = await callPublish(token);
+      if (res.status === 401) {
+        const refreshed = await getActiveToken({ forceRefresh: true });
+        if (refreshed) {
+          token = refreshed;
+          res = await callPublish(token);
+        }
+      }
+      const text = await res.text();
+      let data: any = null;
+      try { data = text ? JSON.parse(text) : null; } catch { data = { raw: text }; }
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+      }
       if (data?.error) throw new Error(data.error);
       if (data && data.success === false) throw new Error(data.message || "Publish failed");
       toast({ title: "Audiobook sent to PublishNow!", description: "You can track distribution status in the AI Publishing Studio." });
       onOpenChange(false);
       onDistributed();
-    } catch (e) {
-      toast({ title: "Distribution failed", description: e.message || "Please try again.", variant: "destructive" });
+    } catch (e: any) {
+      toast({ title: "Distribution failed", description: e?.message || "Please try again.", variant: "destructive" });
     }
     setSending(false);
   };
