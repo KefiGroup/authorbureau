@@ -2,10 +2,9 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Rocket, Send, Headphones, Clock, Library, CheckCircle2 } from "lucide-react";
+import { Rocket, Send, Headphones, Clock, Library, CheckCircle2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { toAbbyError } from "@/lib/abby-error";
 import DistributeAudiobookModal from "@/components/dashboard/audiobook/DistributeAudiobookModal";
 import AudiobookExportCard from "./AudiobookExportCard";
 
@@ -36,25 +35,13 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
   const published = !!stepData.publishedAt;
 
   const [distOpen, setDistOpen] = useState(false);
-  const [publishing, setPublishing] = useState(false);
 
-  const openDistribution = async () => {
+  const openDistribution = () => {
     if (ready.length === 0) {
       toast({ title: "No audio ready", description: "Generate at least one chapter first.", variant: "destructive" });
       return;
     }
-    setPublishing(true);
-    try {
-      // Mark draft as published locally — distribution modal handles the registry write via ba11-publish-audiobook.
-      const next = { ...stepData, publishedAt: new Date().toISOString() };
-      setStepData(next);
-      onMarkEdited("publish");
-      setDistOpen(true);
-    } catch (e) {
-      toast({ title: "Publish failed", description: toAbbyError(e), variant: "destructive" });
-    } finally {
-      setPublishing(false);
-    }
+    setDistOpen(true);
   };
 
   return (
@@ -79,9 +66,8 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         </div>
       </Card>
 
-      <Button size="lg" className="w-full" onClick={openDistribution} disabled={publishing || ready.length === 0}>
-        {publishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> :
-         published ? <Send className="h-4 w-4 mr-2" /> : <Rocket className="h-4 w-4 mr-2" />}
+      <Button size="lg" className="w-full" onClick={openDistribution} disabled={ready.length === 0}>
+        {published ? <Send className="h-4 w-4 mr-2" /> : <Rocket className="h-4 w-4 mr-2" />}
         {published ? "Open distribution again" : "Publish & Open Distribution"}
       </Button>
 
@@ -120,6 +106,9 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         voiceName={voiceName}
         chapters={ready.map((c) => ({ index: c.index, title: c.title, audioUrl: c.audioUrl }))}
         onDistributed={() => {
+          const next = { ...stepData, publishedAt: new Date().toISOString() };
+          setStepData(next);
+          onMarkEdited("publish");
           toast({ title: "Audiobook saved to My Library", description: "ZIP + ACX guide ready to download." });
         }}
       />

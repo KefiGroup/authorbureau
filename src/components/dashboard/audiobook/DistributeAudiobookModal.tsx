@@ -112,17 +112,19 @@ export default function DistributeAudiobookModal({
   const handleSend = async () => {
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("distribute-audiobook", {
+      const { data, error } = await supabase.functions.invoke("ba11-publish-audiobook", {
         body: {
           bookId,
           narratorCredit: narratorCredit.trim(),
           previewChapterIndex: parseInt(previewChapterIndex),
           description: description.trim(),
           coverImageUrl,
+          mode: "publish",
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
+      if (data && data.success === false) throw new Error(data.message || "Publish failed");
       toast({ title: "Audiobook sent to PublishNow!", description: "You can track distribution status in the AI Publishing Studio." });
       onOpenChange(false);
       onDistributed();
