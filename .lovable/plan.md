@@ -1,34 +1,42 @@
-## Fix BA-11 distribution failure
+## Fix BA-11 publish 401 Unauthorized
 
-I found the issue: the BA-11 modal is still wired to the old `distribute-audiobook` backend, but the current BA-11 flow expects `ba11-publish-audiobook`.
+Replace the `supabase.functions.invoke('ba11-publish-audiobook', ...)` call in `DistributeAudiobookModal.tsx` with a direct `fetch` using the project's standard shared-backend auth pattern.
 
-For this book, the old function rejects the request because it checks ownership using `books.author_id === loggedInUserId`, while this project has books where `books.author_id` stores the author profile ID instead. That causes the 403/non-2xx error you saw. The UI also marks the audiobook as Published before the backend call actually succeeds, which makes the state feel inconsistent.
+### Change
 
-### What I’ll change
+In `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`:
 
-1. Update the BA-11 distribution modal to call `ba11-publish-audiobook` instead of `distribute-audiobook`.
-2. Pass the same payload the newer BA-11 publish function expects, so the publish/package flow uses the backend already built for this node.
-3. Remove the premature local `publishedAt` success state from the button flow so BA-11 only shows Published / Library success after the backend returns success.
-4. Keep the existing narrator-credit helper text, reset button, and validation exactly as implemented.
-5. Make the success toast and library messaging reflect the real backend outcome, so users only see “saved to My Library” after a successful publish.
+1. Import `getActiveToken` and `fetchWithTimeout` from `@/lib/get-active-token`.
+2. Replace the `supabase.functions.invoke(...)` call with:
+   - Resolve token via `await getActiveToken()`.
+   - On missing token, show a clear "Please sign in again" error.
+   - POST to `https://${VITE_SUPABASE_PROJECT_ID}.supabase.co/functions/v1/ba11-publish-audiobook` with headers:
+     - `Authorization: Bearer <token>`
+     - `apikey: <VITE_SUPABASE_PUBLISHABLE_KEY>`
+     - `Content-Type: application/json`
+   - Use `fetchWithTimeout` (90s) to avoid premature aborts on ZIP packaging.
+   - Parse response; on non-2xx surface `data.error || data.message` to toast.
+   - On retryable 401, do one `getActiveToken({ forceRefresh: true })` retry.
+3. Keep payload identical (`mode: "publish"`, bookId, chapters, voiceName, etc.).
+4. Only call `onDistributed()` after a confirmed 2xx success — preserves the existing fix where Published badge + Library confirmation only appear post-success.
 
-### Files to update
+### Why
 
-- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`
-- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
+- Edge function logs show 401 on `ba11-publish-audiobook`.
+- This project uses the shared backend; valid JWT lives in localStorage under `authorsbureau-shared-auth`, not the project-local Supabase client session.
+- `supabase.functions.invoke` attaches the project-local session/anon key, which the function's resolver rejects.
+- `getActiveToken()` + direct fetch is the canonical pattern (per Shared Backend Token Standard memory) used across BA-11 generators and all other working builders.
+
+### Files
+
+- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx` (only file changed)
+
+### Out of scope
+
+- No edge function changes (`ba11-publish-audiobook` already uses canonical `_shared/resolve-user.ts`).
+- No DB or schema changes.
+- No changes to `AudiobookPublishStep.tsx` — already correct after prior fix.
 
 ### Expected result
 
-- “Send to PublishNow” stops throwing the edge-function non-2xx error for this flow.
-- The audiobook publish flow uses the correct BA-11 backend.
-- The page will no longer look published before the publish actually succeeds.
-- Library confirmation and Published badge will stay consistent with the real outcome.
-
-### Technical notes
-
-- Root cause confirmed from code and backend data:
-  - UI currently invokes `distribute-audiobook`
-  - Current BA-11 comment/path expects `ba11-publish-audiobook`
-  - The affected book stores `books.author_id` as the author profile ID, not the auth user ID
-- The newer `ba11-publish-audiobook` function already handles author profile resolution, legacy/canonical audio paths, ZIP generation, author_nodes live state, and library-facing publish metadata more safely.
-- No database schema changes are needed for this fix.
+- "Send to PublishNow" returns 200, ZIP + ACX guide save to Library, Published badge + green Library link render only after success.
