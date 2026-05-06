@@ -90,6 +90,104 @@ export function parseAiJson(raw: string): any {
 }
 
 /**
+ * Resilient AI gateway caller.
+ *  - Auto-retries on 408/429/500/502/503/504 + network errors (max 3 tries).
+ *  - Exponential backoff with jitter (400ms → 1.2s → 3.6s).
+ *  - Throws coded errors that toAbbyError() recognises.
+ *
+ * Body MUST follow the OpenAI-compatible chat-completions schema.
+ */
+export async function callAiGateway(
+  body: Record<string, unknown>,
+  opts: { functionName?: string; maxRetries?: number } = {},
+): Promise<any> {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) {
+    throw new Error("AI_UNAVAILABLE: ABBY's AI service is not configured. Please contact support.");
+  }
+  const max = opts.maxRetries ?? 2; // 2 retries = 3 attempts total
+  const TRANSIENT = new Set([408, 425, 429, 500, 502, 503, 504]);
+  let lastErr: unknown = null;
+
+  for (let attempt = 0; attempt <= max; attempt++) {
+    try {
+      const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) return await res.json();
+
+      const errText = await res.text().catch(() => "");
+      // Hard, non-retryable client errors → fail immediately with a coded message.
+      if (res.status === 401 || res.status === 403) {
+        throw new Error("AI_AUTH: ABBY's AI credentials need attention. Please contact support.");
+      }
+      if (res.status === 402) {
+        throw new Error("AI_CREDITS: ABBY's AI credits need topping up. Please contact support so we can recharge.");
+      }
+      if (!TRANSIENT.has(res.status) && attempt === max) {
+        throw new Error(aiGatewayErrorMessage(res.status, errText));
+      }
+      lastErr = new Error(`AI gateway ${res.status}: ${errText.slice(0, 200)}`);
+    } catch (e) {
+      lastErr = e;
+      // Don't retry coded errors thrown above.
+      if (e instanceof Error && /^AI_(AUTH|CREDITS|UNAVAILABLE):/.test(e.message)) throw e;
+    }
+
+    if (attempt < max) {
+      const delay = 400 * Math.pow(3, attempt) + Math.floor(Math.random() * 200);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+
+  // All retries exhausted — log and surface a friendly recoverable error.
+  try {
+    await logError({
+      source: "edge_function",
+      function_name: opts.functionName ?? "callAiGateway",
+      severity: "error",
+      message: errorMessage(lastErr),
+      context: { stage: "ai_gateway_exhausted" },
+    });
+  } catch (_e) {
+    /* swallow */
+  }
+  throw new Error("AI_TRANSIENT: ABBY's brain is briefly offline. Please click Try Again in a few seconds.");
+}
+
+/**
+ * Robust JSON parser with one auto-repair pass.
+ *  - First tries strict parse.
+ *  - On failure, asks the AI gateway to re-emit valid JSON only (cheap, fast).
+ */
+export async function parseAiJsonResilient(
+  raw: string,
+  repairOpts?: { model?: string; functionName?: string },
+): Promise<any> {
+  try {
+    return parseAiJson(raw);
+  } catch (firstErr) {
+    if (!repairOpts) throw firstErr;
+    try {
+      const repair = await callAiGateway({
+        model: repairOpts.model ?? "google/gemini-2.5-flash-lite",
+        max_completion_tokens: 4096,
+        messages: [
+          { role: "system", content: "You repair malformed JSON. Output ONLY valid JSON, no markdown, no commentary." },
+          { role: "user", content: `Repair this into valid JSON only:\n\n${raw.slice(0, 12000)}` },
+        ],
+      }, { functionName: `${repairOpts.functionName ?? "parseAiJsonResilient"}:repair`, maxRetries: 1 });
+      const repaired = repair?.choices?.[0]?.message?.content || "";
+      return parseAiJson(repaired);
+    } catch (_repairErr) {
+      throw new Error("AI_MALFORMED: ABBY's reply got mangled. Please click Try Again — she usually nails it on the second pass.");
+    }
+  }
+}
+
+/**
  * Resolve the author's book using profile id, auth user id, or owner email.
  * If a specific bookId is provided, returns that book IF it belongs to the
  * author; otherwise falls back to the latest. Returns null if nothing found.
