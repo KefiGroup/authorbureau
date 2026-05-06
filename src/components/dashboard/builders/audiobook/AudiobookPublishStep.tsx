@@ -38,23 +38,12 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
   const [distOpen, setDistOpen] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
-  const openDistribution = async () => {
+  const openDistribution = () => {
     if (ready.length === 0) {
       toast({ title: "No audio ready", description: "Generate at least one chapter first.", variant: "destructive" });
       return;
     }
-    setPublishing(true);
-    try {
-      // Mark draft as published locally — distribution modal handles the registry write via ba11-publish-audiobook.
-      const next = { ...stepData, publishedAt: new Date().toISOString() };
-      setStepData(next);
-      onMarkEdited("publish");
-      setDistOpen(true);
-    } catch (e) {
-      toast({ title: "Publish failed", description: toAbbyError(e), variant: "destructive" });
-    } finally {
-      setPublishing(false);
-    }
+    setDistOpen(true);
   };
 
   return (
