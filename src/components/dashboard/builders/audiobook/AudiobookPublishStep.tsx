@@ -35,7 +35,6 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
   const published = !!stepData.publishedAt;
 
   const [distOpen, setDistOpen] = useState(false);
-  const [publishing, setPublishing] = useState(false);
 
   const openDistribution = () => {
     if (ready.length === 0) {
