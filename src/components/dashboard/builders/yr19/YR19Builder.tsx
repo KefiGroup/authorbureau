@@ -88,13 +88,13 @@ export default function YR19Builder({ authorId, bookId }: Props) {
   }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
-    if (step === 1 || (step === 3 && !content?.activated)) {
+    if (step === 1 || (isPublishing && !content?.activated)) {
       const msgs = step === 1 ? GEN_MSGS : ACT_MSGS;
       setMsgIndex(0);
       intervalRef.current = setInterval(() => setMsgIndex(i => (i + 1) % msgs.length), 3000);
       return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
     }
-  }, [step]);
+  }, [step, isPublishing, content?.activated]);
   useEffect(() => { if (step === 2 && content) console.log("[YR-19] step-2 render", content); }, [step, content]);
 
   const handleGenerate = async () => {
