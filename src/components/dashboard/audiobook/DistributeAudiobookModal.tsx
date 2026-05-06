@@ -163,11 +163,14 @@ export default function DistributeAudiobookModal({
       }
       if (data?.error) throw new Error(data.error);
       if (data && data.success === false) throw new Error(data.message || "Publish failed");
-      setResultZipUrl(data?.zipUrl || "");
-      setResultMicrositeUrl(data?.micrositeUrl || data?.publicAuthorPageUrl || "");
-      toast({ title: "Audiobook published", description: "Live on your author site. Export pack ready for ACX, Spotify & Apple Books." });
+      const zip = data?.zipUrl || "";
+      const ms = data?.micrositeUrl || data?.publicAuthorPageUrl || "";
+      setResultZipUrl(zip);
+      setResultMicrositeUrl(ms);
+      const msPretty = ms ? ` Live at ${ms}.` : "";
+      toast({ title: "Audiobook published", description: `Saved to Library.${msPretty} Export pack ready for ACX, Spotify & Apple Books.` });
       setStep(4);
-      onDistributed();
+      onDistributed({ zipUrl: zip, micrositeUrl: ms });
     } catch (e: any) {
       toast({ title: "Distribution failed", description: e?.message || "Please try again.", variant: "destructive" });
     }
