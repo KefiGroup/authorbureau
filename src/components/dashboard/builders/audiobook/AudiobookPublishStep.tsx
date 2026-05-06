@@ -66,9 +66,8 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         </div>
       </Card>
 
-      <Button size="lg" className="w-full" onClick={openDistribution} disabled={publishing || ready.length === 0}>
-        {publishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> :
-         published ? <Send className="h-4 w-4 mr-2" /> : <Rocket className="h-4 w-4 mr-2" />}
+      <Button size="lg" className="w-full" onClick={openDistribution} disabled={ready.length === 0}>
+        {published ? <Send className="h-4 w-4 mr-2" /> : <Rocket className="h-4 w-4 mr-2" />}
         {published ? "Open distribution again" : "Publish & Open Distribution"}
       </Button>
 
