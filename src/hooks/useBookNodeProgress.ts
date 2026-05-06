@@ -92,6 +92,19 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [tick, setTick] = useState(0);
 
+  // Auto-refresh on tab focus / visibility so the in-progress overlay
+  // catches changes a builder made in another tab without a hard reload.
+  useEffect(() => {
+    const bump = () => setTick((t) => t + 1);
+    const onVis = () => { if (document.visibilityState === "visible") bump(); };
+    window.addEventListener("focus", bump);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", bump);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -100,9 +113,19 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
       try {
         const { data: profile } = await supabase
           .from("author_profiles")
-          .select("id, author_slug")
+          .select("id, author_slug, pen_name")
           .eq("user_id", user.id)
           .maybeSingle();
+        // Widen to sibling profiles sharing the same pen_name (SSO accounts).
+        const profileIds: string[] = profile?.id ? [profile.id] : [];
+        if (profile?.pen_name) {
+          const { data: siblings } = await supabase
+            .from("author_profiles")
+            .select("id")
+            .eq("pen_name", profile.pen_name)
+            .neq("id", profile.id);
+          (siblings || []).forEach((s: any) => profileIds.push(s.id));
+        }
 
         const map: Record<string, "completed" | "in-progress"> = {};
 
@@ -133,11 +156,11 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
         }
 
         // ---- IN-PROGRESS OVERLAY — only adds rows that author-stats hasn't already counted ----
-        if (profile?.id) {
+        if (profileIds.length > 0) {
           const { data: nodes } = await supabase
             .from("author_nodes")
             .select("node_id, status, content_json, book_id")
-            .eq("author_id", profile.id);
+            .in("author_id", profileIds);
 
           (nodes || []).forEach((n: any) => {
             const isAuthorLevel = AUTHOR_LEVEL_NODES.has(n.node_id);

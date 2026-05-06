@@ -36,6 +36,24 @@ export function useNodeLiveStats(bookId?: string | null): {
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0);
 
+  // Auto-refresh on tab focus / visibility change so coming back from a
+  // builder always reflects the latest author_nodes rows. Also poll every
+  // 30s while the tab is visible as a safety net.
+  useEffect(() => {
+    const bump = () => setTick((t) => t + 1);
+    const onVis = () => { if (document.visibilityState === "visible") bump(); };
+    window.addEventListener("focus", bump);
+    document.addEventListener("visibilitychange", onVis);
+    const interval = setInterval(() => {
+      if (document.visibilityState === "visible") bump();
+    }, 30000);
+    return () => {
+      window.removeEventListener("focus", bump);
+      document.removeEventListener("visibilitychange", onVis);
+      clearInterval(interval);
+    };
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
     async function load() {
@@ -45,18 +63,31 @@ export function useNodeLiveStats(bookId?: string | null): {
       }
       setLoading(true);
       try {
-        const { data: profile } = await supabase
+        // Resolve ALL author_profiles for this person (sibling profiles share a
+        // pen_name across SSO accounts). Mirrors the author-stats edge function
+        // so the dashboard cards never miss rows owned by a sibling profile.
+        const { data: myProfile } = await supabase
           .from("author_profiles")
-          .select("id")
+          .select("id, pen_name")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (!profile?.id) {
+        if (!myProfile?.id) {
           if (!cancelled) {
             setByCode({});
             setLoading(false);
           }
           return;
         }
+        const profileIds: string[] = [myProfile.id];
+        if (myProfile.pen_name) {
+          const { data: siblings } = await supabase
+            .from("author_profiles")
+            .select("id")
+            .eq("pen_name", myProfile.pen_name)
+            .neq("id", myProfile.id);
+          (siblings || []).forEach((s: any) => profileIds.push(s.id));
+        }
+
         // Always fetch ALL of the author's rows. Book scoping is applied
         // per-row below so author-level nodes (email, podcast, social, YR-*)
         // count on every book's dashboard, while book-specific products
@@ -64,7 +95,7 @@ export function useNodeLiveStats(bookId?: string | null): {
         const { data: rows } = await supabase
           .from("author_nodes")
           .select("node_id, status, revenue_to_date, activated_at, current_step, book_id, microsite_url, content_json")
-          .eq("author_id", profile.id);
+          .in("author_id", profileIds);
 
         const map: Record<string, NodeLiveStats> = {};
         // Pick the most-progressed row per node_id (in case multiple books).
@@ -106,6 +137,15 @@ export function useNodeLiveStats(bookId?: string | null): {
         if (!cancelled) {
           setByCode(map);
           setLoading(false);
+          if (import.meta.env.DEV) {
+            const inProgressIds = Object.entries(map)
+              .filter(([, v]) => v.effectiveStatus === "content_ready" || v.effectiveStatus === "draft")
+              .map(([k]) => k);
+            // eslint-disable-next-line no-console
+            console.debug(
+              `[useNodeLiveStats] profiles=${profileIds.length} bookId=${bookId ?? "any"} in-progress=${JSON.stringify(inProgressIds)}`,
+            );
+          }
         }
       } catch (e) {
         console.error("useNodeLiveStats:", e);

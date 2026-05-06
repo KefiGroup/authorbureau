@@ -55,6 +55,22 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const { byCode: liveStats, refresh: refreshLiveStats } = useNodeLiveStats(primaryBookIdEarly || undefined);
   const { toast } = useToast();
 
+  // Refresh both progress + live stats whenever the dashboard regains focus,
+  // so returning from a builder reflects newly-saved drafts immediately.
+  useEffect(() => {
+    const onFocus = () => {
+      progress.refresh();
+      refreshLiveStats();
+    };
+    const onVis = () => { if (document.visibilityState === "visible") onFocus(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVis);
+    };
+  }, [progress, refreshLiveStats]);
+
   useEffect(() => {
     async function fetchBooks() {
       if (!user) { setBookLoading(false); return; }
