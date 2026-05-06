@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Loader2, ArrowLeft, ArrowRight, Send, CheckCircle2, Image as ImageIcon, Upload } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface Chapter {
   index: number;
