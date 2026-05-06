@@ -248,12 +248,28 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     {group.nodes.map((n, idx) => {
                       const isNext = catProgress.nextStep?.id === n.id;
+                      const live = liveStats[n.code];
+                      // Unified progress rule (Sprint 56 consistency fix):
+                      //   - effectiveStatus 'live' → published (100%)
+                      //   - has saved draft/content_ready evidence → in-progress (%)
+                      //   - otherwise fall back to the resolver's state
+                      // This guarantees Webinars, Book Sales, and any other node
+                      // with saved work always render the same way as the rest.
+                      let baseState: ProductCardState = stateMap[n.state];
+                      if (live?.effectiveStatus === "live") {
+                        baseState = "published";
+                      } else if (
+                        live &&
+                        (live.effectiveStatus === "content_ready" || live.effectiveStatus === "draft") &&
+                        baseState !== "published"
+                      ) {
+                        baseState = "in-progress";
+                      }
                       // Only promote available next-step to "recommended". Never demote
                       // completed (already published) or in-progress to recommended.
-                      const cardState: ProductCardState = isNext && n.state === "available"
+                      const cardState: ProductCardState = isNext && baseState === "available"
                         ? "recommended"
-                        : stateMap[n.state];
-                      const live = liveStats[n.code];
+                        : baseState;
                       const prevPublished = group.nodes
                         .slice(0, idx)
                         .reverse()
