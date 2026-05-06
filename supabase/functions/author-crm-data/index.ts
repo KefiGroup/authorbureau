@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -484,7 +485,7 @@ Deno.serve(async (req) => {
         ? `\n\nSUCKCESS Quiz Reader Segments (${totalQuizContacts} quiz completions):\n- Stage 1-2 (Suck): ${readerSegmentCounts.suck} readers\n- Stage 3-4 (Seek): ${readerSegmentCounts.seek} readers\n- Stage 5-6 (Succeed): ${readerSegmentCounts.succeed} readers\n- Stage 7-8 (Sustain): ${readerSegmentCounts.sustain} readers\n\nInclude quiz stage-based segment insights in your analysis. Reference which stages have the most readers and what actions to take for each segment.`
         : "";
 
-      const aiRes = await fetch(AI_GATEWAY, {
+      const aiRes = await fetchAiGateway({
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -513,7 +514,7 @@ Deno.serve(async (req) => {
           }],
           tool_choice: { type: "function", function: { name: "crm_intelligence" } },
         }),
-      });
+      }, "author-crm-data");
 
       if (!aiRes.ok) {
         console.error("AI error:", aiRes.status, await aiRes.text());
@@ -551,7 +552,7 @@ Deno.serve(async (req) => {
       const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
       if (!LOVABLE_API_KEY) return err("AI not configured", 500);
 
-      const aiRes = await fetch(AI_GATEWAY, {
+      const aiRes = await fetchAiGateway({
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -562,7 +563,7 @@ Deno.serve(async (req) => {
           ],
           max_completion_tokens: 200,
         }),
-      });
+      }, "author-crm-data");
 
       if (!aiRes.ok) return err("AI recommendation failed", 500);
       const aiData = await aiRes.json();
