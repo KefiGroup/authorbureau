@@ -25,7 +25,7 @@ interface DistributeAudiobookModalProps {
   bookTitle: string;
   userId: string;
   chapters: Chapter[];
-  onDistributed: () => void;
+  onDistributed: (result?: { zipUrl?: string; micrositeUrl?: string }) => void;
   voiceName?: string;
 }
 
