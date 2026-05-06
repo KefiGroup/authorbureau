@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { toast } from "sonner";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
+import AbbyReportSettingsCard from "@/components/dashboard/AbbyReportSettingsCard";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -460,6 +461,9 @@ export default function RevenueFullDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ABBY Report Settings */}
+        <AbbyReportSettingsCard authorId={authorId} />
 
         {/* ABBY Nudges */}
         <NudgeCards authorId={authorId} />

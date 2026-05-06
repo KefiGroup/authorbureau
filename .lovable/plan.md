@@ -1,60 +1,79 @@
-# Stop the "ABBY hit a snag" banner from reaching users
+## Goal
 
-## Why it happens today
+Let each author choose how often ABBY emails them the business report — **Daily**, **Weekly**, or **Monthly** (with **Off** as a 4th option) — from the analytics dashboard (`/revenue-dashboard`). New default: **Weekly**.
 
-`toAbbyError()` in `src/lib/abby-error.ts` is a *catch-all*. Whenever an edge function fails for a reason it doesn't recognise (timeout in an upstream API, AI gateway 5xx, JSON parse error, missing context, etc.), the fallback string "ABBY hit a snag…" is shown. So the banner is not one bug — it's the visible symptom of *any* unhandled edge-function failure across 28 builders.
+---
 
-To make it rare, we need to (a) prevent the failures, (b) recover automatically when they do happen, and (c) only show the snag banner as a true last resort.
+## 1. Database (migration)
 
-## The plan — 4 layers of defence
+Add to `author_profiles`:
+- `report_frequency` text, default `'weekly'`, check in (`'daily'`,`'weekly'`,`'monthly'`,`'off'`)
+- `report_weekly_day` smallint, default `1` (Mon, 0=Sun…6=Sat) — used when frequency=weekly
+- `report_monthly_day` smallint, default `1` (1–28) — used when frequency=monthly
+- `last_report_sent_at` timestamptz — dedupe guard
 
-### Layer 1 — Server-side resilience (eliminate most failures)
+Backfill: leave existing rows at the new default `'weekly'` (per user instruction "by default is weekly"). Timezone column already exists.
 
-For all `generate-*` and `publish-*` edge functions:
+## 2. Dispatcher logic — `supabase/functions/abby-daily-report-dispatcher/index.ts`
 
-1. **Auto-retry the AI gateway** on `429`, `408`, `500`, `502`, `503`, `504` and network errors — exponential backoff, max 2 retries. Most "snags" today are transient gateway hiccups.
-2. **Retry JSON parse failures** once with a "your previous reply was not valid JSON, return JSON only" follow-up message. Today a single bad token kills the whole call.
-3. **Validate inputs early** and return a *coded* error (`MANUSCRIPT_MISSING: …`, `BOOK_NOT_FOUND: …`) so `toAbbyError()` shows the specific message instead of the generic one. The pass-through for `^[A-Z_]+:` is already wired — we just need every function to use it consistently.
-4. **Always log to `system_error_log`** via `_shared/log-error.ts` with severity `error`, so admins see the underlying cause without waiting for a user report.
+Replace the "always fire at local 8am" filter with frequency-aware logic:
 
-### Layer 2 — Client-side auto-recovery
+```
+local 8am AND
+  (frequency='daily')                                                   OR
+  (frequency='weekly'  AND localWeekday === report_weekly_day)          OR
+  (frequency='monthly' AND localDate    === report_monthly_day)
+AND last_report_sent_at < (now - 12h)   // dedupe
+AND frequency !== 'off'
+```
 
-In `useBuilderGeneration` and `useBuilderPublish`:
+After successful dispatch, stamp `last_report_sent_at = now()`.
 
-1. **Silent retry once** on network/timeout/5xx before surfacing anything to the UI. The user never sees the first transient failure.
-2. **Distinguish recoverable vs terminal errors.** Recoverable → toast + auto-retry. Terminal (validation, auth, payment) → inline message with a clear next action.
-3. **Preserve work.** Already partially done — make sure local draft state is autosaved *before* any generate/publish call so a failed call never loses input.
+## 3. Report generator — `supabase/functions/abby-daily-report/index.ts`
 
-### Layer 3 — Better friendly messaging
+- Accept optional `frequency` in body (defaults to author's stored frequency).
+- Widen the stats window to match cadence:
+  - daily → yesterday
+  - weekly → last 7 days
+  - monthly → last 30 days (or current calendar month)
+- Adjust subject line + intro:
+  - "Your daily business report from ABBY"
+  - "Your weekly business report from ABBY"
+  - "Your monthly business report from ABBY"
+- Pass `frequencyLabel`, `periodLabel` ("Yesterday" / "This week" / "This month") into the email template.
+- Update `abby-daily-report.tsx` template section headers ("Yesterday at a glance" → dynamic).
 
-Tighten `toAbbyError()` so the generic fallback is genuinely the last resort:
+## 4. UI — analytics dashboard
 
-- Add explicit branches for: AI gateway 5xx ("ABBY's brain is briefly offline, retrying…"), JSON parse ("ABBY's reply got mangled, click Try Again"), missing book context, missing manuscript, Stripe-required, library-asset upload failures.
-- The remaining unmatched cases get a shorter, less alarming line ("ABBY couldn't finish that step. Click Try Again.") and a "Report this" link that pre-fills support email with the node ID and timestamp.
+In `src/pages/RevenueFullDashboard.tsx`, add a new card directly under "ABBY's Daily Insight" (rename to "ABBY's Insight"):
 
-### Layer 4 — Visibility & monitoring
+**ABBY Report Settings card**
+- Radio group: Daily · **Weekly (default)** · Monthly · Off
+- Conditional dropdown:
+  - Weekly → day-of-week (Mon–Sun)
+  - Monthly → day-of-month (1–28)
+- Read-only timezone line ("Sent at 8am {timezone}")
+- "Send me a test report now" button → invokes `abby-daily-report` with `{ author_id, frequency: <selected> }` (not `dry_run`, so a real email is sent)
+- Saves on change via `supabase.from('author_profiles').update({ report_frequency, report_weekly_day, report_monthly_day }).eq('id', authorId)` — instant toast confirmation.
 
-1. **Admin Errors tab** already exists (`src/components/admin/ErrorsTab.tsx`). Make every builder funnel its caught errors through `log-error` so the tab becomes the early-warning system.
-2. **Daily ABBY health digest** — extend the existing `abby-daily-report` to surface the top 5 error signatures from the last 24h so the team catches a regression before users do.
-3. **Soft circuit-breaker.** If a single edge function returns 5xx more than N times in 5 minutes, the client shows a maintenance banner ("ABBY is briefly catching her breath") instead of letting every user trigger the same failure.
+## 5. Memory + docs
 
-## Files that will change
+- Update `mem://features/abby-performance-coach-and-nudge-engine` with the cadence rule + default = Weekly.
+- Add a one-liner to `docs/03-abby-ai/` noting the new author preference.
 
-- `src/lib/abby-error.ts` — finer-grained branches, softer fallback copy.
-- `src/hooks/useBuilderGeneration.ts`, `src/hooks/useBuilderPublish.ts` — silent single retry on transient failures, recoverable-vs-terminal split.
-- `supabase/functions/_shared/builder-helpers.ts` — `callAiGateway()` wrapper with retry + JSON-repair, `failResponse()` standardised on coded errors.
-- All `supabase/functions/generate-*` and `publish-*` index.ts — switch to the new helper (mechanical change, no logic rewrite).
-- `supabase/functions/abby-daily-report/index.ts` — append top error signatures.
-- `src/components/admin/ErrorsTab.tsx` — small UX pass: group by signature, show count + last seen.
+## 6. Out of scope
 
-## Out of scope (not changing)
+- No changes to email queue / template registry plumbing.
+- No new cron job — existing hourly dispatcher continues to drive everything.
+- No admin override UI (admins can still SQL-edit if needed).
 
-- The Global Error Boundary fallback — already friendly.
-- Builder UI flows — no visual redesign.
-- Node gating, publishing, or commerce logic.
+---
 
-## Expected outcome
+### Files touched
 
-- Most transient AI gateway and JSON failures recover invisibly (estimate ~70–80% of current snags).
-- Remaining failures show a *specific*, actionable message — never the generic one — except in genuinely unknown cases.
-- Admin gains live visibility so regressions are caught in hours, not weeks.
+- new migration (schema only)
+- `supabase/functions/abby-daily-report-dispatcher/index.ts`
+- `supabase/functions/abby-daily-report/index.ts`
+- `supabase/functions/_shared/transactional-email-templates/abby-daily-report.tsx`
+- `src/pages/RevenueFullDashboard.tsx` (+ small new component `AbbyReportSettingsCard.tsx`)
+- memory + docs updates

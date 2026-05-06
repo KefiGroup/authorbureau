@@ -11,6 +11,10 @@ interface Props {
   insight?: string
   leadsToday?: number
   leadsWeek?: number
+  frequencyLabel?: 'daily' | 'weekly' | 'monthly'
+  periodLabel?: string
+  leadsPeriod?: number
+  revenuePeriod?: number
   revenueMonth?: number
   activeNodes?: number
   hotLeads?: number
@@ -21,21 +25,31 @@ interface Props {
 const fmtMoney = (n?: number) => `$${(n || 0).toLocaleString()}`
 
 const AbbyDailyReportEmail = ({
-  authorName, insight, leadsToday = 0, leadsWeek = 0, revenueMonth = 0,
+  authorName, insight,
+  frequencyLabel = 'daily', periodLabel = 'Yesterday',
+  leadsPeriod, leadsToday = 0,
+  revenuePeriod = 0, revenueMonth = 0,
   activeNodes = 0, hotLeads = 0, topAction, dashboardUrl,
-}: Props) => (
+}: Props) => {
+  const periodLeads = leadsPeriod ?? leadsToday
+  const cadenceTitle = frequencyLabel === 'weekly'
+    ? 'Your Weekly Business Report'
+    : frequencyLabel === 'monthly'
+      ? 'Your Monthly Business Report'
+      : 'Your Daily Business Report'
+  return (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your daily business report from ABBY</Preview>
+    <Preview>{`Your ${frequencyLabel} business report from ABBY`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
           <Heading style={brand}>{SITE_NAME}</Heading>
-          <Text style={tagline}>Your Daily Business Report</Text>
+          <Text style={tagline}>{cadenceTitle}</Text>
         </Section>
         <Hr style={divider} />
         <Heading style={h1}>
-          {authorName ? `Good morning, ${authorName} ☀️` : 'Good morning ☀️'}
+          {authorName ? `Hello, ${authorName} ☀️` : 'Hello ☀️'}
         </Heading>
         {insight && (
           <Section style={insightBox}>
@@ -43,15 +57,15 @@ const AbbyDailyReportEmail = ({
             <Text style={insightText}>{insight}</Text>
           </Section>
         )}
-        <Heading as="h2" style={h2}>Yesterday at a glance</Heading>
+        <Heading as="h2" style={h2}>{periodLabel} at a glance</Heading>
         <Section style={statGrid}>
           <Section style={statCell}>
-            <Text style={statValue}>{leadsToday}</Text>
-            <Text style={statLabel}>New leads</Text>
+            <Text style={statValue}>{periodLeads}</Text>
+            <Text style={statLabel}>New leads ({periodLabel.toLowerCase()})</Text>
           </Section>
           <Section style={statCell}>
-            <Text style={statValue}>{leadsWeek}</Text>
-            <Text style={statLabel}>Leads this week</Text>
+            <Text style={statValue}>{fmtMoney(revenuePeriod)}</Text>
+            <Text style={statLabel}>Revenue ({periodLabel.toLowerCase()})</Text>
           </Section>
           <Section style={statCell}>
             <Text style={statValue}>{fmtMoney(revenueMonth)}</Text>
@@ -88,20 +102,26 @@ const AbbyDailyReportEmail = ({
       </Container>
     </Body>
   </Html>
-)
+  )
+}
 
 export const template = {
   component: AbbyDailyReportEmail,
-  subject: (data: Record<string, any>) =>
-    data.hotLeads && data.hotLeads > 0
-      ? `🔥 ${data.hotLeads} hot lead${data.hotLeads === 1 ? '' : 's'} today + your daily report`
-      : `Your daily business report from ABBY`,
-  displayName: 'ABBY daily report',
+  subject: (data: Record<string, any>) => {
+    const freq = (data.frequencyLabel as string) || 'daily'
+    const cadence = freq === 'weekly' ? 'weekly' : freq === 'monthly' ? 'monthly' : 'daily'
+    return data.hotLeads && data.hotLeads > 0
+      ? `🔥 ${data.hotLeads} hot lead${data.hotLeads === 1 ? '' : 's'} + your ${cadence} report`
+      : `Your ${cadence} business report from ABBY`
+  },
+  displayName: 'ABBY business report',
   previewData: {
     authorName: 'Pauline',
-    insight: 'You added 12 new leads this week — a 40% jump. Time to send a follow-up sequence to convert them.',
-    leadsToday: 4, leadsWeek: 12, revenueMonth: 1450, activeNodes: 8, hotLeads: 2,
-    topAction: 'Follow up with your 2 hot leads — they have ABBY scores above 60.',
+    frequencyLabel: 'weekly',
+    periodLabel: 'This week',
+    insight: 'You added 12 new leads this week, a 40% jump. Time to send a follow-up sequence to convert them.',
+    leadsPeriod: 12, revenuePeriod: 320, revenueMonth: 1450, activeNodes: 8, hotLeads: 2,
+    topAction: 'Follow up with your 2 hot leads, they have ABBY scores above 60.',
     dashboardUrl: 'https://authorsbureau.com/dashboard',
   },
 } satisfies TemplateEntry

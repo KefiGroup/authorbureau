@@ -14,7 +14,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { author_id, dry_run = false } = await req.json();
+    const { author_id, dry_run = false, frequency: bodyFreq } = await req.json();
     if (!author_id) throw new Error("author_id required");
 
     const supabase = createClient(
@@ -25,30 +25,38 @@ serve(async (req) => {
     // 1. Author + email
     const { data: author } = await supabase
       .from("author_profiles")
-      .select("id, pen_name, user_id, author_slug")
+      .select("id, pen_name, user_id, author_slug, report_frequency")
       .eq("id", author_id)
       .maybeSingle();
     if (!author) throw new Error("Author not found");
+
+    const frequency: "daily" | "weekly" | "monthly" =
+      (bodyFreq as any) || (author as any).report_frequency || "weekly";
+    const periodLabel = frequency === "daily" ? "Yesterday"
+      : frequency === "weekly" ? "This week" : "This month";
+    const frequencyLabel = frequency === "daily" ? "daily"
+      : frequency === "weekly" ? "weekly" : "monthly";
+    const windowDays = frequency === "daily" ? 1 : frequency === "weekly" ? 7 : 30;
 
     const { data: userData } = await supabase.auth.admin.getUserById(author.user_id);
     const email = userData?.user?.email;
     if (!email) throw new Error("No email for author");
 
-    // 2. Stats — yesterday window in UTC (close enough for daily aggregate)
+    // 2. Stats — period window scaled to author's chosen frequency
     const now = new Date();
-    const yStart = new Date(now); yStart.setUTCDate(now.getUTCDate() - 1); yStart.setUTCHours(0, 0, 0, 0);
-    const yEnd = new Date(yStart); yEnd.setUTCDate(yStart.getUTCDate() + 1);
-    const weekStart = new Date(now); weekStart.setUTCDate(now.getUTCDate() - 7);
+    const periodStart = new Date(now);
+    periodStart.setUTCDate(now.getUTCDate() - windowDays);
+    periodStart.setUTCHours(0, 0, 0, 0);
     const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
 
-    const [leadsTodayRes, leadsWeekRes, purchasesMonthRes, nodesRes, hotLeadsRes] = await Promise.all([
+    const [leadsPeriodRes, purchasesPeriodRes, purchasesMonthRes, nodesRes, hotLeadsRes] = await Promise.all([
       supabase.from("leads").select("id", { count: "exact", head: true })
         .eq("author_id", author_id)
-        .gte("created_at", yStart.toISOString())
-        .lt("created_at", yEnd.toISOString()),
-      supabase.from("leads").select("id", { count: "exact", head: true })
+        .gte("created_at", periodStart.toISOString()),
+      supabase.from("purchases").select("amount")
         .eq("author_id", author_id)
-        .gte("created_at", weekStart.toISOString()),
+        .gte("created_at", periodStart.toISOString())
+        .is("refunded_at", null),
       supabase.from("purchases").select("amount")
         .eq("author_id", author_id)
         .gte("created_at", monthStart.toISOString())
@@ -63,13 +71,16 @@ serve(async (req) => {
         .limit(5),
     ]);
 
+    const revenuePeriod = (purchasesPeriodRes.data || []).reduce(
+      (s: number, r: any) => s + Number(r.amount || 0), 0,
+    );
     const revenueMonth = (purchasesMonthRes.data || []).reduce(
       (sum: number, r: any) => sum + Number(r.amount || 0), 0,
     );
 
     const stats = {
-      leadsToday: leadsTodayRes.count || 0,
-      leadsWeek: leadsWeekRes.count || 0,
+      leadsPeriod: leadsPeriodRes.count || 0,
+      revenuePeriod,
       revenueMonth,
       activeNodes: nodesRes.count || 0,
       hotLeads: hotLeadsRes.data?.length || 0,
@@ -95,13 +106,13 @@ serve(async (req) => {
               {
                 role: "user",
                 content: `Author: ${author.pen_name || "the author"}
-Yesterday: ${stats.leadsToday} new leads
-This week: ${stats.leadsWeek} leads total
+Cadence: ${frequencyLabel} report (${periodLabel})
+${periodLabel}: ${stats.leadsPeriod} new leads, $${stats.revenuePeriod} revenue
 Revenue MTD: $${stats.revenueMonth}
 Live nodes: ${stats.activeNodes} of 28
 Hot leads waiting: ${stats.hotLeads}
 
-Generate today's insight and top action.`,
+Generate this report's insight and top action.`,
               },
             ],
             max_completion_tokens: 300,
@@ -130,17 +141,20 @@ Generate today's insight and top action.`,
     }
 
     // 4. Send transactional email
+    const today = now.toISOString().slice(0, 10);
     const sendRes = await supabase.functions.invoke("send-transactional-email", {
       body: {
         templateName: "abby-daily-report",
         recipientEmail: email,
-        idempotencyKey: `abby-daily-${author_id}-${yStart.toISOString().slice(0, 10)}`,
+        idempotencyKey: `abby-${frequency}-${author_id}-${today}`,
         templateData: {
           authorName: author.pen_name || "Author",
           insight,
           topAction,
-          leadsToday: stats.leadsToday,
-          leadsWeek: stats.leadsWeek,
+          frequencyLabel,
+          periodLabel,
+          leadsPeriod: stats.leadsPeriod,
+          revenuePeriod: stats.revenuePeriod,
           revenueMonth: stats.revenueMonth,
           activeNodes: stats.activeNodes,
           hotLeads: stats.hotLeads,
