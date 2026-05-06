@@ -30,12 +30,6 @@ interface Props {
   userId: string;
 }
 
-type ChannelKey = "acx" | "spotify" | "apple";
-const CHANNEL_LABELS: Record<ChannelKey, string> = {
-  acx: "Submitted to ACX (Audible)",
-  spotify: "Submitted to Spotify / Findaway",
-  apple: "Submitted to Apple Books",
-};
 
 async function callPublishMode(payload: Record<string, unknown>) {
   const token = await getActiveToken();
@@ -74,14 +68,12 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
   const published = !!stepData.publishedAt;
   const micrositeUrl: string = stepData.micrositeUrl || "";
   const zipUrl: string = stepData.zipUrl || "";
-  const distributionStatus: Record<string, boolean> =
-    stepData.distributionStatus ?? {};
 
   const [distOpen, setDistOpen] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
   const [priceDraft, setPriceDraft] = useState<string>(String(setup.retailPriceUsd ?? "14.99"));
   const [savingPrice, setSavingPrice] = useState(false);
-  const [savingChannel, setSavingChannel] = useState<string | null>(null);
+  
 
   useEffect(() => {
     setPriceDraft(String(setup.retailPriceUsd ?? "14.99"));
@@ -119,25 +111,6 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
       toast({ title: "Could not update price", description: e?.message || "Try again.", variant: "destructive" });
     }
     setSavingPrice(false);
-  };
-
-  const toggleChannel = async (key: ChannelKey) => {
-    const next = !distributionStatus[key];
-    const optimistic = { ...distributionStatus, [key]: next };
-    setStepData({ ...stepData, distributionStatus: optimistic });
-    setSavingChannel(key);
-    try {
-      await callPublishMode({
-        bookId,
-        mode: "update_distribution_status",
-        distributionStatus: { [key]: next },
-      });
-    } catch (e: any) {
-      // revert
-      setStepData({ ...stepData, distributionStatus });
-      toast({ title: "Could not save", description: e?.message || "Try again.", variant: "destructive" });
-    }
-    setSavingChannel(null);
   };
 
   const copyUrl = async () => {
@@ -247,39 +220,10 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
             <ChecklistRow done label="Saved to My Library" />
             <ChecklistRow done label="Live on your author site (Buy Now enabled)" />
             <ChecklistRow done label="Export Pack (ZIP + ACX guide) generated" />
-            {(Object.keys(CHANNEL_LABELS) as ChannelKey[]).map((key) => (
-              <li key={key} className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  {distributionStatus[key] ? (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                  ) : (
-                    <Circle className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className={distributionStatus[key] ? "" : "text-muted-foreground"}>
-                    {CHANNEL_LABELS[key]}
-                  </span>
-                </div>
-                <Button
-                  size="sm"
-                  variant={distributionStatus[key] ? "outline" : "secondary"}
-                  className="h-7 text-xs"
-                  onClick={() => toggleChannel(key)}
-                  disabled={savingChannel === key}
-                >
-                  {savingChannel === key ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  ) : distributionStatus[key] ? (
-                    "Mark unsubmitted"
-                  ) : (
-                    "Mark as submitted"
-                  )}
-                </Button>
-              </li>
-            ))}
           </ul>
           <p className="text-xs text-muted-foreground">
-            ACX, Spotify and Apple Books require manual upload — Authors Bureau does not submit on your behalf.
-            Use the Export Pack above to upload to each retailer, then check them off here to track progress.
+            ACX, Spotify, Apple Books and Findaway require manual upload — Authors Bureau does not submit on your behalf.
+            Download the Export Pack below and follow <strong>ACX-UPLOAD-GUIDE.txt</strong> inside the ZIP for step-by-step instructions per retailer.
           </p>
         </Card>
       )}
