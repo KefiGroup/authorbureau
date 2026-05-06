@@ -461,6 +461,9 @@ export default function RevenueFullDashboard() {
           </CardContent>
         </Card>
 
+        {/* ABBY Report Settings */}
+        <AbbyReportSettingsCard authorId={authorId} />
+
         {/* ABBY Nudges */}
         <NudgeCards authorId={authorId} />
 
