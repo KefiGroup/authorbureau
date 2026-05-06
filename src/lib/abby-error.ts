@@ -6,16 +6,22 @@
  */
 
 const FRIENDLY_DEFAULT =
-  "ABBY hit a snag and needs a moment to recover. Please click 'Try Again' — this usually resolves itself. If it keeps happening, reach out to support.";
+  "ABBY couldn't finish that step. Please click Try Again — your work is saved. If it keeps happening, email support@authorsbureau.com.";
 
 const FRIENDLY_RATE_LIMIT =
   "ABBY is a bit overwhelmed right now. Please wait a few seconds and click 'Try Again'.";
 
 const FRIENDLY_PAYMENT =
-  "ABBY's AI credits need topping up. Please head to Settings → Workspace → Usage to add credits, then try again.";
+  "ABBY's AI credits need topping up. Please contact support@authorsbureau.com so we can recharge.";
 
 const FRIENDLY_TIMEOUT =
   "ABBY took a bit too long to think this through. Please click 'Try Again' — she'll usually nail it on the second pass.";
+
+const FRIENDLY_AI_TRANSIENT =
+  "ABBY's brain is briefly offline. Please click Try Again in a few seconds.";
+
+const FRIENDLY_AI_MALFORMED =
+  "ABBY's reply got mangled. Please click Try Again — she usually nails it on the second pass.";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractMessage(err: any): string {
@@ -87,6 +93,18 @@ export function toAbbyError(err: any): string {
   }
   if (raw.includes("failed to fetch") || raw.includes("network") || raw.includes("networkerror")) {
     return FRIENDLY_NETWORK;
+  }
+  if (
+    raw.includes("ai gateway") ||
+    raw.includes("502") ||
+    raw.includes("503") ||
+    raw.includes("504") ||
+    (raw.includes("500") && raw.includes("ai"))
+  ) {
+    return FRIENDLY_AI_TRANSIENT;
+  }
+  if (raw.includes("did not contain valid json") || raw.includes("malformed") || raw.includes("unexpected token")) {
+    return FRIENDLY_AI_MALFORMED;
   }
   if (raw.includes("publish failed") || raw.includes("activate") && raw.includes("fail")) {
     return FRIENDLY_PUBLISH;
