@@ -1,44 +1,51 @@
-1. Make BA-11 publish write the real saved payload instead of only showing UI success.
-- Update `supabase/functions/ba11-publish-audiobook/index.ts` to first read any existing BA-11 `author_nodes` row, preserve the existing `studio` draft content, and merge the publish fields into it.
-- Persist the canonical `book_id` on the BA-11 row during publish so the node belongs to the current book and appears in per-book progress.
-- Stamp `published_at` into `content_json` and keep `_currentStep: 4` so the builder reliably resumes in the Publish step.
-- Write a canonical `library_asset` for BA-11 using the generated ZIP URL with kind `audio_zip`, so readiness and My Library can use the same source of truth.
-- Return success only after the audiobook row and author-node row are both written successfully; if the author-node update fails, return an error instead of a success payload.
+## What is actually happening (verified)
 
-2. Fix BA-11 library visibility and readiness gating.
-- Update the BA-11 library asset support so My Library can show the audiobook from the saved publish data.
-- Prefer the new canonical `content_json.library_asset` path for BA-11 and add a legacy fallback for `zip_url` / chapter URLs if needed for older rows.
-- Ensure BA-11 readiness in the shared node-readiness contract accepts the canonical `audio_zip` library asset, so the node can count as truly completed from the saved publish output.
-- Keep the dashboard/book-hub counters aligned with the same saved BA-11 data by relying on the merged, book-scoped `author_nodes` row.
+I checked the database directly. Your audiobook **is** fully saved and live:
 
-3. Stop the frontend from claiming success based only on local state.
-- In `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`, stop treating `stepData.publishedAt` alone as proof that publish worked.
-- Drive the success badge/banner from the real backend response and merged saved state, not just the modal callback.
-- Replace the unconditional local success toast with one that only fires after the backend returns the saved publish data needed for Library + author site + export pack.
-- Pass the current `bookId` through all BA-11 autosave/publish paths so later saves do not detach the live row from its book.
+- `audiobooks` row → status `published`, price `$14.99`, linked to *Be SUCKcessful*.
+- `author_nodes` BA-11 row → status `live`, `book_id` set, `microsite_url = /pauline-teo/audiobook`, ZIP file stored, published timestamp present.
+- Public route `https://authorsbureau.com/pauline-teo/audiobook` is wired to render the audiobook microsite (player + chapters + Buy Now button).
+- On `https://authorsbureau.com/pauline-teo`, the *Be SUCKcessful* book card should show an **Audiobook** badge, a **Listen to Audiobook** button, and an **Audiobook · $14.99** row inside *Available formats*.
 
-4. Protect BA-11 from being overwritten by later autosaves.
-- In the BA-11 builder/autosave flow, make sure post-publish draft saves preserve any live publish fields already on the row instead of replacing them with only `{ studio, _currentStep }`.
-- Align BA-11 with the safer merge behavior already used by the older `distribute-audiobook` implementation.
+So the publish DID succeed. What's broken is the **author-facing visibility** of where it went and how to manage price/next steps.
 
-5. Verify the real saved outputs after the fix.
-- Confirm a publish creates/updates:
-  - an `audiobooks` row with `status='published'`
-  - a BA-11 `author_nodes` row with `status='live'`, the correct `book_id`, `chapter_urls`, `zip_url`, `published_at`, and `library_asset.kind='audio_zip'`
-  - a visible My Library entry
-  - completed BA-11 status in Book Hub/dashboard
-  - a working audiobook author-site page / buy flow link
+## What I'll fix
 
-Technical details
-- Root cause 1: `AudiobookPublishStep.tsx` currently marks success locally by setting `publishedAt` and showing a toast in `onDistributed()` even if downstream saved state is incomplete.
-- Root cause 2: `ba11-publish-audiobook/index.ts` currently upserts `author_nodes` without preserving existing BA-11 draft content and without writing `book_id`, so the live row can become detached from the active book.
-- Root cause 3: the BA-11 publish path does not write a canonical `library_asset`, while My Library and readiness increasingly depend on that contract.
-- Root cause 4: the current live BA-11 row appears to contain only `studio` / `_currentStep` in `content_json`, which matches the symptom: success toast shown, but no actual library/live completion evidence for BA-11.
+### 1. Make pricing obvious on the Publish step
+Today, retail price is set in Step 1 (Setup) and only shown read-only on the Publish step as a stat. I will turn that stat into an inline editable field with a Save button that updates both `audiobooks.price` and `author_nodes.price_usd`. Toast confirms persistence; no page reload needed.
 
-Files likely involved
-- `supabase/functions/ba11-publish-audiobook/index.ts`
-- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`
-- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx`
-- `src/components/dashboard/builders/ba11/BA11Builder.tsx`
-- `src/lib/nodeAssetRegistry.ts`
-- Possibly `src/pages/AuthorLibrary.tsx` if BA-11 needs a specific legacy fallback render path
+### 2. Add a "View on your author site" panel on the Publish step (not only in the modal)
+After publish, replace the small "Saved to your Library" line with a card that shows:
+- **Live URL** → `/pauline-teo/audiobook` with copy + open buttons
+- **Open My Library** link
+- **Download Export Pack (.zip)** link
+
+So you don't have to dig through the modal again to find these.
+
+### 3. Add a "Distribution checklist" so you know what's truly done
+A small checklist on the Publish step:
+
+```text
+[✓] Saved to My Library
+[✓] Live on your author site (Buy Now enabled)
+[✓] Export Pack (ZIP + ACX guide) generated
+[ ] Submitted to ACX (Audible)        — manual upload using the ZIP
+[ ] Submitted to Spotify / Findaway   — manual upload using the ZIP
+[ ] Submitted to Apple Books          — manual upload using the ZIP
+```
+
+The last three are intentionally manual (Authors Bureau does not submit on your behalf — that's stated policy). Each row gets a "Mark as submitted" toggle so you can track progress; the toggles persist in `content_json.distribution_status`.
+
+### 4. Tighten the "Published" toast copy
+Replace the generic "Audiobook published" toast with: *"Live at /pauline-teo/audiobook · $14.99 · Saved to Library"* — one toast that proves all three things happened.
+
+## Files I'll touch
+
+- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx` — editable price, view-on-site card, checklist UI.
+- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx` — refresh toast copy with live URL.
+- `supabase/functions/ba11-publish-audiobook/index.ts` — accept `distribution_status` updates and a `price_override` so price edits persist atomically to both `audiobooks` and `author_nodes`.
+
+## What you do not need to do
+- Nothing additional is required to make readers able to buy. Buy Now on `/pauline-teo/audiobook` already routes to the platform Stripe checkout (Authors Bureau is Merchant of Record), and your 92% share is tracked automatically.
+
+Approve and I'll ship these four changes.
