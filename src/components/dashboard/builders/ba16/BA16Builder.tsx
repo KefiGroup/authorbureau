@@ -88,24 +88,31 @@ export default function BA16Builder({ authorId, bookId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba16-affiliate", { body: { author_id: authorId, book_id: bookId ?? null } });
+      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba16-affiliate", { author_id: authorId, book_id: activeBookId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-16", nodeName: "Affiliates", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-16", nodeName: "Affiliates", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     setError(null);
+    setIsPublishing(true);
     setStep(3);
     try {
-      await publishNodeToSite(authorId!, "BA-16", authorSlug);
+      // Pre-save before publish to avoid race conditions.
+      await autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-16", nodeName: "Affiliates", content: { ...(content || {}), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
+      await publishNodeToSite(authorId!, "BA-16", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
       toast.success("Your Affiliate Programme page is live on your site.");
     } catch (e: any) {
       setError(e.message);
       setStep(2);
       toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
