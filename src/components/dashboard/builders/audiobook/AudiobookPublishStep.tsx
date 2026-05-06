@@ -109,6 +109,9 @@ export default function AudiobookPublishStep({ stepData, setStepData, onMarkEdit
         voiceName={voiceName}
         chapters={ready.map((c) => ({ index: c.index, title: c.title, audioUrl: c.audioUrl }))}
         onDistributed={() => {
+          const next = { ...stepData, publishedAt: new Date().toISOString() };
+          setStepData(next);
+          onMarkEdited("publish");
           toast({ title: "Audiobook saved to My Library", description: "ZIP + ACX guide ready to download." });
         }}
       />
