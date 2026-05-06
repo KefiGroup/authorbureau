@@ -32,19 +32,38 @@ export function useBuilderPublish(opts: UseBuilderPublishOptions) {
     if (!opts.authorId) return null;
     setIsPublishing(true);
     setPublishError(null);
-    try {
+
+    // Errors we should NOT silently retry (user-actionable or terminal).
+    const isTerminal = (msg: string) =>
+      /^(STRIPE_REQUIRED|MANUSCRIPT_MISSING|BOOK_NOT_FOUND|AI_AUTH|AI_CREDITS|AI_UNAVAILABLE|VALIDATION):/i.test(msg) ||
+      /not authenticated|forbidden|403|401/i.test(msg);
+
+    const attempt = async (): Promise<PublishResult> => {
       let libraryAsset: Record<string, unknown> | null = null;
       if (opts.buildLibraryAsset) {
         libraryAsset = await opts.buildLibraryAsset();
       }
       const { micrositeUrl } = await publishNodeToSite(
-        opts.authorId,
+        opts.authorId!,
         opts.nodeId,
         opts.authorSlug,
         opts.activeBookId,
         libraryAsset,
       );
       return { micrositeUrl, libraryAsset };
+    };
+
+    try {
+      try {
+        return await attempt();
+      } catch (firstErr) {
+        if (firstErr instanceof StripeRequiredError) throw firstErr;
+        const msg = (firstErr as Error)?.message || "";
+        if (isTerminal(msg)) throw firstErr;
+        // Silent single retry after a brief backoff for transient failures.
+        await new Promise((r) => setTimeout(r, 800));
+        return await attempt();
+      }
     } catch (e: unknown) {
       if (e instanceof StripeRequiredError) {
         opts.onStripeRequired?.();
