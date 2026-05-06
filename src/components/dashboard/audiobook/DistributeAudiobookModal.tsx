@@ -54,6 +54,8 @@ export default function DistributeAudiobookModal({
   const [confirmed, setConfirmed] = useState(false);
   const [sending, setSending] = useState(false);
   const [loadingMeta, setLoadingMeta] = useState(false);
+  const [resultZipUrl, setResultZipUrl] = useState<string>("");
+  const [resultMicrositeUrl, setResultMicrositeUrl] = useState<string>("");
 
   const trimmed = narratorCredit.trim();
   const matchesBookTitle = !!bookTitle && trimmed.toLowerCase() === bookTitle.trim().toLowerCase();

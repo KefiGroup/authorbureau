@@ -129,7 +129,7 @@ Deno.serve(async (req: Request) => {
     description = "",
     coverImageUrl = "",
     retailPriceUsd = 14.99,
-    channels = ["platform", "acx"],
+    channels = ["platform", "acx", "spotify", "apple"],
     mode = "publish",
   } = body;
 
@@ -250,7 +250,7 @@ Deno.serve(async (req: Request) => {
     const zip = new JSZip();
     zip.file("manifest.json", JSON.stringify({ base: baseManifest, channels: channelPackages }, null, 2));
     const readme = [
-      `Submission Package — ${bookTitle}`,
+      `Audiobook Export Pack — ${bookTitle}`,
       "=".repeat(40),
       "",
       `Chapters: ${chapters.length}`,
