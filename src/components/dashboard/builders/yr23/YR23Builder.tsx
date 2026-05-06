@@ -171,7 +171,7 @@ export default function YR23Builder({ authorId, bookId }: Props) {
           </div>
           </YRSafeBoundary>
         )}
-        {step === 3 && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
+        {isPublishing && !content?.activated && <LoadingStep messages={ACT_MSGS} msgIndex={msgIndex} />}
         {step === 3 && content?.activated && (
           <div className="space-y-6">
             <PublishSuccessScreen
