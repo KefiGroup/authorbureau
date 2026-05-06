@@ -33,8 +33,10 @@ export default function BA17Builder({ authorId, bookId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [msgIndex, setMsgIndex] = useState(0);
   const [authorSlug, setAuthorSlug] = useState("");
+  const [isPublishing, setIsPublishing] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading } = useAuthorBook();
+  const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
+  const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
 
   useEffect(() => {
@@ -44,18 +46,36 @@ export default function BA17Builder({ authorId, bookId }: Props) {
       setAuthorName(profile?.pen_name || "there");
       setAuthorSlug(profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-"));
       const { resolveBookTitle } = await import("@/lib/resolve-book-title");
-      const _title = await resolveBookTitle(authorId, bookId ?? null, profile?.user_id);
+      const _title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
       if (_title) setResolvedBookTitle(_title);
-      console.log(`[BA-17] book resolution`, { authorId, bookId, detectedBookTitle, resolved: _title });
-      const __draft = await loadBuilderDraft(authorId, "BA-17", bookId ?? null);
+      console.log(`[BA-17] book resolution`, { authorId, activeBookId, detectedBookTitle, resolved: _title });
+      const __draft = await loadBuilderDraft(authorId, "BA-17", activeBookId);
+      let hydratedFromDraft = false;
       if (__draft.content) {
+        hydratedFromDraft = true;
         setContent(__draft.content);
         const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
-        { const _saved = (__draft.content as any)?._currentStep; setStep(isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2))); }
+        const _saved = (__draft.content as any)?._currentStep;
+        let nextStep = isActuallyLive ? 3 : (typeof _saved === "number" ? _saved : Math.max(__draft.currentStep, 2));
+        if (nextStep >= 3 && !isActuallyLive) {
+          nextStep = 2;
+          toast.info("Resuming from review — please publish again.");
+        }
+        setStep(nextStep);
       }
-          setHydrated(true);
-})();
-  }, [authorId, isAuthReady]);
+      if (!hydratedFromDraft) {
+        let q = supabase.from("author_nodes").select("content_json,status,microsite_url,activated_at").eq("author_id", authorId).eq("node_id", "BA-17");
+        if (activeBookId) q = q.eq("book_id", activeBookId);
+        const { data: node } = await q.maybeSingle();
+        if (node?.content_json) {
+          const isPublished = node.status === "live" || !!node.activated_at || !!node.microsite_url;
+          setContent(isPublished ? { ...(node.content_json as any), activated: true } : node.content_json);
+          setStep(isPublished ? 3 : (node.status === "content_ready" ? 2 : 0));
+        }
+      }
+      setHydrated(true);
+    })();
+  }, [authorId, isAuthReady, activeBookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
