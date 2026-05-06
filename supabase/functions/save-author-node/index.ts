@@ -477,7 +477,7 @@ Deno.serve(async (req: Request) => {
 
   let existingQ = admin
     .from("author_nodes")
-    .select("id, status, activated_at, microsite_url, book_id")
+    .select("id, status, activated_at, microsite_url, book_id, content_json")
     .eq("author_id", authorId)
     .eq("node_id", nodeId);
   if (bookId) existingQ = existingQ.eq("book_id", bookId);
@@ -493,8 +493,17 @@ Deno.serve(async (req: Request) => {
     !!existing?.microsite_url;
   const status = isAlreadyLive ? "live" : "content_ready";
 
+  // When the row is already live, merge new draft fields ON TOP of the existing
+  // content_json so an autosave from the builder cannot wipe out publish-side
+  // fields (library_asset, zip_url, chapter_urls, payment links, etc.). For
+  // content_ready/draft rows we still replace, so cleared fields disappear.
+  const existingContent = (existing?.content_json ?? {}) as Record<string, unknown>;
+  const nextContent = isAlreadyLive
+    ? { ...existingContent, ...(content as Record<string, unknown>), _currentStep: currentStep ?? 0 }
+    : { ...(content as Record<string, unknown>), _currentStep: currentStep ?? 0 };
+
   const payload: Record<string, unknown> = {
-    content_json: { ...content, _currentStep: currentStep ?? 0 },
+    content_json: nextContent,
     current_step: currentStep ?? 0,
     status,
   };
@@ -510,7 +519,7 @@ Deno.serve(async (req: Request) => {
       console.error("[save-author-node] update failed:", error.message);
       return json(500, { error: error.message });
     }
-    console.log("[save-author-node] updated", { nodeId, authorId, bookId });
+    console.log("[save-author-node] updated", { nodeId, authorId, bookId, mergedLive: isAlreadyLive });
     return json(200, { ok: true, mode: "update", status });
   } else {
     const insertPayload: Record<string, unknown> = {

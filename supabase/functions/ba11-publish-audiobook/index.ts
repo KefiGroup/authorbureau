@@ -394,47 +394,87 @@ Deno.serve(async (req: Request) => {
     console.warn("[ba11-publish-audiobook] STRIPE_SECRET_KEY not configured — buy button will fall back to Coming Soon");
   }
 
-  // Upsert author_nodes row
+  // Upsert author_nodes row — preserve existing draft fields (e.g. studio) so
+  // refresh / later autosaves don't lose the builder state, and stamp the
+  // canonical library_asset (kind=audio_zip) so My Library + readiness count it.
   const micrositeUrl = authorSlug ? `/${authorSlug}/audiobook` : null;
   const publicAuthorPageUrl = authorSlug ? `/${authorSlug}` : null;
-  await admin.from("author_nodes").upsert(
-    {
-      author_id: authorProfileId,
-      node_id: "BA-11",
-      node_name: "Audiobook",
-      status: "live",
-      delivery_type: "digital_audio",
-      delivery_url: samplePreviewUrl,
-      microsite_url: micrositeUrl,
-      price_usd: retailPriceUsd,
-      currency: "USD",
-      activated_at: new Date().toISOString(),
-      payment_link: paymentLinkUrl,
-      stripe_product_id: stripeProductId,
-      stripe_price_id: stripePriceId,
-      content_json: {
-        audiobook_id: audiobookId,
-        book_id: bookId,
-        book_title: bookTitle,
-        chapter_count: chapters.length,
-        preview_url: samplePreviewUrl,
-        chapter_urls: chapters.map((c) => c.audio_url),
-        chapters: chapters.map((c) => ({ index: c.index, title: `Chapter ${c.index + 1}`, audio_url: c.audio_url })),
-        channels: channelPackages.map((c) => c.channel),
-        zip_url: zipUrl,
-        cover_image_url: coverImageUrl || book?.cover_image_url || "",
-        description: (description || book?.description || "").slice(0, 4000),
-        narrator_credit: narratorCredit.slice(0, 200),
-        price: retailPriceUsd,
-        stripe_checkout_url: paymentLinkUrl,
-        headline: `${bookTitle} — Audiobook Edition`,
-        subheadline: narratorCredit ? narratorCredit.slice(0, 200) : `Listen to ${bookTitle}, narrated chapter by chapter.`,
-        cta_text: "Buy Audiobook",
-      },
-    } as never,
-    { onConflict: "author_id,node_id" },
-  );
-  console.log("[ba11-publish-audiobook] author_nodes row upserted, status=live");
+
+  const { data: existingNode } = await admin
+    .from("author_nodes")
+    .select("id, content_json, book_id")
+    .eq("author_id", authorProfileId)
+    .eq("node_id", "BA-11")
+    .maybeSingle();
+  const existingContent = (existingNode?.content_json ?? {}) as Record<string, unknown>;
+
+  const libraryAssetUrl = zipUrl || samplePreviewUrl || "";
+  const libraryAsset = libraryAssetUrl
+    ? {
+        kind: "audio_zip",
+        url: libraryAssetUrl,
+        pdf_url: null,
+        txt_url: null,
+        title: `${bookTitle} — Audiobook`,
+        saved_at: new Date().toISOString(),
+      }
+    : null;
+
+  const mergedContent: Record<string, unknown> = {
+    ...existingContent,
+    audiobook_id: audiobookId,
+    book_id: bookId,
+    book_title: bookTitle,
+    chapter_count: chapters.length,
+    preview_url: samplePreviewUrl,
+    chapter_urls: chapters.map((c) => c.audio_url),
+    chapters: chapters.map((c) => ({ index: c.index, title: `Chapter ${c.index + 1}`, audio_url: c.audio_url })),
+    channels: channelPackages.map((c) => c.channel),
+    zip_url: zipUrl,
+    cover_image_url: coverImageUrl || book?.cover_image_url || "",
+    description: (description || book?.description || "").slice(0, 4000),
+    narrator_credit: narratorCredit.slice(0, 200),
+    price: retailPriceUsd,
+    stripe_checkout_url: paymentLinkUrl,
+    headline: `${bookTitle} — Audiobook Edition`,
+    subheadline: narratorCredit ? narratorCredit.slice(0, 200) : `Listen to ${bookTitle}, narrated chapter by chapter.`,
+    cta_text: "Buy Audiobook",
+    published_at: new Date().toISOString(),
+    activated: true,
+    _currentStep: 4,
+    ...(libraryAsset ? { library_asset: libraryAsset } : {}),
+  };
+
+  const upsertPayload: Record<string, unknown> = {
+    author_id: authorProfileId,
+    node_id: "BA-11",
+    node_name: "Audiobook",
+    status: "live",
+    delivery_type: "digital_audio",
+    delivery_url: samplePreviewUrl,
+    microsite_url: micrositeUrl,
+    price_usd: retailPriceUsd,
+    currency: "USD",
+    activated_at: new Date().toISOString(),
+    payment_link: paymentLinkUrl,
+    stripe_product_id: stripeProductId,
+    stripe_price_id: stripePriceId,
+    book_id: bookId,
+    current_step: 4,
+    content_json: mergedContent,
+  };
+
+  const { error: nodeUpsertErr } = await admin
+    .from("author_nodes")
+    .upsert(upsertPayload as never, { onConflict: "author_id,node_id" });
+  if (nodeUpsertErr) {
+    console.error("[ba11-publish-audiobook] author_nodes upsert failed:", nodeUpsertErr.message);
+    return json(500, {
+      success: false,
+      error: `Failed to save published audiobook to your library: ${nodeUpsertErr.message}`,
+    });
+  }
+  console.log("[ba11-publish-audiobook] author_nodes row upserted, status=live, book_id=", bookId);
 
   // Email (non-blocking)
   try {
