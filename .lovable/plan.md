@@ -1,33 +1,22 @@
-## Two fixes
+## Why it looks unpublished
 
-### 1. Remove the 3 "Mark as submitted" rows
-File: `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx`, lines 246–283.
+Both top steppers are static — they only check the in-memory `stepIdx` (which step the user is on), not whether the audiobook is actually published. So even after publish + refresh, the icons stay grey because the user is still "on" step 4, not past it.
 
-Strip the per-channel checklist (ACX / Spotify / Apple Books rows + buttons + `distributionStatus` mapping). Keep only the three auto-completed rows: Saved to Library, Live on author site, Export Pack generated.
+## Fix — two tiny edits in `src/components/dashboard/builders/ba11/BA11Builder.tsx`
 
-Replace the helper text to point clearly at the Export Pack section *below* (which is where the download button actually lives — current copy says "above" which is wrong, that's the bug in your screenshot).
-
-New block:
+**1. Top stepper (Introduction → Generating → Review → Publish)** — line 317:
 ```tsx
-<ul className="space-y-2 text-sm">
-  <ChecklistRow done label="Saved to My Library" />
-  <ChecklistRow done label="Live on your author site (Buy Now enabled)" />
-  <ChecklistRow done label="Export Pack (ZIP + ACX guide) generated" />
-</ul>
-<p className="text-xs text-muted-foreground">
-  ACX, Spotify, Apple Books and Findaway require manual upload — Authors Bureau does not
-  submit on your behalf. Download the Export Pack below and follow ACX-UPLOAD-GUIDE.txt
-  inside the ZIP for step-by-step instructions per retailer.
-</p>
+<StepHeader nodeId="BA-11" nodeName="Audiobook"
+  step={stepData.publishedAt ? 4 : intro ? 0 : 2} />
 ```
+When `publishedAt` exists, pass step=4 so all 4 circles render as ✓ done.
 
-Also delete the now-unused `CHANNEL_LABELS`, `distributionStatus`, `toggleChannel`, `savingChannel` state and any related fetch (lines ~30–80 area). Will clean those in the same edit.
+**2. Inner 5-icon stepper (Setup → Manuscript → Voice → Production → Publish & Distribute)** — lines 356–360:
+```tsx
+const isPublished = !!stepData.publishedAt;
+const active = i === stepIdx && !isPublished;
+const done = i < stepIdx || isPublished;
+```
+When published, every icon flips to the "done" style (gold check on accent background).
 
-### 2. "Where's the Export Pack?"
-It's already on the page — it's the **"Export Audiobook Package"** card with the **"Download Full ZIP"** button (visible in your screenshot, bottom). The confusing word was "above" in the helper text. Fix is the copy change in #1 (says "below" now), so the user knows where to look.
-
-No backend changes. No migrations. One file edited.
-
-## Approval
-
-Approve and I'll make the edit and you'll see it on next refresh.
+No backend changes. No new state. Approve and I'll make the edit.

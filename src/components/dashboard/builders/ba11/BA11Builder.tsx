@@ -314,7 +314,7 @@ export default function BA11Builder({ authorId, bookId }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      <StepHeader nodeId="BA-11" nodeName="Audiobook" step={intro ? 0 : 2} />
+      <StepHeader nodeId="BA-11" nodeName="Audiobook" step={stepData.publishedAt ? 4 : intro ? 0 : 2} />
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {intro && (
           <AbbyCard>
@@ -355,8 +355,9 @@ export default function BA11Builder({ authorId, bookId }: Props) {
               <div className="flex items-center justify-between gap-2 overflow-x-auto">
                 {STUDIO_STEPS.map((s, i) => {
                   const Icon = s.icon;
-                  const active = i === stepIdx;
-                  const done = i < stepIdx;
+                  const isPublished = !!stepData.publishedAt;
+                  const active = i === stepIdx && !isPublished;
+                  const done = i < stepIdx || isPublished;
                   const allowed = canJumpTo(i);
                   return (
                     <button
