@@ -17,6 +17,7 @@ import {
   getCanonicalNodeLabel,
   isCanonicalNodeLabel,
 } from "./canonical-node-labels.ts";
+import { logError } from "./log-error.ts";
 
 export const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
