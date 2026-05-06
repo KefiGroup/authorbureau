@@ -1,7 +1,6 @@
 // @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import {
-  corsHeaders, makeServiceClient, buildAuthorContext, upsertAuthorNode, snapshotAuthorNode,
+import { fetchAiGateway, corsHeaders, makeServiceClient, buildAuthorContext, upsertAuthorNode, snapshotAuthorNode,
   failResponse, errorMessage,
 } from "../_shared/builder-helpers.ts";
 
@@ -10,7 +9,7 @@ const SYSTEM_PROMPT =
   "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. Always personalise to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.";
 
 async function callAI(userPrompt: string, maxTokens: number) {
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await fetchAiGateway({
     method: "POST",
     headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -21,7 +20,7 @@ async function callAI(userPrompt: string, maxTokens: number) {
       ],
       max_completion_tokens: maxTokens,
     }),
-  });
+  }, "generate-bp03-social-media");
   if (!resp.ok) {
     const txt = await resp.text();
     if (resp.status === 429) throw new Error("Rate limit exceeded — please try again in a moment");

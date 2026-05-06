@@ -1,6 +1,7 @@
 // Generate + send ABBY's daily business report for a single author.
 // Triggered by: abby-daily-report-dispatcher (cron) OR manual UI invoke.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -81,7 +82,7 @@ serve(async (req) => {
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (apiKey) {
       try {
-        const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const aiRes = await fetchAiGateway({
           method: "POST",
           headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -105,7 +106,7 @@ Generate today's insight and top action.`,
             ],
             max_completion_tokens: 300,
           }),
-        });
+        }, "abby-daily-report");
         if (aiRes.ok) {
           const aiData = await aiRes.json();
           const raw = aiData.choices?.[0]?.message?.content?.trim() || "";

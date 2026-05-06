@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -221,9 +222,7 @@ serve(async (req) => {
 
 Format as JSON with keys: title, subtitle, pages, rating, price, genre, badges (array), description`;
 
-    const aiExtractResponse = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
+    const aiExtractResponse = await fetchAiGateway({
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -245,7 +244,7 @@ Format as JSON with keys: title, subtitle, pages, rating, price, genre, badges (
           temperature: 0,
         }),
       }
-    );
+    , "scrape-amazon-book");
 
     if (!aiExtractResponse.ok) {
       const error = await aiExtractResponse.json();
@@ -289,9 +288,7 @@ Format as JSON with keys: title, subtitle, pages, rating, price, genre, badges (
 
 Format as JSON with keys: name, bio, socialLinks (object with platform keys)`;
 
-      const authorAiResponse = await fetch(
-        "https://ai.gateway.lovable.dev/v1/chat/completions",
-        {
+      const authorAiResponse = await fetchAiGateway({
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -312,7 +309,7 @@ Format as JSON with keys: name, bio, socialLinks (object with platform keys)`;
             temperature: 0,
           }),
         }
-      );
+      , "scrape-amazon-book");
 
       if (authorAiResponse.ok) {
         const authorAiData = await authorAiResponse.json();

@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -151,7 +152,7 @@ Rules:
 - For body_markdown, use plain markdown (## headings, **bold**, [link text](url)) — no HTML.
 Return strict JSON: { "title": string, "description": string, "steps": [{ "step_number": 1, "subject": string, "preview_text": string, "body_markdown": string, "trigger_delay_days": 0 }] }`;
 
-    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiRes = await fetchAiGateway({
       method: 'POST',
       headers: { 'Authorization': `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -163,7 +164,7 @@ Return strict JSON: { "title": string, "description": string, "steps": [{ "step_
         response_format: { type: 'json_object' },
       }),
       signal: AbortSignal.timeout(180000),
-    });
+    }, "generate-email-sequence");
 
     if (!aiRes.ok) {
       const errText = await aiRes.text();

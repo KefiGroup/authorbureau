@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -37,7 +38,7 @@ serve(async (req) => {
       author?.pen_name ? `Author: ${author.pen_name}` : null,
     ].filter(Boolean).join("\n");
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetchAiGateway({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -83,7 +84,7 @@ Be specific and personalised. If you cannot find the exact book, use the title a
         ],
         temperature: 0.7,
       }),
-    });
+    }, "parse-published-book");
 
     if (!aiRes.ok) throw new Error(`AI gateway error: ${aiRes.status}`);
     const aiData = await aiRes.json();

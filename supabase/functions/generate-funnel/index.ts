@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -214,7 +215,7 @@ Deno.serve(async (req) => {
       audience: JSON.stringify(ctx?.target_audience_persona || {}),
     });
 
-    const aiRes = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const aiRes = await fetchAiGateway({
       method: 'POST',
       headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -245,7 +246,7 @@ Deno.serve(async (req) => {
         }],
         tool_choice: { type: 'function', function: { name: 'save_funnel_copy' } },
       }),
-    });
+    }, "generate-funnel");
 
     if (!aiRes.ok) {
       const t = await aiRes.text();

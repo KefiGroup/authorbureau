@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -78,7 +79,7 @@ Make it beautiful, polished, and worthy of a premium brand's feed.`;
         messageContent.push({ type: "image_url", image_url: { url: bookCoverUrl } });
       }
 
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const response = await fetchAiGateway({
         method: "POST",
         headers: {
           Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -89,7 +90,7 @@ Make it beautiful, polished, and worthy of a premium brand's feed.`;
           messages: [{ role: "user", content: messageContent }],
           modalities: ["image", "text"],
         }),
-      });
+      }, "generate-social-graphic");
 
       if (!response.ok) {
         if (response.status === 429) throw { status: 429, message: "Rate limit exceeded. Please try again shortly." };

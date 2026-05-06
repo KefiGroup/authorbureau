@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
@@ -3272,7 +3273,7 @@ IMPORTANT RULES:
 - Do NOT include any subscription CTAs or marketing language — this is a pure business plan document`;
 
       try {
-        const aiResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        const aiResp = await fetchAiGateway({
           method: "POST",
           headers: {
             Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -3286,7 +3287,7 @@ IMPORTANT RULES:
             ],
             max_completion_tokens: 6000,
           }),
-        });
+        }, "business-consultant");
 
         if (!aiResp.ok) {
           const errText = await aiResp.text();
@@ -3665,11 +3666,11 @@ request_meta: ${JSON.stringify({
 
     let response: Response | null = null;
     for (let attempt = 0; attempt < 2; attempt++) {
-      response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      response = await fetchAiGateway({
         method: "POST",
         headers: aiRequestHeaders,
         body: aiRequestBody,
-      });
+      }, "business-consultant");
 
       if (response.ok || (response.status !== 502 && response.status !== 503)) break;
       await response.text();

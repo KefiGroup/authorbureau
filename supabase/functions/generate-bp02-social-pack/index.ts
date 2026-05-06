@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -131,7 +132,7 @@ Return valid JSON only (no markdown, no code fences) with these exact keys:
 
 Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the opt-in URL "${optinUrl}" in all CTAs. Never be generic.`;
 
-    const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiResponse = await fetchAiGateway({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -148,7 +149,7 @@ Make everything specific to "${bookTitle}" and "${leadMagnetTitle}". Include the
         max_completion_tokens: 3500,
       }),
       signal: AbortSignal.timeout(90_000),
-    });
+    }, "generate-bp02-social-pack");
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
