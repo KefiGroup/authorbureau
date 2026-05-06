@@ -91,7 +91,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
     setStep(1); setError(null);
     try {
       const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
-      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba18-jv-partnerships", { author_id: authorId }, 90000);
+      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba18-jv-partnerships", { author_id: authorId, book_id: activeBookId }, 90000);
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       // Normalise legacy field names so the UI tabs render
       const raw = data.content || {};
@@ -107,21 +107,26 @@ export default function BA18Builder({ authorId, bookId }: Props) {
             : [],
       };
       setContent(normalised); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: bookId ?? null });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
   const handlePublish = async () => {
+    if (isPublishing) return;
     setError(null);
+    setIsPublishing(true);
     setStep(3);
     try {
-      await publishNodeToSite(authorId!, "BA-18", authorSlug);
+      await autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(content || {}), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
+      await publishNodeToSite(authorId!, "BA-18", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
       toast.success("Your JV Partners page is live on your site.");
     } catch (e: any) {
       setError(e.message);
       setStep(2);
       toast.error(`Publish failed: ${e.message ?? "Unknown error"}`);
+    } finally {
+      setIsPublishing(false);
     }
   };
 
