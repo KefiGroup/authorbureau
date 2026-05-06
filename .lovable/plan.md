@@ -1,51 +1,109 @@
-## What is actually happening (verified)
+## Honest answer first
 
-I checked the database directly. Your audiobook **is** fully saved and live:
+**Will this make the platform buggy?** There is real risk. The current pipeline works end-to-end (chapters generate, ZIP builds, node goes Live). Adding ACX-compliant transcoding touches the hottest path in BA-11. If we just bolt ffmpeg into the existing functions, three things can break:
 
-- `audiobooks` row → status `published`, price `$14.99`, linked to *Be SUCKcessful*.
-- `author_nodes` BA-11 row → status `live`, `book_id` set, `microsite_url = /pauline-teo/audiobook`, ZIP file stored, published timestamp present.
-- Public route `https://authorsbureau.com/pauline-teo/audiobook` is wired to render the audiobook microsite (player + chapters + Buy Now button).
-- On `https://authorsbureau.com/pauline-teo`, the *Be SUCKcessful* book card should show an **Audiobook** badge, a **Listen to Audiobook** button, and an **Audiobook · $14.99** row inside *Available formats*.
+1. **Edge function memory** — Supabase edge functions have a hard memory cap. We already hit it once (that's why the current ZIP intentionally does NOT bundle MP3s, line 333 of `ba11-publish-audiobook`). Loading ffmpeg-wasm + a 33-chapter audio buffer in one process will OOM.
+2. **Cold-start latency** — ffmpeg-wasm is ~25 MB. First call after deploy can take 10–20s just to boot. Users would see "publish hangs".
+3. **Existing audio gets re-processed** — if we change the source format (PCM instead of MP3), every author who already generated chapters has to regenerate. That breaks their work.
 
-So the publish DID succeed. What's broken is the **author-facing visibility** of where it went and how to manage price/next steps.
+So the answer is: **yes it can introduce bugs if we do it inline. The safe path is a separate, opt-in transcoding step that does NOT change anything about the current generate/publish flow.**
 
-## What I'll fix
+## How you'd actually know it's ACX-compliant (verification, not promises)
 
-### 1. Make pricing obvious on the Publish step
-Today, retail price is set in Step 1 (Setup) and only shown read-only on the Publish step as a stat. I will turn that stat into an inline editable field with a Save button that updates both `audiobooks.price` and `author_nodes.price_usd`. Toast confirms persistence; no page reload needed.
+This is the part I cannot fake. ACX has two layers of compliance:
 
-### 2. Add a "View on your author site" panel on the Publish step (not only in the modal)
-After publish, replace the small "Saved to your Library" line with a card that shows:
-- **Live URL** → `/pauline-teo/audiobook` with copy + open buttons
-- **Open My Library** link
-- **Download Export Pack (.zip)** link
+| Layer | How we verify |
+|---|---|
+| **Technical specs** (192 kbps CBR, mono, 44.1 kHz, peak ≤ −3 dB, RMS −23 to −18 dB, ≤120 min/file, ≥0.5s room tone head/tail) | Run `ffprobe` on the output and assert each value. Output a machine-readable `acx-compliance-report.json` inside the ZIP that the author can verify themselves. |
+| **Content specs** (retail audio sample 1–5 min, opening credits "{Title}, written by {Author}, narrated by {Narrator}", closing credits "The end of {Title} by {Author}") | We generate these as separate audio files using the same ElevenLabs voice and include them in the ZIP. |
 
-So you don't have to dig through the modal again to find these.
+The ONLY 100% truth is uploading to ACX itself and having their QA team accept it. Everything else is a strong proxy. I'm telling you this upfront because previously I've described things as "done" when they only passed local checks.
 
-### 3. Add a "Distribution checklist" so you know what's truly done
-A small checklist on the Publish step:
+## Proposed approach — opt-in, isolated, verifiable
+
+### Architecture
 
 ```text
-[✓] Saved to My Library
-[✓] Live on your author site (Buy Now enabled)
-[✓] Export Pack (ZIP + ACX guide) generated
-[ ] Submitted to ACX (Audible)        — manual upload using the ZIP
-[ ] Submitted to Spotify / Findaway   — manual upload using the ZIP
-[ ] Submitted to Apple Books          — manual upload using the ZIP
+[ Existing path - UNCHANGED ]
+ba11-audiobook-generate  -->  chapter-NNN.mp3 (128k stereo, ElevenLabs default)
+ba11-publish-audiobook   -->  node goes Live, microsite live, current ZIP
+
+[ NEW path - additive, opt-in ]
+ba11-audiobook-acx-pack  -->  per-chapter ffmpeg transcode + credits + report
+                              -->  acx-submission-package.zip  (separate file)
 ```
 
-The last three are intentionally manual (Authors Bureau does not submit on your behalf — that's stated policy). Each row gets a "Mark as submitted" toggle so you can track progress; the toggles persist in `content_json.distribution_status`.
+Key constraints:
+- Current Publish flow is untouched. If the new function fails, going Live still works.
+- New function processes **one chapter at a time** (avoids OOM). Author clicks "Build ACX Pack", we queue work and stream progress.
+- The output ZIP is a separate artifact (`acx-submission-package.zip`), saved alongside the existing `submission-package.zip`. Existing ZIP keeps the current "needs re-encoding" README.
 
-### 4. Tighten the "Published" toast copy
-Replace the generic "Audiobook published" toast with: *"Live at /pauline-teo/audiobook · $14.99 · Saved to Library"* — one toast that proves all three things happened.
+### What ships in the ACX pack
 
-## Files I'll touch
+1. `chapter-NN.mp3` — 192 kbps CBR, mono, 44.1 kHz, normalized to RMS −20 dB, peak −3 dB, 0.75s room tone head + 1.5s tail.
+2. `00-opening-credits.mp3` — auto-generated from book metadata using the same ElevenLabs voice.
+3. `99-closing-credits.mp3` — same.
+4. `retail-sample.mp3` — auto-extracted ~3 min from chapter 1 (ACX requires a separate retail sample).
+5. `acx-compliance-report.json` — ffprobe output for every file with pass/fail per ACX rule.
+6. `acx-compliance-report.html` — human-readable version, green/red checklist.
+7. `README-ACX.txt` — exact step-by-step ACX upload instructions.
 
-- `src/components/dashboard/builders/audiobook/AudiobookPublishStep.tsx` — editable price, view-on-site card, checklist UI.
-- `src/components/dashboard/audiobook/DistributeAudiobookModal.tsx` — refresh toast copy with live URL.
-- `supabase/functions/ba11-publish-audiobook/index.ts` — accept `distribution_status` updates and a `price_override` so price edits persist atomically to both `audiobooks` and `author_nodes`.
+### Verification you can run yourself (this is the answer to "how do I know")
 
-## What you do not need to do
-- Nothing additional is required to make readers able to buy. Buy Now on `/pauline-teo/audiobook` already routes to the platform Stripe checkout (Authors Bureau is Merchant of Record), and your 92% share is tracked automatically.
+After we ship, you can:
 
-Approve and I'll ship these four changes.
+1. Click "Build ACX Pack" on any audiobook.
+2. Download the ZIP.
+3. Open `acx-compliance-report.html` — every chapter shows green/red against each ACX rule with the actual measured value (e.g., "Bitrate: 192 kbps ✓", "Peak: −3.2 dB ✓").
+4. Upload one chapter to ACX's free "Audiobook Audio Quality Check" tool: https://www.acx.com/help/narrators/200484930 — this is ACX's own checker. If it passes there, ACX QA will accept it.
+
+If the report says green and ACX's own checker says green, it's truly compliant. If either disagrees, we have an exact spec to fix.
+
+### Technical details
+
+- **Transcoding library**: `@ffmpeg/ffmpeg` WASM build, imported via `npm:` specifier in Deno.
+- **Per-chapter processing**: New function `ba11-audiobook-acx-transcode` takes `{ bookId, chapterIndex }`, reads the source MP3 from storage, runs ffmpeg with:
+  ```
+  -ac 1 -ar 44100 -b:a 192k -filter:a "loudnorm=I=-20:TP=-3:LRA=7"
+  ```
+  Then writes `chapter-NN-acx.mp3` to a parallel storage prefix `audiobook-audio-acx/{userId}/{bookId}/`.
+- **Orchestrator**: New function `ba11-audiobook-acx-pack` lists processed chapters, runs ffprobe on each, generates credits + retail sample, builds the report, builds the ZIP, returns URL.
+- **Client**: New "Make ACX-Ready (beta)" button on the Publish step, separate from the current "Open distribution again" CTA. Shows per-chapter progress. Does NOT block Publish status.
+- **Feature flag**: `acx_pack_enabled` boolean column on `audiobooks` so we can disable per-author if it misbehaves.
+
+### Files to add (no edits to existing publish path)
+
+- `supabase/functions/ba11-audiobook-acx-transcode/index.ts` — single chapter, ffmpeg WASM.
+- `supabase/functions/ba11-audiobook-acx-pack/index.ts` — assembles credits, retail sample, report, ZIP.
+- `src/components/dashboard/builders/audiobook/AcxPackPanel.tsx` — new UI panel on Publish step.
+- Migration: storage bucket `audiobook-audio-acx` (public read), column `audiobooks.acx_pack_url`, `audiobooks.acx_compliance_json`.
+
+### What I will NOT claim until you verify
+
+- I will not say "ACX-compliant" in any toast or UI text. The button label will be **"Build ACX-Ready Pack (beta — verify with ACX checker before submitting)"**.
+- I will not flip any node status based on the ACX pack. It's a downloadable artifact only.
+- After shipping I will run the function on your existing audiobook, send you the compliance report, and you confirm it before we mark this done.
+
+### Other retailers
+
+The same transcoded files satisfy Findaway Voices and Apple Books. Spotify and Google Play already accept the current 128 kbps stereo MP3 — no extra work. So this single ACX-grade pack covers all four retailers.
+
+## Risk summary
+
+| Risk | Mitigation |
+|---|---|
+| ffmpeg-wasm OOM in edge function | One chapter per invocation, never bundle audio in a single function call. |
+| Cold start latency | Show explicit "preparing transcoder…" progress, use `npm:` cached imports. |
+| Breaking existing publish | Zero edits to `ba11-publish-audiobook` or `ba11-audiobook-generate`. New functions only. |
+| False compliance claims | Ship machine-readable ffprobe report + tell author to run ACX's own free checker. |
+| Author confusion (two ZIPs) | Old ZIP renamed to "Quick distribution pack (Spotify/Google ready)". New ZIP labeled "ACX-Ready pack (beta)". |
+
+## Approval gate
+
+Before I implement, please confirm:
+
+1. You accept the **opt-in, separate-ZIP approach** (vs. modifying the current publish path).
+2. You accept that final compliance is verified by ACX's own free checker tool, not by my word.
+3. OK to add the `audiobook-audio-acx` storage bucket and the two new columns on `audiobooks`.
+
+If yes, I'll implement and then run it against your existing "Be SUCKcessful" audiobook so you can download the report and verify with ACX's checker before we call it done.
