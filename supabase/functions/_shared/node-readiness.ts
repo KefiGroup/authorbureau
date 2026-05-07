@@ -114,12 +114,14 @@ const ANY_TITLE_KEYS = [
   "jv_strategy_title",
   "practice_title",
   "conference_title",
+  "campaign_title",
   "show_title",
   "podcast_title",
   "webinar_title",
   "hero_headline",
   "funnel_name",
   "speaker_headline",
+  "offer_name",
 ];
 
 function hasAnyTitle(c: any): boolean {
