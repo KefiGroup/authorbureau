@@ -11,14 +11,13 @@ import { hasRequiredAssets, AUTHOR_LEVEL_NODES, COMMERCE_NODES } from "@/lib/nod
  */
 
 describe("AUTHOR_LEVEL_NODES", () => {
-  it("contains the canonical 16 author-scoped nodes", () => {
-    const expected = [
-      "BP-01", "BP-03", "BA-14", "BA-15", "BA-16", "BA-18",
-      "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
-      "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
-    ];
-    expect(AUTHOR_LEVEL_NODES.size).toBe(expected.length);
-    for (const id of expected) expect(AUTHOR_LEVEL_NODES.has(id)).toBe(true);
+  it("is empty — Sprint 8 made all 28 nodes book-scoped", () => {
+    // Per Pauline's per-book YR requirement: every node (including all
+    // YR services, Email, Social, Podcast, Press, Affiliates, JV) lives
+    // under a specific book_id. Email/Social still SHIP through the
+    // shared mailing list + Buffer account, but their content rows are
+    // tracked per book.
+    expect(AUTHOR_LEVEL_NODES.size).toBe(0);
   });
 });
 
