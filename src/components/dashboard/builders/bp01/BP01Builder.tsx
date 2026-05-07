@@ -218,19 +218,21 @@ export default function BP01Builder({ authorId, bookId }: Props) {
       }
 
       const mergedContent = libraryAsset ? { ...content, library_asset: libraryAsset } : content;
-      // Native activation: write status='live' directly to author_nodes.
-      // The DB trigger autofills microsite_url; trigger_generate_asset_pack
-      // fires the ABBY nurture flow on status change.
-      const { error: upErr } = await supabase
-        .from("author_nodes")
-        .update({
-          status: "live",
-          activated_at: new Date().toISOString(),
-          content_json: mergedContent,
-        })
-        .eq("author_id", authorId)
-        .eq("node_id", "BP-01");
-      if (upErr) throw new Error(upErr.message || "Activation failed");
+      // Sprint 9 fix: publish via edge function (service role) instead of a
+      // direct PostgREST update — the latter silently fails for shared-backend
+      // sessions where auth.uid() doesn't match author_profiles.user_id, which
+      // left BP-01 stuck in 'content_ready' and dropped from the X/28 counter.
+      // First persist the merged content so the publish step picks it up.
+      await autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-01",
+        nodeName: "Email Marketing",
+        content: { ...mergedContent, _currentStep: 3 },
+        currentStep: 3,
+        bookId: activeBookId ?? null,
+      });
+      const { publishNodeToSite } = await import("@/lib/publish-node");
+      await publishNodeToSite(authorId!, "BP-01", authorSlug, activeBookId ?? null, libraryAsset);
       setContent((prev: any) => ({ ...prev, ...mergedContent, activated: true, publishStatus: "live" }));
       // Fire-and-forget: ensure email sequence + funnel exist for BP-01
       ensureEmailSequence({ authorId: authorId!, nodeId: "BP-01" });
