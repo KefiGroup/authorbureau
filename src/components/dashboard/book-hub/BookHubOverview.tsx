@@ -342,8 +342,31 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
         );
       })()}
 
-      {/* 3. Your Next Steps — inline loader while progress hydrates, prevents full-page skeleton flash. */}
-      {(progress.loading || progress.topNextSteps.length > 0) && (
+      {/* 3. Your Next Steps — or completion state when 28/28 live. */}
+      {!progress.loading && progress.overallCompleted >= progress.overallTotal && progress.overallTotal > 0 ? (
+        <div className="rounded-2xl border-2 border-secondary/40 bg-gradient-to-br from-secondary/10 to-secondary/5 p-6">
+          <h2 className="text-base font-bold mb-2">All 28 revenue streams are live.</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Your book has done its job as the hook — now let's grow the business it points to.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => navigate(`/dashboard?section=marketing-hub&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
+              className="rounded-lg bg-secondary text-secondary-foreground px-4 py-2 text-sm font-semibold hover:opacity-90 transition"
+            >
+              Open Marketing Hub →
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/dashboard?section=earnings&bookId=${book.id}&bookTitle=${encodeURIComponent(book.title)}`)}
+              className="rounded-lg border-2 border-secondary/40 bg-card px-4 py-2 text-sm font-semibold hover:border-secondary/60 transition"
+            >
+              Open Revenue Dashboard →
+            </button>
+          </div>
+        </div>
+      ) : (progress.loading || progress.topNextSteps.length > 0) && (
         <div>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-black uppercase tracking-[0.2em] text-foreground/70 flex items-center gap-1.5">
