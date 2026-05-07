@@ -76,7 +76,7 @@ const STREAMS: StreamGroup[] = [
       { label: "Certification", price: "$2,500–$7,500", status: "locked", requiredTier: "Yield", nodeId: "YR-25" },
       { label: "Conventions / Conferences", price: "$197–$2,500/ticket", status: "locked", requiredTier: "Yield", nodeId: "YR-26" },
       { label: "Fund Raising", price: "Varies", status: "locked", requiredTier: "Yield", nodeId: "YR-27" },
-      { label: "Exhibitors / JV", price: "Varies", status: "locked", requiredTier: "Yield", nodeId: "YR-28" },
+      { label: "Sponsors", price: "Varies", status: "locked", requiredTier: "Yield", nodeId: "YR-28" },
     ],
   },
 ];
