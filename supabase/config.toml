@@ -139,4 +139,8 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.export-bp08-order-form]
     verify_jwt = false
+  [functions.generate-speaker-script]
+    verify_jwt = false
+  [functions.export-speaker-script]
+    verify_jwt = false
 
