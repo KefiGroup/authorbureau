@@ -6154,10 +6154,12 @@ export type Database = {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
       }
-      compute_node_microsite_url: {
-        Args: { p_author_id: string; p_node_id: string }
-        Returns: string
-      }
+      compute_node_microsite_url:
+        | { Args: { p_author_id: string; p_node_id: string }; Returns: string }
+        | {
+            Args: { p_author_id: string; p_book_id: string; p_node_id: string }
+            Returns: string
+          }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
