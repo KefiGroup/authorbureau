@@ -149,7 +149,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
       await publishNodeToSite(authorId, "BA-14", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
       setStep(3);
-      toast.success("Your Podcast page is live on your site.");
+      toast.success("Your Podcast is now live!");
     } catch (e: any) {
       console.error("[BA14] publish failed", e);
       setError(e?.message || "Unknown error");

@@ -3326,7 +3326,12 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
   const title = yrStr(content.retreat_title, data.node.personalised_name || NODE_NAMES["YR-24"] || "Retreat");
   const tagline = yrStr(content.tagline);
   const concept = yrStr(content.retreat_concept);
-  const arc = yrStr(content.transformation_arc);
+  const arcRaw = content.transformation_arc;
+  const arcString = yrStr(arcRaw);
+  const arcObject = (!arcString && arcRaw && typeof arcRaw === "object") ? arcRaw : null;
+  const arcStages: any[] = Array.isArray(arcObject)
+    ? arcObject
+    : (arcObject && (Array.isArray((arcObject as any).stages) ? (arcObject as any).stages : null)) || [];
   const options = yrArr(content.retreat_options);
   const itinerary = yrArr(content.sample_itinerary);
   const paymentLink = yrStr(data.node.payment_link);
@@ -3380,10 +3385,45 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
           </div>
         </section>
       )}
-      {arc && (
+      {(arcString || arcStages.length > 0 || arcObject) && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
           <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Transformation Arc</p>
-          <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{arc}</p>
+          {arcString ? (
+            <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{arcString}</p>
+          ) : arcStages.length > 0 ? (
+            <div className="space-y-3">
+              {arcStages.map((s: any, i: number) => {
+                const stage = yrStr(s?.stage || s?.title, `Stage ${i + 1}`);
+                const from = yrStr(s?.shift_from || s?.from);
+                const to = yrStr(s?.shift_to || s?.to);
+                const proof = yrStr(s?.proof_of_progress || s?.proof);
+                const desc = yrStr(s?.description);
+                return (
+                  <div key={i} className="rounded-md p-3" style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}` }}>
+                    <p className="text-sm font-semibold mb-1" style={{ color: v.headingText }}>{stage}</p>
+                    {desc && <p className="text-sm mb-1" style={{ color: v.bodyText }}>{desc}</p>}
+                    {(from || to) && (
+                      <p className="text-sm" style={{ color: v.bodyText }}>
+                        {from && <><span style={{ color: v.mutedText }}>From:</span> {from}</>}
+                        {from && to && " → "}
+                        {to && <><span style={{ color: v.mutedText }}>To:</span> {to}</>}
+                      </p>
+                    )}
+                    {proof && <p className="text-sm mt-1" style={{ color: v.bodyText }}><span style={{ color: v.mutedText }}>Proof:</span> {proof}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          ) : arcObject ? (
+            <div className="space-y-2 text-sm" style={{ color: v.bodyText }}>
+              {Object.entries(arcObject).map(([k, val]) => {
+                const valStr = typeof val === "string" ? val : Array.isArray(val) ? val.filter((x) => typeof x === "string").join(", ") : "";
+                if (!valStr) return null;
+                const label = k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+                return <p key={k}><span style={{ color: v.mutedText }}>{label}:</span> {valStr}</p>;
+              })}
+            </div>
+          ) : null}
         </Card>
       )}
       {itinerary.length > 0 && (
