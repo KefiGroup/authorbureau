@@ -52,6 +52,20 @@ const arrLen = (c: any, path: string): number | undefined => {
 const TEXT_FORMATS: ExportFormat[] = ["copy", "txt", "docx", "pdf"];
 const SLIDE_FORMATS: ExportFormat[] = ["pptx", "pdf"];
 const PDF_FORMATS: ExportFormat[] = ["pdf", "docx"];
+const SCRIPT_FORMATS: ExportFormat[] = ["script_docx"];
+
+/** Speaker-script asset row helper — used on every slide-bearing node. */
+const speakerScriptAsset = (): NodeAsset => ({
+  key: "speaker_script",
+  label: "Speaker script",
+  type: "script",
+  formats: SCRIPT_FORMATS,
+  probe: c => has(c, "speaker_script.slides"),
+  sizeHint: c => {
+    const n = arrLen(c, "speaker_script.slides");
+    return n ? `${n} slides scripted` : undefined;
+  },
+});
 
 export const NODE_ASSETS: Record<string, NodeAsset[]> = {
   // ═══════════════ Brand Products ═══════════════
