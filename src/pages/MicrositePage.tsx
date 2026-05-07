@@ -3326,7 +3326,12 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
   const title = yrStr(content.retreat_title, data.node.personalised_name || NODE_NAMES["YR-24"] || "Retreat");
   const tagline = yrStr(content.tagline);
   const concept = yrStr(content.retreat_concept);
-  const arc = yrStr(content.transformation_arc);
+  const arcRaw = content.transformation_arc;
+  const arcString = yrStr(arcRaw);
+  const arcObject = (!arcString && arcRaw && typeof arcRaw === "object") ? arcRaw : null;
+  const arcStages: any[] = Array.isArray(arcObject)
+    ? arcObject
+    : (arcObject && (Array.isArray((arcObject as any).stages) ? (arcObject as any).stages : null)) || [];
   const options = yrArr(content.retreat_options);
   const itinerary = yrArr(content.sample_itinerary);
   const paymentLink = yrStr(data.node.payment_link);
