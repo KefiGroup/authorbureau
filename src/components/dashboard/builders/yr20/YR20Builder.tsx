@@ -99,7 +99,7 @@ export default function YR20Builder({ authorId, bookId }: Props) {
       const { data, error: e } = await invokeWithTimeout<any>("generate-yr20-big-ticket", { author_id: authorId, book_id: activeBookId }, 90000);
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Generation failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-20", nodeName: "Consulting", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-20", nodeName: "Big Ticket Consulting", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
