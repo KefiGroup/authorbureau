@@ -83,7 +83,19 @@ export default function YR23Builder({ authorId, bookId }: Props) {
     setStep(1); setError(null);
     try {
       const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
-      const { data, error: e } = await invokeWithTimeout<any>("generate-yr23-mastermind", { author_id: authorId, book_id: activeBookId }, 90000);
+      // Sprint 9 fix: silent retry once on timeout/transient failure. The 4-section
+      // mastermind generator occasionally exceeds the AI gateway window; one
+      // automatic retry resolves the vast majority without user intervention.
+      let data: any = null; let e: any = null;
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const res = await invokeWithTimeout<any>("generate-yr23-mastermind", { author_id: authorId, book_id: activeBookId }, 90000);
+        data = res.data; e = res.error;
+        if (data?.success) break;
+        if (attempt === 1) {
+          console.warn("[YR-23] generation attempt 1 failed, silently retrying", e?.message || data?.error);
+          await new Promise((r) => setTimeout(r, 1500));
+        }
+      }
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-23", nodeName: "Masterminds", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
