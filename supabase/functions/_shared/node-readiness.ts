@@ -125,7 +125,15 @@ const ANY_TITLE_KEYS = [
 ];
 
 function hasAnyTitle(c: any): boolean {
-  return anyNonEmptyString(c, ANY_TITLE_KEYS);
+  if (anyNonEmptyString(c, ANY_TITLE_KEYS)) return true;
+  // Also accept titles nested inside the first item of structured arrays
+  // (e.g. YR-20 offers[].offer_name, BP-05 webinar_topics[].title).
+  const NESTED_ARRAYS = ["offers", "packages", "tiers", "webinar_topics", "bundles", "editions", "lead_magnets"];
+  for (const key of NESTED_ARRAYS) {
+    const arr = (c as any)?.[key];
+    if (Array.isArray(arr) && arr.length > 0 && anyNonEmptyString(arr[0], ANY_TITLE_KEYS)) return true;
+  }
+  return false;
 }
 
 // Substantive built-content arrays produced by the various builders.
