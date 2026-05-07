@@ -125,9 +125,9 @@ export default function YR28Builder({ authorId, bookId }: Props) {
               </TabsList>
               <TabsContent value="overview" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-3">
-                  <h3 className="text-xl font-bold">{content.programme_title}</h3>
-                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
-                  <SafeText value={content.audience_profile} />
+                  <h3 className="text-xl font-bold"><SafeText value={content.programme_title} /></h3>
+                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"<SafeText value={content.tagline} />"</p>}
+                  <div className="text-sm text-muted-foreground"><SafeBlock value={content.audience_profile} /></div>
                 </CardContent></Card>
               </TabsContent>
               <TabsContent value="packages" className="space-y-3 mt-4">
