@@ -366,6 +366,13 @@ Strict rules:
       );
     }
 
+    await ensureSlideField(content, {
+      field: "slides", minCount: 8,
+      prompt: `Return JSON {"slides":[12 items]} for ${author.pen_name}'s online course '${content?.course_title || resolvedBookTitle}' based on book '${resolvedBookTitle}'. Slides: cover, who this is for, what you will learn, the pedagogical approach (Bloom + Kolb), Module 1, Module 2, Module 3, Module 4, Module 5, Module 6, outcome, enrol now. Each: {title, body (3-5 lines), notes, layout_hint:"hero|stat|quote|divider|bullets|split"}.`,
+      functionName: "generate-ba10-online-course",
+      model: "google/gemini-2.5-flash",
+    });
+
     // ============ Populate relational tables ============
     const coursePayload: Record<string, unknown> = {
       author_id: courseOwnerId,
