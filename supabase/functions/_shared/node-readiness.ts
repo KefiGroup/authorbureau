@@ -96,6 +96,54 @@ function anyNonEmptyString(obj: any, keys: string[]): boolean {
   return keys.some((k) => nonEmptyString(obj[k]));
 }
 
+// Builders use diverse title keys (course_title, programme_title, mastermind_title…).
+// Any one of these counts as a node title.
+const ANY_TITLE_KEYS = [
+  "title",
+  "workbook_title",
+  "course_title",
+  "programme_title",
+  "program_title",
+  "mastermind_title",
+  "retreat_title",
+  "membership_title",
+  "edition_title",
+  "kit_title",
+  "media_kit_title",
+  "product_ladder_title",
+  "jv_strategy_title",
+  "practice_title",
+  "conference_title",
+  "show_title",
+  "podcast_title",
+  "webinar_title",
+  "hero_headline",
+  "funnel_name",
+  "speaker_headline",
+];
+
+function hasAnyTitle(c: any): boolean {
+  return anyNonEmptyString(c, ANY_TITLE_KEYS);
+}
+
+// Substantive built-content arrays produced by the various builders.
+const SUBSTANCE_ARRAYS = [
+  "sections", "modules", "items", "packages", "tiers", "sessions",
+  "weeks", "study_weeks", "bundles", "editions", "offers",
+  "episodes", "chapters", "lead_magnets", "webinar_topics",
+  "training_formats", "programme_outline", "curriculum_pillars",
+  "membership_tiers", "retreat_options", "sample_itinerary",
+  "event_formats", "sponsorship_packages", "ideal_partners",
+  "target_media_outlets", "media_list", "outlets",
+  "affiliate_resources", "upsell_sequences", "welcome_emails",
+  "follow_up_emails", "sequence_steps", "steps", "posts",
+];
+
+function hasSubstantiveBuild(c: any): boolean {
+  if (!c || typeof c !== "object") return false;
+  return SUBSTANCE_ARRAYS.some((k) => nonEmptyArray(c[k]));
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasCommerceSignal(content: any): boolean {
   if (!content || typeof content !== "object") return false;
