@@ -120,7 +120,7 @@ export default function BA18Builder({ authorId, bookId }: Props) {
       await autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-18", nodeName: "Revenue Sharing", content: { ...(content || {}), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
       await publishNodeToSite(authorId!, "BA-18", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
-      toast.success("Your JV Partners page is live on your site.");
+      toast.success("Your JV Partnerships is now live!");
     } catch (e: any) {
       setError(e.message);
       setStep(2);
