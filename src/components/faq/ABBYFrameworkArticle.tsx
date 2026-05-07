@@ -29,7 +29,7 @@ const buildStreams: Stream[] = [
   { code: "BA-11", name: "Audiobook", desc: "Extend your reach and accessibility with an audio edition of your ideas." },
   { code: "BA-12", name: "Memberships", desc: "Create recurring value for your audience through ongoing content, community, and access." },
   { code: "BA-13", name: "Group Coaching", desc: "Lead readers through a shared transformation in a scalable live format." },
-  { code: "BA-14", name: "Podcast Tour", desc: "Build authority by getting your message in front of aligned audiences." },
+  { code: "BA-14", name: "Podcast", desc: "Build authority by getting your message in front of aligned audiences." },
   { code: "BA-15", name: "Media & PR", desc: "Increase visibility with interviews, press angles, and media positioning." },
   { code: "BA-16", name: "Affiliates", desc: "Let partners and advocates help distribute your products and offers." },
   { code: "BA-17", name: "Bundles", desc: "Increase customer value by guiding readers to the next best offer." },

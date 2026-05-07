@@ -28,7 +28,7 @@ Every node is powered by one or more of the **7 native engines**. External conne
 | BA-11 Audiobook | (TTS pipeline) | ElevenLabs (TTS), ACX (manual) |
 | BA-12 Membership | Commerce (recurring) | Stripe |
 | BA-13 Group Coaching | Sessions + Commerce | Stripe + Zoom (link only) |
-| BA-14 Podcast Tour | Podcast | Transistor.fm |
+| BA-14 Podcast | Podcast | Transistor.fm |
 | BA-15 Media & PR | (asset store) | — |
 | BA-16 Affiliates | CRM + Commerce | Stripe (payout) |
 | BA-17 Bundles | Commerce | Stripe |

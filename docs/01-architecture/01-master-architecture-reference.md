@@ -78,7 +78,7 @@ Generator-internal `NODE_NAME` constants are centrally enforced via `supabase/fu
 | BA-11 | Audiobook | Build Authority | Book | `generate-ba11-audiobook` (+ `ba11-audiobook-generate`, `ba11-publish-audiobook`, `ba11-voice-preview`) | Multi-function node (TTS pipeline) |
 | BA-12 | Membership | Build Authority | Book | `generate-ba12-membership` | — |
 | BA-13 | Group Coaching | Build Authority | Book | `generate-ba13-group-coaching` | Code comment in readiness gate says "BA-13 is a paid offer" but rule does not enforce a commerce signal. Documented in readiness spec. |
-| BA-14 | Podcast Tour | Build Authority | **Author** | `generate-ba14-podcast` | — |
+| BA-14 | Podcast | Build Authority | **Author** | `generate-ba14-podcast` | — |
 | BA-15 | Media & PR | Build Authority | **Author** | `generate-ba15-media-pr` | — |
 | BA-16 | Affiliates | Build Authority | **Author** | `generate-ba16-affiliate` (singular) | — |
 | BA-17 | Bundles | Build Authority | Book | `generate-ba17-bundles` | Sprint 50 rename |

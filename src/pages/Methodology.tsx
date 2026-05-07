@@ -56,7 +56,7 @@ const MASTER_TABLE: { builder: string; framework: string; citation: string }[] =
   { builder: "Website / Microsite", framework: "Hub-and-Spoke + Conversion Design", citation: "SEO Best Practices" },
   { builder: "Book Sales", framework: "Direct-to-Consumer (DTC) Sales", citation: "Warby Parker model" },
   { builder: "Audiobook", framework: "Multi-Format Content Repurposing", citation: "Audio learning research" },
-  { builder: "Podcast Tour", framework: "Strategic Guest Appearance Mapping", citation: "Audience overlap analysis" },
+  { builder: "Podcast", framework: "Strategic Guest Appearance Mapping", citation: "Audience overlap analysis" },
   { builder: "Webinars", framework: "Teach-Offer Model", citation: "5-15% conversion rate" },
   { builder: "Lead Magnets", framework: "Specificity Principle + 5-Minute Test", citation: "Checklists convert 3:1 over ebooks" },
   { builder: "Media & PR", framework: "Authority Positioning (Earned Media)", citation: "PR methodology" },

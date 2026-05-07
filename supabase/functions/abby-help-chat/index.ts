@@ -91,7 +91,7 @@ Your role is to help users navigate the platform, answer questions, and provide 
 Authors Bureau helps published authors monetize their books through the ABBY Framework:
 - **A**nalyse: Abby (the AI business consultant) analyses your book and creates a personalised business plan mapping up to 28 revenue streams
 - **B**rand Products (9 streams): Email Marketing, Lead Magnet, Social Media, Author Website, Webinars, Workbook, Home Study Course, Special Editions, Book Sales
-- **B**uild Authority (9 streams): Online Course, Audiobook, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Bundles, JV Partnerships
+- **B**uild Authority (9 streams): Online Course, Audiobook, Membership, Group Coaching, Podcast, Media & PR, Affiliates, Bundles, JV Partnerships
 - **Y**ield Revenue (10 streams): 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors
 
 ### Getting Started Flow
@@ -104,7 +104,7 @@ Authors Bureau helps published authors monetize their books through the ABBY Fra
 ### Subscription Tiers
 - **Free**: Book page, Abby analysis, business plan
 - **Brand Package ($49/mo)**: All 9 Brand Products builders (Email Marketing, Lead Magnet, Social Media, Author Website, Webinars, Workbook, Home Study Course, Special Editions, Book Sales)
-- **Build Package ($199/mo)**: Brand Package + all 9 Build Authority builders (Online Course, Home Study Course, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Upsells, JV Partnerships)
+- **Build Package ($199/mo)**: Brand Package + all 9 Build Authority builders (Online Course, Home Study Course, Membership, Group Coaching, Podcast, Media & PR, Affiliates, Upsells, JV Partnerships)
 - **Yield Package ($499/mo)**: All 28 builders + 1-on-1 with Pauline Teo + priority support + advanced analytics
 
 ### Key Features

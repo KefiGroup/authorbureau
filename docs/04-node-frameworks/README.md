@@ -38,7 +38,7 @@ Each of the 28 nodes has its own framework document below. (`BP-00` is an intern
 | BA-11 | Audiobook | Build | Book | [BA-11.md](./BA-11.md) |
 | BA-12 | Membership | Build | Book | [BA-12.md](./BA-12.md) |
 | BA-13 | Group Coaching | Build | Book | [BA-13.md](./BA-13.md) |
-| BA-14 | Podcast Tour | Build | Author | [BA-14.md](./BA-14.md) |
+| BA-14 | Podcast | Build | Author | [BA-14.md](./BA-14.md) |
 | BA-15 | Media & PR | Build | Author | [BA-15.md](./BA-15.md) |
 | BA-16 | Affiliates | Build | Author | [BA-16.md](./BA-16.md) |
 | BA-17 | Bundles | Build | Book | [BA-17.md](./BA-17.md) |
