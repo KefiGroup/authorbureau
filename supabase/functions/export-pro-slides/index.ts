@@ -57,19 +57,36 @@ function pluck(content: any, key: string): any {
 }
 
 /** Decide which Gamma layout fits this slide. */
-function pickLayout(slide: any, idx: number, total: number): string {
+function pickLayout(slide: any, idx: number, _total: number): string {
+  if (slide.layout_hint && /^(hero|stat|quote|divider|bullets|split)$/.test(slide.layout_hint)) {
+    return slide.layout_hint;
+  }
   if (idx === 0) return "hero";
-  const body = String(slide.body || "");
+  const headline = String(slide.headline || "");
+  const body = String(slide.body || headline || "");
   const title = String(slide.title || "");
-  // Big stat: body is short and contains a number
+  if (Array.isArray(slide.bullets) && slide.bullets.length >= 3) return "bullets";
   if (body.length < 80 && /\d{2,}/.test(body)) return "stat";
-  // Quote: title looks like a quote
   if (title.startsWith('"') || /quote|testimonial/i.test(title)) return "quote";
-  // Divider: very short body
-  if (body.length < 30) return "divider";
-  // Bullet rail: body has bullets / multiple lines
+  if (body.length < 30 && headline.length < 30) return "divider";
   if (body.split(/\n|•|·/).filter(s => s.trim().length > 0).length >= 3) return "bullets";
   return "split";
+}
+
+/** Best on-slide body text: headline > body > first bullet. */
+function bodyText(slide: any): string {
+  if (slide.headline) return String(slide.headline);
+  if (typeof slide.body === "string") return slide.body;
+  if (Array.isArray(slide.bullets) && slide.bullets.length) return slide.bullets[0];
+  return "";
+}
+
+/** Best bullet list for a slide. */
+function bulletItems(slide: any): string[] {
+  if (Array.isArray(slide.bullets)) {
+    return slide.bullets.map((b: any) => String(b ?? "").trim()).filter(Boolean).slice(0, 6);
+  }
+  return String(slide.body || "").split(/\n|•|·/).map((s: string) => s.trim()).filter(Boolean).slice(0, 6);
 }
 
 function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer: string, slideNum: number, coverImage?: string) {
@@ -90,8 +107,9 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
           x: 0.6, y: 5.0, w: 12.1, h: 1.6,
           fontFace: theme.fontHead, fontSize: 44, bold: true, color: "FFFFFF",
         });
-        if (slide.body) {
-          s.addText(String(slide.body), {
+        const sub = bodyText(slide);
+        if (sub) {
+          s.addText(sub, {
             x: 0.6, y: 6.5, w: 12.1, h: 0.8,
             fontFace: theme.fontBody, fontSize: 16, color: "FFFFFF",
           });
@@ -104,9 +122,10 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
       renderTextOnlyTitle(s, slide, theme);
     }
   } else if (layout === "stat") {
-    const m = String(slide.body || "").match(/(\d[\d,.\s]*%?)/);
+    const src = bodyText(slide);
+    const m = src.match(/(\d[\d,.\s]*%?)/);
     const stat = m ? m[1] : "★";
-    const caption = String(slide.body || "").replace(stat, "").trim() || String(slide.title || "");
+    const caption = src.replace(stat, "").trim() || String(slide.title || "");
     s.addText(stat, {
       x: 0.6, y: 1.6, w: 12.1, h: 3.5,
       fontFace: theme.fontHead, fontSize: 160, bold: true, color: theme.accent,
@@ -117,7 +136,7 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
       fontFace: theme.fontBody, fontSize: 22, color: theme.ink, align: "center",
     });
   } else if (layout === "quote") {
-    s.addText(`"${String(slide.body || slide.title || "").replace(/^"|"$/g, "")}"`, {
+    s.addText(`"${bodyText(slide).replace(/^"|"$/g, "") || String(slide.title || "")}"`, {
       x: 1.2, y: 1.8, w: 10.9, h: 4.0,
       fontFace: theme.fontHead, fontSize: 32, italic: true, color: theme.ink,
       align: "center", valign: "middle",
@@ -134,8 +153,9 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
       x: 0.6, y: 3.0, w: 12.1, h: 1.5,
       fontFace: theme.fontHead, fontSize: 48, bold: true, color: "FFFFFF", align: "center",
     });
-    if (slide.body) {
-      s.addText(String(slide.body), {
+    const sub = bodyText(slide);
+    if (sub) {
+      s.addText(sub, {
         x: 0.6, y: 4.5, w: 12.1, h: 1.0,
         fontFace: theme.fontBody, fontSize: 18, color: "FFFFFF", align: "center",
       });
@@ -145,9 +165,16 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
       x: 0.6, y: 0.6, w: 12.1, h: 1.0,
       fontFace: theme.fontHead, fontSize: 28, bold: true, color: theme.ink,
     });
-    const items = String(slide.body || "").split(/\n|•|·/).map((s: string) => s.trim()).filter(Boolean);
-    items.slice(0, 6).forEach((item: string, i: number) => {
-      const yPos = 1.9 + i * 0.85;
+    if (slide.headline) {
+      s.addText(String(slide.headline), {
+        x: 0.6, y: 1.55, w: 12.1, h: 0.5,
+        fontFace: theme.fontBody, fontSize: 16, italic: true, color: theme.muted,
+      });
+    }
+    const items = bulletItems(slide);
+    const startY = slide.headline ? 2.15 : 1.9;
+    items.forEach((item: string, i: number) => {
+      const yPos = startY + i * 0.78;
       s.addShape("ellipse", { x: 0.6, y: yPos + 0.1, w: 0.4, h: 0.4, fill: { color: theme.accent } });
       s.addText(String(i + 1), {
         x: 0.6, y: yPos + 0.1, w: 0.4, h: 0.4,
@@ -159,15 +186,35 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
       });
     });
   } else {
-    // split (default): title top, body left
+    // split (default): title top, headline + bullets/body left
     s.addText(String(slide.title || ""), {
       x: 0.6, y: 0.6, w: 12.1, h: 1.0,
       fontFace: theme.fontHead, fontSize: 30, bold: true, color: theme.ink,
     });
-    s.addText(String(slide.body || ""), {
-      x: 0.6, y: 1.9, w: 12.1, h: 4.8,
-      fontFace: theme.fontBody, fontSize: 18, color: theme.ink, valign: "top",
-    });
+    if (slide.headline) {
+      s.addText(String(slide.headline), {
+        x: 0.6, y: 1.6, w: 12.1, h: 0.7,
+        fontFace: theme.fontBody, fontSize: 18, italic: true, color: theme.accent,
+      });
+    }
+    const items = bulletItems(slide);
+    if (items.length >= 2) {
+      s.addText(items.map(t => ({ text: t, options: { bullet: true } })) as any, {
+        x: 0.6, y: 2.5, w: 12.1, h: 4.2,
+        fontFace: theme.fontBody, fontSize: 16, color: theme.ink, valign: "top", paraSpaceAfter: 6,
+      });
+    } else {
+      s.addText(String(slide.body || slide.headline || ""), {
+        x: 0.6, y: 2.5, w: 12.1, h: 4.2,
+        fontFace: theme.fontBody, fontSize: 18, color: theme.ink, valign: "top",
+      });
+    }
+    if (slide.evidence) {
+      s.addText(`Reference: ${slide.evidence}`, {
+        x: 0.6, y: 6.7, w: 12.1, h: 0.4,
+        fontFace: theme.fontBody, fontSize: 11, italic: true, color: theme.muted,
+      });
+    }
   }
 
   // Footer

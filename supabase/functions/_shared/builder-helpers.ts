@@ -265,6 +265,48 @@ export async function fetchAiGateway(
  *     model: "openai/gpt-5-mini",
  *   });
  */
+/**
+ * Sprint 12 — normalise a single slide into the modern schema:
+ *   { title, headline, bullets[], evidence, speaker_notes, layout_hint }
+ *
+ * Older generators emitted `body` (string) and `notes`; we map them across so
+ * the exporter and Speaker Script generator can rely on the new keys without
+ * forcing every generator to change its prompt.
+ */
+export function normaliseSlide(raw: any): Record<string, any> {
+  const s: Record<string, any> = { ...(raw || {}) };
+  if (!s.speaker_notes && s.notes) s.speaker_notes = s.notes;
+  if (!Array.isArray(s.bullets)) {
+    if (Array.isArray(s.body)) {
+      s.bullets = s.body.slice(0, 6).map(String);
+    } else if (typeof s.body === "string" && s.body.trim()) {
+      const parts = s.body.split(/\n|•|·|\u2022/).map((t: string) => t.trim()).filter(Boolean);
+      if (parts.length > 1) s.bullets = parts.slice(0, 6);
+    }
+  }
+  // Cap bullets to 6, drop empties
+  if (Array.isArray(s.bullets)) {
+    s.bullets = s.bullets.map((b: any) => String(b ?? "").trim()).filter(Boolean).slice(0, 6);
+  }
+  if (!s.headline) {
+    if (typeof s.body === "string" && s.body.trim().length > 0 && s.body.trim().length <= 160) {
+      s.headline = s.body.trim();
+    } else if (Array.isArray(s.bullets) && s.bullets.length > 0 && (!s.body || (typeof s.body === "string" && s.body.length > 200))) {
+      // leave headline empty; exporter will fall back to title
+    }
+  }
+  if (!s.layout_hint) {
+    const body = String(s.body || s.headline || "");
+    const title = String(s.title || "");
+    if (body.length < 80 && /\d{2,}/.test(body)) s.layout_hint = "stat";
+    else if (title.startsWith('"') || /quote|testimonial/i.test(title)) s.layout_hint = "quote";
+    else if (Array.isArray(s.bullets) && s.bullets.length >= 3) s.layout_hint = "bullets";
+    else if (body.length < 30) s.layout_hint = "divider";
+    else s.layout_hint = "split";
+  }
+  return s;
+}
+
 export async function ensureSlideField(
   content: Record<string, unknown>,
   opts: {
@@ -276,7 +318,10 @@ export async function ensureSlideField(
   },
 ): Promise<void> {
   const cur = (content as any)?.[opts.field];
-  if (Array.isArray(cur) && cur.length >= opts.minCount) return;
+  if (Array.isArray(cur) && cur.length >= opts.minCount) {
+    (content as any)[opts.field] = cur.map(normaliseSlide);
+    return;
+  }
 
   try {
     const repair = await callAiGateway({
@@ -300,7 +345,7 @@ export async function ensureSlideField(
         ? parsed
         : null;
     if (Array.isArray(arr) && arr.length > 0) {
-      (content as any)[opts.field] = arr;
+      (content as any)[opts.field] = arr.map(normaliseSlide);
     }
   } catch (e) {
     // Best-effort — don't fail the generator just because the bonus deck didn't land.

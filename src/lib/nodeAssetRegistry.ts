@@ -16,8 +16,8 @@
  *  - probe?:       optional fn that returns true if the asset really exists in this content
  *  - sizeHint?:    optional fn that returns a small label like "14 slides"
  */
-export type AssetType = "pptx" | "pdf" | "docx" | "csv" | "text" | "image" | "audio";
-export type ExportFormat = "copy" | "txt" | "docx" | "pdf" | "pptx" | "csv";
+export type AssetType = "pptx" | "pdf" | "docx" | "csv" | "text" | "image" | "audio" | "script";
+export type ExportFormat = "copy" | "txt" | "docx" | "pdf" | "pptx" | "csv" | "script_docx";
 
 export interface NodeAsset {
   key: string;
@@ -52,6 +52,20 @@ const arrLen = (c: any, path: string): number | undefined => {
 const TEXT_FORMATS: ExportFormat[] = ["copy", "txt", "docx", "pdf"];
 const SLIDE_FORMATS: ExportFormat[] = ["pptx", "pdf"];
 const PDF_FORMATS: ExportFormat[] = ["pdf", "docx"];
+const SCRIPT_FORMATS: ExportFormat[] = ["script_docx"];
+
+/** Speaker-script asset row helper — used on every slide-bearing node. */
+const speakerScriptAsset = (): NodeAsset => ({
+  key: "speaker_script",
+  label: "Speaker script",
+  type: "script",
+  formats: SCRIPT_FORMATS,
+  probe: c => has(c, "speaker_script.slides"),
+  sizeHint: c => {
+    const n = arrLen(c, "speaker_script.slides");
+    return n ? `${n} slides scripted` : undefined;
+  },
+});
 
 export const NODE_ASSETS: Record<string, NodeAsset[]> = {
   // ═══════════════ Brand Products ═══════════════

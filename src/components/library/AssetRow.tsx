@@ -48,6 +48,7 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
   pdf: "Download .pdf",
   pptx: "Download .pptx",
   csv: "Download .csv",
+  script_docx: "Download speaker script (.docx)",
 };
 
 export default function AssetRow({
@@ -98,6 +99,16 @@ export default function AssetRow({
         if (!data?.base64) throw new Error("No slides returned");
         const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         triggerDownload(blob, data.filename || `${asset.label}.pptx`);
+      } else if (fmt === "script_docx") {
+        const { data, error } = await invokeWithTimeout<{ filename: string; base64: string }>(
+          "export-speaker-script",
+          { node_id: node.node_id },
+          120000,
+        );
+        if (error) throw error;
+        if (!data?.base64) throw new Error("No script returned");
+        const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        triggerDownload(blob, data.filename || `${asset.label}.docx`);
       } else if (fmt === "csv") {
         // basic CSV: rows of strings if subContent is array
         const csv = toCsv(subContent);
