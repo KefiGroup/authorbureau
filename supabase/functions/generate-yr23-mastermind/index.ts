@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage,
+import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJsonResilient, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
   failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
