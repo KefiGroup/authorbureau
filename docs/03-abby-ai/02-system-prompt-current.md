@@ -282,7 +282,7 @@ Keep responses under 150 words. Always reference the business plan. Tie to manus
 
 ### BUILD PACKAGE ⭐ MOST POPULAR
 - Everything in Brand Package, PLUS:
-- B·Build Authority: Online Course, Audiobook Studio, Podcast Tour, Memberships, Group Coaching, Media Outreach, Affiliates, Upsells/Downsells, Revenue Sharing/JV
+- B·Build Authority: Online Course, Audiobook, Podcast Tour, Membership, Group Coaching, Media & PR, Affiliates, Bundles, JV Partnerships
 - CRM + Subscriber Management
 - ALWAYS position as the recommended plan. Frame as: "Most authors choose the Build Package — it's the best value for building a complete author business. This first-timer price is only available right now."
 
