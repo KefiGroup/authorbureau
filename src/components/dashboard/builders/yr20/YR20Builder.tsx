@@ -113,7 +113,7 @@ export default function YR20Builder({ authorId, bookId }: Props) {
       await publishNodeToSite(authorId, "YR-20", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
       setStep(3);
-      toast.success("Your Big Ticket Consulting page is live on your site.");
+      toast.success("Your Big Ticket Consulting is now live!");
     } catch (e: any) {
       setError(e.message);
       toast.error(`Publish failed: ${e?.message ?? "Unknown error"}`);
