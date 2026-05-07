@@ -381,7 +381,7 @@ export function getProductTypeLabel(type: string): string {
     certification: "Certification",
     convention: "Convention",
     special_edition: "Special Edition",
-    podcast: "Podcast Tour",
+    podcast: "Podcast",
     big_ticket: "Premium Program",
     companion_journal: "Companion Journal",
     assessment: "Assessment",

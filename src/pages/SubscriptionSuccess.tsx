@@ -13,7 +13,7 @@ const TIER_UNLOCKS = {
   },
   pro: {
     label: TIERS.build.label,
-    nodes: ["All Brand Products", "Online Course", "Audiobook", "Membership", "Group Coaching", "Podcast Tour", "Media & PR", "Affiliates", "Bundles", "JV Partnerships"],
+    nodes: ["All Brand Products", "Online Course", "Audiobook", "Membership", "Group Coaching", "Podcast", "Media & PR", "Affiliates", "Bundles", "JV Partnerships"],
     hub: "/build-authority",
     hubLabel: "Go to Build Authority",
   },

@@ -28,7 +28,7 @@ const PRODUCT_TYPE_META: Record<string, { icon: string; label: string }> = {
   coaching: { icon: "🎯", label: "Coaching" },
   group_coaching: { icon: "👥", label: "Group Coaching" },
   audiobook: { icon: "🎧", label: "Audiobook" },
-  podcast: { icon: "🎙", label: "Podcast Tour" },
+  podcast: { icon: "🎙", label: "Podcast" },
   workbook: { icon: "📝", label: "Workbook" },
   webinar: { icon: "💻", label: "Webinar" },
   membership: { icon: "🔑", label: "Membership" },

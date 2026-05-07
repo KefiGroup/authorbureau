@@ -44,7 +44,7 @@ const META: BuilderNodeMeta[] = [
   { id: "BA-11", label: "Audiobook", icon: "Headphones", emoji: "🎧", category: "bridge" },
   { id: "BA-12", label: "Membership", icon: "Users", emoji: "🔁", category: "bridge" },
   { id: "BA-13", label: "Group Coaching", icon: "Users", emoji: "👥", category: "bridge" },
-  { id: "BA-14", label: "Podcast Tour", icon: "Mic", emoji: "🎤", category: "bridge" },
+  { id: "BA-14", label: "Podcast", icon: "Mic", emoji: "🎤", category: "bridge" },
   { id: "BA-15", label: "Media & PR", icon: "Megaphone", emoji: "📰", category: "bridge" },
   { id: "BA-16", label: "Affiliates", icon: "Heart", emoji: "🤝", category: "bridge" },
   { id: "BA-17", label: "Bundles", icon: "BarChart3", emoji: "📈", category: "bridge" },

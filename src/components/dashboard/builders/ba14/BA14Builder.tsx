@@ -69,7 +69,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
           toast.info("Your last publish didn't complete — please click Publish again.");
         }
         if (wasLegacy) {
-          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: activeBookId });
+          void autosaveBuilderDraft({ authorId, nodeId: "BA-14", nodeName: "Podcast", content: { ...(normalised), _currentStep: (__draft.currentStep ?? 2) }, currentStep: __draft.currentStep ?? 2, bookId: activeBookId });
         }
         setHydrated(true);
         return;
@@ -114,7 +114,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normalisePodcast(data.content || {});
       setContent(normalised); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast Tour", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-14", nodeName: "Podcast", content: { ...(normalised), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
 
@@ -123,7 +123,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
     setIsSavingDraft(true);
     try {
       const result = await autosaveBuilderDraft({
-        authorId, nodeId: "BA-14", nodeName: "Podcast Tour",
+        authorId, nodeId: "BA-14", nodeName: "Podcast",
         content: { ...content, _currentStep: step },
         currentStep: step, bookId: activeBookId,
       });
@@ -142,7 +142,7 @@ export default function BA14Builder({ authorId, bookId }: Props) {
     setIsPublishing(true);
     try {
       await autosaveBuilderDraft({
-        authorId, nodeId: "BA-14", nodeName: "Podcast Tour",
+        authorId, nodeId: "BA-14", nodeName: "Podcast",
         content: { ...content, _currentStep: 3 },
         currentStep: 3, bookId: activeBookId,
       });

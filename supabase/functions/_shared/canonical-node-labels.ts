@@ -31,7 +31,7 @@ export const CANONICAL_NODE_LABELS: Readonly<Record<string, string>> = Object.fr
   "BA-11": "Audiobook",
   "BA-12": "Membership",
   "BA-13": "Group Coaching",
-  "BA-14": "Podcast Tour",
+  "BA-14": "Podcast",
   "BA-15": "Media & PR",
   "BA-16": "Affiliates",
   "BA-17": "Bundles",

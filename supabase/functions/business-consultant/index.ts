@@ -64,7 +64,7 @@ Workbooks, Home Study Courses, Special Editions, Book Sales
 
 IMPORTANT: Authors at Level 0 (no audience) MUST complete Sub-Phase A before moving to Sub-Phase B.
 
-ACT 3 — BUILD AUTHORITY: Online Course, Audiobook, Membership, Group Coaching, Podcast Tour, Media & PR, Affiliates, Bundles, JV Partnerships.
+ACT 3 — BUILD AUTHORITY: Online Course, Audiobook, Membership, Group Coaching, Podcast, Media & PR, Affiliates, Bundles, JV Partnerships.
 
 ACT 4 — YIELD REVENUE: 1-on-1 Coaching, Big Ticket Consulting, Speaking, Corporate Training, Mastermind, Retreats, Certification, Conference, Fundraising, Sponsors.
 
@@ -75,7 +75,7 @@ CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the startin
 - NON-FICTION (Self-Help, Business): Start with Branding & Marketing, then Digital Products, then Online Course, then Coaching.
 - NON-FICTION (How-To, Technical): Start with Branding & Marketing, then Digital Products, then Online Course, Corporate Training.
 - FICTION: Start with Branding & Marketing, then Digital Products (Special Editions, Book Sales), then Audiobook.
-- MEMOIR: Start with Branding & Marketing, then Podcast Tour, Media & PR, then Speaking, Mastermind.
+- MEMOIR: Start with Branding & Marketing, then Podcast, Media & PR, then Speaking, Mastermind.
 - ACADEMIC: Start with Branding & Marketing, then Workbook, then Certification, Corporate Training.
 - CHILDREN'S: Start with Branding & Marketing, then Book Sales, Special Editions, then Conference.
 
@@ -84,7 +84,7 @@ CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the startin
 - LEVEL 0 (0 contacts): Brand Products — Sub-Phase A ONLY. Website, Lead Magnets, Email Marketing, Social Media.
 - LEVEL 1 (1–1,000 contacts): Brand Products — Sub-Phase B. Workbook, Home Study, Webinars, Special Editions, Book Sales.
 - LEVEL 2 (1,001–3,000 contacts): Begin Build Authority. Add Online Course, Audiobook, Group Coaching.
-- LEVEL 3 (3,001–5,000 contacts): Expand Build Authority. Add Membership, Podcast Tour, Media & PR.
+- LEVEL 3 (3,001–5,000 contacts): Expand Build Authority. Add Membership, Podcast, Media & PR.
 - LEVEL 4 (5,000+ contacts): Activate Yield Revenue. 1-on-1 Coaching, Speaking, Mastermind, Certification.
 
 # SECTION 5: REVENUE ESTIMATION FORMULAS
@@ -124,7 +124,7 @@ CRITICAL REVENUE RANGE RULES:
 2. Audiobook ($14.99–$29.99)
 3. Membership ($9–$97/month)
 4. Group Coaching ($297–$997 per cohort)
-5. Podcast Tour
+5. Podcast
 6. Media & PR
 7. Affiliates (15–50%)
 8. Bundles
@@ -278,7 +278,7 @@ Keep responses under 150 words. Always reference the business plan. Tie to manus
 
 ### BUILD PACKAGE ⭐ MOST POPULAR
 - Everything in Brand Package, PLUS:
-- B·Build Authority: Online Course, Audiobook, Podcast Tour, Membership, Group Coaching, Media & PR, Affiliates, Bundles, JV Partnerships
+- B·Build Authority: Online Course, Audiobook, Podcast, Membership, Group Coaching, Media & PR, Affiliates, Bundles, JV Partnerships
 - CRM + Subscriber Management
 - ALWAYS position as the recommended plan. Frame as: "Most authors choose the Build Package — it's the best value for building a complete author business. This first-timer price is only available right now."
 
@@ -3236,7 +3236,7 @@ State the author's core transformation promise clearly.
 - **BA-11 Audiobook** — [specific recommendation with pricing]
 - **BA-12 Membership** — [specific recommendation with pricing]
 - **BA-13 Group Coaching** — [specific recommendation with pricing]
-- **BA-14 Podcast Tour** — [specific recommendation]
+- **BA-14 Podcast** — [specific recommendation]
 - **BA-15 Media & PR** — [specific recommendation]
 - **BA-16 Affiliates** — [specific recommendation with commission structure]
 - **BA-17 Bundles** — [specific recommendation]

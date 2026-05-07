@@ -549,7 +549,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           sectionTitle="B · Build Channels"
           sectionSubtitle="Coming Soon: Marketing channels & audience connections."
           gateMessage="Build Channels are currently under development. We're building powerful tools for podcasts, webinars, audiobooks, and more. Check back soon!"
-          productNames={["Audiobook", "Podcast Tour", "Webinars", "Lead Magnet Funnel", "Media & PR", "Affiliates", "Bundles", "Revenue Sharing"]}
+          productNames={["Audiobook", "Podcast", "Webinars", "Lead Magnet Funnel", "Media & PR", "Affiliates", "Bundles", "Revenue Sharing"]}
           onAnalyze={() => setActiveSection("revenue-streams")}
         />;
       case "authority-builders":

@@ -54,7 +54,7 @@ function getConnectedProducts(builderId: string): ConnectedProduct[] {
     "social-media": [
       { id: "email-marketing", icon: "✉️", name: "Email Marketing", connection: "Social drives email signups", tier: "brand", status: "not_started" },
       { id: "lead-magnet", icon: "🧲", name: "Lead Magnet", connection: "Social content promotes lead magnets", tier: "brand", status: "not_started" },
-      { id: "podcast-scripts", icon: "🎙️", name: "Podcast Tour", connection: "Social posts promote episodes", tier: "build", status: "not_started" },
+      { id: "podcast-scripts", icon: "🎙️", name: "Podcast", connection: "Social posts promote episodes", tier: "build", status: "not_started" },
     ],
     "email-marketing": [
       { id: "lead-magnet", icon: "🧲", name: "Lead Magnet", connection: "Lead magnet captures new subscribers", tier: "brand", status: "not_started" },
@@ -75,7 +75,7 @@ function getConnectedProducts(builderId: string): ConnectedProduct[] {
     ],
     "audiobook": [
       { id: "book-sales", icon: "📖", name: "Book Sales", connection: "Audio format complements print sales", tier: "brand", status: "not_started" },
-      { id: "podcast-scripts", icon: "🎙️", name: "Podcast Tour", connection: "Audiobook listeners discover podcast", tier: "build", status: "not_started" },
+      { id: "podcast-scripts", icon: "🎙️", name: "Podcast", connection: "Audiobook listeners discover podcast", tier: "build", status: "not_started" },
       { id: "media-outreach", icon: "📰", name: "Media & PR", connection: "Audiobook launch drives media coverage", tier: "build", status: "not_started" },
     ],
     "memberships": [
@@ -95,7 +95,7 @@ function getConnectedProducts(builderId: string): ConnectedProduct[] {
     ],
     "media-outreach": [
       { id: "social-media", icon: "📱", name: "Social Media", connection: "Media mentions amplify social proof", tier: "brand", status: "not_started" },
-      { id: "podcast-scripts", icon: "🎙️", name: "Podcast Tour", connection: "Media coverage drives podcast appearances", tier: "build", status: "not_started" },
+      { id: "podcast-scripts", icon: "🎙️", name: "Podcast", connection: "Media coverage drives podcast appearances", tier: "build", status: "not_started" },
       { id: "keynotes", icon: "🎤", name: "Keynotes", connection: "Media profile lands speaking gigs", tier: "yield", status: "not_started" },
     ],
     "affiliates": [

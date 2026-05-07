@@ -23,7 +23,7 @@ This affects:
 |---|---|---|
 | BP-01 | Email Marketing | One author = one master email list (Resend domain is shared) |
 | BP-03 | Social Media | One author = one set of social channels |
-| BA-14 | Podcast Tour | One show, multi-book episodes |
+| BA-14 | Podcast | One show, multi-book episodes |
 | BA-15 | Media & PR | Author bio + press kit, not book-specific |
 | BA-16 | Affiliates | Author's affiliate programme spans all books |
 | BA-18 | JV Partnerships | Joint ventures are author-to-author |
