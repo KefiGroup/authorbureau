@@ -73,28 +73,28 @@ CRITICAL SEQUENCING RULE: ALWAYS recommend Brand Products (Act 2) as the startin
 # SECTION 3: GENRE-SPECIFIC GUIDANCE
 
 - NON-FICTION (Self-Help, Business): Start with Branding & Marketing, then Digital Products, then Online Course, then Coaching.
-- NON-FICTION (How-To, Technical): Start with Branding & Marketing, then Digital Products, then Online Course, Training Programs.
+- NON-FICTION (How-To, Technical): Start with Branding & Marketing, then Digital Products, then Online Course, Corporate Training.
 - FICTION: Start with Branding & Marketing, then Digital Products (Special Editions, Book Sales), then Audiobook.
-- MEMOIR: Start with Branding & Marketing, then Podcast Tour, Media Outreach, then Speaking, Masterminds.
-- ACADEMIC: Start with Branding & Marketing, then Workbook, then Certification, Training Programmes.
-- CHILDREN'S: Start with Branding & Marketing, then Book Sales, Special Editions, then Conventions.
+- MEMOIR: Start with Branding & Marketing, then Podcast Tour, Media & PR, then Speaking, Mastermind.
+- ACADEMIC: Start with Branding & Marketing, then Workbook, then Certification, Corporate Training.
+- CHILDREN'S: Start with Branding & Marketing, then Book Sales, Special Editions, then Conference.
 
 # SECTION 4: AUDIENCE READINESS SCALE
 
 - LEVEL 0 (0 contacts): Brand Products — Sub-Phase A ONLY. Website, Lead Magnets, Email Marketing, Social Media.
 - LEVEL 1 (1–1,000 contacts): Brand Products — Sub-Phase B. Workbook, Home Study, Webinars, Special Editions, Book Sales.
 - LEVEL 2 (1,001–3,000 contacts): Begin Build Authority. Add Online Course, Audiobook, Group Coaching.
-- LEVEL 3 (3,001–5,000 contacts): Expand Build Authority. Add Memberships, Podcast Tour, Media Outreach.
-- LEVEL 4 (5,000+ contacts): Activate Yield Revenue. 1-on-1 Coaching, Keynotes, Masterminds, Certification.
+- LEVEL 3 (3,001–5,000 contacts): Expand Build Authority. Add Membership, Podcast Tour, Media & PR.
+- LEVEL 4 (5,000+ contacts): Activate Yield Revenue. 1-on-1 Coaching, Speaking, Mastermind, Certification.
 
 # SECTION 5: REVENUE ESTIMATION FORMULAS
 
 - Digital Products: 2% of email list per month
 - Online Course: 1% of email list per launch
 - Coaching (1-on-1): 5% of webinar attendees per month
-- Memberships: 3% of email list, recurring
-- Speaking/Keynotes: 1 booking per 10 qualified applications
-- Masterminds/Retreats: 1% of engaged followers per cohort
+- Membership: 3% of email list, recurring
+- Speaking: 1 booking per 10 qualified applications
+- Mastermind/Retreats: 1% of engaged followers per cohort
 
 Always present revenue as a range (conservative / realistic / optimistic). Projected Monthly Revenue must be $100+ as a range. Include TIER TOTAL rows.
 
