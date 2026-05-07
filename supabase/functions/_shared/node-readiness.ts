@@ -318,10 +318,10 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
     case "BP-05": {
       // Webinars — title required; live when slides/registration URL,
       // commerce signal, OR a built webinar_topics list exists.
-      if (!hasAnyTitle(content)) return false;
       if (nonEmptyString(content.slides_url) || nonEmptyString(content.registration_url)) return true;
       if (hasCommerceSignal(content)) return true;
-      return hasSubstantiveBuild(content);
+      if (hasSubstantiveBuild(content)) return true;
+      return hasAnyTitle(content) && nonEmptyString(content.recommended_webinar);
     }
     case "BP-06": {
       const hasTitle = hasAnyTitle(content);
