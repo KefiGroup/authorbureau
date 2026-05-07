@@ -94,7 +94,7 @@ export default function YR28Builder({ authorId, bookId }: Props) {
     if (!authorId || !authorSlug) { toast.error("Profile not ready — please wait a moment."); return; }
     setError(null); setIsPublishing(true);
     try {
-      await autosaveBuilderDraft({ authorId, nodeId: "YR-28", nodeName: "Exhibitors / JV", content: { ...(content || {}), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
+      await autosaveBuilderDraft({ authorId, nodeId: "YR-28", nodeName: "Sponsors", content: { ...(content || {}), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
       await publishNodeToSite(authorId, "YR-28", authorSlug, activeBookId);
       setContent((p: any) => ({ ...p, activated: true })); setStep(3);
       toast.success("Your Sponsorship Programme is live on your site.");
