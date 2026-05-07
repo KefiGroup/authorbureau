@@ -14,7 +14,7 @@ import { publishNodeToSite } from "@/lib/publish-node";
 import { getMicrositeUrl } from "@/lib/node-slug-map";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
-import { YRSafeBoundary, SafeText } from "../shared/YRSafeBoundary";
+import { YRSafeBoundary, SafeText, SafeBlock } from "../shared/YRSafeBoundary";
 
 const GEN_MSGS = ["Designing your sponsorship programme...", "Creating sponsorship packages...", "Building your pitch deck outline...", "Finalising your outreach strategy..."];
 const ACT_MSGS = ["Setting up your enquiry pipeline...", "Creating payment links...", "Almost ready..."];
@@ -125,9 +125,9 @@ export default function YR28Builder({ authorId, bookId }: Props) {
               </TabsList>
               <TabsContent value="overview" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-3">
-                  <h3 className="text-xl font-bold">{content.programme_title}</h3>
-                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"{content.tagline}"</p>}
-                  <SafeText value={content.audience_profile} />
+                  <h3 className="text-xl font-bold"><SafeText value={content.programme_title} /></h3>
+                  {content.tagline && <p className="text-sm font-semibold text-primary italic">"<SafeText value={content.tagline} />"</p>}
+                  <div className="text-sm text-muted-foreground"><SafeBlock value={content.audience_profile} /></div>
                 </CardContent></Card>
               </TabsContent>
               <TabsContent value="packages" className="space-y-3 mt-4">
@@ -135,12 +135,12 @@ export default function YR28Builder({ authorId, bookId }: Props) {
                   <Card key={i} className={sp.price_usd >= 10000 ? "border-amber-300 dark:border-amber-700" : ""}>
                     <CardContent className="pt-6 space-y-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h4 className="font-bold">{sp.tier}</h4>
+                        <h4 className="font-bold"><SafeText value={sp.tier} /></h4>
                         <HighTicketPrice price={sp.price_usd} />
                       </div>
-                      <span className="inline-block text-xs bg-muted px-2.5 py-1 rounded-full">{sp.exclusivity}</span>
-                      <SafeText value={sp.description} className="text-muted-foreground" />
-                      <ul className="space-y-1">{sp.benefits?.map((b: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{b}</li>)}</ul>
+                      {sp.exclusivity && <span className="inline-block text-xs bg-muted px-2.5 py-1 rounded-full"><SafeText value={sp.exclusivity} /></span>}
+                      <div className="text-muted-foreground text-sm"><SafeBlock value={sp.description} /></div>
+                      <ul className="space-y-1">{sp.benefits?.map((b: any, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span><SafeText value={b} /></li>)}</ul>
                     </CardContent>
                   </Card>
                 ))}
@@ -148,21 +148,21 @@ export default function YR28Builder({ authorId, bookId }: Props) {
               <TabsContent value="pitch" className="space-y-3 mt-4">
                 {content.pitch_deck_outline?.map((s: any, i: number) => (
                   <Card key={i}><CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-2 mb-1"><span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{s.slide}</span><h4 className="font-bold text-sm">{s.title}</h4></div>
-                    <div className="pl-9"><SafeText value={s.content_summary} className="text-muted-foreground" /></div>
+                    <div className="flex items-center gap-2 mb-1"><span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{s.slide}</span><h4 className="font-bold text-sm"><SafeText value={s.title} /></h4></div>
+                    <div className="pl-9 text-muted-foreground text-sm"><SafeBlock value={s.content_summary} /></div>
                   </CardContent></Card>
                 ))}
               </TabsContent>
               <TabsContent value="outreach" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4">
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Target Sponsors</p><SafeText value={content.outreach_strategy?.target_sponsors} /></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Target Sponsors</p><SafeBlock value={content.outreach_strategy?.target_sponsors} /></div>
                   <Card className="bg-muted/30"><CardContent className="pt-4 pb-4">
                     <p className="text-xs font-semibold text-muted-foreground mb-2">Outreach Email</p>
-                    {Array.isArray(content.outreach_strategy?.outreach_message)
-                      ? <SafeText value={content.outreach_strategy?.outreach_message} />
-                      : <p className="text-sm whitespace-pre-line">{content.outreach_strategy?.outreach_message}</p>}
+                    {typeof content.outreach_strategy?.outreach_message === "string"
+                      ? <p className="text-sm whitespace-pre-line">{content.outreach_strategy.outreach_message}</p>
+                      : <SafeBlock value={content.outreach_strategy?.outreach_message} />}
                   </CardContent></Card>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Follow-up</p><SafeText value={content.outreach_strategy?.follow_up_cadence} /></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Follow-up</p><SafeBlock value={content.outreach_strategy?.follow_up_cadence} /></div>
                 </CardContent></Card>
               </TabsContent>
             </Tabs>
