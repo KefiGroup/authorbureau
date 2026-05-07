@@ -3701,9 +3701,9 @@ function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
   );
 }
 
-/* ═══ YR-28 — SPONSORS / EXHIBITORS ═══ */
+/* ═══ YR-28 — SPONSORS ═══ */
 function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
-  const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-28"] || "Exhibitors & Sponsors");
+  const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-28"] || "Sponsors");
   const tagline = yrStr(content.tagline);
   const summary = yrStr(content.abby_summary);
   const audience = yrStr(content.audience_profile);
