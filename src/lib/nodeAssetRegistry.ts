@@ -116,6 +116,8 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
   // ═══════════════ Build Authority ═══════════════
   "BA-10": [
     { key: "*", label: "Online course package", type: "pdf", formats: [...PDF_FORMATS, "csv"] },
+    { key: "slides", label: "Course overview deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
   ],
   "BA-11": [
     { key: "zip_url", label: "Audiobook export pack (ZIP)", type: "audio", formats: [],
@@ -129,7 +131,11 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
       probe: c => has(c, "cover_image_url") },
   ],
   "BA-12": [{ key: "*", label: "Membership package", type: "text", formats: TEXT_FORMATS }],
-  "BA-13": [{ key: "*", label: "Group coaching package", type: "pdf", formats: PDF_FORMATS }],
+  "BA-13": [
+    { key: "*", label: "Group coaching package", type: "pdf", formats: PDF_FORMATS },
+    { key: "slides", label: "Group coaching pitch deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+  ],
   "BA-14": [{ key: "*", label: "Podcast season package", type: "text", formats: TEXT_FORMATS }],
   "BA-15": [
     { key: "press_release", label: "Press release", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "press_release") },
@@ -151,12 +157,20 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "curriculum", label: "Training curriculum", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "curriculum") },
     { key: "slides", label: "Training slide deck", type: "pptx", formats: SLIDE_FORMATS, probe: c => has(c, "slides") },
   ],
-  "YR-23": [{ key: "*", label: "Mastermind package", type: "pdf", formats: PDF_FORMATS }],
+  "YR-23": [
+    { key: "*", label: "Mastermind package", type: "pdf", formats: PDF_FORMATS },
+    { key: "slides", label: "Mastermind pitch deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+  ],
   "YR-24": [
     { key: "itinerary", label: "Retreat itinerary", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "itinerary") },
     { key: "sales_page", label: "Retreat sales page", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "sales_page") },
   ],
-  "YR-25": [{ key: "*", label: "Certification package", type: "pdf", formats: PDF_FORMATS }],
+  "YR-25": [
+    { key: "*", label: "Certification package", type: "pdf", formats: PDF_FORMATS },
+    { key: "slides", label: "Certification pitch deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+  ],
   "YR-26": [
     { key: "agenda", label: "Conference agenda", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "agenda") },
     { key: "sponsor_deck", label: "Sponsor deck", type: "pptx", formats: SLIDE_FORMATS, probe: c => has(c, "sponsor_deck") },
