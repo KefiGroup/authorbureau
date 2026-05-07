@@ -48,6 +48,7 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
   pdf: "Download .pdf",
   pptx: "Download .pptx",
   csv: "Download .csv",
+  script_docx: "Download speaker script (.docx)",
 };
 
 export default function AssetRow({
