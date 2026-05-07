@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
-  failResponse, aiGatewayErrorMessage,
+  failResponse, aiGatewayErrorMessage, ensureSlideField,
 } from "../_shared/builder-helpers.ts";
 
 import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
@@ -40,6 +40,11 @@ Generate JSON: {"programme_title","tagline","audience_profile","sponsorship_pack
     if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await ensureSlideField(content, {
+      field: "pitch_deck", minCount: 8,
+      prompt: `Return JSON {"pitch_deck":[10 items]} for ${author.pen_name}'s sponsorship pitch '${content?.programme_title || bookTitle}' (book: '${bookTitle}'). Slides: cover, the audience, event overview, why sponsor, sponsorship packages, exclusivity, activation ideas, past results/social proof, timeline, CTA reserve a package. Each: {title, body, notes, layout_hint}.`,
+      functionName: "generate-yr28-sponsors",
+    });
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready", current_step: 2,
       content_json: { ...content, _currentStep: 2 },

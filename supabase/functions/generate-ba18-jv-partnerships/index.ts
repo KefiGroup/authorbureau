@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage, failResponse,
   verifyAuthUser, aiGatewayErrorMessage,
-  buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
+  buildAuthorContext, snapshotAuthorNode, upsertAuthorNode, ensureSlideField,
 } from "../_shared/builder-helpers.ts";
 
 import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
@@ -93,6 +93,11 @@ Return JSON in this EXACT shape (field names matter):
     }
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await ensureSlideField(content, {
+      field: "pitch_deck", minCount: 6,
+      prompt: `Return JSON {"pitch_deck":[7 items]} for a JV partner pitch from ${author.pen_name} (book: '${bookTitle}'). Slides: cover, the opportunity, audience overlap, the offer, revenue split, deliverables/timeline, why us, CTA. Each: {title, body, notes, layout_hint}.`,
+      functionName: "generate-ba18-jv-partnerships",
+    });
 
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",
