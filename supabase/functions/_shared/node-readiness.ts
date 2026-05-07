@@ -96,15 +96,83 @@ function anyNonEmptyString(obj: any, keys: string[]): boolean {
   return keys.some((k) => nonEmptyString(obj[k]));
 }
 
+// Builders use diverse title keys (course_title, programme_title, mastermind_title…).
+// Any one of these counts as a node title.
+const ANY_TITLE_KEYS = [
+  "title",
+  "workbook_title",
+  "course_title",
+  "programme_title",
+  "program_title",
+  "mastermind_title",
+  "retreat_title",
+  "membership_title",
+  "edition_title",
+  "kit_title",
+  "media_kit_title",
+  "product_ladder_title",
+  "jv_strategy_title",
+  "practice_title",
+  "conference_title",
+  "campaign_title",
+  "show_title",
+  "podcast_title",
+  "webinar_title",
+  "hero_headline",
+  "funnel_name",
+  "speaker_headline",
+  "offer_name",
+];
+
+function hasAnyTitle(c: any): boolean {
+  if (anyNonEmptyString(c, ANY_TITLE_KEYS)) return true;
+  // Also accept titles nested inside the first item of structured arrays
+  // (e.g. YR-20 offers[].offer_name, BP-05 webinar_topics[].title).
+  const NESTED_ARRAYS = ["offers", "packages", "tiers", "webinar_topics", "bundles", "editions", "lead_magnets"];
+  for (const key of NESTED_ARRAYS) {
+    const arr = (c as any)?.[key];
+    if (Array.isArray(arr) && arr.length > 0 && anyNonEmptyString(arr[0], ANY_TITLE_KEYS)) return true;
+  }
+  return false;
+}
+
+// Substantive built-content arrays produced by the various builders.
+const SUBSTANCE_ARRAYS = [
+  "sections", "modules", "items", "packages", "tiers", "sessions",
+  "weeks", "study_weeks", "bundles", "editions", "offers",
+  "episodes", "chapters", "lead_magnets", "webinar_topics",
+  "training_formats", "programme_outline", "curriculum_pillars",
+  "membership_tiers", "retreat_options", "sample_itinerary",
+  "event_formats", "sponsorship_packages", "ideal_partners",
+  "target_media_outlets", "media_list", "outlets",
+  "affiliate_resources", "upsell_sequences", "welcome_emails",
+  "follow_up_emails", "sequence_steps", "steps", "posts",
+  "donation_tiers", "shared_assets", "campaign_milestones",
+];
+
+function hasSubstantiveBuild(c: any): boolean {
+  if (!c || typeof c !== "object") return false;
+  if (SUBSTANCE_ARRAYS.some((k) => nonEmptyArray(c[k]))) return true;
+  // Some builders write "kit"-style objects with multiple nested sub-products
+  // (e.g. BP-09 workshop / book_signing / corporate_lunch). If at least two
+  // of these structured sub-products exist, count it as a built deliverable.
+  const KIT_KEYS = ["workshop", "book_signing", "corporate_lunch", "bundle_offer", "optin_page", "thankyou_page"];
+  const kitCount = KIT_KEYS.filter((k) => c[k] && typeof c[k] === "object").length;
+  return kitCount >= 2;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasCommerceSignal(content: any): boolean {
   if (!content || typeof content !== "object") return false;
   if (nonEmptyString(content.stripe_price_id)) return true;
-  const price = Number(content.price_usd ?? content.suggested_price_usd ?? 0);
+  const price = Number(content.price_usd ?? content.suggested_price_usd ?? content.campaign_goal_usd ?? 0);
   if (price > 0) return true;
-  // Sales tier with a paid item also counts as commerce wired.
-  const tiers = Array.isArray(content.sales_tiers) ? content.sales_tiers : null;
-  if (tiers && tiers.some((t: any) => Number(t?.price_usd ?? 0) > 0)) return true;
+  // Any tiered/packaged/offer array with a paid item counts as commerce wired.
+  const PRICED_ARRAYS = ["sales_tiers", "tiers", "packages", "offers", "donation_tiers", "membership_tiers", "sponsorship_packages", "bundles", "editions"];
+  for (const key of PRICED_ARRAYS) {
+    const arr = (content as any)[key];
+    if (Array.isArray(arr) && arr.some((t: any) => Number(t?.price_usd ?? t?.amount_usd ?? t?.price ?? 0) > 0)) return true;
+  }
   return false;
 }
 
@@ -256,81 +324,76 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       return hasSupporting;
     }
     case "BP-05": {
-      // Webinars — title required; live when slides/registration URL or
-      // commerce signal exists.
-      if (!nonEmptyString(content.title) && !nonEmptyString(content.webinar_title)) return false;
+      // Webinars — title required; live when slides/registration URL,
+      // commerce signal, OR a built webinar_topics list exists.
       if (nonEmptyString(content.slides_url) || nonEmptyString(content.registration_url)) return true;
-      return hasCommerceSignal(content);
+      if (hasCommerceSignal(content)) return true;
+      if (hasSubstantiveBuild(content)) return true;
+      return hasAnyTitle(content) && nonEmptyString(content.recommended_webinar);
     }
     case "BP-06": {
-      // Workbook — accept either canonical `title` or builder-native
-      // `workbook_title` (BP-06 builder writes the latter). Live when a
-      // delivered PDF exists, a commerce signal exists, or the workbook
-      // has substantive built sections (the builder writes `sections[]`
-      // and flips `activated=true` on publish).
-      const hasTitle = nonEmptyString(content.title) || nonEmptyString(content.workbook_title);
+      const hasTitle = hasAnyTitle(content);
       if (!hasTitle) return false;
       if (nonEmptyString(content.pdf_url)) return true;
       if (hasCommerceSignal(content)) return true;
-      if (content.activated === true && nonEmptyArray(content.sections)) return true;
+      if (content.activated === true && hasSubstantiveBuild(content)) return true;
       return false;
     }
     case "BP-07": {
-      // Home Study Course — Course Engine wired (course_id) OR commerce.
-      if (!nonEmptyString(content.title)) return false;
-      return nonEmptyString(content.course_id) || hasCommerceSignal(content);
+      // Home Study Course — Course Engine wired (course_id), commerce, OR
+      // a substantive curriculum (study_weeks/sections) when activated.
+      if (!hasAnyTitle(content)) return false;
+      if (nonEmptyString(content.course_id) || hasCommerceSignal(content)) return true;
+      return content.activated === true && hasSubstantiveBuild(content);
+    }
+    case "BP-08": {
+      // Special Editions — title + (commerce OR built editions/bundle).
+      if (!hasAnyTitle(content)) return false;
+      if (hasCommerceSignal(content)) return true;
+      return content.activated === true && hasSubstantiveBuild(content);
     }
     case "BP-09": {
-      // Book Sales — at least one sales channel wired.
-      if (!nonEmptyString(content.title)) return false;
+      if (!hasAnyTitle(content)) return false;
       return (
         nonEmptyString(content.amazon_url) ||
         nonEmptyString(content.sales_page_url) ||
-        hasCommerceSignal(content)
+        hasCommerceSignal(content) ||
+        (content.activated === true && hasSubstantiveBuild(content))
       );
     }
 
     // ---- BUILD AUTHORITY ---------------------------------------------------
     case "BA-10": {
-      // Online Course — Course Engine wired OR ≥1 module built OR commerce.
-      if (!nonEmptyString(content.title)) return false;
+      if (!hasAnyTitle(content)) return false;
       const modules = Array.isArray(content.modules) ? content.modules : [];
       return (
         nonEmptyString(content.course_id) ||
         modules.length > 0 ||
-        hasCommerceSignal(content)
+        hasCommerceSignal(content) ||
+        hasSubstantiveBuild(content)
       );
     }
     case "BA-11": {
-      // Audiobook — manual ACX submission per architecture. Gate on the
-      // narration script existing OR the ACX guide having been generated.
       if (nonEmptyString(content.narration_script_url)) return true;
       if (content.acx_guide_generated === true) return true;
-      // Legacy: the existing isLive check upstream still respects activated
-      // flow with episodes; keep that path open via the generic acceptance
-      // of an `episodes`-style array if the audiobook builder writes one.
       if (nonEmptyArray(content.chapters)) return true;
       return false;
     }
     case "BA-12": {
-      // Membership — recurring subscription, must have Stripe price wired.
-      if (!nonEmptyString(content.title)) return false;
-      return nonEmptyString(content.stripe_price_id);
+      // Membership — recurring subscription. Live when Stripe price wired,
+      // a tiered offer is built, OR substantive content (welcome emails,
+      // calendar, etc.) exists alongside a title.
+      if (!hasAnyTitle(content)) return false;
+      if (nonEmptyString(content.stripe_price_id)) return true;
+      if (hasCommerceSignal(content)) return true;
+      return hasSubstantiveBuild(content);
     }
     case "BA-13": {
-      // Group coaching needs at least a session schedule or cohort config,
-      // AND (when the caller supplies it) Stripe must be connected because
-      // BA-13 is a paid offer per the architecture.
       const hasSchedule = nonEmptyArray(content.sessions) || nonEmptyString(content.schedule);
-      return hasSchedule;
+      if (hasSchedule) return true;
+      return hasAnyTitle(content) && hasSubstantiveBuild(content);
     }
     case "BA-14": {
-      // Podcast Tour — two paths:
-      //  - RSS path: publicly distributed (Spotify/Apple). One episode is enough
-      //    because distribution itself is the achievement.
-      //  - Activated path: built locally, RSS not yet wired. Requires ≥ 2 episodes
-      //    + a show title to filter out "I clicked the activate button to see
-      //    what it does" cases.
       const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
       const episodes = Array.isArray(content.episodes) ? content.episodes : [];
       const activatedWithContent =
@@ -340,10 +403,6 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       return (rssReady && episodes.length >= 1) || activatedWithContent;
     }
     case "BA-15": {
-      // Media Outreach: needs a press release plus a populated outlets list.
-      // Press release may be a string OR an object. For object form, require
-      // BOTH a headline AND a body-equivalent field — a headline alone is a
-      // working title, not a release.
       const pr = content.press_release ?? content.press_release_html ?? content?.assets?.press_release;
       let hasPressRelease = false;
       if (typeof pr === "string") {
@@ -357,12 +416,30 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       const hasOutlets = outletArrays.some((a: any) => Array.isArray(a) && a.length > 0);
       return hasPressRelease && hasOutlets;
     }
+    case "BA-16": {
+      // Affiliates — activated + commission structure / resources built.
+      if (!hasAnyTitle(content)) return false;
+      if (content.activated !== true) return false;
+      return (
+        anyNonEmptyString(content, ["commission_structure", "payout_schedule", "recruitment_strategy"]) ||
+        hasSubstantiveBuild(content)
+      );
+    }
     case "BA-17": {
-      // Bundles — Commerce-wired AND must contain ≥ 2 bundled items
-      // (a "bundle" of one is just the underlying product).
-      if (!nonEmptyString(content.title)) return false;
+      if (!hasAnyTitle(content)) return false;
       const items = Array.isArray(content.items) ? content.items : [];
-      return items.length >= 2 && hasCommerceSignal(content);
+      const bundles = Array.isArray(content.bundles) ? content.bundles : [];
+      if (items.length >= 2 && hasCommerceSignal(content)) return true;
+      // Activated bundle with ≥1 built bundle definition also counts.
+      return content.activated === true && bundles.length >= 1;
+    }
+    case "BA-18": {
+      // JV Partnerships — activated + ideal partners list + pitch template.
+      if (!hasAnyTitle(content)) return false;
+      if (content.activated !== true) return false;
+      const hasPartners = nonEmptyArray(content.ideal_partners);
+      const hasPitch = nonEmptyString(content.pitch_template);
+      return hasPartners && hasPitch;
     }
 
     // ---- YIELD REVENUE -----------------------------------------------------
@@ -376,15 +453,30 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
     case "YR-26":
     case "YR-27":
     case "YR-28": {
-      // All Yield nodes must have a title and be commerce-wired. Session-
-      // style nodes additionally need a session_type or booking_url so the
-      // Sessions Engine has something to attach to.
-      if (!nonEmptyString(content.title)) return false;
-      if (!hasCommerceSignal(content)) return false;
-      if (SESSION_STYLE_YR_NODES.has(nodeId)) {
-        return nonEmptyString(content.session_type) || nonEmptyString(content.booking_url);
+      // Title (any of the diverse builder keys) is required. Live when
+      // commerce-wired OR activated with substantive built content
+      // (packages, offers, programme_outline, retreat_options, etc.).
+      if (!hasAnyTitle(content)) return false;
+      if (hasCommerceSignal(content)) {
+        if (SESSION_STYLE_YR_NODES.has(nodeId)) {
+          return nonEmptyString(content.session_type) || nonEmptyString(content.booking_url) || hasSubstantiveBuild(content);
+        }
+        return true;
       }
-      return true;
+      return content.activated === true && hasSubstantiveBuild(content);
+    }
+
+    case "BP-02": {
+      // Lead Magnets — activated + at least one built lead magnet.
+      if (content.activated !== true) return false;
+      if (nonEmptyArray(content.lead_magnets)) return true;
+      return (
+        nonEmptyString(content.recommended_lead_magnet) &&
+        (nonEmptyArray(content.quiz_structure?.questions) ||
+          nonEmptyArray(content.checklist_structure?.items) ||
+          !!content.optin_page ||
+          !!content.thankyou_page)
+      );
     }
 
     default: {
