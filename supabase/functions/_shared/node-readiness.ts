@@ -19,21 +19,22 @@
  */
 
 /**
- * Author-level nodes: their Live status applies across every book in the
- * author's library (one email list, one podcast show, one set of social
- * channels per author). Book-specific products (microsite, workbook,
- * course, audiobook, book-sales, etc.) stay scoped to a single book_id.
+ * Author-level nodes: NONE.
+ *
+ * Sprint 8 decision (per Pauline's "different book, different YR offer"
+ * requirement): all 28 nodes are book-scoped. Each book gets its own
+ * independent build of every node — its own coaching, training,
+ * mastermind, podcast, email sequences, social posts, microsite URL, and
+ * Stripe SKU.
+ *
+ * Email (BP-01) and Social (BP-03) content is per-book; delivery still
+ * goes through the single shared Resend domain and single connected
+ * Buffer account at the infrastructure layer.
+ *
+ * Kept exported (empty) so all consumers — author-stats edge function,
+ * frontend gating hooks, parity tests — share one source of truth.
  */
-export const AUTHOR_LEVEL_NODES = new Set<string>([
-  "BP-01", // Email Marketing
-  "BP-03", // Social Media
-  "BA-14", // Podcast (one show, multi-book episodes)
-  "BA-15", // Press / Media
-  "BA-16", // Affiliates
-  "BA-18", // JV Partners
-  "YR-19", "YR-20", "YR-21", "YR-22", "YR-23",
-  "YR-24", "YR-25", "YR-26", "YR-27", "YR-28",
-]);
+export const AUTHOR_LEVEL_NODES = new Set<string>([]);
 
 /**
  * Commerce-bearing nodes per the Master Architecture (Engine map).
