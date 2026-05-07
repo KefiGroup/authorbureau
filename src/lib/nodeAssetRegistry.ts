@@ -142,9 +142,17 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "media_kit", label: "Media kit", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "media_kit") },
     { key: "pitch_list", label: "Pitch list", type: "csv", formats: ["csv", "pdf"], probe: c => has(c, "pitch_list") },
   ],
-  "BA-16": [{ key: "*", label: "Affiliate programme package", type: "text", formats: TEXT_FORMATS }],
+  "BA-16": [
+    { key: "*", label: "Affiliate programme package", type: "text", formats: TEXT_FORMATS },
+    { key: "pitch_deck", label: "Affiliate pitch deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "pitch_deck"), sizeHint: c => { const n = arrLen(c, "pitch_deck"); return n ? `${n} slides` : undefined; } },
+  ],
   "BA-17": [{ key: "*", label: "Upsell & bundle package", type: "text", formats: TEXT_FORMATS }],
-  "BA-18": [{ key: "*", label: "JV partnerships package", type: "text", formats: TEXT_FORMATS }],
+  "BA-18": [
+    { key: "*", label: "JV partnerships package", type: "text", formats: TEXT_FORMATS },
+    { key: "pitch_deck", label: "JV pitch deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "pitch_deck"), sizeHint: c => { const n = arrLen(c, "pitch_deck"); return n ? `${n} slides` : undefined; } },
+  ],
   // ═══════════════ Yield Revenue ═══════════════
   "YR-19": [{ key: "*", label: "1-on-1 coaching package", type: "pdf", formats: PDF_FORMATS }],
   "YR-20": [{ key: "*", label: "Big-ticket offer package", type: "text", formats: TEXT_FORMATS }],
@@ -182,6 +190,8 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
   "YR-28": [
     { key: "prospectus", label: "Sponsor prospectus", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "prospectus") },
     { key: "tiers", label: "Sponsorship tiers", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "tiers") },
+    { key: "pitch_deck", label: "Sponsor pitch deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "pitch_deck"), sizeHint: c => { const n = arrLen(c, "pitch_deck"); return n ? `${n} slides` : undefined; } },
   ],
 };
 
