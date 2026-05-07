@@ -39,7 +39,7 @@ Generate JSON: {"mastermind_title","tagline","programme_promise","membership_tie
     }, "generate-yr23-mastermind");
     if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
-    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    const content = await parseAiJsonResilient(aiData.choices?.[0]?.message?.content || "", { functionName: "generate-yr23-mastermind" });
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready", current_step: 2,
       content_json: { ...content, _currentStep: 2 },
