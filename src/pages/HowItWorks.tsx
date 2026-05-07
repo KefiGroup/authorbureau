@@ -243,7 +243,7 @@ export default function HowItWorks() {
                   { name: "Certification", desc: "License your framework so others can teach or use it." },
                   { name: "Conventions / Conferences", desc: "Host larger events that expand your authority and create income layers." },
                   { name: "Fund Raising", desc: "Use your message to mobilize mission-aligned supporters." },
-                  { name: "Exhibitors / JV", desc: "Create strategic event and partnership revenue beyond direct sales." },
+                  { name: "Sponsors", desc: "Create strategic event and partnership revenue beyond direct sales." },
                 ].map((s) => (
                   <div key={s.name} className="rounded-lg border border-border bg-card p-4 text-sm">
                     <span className="font-semibold text-foreground">{s.name}</span>
