@@ -148,21 +148,21 @@ export default function YR28Builder({ authorId, bookId }: Props) {
               <TabsContent value="pitch" className="space-y-3 mt-4">
                 {content.pitch_deck_outline?.map((s: any, i: number) => (
                   <Card key={i}><CardContent className="pt-4 pb-4">
-                    <div className="flex items-center gap-2 mb-1"><span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{s.slide}</span><h4 className="font-bold text-sm">{s.title}</h4></div>
-                    <div className="pl-9"><SafeText value={s.content_summary} className="text-muted-foreground" /></div>
+                    <div className="flex items-center gap-2 mb-1"><span className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{s.slide}</span><h4 className="font-bold text-sm"><SafeText value={s.title} /></h4></div>
+                    <div className="pl-9 text-muted-foreground text-sm"><SafeBlock value={s.content_summary} /></div>
                   </CardContent></Card>
                 ))}
               </TabsContent>
               <TabsContent value="outreach" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4">
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Target Sponsors</p><SafeText value={content.outreach_strategy?.target_sponsors} /></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Target Sponsors</p><SafeBlock value={content.outreach_strategy?.target_sponsors} /></div>
                   <Card className="bg-muted/30"><CardContent className="pt-4 pb-4">
                     <p className="text-xs font-semibold text-muted-foreground mb-2">Outreach Email</p>
-                    {Array.isArray(content.outreach_strategy?.outreach_message)
-                      ? <SafeText value={content.outreach_strategy?.outreach_message} />
-                      : <p className="text-sm whitespace-pre-line">{content.outreach_strategy?.outreach_message}</p>}
+                    {typeof content.outreach_strategy?.outreach_message === "string"
+                      ? <p className="text-sm whitespace-pre-line">{content.outreach_strategy.outreach_message}</p>
+                      : <SafeBlock value={content.outreach_strategy?.outreach_message} />}
                   </CardContent></Card>
-                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Follow-up</p><SafeText value={content.outreach_strategy?.follow_up_cadence} /></div>
+                  <div><p className="text-xs font-semibold text-muted-foreground mb-1">Follow-up</p><SafeBlock value={content.outreach_strategy?.follow_up_cadence} /></div>
                 </CardContent></Card>
               </TabsContent>
             </Tabs>
