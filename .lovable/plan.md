@@ -1,64 +1,164 @@
-# Sprint 11 — Fix Sprint 10 verification gaps
+# Sprint 12 — Pro Decks + Speaker Scripts
 
-I read Manus's report and cross-checked against the live DB. **He's right on all three counts.** Confirmation:
+Applies to all 9 slide-bearing nodes:
+BP-05, BA-10, BA-13, BA-16, BA-18, YR-22, YR-25, YR-27, YR-28.
 
-- YR-22 was regenerated today at 08:09 UTC (after Sprint 10 deploy) and `content_json` contains: `tagline, programme_title, training_formats, learning_outcomes, programme_outline, proposal_template, target_organisations, abby_summary`. **No `slides` key.** Same for the other 4 P1 nodes and the 4 P2 nodes — 0/9 have slide/pitch-deck arrays.
-- Registry keys (`slides`, `pitch_deck`) are correct; the asset rows are hidden because the probe finds nothing — i.e. **Manus's "Cause A"**: gpt-5-mini is silently dropping the new optional field even though we added it to the prompt.
-- BA-13 builder shows Step 1 even when `status='live'` — our Sprint 10 "verification" only checked that `_currentStep` is read, not that live status forces the completion view.
-- YR-21 first-attempt timeout is consistent with YR-23 before its Sprint 4 token bump.
+---
 
-## P0 — Make slides[] / pitch_deck[] actually land in content_json
+## Part A — Lift deck quality to your 3-layer bar
 
-Root cause: we tacked `slides`/`pitch_deck` onto the existing prompt as one bullet at the end. With `response_format: json_object` (not strict schema) and `gpt-5-mini`, the model treats it as optional and frequently omits it, especially when the rest of the payload is already large.
+### A1. Standardise the slide arc (Layer 2)
 
-Fix pattern (apply to all 9 generators):
+Every deck the AI returns must follow this arc, regardless of node:
 
-1. **Promote slides/pitch_deck to a top-level required field in the JSON shape block** — listed first in the schema example, with a fully-rendered 2-slide sample so the model has a concrete pattern to copy.
-2. **Add an explicit "REQUIRED FIELDS" line** after the schema: e.g. `REQUIRED top-level keys: programme_title, slides, learning_outcomes, ... — output that omits any of these will fail QA.`
-3. **Post-parse validation + one retry inside the edge function**:
-   ```ts
-   if (!Array.isArray(content.slides) || content.slides.length < 6) {
-     // re-call gateway with a follow-up: "Your previous response omitted the required `slides` array. Return ONLY a JSON object with a `slides` array of N {title, body, notes, layout_hint} objects, nothing else." then merge.
-   }
-   ```
-   Same logic for `pitch_deck` on the 4 P2 generators.
-4. Cap retry at 1 to stay within 180s timeout. If still missing after retry, log to `error_log` table and return success without slides (don't block the user).
-
-Generators to update: `generate-yr22-corporate`, `generate-ba13-group-coaching`, `generate-ba10-online-course`, `generate-yr25-certification`, `generate-bp05-webinars`, `generate-ba16-affiliate`, `generate-ba18-jv-partnerships`, `generate-yr27-fundraising`, `generate-yr28-sponsors`.
-
-## P1 — BA-13 builder shows live state correctly
-
-In `BA13Builder.tsx` resume effect: change the precedence from `_currentStep || 1` to:
-
-```ts
-const initialStep = nodeStatus === 'live' ? COMPLETION_STEP : (content_json?._currentStep ?? 1);
+```text
+1  Title / Cover
+2  Problem / Hook (story or stat from the book)
+3  Agenda
+4..N-2  Content modules (4–6, sourced from real book frameworks)
+N-1  Key Takeaways
+N    CTA / Next Steps
 ```
 
-Apply the same guard to the other multi-step builders that share this pattern (audit list while we're in there: BA-10, YR-22, YR-25, BP-05 — same builders we just touched for slides).
+Update each generator's user prompt to demand:
+- Exact slide count = `agenda + hook + modules + takeaways + cta` (typically 8–12).
+- Each slide MUST cite a real framework, principle, story, or stage name from the book context that ABBY already has (e.g. SUCKCESS 8 stages, "Messy-Beginning Principle").
+- Forbid generic filler ("In this section we will…"), forbid recycling the same body across slides.
 
-## P2 — YR-21 first-attempt timeout
+### A2. Per-slide content rules (Layer 1 + Layer 3)
 
-In `generate-yr21-speaking/index.ts`:
-- Bump `max_completion_tokens` to 24000 (matches YR-23 post-Sprint-4).
-- Confirm it's already wrapped in `fetchAiGateway` with retry (Sprint 9 standard) — if not, wrap it.
+Tighten the JSON shape ABBY must emit for every slide:
 
-## QA after deploy
+```json
+{
+  "title": "ONE headline idea (≤ 9 words, no colons-as-titles)",
+  "headline": "Single big idea (1 sentence, ≤ 18 words)",
+  "bullets": ["≤ 6 short bullets, each ≤ 12 words"],
+  "evidence": "Specific story / stat / framework reference from the book",
+  "speaker_notes": "2–4 sentences for the speaker view",
+  "layout_hint": "hero|stat|quote|divider|bullets|split"
+}
+```
 
-Re-run YR-22 generator on Pauline's "Be SUCKcessful", then:
-1. SQL check: `SELECT jsonb_array_length(content_json->'slides') FROM author_nodes WHERE node_id='YR-22' AND ...` should be ≥ 6.
-2. Library: "Training slide deck" row visible with PPTX download.
-3. Download PPTX, render with LibreOffice → pdftoppm → eyeball first 3 slides for placeholders / wrong author name.
-4. Open BA-13 builder for Pauline → confirm completion view, not Step 1.
-5. Re-run YR-21 generator cold (clear row first) → completes on first attempt.
+Also fix the field-name mismatch: today generators emit `notes`, but `export-pro-slides` reads `speaker_notes`. Generators will now emit `speaker_notes` (and `bullets[]` instead of `body` blob). Exporter will accept both for back-compat.
 
-## Out of scope
+### A3. Repair pass
 
-- The remaining 1/28 not-live node on Pauline's book (different from this sprint).
-- Strict JSON schema mode (`response_format: { type: "json_schema" }`) — would solve this more cleanly but requires touching all generators and verifying gateway support; defer to a dedicated sprint.
+`ensureSlideField()` already top-ups missing decks. Extend it to also enforce:
+- `min bullets = 3`, `max bullets = 6`
+- Drop slides whose `evidence` is empty AND title is generic ("Introduction", "Overview").
+- Re-call gateway only for the failing slides.
 
-## Files touched
+### A4. Exporter upgrade
 
-- 9 × `supabase/functions/generate-*/index.ts` (prompt + retry)
-- `src/components/dashboard/builders/ba13/BA13Builder.tsx` (+ 4 sibling builders for the same fix)
-- `supabase/functions/generate-yr21-speaking/index.ts` (token bump)
-- No DB migration, no registry change.
+`supabase/functions/export-pro-slides/index.ts`:
+- Render `headline` as the dominant on-slide text when present.
+- Render `bullets[]` as a real bullet rail (currently it splits `body` on `\n|•`).
+- Keep current layout_hint heuristics as fallback.
+
+---
+
+## Part B — Speaker Script companion
+
+### B1. Data shape
+
+Persist alongside `slides` / `pitch_deck` on `author_nodes.content_json`:
+
+```json
+"speaker_script": {
+  "deck_title": "...",
+  "total_runtime_minutes": 90,
+  "intro": "Opening hook for the whole session",
+  "slides": [
+    {
+      "slide_index": 1,
+      "title": "...",
+      "timing_minutes": 4,
+      "opening_hook": "Story / stat to open this slide",
+      "talking_points": ["..."],          // verbatim narration, 4–8 sentences
+      "transition_in": "How to arrive at this slide",
+      "transition_out": "Bridge to next slide",
+      "facilitation_prompts": ["Ask the room: ..."],
+      "closing_anchor": "The one line they must remember"
+    }
+  ],
+  "outro": "Final CTA + thank-you"
+}
+```
+
+### B2. New edge function `generate-speaker-script`
+
+Inputs: `{ author_id, book_id, node_id }`.
+
+Steps:
+1. Load `author_nodes` row → pick `slides` or `pitch_deck`.
+2. Load author/book context via `buildAuthorContext` (same path generators use, so brand vocabulary + frameworks are reused).
+3. Single gateway call (`openai/gpt-5`, default temp, 16k tokens) asking for the schema in B1, with hard rules:
+   - Use the author's first-person voice when natural.
+   - Each slide's narration must reference the same framework/story listed in the slide's `evidence`.
+   - Sum of `timing_minutes` ≈ realistic runtime for the node (Half-Day = 240, Full-Day = 480, etc.).
+   - No emdashes, no dollar amounts in narration body.
+4. `parseAiJsonResilient` → merge into `content_json.speaker_script` via `upsertAuthorNode` WITHOUT touching `status` or `current_step` (so it never reverts a Live node to content_ready — bug we hit in Sprint 11).
+
+Add the function to `supabase/config.toml` with `verify_jwt = false` (matches sibling generators).
+
+### B3. New edge function `export-speaker-script`
+
+DOCX output (uses the same `docx` Deno-compatible bundling pattern already used elsewhere; if not present, fall back to a simple HTML→docx via a small templater). Returns `{ base64, filename }` like `export-pro-slides`.
+
+Document layout:
+- Cover (book title, deck title, total runtime).
+- Per slide: H2 = `Slide N · title`, runtime badge, then sections **Hook**, **Talking points**, **Facilitation**, **Transition out**, **Anchor**.
+- Footer: "Prepared by ABBY for {pen_name}".
+
+### B4. UI
+
+1. **Builder side** — add a `Generate Speaker Script` action on every slide-bearing builder, in the same panel that already shows the deck readiness. Disabled until `slides`/`pitch_deck` exists. Calls `generate-speaker-script`, then refetches the node.
+2. **Library side** — register a new asset row per slide-bearing node in `src/lib/nodeAssetRegistry.ts`:
+
+   ```ts
+   { key: "speaker_script", label: "Speaker script", type: "docx",
+     formats: ["docx", "pdf"],
+     probe: c => has(c, "speaker_script.slides"),
+     sizeHint: c => {
+       const n = arrLen(c, "speaker_script.slides");
+       return n ? `${n} slides scripted` : undefined;
+     } }
+   ```
+
+   `AssetRow.tsx` already routes `docx` through the existing exporter; add a `script` branch that calls `export-speaker-script`.
+
+### B5. Backfill
+
+One-shot script (post-deploy) for the test book `e5b857ac-…` to call `generate-speaker-script` for the 9 nodes so the Library rows light up immediately.
+
+---
+
+## Files to add / edit
+
+**Edge functions**
+- `supabase/functions/generate-speaker-script/index.ts` (new)
+- `supabase/functions/export-speaker-script/index.ts` (new)
+- `supabase/functions/export-pro-slides/index.ts` (read `headline`/`bullets`/`speaker_notes`)
+- `supabase/functions/_shared/builder-helpers.ts` (`ensureSlideField` stricter rules)
+- The 9 `generate-*` functions: prompt rewrite for arc + new slide schema (no logic refactor, only the prompt + JSON shape requested)
+- `supabase/config.toml` (register the 2 new functions)
+
+**Frontend**
+- `src/lib/nodeAssetRegistry.ts` (add `speaker_script` row to the 9 nodes)
+- `src/components/library/AssetRow.tsx` (route the new asset to `export-speaker-script`)
+- A small reusable `GenerateSpeakerScriptButton` used inside each slide-bearing builder (BP05, BA10, BA13, BA16, BA18, YR22, YR25, YR27, YR28)
+
+**Docs / memory**
+- Update `docs/04-node-frameworks/{BP-05,BA-10,BA-13,BA-16,BA-18,YR-22,YR-25,YR-27,YR-28}.md` with the new deliverables list (Slide deck + Speaker script).
+- Add a memory entry `mem://features/abby-speaker-script` describing the new shape and exporter.
+
+---
+
+## QA after build
+
+1. Re-run all 9 generators on `Be SUCKcessful`.
+2. Open YR-22 PPTX — verify arc, ≤6 bullets, real framework references, speaker notes pane populated.
+3. Generate Speaker Script for YR-22 → DOCX opens with hook + transitions + timing per slide.
+4. Confirm node `status` stays `live` (no re-activation needed — fix from Sprint 11 must hold for both new functions).
+5. Spot-check 3 other nodes (BA-10, BA-18, YR-27) for the same arc + script integrity.
