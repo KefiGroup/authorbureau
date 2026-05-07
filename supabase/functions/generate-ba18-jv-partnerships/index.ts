@@ -76,10 +76,13 @@ Return JSON in this EXACT shape (field names matter):
   ],
   "pitch_template": "string (full email-ready partnership pitch: subject line + opening + value prop + revenue share + CTA, plain text with newlines)",
   "outreach_checklist": ["5 actionable steps"],
+  "pitch_deck": [
+    { "title": "string", "body": "string (3-5 lines)", "notes": "speaker notes", "layout_hint": "hero|stat|quote|divider|bullets|split" }
+  ],
   "abby_summary": "string"
 }
 
-3 partners. pitch_template MUST be a string. No placeholders.` },
+3 partners. pitch_template MUST be a string. pitch_deck MUST be 6-8 slides for a JV partner pitch: cover, the opportunity, audience overlap, the offer, revenue split, deliverables/timeline, why us, CTA. No placeholders.` },
         ],
       }),
     }, "generate-ba18-jv-partnerships");
