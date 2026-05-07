@@ -71,7 +71,7 @@ const PLANS = [
       "Big Ticket Offers & Keynote Speaking",
       "Corporate Training & Mastermind",
       "Retreats & Certification Program",
-      "Conferences, Fundraising, Exhibitors & Sponsors",
+      "Conference, Fundraising, Sponsors",
       "Priority support + 1-on-1 with Pauline Teo",
     ],
   },
