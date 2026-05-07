@@ -190,6 +190,8 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
   "YR-28": [
     { key: "prospectus", label: "Sponsor prospectus", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "prospectus") },
     { key: "tiers", label: "Sponsorship tiers", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "tiers") },
+    { key: "pitch_deck", label: "Sponsor pitch deck", type: "pptx", formats: SLIDE_FORMATS,
+      probe: c => has(c, "pitch_deck"), sizeHint: c => { const n = arrLen(c, "pitch_deck"); return n ? `${n} slides` : undefined; } },
   ],
 };
 
