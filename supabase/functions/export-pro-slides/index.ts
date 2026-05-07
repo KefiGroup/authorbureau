@@ -57,19 +57,36 @@ function pluck(content: any, key: string): any {
 }
 
 /** Decide which Gamma layout fits this slide. */
-function pickLayout(slide: any, idx: number, total: number): string {
+function pickLayout(slide: any, idx: number, _total: number): string {
+  if (slide.layout_hint && /^(hero|stat|quote|divider|bullets|split)$/.test(slide.layout_hint)) {
+    return slide.layout_hint;
+  }
   if (idx === 0) return "hero";
-  const body = String(slide.body || "");
+  const headline = String(slide.headline || "");
+  const body = String(slide.body || headline || "");
   const title = String(slide.title || "");
-  // Big stat: body is short and contains a number
+  if (Array.isArray(slide.bullets) && slide.bullets.length >= 3) return "bullets";
   if (body.length < 80 && /\d{2,}/.test(body)) return "stat";
-  // Quote: title looks like a quote
   if (title.startsWith('"') || /quote|testimonial/i.test(title)) return "quote";
-  // Divider: very short body
-  if (body.length < 30) return "divider";
-  // Bullet rail: body has bullets / multiple lines
+  if (body.length < 30 && headline.length < 30) return "divider";
   if (body.split(/\n|•|·/).filter(s => s.trim().length > 0).length >= 3) return "bullets";
   return "split";
+}
+
+/** Best on-slide body text: headline > body > first bullet. */
+function bodyText(slide: any): string {
+  if (slide.headline) return String(slide.headline);
+  if (typeof slide.body === "string") return slide.body;
+  if (Array.isArray(slide.bullets) && slide.bullets.length) return slide.bullets[0];
+  return "";
+}
+
+/** Best bullet list for a slide. */
+function bulletItems(slide: any): string[] {
+  if (Array.isArray(slide.bullets)) {
+    return slide.bullets.map((b: any) => String(b ?? "").trim()).filter(Boolean).slice(0, 6);
+  }
+  return String(slide.body || "").split(/\n|•|·/).map((s: string) => s.trim()).filter(Boolean).slice(0, 6);
 }
 
 function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer: string, slideNum: number, coverImage?: string) {
