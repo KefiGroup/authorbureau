@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage,
+import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJsonResilient, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
   failResponse, aiGatewayErrorMessage,
 } from "../_shared/builder-helpers.ts";
@@ -35,11 +35,11 @@ serve(async (req) => {
         { role: "system", content: "You are ABBY. Personalise everything. Respond with ONLY valid JSON (no markdown).\n\nHARD CONTENT RULES (output that violates these will fail QA):\n- NEVER use the emdash character (\u2014) or endash (\u2013). Use commas, periods, or \" - \" for ranges only.\n- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.\n- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.\n- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns)." },
         { role: "user", content: `Design an exclusive mastermind programme for ${author.pen_name}'s book '${bookTitle}'. Core thesis: ${coreThesis}. Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}. Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}.
 Generate JSON: {"mastermind_title","tagline","programme_promise","membership_tiers":[2 items: Inner Circle($5000/yr, 12 members) and Elite Circle($15000/yr, 6 members), each with tier_name/price_annual_usd/group_size/meeting_cadence/benefits[4-5]],"curriculum_pillars":[4],"application_questions":[5],"sales_page":{"headline","subheadline","who_its_for","what_youll_get":[4],"cta_button_text"},"abby_summary"}` }
-      ], max_completion_tokens: 16000 }),
+      ], max_completion_tokens: 24000 }),
     }, "generate-yr23-mastermind");
     if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
-    const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    const content = await parseAiJsonResilient(aiData.choices?.[0]?.message?.content || "", { functionName: "generate-yr23-mastermind" });
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready", current_step: 2,
       content_json: { ...content, _currentStep: 2 },
