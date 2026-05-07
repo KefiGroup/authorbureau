@@ -109,11 +109,11 @@ export default function YR20Builder({ authorId, bookId }: Props) {
     setError(null);
     setIsPublishing(true);
     try {
-      await autosaveBuilderDraft({ authorId, nodeId: "YR-20", nodeName: "Consulting", content: { ...(content || {}), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
+      await autosaveBuilderDraft({ authorId, nodeId: "YR-20", nodeName: "Big Ticket Consulting", content: { ...(content || {}), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
       await publishNodeToSite(authorId, "YR-20", authorSlug, activeBookId);
       setContent((prev: any) => ({ ...prev, activated: true }));
       setStep(3);
-      toast.success("Your Big Ticket Offers are live on your site.");
+      toast.success("Your Big Ticket Consulting page is live on your site.");
     } catch (e: any) {
       setError(e.message);
       toast.error(`Publish failed: ${e?.message ?? "Unknown error"}`);
