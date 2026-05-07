@@ -3360,8 +3360,15 @@ function RetreatPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
   const title = yrStr(content.retreat_title, data.node.personalised_name || NODE_NAMES["YR-24"] || "Retreat");
   const tagline = yrStr(content.tagline);
   const concept = yrStr(content.retreat_concept);
-  const arcRaw = content.transformation_arc;
-  const arcString = yrStr(arcRaw);
+  // Audit BUG #3 hardening — accept JSON-encoded strings.
+  let arcRaw: any = content.transformation_arc;
+  if (typeof arcRaw === "string") {
+    const t = arcRaw.trim();
+    if ((t.startsWith("{") && t.endsWith("}")) || (t.startsWith("[") && t.endsWith("]"))) {
+      try { arcRaw = JSON.parse(t); } catch { /* keep string */ }
+    }
+  }
+  const arcString = typeof arcRaw === "string" ? yrStr(arcRaw) : "";
   const arcObject = (!arcString && arcRaw && typeof arcRaw === "object") ? arcRaw : null;
   const arcStages: any[] = Array.isArray(arcObject)
     ? arcObject
