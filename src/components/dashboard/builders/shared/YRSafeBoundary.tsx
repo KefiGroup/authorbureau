@@ -59,17 +59,42 @@ export class YRSafeBoundary extends Component<BoundaryProps, BoundaryState> {
 }
 
 /**
+ * If the value is a string that looks like JSON ({...} or [...]), try to
+ * parse it. Returns the parsed value on success, or the original value on
+ * failure. Fixes Manus audit BUG #3 / #4 — AI generators occasionally return
+ * structured fields as JSON-encoded strings rather than parsed objects, and
+ * the previous SafeBlock would fall through to SafeText and print raw JSON.
+ */
+export function parseJsonField(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed) return value;
+  const first = trimmed[0];
+  const last = trimmed[trimmed.length - 1];
+  if (!((first === "{" && last === "}") || (first === "[" && last === "]"))) return value;
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    return value;
+  }
+}
+
+/**
  * Renders any value safely as text. Coerces objects/arrays to JSON.
  * Use for AI-generated fields where the shape is not guaranteed.
  */
 export function SafeText({ value, className }: { value: unknown; className?: string }) {
-  if (value == null) return null;
+  const v = parseJsonField(value);
+  if (v == null) return null;
+  // If parsing produced a non-primitive, defer to SafeBlock for proper
+  // structured rendering instead of stringifying back to JSON.
+  if (v && typeof v === "object") return <SafeBlock value={v} className={className} />;
   let text: string;
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
-    text = String(value);
+  if (typeof v === "string" || typeof v === "number" || typeof v === "boolean") {
+    text = String(v);
   } else {
     try {
-      text = JSON.stringify(value);
+      text = JSON.stringify(v);
     } catch {
       return null;
     }
@@ -83,29 +108,31 @@ export function SafeText({ value, className }: { value: unknown; className?: str
  * Arrays render as a bulleted list; objects render as labeled key/value rows.
  */
 export function SafeBlock({ value, className }: { value: unknown; className?: string }) {
-  if (value == null) return null;
-  if (Array.isArray(value)) {
+  const v = parseJsonField(value);
+  if (v == null) return null;
+  if (Array.isArray(v)) {
     return (
       <ul className={`list-disc pl-5 space-y-1 ${className ?? ""}`}>
-        {value.map((item, i) => (
+        {v.map((item, i) => (
           <li key={i}>
-            <SafeText value={item} />
+            <SafeBlock value={item} />
           </li>
         ))}
       </ul>
     );
   }
-  if (typeof value === "object") {
+  if (typeof v === "object") {
     return (
       <div className={`space-y-1 ${className ?? ""}`}>
-        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+        {Object.entries(v as Record<string, unknown>).map(([k, val]) => (
           <div key={k} className="text-sm">
             <span className="font-semibold capitalize">{k.replace(/_/g, " ")}: </span>
-            <SafeText value={v} />
+            <SafeBlock value={val} />
           </div>
         ))}
       </div>
     );
   }
-  return <SafeText value={value} className={className} />;
+  return <SafeText value={v} className={className} />;
 }
+
