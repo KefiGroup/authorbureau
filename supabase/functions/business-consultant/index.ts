@@ -133,14 +133,14 @@ CRITICAL REVENUE RANGE RULES:
 ## Y · Yield Revenue (10 nodes)
 1. 1-on-1 Coaching ($150–$500/session)
 2. Big Ticket Consulting ($5,000–$25,000)
-3. Keynotes ($2,500–$15,000)
-4. Training Programs ($500–$2,500/participant)
-5. Masterminds ($5,000–$25,000/year)
-6. Retreats & Bootcamps ($1,500–$5,000/person)
+3. Speaking ($2,500–$15,000)
+4. Corporate Training ($500–$2,500/participant)
+5. Mastermind ($5,000–$25,000/year)
+6. Retreats ($1,500–$5,000/person)
 7. Certification ($2,500–$7,500)
-8. Conventions / Conferences ($200–$2,000/ticket)
-9. Fund Raising
-10. Exhibitors / JV
+8. Conference ($200–$2,000/ticket)
+9. Fundraising
+10. Sponsors
 
 # SECTION 7: CONSULTATION FLOW — MANDATORY RULES (v2.5 STREAMLINED)
 
