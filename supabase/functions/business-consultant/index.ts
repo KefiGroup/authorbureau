@@ -120,15 +120,15 @@ CRITICAL REVENUE RANGE RULES:
 9. Book Sales (Events) — Bulk book sales ($10–$25/book)
 
 ## B · Build Authority (9 nodes)
-1. Online Courses ($97–$497)
+1. Online Course ($97–$497)
 2. Audiobook ($14.99–$29.99)
-3. Monthly Memberships ($9–$97/month)
+3. Membership ($9–$97/month)
 4. Group Coaching ($297–$997 per cohort)
-5. Podcasts (Guest)
-6. Media Outreach
+5. Podcast Tour
+6. Media & PR
 7. Affiliates (15–50%)
 8. Bundles
-9. Revenue Sharing / JV
+9. JV Partnerships
 
 ## Y · Yield Revenue (10 nodes)
 1. 1-on-1 Coaching ($150–$500/session)
