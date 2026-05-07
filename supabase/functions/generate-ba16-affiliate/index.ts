@@ -85,10 +85,13 @@ Return JSON in this EXACT shape (field names matter):
   },
   "cookie_duration_days": 60,
   "payout_schedule": "string",
+  "pitch_deck": [
+    { "title": "string", "body": "string (3-5 lines, plain text)", "notes": "speaker notes", "layout_hint": "hero|stat|quote|divider|bullets|split" }
+  ],
   "abby_summary": "string"
 }
 
-4 resources. No placeholders.` },
+4 resources. pitch_deck MUST be 6-8 slides recruiting affiliates: cover, problem, the book/offer, commission structure, affiliate resources, why now, CTA. No placeholders.` },
         ],
       }),
     }, "generate-ba16-affiliate");
