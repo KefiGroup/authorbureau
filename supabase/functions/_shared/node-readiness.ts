@@ -139,22 +139,32 @@ const SUBSTANCE_ARRAYS = [
   "target_media_outlets", "media_list", "outlets",
   "affiliate_resources", "upsell_sequences", "welcome_emails",
   "follow_up_emails", "sequence_steps", "steps", "posts",
+  "donation_tiers", "shared_assets", "campaign_milestones",
 ];
 
 function hasSubstantiveBuild(c: any): boolean {
   if (!c || typeof c !== "object") return false;
-  return SUBSTANCE_ARRAYS.some((k) => nonEmptyArray(c[k]));
+  if (SUBSTANCE_ARRAYS.some((k) => nonEmptyArray(c[k]))) return true;
+  // Some builders write "kit"-style objects with multiple nested sub-products
+  // (e.g. BP-09 workshop / book_signing / corporate_lunch). If at least two
+  // of these structured sub-products exist, count it as a built deliverable.
+  const KIT_KEYS = ["workshop", "book_signing", "corporate_lunch", "bundle_offer", "optin_page", "thankyou_page"];
+  const kitCount = KIT_KEYS.filter((k) => c[k] && typeof c[k] === "object").length;
+  return kitCount >= 2;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasCommerceSignal(content: any): boolean {
   if (!content || typeof content !== "object") return false;
   if (nonEmptyString(content.stripe_price_id)) return true;
-  const price = Number(content.price_usd ?? content.suggested_price_usd ?? 0);
+  const price = Number(content.price_usd ?? content.suggested_price_usd ?? content.campaign_goal_usd ?? 0);
   if (price > 0) return true;
-  // Sales tier with a paid item also counts as commerce wired.
-  const tiers = Array.isArray(content.sales_tiers) ? content.sales_tiers : null;
-  if (tiers && tiers.some((t: any) => Number(t?.price_usd ?? 0) > 0)) return true;
+  // Any tiered/packaged/offer array with a paid item counts as commerce wired.
+  const PRICED_ARRAYS = ["sales_tiers", "tiers", "packages", "offers", "donation_tiers", "membership_tiers", "sponsorship_packages", "bundles", "editions"];
+  for (const key of PRICED_ARRAYS) {
+    const arr = (content as any)[key];
+    if (Array.isArray(arr) && arr.some((t: any) => Number(t?.price_usd ?? t?.amount_usd ?? t?.price ?? 0) > 0)) return true;
+  }
   return false;
 }
 
