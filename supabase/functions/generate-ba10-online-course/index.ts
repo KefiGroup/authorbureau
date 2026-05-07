@@ -17,7 +17,7 @@
  */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { fetchAiGateway, corsHeaders, upsertAuthorNode } from "../_shared/builder-helpers.ts";
+import { fetchAiGateway, corsHeaders, upsertAuthorNode, ensureSlideField } from "../_shared/builder-helpers.ts";
 import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
 
 const NODE_ID = "BA-10";
