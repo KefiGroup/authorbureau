@@ -86,7 +86,7 @@ export default function YR28Builder({ authorId, bookId }: Props) {
       const { data, error: e } = await invokeWithTimeout<any>("generate-yr28-sponsors", { author_id: authorId, book_id: activeBookId }, 90000);
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Failed");
       setContent(data.content); setStep(2);
-      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-28", nodeName: "Exhibitors / JV", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
+      void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-28", nodeName: "Sponsors", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     } catch (e: any) { setError(e.message); setStep(0); }
   };
   const handlePublish = async () => {
@@ -94,7 +94,7 @@ export default function YR28Builder({ authorId, bookId }: Props) {
     if (!authorId || !authorSlug) { toast.error("Profile not ready — please wait a moment."); return; }
     setError(null); setIsPublishing(true);
     try {
-      await autosaveBuilderDraft({ authorId, nodeId: "YR-28", nodeName: "Exhibitors / JV", content: { ...(content || {}), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
+      await autosaveBuilderDraft({ authorId, nodeId: "YR-28", nodeName: "Sponsors", content: { ...(content || {}), _currentStep: 3 }, currentStep: 3, bookId: activeBookId });
       await publishNodeToSite(authorId, "YR-28", authorSlug, activeBookId);
       setContent((p: any) => ({ ...p, activated: true })); setStep(3);
       toast.success("Your Sponsorship Programme is live on your site.");
@@ -108,7 +108,7 @@ export default function YR28Builder({ authorId, bookId }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      <StepHeader nodeId="YR-28" nodeName="Exhibitors & Sponsors" step={step} />
+      <StepHeader nodeId="YR-28" nodeName="Sponsors" step={step} />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (<AbbyCard><h2 className="text-xl font-bold mb-3">Let's build your Sponsorship Programme</h2><p className="text-muted-foreground mb-4">Hi {authorName}! Attracting exhibitors and sponsors to your events turns your audience into a revenue asset. I'm going to design your complete sponsorship and exhibitor programme — with packages, a pitch deck outline, and an outreach strategy. Ready to attract sponsors?</p><Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Sponsorship Programme</Button>{error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}</div>}</AbbyCard>)}
         {step === 1 && <LoadingStep messages={GEN_MSGS} msgIndex={msgIndex} />}

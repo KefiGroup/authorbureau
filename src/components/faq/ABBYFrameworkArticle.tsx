@@ -46,7 +46,7 @@ const yieldStreams: Stream[] = [
   { code: "YR-25", name: "Certification", desc: "License your framework so others can teach or use it in a structured way." },
   { code: "YR-26", name: "Conventions / Conferences", desc: "Host larger events that expand your authority and create multiple income layers." },
   { code: "YR-27", name: "Fund Raising", desc: "Use your message to mobilize mission-aligned supporters and partners." },
-  { code: "YR-28", name: "Exhibitors / JV", desc: "Create strategic event and partnership revenue beyond direct product sales." },
+  { code: "YR-28", name: "Sponsors", desc: "Create strategic event and partnership revenue beyond direct product sales." },
 ];
 
 const tocItems = [

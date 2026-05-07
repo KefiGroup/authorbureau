@@ -211,15 +211,15 @@ export default function HowItWorks() {
               <p className="text-sm text-muted-foreground mb-4">Scale your reach with premium content, partnerships, and audience growth tools.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
-                  { name: "Online Courses", desc: "Turn your expertise into a structured teaching product with modules and outcomes." },
+                  { name: "Online Course", desc: "Turn your expertise into a structured teaching product with modules and outcomes." },
                   { name: "Audiobook", desc: "Extend your reach and accessibility with an audio edition of your ideas." },
-                  { name: "Memberships", desc: "Create recurring value through ongoing content, community, and access." },
+                  { name: "Membership", desc: "Create recurring value through ongoing content, community, and access." },
                   { name: "Group Coaching", desc: "Lead readers through a shared transformation in a scalable live format." },
                   { name: "Podcast Tour", desc: "Build authority by getting your message in front of aligned audiences." },
                   { name: "Media & PR", desc: "Increase visibility with interviews, press angles, and media positioning." },
                   { name: "Affiliates", desc: "Let partners and advocates help distribute your products and offers." },
                   { name: "Bundles", desc: "Increase customer value by guiding readers to the next best offer." },
-                  { name: "Revenue Sharing", desc: "Create aligned partnerships where growth and outcomes are shared." },
+                  { name: "JV Partnerships", desc: "Create aligned partnerships where growth and outcomes are shared." },
                 ].map((s) => (
                   <div key={s.name} className="rounded-lg border border-border bg-card p-4 text-sm">
                     <span className="font-semibold text-foreground">{s.name}</span>
@@ -234,16 +234,16 @@ export default function HowItWorks() {
               <p className="text-sm text-muted-foreground mb-4">Unlock premium high-ticket services, events, and long-term business growth.</p>
               <div className="grid gap-3 sm:grid-cols-2">
                 {[
-                  { name: "Coaching", desc: "Offer personalized transformation through one-on-one client work." },
-                  { name: "Consulting", desc: "Solve higher-level business or leadership problems using your expertise." },
-                  { name: "Keynotes", desc: "Turn your ideas into talks that open doors to stages and partnerships." },
-                  { name: "Training Programs", desc: "Deliver structured programs for organizations that want implementation." },
-                  { name: "Masterminds", desc: "Create premium peer groups around your methodology and guidance." },
-                  { name: "Retreats & Bootcamps", desc: "Design immersive experiences that deepen trust and create transformation." },
+                  { name: "1-on-1 Coaching", desc: "Offer personalized transformation through one-on-one client work." },
+                  { name: "Big Ticket Consulting", desc: "Solve higher-level business or leadership problems using your expertise." },
+                  { name: "Speaking", desc: "Turn your ideas into talks that open doors to stages and partnerships." },
+                  { name: "Corporate Training", desc: "Deliver structured programs for organizations that want implementation." },
+                  { name: "Mastermind", desc: "Create premium peer groups around your methodology and guidance." },
+                  { name: "Retreats", desc: "Design immersive experiences that deepen trust and create transformation." },
                   { name: "Certification", desc: "License your framework so others can teach or use it." },
-                  { name: "Conventions / Conferences", desc: "Host larger events that expand your authority and create income layers." },
-                  { name: "Fund Raising", desc: "Use your message to mobilize mission-aligned supporters." },
-                  { name: "Exhibitors / JV", desc: "Create strategic event and partnership revenue beyond direct sales." },
+                  { name: "Conference", desc: "Host larger events that expand your authority and create income layers." },
+                  { name: "Fundraising", desc: "Use your message to mobilize mission-aligned supporters." },
+                  { name: "Sponsors", desc: "Create strategic event and partnership revenue beyond direct sales." },
                 ].map((s) => (
                   <div key={s.name} className="rounded-lg border border-border bg-card p-4 text-sm">
                     <span className="font-semibold text-foreground">{s.name}</span>
