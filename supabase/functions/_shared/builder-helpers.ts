@@ -345,7 +345,7 @@ export async function ensureSlideField(
         ? parsed
         : null;
     if (Array.isArray(arr) && arr.length > 0) {
-      (content as any)[opts.field] = arr;
+      (content as any)[opts.field] = arr.map(normaliseSlide);
     }
   } catch (e) {
     // Best-effort — don't fail the generator just because the bonus deck didn't land.
