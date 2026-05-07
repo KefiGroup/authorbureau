@@ -135,12 +135,12 @@ export default function YR28Builder({ authorId, bookId }: Props) {
                   <Card key={i} className={sp.price_usd >= 10000 ? "border-amber-300 dark:border-amber-700" : ""}>
                     <CardContent className="pt-6 space-y-3">
                       <div className="flex items-center justify-between flex-wrap gap-2">
-                        <h4 className="font-bold">{sp.tier}</h4>
+                        <h4 className="font-bold"><SafeText value={sp.tier} /></h4>
                         <HighTicketPrice price={sp.price_usd} />
                       </div>
-                      <span className="inline-block text-xs bg-muted px-2.5 py-1 rounded-full">{sp.exclusivity}</span>
-                      <SafeText value={sp.description} className="text-muted-foreground" />
-                      <ul className="space-y-1">{sp.benefits?.map((b: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span>{b}</li>)}</ul>
+                      {sp.exclusivity && <span className="inline-block text-xs bg-muted px-2.5 py-1 rounded-full"><SafeText value={sp.exclusivity} /></span>}
+                      <div className="text-muted-foreground text-sm"><SafeBlock value={sp.description} /></div>
+                      <ul className="space-y-1">{sp.benefits?.map((b: any, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><span className="text-green-600">✓</span><SafeText value={b} /></li>)}</ul>
                     </CardContent>
                   </Card>
                 ))}
