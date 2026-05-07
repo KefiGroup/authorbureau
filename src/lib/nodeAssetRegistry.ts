@@ -16,8 +16,8 @@
  *  - probe?:       optional fn that returns true if the asset really exists in this content
  *  - sizeHint?:    optional fn that returns a small label like "14 slides"
  */
-export type AssetType = "pptx" | "pdf" | "docx" | "csv" | "text" | "image" | "audio";
-export type ExportFormat = "copy" | "txt" | "docx" | "pdf" | "pptx" | "csv";
+export type AssetType = "pptx" | "pdf" | "docx" | "csv" | "text" | "image" | "audio" | "script";
+export type ExportFormat = "copy" | "txt" | "docx" | "pdf" | "pptx" | "csv" | "script_docx";
 
 export interface NodeAsset {
   key: string;
