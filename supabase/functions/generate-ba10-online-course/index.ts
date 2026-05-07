@@ -299,6 +299,20 @@ Return JSON exactly in this shape (concise — keep prose short to fit token bud
     "outcomes": ["string","string","string"],
     "cta": "string"
   },
+  "slides": [
+    { "title": "string (course title)", "body": "transformation promise", "notes": "speaker notes", "layout_hint": "hero" },
+    { "title": "Who this is for", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "What you will learn", "body": "string", "notes": "string", "layout_hint": "bullets" },
+    { "title": "The pedagogical approach", "body": "Bloom + Kolb summary", "notes": "string", "layout_hint": "bullets" },
+    { "title": "Module 1", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Module 2", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Module 3", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Module 4", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Module 5", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Module 6", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Outcome", "body": "what students will be able to do", "notes": "string", "layout_hint": "stat" },
+    { "title": "Enrol now", "body": "call to action", "notes": "string", "layout_hint": "divider" }
+  ],
   "abby_summary": "1-2 sentences summarising what was built and the pedagogical approach"
 }
 

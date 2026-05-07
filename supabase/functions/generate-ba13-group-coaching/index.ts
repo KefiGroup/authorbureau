@@ -89,6 +89,15 @@ Return JSON in this EXACT shape (field names matter):
   "suggested_price_usd": 1997,
   "pricing_rationale": "string",
   "sales_page": { "headline": "string", "subheadline": "string", "cta_button_text": "Apply Now" },
+  "slides": [
+    { "title": "string (programme name + tagline)", "body": "string (one-line promise)", "notes": "speaker notes", "layout_hint": "hero" },
+    { "title": "Who this is for", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "The transformation", "body": "string", "notes": "string", "layout_hint": "stat" },
+    { "title": "How the programme works", "body": "Format · cohort size · cadence · duration", "notes": "string", "layout_hint": "bullets" },
+    { "title": "Week-by-week journey", "body": "8-week roadmap summary", "notes": "string", "layout_hint": "bullets" },
+    { "title": "Outcomes", "body": "string", "notes": "string", "layout_hint": "bullets" },
+    { "title": "Investment & next step", "body": "Apply or book a call", "notes": "string", "layout_hint": "divider" }
+  ],
   "abby_summary": "string"
 }
 

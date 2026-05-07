@@ -93,7 +93,19 @@ Generate the following as a JSON object with these exact keys:
       { "day": "Day 13 (Last chance)", "platform": "Email", "caption": "..." }
     ]
   },
-  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created and why this webinar system will grow this author's audience and revenue"
+  "abby_summary": "A 2-3 sentence summary from ABBY explaining what she created and why this webinar system will grow this author's audience and revenue",
+  "slides": [
+    { "title": "string (webinar #1 title)", "body": "subtitle / promise", "notes": "speaker notes", "layout_hint": "hero" },
+    { "title": "The problem", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Why most approaches fail", "body": "string", "notes": "string", "layout_hint": "bullets" },
+    { "title": "The shift", "body": "string", "notes": "string", "layout_hint": "stat" },
+    { "title": "Key point 1", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Key point 2", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Key point 3", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Key point 4", "body": "string", "notes": "string", "layout_hint": "split" },
+    { "title": "Case study / proof", "body": "string", "notes": "string", "layout_hint": "quote" },
+    { "title": "Next step", "body": "offer / call to action", "notes": "string", "layout_hint": "divider" }
+  ]
 }
 
 The webinar_topics array must have exactly 3 items, each covering a different angle of the book's content.
