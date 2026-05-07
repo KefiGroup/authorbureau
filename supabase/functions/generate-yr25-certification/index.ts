@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage,
   buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
-  failResponse, aiGatewayErrorMessage,
+  failResponse, aiGatewayErrorMessage, ensureSlideField,
 } from "../_shared/builder-helpers.ts";
 
 import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
@@ -40,6 +40,11 @@ Generate JSON: {"certification_title","tagline","certification_promise","program
     if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await ensureSlideField(content, {
+      field: "slides", minCount: 8,
+      prompt: `Return JSON {"slides":[10 items]} for ${author.pen_name}'s certification programme '${content?.certification_title || bookTitle}' based on '${bookTitle}'. Slides: cover, why this certification, who it is for, programme structure, module 1, module 2, module 3, assessment & pass mark, certification levels, become certified CTA. Each: {title, body, notes, layout_hint}.`,
+      functionName: "generate-yr25-certification",
+    });
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready", current_step: 2,
       content_json: { ...content, _currentStep: 2 },

@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway, corsHeaders, makeServiceClient, parseAiJson, errorMessage, failResponse,
   verifyAuthUser, aiGatewayErrorMessage,
-  buildAuthorContext, snapshotAuthorNode, upsertAuthorNode,
+  buildAuthorContext, snapshotAuthorNode, upsertAuthorNode, ensureSlideField,
 } from "../_shared/builder-helpers.ts";
 
 import { getCanonicalNodeLabel } from "../_shared/canonical-node-labels.ts";
@@ -112,6 +112,11 @@ Return JSON in this EXACT shape (field names matter):
     }
     const aiData = await aiRes.json();
     const content = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    await ensureSlideField(content, {
+      field: "slides", minCount: 6,
+      prompt: `Return JSON {"slides":[7 items]} for ${author.pen_name}'s 8-week group coaching programme '${content?.programme_title || bookTitle}' based on book '${bookTitle}'. Slides: cover, who this is for, the transformation, how the programme works, week-by-week journey, outcomes, investment & next step. Each: {title, body (3-5 lines), notes, layout_hint}.`,
+      functionName: "generate-ba13-group-coaching",
+    });
 
     await upsertAuthorNode(supabase, author_id, NODE_ID, NODE_NAME, {
       status: "content_ready",

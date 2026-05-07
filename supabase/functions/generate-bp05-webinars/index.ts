@@ -1,7 +1,7 @@
 // @ts-nocheck — Deno runtime
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway, corsHeaders, makeServiceClient, buildAuthorContext, upsertAuthorNode,
-  failResponse, errorMessage,
+  failResponse, errorMessage, ensureSlideField,
 } from "../_shared/builder-helpers.ts";
 
 serve(async (req) => {
@@ -136,6 +136,12 @@ Make everything specific to this author's book, niche, and audience. Never use g
     let raw = aiData.choices?.[0]?.message?.content || "";
     raw = raw.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     const parsed = JSON.parse(raw);
+
+    await ensureSlideField(parsed, {
+      field: "slides", minCount: 8,
+      prompt: `Return JSON {"slides":[10 items]} for ${author.pen_name}'s webinar based on book '${bookTitle}'. Slides: cover (webinar #1 title), the problem, why most approaches fail, the shift, key point 1, key point 2, key point 3, key point 4, case study/proof, next step CTA. Each: {title, body, notes, layout_hint}.`,
+      functionName: "generate-bp05-webinars",
+    });
 
     const recIdx = (parsed.recommended_webinar || 1) - 1;
     const personalName = parsed.webinar_topics?.[recIdx]?.title || parsed.webinar_topics?.[0]?.title || "Author Webinar";

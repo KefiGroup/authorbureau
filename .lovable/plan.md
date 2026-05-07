@@ -1,85 +1,64 @@
+# Sprint 11 — Fix Sprint 10 verification gaps
 
-# Sprint 10 — Slide Decks for Live-Delivery Nodes
+I read Manus's report and cross-checked against the live DB. **He's right on all three counts.** Confirmation:
 
-## Findings (correcting the audit)
+- YR-22 was regenerated today at 08:09 UTC (after Sprint 10 deploy) and `content_json` contains: `tagline, programme_title, training_formats, learning_outcomes, programme_outline, proposal_template, target_organisations, abby_summary`. **No `slides` key.** Same for the other 4 P1 nodes and the 4 P2 nodes — 0/9 have slide/pitch-deck arrays.
+- Registry keys (`slides`, `pitch_deck`) are correct; the asset rows are hidden because the probe finds nothing — i.e. **Manus's "Cause A"**: gpt-5-mini is silently dropping the new optional field even though we added it to the prompt.
+- BA-13 builder shows Step 1 even when `status='live'` — our Sprint 10 "verification" only checked that `_currentStep` is read, not that live status forces the completion view.
+- YR-21 first-attempt timeout is consistent with YR-23 before its Sprint 4 token bump.
 
-- **YR-21 is not a regression.** `author_nodes` has **zero** rows for `YR-21` (and `BP-03`) across the entire platform. The 404 is correct — the node never reached `live` for anyone. Sprint 9's backfill is not the cause.
-- **Slide infrastructure already exists.** `supabase/functions/export-pro-slides/index.ts` is a universal PptxGenJS exporter (3 themes, 6 auto-picked layouts). `nodeAssetRegistry.ts` already declares `slides` assets for BP-05, BP-09, YR-21, YR-22, YR-26, YR-27 and the Library download button calls `export-pro-slides` — but the **generators don't write a `slides[]` array** into `content_json`, so the asset never lights up.
-- **Real gap:** content-shape, not a new feature. Each generator just needs to emit a `slides: [{title, body, notes?}, ...]` array (or nested e.g. `weeks[i].slides`) alongside its existing output, and the registry needs to be expanded for BA-10, BA-13, YR-23, YR-25.
+## P0 — Make slides[] / pitch_deck[] actually land in content_json
 
-## Scope
+Root cause: we tacked `slides`/`pitch_deck` onto the existing prompt as one bullet at the end. With `response_format: json_object` (not strict schema) and `gpt-5-mini`, the model treats it as optional and frequently omits it, especially when the rest of the payload is already large.
 
-### A. P0 bug fixes (publish-path, not data restore)
+Fix pattern (apply to all 9 generators):
 
-1. **YR-21 Keynote Speaking** — generator (`generate-yr21-speaking`) likely fails before write or the builder's publish step never invokes `publishNodeToSite`. Trace `generate-yr21-speaking` end-to-end against Pauline's account, fix the failing path (probably the same `delivery_type` / status flip class as Sprint 9's BP-01/BP-04).
-2. **BP-03** — same diagnosis sweep; zero rows platform-wide.
-3. **BA-13 builder shows Step 1 despite live page** — read `_currentStep` from `content_json` on resume in `BA13Builder.tsx` (Sprint 8 builder-resume pattern); currently it defaults to step 1 even when `status='live'`.
+1. **Promote slides/pitch_deck to a top-level required field in the JSON shape block** — listed first in the schema example, with a fully-rendered 2-slide sample so the model has a concrete pattern to copy.
+2. **Add an explicit "REQUIRED FIELDS" line** after the schema: e.g. `REQUIRED top-level keys: programme_title, slides, learning_outcomes, ... — output that omits any of these will fail QA.`
+3. **Post-parse validation + one retry inside the edge function**:
+   ```ts
+   if (!Array.isArray(content.slides) || content.slides.length < 6) {
+     // re-call gateway with a follow-up: "Your previous response omitted the required `slides` array. Return ONLY a JSON object with a `slides` array of N {title, body, notes, layout_hint} objects, nothing else." then merge.
+   }
+   ```
+   Same logic for `pitch_deck` on the 4 P2 generators.
+4. Cap retry at 1 to stay within 180s timeout. If still missing after retry, log to `error_log` table and return success without slides (don't block the user).
 
-### B. P1 — Slide arrays in 5 priority generators
+Generators to update: `generate-yr22-corporate`, `generate-ba13-group-coaching`, `generate-ba10-online-course`, `generate-yr25-certification`, `generate-bp05-webinars`, `generate-ba16-affiliate`, `generate-ba18-jv-partnerships`, `generate-yr27-fundraising`, `generate-yr28-sponsors`.
 
-For each generator, extend the AI prompt + JSON schema to also emit a `slides[]` array using this shape:
+## P1 — BA-13 builder shows live state correctly
 
+In `BA13Builder.tsx` resume effect: change the precedence from `_currentStep || 1` to:
+
+```ts
+const initialStep = nodeStatus === 'live' ? COMPLETION_STEP : (content_json?._currentStep ?? 1);
 ```
-slides: [
-  { title: string, body: string, notes?: string, layout_hint?: "hero"|"stat"|"quote"|"divider"|"bullets"|"split" }
-]
-```
 
-| Node | Generator | Slide source | Target count |
-|---|---|---|---|
-| YR-22 Corporate Training | `generate-yr22-training` | per-module → `modules[i].slides[]` + top-level `slides[]` digest | ~40–50 |
-| BA-13 Group Coaching | `generate-ba13-group-coaching` | per-week → `weeks[i].slides[]` (10 each) | ~80 |
-| BA-10 Online Course | `generate-ba10-course` | per-module → `modules[i].slides[]` | ~30–40 |
-| YR-25 Certification | `generate-yr25-certification` | per-module trainer deck | ~40 |
-| BP-05 Webinars | `generate-bp05-webinars` | per-topic webinar deck | ~25 each |
+Apply the same guard to the other multi-step builders that share this pattern (audit list while we're in there: BA-10, YR-22, YR-25, BP-05 — same builders we just touched for slides).
 
-### C. P1 — Registry & UI
+## P2 — YR-21 first-attempt timeout
 
-- Extend `src/lib/nodeAssetRegistry.ts`:
-  - Add `slides` (and per-week/per-module nested keys where applicable) to BA-10, BA-13, YR-23, YR-25.
-  - Add `sizeHint` returning `"N slides"` for each.
-- `AssetRow.tsx` already calls `export-pro-slides` — confirm it handles nested `weeks[i].slides` paths via the existing `pluck()` helper (looks like it does; verify and extend if not).
+In `generate-yr21-speaking/index.ts`:
+- Bump `max_completion_tokens` to 24000 (matches YR-23 post-Sprint-4).
+- Confirm it's already wrapped in `fetchAiGateway` with retry (Sprint 9 standard) — if not, wrap it.
 
-### D. P2 — Pitch decks (lower volume, same mechanism)
+## QA after deploy
 
-Add a small `pitch_deck[]` (5–10 slides) to: BA-16 Affiliates, BA-18 JV, YR-27 Fundraising, YR-28 Sponsors. Registry already has `pitch_deck` on YR-27; mirror for the others.
-
-### E. Tests
-
-- Vitest fixtures in `src/lib/__tests__/node-readiness.test.ts` covering the new content shape (no readiness rule changes — slides are bonus assets, not part of the gate).
-- One Deno test per modified edge function asserting `result.content_json.slides` is a non-empty array of `{title, body}`.
-
-### F. QA
-
-For Pauline's "Be SUCKcessful":
-1. Re-run YR-21 + BP-03 generators end-to-end → confirm `live`, microsite returns 200.
-2. Re-run YR-22, BA-13, BA-10, YR-25, BP-05 generators → open Library → download `.pptx` → render with LibreOffice headless → `pdftoppm` → visually confirm slides aren't placeholder/empty (per our PPTX QA rule).
-
-## Files touched
-
-- `supabase/functions/generate-yr22-training/index.ts`
-- `supabase/functions/generate-ba13-group-coaching/index.ts`
-- `supabase/functions/generate-ba10-course/index.ts`
-- `supabase/functions/generate-yr25-certification/index.ts`
-- `supabase/functions/generate-bp05-webinars/index.ts`
-- `supabase/functions/generate-yr21-speaking/index.ts` *(bug fix only)*
-- `supabase/functions/generate-bp03-*` *(bug fix only)*
-- `supabase/functions/export-pro-slides/index.ts` *(only if nested-key resolution needs widening)*
-- `src/lib/nodeAssetRegistry.ts`
-- `src/components/dashboard/builders/ba13/BA13Builder.tsx` *(resume step bug)*
-- `src/lib/__tests__/node-readiness.test.ts`
-- `docs/04-node-frameworks/{YR-21,YR-22,BA-10,BA-13,YR-25,BP-05}.md` — add "Slide deck" to the deliverables list.
+Re-run YR-22 generator on Pauline's "Be SUCKcessful", then:
+1. SQL check: `SELECT jsonb_array_length(content_json->'slides') FROM author_nodes WHERE node_id='YR-22' AND ...` should be ≥ 6.
+2. Library: "Training slide deck" row visible with PPTX download.
+3. Download PPTX, render with LibreOffice → pdftoppm → eyeball first 3 slides for placeholders / wrong author name.
+4. Open BA-13 builder for Pauline → confirm completion view, not Step 1.
+5. Re-run YR-21 generator cold (clear row first) → completes on first attempt.
 
 ## Out of scope
 
-- New PPTX template engine — we already have `export-pro-slides`.
-- Author-branded theming beyond the 3 existing themes — defer to a future sprint once content quality is validated.
-- Audit's BA-15/BA-14/BA-16/BA-18/YR-20/YR-27/YR-28 P3 items — covered partially by Section D, full pitch-deck polish deferred.
+- The remaining 1/28 not-live node on Pauline's book (different from this sprint).
+- Strict JSON schema mode (`response_format: { type: "json_schema" }`) — would solve this more cleanly but requires touching all generators and verifying gateway support; defer to a dedicated sprint.
 
-## Execution order
+## Files touched
 
-1. P0 bug fixes (YR-21, BP-03, BA-13 resume) — small, unblock the audit.
-2. YR-22 first (highest content quality already → cleanest test of the slides path end-to-end).
-3. Roll the same prompt pattern across BA-13, BA-10, YR-25, BP-05.
-4. Registry + Library QA.
-5. P2 pitch decks.
+- 9 × `supabase/functions/generate-*/index.ts` (prompt + retry)
+- `src/components/dashboard/builders/ba13/BA13Builder.tsx` (+ 4 sibling builders for the same fix)
+- `supabase/functions/generate-yr21-speaking/index.ts` (token bump)
+- No DB migration, no registry change.

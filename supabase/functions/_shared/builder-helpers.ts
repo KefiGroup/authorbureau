@@ -246,6 +246,77 @@ export async function fetchAiGateway(
 }
 
 /**
+ * Sprint 11 — guarantees a slide-style array field lands in `content`.
+ *
+ * Many generators ask the AI for an optional `slides[]` (or `pitch_deck[]`)
+ * tail field. With `response_format: json_object` (not strict schema) the
+ * model regularly drops the tail, leaving the Library asset row hidden.
+ *
+ * If the field is missing/short, this helper makes ONE follow-up call to
+ * the gateway asking for ONLY that array (small token budget, cheap), then
+ * merges it into `content`. Failure is swallowed — generator keeps shipping.
+ *
+ * Usage:
+ *   await ensureSlideField(content, {
+ *     field: "slides",
+ *     minCount: 6,
+ *     prompt: "Return JSON {\"slides\":[8 items {title,body,notes,layout_hint}]} for ...",
+ *     functionName: "generate-yr22-corporate",
+ *     model: "openai/gpt-5-mini",
+ *   });
+ */
+export async function ensureSlideField(
+  content: Record<string, unknown>,
+  opts: {
+    field: "slides" | "pitch_deck";
+    minCount: number;
+    prompt: string;
+    functionName: string;
+    model?: string;
+  },
+): Promise<void> {
+  const cur = (content as any)?.[opts.field];
+  if (Array.isArray(cur) && cur.length >= opts.minCount) return;
+
+  try {
+    const repair = await callAiGateway({
+      model: opts.model ?? "openai/gpt-5-mini",
+      response_format: { type: "json_object" },
+      max_completion_tokens: 3500,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You output ONLY valid JSON. No markdown, no commentary. Each slide MUST have keys: title, body, notes, layout_hint (one of hero|stat|quote|divider|bullets|split). NEVER use the emdash character. NEVER include dollar amounts in titles or body. Use the author's brand vocabulary.",
+        },
+        { role: "user", content: opts.prompt },
+      ],
+    }, { functionName: `${opts.functionName}:slide-repair`, maxRetries: 1 });
+    const text = repair?.choices?.[0]?.message?.content || "";
+    const parsed = parseAiJson(text);
+    const arr = Array.isArray(parsed?.[opts.field])
+      ? parsed[opts.field]
+      : Array.isArray(parsed)
+        ? parsed
+        : null;
+    if (Array.isArray(arr) && arr.length > 0) {
+      (content as any)[opts.field] = arr;
+    }
+  } catch (e) {
+    // Best-effort — don't fail the generator just because the bonus deck didn't land.
+    try {
+      await logError({
+        source: "edge_function",
+        function_name: opts.functionName,
+        severity: "warning",
+        message: `ensureSlideField(${opts.field}) repair failed: ${errorMessage(e)}`,
+        context: { stage: "slides_repair_failed", field: opts.field },
+      });
+    } catch (_e) { /* swallow */ }
+  }
+}
+
+/**
  * Robust JSON parser with one auto-repair pass.
  *  - First tries strict parse.
  *  - On failure, asks the AI gateway to re-emit valid JSON only (cheap, fast).
