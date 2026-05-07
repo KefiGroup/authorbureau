@@ -445,6 +445,19 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       return content.activated === true && hasSubstantiveBuild(content);
     }
 
+    case "BP-02": {
+      // Lead Magnets — activated + at least one built lead magnet.
+      if (content.activated !== true) return false;
+      if (nonEmptyArray(content.lead_magnets)) return true;
+      return (
+        nonEmptyString(content.recommended_lead_magnet) &&
+        (nonEmptyArray(content.quiz_structure?.questions) ||
+          nonEmptyArray(content.checklist_structure?.items) ||
+          !!content.optin_page ||
+          !!content.thankyou_page)
+      );
+    }
+
     default: {
       // Strict default (Sprint 56 consistency fix): nodes without an
       // explicit legacy rule MUST satisfy the uniform library_asset
