@@ -1,111 +1,85 @@
-## Manus Audit – Lovable Fix Plan
 
-Five bugs were called out. I've verified each against the codebase and live data for `pauline-teo` / Be SUCKcessful. Pauline's actual DB state confirms the diagnoses below.
+# Sprint 10 — Slide Decks for Live-Delivery Nodes
 
----
+## Findings (correcting the audit)
 
-### BUG #5 — Counter shows 7/28 (P0)
+- **YR-21 is not a regression.** `author_nodes` has **zero** rows for `YR-21` (and `BP-03`) across the entire platform. The 404 is correct — the node never reached `live` for anyone. Sprint 9's backfill is not the cause.
+- **Slide infrastructure already exists.** `supabase/functions/export-pro-slides/index.ts` is a universal PptxGenJS exporter (3 themes, 6 auto-picked layouts). `nodeAssetRegistry.ts` already declares `slides` assets for BP-05, BP-09, YR-21, YR-22, YR-26, YR-27 and the Library download button calls `export-pro-slides` — but the **generators don't write a `slides[]` array** into `content_json`, so the asset never lights up.
+- **Real gap:** content-shape, not a new feature. Each generator just needs to emit a `slides: [{title, body, notes?}, ...]` array (or nested e.g. `weeks[i].slides`) alongside its existing output, and the registry needs to be expanded for BA-10, BA-13, YR-23, YR-25.
 
-**Verified.** Most live rows have no `library_asset` and don't satisfy the legacy fallback either. Examples from her data:
+## Scope
 
-| Node | status | content_json keys (excerpt) | Why it fails the gate |
+### A. P0 bug fixes (publish-path, not data restore)
+
+1. **YR-21 Keynote Speaking** — generator (`generate-yr21-speaking`) likely fails before write or the builder's publish step never invokes `publishNodeToSite`. Trace `generate-yr21-speaking` end-to-end against Pauline's account, fix the failing path (probably the same `delivery_type` / status flip class as Sprint 9's BP-01/BP-04).
+2. **BP-03** — same diagnosis sweep; zero rows platform-wide.
+3. **BA-13 builder shows Step 1 despite live page** — read `_currentStep` from `content_json` on resume in `BA13Builder.tsx` (Sprint 8 builder-resume pattern); currently it defaults to step 1 even when `status='live'`.
+
+### B. P1 — Slide arrays in 5 priority generators
+
+For each generator, extend the AI prompt + JSON schema to also emit a `slides[]` array using this shape:
+
+```
+slides: [
+  { title: string, body: string, notes?: string, layout_hint?: "hero"|"stat"|"quote"|"divider"|"bullets"|"split" }
+]
+```
+
+| Node | Generator | Slide source | Target count |
 |---|---|---|---|
-| BP-01 Email | `content_ready` (not `live`) | welcome_sequence, lead_magnet_offer | DB gate fails (status ≠ live), AND no `email_sequence_id`+`steps[]` / `sequence_steps[]` |
-| BP-04 Microsite | `content_ready` | `personalised_name`, `nurture_sequence`, `_currentStep` | Status ≠ live, AND no `hero_headline`/`sections[]` |
-| BA-12 Membership | live | tiers, welcome_emails, content_calendar… | OK (passes via `hasSubstantiveBuild` + title) – should already count |
-| BA-13 Group Coaching | live | `weeks`, `programme_title`, `session_frequency` | Fails – legacy gate looks for `sessions[]` or `schedule`, not `weeks[]` |
-| BA-15 Press | live | `press_release` (string), `target_media_outlets` | Should pass; verify |
-| BA-16 Affiliates | live | activated, commission_structure, payout_schedule | Should pass; verify |
-| YR-19/20/21/etc | live | varied builder shapes | Several use builder-specific arrays not in `SUBSTANCE_ARRAYS` (e.g. `weeks`, `study_weeks` is in, but `programme_outline_weeks` etc. may not be) |
+| YR-22 Corporate Training | `generate-yr22-training` | per-module → `modules[i].slides[]` + top-level `slides[]` digest | ~40–50 |
+| BA-13 Group Coaching | `generate-ba13-group-coaching` | per-week → `weeks[i].slides[]` (10 each) | ~80 |
+| BA-10 Online Course | `generate-ba10-course` | per-module → `modules[i].slides[]` | ~30–40 |
+| YR-25 Certification | `generate-yr25-certification` | per-module trainer deck | ~40 |
+| BP-05 Webinars | `generate-bp05-webinars` | per-topic webinar deck | ~25 each |
 
-So the counter is correctly enforcing the contract; the **builders are not writing what the gate expects**, and a few categories (BP-01, BP-04) never reached `status='live'` at all.
+### C. P1 — Registry & UI
 
-**Fix (incremental, safe):**
+- Extend `src/lib/nodeAssetRegistry.ts`:
+  - Add `slides` (and per-week/per-module nested keys where applicable) to BA-10, BA-13, YR-23, YR-25.
+  - Add `sizeHint` returning `"N slides"` for each.
+- `AssetRow.tsx` already calls `export-pro-slides` — confirm it handles nested `weeks[i].slides` paths via the existing `pluck()` helper (looks like it does; verify and extend if not).
 
-1. **Add temporary diagnostic logging** to `hasRequiredAssets()` in `supabase/functions/_shared/node-readiness.ts` — log `{ nodeId, status, contentKeys, passedBy: "library_asset"|"legacy"|"none" }`. Mirror in the frontend `useBookNodeProgress` hook (gated by `import.meta.env.DEV`). Run for Pauline's account, capture which nodes fail and why.
-2. **Patch the legacy gate alignments** identified by the diagnostic (no schema changes; pure rule expansion):
-   - `BA-13` Group Coaching — accept `weeks[]` (already used by the builder) in addition to `sessions[]` / `schedule`.
-   - `BP-04` Microsite — also pass when `nurture_sequence[]` is non-empty *plus* `personalised_name` (current builder shape after BP-04 changes).
-   - `BA-14` Podcast — confirm `episodes[]` length and `activated` semantics match Sprint-50 builder; relax to also accept `library_asset.kind === "podcast_pack"` (already enforced via uniform contract — verify `BA-14` row has it; the audit confirms `library_asset:object` is present, so it should already pass).
-   - Sweep YR-19→YR-28 against actual live rows; add any builder-specific built-content arrays to `SUBSTANCE_ARRAYS` (no rule loosening for nodes lacking title or commerce).
-3. **Promote BP-01 and BP-04 from `content_ready` → `live`** in their builders' Publish step. Currently the audit shows them stuck in `content_ready`. The publish call (`publishNodeToSite`) must be invoked at the end of step 3 — patch where missing.
-4. **Add Vitest fixtures** in `src/lib/__tests__/node-readiness.test.ts` — one fixture per node, using the *actual* `content_json` shapes saved by Pauline's run. Lock the contract going forward. Per the architecture rule: any new readiness rule requires a fixture.
-5. **Remove diagnostic logging** once tests pass.
+### D. P2 — Pitch decks (lower volume, same mechanism)
 
-**Outcome:** Pauline's counter goes from 7/28 → 28/28; the gate stays strict (no node can lie about being Live).
+Add a small `pitch_deck[]` (5–10 slides) to: BA-16 Affiliates, BA-18 JV, YR-27 Fundraising, YR-28 Sponsors. Registry already has `pitch_deck` on YR-27; mirror for the others.
 
----
+### E. Tests
 
-### BUG #3 + BUG #4 — Raw JSON shown in YR-24 Retreats and YR-28 Sponsors
+- Vitest fixtures in `src/lib/__tests__/node-readiness.test.ts` covering the new content shape (no readiness rule changes — slides are bonus assets, not part of the gate).
+- One Deno test per modified edge function asserting `result.content_json.slides` is a non-empty array of `{title, body}`.
 
-**Verified.** Pauline's `YR-24.transformation_arc` is a JSON **array** in DB; `YR-28.audience_profile` is an **object**. Both render via `<SafeBlock value={...} />` from `src/components/dashboard/builders/shared/YRSafeBoundary.tsx`. SafeBlock handles objects/arrays correctly — but when the AI returns the same field as a *stringified* JSON (which the audit screenshot proves it sometimes does), `SafeBlock` falls through to `SafeText`, which prints the raw `{"stage":"…"}` string.
+### F. QA
 
-**Fix (single shared change, fixes both nodes):**
+For Pauline's "Be SUCKcessful":
+1. Re-run YR-21 + BP-03 generators end-to-end → confirm `live`, microsite returns 200.
+2. Re-run YR-22, BA-13, BA-10, YR-25, BP-05 generators → open Library → download `.pptx` → render with LibreOffice headless → `pdftoppm` → visually confirm slides aren't placeholder/empty (per our PPTX QA rule).
 
-1. **Add `parseJsonField()` helper** in `YRSafeBoundary.tsx`:
-   ```
-   if value is a string starting with '{' or '[' → try JSON.parse → on success, recurse with the parsed value
-   ```
-2. Wire it into both `SafeText` and `SafeBlock` *before* the string/primitive branch.
-3. Apply the same parse-then-render to `MicrositePage.tsx` `RetreatPage` (`arcRaw`) and `SponsorsPage` (`audience_profile`) — currently they do `typeof === "object"` checks that miss the string-shaped case.
-4. **Vitest** in `src/lib/__tests__/safe-block.test.tsx`: feed a stringified object/array, expect rendered key/value rows (not raw JSON text).
-5. **Backfill existing rows once.** Add a one-shot SQL data fix that JSON-parses any string-typed `transformation_arc` / `audience_profile` on `author_nodes` so the live page stops showing raw JSON immediately, even before re-publish.
+## Files touched
 
----
-
-### BUG #1 — YR-20 naming inconsistency
-
-**Verified.** `YR20Builder.tsx` autosaves once as `"Consulting"` (line 102) and once as `"Big Ticket Consulting"` (line 112); the StepHeader says `"Big Ticket Consulting"`; the canonical label registry has its own value; the slug map produces `/vip`.
-
-**Fix:**
-1. Look up YR-20's canonical label in `src/components/dashboard/builders/builderNodeConfig.ts` — that file is the documented single source of truth (per memory: "Canonical Node Names").
-2. Replace every YR-20 string in `YR20Builder.tsx` (autosave name, StepHeader, success toast, navigate label) with the canonical label.
-3. Update `src/lib/node-slug-map.ts` so YR-20 resolves to `/big-ticket-offers` (or whichever slug matches the canonical label). Add a 301-style redirect from `/vip` → new slug in the public route layer to preserve any existing inbound links.
-4. Update `node_registry.microsite_slug` (DB) so `compute_node_microsite_url` produces the new path. Backfill any existing live YR-20 `delivery_url` rows.
-5. Run the canonical-labels parity test (`canonical-node-labels.ts` enforcement layer per memory).
-
----
-
-### BUG #2 — YR-23 Mastermind generation timeout
-
-**Verified.** `generate-yr23-mastermind` produces 4 sections; under load the Lovable AI Gateway sometimes exceeds the client timeout. The error path already shows Abby's "Try Again" message, but the user has to click manually.
-
-**Fix:**
-1. Wrap the YR-23 generator call in `callAiGateway` with the existing 1-retry resilience helper (per memory: "ABBY Error Resilience Layer"). No timeout extension on the edge function — server runtime is already 180s.
-2. In `YR23Builder.tsx`, when the first attempt errors with the timeout coded-error, **silent retry once** before surfacing the toast.
-3. Add a step-level loading indicator showing "Generating Concept… Tiers… Benefits… Application…" — purely cosmetic (the gateway returns one JSON; we just rotate copy on the existing `LoadingStep`).
-4. Same pattern then applied as defensive sweep to other 4-section YR generators (YR-22, YR-24, YR-25) — the audit calls these out as the same risk class.
-
----
-
-### Out of scope (addressed elsewhere or low priority)
-
-- **OBS #3** (Abby chat widget covering Generate buttons) — already partially fixed by the route-section suppression list in `AbbyHelpChatbot.tsx` line 390. Audit lists it P3; I'll add YR-23/YR-24/BA-18 sections to the existing `["builder=", section==="..."]` suppression array as a one-line addition under this same sprint.
-- Server-side timeout extension is **not** needed; resilience layer already exists.
-
----
-
-### Execution order
-
-1. P0 — counter (BUG #5), one-shot diagnostics + rule alignment + fixtures + promote-to-live for BP-01/BP-04.
-2. P1 — raw-JSON renderer (BUGs #3 + #4): single shared `parseJsonField` + DB backfill.
-3. P1 — YR-20 naming (BUG #1).
-4. P2 — YR-23 silent retry (BUG #2) + chatbot suppression (OBS #3).
-
-Each step ships with a Vitest covering the new contract so the bug class can't recur.
-
----
-
-### Files touched (preview)
-
-- `supabase/functions/_shared/node-readiness.ts`
+- `supabase/functions/generate-yr22-training/index.ts`
+- `supabase/functions/generate-ba13-group-coaching/index.ts`
+- `supabase/functions/generate-ba10-course/index.ts`
+- `supabase/functions/generate-yr25-certification/index.ts`
+- `supabase/functions/generate-bp05-webinars/index.ts`
+- `supabase/functions/generate-yr21-speaking/index.ts` *(bug fix only)*
+- `supabase/functions/generate-bp03-*` *(bug fix only)*
+- `supabase/functions/export-pro-slides/index.ts` *(only if nested-key resolution needs widening)*
+- `src/lib/nodeAssetRegistry.ts`
+- `src/components/dashboard/builders/ba13/BA13Builder.tsx` *(resume step bug)*
 - `src/lib/__tests__/node-readiness.test.ts`
-- `src/lib/__tests__/safe-block.test.tsx` (new)
-- `src/components/dashboard/builders/shared/YRSafeBoundary.tsx`
-- `src/components/dashboard/builders/yr20/YR20Builder.tsx`
-- `src/components/dashboard/builders/yr23/YR23Builder.tsx`
-- `src/components/dashboard/builders/bp01/…` and `bp04/…` (publish-step wiring)
-- `src/lib/node-slug-map.ts`
-- `src/pages/MicrositePage.tsx` (RetreatPage + SponsorsPage parse-then-render)
-- `src/components/AbbyHelpChatbot.tsx` (suppression list)
-- One DB migration: `node_registry` slug update + `author_nodes` backfill (delivery_url, transformation_arc, audience_profile).
+- `docs/04-node-frameworks/{YR-21,YR-22,BA-10,BA-13,YR-25,BP-05}.md` — add "Slide deck" to the deliverables list.
+
+## Out of scope
+
+- New PPTX template engine — we already have `export-pro-slides`.
+- Author-branded theming beyond the 3 existing themes — defer to a future sprint once content quality is validated.
+- Audit's BA-15/BA-14/BA-16/BA-18/YR-20/YR-27/YR-28 P3 items — covered partially by Section D, full pitch-deck polish deferred.
+
+## Execution order
+
+1. P0 bug fixes (YR-21, BP-03, BA-13 resume) — small, unblock the audit.
+2. YR-22 first (highest content quality already → cleanest test of the slides path end-to-end).
+3. Roll the same prompt pattern across BA-13, BA-10, YR-25, BP-05.
+4. Registry + Library QA.
+5. P2 pitch decks.
