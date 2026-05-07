@@ -140,13 +140,13 @@ export default function YR20Builder({ authorId, bookId }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      <StepHeader nodeId="YR-20" nodeName="Big Ticket Offers" step={step} />
+      <StepHeader nodeId="YR-20" nodeName="Big Ticket Consulting" step={step} />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard>
-            <h2 className="text-xl font-bold mb-3">Let's create your Big Ticket Offers</h2>
-            <p className="text-muted-foreground mb-4">Hi {authorName}! Big ticket offers are where the real transformation happens — and where the real revenue is. I'm going to design 3 premium transformation packages based on '{detectedBookTitle || bookTitle || "your book"}' — each priced between $5,000 and $25,000. Ready to create your most powerful offers?</p>
-            <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Big Ticket Offers</Button>
+            <h2 className="text-xl font-bold mb-3">Let's create your Big Ticket Consulting offers</h2>
+            <p className="text-muted-foreground mb-4">Hi {authorName}! Big ticket consulting is where the real transformation happens — and where the real revenue is. I'm going to design 3 premium transformation packages based on '{detectedBookTitle || bookTitle || "your book"}' — each priced between $5,000 and $25,000. Ready to create your most powerful offers?</p>
+            <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Big Ticket Consulting Offers</Button>
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
         )}
