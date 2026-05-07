@@ -372,17 +372,18 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
       return false;
     }
     case "BA-12": {
-      // Membership — recurring subscription. Live when Stripe price wired
-      // OR (activated + tiered offer built).
+      // Membership — recurring subscription. Live when Stripe price wired,
+      // a tiered offer is built, OR substantive content (welcome emails,
+      // calendar, etc.) exists alongside a title.
       if (!hasAnyTitle(content)) return false;
       if (nonEmptyString(content.stripe_price_id)) return true;
-      return content.activated === true && hasSubstantiveBuild(content);
+      if (hasCommerceSignal(content)) return true;
+      return hasSubstantiveBuild(content);
     }
     case "BA-13": {
       const hasSchedule = nonEmptyArray(content.sessions) || nonEmptyString(content.schedule);
       if (hasSchedule) return true;
-      // Activated programme with curriculum (weeks[]) also qualifies.
-      return hasAnyTitle(content) && content.activated === true && hasSubstantiveBuild(content);
+      return hasAnyTitle(content) && hasSubstantiveBuild(content);
     }
     case "BA-14": {
       const rssReady = !!(content.rss_url || content.rss_feed_url || content?.transistor?.show_id);
