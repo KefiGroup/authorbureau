@@ -61,7 +61,8 @@ export default function BA13Builder({ authorId, bookId }: Props) {
       if (__draft.content) {
         const wasLegacy = isLegacyGroupCoaching(__draft.content);
         const normalised = normaliseGroupCoaching(__draft.content);
-        const isActuallyLive = __draft.isLive && !!__draft.micrositeUrl;
+        // Live precedence: status='live' OR activated_at OR microsite_url all force completion view.
+        const isActuallyLive = __draft.isLive || (__draft.status === "live");
         const savedStep = __draft.currentStep ?? 0;
         const isHalfPublished = !isActuallyLive && savedStep >= 3;
         setContent({ ...normalised, activated: isActuallyLive });
