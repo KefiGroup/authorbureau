@@ -76,7 +76,7 @@ const BBY_PHASES: BBYPhase[] = [
       { label: "Certification", id: "certification", requiredTier: "yield" },
       { label: "Conventions / Conferences", id: "conventions", requiredTier: "yield" },
       { label: "Fund Raising", id: "fundraising", requiredTier: "yield" },
-      { label: "Exhibitors / JV", id: "exhibitors", requiredTier: "yield" },
+      { label: "Sponsors", id: "exhibitors", requiredTier: "yield" },
     ],
   },
 ];
