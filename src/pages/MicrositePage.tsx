@@ -2830,6 +2830,40 @@ const yrLines = (val: any): string[] => {
   if (typeof val === "string") return val.split(/\n+/).map(s => s.trim()).filter(Boolean);
   return [];
 };
+/**
+ * Manus audit BUG #3 / #4 hardening — safely render any AI-generated field
+ * that may be a string, a JSON-encoded string, an object, or an array.
+ * Returns a human-readable multi-line string. Empty when no displayable
+ * content. Never returns raw `{"…":"…"}` JSON.
+ */
+const yrSmartText = (v: any): string => {
+  if (v == null) return "";
+  let val: any = v;
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
+      try { val = JSON.parse(trimmed); } catch { return val; }
+    } else {
+      return val;
+    }
+  }
+  if (Array.isArray(val)) {
+    return val.map(yrSmartText).filter(Boolean).join("\n");
+  }
+  if (typeof val === "object") {
+    return Object.entries(val)
+      .filter(([, vv]) => vv != null && vv !== "")
+      .map(([k, vv]) => {
+        const label = k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const body = yrSmartText(vv);
+        return body ? `${label}: ${body}` : "";
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+  return String(val);
+};
+
 const yrInline = (v: any): string => {
   if (v == null) return "";
   if (typeof v === "string") return v;
@@ -3746,7 +3780,7 @@ function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
   const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-28"] || "Sponsors");
   const tagline = yrStr(content.tagline);
   const summary = yrStr(content.abby_summary);
-  const audience = yrStr(content.audience_profile);
+  const audience = yrSmartText(content.audience_profile);
   const outreach = yrStr(content.outreach_strategy);
   const packages = yrArr(content.sponsorship_packages);
   const deck = content.pitch_deck_outline;
