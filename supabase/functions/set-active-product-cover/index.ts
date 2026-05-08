@@ -42,7 +42,7 @@ Deno.serve(async (req) => {
 
     let nodeQuery = admin
       .from("author_nodes")
-      .select("id, author_id, cover_image_history");
+      .select("id, author_id, book_id, cover_image_history");
     if (authorNodeId) {
       nodeQuery = nodeQuery.eq("id", authorNodeId);
     } else if (authorId && nodeId) {
