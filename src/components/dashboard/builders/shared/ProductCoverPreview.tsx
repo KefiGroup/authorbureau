@@ -97,12 +97,24 @@ export default function ProductCoverPreview({
     // Optimistic
     setHistory((prev) => prev.map((h) => ({ ...h, is_active: h.url === url })));
     try {
-      const { data, error } = await supabase.functions.invoke("set-active-product-cover", {
-        body: { authorId, nodeId, bookId: bookId ?? null, url },
-      });
-      if (error || !(data as any)?.success) {
+      const token = await getActiveToken();
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/set-active-product-cover`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ authorId, nodeId, bookId: bookId ?? null, url }),
+        },
+        25_000,
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !(data as any)?.success) {
         await loadCover();
-        toast.error((data as any)?.message || error?.message || "Couldn't switch design");
+        toast.error((data as any)?.message || `Couldn't switch design (HTTP ${res.status})`);
         return;
       }
       toast.success("Active design updated");
