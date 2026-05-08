@@ -50,8 +50,13 @@ function buildPrompt(args: {
     args.authorName ? `${safeSubtitle ? 4 : 3}. Author byline at the bottom: "${args.authorName}"` : null,
   ].filter(Boolean).join("\n");
 
+  const refUsage = args.slotIndex === 2
+    ? `The attached image (if any) is for COLOR PALETTE and MOOD reference ONLY. DO NOT copy, edit, trace, or reuse any text, characters, or illustration from it. Generate a brand-new image from scratch.`
+    : `The attached image is a PALETTE / MOOD / STYLE reference only. DO NOT edit, retouch, trace, or reproduce any text from it. Generate a brand-new original image inspired by its palette and mood.`;
+
   return [
-    `Create a print-ready 3:4 portrait cover for ${meta.descriptor}.`,
+    `Generate a brand-new, original print-ready 3:4 portrait cover image for ${meta.descriptor}. This is an image GENERATION task, not an image edit task.`,
+    refUsage,
     direction,
     ``,
     `ASPECT & FRAMING:`,
@@ -212,10 +217,12 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: bookCoverUrl } },
-            ],
+            content: slotIndex === 2
+              ? [{ type: "text", text: prompt }]
+              : [
+                  { type: "text", text: prompt },
+                  { type: "image_url", image_url: { url: bookCoverUrl } },
+                ],
           },
         ],
       }),
@@ -231,12 +238,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    const aiData = await aiRes.json();
-    const dataUrl: string | undefined = aiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    let aiData = await aiRes.json();
+    let dataUrl: string | undefined = aiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    // Fallback: if model refused (returned text but no image) and we passed a
+    // reference image, retry once WITHOUT the reference (text-only generation).
+    if ((!dataUrl || !dataUrl.startsWith("data:image/")) && slotIndex !== 2) {
+      console.warn("Model refused with reference image; retrying text-only", JSON.stringify(aiData).slice(0, 300));
+      const retryRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          modalities: ["image", "text"],
+          messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
+        }),
+      });
+      if (retryRes.ok) {
+        aiData = await retryRes.json();
+        dataUrl = aiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      }
+    }
+
     if (!dataUrl || !dataUrl.startsWith("data:image/")) {
       console.error("No image returned", JSON.stringify(aiData).slice(0, 500));
       return new Response(
-        JSON.stringify({ success: false, status: 502, message: "AI did not return an image" }),
+        JSON.stringify({ success: false, status: 502, message: "AI did not return an image (model may have refused). Please try again." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
