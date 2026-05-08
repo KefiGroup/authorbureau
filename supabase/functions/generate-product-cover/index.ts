@@ -22,24 +22,49 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
   generic: { ribbon: "COMPANION EDITION", descriptor: "a companion product" },
 };
 
+const ART_DIRECTIONS: Record<number, string> = {
+  0: "ART DIRECTION A (match): Closely emulate the reference book cover — same hero illustration concept, palette, lighting, and typography style so the two read as a matching set.",
+  1: "ART DIRECTION B (vary): Keep the SAME brand color palette and mood, but use a DIFFERENT hero motif and composition than the reference (e.g. mountain summit at dawn, open road, lighthouse, soaring eagle, abstract sunburst). Must look visually distinct from the reference book cover at a glance.",
+  2: "ART DIRECTION C (typographic minimal): Bold minimal / typographic treatment. Large title typography is the focal point on a clean geometric or abstract gradient background in the brand palette. NO figurative illustration, NO characters, NO animals.",
+};
+
 function buildPrompt(args: {
   kind: string;
   productTitle: string;
   productSubtitle?: string;
   authorName?: string;
+  slotIndex: number;
 }): string {
   const meta = PRODUCT_KIND_LABELS[args.kind] || PRODUCT_KIND_LABELS.generic;
+  // Defensive: drop any subtitle that looks like a paragraph/description.
+  const safeSubtitle =
+    args.productSubtitle && args.productSubtitle.trim().length > 0 && args.productSubtitle.trim().length <= 60
+      ? args.productSubtitle.trim()
+      : undefined;
+  const direction = ART_DIRECTIONS[args.slotIndex] ?? ART_DIRECTIONS[0];
+
+  const allowedTextLines = [
+    `1. Ribbon/badge at the top: "${meta.ribbon}"`,
+    `2. Title: "${args.productTitle}"`,
+    safeSubtitle ? `3. Subtitle (small, under the title): "${safeSubtitle}"` : null,
+    args.authorName ? `${safeSubtitle ? 4 : 3}. Author byline at the bottom: "${args.authorName}"` : null,
+  ].filter(Boolean).join("\n");
+
   return [
-    `Create a print-ready 3:4 portrait cover for ${meta.descriptor} that strongly emulates the visual style of the attached book cover.`,
-    `Match the same color palette, illustration mood, lighting, typography style, and overall feel as the reference book cover so the two read as a matching set.`,
-    `REPLACE the title with: "${args.productTitle}".`,
-    args.productSubtitle ? `Use this subtitle: "${args.productSubtitle}".` : "",
-    args.authorName ? `Author byline: "${args.authorName}".` : "",
-    `Add a small, elegant ribbon or badge at the top reading "${meta.ribbon}".`,
-    `Keep the same hero illustration / imagery style as the book cover. Do not invent unrelated imagery.`,
-    `High detail, professional book-cover quality, no JPEG artifacts, no spelling mistakes, no extra text, no UI mockups.`,
+    `Create a print-ready 3:4 portrait cover for ${meta.descriptor}.`,
+    direction,
+    ``,
+    `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
+    allowedTextLines,
+    ``,
+    `DO NOT render any paragraph, description, blurb, tagline, body copy, quote, review, or marketing sentence on the cover.`,
+    `DO NOT invent, paraphrase, or add ANY additional words, sentences, or labels beyond the list above.`,
+    `DO NOT misspell any of the listed text — copy each string letter-for-letter.`,
+    `Maximum 4 text elements total on the cover. No other text anywhere.`,
+    ``,
+    `High detail, professional book-cover quality. No JPEG artifacts, no UI mockups, no watermarks.`,
     `Output a single 3:4 portrait image only.`,
-  ].filter(Boolean).join(" ");
+  ].join(" ");
 }
 
 Deno.serve(async (req) => {
@@ -134,7 +159,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const prompt = buildPrompt({ kind: productKind, productTitle, productSubtitle, authorName });
+    // Slot index: 0 = match reference, 1 = vary motif, 2 = typographic minimal.
+    // When already at cap (3), the new design replaces the oldest non-active —
+    // reuse THAT slot's index so the trio stays diverse. Otherwise use history.length.
+    let slotIndex = Math.min(history.length, 2);
+    if (history.length >= 3) {
+      const inactiveSorted = history
+        .filter((h) => !h.is_active)
+        .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+      const oldest = inactiveSorted[0];
+      if (oldest) {
+        const oldestIdx = history.findIndex((h) => h.url === oldest.url);
+        if (oldestIdx >= 0) slotIndex = oldestIdx;
+      }
+    }
+    const prompt = buildPrompt({ kind: productKind, productTitle, productSubtitle, authorName, slotIndex });
 
     // Call Lovable AI Gateway image edit (Nano Banana)
     const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

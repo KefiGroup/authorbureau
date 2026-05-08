@@ -271,7 +271,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
         bookId: activeBookId ?? null,
         productKind: "special-edition",
         productTitle: (typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions",
-        productSubtitle: typeof content?.marketing_angle === "string" ? content.marketing_angle : undefined,
+        productSubtitle: "Special Edition",
         authorName,
       }).catch((err) => console.warn("[BP-08] cover gen failed", err));
     } catch (e: any) {
@@ -497,7 +497,7 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 bookId={activeBookId}
                 productKind="special-edition"
                 productTitle={(typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions"}
-                productSubtitle={typeof content?.marketing_angle === "string" ? content.marketing_angle : undefined}
+                productSubtitle="Special Edition"
                 authorName={authorName}
               />
             )}
