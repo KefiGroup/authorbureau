@@ -62,13 +62,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Ownership: the author_id row must belong to the requesting user via author_profiles.
+    // Ownership: author_profiles.user_id matches resolved.id, OR fall back to
+    // matching the resolved email against the author's email/owner_email.
     const { data: authorRow } = await admin
       .from("author_profiles")
-      .select("user_id")
+      .select("user_id, email")
       .eq("id", node.author_id)
       .maybeSingle();
-    if (!authorRow || authorRow.user_id !== userId) {
+    const ownsById = !!(authorRow && resolved.id && authorRow.user_id === resolved.id);
+    const ownsByEmail = !!(
+      authorRow &&
+      resolved.email &&
+      authorRow.email &&
+      authorRow.email.toLowerCase() === resolved.email.toLowerCase()
+    );
+    if (!authorRow || (!ownsById && !ownsByEmail)) {
       return new Response(
         JSON.stringify({ success: false, status: 403, message: "Not your author_node" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
