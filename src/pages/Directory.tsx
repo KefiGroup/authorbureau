@@ -59,7 +59,7 @@ export default function Directory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(searchParams.get("genre") || null);
-  const [sortBy, setSortBy] = useState<string>(searchParams.get("sort") || "featured");
+  const [sortBy, setSortBy] = useState<string>(searchParams.get("sort") || "name");
   const [dynamicAuthors, setDynamicAuthors] = useState<DirectoryAuthor[]>([]);
   const [showAllGenres, setShowAllGenres] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -196,8 +196,8 @@ export default function Directory() {
               onChange={(e) => setSortBy(e.target.value)}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50 appearance-none cursor-pointer"
             >
-              <option value="featured">Featured First</option>
               <option value="name">Name (A-Z)</option>
+              <option value="featured">Featured First</option>
             </select>
           </div>
 
