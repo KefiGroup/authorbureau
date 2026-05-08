@@ -1,41 +1,97 @@
 ## Goal
 
-When an author picks an occasion in **BP-08 Special Editions** (Mother's Day, Father's Day, Christmas, etc.), the cover subtitle should read **"Mother's Day Special Edition"** instead of the redundant "Special Editions" we show today. If no occasion is selected, we show no subtitle at all (the gold ribbon already says SPECIAL EDITION, so nothing is lost).
+Two improvements to **BP-08 Special Editions** so authors can actually shape what Abby produces:
 
-## Where the data already lives
+1. **Pick the occasion inside the builder** (Mother's Day, Father's Day, Christmas, Valentine's, Graduation, Back to School, Thanksgiving, New Year, or Generic / no occasion) — instead of having to enter from the Special Edition Calendar URL.
+2. **Make the Review step fully editable** for the core text fields and prices, so nothing the author sees on screen is locked behind "regenerate only".
 
-BP-08 already captures the picked occasion and persists it on the draft:
+No DB changes. No edge-function rewrite. Frontend-only.
 
-- `selectedOccasion.label` (e.g. `"Mother's Day"`, `"Father's Day"`) — derived from `?occasion=…` in the URL via `findCalendarOccasion()`.
-- It is saved into `content.occasion_label` on the draft (BP08Builder.tsx ~L147), so it survives reload and is available to the success-screen preview tile.
+---
 
-So no new DB fields and no new generator are needed — we just stop hard-coding the subtitle and read what's already there.
+## 1. Occasion picker on Step 1 (Introduction)
 
-## Changes (frontend only, 1 file)
+In `src/components/dashboard/builders/bp08/BP08Builder.tsx`, on step 0 add an occasion-picker block above the "Design My Special Editions" button. It uses the existing `CALENDAR_OCCASIONS` list from `src/lib/special-edition-calendar.ts` — no new data.
 
-**`src/components/dashboard/builders/bp08/BP08Builder.tsx`**
+UI:
+```
+What occasion is this edition for?  (optional)
 
-1. Add a small helper near the top of the component:
-   ```ts
-   const occasionLabel =
-     selectedOccasion?.label ||
-     (typeof content?.occasion_label === "string" ? content.occasion_label : "");
-   const editionSubtitle = occasionLabel ? `${occasionLabel} Special Edition` : undefined;
-   ```
-2. Replace the two hard-coded `productSubtitle: "Special Edition"` / `productSubtitle="Special Edition"` (the `generateProductCover(...)` call ~L274 and the `<ProductCoverPreview …/>` ~L500) with `editionSubtitle`.
-3. Leave the gold ribbon and `productKind: "special-edition"` exactly as they are.
+[ Generic / Evergreen ] [ Valentine's Day ] [ Mother's Day ]
+[ Father's Day ] [ Graduation ] [ Back to School ]
+[ Thanksgiving ] [ Christmas / Holiday ] [ New Year ]
+```
 
-## Why this works with the existing edge function
+Behaviour:
+- Pre-selected from the URL `?occasion=…` if the author arrived from the Special Edition Calendar (current behaviour preserved).
+- Selecting a chip updates local state AND mirrors into the URL (`navigate(\`/node-builder/BP-08?occasion=…&bookId=…\`, { replace: true })`) so the existing `selectedOccasion` memo + replace-prompt logic keeps working unchanged.
+- Selecting "Generic / Evergreen" clears the `?occasion` param.
+- The existing amber "you already have a saved edition — replace?" prompt still fires when switching occasion on a book that already has a draft.
+- The CTA label updates dynamically: `Design My {Label} Edition` or `Design My Special Editions` for Generic.
 
-`sanitizeSubtitle()` in `generate-product-cover` strips leading redundant prefixes ("special edition", "special editions", etc.) and rejects subtitles that are equal to / contained in the ribbon label.
+No change to `generate-bp08-special-editions/index.ts` — it already accepts the `occasion` payload and themes everything around it.
 
-- `"Mother's Day Special Edition"` does **not** start with a redundant prefix and is **not** equal to or contained in `"SPECIAL EDITION"`, so it passes through cleanly.
-- When `editionSubtitle` is `undefined` (no occasion picked), the existing prompt rule already instructs the model to render only the ribbon + title + byline — no "Special Edition" line is invented.
+---
 
-So no edge-function change is required. Existing covers won't auto-fix; authors hit **Redo** on a tile to regenerate cleanly.
+## 2. Fully editable Review step
+
+Today only `edition_title`, `marketing_angle`, and `sales_page.headline` are inline-editable. Make every visible text field editable using the existing `<InlineSectionCard>` pattern, and make the per-tier and bundle prices editable with a numeric input next to the price.
+
+Edition Tabs become editable in place (no separate "Quick edits" block — remove that to avoid duplication):
+
+**Editions tab — collection header card**
+- `edition_title` (input)
+- `edition_subtitle` (input)
+- `tagline` (input)
+
+**Editions tab — each of the 3 tier cards (`content.editions[i]`)**
+- `name` (input)
+- `description` (textarea)
+- `print_specs` (input)
+- `suggested_price_usd` (number input next to the `$` label, same pattern as the global price override)
+- `includes` array stays read-only (per user choice — leave Abby's list as is)
+
+**Bundle tab**
+- `bundle_offer.name` (input)
+- `bundle_offer.description` (textarea)
+- `bundle_offer.suggested_price_usd` (number input)
+- `bundle_offer.savings_note` (input)
+- `who_its_for` (textarea)
+- `marketing_angle` (textarea)
+
+**Pricing tab** — leave as-is (already has the base-price override).
+
+**Sales Page tab**
+- `sales_page.headline` (input)
+- `sales_page.subheadline` (input)
+- `sales_page.exclusivity_statement` (textarea)
+- `sales_page.cta_button_text` (input)
+
+All edits write through `setContent(...)` (and the existing `autosaveBuilderDraft` triggered by `InlineSectionCard`) so they persist across reloads and flow through to Publish, the DOCX export, the order form, and the library asset.
+
+### Tier-price + bundle-price inputs
+
+Reuse the same pattern already on the Pricing tab:
+```tsx
+<Input
+  type="number"
+  className="w-24 text-lg font-bold text-right"
+  value={ed.suggested_price_usd}
+  onChange={(e) => updateEdition(i, { suggested_price_usd: Number(e.target.value) })}
+/>
+```
+where `updateEdition(i, patch)` does an immutable update on `content.editions` and then `setContent(next)`. Same shape for the bundle.
+
+---
 
 ## Out of scope
 
-- BP-09 (Book Sales) — different node, unrelated to the occasion picker.
-- BP-06 / BP-07 (workbook / home-study) cover subtitles — separate cleanup if desired later.
-- Any change to how occasions are stored, the calendar card, or the edge function.
+- No edits to `supabase/functions/generate-bp08-special-editions/index.ts`.
+- No "Regenerate this tier" buttons.
+- No edits to `includes` per tier (per your choice).
+- No DB schema changes.
+- BP-09 / cover generator are unchanged — the existing `editionSubtitle` ("{Occasion} Special Edition") logic already wired to the cover continues to work and will now reflect whichever occasion the author picked in step 1.
+
+## Files touched
+
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` (only file)

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
-import { findCalendarOccasion, nextOccurrence, type CalendarOccasion } from "@/lib/special-edition-calendar";
+import { CALENDAR_OCCASIONS, findCalendarOccasion, nextOccurrence, type CalendarOccasion } from "@/lib/special-edition-calendar";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
@@ -229,6 +229,34 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     setStep(2);
   };
 
+  // Occasion picker on step 1: mirror selection into the URL so the existing
+  // selectedOccasion memo + replace-prompt logic keep working unchanged.
+  const handlePickOccasion = (id: string | null) => {
+    const params = new URLSearchParams(searchParams);
+    if (id) params.set("occasion", id);
+    else params.delete("occasion");
+    const qs = params.toString();
+    navigate(`/node-builder/BP-08${qs ? `?${qs}` : ""}`, { replace: true });
+  };
+
+  // Patch + persist a deep change in `content` (used by tier/bundle price edits
+  // and any other non-InlineSectionCard inputs on the Review step).
+  const patchContent = async (updater: (prev: any) => any) => {
+    if (!content) return;
+    const next = updater(content);
+    setContent(next);
+    if (authorId) {
+      await autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-08",
+        nodeName: "Special Editions",
+        content: { ...next, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId,
+      });
+    }
+  };
+
 
   const handlePublish = async () => {
     setStep(3); setError(null);
@@ -392,6 +420,33 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                   </div>
                 )}
                 <p className="text-muted-foreground mb-4">Hi {authorName}! {selectedOccasion ? `I'll design 3 themed ${selectedOccasion.label} edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}', from a signed gift copy to a VIP collector's package - all timed for the ${selectedOccasion.label} buying window.` : `Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' - from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts.`} Ready?</p>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">What occasion is this edition for? <span className="font-normal normal-case text-muted-foreground/70">(optional)</span></p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handlePickOccasion(null)}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition ${!selectedOccasion ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted border-border"}`}
+                    >
+                      Generic / Evergreen
+                    </button>
+                    {CALENDAR_OCCASIONS.map((occ) => {
+                      const active = selectedOccasion?.id === occ.id;
+                      return (
+                        <button
+                          key={occ.id}
+                          type="button"
+                          onClick={() => handlePickOccasion(occ.id)}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition inline-flex items-center gap-1.5 ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted border-border"}`}
+                        >
+                          <span aria-hidden>{occ.emoji}</span>
+                          <span>{occ.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-2">Pick an occasion and Abby themes the foreword, bonuses, bundle, sales page, and pricing around it.</p>
+                </div>
                 <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> {selectedOccasion ? `Design My ${selectedOccasion.label} Edition` : "Design My Special Editions"}</Button>
               </>)}
@@ -424,25 +479,73 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                   </div>
                   <p className="text-xs text-muted-foreground">DOCX includes all 3 tier descriptions, specs, and bundle — ready to send to a printer or gift buyer.</p>
                 </CardContent></Card>
+
+                <div className="space-y-2">
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="edition_title" label="Collection title" type="input" />
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="edition_subtitle" label="Collection subtitle" type="input" />
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="tagline" label="Tagline" type="input" />
+                </div>
+
                 {content.editions?.map((ed: any, i: number) => (
                   <Card key={i}><CardContent className="pt-6 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2"><span className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{ed.number}</span><h4 className="font-bold">{ed.name}</h4></div>
-                      <span className="text-lg font-bold text-primary">${ed.suggested_price_usd}</span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-8 h-8 shrink-0 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">{ed.number}</span>
+                        <h4 className="font-bold truncate">{ed.name}</h4>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <span className="text-lg font-bold text-primary">$</span>
+                        <Input
+                          type="number"
+                          className="w-24 text-lg font-bold text-right"
+                          value={ed.suggested_price_usd ?? 0}
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            void patchContent((prev) => ({
+                              ...prev,
+                              editions: prev.editions.map((x: any, j: number) => j === i ? { ...x, suggested_price_usd: v } : x),
+                            }));
+                          }}
+                        />
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground">{ed.description}</p>
-                    <p className="text-xs text-muted-foreground italic">{ed.print_specs}</p>
                     <ul className="space-y-1">{ed.includes?.map((item: string, j: number) => <li key={j} className="flex items-start gap-2 text-sm"><Check className="h-4 w-4 text-green-600 shrink-0 mt-0.5" />{item}</li>)}</ul>
+                    <div className="space-y-2 pt-1">
+                      <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path={`editions.${i}.name`} label={`Tier ${ed.number} name`} type="input" />
+                      <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path={`editions.${i}.description`} label={`Tier ${ed.number} description`} type="textarea" />
+                      <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path={`editions.${i}.print_specs`} label={`Tier ${ed.number} print specs`} type="input" />
+                    </div>
                   </CardContent></Card>
                 ))}
               </TabsContent>
               <TabsContent value="bundle" className="space-y-4 mt-4">
                 {content.bundle_offer && (
-                  <Card className="border-primary/30 bg-primary/5"><CardContent className="pt-6 space-y-3">
-                    <h3 className="text-xl font-bold">{content.bundle_offer.name}</h3>
-                    <p className="text-sm text-muted-foreground">{content.bundle_offer.description}</p>
-                    <div className="text-center py-4"><p className="text-3xl font-bold text-primary">${content.bundle_offer.suggested_price_usd}</p><p className="text-xs text-green-600 font-semibold mt-1">{content.bundle_offer.savings_note}</p></div>
-                  </CardContent></Card>
+                  <>
+                    <Card className="border-primary/30 bg-primary/5"><CardContent className="pt-6 space-y-3">
+                      <h3 className="text-xl font-bold">{content.bundle_offer.name}</h3>
+                      <p className="text-sm text-muted-foreground">{content.bundle_offer.description}</p>
+                      <div className="text-center py-4">
+                        <div className="flex items-center justify-center gap-1">
+                          <span className="text-3xl font-bold text-primary">$</span>
+                          <Input
+                            type="number"
+                            className="w-32 text-3xl font-bold text-center"
+                            value={content.bundle_offer.suggested_price_usd ?? 0}
+                            onChange={(e) => {
+                              const v = Number(e.target.value);
+                              void patchContent((prev) => ({ ...prev, bundle_offer: { ...prev.bundle_offer, suggested_price_usd: v } }));
+                            }}
+                          />
+                        </div>
+                        <p className="text-xs text-green-600 font-semibold mt-1">{content.bundle_offer.savings_note}</p>
+                      </div>
+                    </CardContent></Card>
+                    <div className="space-y-2">
+                      <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="bundle_offer.name" label="Bundle name" type="input" />
+                      <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="bundle_offer.description" label="Bundle description" type="textarea" />
+                      <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="bundle_offer.savings_note" label="Bundle savings note" type="input" />
+                    </div>
+                  </>
                 )}
                 <Card><CardContent className="pt-6 space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -456,8 +559,10 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                     </Button>
                   </div>
                 </CardContent></Card>
-                <div><p className="text-xs font-semibold text-muted-foreground mb-1">Who It's For</p><p className="text-sm">{content.who_its_for}</p></div>
-                <div><p className="text-xs font-semibold text-muted-foreground mb-1">Marketing Angle</p><p className="text-sm">{content.marketing_angle}</p></div>
+                <div className="space-y-2">
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="who_its_for" label="Who it's for" type="textarea" />
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="marketing_angle" label="Marketing angle" type="textarea" />
+                </div>
               </TabsContent>
               <TabsContent value="pricing" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4 text-center">
@@ -468,14 +573,14 @@ export default function BP08Builder({ authorId, bookId }: Props) {
               </TabsContent>
               <TabsContent value="sales" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6 space-y-4"><div className="rounded-lg bg-muted/50 p-6 text-center space-y-3"><h2 className="text-2xl font-bold">{content.sales_page?.headline}</h2><p className="text-muted-foreground">{content.sales_page?.subheadline}</p><p className="text-sm">{content.sales_page?.exclusivity_statement}</p><span className="inline-flex items-center justify-center px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-medium mt-3">{content.sales_page?.cta_button_text || "Order Special Edition"}</span></div></CardContent></Card>
+                <div className="space-y-2">
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="sales_page.headline" label="Sales page headline" type="input" />
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="sales_page.subheadline" label="Sales page subheadline" type="input" />
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="sales_page.exclusivity_statement" label="Exclusivity statement" type="textarea" />
+                  <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="sales_page.cta_button_text" label="CTA button text" type="input" />
+                </div>
               </TabsContent>
             </Tabs>
-            <div className="space-y-3 pt-2">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Quick edits</p>
-              <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="edition_title" label="Edition title" type="input" />
-              <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="marketing_angle" label="Marketing angle" type="textarea" />
-              <InlineSectionCard nodeId="BP-08" authorId={authorId} content={content} setContent={setContent} path="sales_page.headline" label="Sales page headline" type="input" />
-            </div>
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Button variant="ghost" className="sm:w-auto" onClick={() => setStep(0)}>
                 <ArrowLeft className="h-4 w-4 mr-1" /> Previous
