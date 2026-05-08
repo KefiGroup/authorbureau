@@ -490,6 +490,17 @@ export default function BP08Builder({ authorId, bookId }: Props) {
               penNameSlug={authorSlug}
               abbyMessage={`Saved ${Array.isArray(content?.editions) ? content.editions.length : 3} editions${content?.bundle_offer ? " + bundle" : ""} to your library, ${authorName}. When a gift buyer asks for one, open your library, copy the edition details, and quote them directly. You stay in control of pricing, signing, and timing for each premium order.`}
             />
+            {authorId && (
+              <ProductCoverPreview
+                authorId={authorId}
+                nodeId="BP-08"
+                bookId={activeBookId}
+                productKind="special-edition"
+                productTitle={(typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions"}
+                productSubtitle={typeof content?.marketing_angle === "string" ? content.marketing_angle : undefined}
+                authorName={authorName}
+              />
+            )}
             <Card className="mt-4">
               <CardContent className="pt-6 space-y-3">
                 <p className="text-sm font-semibold">Quick actions</p>
