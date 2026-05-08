@@ -233,14 +233,27 @@ export default function ProductCoverPreview({
           <div className="grid grid-cols-3 gap-3">
             {slots.map((slot, idx) => {
               if (!slot) {
+                const generating = autoBusy;
+                const slotNum = idx + 1;
                 return (
                   <div
                     key={`empty-${idx}`}
                     className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex flex-col items-center justify-center gap-1 p-2 text-center"
                     style={{ aspectRatio: "3 / 4" }}
                   >
-                    <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
-                    <span className="text-[10px] text-muted-foreground/60 leading-tight">Empty slot</span>
+                    {generating ? (
+                      <>
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground/70" />
+                        <span className="text-[10px] text-muted-foreground/70 leading-tight">
+                          Generating design {slotNum} of {MAX_DESIGNS}…
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                        <span className="text-[10px] text-muted-foreground/60 leading-tight">Empty slot</span>
+                      </>
+                    )}
                   </div>
                 );
               }
