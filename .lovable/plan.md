@@ -1,28 +1,40 @@
 ## Bug
 
-When clicking a saved cover design to make it active, the toast "Edge Function returned a non-2xx status code" appears. Function logs confirm a `POST 401 /functions/v1/set-active-product-cover`.
+Clicking a saved cover design now returns "Invalid token" (401). The earlier fix sent the right (shared-backend) token, but the edge function rejects it.
 
 ## Root cause
 
-`ProductCoverPreview.tsx` calls `supabase.functions.invoke("set-active-product-cover", …)` using the auto-generated client at `src/integrations/supabase/client.ts`. But this project stores the user's auth session in the **shared-backend** client (storage key `authorsbureau-shared-auth`), not in the default supabase client. So `invoke()` sends only the anon key → the edge function's `auth.getUser()` returns no user → 401.
+`supabase/functions/set-active-product-cover/index.ts` validates the bearer token with `userClient.auth.getUser()` against the **Cloud** project's anon key. The user's session JWT was issued by the **shared backend** (`wuftdpnekscrsghqtssd.supabase.co`), not Cloud. Cloud's GoTrue therefore returns `Invalid token` and the function 401s before it ever runs the ownership check.
 
-Every other authenticated call in the codebase uses the standard pattern: `getActiveToken()` + `fetchWithTimeout()` against `${VITE_SUPABASE_URL}/functions/v1/<fn>`. This is also documented in the project's "Shared Backend Token Standard" core rule.
+Every other edge function in the project handles this with `supabase/functions/_shared/resolve-user.ts`, which:
+1. tries Cloud `auth.getUser()`
+2. falls back to the shared-backend anon client
+3. reconciles the shared-backend email to a Cloud `auth.users.id` via service role
 
-## Fix (frontend only, single file)
+This is the canonical pattern (see core memory: "Edge Function User Resolver — All edge fns MUST import `_shared/resolve-user.ts`").
 
-Edit `src/components/dashboard/builders/shared/ProductCoverPreview.tsx`:
+## Fix (single edge function, no schema changes)
 
-- Replace the `supabase.functions.invoke("set-active-product-cover", { body })` call inside `handlePick` with:
-  - `const token = await getActiveToken();`
-  - `await fetchWithTimeout(\`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/set-active-product-cover\`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: \`Bearer ${token}\`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ authorId, nodeId, bookId: bookId ?? null, url }) }, 25_000);`
-  - Parse JSON response; on `!res.ok` or `success === false`, revert optimistic state via `loadCover()` and toast the message; on success, toast "Active design updated".
-- Add imports: `getActiveToken`, `fetchWithTimeout` from `@/lib/get-active-token`.
+Refactor `supabase/functions/set-active-product-cover/index.ts`:
 
-No backend changes — `set-active-product-cover` itself is correct (verified by reading its source). No DB migration. No other call sites.
+1. Import `resolveUser` from `../_shared/resolve-user.ts`.
+2. Replace the manual `userClient.auth.getUser()` block with:
+   ```ts
+   const resolved = await resolveUser(req.headers.get("Authorization"));
+   if (!resolved.id && !resolved.email) return 401 "Invalid session";
+   ```
+3. Update the ownership check to accept either:
+   - `authorRow.user_id === resolved.id`, OR
+   - the author's `owner_email` (from `books.owner_email` for the node's book) matches `resolved.email` — mirroring the pattern in `get-author-book` and other shared-resolved functions.
+
+   Simplest path: keep the existing `author_profiles.user_id === resolved.id` check, and only fall through to email reconciliation when `resolved.id` is null.
+
+No client changes. No migration. `generate-product-cover` already uses service role + ownership-by-author_id and isn't affected by this bug.
 
 ## Verification
 
-1. Reload BP-08 → AI Cover Designs.
-2. Click the inactive saved design (left card).
-3. Confirm: toast says "Active design updated", gold ring + Active badge moves to clicked card, no 401 in network tab.
-4. Refresh page → active design persists.
+1. Hard-refresh BP-08 → AI Cover Designs.
+2. Click the inactive (left) design.
+3. Confirm: toast says "Active design updated", gold ring + Active badge moves to clicked card, network tab shows `POST 200 /set-active-product-cover`.
+4. Reload page → active design persists.
+5. Edge function logs show no 401s.
