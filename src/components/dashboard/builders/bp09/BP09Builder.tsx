@@ -176,6 +176,15 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       }
       await publishNodeToSite(authorId!, "BP-09", authorSlug, activeBookId, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true }));
+      void generateProductCover({
+        authorId: authorId!,
+        nodeId: "BP-09",
+        bookId: activeBookId ?? null,
+        productKind: "toolkit",
+        productTitle: (typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit",
+        productSubtitle: typeof content?.tagline === "string" ? content.tagline : undefined,
+        authorName,
+      }).catch((err) => console.warn("[BP-09] cover gen failed", err));
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Publish failed");
       setError(msg); toast.error(msg, { duration: 12000 }); setStep(2);
