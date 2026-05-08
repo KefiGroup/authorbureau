@@ -124,6 +124,7 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "corporate_lunch.slides", label: "Corporate lunch deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "corporate_lunch.slides"),
       sizeHint: c => { const n = arrLen(c, "corporate_lunch.slides"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "workshop.slides") || has(c, "corporate_lunch.slides")),
     { key: "workshop.handout_outline", label: "Workshop handout", type: "pdf", formats: PDF_FORMATS,
       probe: c => has(c, "workshop.handout_outline") },
     { key: "corporate_proposal", label: "Corporate proposal", type: "pdf", formats: PDF_FORMATS,
