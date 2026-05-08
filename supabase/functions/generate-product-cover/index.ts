@@ -22,6 +22,52 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
   generic: { ribbon: "COMPANION EDITION", descriptor: "a companion product" },
 };
 
+// Prefixes that the upstream generators sometimes bake into a subtitle. We strip
+// them so the cover doesn't read e.g. "Home Study: Home Study: …" once the
+// ribbon already conveys the product kind.
+const REDUNDANT_SUBTITLE_PREFIXES: Record<string, string[]> = {
+  workbook: ["companion workbook", "the workbook", "workbook"],
+  "home-study": ["home study course", "home-study course", "home study programme", "home study program", "home-study", "home study"],
+  course: ["online course", "the course", "course"],
+  "special-edition": ["the special edition", "special-edition", "special edition"],
+  bundle: ["the bundle", "bundle"],
+  toolkit: ["live audience toolkit", "live-audience toolkit", "toolkit"],
+  generic: ["companion edition", "companion"],
+};
+
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function sanitizeSubtitle(raw: string | undefined, kind: string, productTitle?: string): string | undefined {
+  if (!raw) return undefined;
+  let s = raw.replace(/\s+/g, " ").trim();
+  if (!s) return undefined;
+
+  const prefixes = [
+    ...(REDUNDANT_SUBTITLE_PREFIXES[kind] || []),
+    ...(productTitle ? [productTitle.trim()] : []),
+  ].filter(Boolean);
+
+  // Strip leading prefix repeatedly (handles double-prefixed strings).
+  let changed = true;
+  let guard = 0;
+  while (changed && guard++ < 5) {
+    changed = false;
+    for (const p of prefixes) {
+      const re = new RegExp(`^${escapeRegex(p)}\\s*[:\\-–—]?\\s*`, "i");
+      if (re.test(s)) {
+        s = s.replace(re, "").trim();
+        changed = true;
+      }
+    }
+  }
+
+  if (s.length < 3) return undefined;
+  if (s.length > 60) return undefined;
+  return s;
+}
+
 const ART_DIRECTIONS: Record<number, string> = {
   0: "ART DIRECTION A (match): Closely emulate the reference book cover — same hero illustration concept, palette, lighting, and typography style so the two read as a matching set.",
   1: "ART DIRECTION B (vary): Keep the SAME brand color palette and mood, but use a DIFFERENT hero motif and composition than the reference (e.g. mountain summit at dawn, open road, lighthouse, soaring eagle, abstract sunburst). Must look visually distinct from the reference book cover at a glance.",
