@@ -201,15 +201,25 @@ export default function ProductCoverPreview({
               }
               const isActive = slot.url === activeUrl;
               const isSwitching = switching === slot.url;
+              const isRegenThis = regeneratingIdx === idx;
+              const pickDisabled = isActive || !!switching || regeneratingIdx !== null;
               return (
-                <button
+                <div
                   key={slot.url}
-                  type="button"
-                  onClick={() => handlePick(slot.url)}
-                  disabled={isActive || !!switching}
+                  role="button"
+                  tabIndex={pickDisabled ? -1 : 0}
+                  onClick={() => { if (!pickDisabled) handlePick(slot.url); }}
+                  onKeyDown={(e) => {
+                    if (!pickDisabled && (e.key === "Enter" || e.key === " ")) {
+                      e.preventDefault();
+                      handlePick(slot.url);
+                    }
+                  }}
                   className={`group relative rounded-lg overflow-hidden bg-muted transition-all ${
                     isActive
                       ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-2xl cursor-default"
+                      : pickDisabled
+                      ? "ring-1 ring-border opacity-60"
                       : "ring-1 ring-border hover:ring-primary/60 hover:scale-[1.02] cursor-pointer"
                   }`}
                   style={{ aspectRatio: "3 / 4" }}
@@ -220,21 +230,37 @@ export default function ProductCoverPreview({
                     alt={`${productTitle} cover design ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />
-                  {isActive ? (
+                  {isActive && (
                     <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 shadow">
                       <Check className="h-3 w-3" /> Active
                     </div>
-                  ) : (
+                  )}
+                  {/* Per-slot regenerate button — same art direction, fixes typos/blurbs */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); void handleRegenerateSlot(idx); }}
+                    disabled={isRegenThis || regeneratingIdx !== null || busy}
+                    className="absolute top-1 left-1 bg-background/85 hover:bg-background text-foreground text-[10px] font-semibold px-1.5 py-1 rounded shadow flex items-center gap-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-100"
+                    title="Regenerate this design (same style, fix typos)"
+                  >
+                    {isRegenThis ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3 w-3" />
+                    )}
+                    {isRegenThis ? "Regenerating…" : "Redo"}
+                  </button>
+                  {!isActive && !isRegenThis && (
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <span className="text-[10px] font-semibold text-white uppercase tracking-wide">Use this design</span>
                     </div>
                   )}
-                  {isSwitching && (
+                  {(isSwitching || isRegenThis) && (
                     <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
                       <Loader2 className="h-5 w-5 animate-spin" />
                     </div>
                   )}
-                </button>
+                </div>
               );
             })}
           </div>
