@@ -39,8 +39,10 @@ export default function ProductCoverPreview({
   const [busy, setBusy] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
   const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
+  const [autoBusy, setAutoBusy] = useState(false);
+  const autoStartedRef = useRef<string | null>(null);
 
-  const loadCover = async () => {
+  const loadCover = async (): Promise<HistEntry[]> => {
     let q = supabase
       .from("author_nodes")
       .select("cover_image_url, cover_image_history")
@@ -56,12 +58,55 @@ export default function ProductCoverPreview({
     }
     setHistory(h);
     setLoading(false);
+    return h;
   };
 
+  // Auto-generate up to 3 designs on first load when none exist yet.
   useEffect(() => {
-    void loadCover();
+    const key = `${authorId}::${nodeId}::${bookId ?? ""}`;
+    let cancelled = false;
+    (async () => {
+      const initial = await loadCover();
+      if (cancelled) return;
+      if (
+        initial.length === 0 &&
+        productTitle &&
+        productTitle.trim().length > 0 &&
+        autoStartedRef.current !== key
+      ) {
+        autoStartedRef.current = key;
+        setAutoBusy(true);
+        try {
+          let count = initial.length;
+          while (count < MAX_DESIGNS && !cancelled) {
+            const res = await generateProductCover({
+              authorId,
+              nodeId,
+              bookId: bookId ?? null,
+              productKind,
+              productTitle,
+              productSubtitle,
+              authorName,
+              force: count > 0,
+            });
+            if (!res.success) {
+              toast.error(res.message || "Cover generation failed");
+              break;
+            }
+            const next = await loadCover();
+            if (cancelled) return;
+            if (next.length <= count) break; // safety
+            count = next.length;
+          }
+        } finally {
+          if (!cancelled) setAutoBusy(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authorId, nodeId, bookId]);
+  }, [authorId, nodeId, bookId, productTitle]);
+
 
   const activeUrl = history.find((h) => h.is_active)?.url || history[0]?.url || null;
   const atCap = history.length >= MAX_DESIGNS;
