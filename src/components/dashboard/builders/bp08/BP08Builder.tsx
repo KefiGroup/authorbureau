@@ -265,6 +265,15 @@ export default function BP08Builder({ authorId, bookId }: Props) {
 
       await publishNodeToSite(authorId!, "BP-08", authorSlug, activeBookId, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      void generateProductCover({
+        authorId: authorId!,
+        nodeId: "BP-08",
+        bookId: activeBookId ?? null,
+        productKind: "special-edition",
+        productTitle: (typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions",
+        productSubtitle: typeof content?.marketing_angle === "string" ? content.marketing_angle : undefined,
+        authorName,
+      }).catch((err) => console.warn("[BP-08] cover gen failed", err));
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Publish failed");
       setError(msg);
