@@ -25,7 +25,7 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
 const ART_DIRECTIONS: Record<number, string> = {
   0: "ART DIRECTION A (match): Closely emulate the reference book cover — same hero illustration concept, palette, lighting, and typography style so the two read as a matching set.",
   1: "ART DIRECTION B (vary): Keep the SAME brand color palette and mood, but use a DIFFERENT hero motif and composition than the reference (e.g. mountain summit at dawn, open road, lighthouse, soaring eagle, abstract sunburst). Must look visually distinct from the reference book cover at a glance.",
-  2: "ART DIRECTION C (typographic minimal): Bold minimal / typographic treatment. Large title typography is the focal point on a clean geometric or abstract gradient background in the brand palette. NO figurative illustration, NO characters, NO animals.",
+  2: "ART DIRECTION C (typographic minimal): Bold typographic cover treatment. The full 3:4 canvas IS the cover — large title typography is the focal point, set DIRECTLY on a clean geometric or abstract gradient background in the brand palette that fills every pixel edge-to-edge. NO figurative illustration, NO characters, NO animals.",
 };
 
 function buildPrompt(args: {

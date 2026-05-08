@@ -177,6 +177,9 @@ export default function ProductCoverPreview({
             <div>
               <span className="font-medium text-foreground">Variety:</span> each new design uses a different art direction (match · vary · typographic) so your 3 saved options stay visually distinct.
             </div>
+            <div>
+              <span className="font-medium text-foreground">Redo</span> fixes a single design in place (same art direction, same slot). <span className="font-medium text-foreground">Generate new design</span> creates an additional style — at {MAX_DESIGNS}/{MAX_DESIGNS} it replaces the oldest non-active one.
+            </div>
           </div>
         )}
 
@@ -241,7 +244,7 @@ export default function ProductCoverPreview({
                     onClick={(e) => { e.stopPropagation(); void handleRegenerateSlot(idx); }}
                     disabled={isRegenThis || regeneratingIdx !== null || busy}
                     className="absolute bottom-2 right-2 z-10 bg-black/80 hover:bg-black text-white text-[11px] font-semibold px-2 py-1 rounded-md shadow-lg ring-1 ring-white/20 flex items-center gap-1 transition-colors disabled:opacity-80"
-                    title="Regenerate this design (same style, fix typos)"
+                    title="Redo this design — same art direction, regenerates in place (does not use a new slot)"
                   >
                     {isRegenThis ? (
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -284,13 +287,13 @@ export default function ProductCoverPreview({
               {history.length === 0
                 ? "Generate cover"
                 : atCap
-                ? "Replace oldest with new design"
+                ? "Generate new design (replaces oldest)"
                 : "Generate new design"}
             </Button>
           </div>
           {atCap && (
             <p className="text-xs text-muted-foreground/70">
-              You're at the {MAX_DESIGNS}-design limit. Generating a new one will drop the oldest non-active design.
+              You're at the {MAX_DESIGNS}-design limit. Generating a new one creates a fresh design in a new style and drops the oldest non-active one. Use <span className="font-medium">Redo</span> on a tile if you just want to fix that one design without losing a slot.
             </p>
           )}
         </div>
