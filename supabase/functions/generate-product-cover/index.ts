@@ -238,12 +238,32 @@ Deno.serve(async (req) => {
       );
     }
 
-    const aiData = await aiRes.json();
-    const dataUrl: string | undefined = aiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+    let aiData = await aiRes.json();
+    let dataUrl: string | undefined = aiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    // Fallback: if model refused (returned text but no image) and we passed a
+    // reference image, retry once WITHOUT the reference (text-only generation).
+    if ((!dataUrl || !dataUrl.startsWith("data:image/")) && slotIndex !== 2) {
+      console.warn("Model refused with reference image; retrying text-only", JSON.stringify(aiData).slice(0, 300));
+      const retryRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash-image",
+          modalities: ["image", "text"],
+          messages: [{ role: "user", content: [{ type: "text", text: prompt }] }],
+        }),
+      });
+      if (retryRes.ok) {
+        aiData = await retryRes.json();
+        dataUrl = aiData?.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+      }
+    }
+
     if (!dataUrl || !dataUrl.startsWith("data:image/")) {
       console.error("No image returned", JSON.stringify(aiData).slice(0, 500));
       return new Response(
-        JSON.stringify({ success: false, status: 502, message: "AI did not return an image" }),
+        JSON.stringify({ success: false, status: 502, message: "AI did not return an image (model may have refused). Please try again." }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
