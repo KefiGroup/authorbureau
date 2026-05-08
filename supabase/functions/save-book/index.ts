@@ -306,12 +306,51 @@ serve(async (req) => {
       });
     }
 
+    // ─── Resolve author_profiles.id (FK target for books.author_id) ───
+    // books.author_id references author_profiles.id, NOT auth.users.id.
+    // For legacy users these happen to match, but for newer profiles they differ.
+    let authorProfileId: string = userId;
+    {
+      const { data: profileRow } = await cloudAdmin
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (profileRow?.id) {
+        authorProfileId = profileRow.id;
+      } else {
+        // No profile yet — create a minimal one so the FK resolves.
+        const { data: createdProfile, error: profileErr } = await cloudAdmin
+          .from("author_profiles")
+          .upsert(
+            {
+              user_id: userId,
+              pen_name: authorName || (userEmail ? userEmail.split("@")[0] : "Author"),
+              bio_short: authorBio || null,
+              photo_url: authorPhotoUrl || null,
+              directory_status: "unlisted",
+            },
+            { onConflict: "user_id" }
+          )
+          .select("id")
+          .single();
+        if (profileErr || !createdProfile) {
+          console.error("[save-book] Failed to create author_profiles row:", profileErr);
+          return new Response(
+            JSON.stringify({ error: "Could not create author profile for this user" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+        authorProfileId = createdProfile.id;
+      }
+    }
+
     // ─── Insert book ───
-    console.log("[save-book] Inserting book:", { title, slug, userId, entryMode, isPlatformPush });
+    console.log("[save-book] Inserting book:", { title, slug, userId, authorProfileId, entryMode, isPlatformPush });
     const { data: newBook, error: insertError } = await cloudAdmin
       .from("books")
       .insert({
-        author_id: userId,
+        author_id: authorProfileId,
         title: bookData.title,
         subtitle: bookData.subtitle || null,
         description: bookData.description || null,
