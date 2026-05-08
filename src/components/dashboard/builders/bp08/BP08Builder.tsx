@@ -21,6 +21,8 @@ import BuilderIntroBlock, { BP_INTRO_SPECS, BackToReviewLink } from "@/component
 import InlineSectionCard from "@/components/dashboard/builders/shared/InlineSectionCard";
 import { categoryStyles } from "@/components/dashboard/builders/shared/BuilderTheme";
 import { publishNodeToSite } from "@/lib/publish-node";
+import { generateProductCover } from "@/lib/generate-product-cover";
+import ProductCoverPreview from "@/components/dashboard/builders/shared/ProductCoverPreview";
 import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
 import { buildBp08Txt } from "@/lib/build-library-txt";
 import { toAbbyError } from "@/lib/abby-error";
