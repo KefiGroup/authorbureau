@@ -73,9 +73,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Ownership: the author_id row must belong to the requesting user via authors table.
+    // Ownership: the author_id row must belong to the requesting user via author_profiles.
     const { data: authorRow } = await admin
-      .from("authors")
+      .from("author_profiles")
       .select("user_id")
       .eq("id", node.author_id)
       .maybeSingle();
