@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Loader2, RefreshCw, Sparkles, ImageIcon, Check } from "lucide-react";
 import { toast } from "sonner";
 import { generateProductCover, type ProductKind } from "@/lib/generate-product-cover";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
 interface Props {
   authorId: string;
