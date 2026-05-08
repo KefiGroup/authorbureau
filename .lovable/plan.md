@@ -1,29 +1,45 @@
+## Issue
+The Home Study cover shows the subtitle as **"Home Study: Home Study: Disaster to Mastery in 21 Days"**. Root causes:
+
+1. The BP-07 AI generator stores `programme_subtitle` already prefixed with "Home Study:" (e.g. *"Home Study: Disaster to Mastery in 21 Days"*).
+2. The cover prompt also passes the productKind via the ribbon ("HOME STUDY COURSE"), and the subtitle is then rendered verbatim — which already contains the prefix. When combined, the visible subtitle reads twice. (Other product kinds — workbook with `workbook_subtitle`, BP-09 `tagline`, BP-08 hard-coded "Special Edition" — can hit the same class of bug whenever the source content already includes the kind label.)
+
 ## Goal
-On first visit to a product builder (Workbook BP-06, Home Study BP-07, Course BP-08, Special Edition BP-09), the 3 cover variations auto-generate and appear in the picker without the author needing to click "Generate cover".
+Subtitles on AI cover designs must never duplicate the product-kind prefix already conveyed by the top ribbon. Authors should see a clean line under the title (e.g. *"Disaster to Mastery in 21 Days"*) regardless of what the upstream generator stored.
 
-## Change
-Edit `src/components/dashboard/builders/shared/ProductCoverPreview.tsx` only. Backend, edge function, and other builders stay unchanged.
+## Change — single file
+Edit `supabase/functions/generate-product-cover/index.ts` only. Add a **`sanitizeSubtitle(rawSubtitle, kind)`** helper that runs before `safeSubtitle` is built (around line 40), and use its output for the prompt.
 
-### 1. Auto-generate on first load
-After `loadCover()` finishes the initial fetch:
-- If `history.length === 0` AND the required props are present (`authorId`, `nodeId`, `productTitle`), kick off auto-generation sequentially until 3 designs exist.
-- Use a `useRef` guard (`autoStartedRef`) so it runs only once per `(authorId, nodeId, bookId)` mount — never re-fires after the user clicks Redo or switches.
+### Sanitization rules
+- Trim and collapse internal whitespace.
+- Strip a leading product-kind label if the subtitle starts with one of the redundant prefixes for the current `kind`. Match case-insensitive, allow optional trailing `:`, `-`, `–`, `—`, or whitespace. Apply repeatedly so a doubly-prefixed string ("Home Study: Home Study: …") collapses to the clean tail.
+- Strip a leading copy of the product TITLE if the subtitle starts with it (handles "Be SUCKcessful — Be SUCKcessful: …").
+- After stripping, if the remaining string is empty or shorter than 3 chars, return `undefined` so no subtitle line is sent.
+- Re-apply the existing 60-char defensive cap.
 
-### 2. Sequential generation (3 calls)
-- Reuse `generateProductCover(...)` exactly as today; the edge function already advances `slotIndex` based on existing history length.
-- Loop `while (currentHistory.length < 3)` calling it once per missing slot, refreshing `history` between calls so the UI shows tiles as they finish.
-- On any failure, stop the loop, surface a toast, and leave whatever was generated so the author can retry via Redo or refresh.
+### Per-kind prefix list (in `PRODUCT_KIND_LABELS` or a new sibling map)
+| kind | redundant prefixes to strip |
+|---|---|
+| workbook | "workbook", "companion workbook", "the workbook" |
+| home-study | "home study", "home study course", "home-study", "home study programme/program" |
+| course | "online course", "course", "the course" |
+| special-edition | "special edition", "special-edition", "the special edition" |
+| bundle | "bundle", "the bundle" |
+| toolkit | "toolkit", "live audience toolkit" |
+| generic | "companion", "companion edition" |
 
-### 3. UI states
-- While auto-generating: show `Loader2` spinners on the empty slots (existing dashed placeholders get a centered spinner + "Generating design 2 of 3…" caption).
-- Hide the initial "Generate cover" button when auto-generation is in progress or has produced ≥1 design (the empty-state CTA is no longer needed in the auto-gen flow but kept as a manual fallback if auto-gen failed and history is still 0).
-- Keep the per-tile **Redo** button exactly as it is — that remains the only manual control once 3 exist.
+### Wiring
+- In `buildPrompt`, replace lines 40–43 with:
+  ```
+  const cleaned = sanitizeSubtitle(args.productSubtitle, args.kind, args.productTitle);
+  const safeSubtitle = cleaned && cleaned.length > 0 && cleaned.length <= 60 ? cleaned : undefined;
+  ```
+- Add a one-line note above `STRICT TEXT RULES` instructing the model: *"Render the subtitle exactly as given; do NOT prepend the product type, ribbon text, or title to it."* (Defense-in-depth so the model itself doesn't re-add "Home Study:".)
 
-### 4. Safety
-- Don't auto-generate if `loading` is still true, if `busy`/`regeneratingIdx` is already active, or if `history.length > 0` on load (returning users skip auto-gen entirely).
-- Skip auto-gen if `productTitle` is empty (avoids generating a "Untitled" cover before the author has named the product).
+### Deploy
+Deploy `generate-product-cover` after the edit.
 
 ## Out of scope
-- No edge-function changes — `generate-product-cover` already returns one design per call and rotates art directions.
-- No DB schema changes.
-- No changes to BP06/07/08/09 builder files; the shared component handles it for all four.
+- No changes to BP-06/07/08/09 builders or to upstream generator prompts (those still write what they write; the cover function defends against it).
+- No DB migration. No frontend changes.
+- Existing already-saved covers won't auto-fix; authors can hit **Redo** on a tile to regenerate cleanly.
