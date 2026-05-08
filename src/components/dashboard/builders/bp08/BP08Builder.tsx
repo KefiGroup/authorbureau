@@ -420,6 +420,33 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                   </div>
                 )}
                 <p className="text-muted-foreground mb-4">Hi {authorName}! {selectedOccasion ? `I'll design 3 themed ${selectedOccasion.label} edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}', from a signed gift copy to a VIP collector's package - all timed for the ${selectedOccasion.label} buying window.` : `Special editions turn your book into a premium collectible experience. I'm going to design 3 special edition tiers for '${(detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book"}' - from a signed copy to a VIP collector's package. These create premium pricing opportunities and make perfect gifts.`} Ready?</p>
+                <div className="mb-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">What occasion is this edition for? <span className="font-normal normal-case text-muted-foreground/70">(optional)</span></p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handlePickOccasion(null)}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition ${!selectedOccasion ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted border-border"}`}
+                    >
+                      Generic / Evergreen
+                    </button>
+                    {CALENDAR_OCCASIONS.map((occ) => {
+                      const active = selectedOccasion?.id === occ.id;
+                      return (
+                        <button
+                          key={occ.id}
+                          type="button"
+                          onClick={() => handlePickOccasion(occ.id)}
+                          className={`text-xs px-3 py-1.5 rounded-full border transition inline-flex items-center gap-1.5 ${active ? "bg-primary text-primary-foreground border-primary" : "bg-background hover:bg-muted border-border"}`}
+                        >
+                          <span aria-hidden>{occ.emoji}</span>
+                          <span>{occ.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-2">Pick an occasion and Abby themes the foreword, bonuses, bundle, sales page, and pricing around it.</p>
+                </div>
                 <div className="mb-4"><BuilderIntroBlock spec={BP_INTRO_SPECS["BP-08"]} /></div>
                 <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate} disabled={isBookLoading && !hasResolvedBook}><Sparkles className="h-4 w-4 mr-2" /> {selectedOccasion ? `Design My ${selectedOccasion.label} Edition` : "Design My Special Editions"}</Button>
               </>)}
