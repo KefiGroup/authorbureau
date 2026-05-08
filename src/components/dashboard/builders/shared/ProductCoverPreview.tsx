@@ -128,8 +128,13 @@ export default function ProductCoverPreview({
         </div>
 
         {history.length > 0 && (
-          <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            <span className="font-medium text-foreground">How to choose:</span> the design with the gold ring + “Active” badge is the one shown on your public author page. Click any other saved design to make it the active one — the public page updates instantly.
+          <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground space-y-1">
+            <div>
+              <span className="font-medium text-foreground">How to choose:</span> the design with the gold ring + “Active” badge is the one shown on your public author page. Click any other saved design to make it the active one — the public page updates instantly.
+            </div>
+            <div>
+              <span className="font-medium text-foreground">Variety:</span> each new design uses a different art direction (match · vary · typographic) so your 3 saved options stay visually distinct.
+            </div>
           </div>
         )}
 
