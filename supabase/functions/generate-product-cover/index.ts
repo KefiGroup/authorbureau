@@ -18,6 +18,7 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
   course: { ribbon: "ONLINE COURSE", descriptor: "an online course" },
   "special-edition": { ribbon: "SPECIAL EDITION", descriptor: "a special-edition product" },
   bundle: { ribbon: "BUNDLE", descriptor: "a product bundle" },
+  toolkit: { ribbon: "LIVE AUDIENCE TOOLKIT", descriptor: "a live-audience speaker toolkit" },
   generic: { ribbon: "COMPANION EDITION", descriptor: "a companion product" },
 };
 
