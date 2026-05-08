@@ -147,6 +147,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     // === GENERATE SINGLE CHUNK ===
     if (action === "generate-chunk") {
