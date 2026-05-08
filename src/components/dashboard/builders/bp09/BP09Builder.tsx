@@ -458,6 +458,17 @@ export default function BP09Builder({ authorId, bookId }: Props) {
               penNameSlug={authorSlug}
               abbyMessage={`Your toolkit is saved here in your Brand Products library. Re-open BP-09 anytime to download the .pptx slide decks (workshop + corporate lunch), the printable PDF handout and bulk-order proposal, and copy the scripts, Q&A seeds, inscriptions and bios. Nothing is published publicly — this is your private field kit for live events.`}
             />
+            {authorId && (
+              <ProductCoverPreview
+                authorId={authorId}
+                nodeId="BP-09"
+                bookId={activeBookId}
+                productKind="toolkit"
+                productTitle={(typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit"}
+                productSubtitle={typeof content?.tagline === "string" ? content.tagline : undefined}
+                authorName={authorName}
+              />
+            )}
             <BackToReviewLink onClick={() => setStep(2)} />
           </>
         )}
