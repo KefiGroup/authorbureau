@@ -625,6 +625,7 @@ export type Database = {
           book_id: string | null
           checkout_url: string | null
           content_json: Json | null
+          cover_image_url: string | null
           created_at: string
           currency: string
           current_step: number | null
@@ -653,6 +654,7 @@ export type Database = {
           book_id?: string | null
           checkout_url?: string | null
           content_json?: Json | null
+          cover_image_url?: string | null
           created_at?: string
           currency?: string
           current_step?: number | null
@@ -681,6 +683,7 @@ export type Database = {
           book_id?: string | null
           checkout_url?: string | null
           content_json?: Json | null
+          cover_image_url?: string | null
           created_at?: string
           currency?: string
           current_step?: number | null

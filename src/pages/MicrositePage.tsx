@@ -1071,27 +1071,45 @@ function WorkbookSalesPage({
                     style={{ aspectRatio: "3 / 4", objectFit: "cover" }}
                   />
                 </div>
-                {/* Workbook cover — front-right, tilted */}
+                {/* Workbook cover — front-right, tilted. Prefer AI-generated cover, fall back to SVG. */}
                 <div
                   className="absolute right-0 top-6 w-[58%] transition-transform duration-500 hover:rotate-0"
                   style={{ transform: "rotate(4deg)", transformOrigin: "bottom left" }}
                 >
+                  {data.node.cover_image_url ? (
+                    <img
+                      src={data.node.cover_image_url}
+                      alt={`${title} cover`}
+                      className="w-full rounded-lg shadow-2xl"
+                      style={{ aspectRatio: "3 / 4", objectFit: "cover" }}
+                    />
+                  ) : (
+                    <WorkbookCoverArt
+                      title={title}
+                      subtitle={subtitle}
+                      author={authorName}
+                      accentColor={v.accent}
+                    />
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="w-full max-w-[260px] mx-auto">
+                {data.node.cover_image_url ? (
+                  <img
+                    src={data.node.cover_image_url}
+                    alt={`${title} cover`}
+                    className="w-full rounded-lg shadow-2xl"
+                    style={{ aspectRatio: "3 / 4", objectFit: "cover" }}
+                  />
+                ) : (
                   <WorkbookCoverArt
                     title={title}
                     subtitle={subtitle}
                     author={authorName}
                     accentColor={v.accent}
                   />
-                </div>
-              </div>
-            ) : (
-              <div className="w-full max-w-[260px] mx-auto">
-                <WorkbookCoverArt
-                  title={title}
-                  subtitle={subtitle}
-                  author={authorName}
-                  accentColor={v.accent}
-                />
+                )}
               </div>
             )}
           </div>

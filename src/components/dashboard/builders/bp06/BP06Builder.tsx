@@ -32,6 +32,7 @@ import { useStripeConnect } from "@/components/dashboard/StripeConnectBanner";
 import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
 import { isPaidNode } from "@/lib/is-paid-node";
 import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
+import { generateProductCover } from "@/lib/generate-product-cover";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
@@ -304,6 +305,16 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       await publishNodeToSite(authorId!, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      // Fire-and-forget: AI-generate a workbook cover that emulates the book cover.
+      void generateProductCover({
+        authorId: authorId!,
+        nodeId: "BP-06",
+        bookId: activeBookId ?? null,
+        productKind: "workbook",
+        productTitle: content.workbook_title || content.title || "Companion Workbook",
+        productSubtitle: content.workbook_subtitle || content.subtitle,
+        authorName,
+      }).catch((err) => console.warn("[BP-06] cover gen failed", err));
       toast.success("Workbook published to your site", {
         description: "Saved to My Library and live on your author page.",
       });
@@ -344,6 +355,15 @@ export default function BP06Builder({ authorId, bookId }: Props) {
       await publishNodeToSite(authorId, "BP-06", authorSlug, activeBookId, libraryAsset);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      void generateProductCover({
+        authorId,
+        nodeId: "BP-06",
+        bookId: activeBookId ?? null,
+        productKind: "workbook",
+        productTitle: next.workbook_title || next.title || "Companion Workbook",
+        productSubtitle: next.workbook_subtitle || next.subtitle,
+        authorName,
+      }).catch((err) => console.warn("[BP-06] cover gen failed", err));
       toast.success("Workbook published to your site", {
         description: "Saved to My Library and live on your author page.",
       });
