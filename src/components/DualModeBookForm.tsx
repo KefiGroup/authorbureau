@@ -414,7 +414,7 @@ export default function DualModeBookForm({
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <Label>Amazon Paperback URL *</Label>
+              <Label>Amazon Paperback URL <span className="text-muted-foreground text-xs font-normal">(optional)</span></Label>
               <Input
                 value={form.amazonUrl}
                 onChange={(e) => update("amazonUrl", e.target.value)}
