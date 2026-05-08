@@ -25,7 +25,7 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
 const ART_DIRECTIONS: Record<number, string> = {
   0: "ART DIRECTION A (match): Closely emulate the reference book cover — same hero illustration concept, palette, lighting, and typography style so the two read as a matching set.",
   1: "ART DIRECTION B (vary): Keep the SAME brand color palette and mood, but use a DIFFERENT hero motif and composition than the reference (e.g. mountain summit at dawn, open road, lighthouse, soaring eagle, abstract sunburst). Must look visually distinct from the reference book cover at a glance.",
-  2: "ART DIRECTION C (typographic minimal): Bold typographic cover treatment. The full 3:4 canvas IS the cover — large title typography is the focal point, set DIRECTLY on a clean geometric or abstract gradient background in the brand palette that fills every pixel edge-to-edge. NO figurative illustration, NO characters, NO animals. CRITICAL: the gradient/background must extend fully to all four edges of the 3:4 canvas with NO inset panel, NO inset card, NO inner frame, NO inner border, NO secondary darker rectangle floating inside the canvas, and NO contrasting margin band around the typography. The title sits directly on the full-canvas background — never inside a smaller inset shape. Visually the result must look like the other slots in scale and bleed: same edge-to-edge fill, same overall density, same apparent size — only the style differs.",
+  2: "ART DIRECTION C (match — alt customization): Closely emulate the reference book cover — same hero illustration concept, same palette, same lighting, same typography style, same overall composition — so it reads as part of the same set as slots A and B. Vary ONLY one small customization detail (e.g. a slightly different camera angle on the same hero, a small accent flourish, a subtle alternate sub-headline placement, or a minor lighting shift). Must look like it belongs to the same family as the book cover and the other two tiles — full edge-to-edge bleed, no inset panels or inner frames.",
 };
 
 function buildPrompt(args: {
@@ -50,9 +50,7 @@ function buildPrompt(args: {
     args.authorName ? `${safeSubtitle ? 4 : 3}. Author byline at the bottom: "${args.authorName}"` : null,
   ].filter(Boolean).join("\n");
 
-  const refUsage = args.slotIndex === 2
-    ? `The attached image (if any) is for COLOR PALETTE and MOOD reference ONLY. DO NOT copy, edit, trace, or reuse any text, characters, or illustration from it. Generate a brand-new image from scratch.`
-    : `The attached image is a PALETTE / MOOD / STYLE reference only. DO NOT edit, retouch, trace, or reproduce any text from it. Generate a brand-new original image inspired by its palette and mood.`;
+  const refUsage = `The attached image is a PALETTE / MOOD / STYLE reference only. DO NOT edit, retouch, trace, or reproduce any text from it. Generate a brand-new original image inspired by its palette and mood.`;
 
   return [
     `Generate a brand-new, original print-ready 3:4 portrait cover image for ${meta.descriptor}. This is an image GENERATION task, not an image edit task.`,
@@ -218,12 +216,10 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: slotIndex === 2
-              ? [{ type: "text", text: prompt }]
-              : [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: bookCoverUrl } },
-                ],
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: bookCoverUrl } },
+            ],
           },
         ],
       }),
@@ -244,7 +240,7 @@ Deno.serve(async (req) => {
 
     // Fallback: if model refused (returned text but no image) and we passed a
     // reference image, retry once WITHOUT the reference (text-only generation).
-    if ((!dataUrl || !dataUrl.startsWith("data:image/")) && slotIndex !== 2) {
+    if (!dataUrl || !dataUrl.startsWith("data:image/")) {
       console.warn("Model refused with reference image; retrying text-only", JSON.stringify(aiData).slice(0, 300));
       const retryRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
