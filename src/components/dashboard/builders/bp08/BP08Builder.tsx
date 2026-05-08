@@ -229,6 +229,34 @@ export default function BP08Builder({ authorId, bookId }: Props) {
     setStep(2);
   };
 
+  // Occasion picker on step 1: mirror selection into the URL so the existing
+  // selectedOccasion memo + replace-prompt logic keep working unchanged.
+  const handlePickOccasion = (id: string | null) => {
+    const params = new URLSearchParams(searchParams);
+    if (id) params.set("occasion", id);
+    else params.delete("occasion");
+    const qs = params.toString();
+    navigate(`/node-builder/BP-08${qs ? `?${qs}` : ""}`, { replace: true });
+  };
+
+  // Patch + persist a deep change in `content` (used by tier/bundle price edits
+  // and any other non-InlineSectionCard inputs on the Review step).
+  const patchContent = async (updater: (prev: any) => any) => {
+    if (!content) return;
+    const next = updater(content);
+    setContent(next);
+    if (authorId) {
+      await autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-08",
+        nodeName: "Special Editions",
+        content: { ...next, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId,
+      });
+    }
+  };
+
 
   const handlePublish = async () => {
     setStep(3); setError(null);
