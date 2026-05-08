@@ -63,7 +63,12 @@ function sanitizeSubtitle(raw: string | undefined, kind: string, productTitle?: 
     }
   }
 
-  if (s.length < 3) return undefined;
+  // Reject if cleaned subtitle just echoes the ribbon label (e.g. "Special Editions" vs ribbon "SPECIAL EDITION").
+  const ribbon = (PRODUCT_KIND_LABELS[kind]?.ribbon || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  const norm = s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  if (ribbon && (norm === ribbon || ribbon.includes(norm) || norm.includes(ribbon))) return undefined;
+
+  if (s.length < 4) return undefined;
   if (s.length > 60) return undefined;
   return s;
 }
