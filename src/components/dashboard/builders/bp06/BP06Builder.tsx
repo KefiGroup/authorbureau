@@ -33,6 +33,7 @@ import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
 import { isPaidNode } from "@/lib/is-paid-node";
 import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
 import { generateProductCover } from "@/lib/generate-product-cover";
+import ProductCoverPreview from "@/components/dashboard/builders/shared/ProductCoverPreview";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
