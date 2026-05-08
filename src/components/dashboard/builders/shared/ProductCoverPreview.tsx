@@ -326,11 +326,13 @@ export default function ProductCoverPreview({
 
         <div className="space-y-2">
           <p className="text-sm text-muted-foreground">
-            {history.length === 0
+            {autoBusy
+              ? "Generating your 3 cover designs — they'll appear here as they finish. This usually takes under a minute."
+              : history.length === 0
               ? "Generate a cover that visually emulates your book — same palette, mood, and typography."
               : "The active design appears on your public product page. Click any saved design to switch — no republish needed. Use Redo on a tile to regenerate that design in place."}
           </p>
-          {history.length === 0 && (
+          {history.length === 0 && !autoBusy && (
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={handleGenerate} disabled={busy}>
                 {busy ? (
