@@ -20,6 +20,8 @@ export interface GenerateProductCoverInput {
   productSubtitle?: string;
   authorName?: string;
   force?: boolean;
+  /** When set, replace this slot in place reusing its art direction. */
+  regenerateSlotIndex?: number;
 }
 
 export interface GenerateProductCoverResult {

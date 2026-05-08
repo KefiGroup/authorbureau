@@ -57,10 +57,13 @@ function buildPrompt(args: {
     `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
     allowedTextLines,
     ``,
-    `DO NOT render any paragraph, description, blurb, tagline, body copy, quote, review, or marketing sentence on the cover.`,
-    `DO NOT invent, paraphrase, or add ANY additional words, sentences, or labels beyond the list above.`,
-    `DO NOT misspell any of the listed text — copy each string letter-for-letter.`,
-    `Maximum 4 text elements total on the cover. No other text anywhere.`,
+    `FORBIDDEN TEXT (do NOT render, even small, even at the bottom):`,
+    `  • No descriptive paragraph, blurb, summary, tagline, quote, review, endorsement, or marketing sentence.`,
+    `  • No sentence beginning with "From", "By", "About", "A guide", "Featuring", "Introducing", or similar.`,
+    `  • No body copy under the title. No author bio. No publisher line. No website. No price. No barcode.`,
+    `DO NOT invent, paraphrase, or add ANY additional words, sentences, or labels beyond the allowed list above.`,
+    `DO NOT misspell any of the listed text — copy each allowed string letter-for-letter.`,
+    `Maximum 4 short text elements total; the title is the longest. If unsure whether a piece of text belongs, OMIT it.`,
     ``,
     `High detail, professional book-cover quality. No JPEG artifacts, no UI mockups, no watermarks.`,
     `Output a single 3:4 portrait image only.`,
@@ -92,6 +95,7 @@ Deno.serve(async (req) => {
       productSubtitle,
       authorName,
       force = false,
+      regenerateSlotIndex,
     } = body || {};
 
     if (!productTitle) {
