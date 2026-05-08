@@ -127,6 +127,12 @@ export default function ProductCoverPreview({
           </span>
         </div>
 
+        {history.length > 0 && (
+          <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">How to choose:</span> the design with the gold ring + “Active” badge is the one shown on your public author page. Click any other saved design to make it the active one — the public page updates instantly.
+          </div>
+        )}
+
         {loading ? (
           <div className="flex items-center justify-center h-32">
             <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -138,10 +144,11 @@ export default function ProductCoverPreview({
                 return (
                   <div
                     key={`empty-${idx}`}
-                    className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex items-center justify-center"
+                    className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex flex-col items-center justify-center gap-1 p-2 text-center"
                     style={{ aspectRatio: "3 / 4" }}
                   >
                     <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                    <span className="text-[10px] text-muted-foreground/60 leading-tight">Empty slot</span>
                   </div>
                 );
               }
@@ -155,20 +162,24 @@ export default function ProductCoverPreview({
                   disabled={isActive || !!switching}
                   className={`group relative rounded-lg overflow-hidden bg-muted transition-all ${
                     isActive
-                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-2xl"
+                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-2xl cursor-default"
                       : "ring-1 ring-border hover:ring-primary/60 hover:scale-[1.02] cursor-pointer"
                   }`}
                   style={{ aspectRatio: "3 / 4" }}
-                  title={isActive ? "Active design" : "Click to make this the active design"}
+                  title={isActive ? "This design is shown on your public page" : "Click to use this design on your public page"}
                 >
                   <img
                     src={slot.url}
                     alt={`${productTitle} cover design ${idx + 1}`}
                     className="w-full h-full object-cover"
                   />
-                  {isActive && (
-                    <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1">
+                  {isActive ? (
+                    <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 shadow">
                       <Check className="h-3 w-3" /> Active
+                    </div>
+                  ) : (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-[10px] font-semibold text-white uppercase tracking-wide">Use this design</span>
                     </div>
                   )}
                   {isSwitching && (
@@ -186,7 +197,7 @@ export default function ProductCoverPreview({
           <p className="text-sm text-muted-foreground">
             {history.length === 0
               ? "Generate a cover that visually emulates your book — same palette, mood, and typography."
-              : "The active design appears on your public product page. Click any saved design to switch."}
+              : "The active design appears on your public product page. Click any saved design to switch — no republish needed."}
           </p>
           <div className="flex flex-wrap gap-2">
             <Button size="sm" onClick={handleGenerate} disabled={busy}>
