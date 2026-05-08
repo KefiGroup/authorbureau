@@ -1,26 +1,29 @@
 ## Goal
-Make all 3 generated product-cover designs faithfully follow the parent book cover's hero illustration, palette, and typography style — like the first two tiles in the screenshot. Drop the "typographic minimal" treatment that produced the inconsistent third tile.
+On first visit to a product builder (Workbook BP-06, Home Study BP-07, Course BP-08, Special Edition BP-09), the 3 cover variations auto-generate and appear in the picker without the author needing to click "Generate cover".
 
 ## Change
-Edit `supabase/functions/generate-product-cover/index.ts` only. No frontend or DB changes.
+Edit `src/components/dashboard/builders/shared/ProductCoverPreview.tsx` only. Backend, edge function, and other builders stay unchanged.
 
-### 1. Rewrite ART DIRECTION C (slot 2)
-Replace the current "typographic minimal" direction with a third book-cover-faithful variant that keeps the same hero illustration, palette, and typographic style as the reference book, and only varies a small customization detail. Proposed copy:
+### 1. Auto-generate on first load
+After `loadCover()` finishes the initial fetch:
+- If `history.length === 0` AND the required props are present (`authorId`, `nodeId`, `productTitle`), kick off auto-generation sequentially until 3 designs exist.
+- Use a `useRef` guard (`autoStartedRef`) so it runs only once per `(authorId, nodeId, bookId)` mount — never re-fires after the user clicks Redo or switches.
 
-> **ART DIRECTION C (match — alt customization):** Closely emulate the reference book cover — same hero illustration concept, same palette, same lighting, same typography style, same overall composition — so it reads as part of the same set as slots A and B. Vary ONLY one small customization detail (e.g. slightly different camera angle on the same hero, a small accent flourish, a subtle alternate sub-headline placement, or a minor lighting shift). Must look like it belongs to the same family as the book cover and the other two tiles.
+### 2. Sequential generation (3 calls)
+- Reuse `generateProductCover(...)` exactly as today; the edge function already advances `slotIndex` based on existing history length.
+- Loop `while (currentHistory.length < 3)` calling it once per missing slot, refreshing `history` between calls so the UI shows tiles as they finish.
+- On any failure, stop the loop, surface a toast, and leave whatever was generated so the author can retry via Redo or refresh.
 
-### 2. Always use the book cover as a reference for slot 2
-- Remove the `slotIndex === 2` branch in `refUsage` (line 53–55) — use the standard "palette/mood/style reference" copy for all slots.
-- Remove the `slotIndex === 2` branch in the `messages.content` block (line 221–226) — always send `[ {text}, {image_url: bookCoverUrl} ]`.
-- Simplify the refusal-retry guard (line 247) to retry text-only on any slot when the model refuses with a reference image.
+### 3. UI states
+- While auto-generating: show `Loader2` spinners on the empty slots (existing dashed placeholders get a centered spinner + "Generating design 2 of 3…" caption).
+- Hide the initial "Generate cover" button when auto-generation is in progress or has produced ≥1 design (the empty-state CTA is no longer needed in the auto-gen flow but kept as a manual fallback if auto-gen failed and history is still 0).
+- Keep the per-tile **Redo** button exactly as it is — that remains the only manual control once 3 exist.
 
-### 3. Keep all existing rules
-- Keep the anti-mockup, edge-to-edge, safe-margin, and strict-text rules in `ASPECT & FRAMING` and `STRICT TEXT RULES` exactly as they are.
-- Keep the "no inset panel / inner card / inner frame" rule (now applies uniformly to all 3 slots).
-
-### 4. Deploy
-Deploy the `generate-product-cover` edge function after the edit.
+### 4. Safety
+- Don't auto-generate if `loading` is still true, if `busy`/`regeneratingIdx` is already active, or if `history.length > 0` on load (returning users skip auto-gen entirely).
+- Skip auto-gen if `productTitle` is empty (avoids generating a "Untitled" cover before the author has named the product).
 
 ## Out of scope
-- No changes to `ProductCoverPreview.tsx`, the Redo/Generate buttons, or any other file.
-- No prompt changes for slots A and B beyond what's already there.
+- No edge-function changes — `generate-product-cover` already returns one design per call and rotates art directions.
+- No DB schema changes.
+- No changes to BP06/07/08/09 builder files; the shared component handles it for all four.
