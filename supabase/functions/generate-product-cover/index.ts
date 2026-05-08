@@ -25,7 +25,7 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
 const ART_DIRECTIONS: Record<number, string> = {
   0: "ART DIRECTION A (match): Closely emulate the reference book cover — same hero illustration concept, palette, lighting, and typography style so the two read as a matching set.",
   1: "ART DIRECTION B (vary): Keep the SAME brand color palette and mood, but use a DIFFERENT hero motif and composition than the reference (e.g. mountain summit at dawn, open road, lighthouse, soaring eagle, abstract sunburst). Must look visually distinct from the reference book cover at a glance.",
-  2: "ART DIRECTION C (typographic minimal): Bold minimal / typographic treatment. Large title typography is the focal point on a clean geometric or abstract gradient background in the brand palette. NO figurative illustration, NO characters, NO animals.",
+  2: "ART DIRECTION C (typographic minimal): Bold typographic cover treatment. The full 3:4 canvas IS the cover — large title typography is the focal point, set DIRECTLY on a clean geometric or abstract gradient background in the brand palette that fills every pixel edge-to-edge. NO figurative illustration, NO characters, NO animals.",
 };
 
 function buildPrompt(args: {
@@ -60,6 +60,9 @@ function buildPrompt(args: {
     `  • The top ribbon/badge must sit fully INSIDE the top safe margin, with at least 6% of canvas height of clearance above it. Never let the ribbon bleed off the top.`,
     `  • The title must sit BELOW the ribbon with visible breathing room; no glyph may cross the top safe margin or the ribbon.`,
     `  • The author byline must sit fully INSIDE the bottom safe margin, never bleeding off the bottom.`,
+    `  • The artwork MUST FILL the entire 3:4 canvas edge-to-edge. The output IS the cover, not a photo of the cover.`,
+    `  • DO NOT render a small book, a 3D book mockup, a book on a desk/shelf/table, a book floating on a white or neutral background, or any product-photo-style framing.`,
+    `  • No drop shadow around a book shape, no visible page edges, no spine, no perspective tilt suggesting a physical book.`,
     ``,
     `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
     allowedTextLines,
