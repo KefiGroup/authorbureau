@@ -240,7 +240,7 @@ export default function ProductCoverPreview({
                     type="button"
                     onClick={(e) => { e.stopPropagation(); void handleRegenerateSlot(idx); }}
                     disabled={isRegenThis || regeneratingIdx !== null || busy}
-                    className="absolute top-1 left-1 bg-background/85 hover:bg-background text-foreground text-[10px] font-semibold px-1.5 py-1 rounded shadow flex items-center gap-1 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-100"
+                    className="absolute bottom-2 right-2 z-10 bg-black/80 hover:bg-black text-white text-[11px] font-semibold px-2 py-1 rounded-md shadow-lg ring-1 ring-white/20 flex items-center gap-1 transition-colors disabled:opacity-80"
                     title="Regenerate this design (same style, fix typos)"
                   >
                     {isRegenThis ? (
