@@ -164,17 +164,27 @@ Deno.serve(async (req) => {
     }
 
     // Slot index: 0 = match reference, 1 = vary motif, 2 = typographic minimal.
-    // When already at cap (3), the new design replaces the oldest non-active —
-    // reuse THAT slot's index so the trio stays diverse. Otherwise use history.length.
-    let slotIndex = Math.min(history.length, 2);
-    if (history.length >= 3) {
-      const inactiveSorted = history
-        .filter((h) => !h.is_active)
-        .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
-      const oldest = inactiveSorted[0];
-      if (oldest) {
-        const oldestIdx = history.findIndex((h) => h.url === oldest.url);
-        if (oldestIdx >= 0) slotIndex = oldestIdx;
+    // If caller asked to regenerate a specific slot, reuse that art direction.
+    let slotIndex: number;
+    let replaceIndex: number | null = null;
+    if (
+      typeof regenerateSlotIndex === "number" &&
+      regenerateSlotIndex >= 0 &&
+      regenerateSlotIndex < history.length
+    ) {
+      slotIndex = Math.min(regenerateSlotIndex, 2);
+      replaceIndex = regenerateSlotIndex;
+    } else {
+      slotIndex = Math.min(history.length, 2);
+      if (history.length >= 3) {
+        const inactiveSorted = history
+          .filter((h) => !h.is_active)
+          .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+        const oldest = inactiveSorted[0];
+        if (oldest) {
+          const oldestIdx = history.findIndex((h) => h.url === oldest.url);
+          if (oldestIdx >= 0) slotIndex = oldestIdx;
+        }
       }
     }
     const prompt = buildPrompt({ kind: productKind, productTitle, productSubtitle, authorName, slotIndex });
