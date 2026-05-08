@@ -21,6 +21,8 @@ import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader"
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import { publishNodeToSite } from "@/lib/publish-node";
+import { generateProductCover } from "@/lib/generate-product-cover";
+import ProductCoverPreview from "@/components/dashboard/builders/shared/ProductCoverPreview";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
