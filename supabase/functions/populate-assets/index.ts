@@ -58,6 +58,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     const { assetType, bookId, rawContent, appendMode, frameworkName } = await req.json();
 
@@ -73,7 +74,7 @@ serve(async (req) => {
       .eq("id", bookId)
       .single();
 
-    if (!book || book.author_id !== user.id) {
+    if (!book || book.author_id !== authorId) {
       return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -95,22 +96,22 @@ serve(async (req) => {
 
     switch (assetType) {
       case "course":
-        result = await populateCourse(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        result = await populateCourse(supabase, authorId, bookId, rawContent, book.title, sourceAssetId);
         break;
       case "email":
-        result = await populateEmailFlow(supabase, user.id, bookId, rawContent, book.title);
+        result = await populateEmailFlow(supabase, authorId, bookId, rawContent, book.title);
         break;
       case "speaker":
-        result = await populateSpeakingTopics(supabase, user.id, bookId, rawContent);
+        result = await populateSpeakingTopics(supabase, authorId, bookId, rawContent);
         break;
       case "workbook":
-        result = await populateWorkbook(supabase, user.id, bookId, rawContent, book.title, sourceAssetId, appendMode, frameworkName);
+        result = await populateWorkbook(supabase, authorId, bookId, rawContent, book.title, sourceAssetId, appendMode, frameworkName);
         break;
       case "social":
-        result = await populateSocialMedia(supabase, user.id, bookId, rawContent, sourceAssetId);
+        result = await populateSocialMedia(supabase, authorId, bookId, rawContent, sourceAssetId);
         break;
       case "products":
-        result = await populateProductIdeas(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        result = await populateProductIdeas(supabase, authorId, bookId, rawContent, book.title, sourceAssetId);
         break;
       default:
         result = { saved: true, type: "content_only" };
