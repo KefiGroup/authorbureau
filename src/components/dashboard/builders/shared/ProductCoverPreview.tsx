@@ -228,7 +228,7 @@ export default function ProductCoverPreview({
                   <img
                     src={slot.url}
                     alt={`${productTitle} cover design ${idx + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain bg-neutral-900"
                   />
                   {isActive && (
                     <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1 shadow">
