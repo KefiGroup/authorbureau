@@ -1,8 +1,7 @@
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,29 +84,39 @@ export default function NodeBuilder() {
     let cancelled = false;
     setLoading(true);
 
-    supabase
-      .from("author_profiles")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(async ({ data, error }) => {
+    (async () => {
+      try {
+        const token = await getActiveToken();
+        if (!token) {
+          if (!cancelled) {
+            setAuthorId(null);
+            setLoading(false);
+          }
+          return;
+        }
+        const res = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/save-author-profile`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ action: "fetch" }),
+          },
+          15000
+        );
+        const json = await res.json().catch(() => null);
         if (cancelled) return;
-        if (error) {
-          console.error("[NodeBuilder] Failed to load author profile:", error.message);
-        }
-        let id = data?.id || null;
-        if (!id) {
-          // Fallback: shared backend
-          const { data: sp } = await sharedSupabase
-            .from("author_profiles")
-            .select("id")
-            .eq("user_id", user.id)
-            .maybeSingle();
-          id = sp?.id || null;
-        }
+        const id = json?.profile?.id || null;
         setAuthorId(id);
-        setLoading(false);
-      });
+      } catch (err) {
+        console.error("[NodeBuilder] Failed to load author profile:", err);
+        if (!cancelled) setAuthorId(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
 
     return () => {
       cancelled = true;
