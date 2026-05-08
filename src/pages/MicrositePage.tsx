@@ -14,6 +14,7 @@ import BuyNowButton from "@/components/commerce/BuyNowButton";
 import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlayer";
 import { normalizeOutcome } from "@/lib/workbook-pdf";
 import { stripHtml } from "@/lib/stripHtml";
+import { WorkbookCoverArt } from "@/components/microsite/WorkbookCoverArt";
 
 interface MicrositeData {
   author: any;
@@ -1021,16 +1022,24 @@ function WorkbookSalesPage({
 
   const priceDisplay = isFree ? "Free download" : (priceLabel ?? "Pricing coming soon");
 
+  const authorName = data.author?.pen_name || data.author?.full_name || "";
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 sm:py-16 pb-32 md:pb-16">
       {/* Header */}
-      <div className="mb-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ background: v.accent + "20", color: v.accent }}>
+      <div
+        className="mb-12 p-6 sm:p-8 rounded-2xl relative overflow-hidden"
+        style={{
+          background: `linear-gradient(135deg, ${v.accent}10, ${v.cardBg})`,
+          borderLeft: `3px solid ${v.accent}`,
+        }}
+      >
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-medium mb-4" style={{ background: v.accent + "25", color: v.accent }}>
           <BookOpen className="h-3.5 w-3.5" /> Companion Workbook
         </div>
-        <h1 className="text-3xl sm:text-5xl font-bold mb-3" style={{ color: v.headingText, fontFamily: hFont }}>{title}</h1>
+        <h1 className="text-3xl sm:text-5xl font-bold mb-3 leading-tight" style={{ color: v.headingText, fontFamily: hFont }}>{title}</h1>
         {subtitle && <p className="text-lg sm:text-xl mb-3" style={{ color: v.mutedText }}>{subtitle}</p>}
-        {tagline && <p className="text-base italic mb-4" style={{ color: v.bodyText }}>{tagline}</p>}
+        {tagline && <p className="text-base italic" style={{ color: v.bodyText }}>{tagline}</p>}
         {promise && (
           <div className="mt-6 p-4 rounded-lg border-l-4" style={{ background: v.cardBg, borderColor: v.accent }}>
             <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: v.accent }}>The Transformation</p>
@@ -1040,45 +1049,126 @@ function WorkbookSalesPage({
       </div>
 
       {/* Cover + Pricing card */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 mb-16 items-start">
         <div className="flex flex-col items-center">
-          {data.book?.cover_image_url && (
-            <img src={data.book.cover_image_url} alt={data.book.title} className="w-full max-w-[240px] rounded-lg shadow-lg mb-3" />
-          )}
+          <div className="relative w-full max-w-[340px]">
+            {/* Soft accent glow */}
+            <div
+              className="absolute inset-0 -z-10 blur-3xl opacity-40 rounded-full"
+              style={{ background: `radial-gradient(circle, ${v.accent}, transparent 70%)` }}
+            />
+            {data.book?.cover_image_url ? (
+              <div className="relative h-[360px] sm:h-[420px]">
+                {/* Book cover — back-left, tilted */}
+                <div
+                  className="absolute left-0 top-2 w-[58%] transition-transform duration-500 hover:rotate-0"
+                  style={{ transform: "rotate(-6deg)", transformOrigin: "bottom right" }}
+                >
+                  <img
+                    src={data.book.cover_image_url}
+                    alt={data.book.title}
+                    className="w-full rounded-lg shadow-2xl"
+                    style={{ aspectRatio: "3 / 4", objectFit: "cover" }}
+                  />
+                </div>
+                {/* Workbook cover — front-right, tilted */}
+                <div
+                  className="absolute right-0 top-6 w-[58%] transition-transform duration-500 hover:rotate-0"
+                  style={{ transform: "rotate(4deg)", transformOrigin: "bottom left" }}
+                >
+                  <WorkbookCoverArt
+                    title={title}
+                    subtitle={subtitle}
+                    author={authorName}
+                    accentColor={v.accent}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="w-full max-w-[260px] mx-auto">
+                <WorkbookCoverArt
+                  title={title}
+                  subtitle={subtitle}
+                  author={authorName}
+                  accentColor={v.accent}
+                />
+              </div>
+            )}
+          </div>
           {data.book?.title && (
-            <p className="text-xs text-center" style={{ color: v.mutedText }}>
-              Companion to <span className="font-semibold" style={{ color: v.bodyText }}>{data.book.title}</span>
+            <p className="text-xs text-center mt-5" style={{ color: v.mutedText }}>
+              {data.book?.cover_image_url ? "Book + Companion Workbook" : "Companion to"} <span className="font-semibold" style={{ color: v.bodyText }}>{data.book.title}</span>
             </p>
           )}
         </div>
-        <Card className="p-6 self-start" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-          <div className="text-center mb-4">
-            <p className="text-3xl sm:text-4xl font-bold mb-1" style={{ color: v.headingText }}>{priceDisplay}</p>
+        <Card
+          className="p-8 self-start transition-shadow"
+          style={{
+            background: v.cardBg,
+            borderColor: v.cardBorder,
+            boxShadow: `0 20px 60px -20px ${v.accent}40`,
+          }}
+        >
+          <div className="text-center mb-5 pb-5" style={{ borderBottom: `1px solid ${v.cardBorder}` }}>
+            <p className="text-4xl sm:text-5xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>{priceDisplay}</p>
             {!isFree && priceLabel && <p className="text-xs" style={{ color: v.mutedText }}>One-time payment · Instant access</p>}
+            {isFree && <p className="text-xs" style={{ color: v.mutedText }}>No payment required</p>}
           </div>
           {renderCta()}
-          <ul className="mt-5 space-y-2 text-sm" style={{ color: v.bodyText }}>
-            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> {format}</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> {isFree ? "Instant download, no purchase required" : "Instant download after purchase"}</li>
-            <li className="flex items-start gap-2"><CheckCircle2 className="h-4 w-4 mt-0.5 shrink-0" style={{ color: v.accent }} /> Print at home or use on screen</li>
+          <ul className="mt-6 pt-5 space-y-3 text-sm" style={{ color: v.bodyText, borderTop: `1px solid ${v.cardBorder}` }}>
+            <li className="flex items-start gap-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 mt-0.5" style={{ background: v.accent + "20" }}>
+                <CheckCircle2 className="h-3.5 w-3.5" style={{ color: v.accent }} />
+              </span>
+              {format}
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 mt-0.5" style={{ background: v.accent + "20" }}>
+                <CheckCircle2 className="h-3.5 w-3.5" style={{ color: v.accent }} />
+              </span>
+              {isFree ? "Instant download, no purchase required" : "Instant download after purchase"}
+            </li>
+            <li className="flex items-start gap-3">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 mt-0.5" style={{ background: v.accent + "20" }}>
+                <CheckCircle2 className="h-3.5 w-3.5" style={{ color: v.accent }} />
+              </span>
+              Print at home or use on screen
+            </li>
           </ul>
         </Card>
       </div>
 
       {/* What's Inside */}
       {sections.length > 0 && (
-        <div className="mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: v.headingText, fontFamily: hFont }}>What's Inside</h2>
-          <div className="space-y-5">
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${v.accent}60)` }} />
+            <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: v.headingText, fontFamily: hFont }}>What's Inside</h2>
+            <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, ${v.accent}60)` }} />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {sections.map((s, i) => (
-              <div key={i} className="border-l-2 pl-5 py-1" style={{ borderColor: v.accent }}>
-                <p className="text-xs uppercase tracking-wide font-semibold mb-1" style={{ color: v.accent }}>
-                  Section {s.number ?? i + 1}
-                </p>
-                <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText }}>{s.title}</h3>
-                {s.description && <p className="text-sm mb-2" style={{ color: v.bodyText }}>{s.description}</p>}
+              <div
+                key={i}
+                className="p-5 rounded-xl transition-all hover:-translate-y-0.5"
+                style={{
+                  background: v.cardBg,
+                  border: `1px solid ${v.cardBorder}`,
+                  boxShadow: `0 4px 16px -8px ${v.accent}20`,
+                }}
+              >
+                <div className="flex items-start gap-3 mb-2">
+                  <span
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold shrink-0"
+                    style={{ background: v.accent, color: v.accentText }}
+                  >
+                    {s.number ?? i + 1}
+                  </span>
+                  <h3 className="text-lg font-semibold leading-tight pt-1" style={{ color: v.headingText }}>{s.title}</h3>
+                </div>
+                {s.description && <p className="text-sm mb-2 ml-11" style={{ color: v.bodyText }}>{s.description}</p>}
                 {Array.isArray(s.exercises) && s.exercises.length > 0 && (
-                  <ul className="mt-2 space-y-1">
+                  <ul className="mt-2 ml-11 space-y-1">
                     {s.exercises.map((ex: string, j: number) => (
                       <li key={j} className="flex items-start gap-2 text-sm" style={{ color: v.bodyText }}>
                         <span style={{ color: v.accent }}>•</span> {ex}
@@ -1087,7 +1177,7 @@ function WorkbookSalesPage({
                   </ul>
                 )}
                 {s.outcome && (
-                  <p className="mt-2 text-sm italic" style={{ color: v.mutedText }}>
+                  <p className="mt-3 ml-11 text-sm italic" style={{ color: v.mutedText }}>
                     After this section, you can: {normalizeOutcome(s.outcome)}
                   </p>
                 )}
@@ -1099,12 +1189,23 @@ function WorkbookSalesPage({
 
       {/* What you'll get */}
       {youGet.length > 0 && (
-        <div className="mb-12">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-6" style={{ color: v.headingText, fontFamily: hFont }}>What You'll Get</h2>
+        <div className="mb-16">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${v.accent}60)` }} />
+            <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: v.headingText, fontFamily: hFont }}>What You'll Get</h2>
+            <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, ${v.accent}60)` }} />
+          </div>
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {youGet.map((item, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm" style={{ color: v.bodyText }}>
-                <CheckCircle2 className="h-5 w-5 mt-0.5 shrink-0" style={{ color: v.accent }} /> {item}
+              <li
+                key={i}
+                className="flex items-start gap-3 text-sm p-3 rounded-lg"
+                style={{ background: v.cardBg + "80", color: v.bodyText }}
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full shrink-0" style={{ background: v.accent + "25" }}>
+                  <CheckCircle2 className="h-4 w-4" style={{ color: v.accent }} />
+                </span>
+                <span className="pt-0.5">{item}</span>
               </li>
             ))}
           </ul>
