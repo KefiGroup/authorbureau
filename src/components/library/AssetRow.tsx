@@ -22,6 +22,7 @@ interface NodeRow {
   status: string;
   content_json: any;
   microsite_url: string | null;
+  book_id?: string | null;
 }
 
 interface Props {
