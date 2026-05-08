@@ -507,7 +507,7 @@ export default function AuthorProductPage() {
               className="w-full md:w-[40%] shrink-0 flex justify-center order-1 md:order-2">
               {product.cover_image_url || book?.cover_image_url ? (
                 <img src={product.cover_image_url || book?.cover_image_url} alt={product.title}
-                  className="w-56 md:w-full max-w-xs rounded-2xl"
+                  className="w-56 md:w-full max-w-xs aspect-[3/4] object-contain bg-neutral-900 rounded-2xl"
                   style={{ boxShadow: "0 20px 60px rgba(0,0,0,0.3)" }} />
               ) : (
                 <div className="w-56 md:w-full max-w-xs aspect-[3/4] rounded-2xl flex flex-col items-center justify-center gap-4"
