@@ -6,6 +6,7 @@ export type ProductKind =
   | "course"
   | "special-edition"
   | "bundle"
+  | "toolkit"
   | "generic";
 
 export interface GenerateProductCoverInput {
