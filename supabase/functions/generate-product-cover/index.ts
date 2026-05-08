@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
 
     await admin
       .from("author_nodes")
-      .update({ cover_image_url: coverUrl, cover_image_history: updated })
+      .update({ cover_image_url: activeEntry.url, cover_image_history: updated })
       .eq("id", node.id);
 
     return new Response(
