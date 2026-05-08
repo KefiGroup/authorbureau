@@ -101,10 +101,14 @@ export default function AssetRow({
         const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         triggerDownload(blob, data.filename || `${asset.label}.pptx`);
       } else if (fmt === "script_docx") {
+        const hasScript = !!node.content_json?.speaker_script?.slides?.length;
+        if (!hasScript) {
+          toast.info("Generating speaker script — this can take up to 60 seconds…");
+        }
         const { data, error } = await invokeWithTimeout<{ filename: string; base64: string }>(
           "export-speaker-script",
-          { node_id: node.node_id },
-          120000,
+          { node_id: node.node_id, book_id: node.book_id ?? null },
+          180000,
         );
         if (error) throw error;
         if (!data?.base64) throw new Error("No script returned");
