@@ -67,7 +67,6 @@ export function WorkbookCoverArt({
 
         <foreignObject x="34" y="150" width="232" height="160">
           <div
-            xmlns="http://www.w3.org/1999/xhtml"
             style={{
               fontFamily: "Georgia, 'Times New Roman', serif",
               fontSize: `${titleSize}px`,
@@ -86,7 +85,6 @@ export function WorkbookCoverArt({
         {subtitle && (
           <foreignObject x="34" y="328" width="232" height="40">
             <div
-              xmlns="http://www.w3.org/1999/xhtml"
               style={{
                 fontFamily: "Georgia, serif",
                 fontSize: "11px",
