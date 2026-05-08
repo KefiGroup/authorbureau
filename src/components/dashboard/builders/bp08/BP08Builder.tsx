@@ -265,13 +265,17 @@ export default function BP08Builder({ authorId, bookId }: Props) {
 
       await publishNodeToSite(authorId!, "BP-08", authorSlug, activeBookId, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      const occasionLabel =
+        selectedOccasion?.label ||
+        (typeof content?.occasion_label === "string" ? content.occasion_label : "");
+      const editionSubtitle = occasionLabel ? `${occasionLabel} Special Edition` : undefined;
       void generateProductCover({
         authorId: authorId!,
         nodeId: "BP-08",
         bookId: activeBookId ?? null,
         productKind: "special-edition",
         productTitle: (typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions",
-        productSubtitle: "Special Edition",
+        productSubtitle: editionSubtitle,
         authorName,
       }).catch((err) => console.warn("[BP-08] cover gen failed", err));
     } catch (e: any) {
@@ -497,7 +501,12 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 bookId={activeBookId}
                 productKind="special-edition"
                 productTitle={(typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions"}
-                productSubtitle="Special Edition"
+                productSubtitle={
+                  (selectedOccasion?.label ||
+                    (typeof content?.occasion_label === "string" ? content.occasion_label : ""))
+                    ? `${selectedOccasion?.label || content.occasion_label} Special Edition`
+                    : undefined
+                }
                 authorName={authorName}
               />
             )}
