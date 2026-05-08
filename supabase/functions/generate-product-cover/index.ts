@@ -26,13 +26,13 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
 // them so the cover doesn't read e.g. "Home Study: Home Study: …" once the
 // ribbon already conveys the product kind.
 const REDUNDANT_SUBTITLE_PREFIXES: Record<string, string[]> = {
-  workbook: ["companion workbook", "the workbook", "workbook"],
-  "home-study": ["home study course", "home-study course", "home study programme", "home study program", "home-study", "home study"],
-  course: ["online course", "the course", "course"],
-  "special-edition": ["the special edition", "special-edition", "special edition"],
-  bundle: ["the bundle", "bundle"],
-  toolkit: ["live audience toolkit", "live-audience toolkit", "toolkit"],
-  generic: ["companion edition", "companion"],
+  workbook: ["companion workbooks", "companion workbook", "the workbooks", "the workbook", "workbooks", "workbook"],
+  "home-study": ["home study courses", "home-study courses", "home study course", "home-study course", "home study programmes", "home study programs", "home study programme", "home study program", "home-study", "home study"],
+  course: ["online courses", "online course", "the courses", "the course", "courses", "course"],
+  "special-edition": ["the special editions", "the special edition", "special-editions", "special editions", "special-edition", "special edition"],
+  bundle: ["the bundles", "the bundle", "bundles", "bundle"],
+  toolkit: ["live audience toolkits", "live-audience toolkits", "live audience toolkit", "live-audience toolkit", "toolkits", "toolkit"],
+  generic: ["companion editions", "companion edition", "companions", "companion"],
 };
 
 function escapeRegex(s: string): string {
