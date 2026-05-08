@@ -63,20 +63,25 @@ Deno.serve(async (req) => {
     }
 
     // Ownership: author_profiles.user_id matches resolved.id, OR fall back to
-    // matching the resolved email against the author's email/owner_email.
+    // matching the resolved email against books.owner_email for the node's book.
     const { data: authorRow } = await admin
       .from("author_profiles")
-      .select("user_id, email")
+      .select("user_id")
       .eq("id", node.author_id)
       .maybeSingle();
-    const ownsById = !!(authorRow && resolved.id && authorRow.user_id === resolved.id);
-    const ownsByEmail = !!(
-      authorRow &&
-      resolved.email &&
-      authorRow.email &&
-      authorRow.email.toLowerCase() === resolved.email.toLowerCase()
-    );
-    if (!authorRow || (!ownsById && !ownsByEmail)) {
+    let owns = !!(authorRow && resolved.id && authorRow.user_id === resolved.id);
+    if (!owns && resolved.email && node.book_id) {
+      const { data: book } = await admin
+        .from("books")
+        .select("owner_email")
+        .eq("id", node.book_id)
+        .maybeSingle();
+      owns = !!(
+        book?.owner_email &&
+        book.owner_email.toLowerCase() === resolved.email.toLowerCase()
+      );
+    }
+    if (!owns) {
       return new Response(
         JSON.stringify({ success: false, status: 403, message: "Not your author_node" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
