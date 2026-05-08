@@ -83,9 +83,34 @@ serve(async (req) => {
       .eq("author_id", profile.id).eq("node_id", node_id);
     if (book_id) q = q.eq("book_id", book_id);
     const { data: rows } = await q.limit(1);
-    const node = rows?.[0];
+    let node = rows?.[0];
+    if (!node) throw new Error("Node not found.");
+
+    // Auto-generate the speaker script on demand if it's missing.
     if (!node?.content_json?.speaker_script) {
-      throw new Error("No speaker script generated yet for this node.");
+      const genUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-speaker-script`;
+      const genRes = await fetch(genUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ author_id: profile.id, book_id: book_id ?? null, node_id }),
+      });
+      if (!genRes.ok) {
+        const txt = await genRes.text();
+        throw new Error(`Speaker script generation failed: ${txt.slice(0, 200)}`);
+      }
+      // Re-fetch the node to get the freshly-stored speaker_script
+      let q2 = admin.from("author_nodes")
+        .select("content_json, node_name, personalised_name")
+        .eq("author_id", profile.id).eq("node_id", node_id);
+      if (book_id) q2 = q2.eq("book_id", book_id);
+      const { data: rows2 } = await q2.limit(1);
+      node = rows2?.[0];
+      if (!node?.content_json?.speaker_script) {
+        throw new Error("Speaker script could not be generated. Please try again.");
+      }
     }
 
     const script = node.content_json.speaker_script;
