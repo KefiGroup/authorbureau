@@ -168,10 +168,10 @@ export default function DualModeBookForm({
   };
 
   const handleSaveBook = async () => {
-    if (!form.title || !form.description || !form.amazonUrl) {
+    if (!form.title || !form.description) {
       toast({
         title: "Missing required fields",
-        description: "Please fill in title, description, and Amazon book URL",
+        description: "Please fill in title and description",
         variant: "destructive",
       });
       return;
