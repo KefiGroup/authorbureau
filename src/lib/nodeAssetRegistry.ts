@@ -101,6 +101,7 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "script", label: "Webinar script", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "script") },
     { key: "slides", label: "Webinar slide deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "slides")),
     { key: "promo_emails", label: "Promo emails", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "promo_emails") },
     { key: "follow_up", label: "Follow-up sequence", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "follow_up") },
   ],
