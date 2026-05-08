@@ -54,16 +54,19 @@ const SLIDE_FORMATS: ExportFormat[] = ["pptx", "pdf"];
 const PDF_FORMATS: ExportFormat[] = ["pdf", "docx"];
 const SCRIPT_FORMATS: ExportFormat[] = ["script_docx"];
 
-/** Speaker-script asset row helper — used on every slide-bearing node. */
-const speakerScriptAsset = (): NodeAsset => ({
+/** Speaker-script asset row helper — used on every slide-bearing node.
+ * Always shown when slides exist; AssetRow will generate-on-demand if speaker_script is missing.
+ */
+const speakerScriptAsset = (slidesProbe: (c: any) => boolean): NodeAsset => ({
   key: "speaker_script",
   label: "Speaker script",
   type: "script",
   formats: SCRIPT_FORMATS,
-  probe: c => has(c, "speaker_script.slides"),
+  probe: c => slidesProbe(c),
   sizeHint: c => {
     const n = arrLen(c, "speaker_script.slides");
-    return n ? `${n} slides scripted` : undefined;
+    if (n) return `${n} slides scripted`;
+    return "Generate on demand";
   },
 });
 
