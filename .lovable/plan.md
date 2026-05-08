@@ -1,20 +1,35 @@
-## Problem
+# Fix truncated workbook cover (display + generation)
 
-The per-slot "Redo" button was added to `ProductCoverPreview.tsx`, but you can't see it because:
+The first saved design is being cropped at the top of the tile (the "SPECIAL EDITION" ribbon and the top of the title are cut off). Two independent causes:
 
-1. It's `opacity-0 group-hover:opacity-100` — invisible until you hover the tile.
-2. It's anchored `top-1 left-1`, which sits directly under the "SPECIAL EDITION" banner baked into the cover art, so even on hover it's easy to miss.
+1. **Display:** the tile uses `object-cover` on a strict 3:4 frame. If the AI returns an image that is even slightly off-ratio (or pushes content right to the edge), `object-cover` zooms in and crops the top.
+2. **Generation:** the prompt asks for a "3:4 portrait cover" but doesn't reserve safe top/bottom margins, so Nano Banana sometimes places the ribbon and title flush against the canvas edge — guaranteeing it gets clipped by any frame.
 
-## Fix (frontend only, `src/components/dashboard/builders/shared/ProductCoverPreview.tsx`)
+## Changes
 
-1. **Always show the button.** Remove `opacity-0 group-hover:opacity-100 focus:opacity-100` so the Redo pill is permanently visible on every saved design tile.
-2. **Move it to the bottom-right** (`bottom-2 right-2`) so it sits over the dark lower portion of the cover, away from the "SPECIAL EDITION" tag and the "Active" badge (which stays top-right).
-3. **Stronger contrast.** Switch the pill to a solid dark background (`bg-foreground/90 text-background` or `bg-black/80 text-white`) with a subtle ring, so it reads clearly over both bright and dark covers.
-4. **Keep label compact:** icon + "Redo" normally, icon + "Regenerating…" while in flight. Disabled state and stopPropagation behavior unchanged.
-5. The "Use this design" hover hint at the bottom moves up slightly (or is left as-is — the Redo pill sits above it in the corner and they don't overlap visually).
+### 1. Display — show the full cover, never crop (`ProductCoverPreview.tsx`)
+- Switch the tile `<img>` from `object-cover` to `object-contain` on a neutral dark background, keeping the 3:4 tile frame.
+  - Result: the entire generated image is always visible inside the tile; if its ratio is slightly off, you get thin letterbox bars instead of a cropped ribbon.
+- Keep the existing ring/active/hover affordances and the bottom-right "Redo" pill exactly as they are.
+- Apply the same `object-contain` treatment to the public product page hero image (`AuthorProductPage.tsx`, line 509) so the public page also shows the full cover.
 
-No changes to the edge function, no new props, no business logic touched.
+### 2. Generation — bake in safe margins (`supabase/functions/generate-product-cover/index.ts`)
+Add explicit safe-area + composition rules to `buildPrompt(...)` so future regenerations don't render text against the edge:
+
+- **Safe area:** "Leave a clear ~8% safe margin on all four sides — no text, ribbon, byline, or critical illustration detail may touch any edge of the canvas."
+- **Ribbon placement:** "The top ribbon must sit fully inside the top safe margin, with at least 6% of canvas height of clearance above it."
+- **Title placement:** "Title must sit below the ribbon with visible breathing room; do not let any glyph cross the top safe margin."
+- **Byline placement:** "Author byline must sit fully inside the bottom safe margin."
+- **Aspect:** restate "Output must be exactly 3:4 portrait (e.g. 1024x1365). Do not crop, do not letterbox."
+
+This applies to all three art directions (match / vary / typographic) and to per-slot Redo (which reuses the same prompt builder), so old truncated designs can be fixed by clicking Redo on that slot.
+
+## Files
+- `src/components/dashboard/builders/shared/ProductCoverPreview.tsx` — img class swap + bg color
+- `src/pages/AuthorProductPage.tsx` — img class swap (hero cover)
+- `supabase/functions/generate-product-cover/index.ts` — extend `buildPrompt` with safe-margin rules
 
 ## Verification
-
-Open BP-08 cover designs → each of the 3 saved tiles shows a visible "↻ Redo" pill in the bottom-right corner, even without hovering. Click it → tile shows spinner + "Regenerating…", other tiles untouched, new image appears in the same slot with the same art direction.
+1. Reload BP-08 → the first tile shows the full "SPECIAL EDITION" ribbon and full "Be SUCKcessful" title with no top crop (any off-ratio shows as thin bars, not clipping).
+2. Click "Redo" on the first tile → new image regenerates with the ribbon/title/byline visibly inside safe margins.
+3. Open the public product page → the hero cover is fully visible (no top crop).
