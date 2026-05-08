@@ -216,12 +216,10 @@ Deno.serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: slotIndex === 2
-              ? [{ type: "text", text: prompt }]
-              : [
-                  { type: "text", text: prompt },
-                  { type: "image_url", image_url: { url: bookCoverUrl } },
-                ],
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: bookCoverUrl } },
+            ],
           },
         ],
       }),
