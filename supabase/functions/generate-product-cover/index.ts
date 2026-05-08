@@ -253,28 +253,48 @@ Deno.serve(async (req) => {
     const { data: pub } = admin.storage.from("product-covers").getPublicUrl(path);
     const coverUrl = pub.publicUrl;
 
-    // Demote all existing entries; push new active.
-    const updated: HistEntry[] = history.map((h) => ({ ...h, is_active: false }));
-    updated.push({ url: coverUrl, created_at: new Date().toISOString(), is_active: true });
+    let updated: HistEntry[];
+    if (replaceIndex !== null && replaceIndex >= 0 && replaceIndex < history.length) {
+      // In-place replacement: preserve is_active flag, swap URL + timestamp.
+      const old = history[replaceIndex];
+      updated = history.map((h, i) =>
+        i === replaceIndex
+          ? { url: coverUrl, created_at: new Date().toISOString(), is_active: !!old.is_active }
+          : h,
+      );
+      // Best-effort delete of replaced file.
+      try {
+        const m = old.url.match(/\/product-covers\/(.+)$/);
+        if (m && m[1]) await admin.storage.from("product-covers").remove([decodeURIComponent(m[1])]);
+      } catch (delErr) {
+        console.warn("Failed to delete replaced cover file", delErr);
+      }
+    } else {
+      // Demote all existing entries; push new active.
+      updated = history.map((h) => ({ ...h, is_active: false }));
+      updated.push({ url: coverUrl, created_at: new Date().toISOString(), is_active: true });
 
-    // Cap at 3: drop oldest non-active if needed (delete its storage file).
-    if (updated.length > 3) {
-      const inactiveSorted = updated
-        .filter((h) => !h.is_active)
-        .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
-      const toDrop = inactiveSorted[0];
-      if (toDrop) {
-        const idx = updated.findIndex((h) => h.url === toDrop.url && !h.is_active);
-        if (idx >= 0) updated.splice(idx, 1);
-        try {
-          // url like .../object/public/product-covers/<path>
-          const m = toDrop.url.match(/\/product-covers\/(.+)$/);
-          if (m && m[1]) await admin.storage.from("product-covers").remove([decodeURIComponent(m[1])]);
-        } catch (delErr) {
-          console.warn("Failed to delete old cover file", delErr);
+      // Cap at 3: drop oldest non-active if needed (delete its storage file).
+      if (updated.length > 3) {
+        const inactiveSorted = updated
+          .filter((h) => !h.is_active)
+          .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+        const toDrop = inactiveSorted[0];
+        if (toDrop) {
+          const idx = updated.findIndex((h) => h.url === toDrop.url && !h.is_active);
+          if (idx >= 0) updated.splice(idx, 1);
+          try {
+            const m = toDrop.url.match(/\/product-covers\/(.+)$/);
+            if (m && m[1]) await admin.storage.from("product-covers").remove([decodeURIComponent(m[1])]);
+          } catch (delErr) {
+            console.warn("Failed to delete old cover file", delErr);
+          }
         }
       }
     }
+
+    // Active URL = the one currently active in updated[].
+    const activeEntry = updated.find((h) => h.is_active) || updated[updated.length - 1];
 
     await admin
       .from("author_nodes")
