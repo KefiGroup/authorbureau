@@ -112,19 +112,20 @@ serve(async (req) => {
     if (bookErr || !book) {
       return new Response(JSON.stringify({ error: "Book not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (book.author_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    logStep("Book loaded", { title: book.title });
-
-    // Resolve author_profile id (for author_nodes write)
+    // Resolve author_profile id (books.author_id references author_profiles.id, NOT auth.users.id)
     const { data: profile } = await supabase
       .from("author_profiles")
       .select("id, pen_name, author_slug")
       .eq("user_id", user.id)
       .maybeSingle();
     const authorProfileId = profile?.id;
+    const authorId = authorProfileId; // alias used by downstream queries
     const authorSlug = profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-");
+
+    if (!authorProfileId || book.author_id !== authorProfileId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    logStep("Book loaded", { title: book.title });
 
     // Fetch audiobook record
     const { data: audiobook } = await supabase
