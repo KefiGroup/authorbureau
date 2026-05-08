@@ -98,6 +98,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
     const user = await resolveUser(token);
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     let body: any;
     try {
