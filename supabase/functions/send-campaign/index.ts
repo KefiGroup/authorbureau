@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -100,6 +101,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     const { campaignId } = await req.json();
     if (!campaignId) {
@@ -113,7 +115,7 @@ Deno.serve(async (req) => {
       .from("email_campaigns")
       .select("*")
       .eq("id", campaignId)
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .single();
 
     if (campErr || !campaign) {
@@ -131,7 +133,7 @@ Deno.serve(async (req) => {
     const { data: settings } = await supabase
       .from("author_email_settings")
       .select("*")
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .single();
 
     const { data: profile } = await supabase
@@ -145,7 +147,7 @@ Deno.serve(async (req) => {
     const { data: subscribers, error: subErr } = await supabase
       .from("author_subscribers")
       .select("id, email, name")
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .eq("status", "active");
 
     if (subErr || !subscribers || subscribers.length === 0) {

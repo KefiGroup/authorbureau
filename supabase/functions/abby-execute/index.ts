@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -97,6 +98,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const token = authHeader.replace("Bearer ", "");
     const user = await resolveUser(token);
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     let body: any;
     try {
@@ -155,7 +157,7 @@ serve(async (req) => {
         const { content, assetType } = context;
         const { error } = await supabase.from("generated_assets").upsert({
           book_id: bookId,
-          author_id: user.id,
+          author_id: authorId,
           asset_type: assetType || productNode,
           content,
           updated_at: new Date().toISOString(),
@@ -329,7 +331,7 @@ Return the updated plan in the same JSON structure as the original, with these a
 
       await supabase.from("generated_assets").upsert({
         book_id: bookId,
-        author_id: user.id,
+        author_id: authorId,
         asset_type: "business_plan",
         content: JSON.stringify(updatedPlan),
         updated_at: new Date().toISOString(),
@@ -346,7 +348,7 @@ Return the updated plan in the same JSON structure as the original, with these a
         .from("generated_assets")
         .select("content, updated_at")
         .eq("book_id", bookId)
-        .eq("author_id", user.id)
+        .eq("author_id", authorId)
         .eq("asset_type", "business_plan")
         .maybeSingle();
 
@@ -354,7 +356,7 @@ Return the updated plan in the same JSON structure as the original, with these a
         .from("generated_assets")
         .select("asset_type, updated_at")
         .eq("book_id", bookId)
-        .eq("author_id", user.id);
+        .eq("author_id", authorId);
 
       let parsedPlan = null;
       if (plan?.content) {

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
@@ -146,6 +147,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     // === GENERATE SINGLE CHUNK ===
     if (action === "generate-chunk") {
@@ -156,7 +158,7 @@ serve(async (req) => {
 
       const { data: book } = await supabase
         .from("books").select("id, author_id, title").eq("id", bookId).single();
-      if (!book || book.author_id !== user.id) {
+      if (!book || book.author_id !== authorId) {
         return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -189,7 +191,7 @@ serve(async (req) => {
       if (audiobookId) {
         await supabase.from("audiobooks").update({
           audio_url: finalUrl, status: "generated",
-        }).eq("id", audiobookId).eq("author_id", user.id);
+        }).eq("id", audiobookId).eq("author_id", authorId);
       }
 
       return new Response(JSON.stringify({
@@ -206,7 +208,7 @@ serve(async (req) => {
 
       const { data: book } = await supabase
         .from("books").select("id, author_id, title").eq("id", bookId).single();
-      if (!book || book.author_id !== user.id) {
+      if (!book || book.author_id !== authorId) {
         return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -229,7 +231,7 @@ serve(async (req) => {
       if (audiobookId) {
         await supabase.from("audiobooks").update({
           audio_url: publicUrl.publicUrl, status: "generated",
-        }).eq("id", audiobookId).eq("author_id", user.id);
+        }).eq("id", audiobookId).eq("author_id", authorId);
       }
 
       return new Response(JSON.stringify({

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -111,26 +112,27 @@ serve(async (req) => {
     if (bookErr || !book) {
       return new Response(JSON.stringify({ error: "Book not found" }), { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    if (book.author_id !== user.id) {
-      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-    logStep("Book loaded", { title: book.title });
-
-    // Resolve author_profile id (for author_nodes write)
+    // Resolve author_profile id (books.author_id references author_profiles.id, NOT auth.users.id)
     const { data: profile } = await supabase
       .from("author_profiles")
       .select("id, pen_name, author_slug")
       .eq("user_id", user.id)
       .maybeSingle();
     const authorProfileId = profile?.id;
+    const authorId = authorProfileId; // alias used by downstream queries
     const authorSlug = profile?.author_slug || (profile?.pen_name || "").toLowerCase().replace(/\s+/g, "-");
+
+    if (!authorProfileId || book.author_id !== authorProfileId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    logStep("Book loaded", { title: book.title });
 
     // Fetch audiobook record
     const { data: audiobook } = await supabase
       .from("audiobooks")
       .select("id")
       .eq("book_id", bookId)
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -217,7 +219,7 @@ serve(async (req) => {
     } else {
       const { data: inserted } = await supabase.from("audiobooks").insert({
         book_id: bookId,
-        author_id: user.id,
+        author_id: authorId,
         title: book.title,
         ...audiobookRow,
       } as any).select("id").single();

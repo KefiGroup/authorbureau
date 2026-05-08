@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
@@ -124,6 +125,7 @@ serve(async (req) => {
     }
 
     console.log("[elevenlabs-tts-audiobook]", { action, email: user.email });
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     // (preview-voice handled above without auth)
 
@@ -184,7 +186,7 @@ serve(async (req) => {
         await supabase.from("audiobooks").update({
           audio_url: finalUrl,
           status: "generated",
-        }).eq("id", audiobookId).eq("author_id", user.id);
+        }).eq("id", audiobookId).eq("author_id", authorId);
       }
 
       return new Response(JSON.stringify({
@@ -237,7 +239,7 @@ serve(async (req) => {
         await supabase.from("audiobooks").update({
           audio_url: publicUrl.publicUrl,
           status: "generated",
-        }).eq("id", audiobookId).eq("author_id", user.id);
+        }).eq("id", audiobookId).eq("author_id", authorId);
       }
 
       return new Response(JSON.stringify({

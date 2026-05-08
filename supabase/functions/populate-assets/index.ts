@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -57,6 +58,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     const { assetType, bookId, rawContent, appendMode, frameworkName } = await req.json();
 
@@ -72,7 +74,7 @@ serve(async (req) => {
       .eq("id", bookId)
       .single();
 
-    if (!book || book.author_id !== user.id) {
+    if (!book || book.author_id !== authorId) {
       return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -82,7 +84,7 @@ serve(async (req) => {
       .from("generated_assets")
       .select("id")
       .eq("book_id", bookId)
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .eq("asset_type", assetType)
       .order("updated_at", { ascending: false })
       .limit(1)
@@ -94,22 +96,22 @@ serve(async (req) => {
 
     switch (assetType) {
       case "course":
-        result = await populateCourse(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        result = await populateCourse(supabase, authorId, bookId, rawContent, book.title, sourceAssetId);
         break;
       case "email":
-        result = await populateEmailFlow(supabase, user.id, bookId, rawContent, book.title);
+        result = await populateEmailFlow(supabase, authorId, bookId, rawContent, book.title);
         break;
       case "speaker":
-        result = await populateSpeakingTopics(supabase, user.id, bookId, rawContent);
+        result = await populateSpeakingTopics(supabase, authorId, bookId, rawContent);
         break;
       case "workbook":
-        result = await populateWorkbook(supabase, user.id, bookId, rawContent, book.title, sourceAssetId, appendMode, frameworkName);
+        result = await populateWorkbook(supabase, authorId, bookId, rawContent, book.title, sourceAssetId, appendMode, frameworkName);
         break;
       case "social":
-        result = await populateSocialMedia(supabase, user.id, bookId, rawContent, sourceAssetId);
+        result = await populateSocialMedia(supabase, authorId, bookId, rawContent, sourceAssetId);
         break;
       case "products":
-        result = await populateProductIdeas(supabase, user.id, bookId, rawContent, book.title, sourceAssetId);
+        result = await populateProductIdeas(supabase, authorId, bookId, rawContent, book.title, sourceAssetId);
         break;
       default:
         result = { saved: true, type: "content_only" };

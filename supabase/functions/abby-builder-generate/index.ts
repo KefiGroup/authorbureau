@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -702,20 +703,21 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
 
     // Fetch context in parallel
     const [profileRes, bookRes, manuscriptRes, planRes, frameworksRes, productsRes] = await Promise.all([
       adminClient.from("author_profiles").select("pen_name, bio_short, genres, frameworks, credentials").eq("user_id", user.id).maybeSingle(),
       adminClient.from("books").select("title, subtitle, description, genre, author_name").eq("id", bookId).maybeSingle(),
-      adminClient.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", user.id).eq("asset_type", "source_material").maybeSingle(),
-      adminClient.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", user.id).eq("asset_type", "business_plan").maybeSingle(),
-      adminClient.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", user.id).eq("asset_type", "frameworks").maybeSingle(),
+      adminClient.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", authorId).eq("asset_type", "source_material").maybeSingle(),
+      adminClient.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", authorId).eq("asset_type", "business_plan").maybeSingle(),
+      adminClient.from("generated_assets").select("content").eq("book_id", bookId).eq("author_id", authorId).eq("asset_type", "frameworks").maybeSingle(),
       Promise.all([
-        adminClient.from("courses").select("id, title, status, price").eq("author_id", user.id).eq("book_id", bookId),
-        adminClient.from("audiobooks").select("id, title, status").eq("author_id", user.id).eq("book_id", bookId),
-        adminClient.from("home_study_courses").select("id, title, status").eq("author_id", user.id).eq("book_id", bookId),
-        adminClient.from("email_flows").select("id, title, status").eq("author_id", user.id),
-        adminClient.from("coaching_packages").select("id, title, status").eq("author_id", user.id),
+        adminClient.from("courses").select("id, title, status, price").eq("author_id", authorId).eq("book_id", bookId),
+        adminClient.from("audiobooks").select("id, title, status").eq("author_id", authorId).eq("book_id", bookId),
+        adminClient.from("home_study_courses").select("id, title, status").eq("author_id", authorId).eq("book_id", bookId),
+        adminClient.from("email_flows").select("id, title, status").eq("author_id", authorId),
+        adminClient.from("coaching_packages").select("id, title, status").eq("author_id", authorId),
       ]),
     ]);
 
@@ -875,7 +877,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
       try {
         const { error: upsertErr } = await adminClient.from("generated_assets").upsert({
           book_id: bookId,
-          author_id: user.id,
+          author_id: authorId,
           asset_type: `builder_proposal_${builderId}`,
           content: JSON.stringify(proposal),
           updated_at: new Date().toISOString(),
@@ -884,7 +886,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code fences, no text before or
           console.warn("Proposal upsert failed, trying insert:", upsertErr);
           await adminClient.from("generated_assets").insert({
             book_id: bookId,
-            author_id: user.id,
+            author_id: authorId,
             asset_type: `builder_proposal_${builderId}`,
             content: JSON.stringify(proposal),
           });
