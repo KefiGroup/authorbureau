@@ -453,7 +453,7 @@ export default function BP07Builder({ authorId, bookId }: Props) {
           </div>
         )}
         {step === 3 && !content?.activated && <AbbyCard><div className="space-y-4"><p className="text-muted-foreground font-medium animate-pulse">{ACT_MSGS[msgIndex % ACT_MSGS.length]}</p><Progress value={undefined} className="h-2 w-full [&>div]:animate-pulse" /><p className="text-xs text-muted-foreground">Abby usually takes 20–40 seconds</p></div></AbbyCard>}
-        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-07" authorName={authorName} penNameSlug={authorSlug} /><HomeStudyDistributionCard channels={channels} content={content} authorSlug={authorSlug} variant="success" /><BackToReviewLink onClick={() => setStep(2)} /></>}
+        {step === 3 && content?.activated && <><PublishSuccessScreen nodeId="BP-07" authorName={authorName} penNameSlug={authorSlug} />{authorId && (<ProductCoverPreview authorId={authorId} nodeId="BP-07" bookId={activeBookId} productKind="home-study" productTitle={(typeof content?.programme_title === "string" && content.programme_title.trim()) || "Home Study Course"} productSubtitle={typeof content?.programme_subtitle === "string" ? content.programme_subtitle : undefined} authorName={authorName} />)}<HomeStudyDistributionCard channels={channels} content={content} authorSlug={authorSlug} variant="success" /><BackToReviewLink onClick={() => setStep(2)} /></>}
       </div>
     </div>
   );
