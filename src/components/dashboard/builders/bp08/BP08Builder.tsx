@@ -501,7 +501,12 @@ export default function BP08Builder({ authorId, bookId }: Props) {
                 bookId={activeBookId}
                 productKind="special-edition"
                 productTitle={(typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions"}
-                productSubtitle="Special Edition"
+                productSubtitle={
+                  (selectedOccasion?.label ||
+                    (typeof content?.occasion_label === "string" ? content.occasion_label : ""))
+                    ? `${selectedOccasion?.label || content.occasion_label} Special Edition`
+                    : undefined
+                }
                 authorName={authorName}
               />
             )}
