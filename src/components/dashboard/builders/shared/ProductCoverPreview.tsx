@@ -38,6 +38,7 @@ export default function ProductCoverPreview({
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [switching, setSwitching] = useState<string | null>(null);
+  const [regeneratingIdx, setRegeneratingIdx] = useState<number | null>(null);
 
   const loadCover = async () => {
     let q = supabase
@@ -88,6 +89,34 @@ export default function ProductCoverPreview({
       toast.error((e as Error).message || "Cover generation failed");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const handleRegenerateSlot = async (idx: number) => {
+    if (regeneratingIdx !== null || busy) return;
+    setRegeneratingIdx(idx);
+    try {
+      const res = await generateProductCover({
+        authorId,
+        nodeId,
+        bookId: bookId ?? null,
+        productKind,
+        productTitle,
+        productSubtitle,
+        authorName,
+        force: true,
+        regenerateSlotIndex: idx,
+      });
+      if (!res.success) {
+        toast.error(res.message || "Regeneration failed");
+        return;
+      }
+      await loadCover();
+      toast.success("Design regenerated");
+    } catch (e) {
+      toast.error((e as Error).message || "Regeneration failed");
+    } finally {
+      setRegeneratingIdx(null);
     }
   };
 
