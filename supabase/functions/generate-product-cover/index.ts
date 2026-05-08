@@ -50,8 +50,13 @@ function buildPrompt(args: {
     args.authorName ? `${safeSubtitle ? 4 : 3}. Author byline at the bottom: "${args.authorName}"` : null,
   ].filter(Boolean).join("\n");
 
+  const refUsage = args.slotIndex === 2
+    ? `The attached image (if any) is for COLOR PALETTE and MOOD reference ONLY. DO NOT copy, edit, trace, or reuse any text, characters, or illustration from it. Generate a brand-new image from scratch.`
+    : `The attached image is a PALETTE / MOOD / STYLE reference only. DO NOT edit, retouch, trace, or reproduce any text from it. Generate a brand-new original image inspired by its palette and mood.`;
+
   return [
-    `Create a print-ready 3:4 portrait cover for ${meta.descriptor}.`,
+    `Generate a brand-new, original print-ready 3:4 portrait cover image for ${meta.descriptor}. This is an image GENERATION task, not an image edit task.`,
+    refUsage,
     direction,
     ``,
     `ASPECT & FRAMING:`,
