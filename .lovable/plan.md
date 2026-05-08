@@ -1,26 +1,41 @@
-## Problem
+## Goal
 
-On the BP-09 Special Editions covers, the ribbon at the top says **"SPECIAL EDITION"** and the subtitle directly under the title also says **"Special Editions"** — the same label is rendered twice on the same cover.
+When an author picks an occasion in **BP-08 Special Editions** (Mother's Day, Father's Day, Christmas, etc.), the cover subtitle should read **"Mother's Day Special Edition"** instead of the redundant "Special Editions" we show today. If no occasion is selected, we show no subtitle at all (the gold ribbon already says SPECIAL EDITION, so nothing is lost).
 
-Root cause: BP-09 passes `content.tagline` (which the upstream generator sets to "Special Editions") as `productSubtitle` to `generate-product-cover`. The current `sanitizeSubtitle()` in the edge function strips a leading `"special edition"` prefix, but only matches the singular form — `"Special Editions"` (plural) survives because after stripping `"Special Edition"` it leaves a stray `"s"` which then falls below the 3-char floor in some cases but still slips through in others, and the AI model also tends to re-add a "Special Edition(s)" line on its own when the kind is `special-edition`.
+## Where the data already lives
 
-The duplication will recur on any `productKind` whose subtitle is just a restatement of the ribbon (e.g. `workbook` → "Workbook", `home-study` → "Home Study Course").
+BP-08 already captures the picked occasion and persists it on the draft:
 
-## Fix (single file: `supabase/functions/generate-product-cover/index.ts`)
+- `selectedOccasion.label` (e.g. `"Mother's Day"`, `"Father's Day"`) — derived from `?occasion=…` in the URL via `findCalendarOccasion()`.
+- It is saved into `content.occasion_label` on the draft (BP08Builder.tsx ~L147), so it survives reload and is available to the success-screen preview tile.
 
-1. **Tighten `sanitizeSubtitle()`** so it also catches plurals and "echo of the ribbon":
-   - Add plural variants to `REDUNDANT_SUBTITLE_PREFIXES` (e.g. `"special editions"`, `"workbooks"`, `"home study courses"`, `"online courses"`, `"bundles"`, `"toolkits"`).
-   - After stripping prefixes, also reject the subtitle if the cleaned string, lowercased and stripped of punctuation, is **equal to or fully contained in** the kind's ribbon label (e.g. cleaned = "special editions" vs ribbon "SPECIAL EDITION" → drop).
-   - Treat any cleaned result of length < 4 as undefined (currently 3).
+So no new DB fields and no new generator are needed — we just stop hard-coding the subtitle and read what's already there.
 
-2. **Strengthen the prompt** in `buildPrompt()`:
-   - Add an explicit forbidden-text rule: the subtitle must NOT repeat or paraphrase the ribbon text. If no subtitle is supplied, render only the ribbon, title, and byline — do not invent a "Special Edition / Workbook / Course" line under the title.
+## Changes (frontend only, 1 file)
 
-3. **Deploy** the `generate-product-cover` edge function.
+**`src/components/dashboard/builders/bp08/BP08Builder.tsx`**
 
-No other files change. Existing covers won't auto-fix; authors hit **Redo** on a tile to regenerate cleanly. No DB or frontend changes.
+1. Add a small helper near the top of the component:
+   ```ts
+   const occasionLabel =
+     selectedOccasion?.label ||
+     (typeof content?.occasion_label === "string" ? content.occasion_label : "");
+   const editionSubtitle = occasionLabel ? `${occasionLabel} Special Edition` : undefined;
+   ```
+2. Replace the two hard-coded `productSubtitle: "Special Edition"` / `productSubtitle="Special Edition"` (the `generateProductCover(...)` call ~L274 and the `<ProductCoverPreview …/>` ~L500) with `editionSubtitle`.
+3. Leave the gold ribbon and `productKind: "special-edition"` exactly as they are.
+
+## Why this works with the existing edge function
+
+`sanitizeSubtitle()` in `generate-product-cover` strips leading redundant prefixes ("special edition", "special editions", etc.) and rejects subtitles that are equal to / contained in the ribbon label.
+
+- `"Mother's Day Special Edition"` does **not** start with a redundant prefix and is **not** equal to or contained in `"SPECIAL EDITION"`, so it passes through cleanly.
+- When `editionSubtitle` is `undefined` (no occasion picked), the existing prompt rule already instructs the model to render only the ribbon + title + byline — no "Special Edition" line is invented.
+
+So no edge-function change is required. Existing covers won't auto-fix; authors hit **Redo** on a tile to regenerate cleanly.
 
 ## Out of scope
 
-- Changing what BP-09's upstream generator stores in `content.tagline` (would need a separate audit across BP-06/07/08/09).
-- Removing the ribbon entirely for `special-edition` (the ribbon is the strongest visual signal of the product kind; keeping it and dropping the redundant subtitle is the correct trade-off).
+- BP-09 (Book Sales) — different node, unrelated to the occasion picker.
+- BP-06 / BP-07 (workbook / home-study) cover subtitles — separate cleanup if desired later.
+- Any change to how occasions are stored, the calendar card, or the edge function.
