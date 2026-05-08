@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -35,7 +36,7 @@ Deno.serve(async (req) => {
     const { data: books } = await supabase
       .from("books")
       .select("id, title")
-      .eq("author_id", user.id);
+      .eq("author_id", authorId);
 
     if (!books || books.length === 0) {
       return new Response(
@@ -71,7 +72,7 @@ Deno.serve(async (req) => {
         .from("author_subscribers")
         .upsert(
           {
-            author_id: user.id,
+            author_id: authorId,
             email: signup.email.toLowerCase().trim(),
             source: "newsletter",
             source_detail: bookTitle,

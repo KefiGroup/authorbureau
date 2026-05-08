@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -130,7 +131,7 @@ serve(async (req) => {
       .from("audiobooks")
       .select("id")
       .eq("book_id", bookId)
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -217,7 +218,7 @@ serve(async (req) => {
     } else {
       const { data: inserted } = await supabase.from("audiobooks").insert({
         book_id: bookId,
-        author_id: user.id,
+        author_id: authorId,
         title: book.title,
         ...audiobookRow,
       } as any).select("id").single();

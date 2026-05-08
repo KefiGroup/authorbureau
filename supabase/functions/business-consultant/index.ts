@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -2934,6 +2935,7 @@ async function resolveUser(req: Request): Promise<{ id: string; email: string } 
     const email = payload.email;
     if (email) {
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
       const { data: { users } } = await adminClient.auth.admin.listUsers();
       const match = users?.find((u: any) => u.email === email);
       if (match) return { id: match.id, email };
@@ -3120,10 +3122,11 @@ serve(async (req) => {
       }
 
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
       const { error: upsertErr } = await adminClient.from("generated_assets").upsert(
         {
           book_id: savePlanBookId,
-          author_id: user.id,
+          author_id: authorId,
           asset_type: "business_plan",
           content: planContent,
           updated_at: new Date().toISOString(),
@@ -3160,11 +3163,12 @@ serve(async (req) => {
       }
 
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
       const { data: planData } = await adminClient
         .from("generated_assets")
         .select("content")
         .eq("book_id", getPlanBookId)
-        .eq("author_id", user.id)
+        .eq("author_id", authorId)
         .eq("asset_type", "business_plan")
         .maybeSingle();
 
@@ -3194,6 +3198,7 @@ serve(async (req) => {
 
       // Get book context
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
       const { data: bookData } = await adminClient
         .from("books")
         .select("title, description, genre, author_name")
@@ -3310,7 +3315,7 @@ IMPORTANT RULES:
         await adminClient.from("generated_assets").upsert(
           {
             book_id: expandBookId,
-            author_id: user.id,
+            author_id: authorId,
             asset_type: "business_plan",
             content: expandedContent,
             updated_at: new Date().toISOString(),
@@ -3346,36 +3351,37 @@ IMPORTANT RULES:
 
     // Fetch all context data in parallel
     const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
 
     const [profileRes, booksRes, assetsRes, subscribersRes, coursesRes, workbooksRes, webinarsRes, coachingRes, speakingRes, socialRes, emailFlowsRes, audiobooksRes, homeStudyRes] = await Promise.all([
       adminClient.from("author_profiles").select("*").eq("user_id", user.id).maybeSingle(),
-      adminClient.from("books").select("*").eq("author_id", user.id),
+      adminClient.from("books").select("*").eq("author_id", authorId),
       bookId
-        ? adminClient.from("generated_assets").select("asset_type, content").eq("book_id", bookId).eq("author_id", user.id)
+        ? adminClient.from("generated_assets").select("asset_type, content").eq("book_id", bookId).eq("author_id", authorId)
         : Promise.resolve({ data: [] }),
-      adminClient.from("author_subscribers").select("id").eq("author_id", user.id).eq("status", "active"),
+      adminClient.from("author_subscribers").select("id").eq("author_id", authorId).eq("status", "active"),
       bookId
-        ? adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", user.id).eq("book_id", bookId)
-        : adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", user.id),
+        ? adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", authorId).eq("book_id", bookId)
+        : adminClient.from("courses").select("id, title, status, description, price, currency").eq("author_id", authorId),
       bookId
-        ? adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", user.id).eq("book_id", bookId)
-        : adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", user.id),
+        ? adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", authorId).eq("book_id", bookId)
+        : adminClient.from("workbooks").select("id, title, status, description, price, currency").eq("author_id", authorId),
       bookId
-        ? adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", user.id).eq("book_id", bookId)
-        : adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", user.id),
-      adminClient.from("coaching_packages").select("id, title, status, description, price, type, sessions_count").eq("author_id", user.id),
-      adminClient.from("speaking_topics").select("id, title, status, description, fee").eq("author_id", user.id),
+        ? adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", authorId).eq("book_id", bookId)
+        : adminClient.from("webinars").select("id, title, status, description, price, is_free").eq("author_id", authorId),
+      adminClient.from("coaching_packages").select("id, title, status, description, price, type, sessions_count").eq("author_id", authorId),
+      adminClient.from("speaking_topics").select("id, title, status, description, fee").eq("author_id", authorId),
       bookId
-        ? adminClient.from("social_media_content").select("id, platform, status").eq("book_id", bookId).eq("author_id", user.id)
-        : Promise.resolve({ data: [] }),
-      bookId
-        ? adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", user.id).eq("book_id", bookId)
-        : adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", user.id),
-      bookId
-        ? adminClient.from("audiobooks").select("id, title, status").eq("book_id", bookId).eq("author_id", user.id)
+        ? adminClient.from("social_media_content").select("id, platform, status").eq("book_id", bookId).eq("author_id", authorId)
         : Promise.resolve({ data: [] }),
       bookId
-        ? adminClient.from("home_study_courses").select("id, title, status").eq("book_id", bookId).eq("author_id", user.id)
+        ? adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", authorId).eq("book_id", bookId)
+        : adminClient.from("email_flows").select("id, title, status, flow_type").eq("author_id", authorId),
+      bookId
+        ? adminClient.from("audiobooks").select("id, title, status").eq("book_id", bookId).eq("author_id", authorId)
+        : Promise.resolve({ data: [] }),
+      bookId
+        ? adminClient.from("home_study_courses").select("id, title, status").eq("book_id", bookId).eq("author_id", authorId)
         : Promise.resolve({ data: [] }),
     ]);
 

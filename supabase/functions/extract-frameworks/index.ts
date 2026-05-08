@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
@@ -62,20 +63,21 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
+    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
 
     const [manuscriptRes, bookRes] = await Promise.all([
       adminClient
         .from("generated_assets")
         .select("content")
         .eq("book_id", bookId)
-        .eq("author_id", user.id)
+        .eq("author_id", authorId)
         .eq("asset_type", "source_material")
         .maybeSingle(),
       adminClient
         .from("books")
         .select("title, subtitle, description, genre")
         .eq("id", bookId)
-        .eq("author_id", user.id)
+        .eq("author_id", authorId)
         .maybeSingle(),
     ]);
 

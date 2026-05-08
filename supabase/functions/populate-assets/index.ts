@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -82,7 +83,7 @@ serve(async (req) => {
       .from("generated_assets")
       .select("id")
       .eq("book_id", bookId)
-      .eq("author_id", user.id)
+      .eq("author_id", authorId)
       .eq("asset_type", assetType)
       .order("updated_at", { ascending: false })
       .limit(1)
