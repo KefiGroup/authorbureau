@@ -269,6 +269,15 @@ export default function BP07Builder({ authorId, bookId }: Props) {
 
       await publishNodeToSite(authorId!, "BP-07", authorSlug, activeBookId, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
+      void generateProductCover({
+        authorId: authorId!,
+        nodeId: "BP-07",
+        bookId: activeBookId ?? null,
+        productKind: "home-study",
+        productTitle: (typeof content?.programme_title === "string" && content.programme_title.trim()) || "Home Study Course",
+        productSubtitle: typeof content?.programme_subtitle === "string" ? content.programme_subtitle : undefined,
+        authorName,
+      }).catch((err) => console.warn("[BP-07] cover gen failed", err));
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Publish failed");
       setError(msg);
