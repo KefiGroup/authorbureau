@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     // Load node + book cover (lookup either by id, or by author/node/book triple)
-    let nodeQuery = admin.from("author_nodes").select("id, author_id, book_id, cover_image_url");
+    let nodeQuery = admin.from("author_nodes").select("id, author_id, book_id, cover_image_url, cover_image_history");
     if (authorNodeId) {
       nodeQuery = nodeQuery.eq("id", authorNodeId);
     } else if (authorId && nodeId) {
@@ -100,9 +100,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (node.cover_image_url && !force) {
+    type HistEntry = { url: string; created_at: string; is_active: boolean };
+    let history: HistEntry[] = Array.isArray(node.cover_image_history) ? (node.cover_image_history as HistEntry[]) : [];
+
+    // Backfill: if cover_image_url exists but history is empty, seed it.
+    if (history.length === 0 && node.cover_image_url) {
+      history = [{ url: node.cover_image_url, created_at: new Date().toISOString(), is_active: true }];
+    }
+
+    // Auto-publish path: skip AI when we already have a design (force=false).
+    if (!force && history.length > 0) {
+      const active = history.find((h) => h.is_active) || history[0];
       return new Response(
-        JSON.stringify({ success: true, status: 200, message: "already-generated", cover_url: node.cover_image_url }),
+        JSON.stringify({ success: true, status: 200, message: "already-generated", cover_url: active.url }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
@@ -190,7 +200,33 @@ Deno.serve(async (req) => {
     const { data: pub } = admin.storage.from("product-covers").getPublicUrl(path);
     const coverUrl = pub.publicUrl;
 
-    await admin.from("author_nodes").update({ cover_image_url: coverUrl }).eq("id", node.id);
+    // Demote all existing entries; push new active.
+    const updated: HistEntry[] = history.map((h) => ({ ...h, is_active: false }));
+    updated.push({ url: coverUrl, created_at: new Date().toISOString(), is_active: true });
+
+    // Cap at 3: drop oldest non-active if needed (delete its storage file).
+    if (updated.length > 3) {
+      const inactiveSorted = updated
+        .filter((h) => !h.is_active)
+        .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+      const toDrop = inactiveSorted[0];
+      if (toDrop) {
+        const idx = updated.findIndex((h) => h.url === toDrop.url && !h.is_active);
+        if (idx >= 0) updated.splice(idx, 1);
+        try {
+          // url like .../object/public/product-covers/<path>
+          const m = toDrop.url.match(/\/product-covers\/(.+)$/);
+          if (m && m[1]) await admin.storage.from("product-covers").remove([decodeURIComponent(m[1])]);
+        } catch (delErr) {
+          console.warn("Failed to delete old cover file", delErr);
+        }
+      }
+    }
+
+    await admin
+      .from("author_nodes")
+      .update({ cover_image_url: coverUrl, cover_image_history: updated })
+      .eq("id", node.id);
 
     return new Response(
       JSON.stringify({ success: true, status: 200, message: "ok", cover_url: coverUrl }),

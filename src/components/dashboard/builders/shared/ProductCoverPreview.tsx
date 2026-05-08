@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Loader2, RefreshCw, Sparkles, ImageIcon } from "lucide-react";
+import { Loader2, RefreshCw, Sparkles, ImageIcon, Check } from "lucide-react";
 import { toast } from "sonner";
 import { generateProductCover, type ProductKind } from "@/lib/generate-product-cover";
 
@@ -16,11 +16,14 @@ interface Props {
   authorName?: string;
 }
 
-/**
- * Shows the AI-generated product cover for a node and lets the author
- * (re)generate it. Polls once after the first generate so the new image
- * appears without a manual refresh.
- */
+interface HistEntry {
+  url: string;
+  created_at: string;
+  is_active: boolean;
+}
+
+const MAX_DESIGNS = 3;
+
 export default function ProductCoverPreview({
   authorId,
   nodeId,
@@ -30,19 +33,26 @@ export default function ProductCoverPreview({
   productSubtitle,
   authorName,
 }: Props) {
-  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [history, setHistory] = useState<HistEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [switching, setSwitching] = useState<string | null>(null);
 
   const loadCover = async () => {
     let q = supabase
       .from("author_nodes")
-      .select("cover_image_url")
+      .select("cover_image_url, cover_image_history")
       .eq("author_id", authorId)
       .eq("node_id", nodeId);
     if (bookId) q = q.eq("book_id", bookId);
     const { data } = await q.maybeSingle();
-    setCoverUrl((data?.cover_image_url as string | null) || null);
+    const raw = (data as any)?.cover_image_history;
+    let h: HistEntry[] = Array.isArray(raw) ? raw : [];
+    // Backfill view if only legacy single URL exists.
+    if (h.length === 0 && (data as any)?.cover_image_url) {
+      h = [{ url: (data as any).cover_image_url, created_at: new Date().toISOString(), is_active: true }];
+    }
+    setHistory(h);
     setLoading(false);
   };
 
@@ -51,7 +61,10 @@ export default function ProductCoverPreview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authorId, nodeId, bookId]);
 
-  const handleGenerate = async (force: boolean) => {
+  const activeUrl = history.find((h) => h.is_active)?.url || history[0]?.url || null;
+  const atCap = history.length >= MAX_DESIGNS;
+
+  const handleGenerate = async () => {
     setBusy(true);
     try {
       const res = await generateProductCover({
@@ -62,18 +75,14 @@ export default function ProductCoverPreview({
         productTitle,
         productSubtitle,
         authorName,
-        force,
+        force: history.length > 0,
       });
       if (!res.success) {
         toast.error(res.message || "Cover generation failed");
         return;
       }
-      if (res.cover_url) {
-        setCoverUrl(res.cover_url);
-        toast.success(force ? "Cover regenerated" : "Cover generated");
-      } else {
-        await loadCover();
-      }
+      await loadCover();
+      toast.success(history.length === 0 ? "Cover generated" : "New design saved");
     } catch (e) {
       toast.error((e as Error).message || "Cover generation failed");
     } finally {
@@ -81,57 +90,125 @@ export default function ProductCoverPreview({
     }
   };
 
+  const handlePick = async (url: string) => {
+    if (url === activeUrl) return;
+    setSwitching(url);
+    // Optimistic
+    setHistory((prev) => prev.map((h) => ({ ...h, is_active: h.url === url })));
+    try {
+      const { data, error } = await supabase.functions.invoke("set-active-product-cover", {
+        body: { authorId, nodeId, bookId: bookId ?? null, url },
+      });
+      if (error || !(data as any)?.success) {
+        await loadCover();
+        toast.error((data as any)?.message || error?.message || "Couldn't switch design");
+        return;
+      }
+      toast.success("Active design updated");
+    } catch (e) {
+      await loadCover();
+      toast.error((e as Error).message || "Couldn't switch design");
+    } finally {
+      setSwitching(null);
+    }
+  };
+
+  // Build 3 slots — fill with history, pad with empty.
+  const slots: (HistEntry | null)[] = Array.from({ length: MAX_DESIGNS }, (_, i) => history[i] || null);
+
   return (
     <Card className="overflow-hidden">
-      <CardContent className="pt-6 pb-6">
-        <div className="flex flex-col sm:flex-row gap-5 items-start">
-          <div className="shrink-0 w-[160px]">
-            <div
-              className="w-full rounded-lg shadow-2xl bg-muted flex items-center justify-center overflow-hidden"
-              style={{ aspectRatio: "3 / 4" }}
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              ) : coverUrl ? (
-                <img
-                  src={coverUrl}
-                  alt={`${productTitle} cover`}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
-              )}
-            </div>
+      <CardContent className="pt-6 pb-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold text-sm">AI Cover Designs</h3>
+          <span className="ml-auto text-xs text-muted-foreground">
+            {history.length}/{MAX_DESIGNS} saved
+          </span>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center justify-center h-32">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
           </div>
-          <div className="flex-1 min-w-0 space-y-2">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold text-sm">AI Cover Design</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              {coverUrl
-                ? "This cover was generated to visually match your book. It appears on your public product page."
-                : "Generate a cover that visually emulates your book — same palette, mood, and typography."}
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {slots.map((slot, idx) => {
+              if (!slot) {
+                return (
+                  <div
+                    key={`empty-${idx}`}
+                    className="rounded-lg border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex items-center justify-center"
+                    style={{ aspectRatio: "3 / 4" }}
+                  >
+                    <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                  </div>
+                );
+              }
+              const isActive = slot.url === activeUrl;
+              const isSwitching = switching === slot.url;
+              return (
+                <button
+                  key={slot.url}
+                  type="button"
+                  onClick={() => handlePick(slot.url)}
+                  disabled={isActive || !!switching}
+                  className={`group relative rounded-lg overflow-hidden bg-muted transition-all ${
+                    isActive
+                      ? "ring-2 ring-primary ring-offset-2 ring-offset-background shadow-2xl"
+                      : "ring-1 ring-border hover:ring-primary/60 hover:scale-[1.02] cursor-pointer"
+                  }`}
+                  style={{ aspectRatio: "3 / 4" }}
+                  title={isActive ? "Active design" : "Click to make this the active design"}
+                >
+                  <img
+                    src={slot.url}
+                    alt={`${productTitle} cover design ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {isActive && (
+                    <div className="absolute top-1 right-1 bg-primary text-primary-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded flex items-center gap-1">
+                      <Check className="h-3 w-3" /> Active
+                    </div>
+                  )}
+                  {isSwitching && (
+                    <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            {history.length === 0
+              ? "Generate a cover that visually emulates your book — same palette, mood, and typography."
+              : "The active design appears on your public product page. Click any saved design to switch."}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" onClick={handleGenerate} disabled={busy}>
+              {busy ? (
+                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+              ) : history.length === 0 ? (
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+              )}
+              {history.length === 0
+                ? "Generate cover"
+                : atCap
+                ? "Replace oldest with new design"
+                : "Generate new design"}
+            </Button>
+          </div>
+          {atCap && (
+            <p className="text-xs text-muted-foreground/70">
+              You're at the {MAX_DESIGNS}-design limit. Generating a new one will drop the oldest non-active design.
             </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {!coverUrl ? (
-                <Button size="sm" onClick={() => handleGenerate(false)} disabled={busy}>
-                  {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5 mr-1.5" />}
-                  Generate cover
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" onClick={() => handleGenerate(true)} disabled={busy}>
-                  {busy ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5 mr-1.5" />}
-                  Regenerate cover
-                </Button>
-              )}
-            </div>
-            {coverUrl && (
-              <p className="text-xs text-muted-foreground/70">
-                Tip: regenerate if the title or subtitle changes.
-              </p>
-            )}
-          </div>
+          )}
         </div>
       </CardContent>
     </Card>

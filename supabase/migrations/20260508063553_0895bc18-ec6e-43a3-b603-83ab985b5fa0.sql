@@ -1,0 +1,1 @@
+ALTER TABLE public.author_nodes ADD COLUMN IF NOT EXISTS cover_image_history jsonb NOT NULL DEFAULT '[]'::jsonb;
