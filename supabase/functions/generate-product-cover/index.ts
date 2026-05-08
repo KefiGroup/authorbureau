@@ -240,7 +240,7 @@ Deno.serve(async (req) => {
 
     // Fallback: if model refused (returned text but no image) and we passed a
     // reference image, retry once WITHOUT the reference (text-only generation).
-    if ((!dataUrl || !dataUrl.startsWith("data:image/")) && slotIndex !== 2) {
+    if (!dataUrl || !dataUrl.startsWith("data:image/")) {
       console.warn("Model refused with reference image; retrying text-only", JSON.stringify(aiData).slice(0, 300));
       const retryRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
