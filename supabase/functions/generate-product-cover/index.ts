@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
     // Load node + book cover (lookup either by id, or by author/node/book triple)
-    let nodeQuery = admin.from("author_nodes").select("id, author_id, book_id, cover_image_url");
+    let nodeQuery = admin.from("author_nodes").select("id, author_id, book_id, cover_image_url, cover_image_history");
     if (authorNodeId) {
       nodeQuery = nodeQuery.eq("id", authorNodeId);
     } else if (authorId && nodeId) {
@@ -100,9 +100,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (node.cover_image_url && !force) {
+    type HistEntry = { url: string; created_at: string; is_active: boolean };
+    let history: HistEntry[] = Array.isArray(node.cover_image_history) ? (node.cover_image_history as HistEntry[]) : [];
+
+    // Backfill: if cover_image_url exists but history is empty, seed it.
+    if (history.length === 0 && node.cover_image_url) {
+      history = [{ url: node.cover_image_url, created_at: new Date().toISOString(), is_active: true }];
+    }
+
+    // Auto-publish path: skip AI when we already have a design (force=false).
+    if (!force && history.length > 0) {
+      const active = history.find((h) => h.is_active) || history[0];
       return new Response(
-        JSON.stringify({ success: true, status: 200, message: "already-generated", cover_url: node.cover_image_url }),
+        JSON.stringify({ success: true, status: 200, message: "already-generated", cover_url: active.url }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
