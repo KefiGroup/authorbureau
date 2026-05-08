@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     // Get all newsletter signups for this author's books
     const { data: books } = await supabase
