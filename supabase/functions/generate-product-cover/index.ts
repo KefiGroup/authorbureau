@@ -68,6 +68,7 @@ function buildPrompt(args: {
     `  • The artwork MUST FILL the entire 3:4 canvas edge-to-edge. The output IS the cover, not a photo of the cover.`,
     `  • DO NOT render a small book, a 3D book mockup, a book on a desk/shelf/table, a book floating on a white or neutral background, or any product-photo-style framing.`,
     `  • No drop shadow around a book shape, no visible page edges, no spine, no perspective tilt suggesting a physical book.`,
+    `  • No inset panel, inner card, inner frame, inner border, or secondary rectangle inside the canvas. The background extends fully to all four edges; typography sits directly on it.`,
     ``,
     `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
     allowedTextLines,
