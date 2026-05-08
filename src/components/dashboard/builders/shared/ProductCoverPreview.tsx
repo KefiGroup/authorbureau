@@ -175,13 +175,8 @@ export default function ProductCoverPreview({
               <span className="font-medium text-foreground">How to choose:</span> the design with the gold ring + “Active” badge is the one shown on your public author page. Click any other saved design to make it the active one — the public page updates instantly.
             </div>
             <div>
-              <span className="font-medium text-foreground">Variety:</span> each new design uses a different art direction (match · vary · typographic) so your 3 saved options stay visually distinct.
+              <span className="font-medium text-foreground">Variety:</span> all 3 designs follow your book cover with slight variations in fonts, colours, and styling. Use <span className="font-medium text-foreground">Redo</span> on any tile to regenerate that design in place.
             </div>
-            <div>
-              <span className="font-medium text-foreground">Redo</span> fixes a single design in place (same art direction, same slot). <span className="font-medium text-foreground">Generate new design</span> creates an additional style — at {MAX_DESIGNS}/{MAX_DESIGNS} it replaces the oldest non-active one.
-            </div>
-          </div>
-        )}
 
         {loading ? (
           <div className="flex items-center justify-center h-32">
