@@ -196,8 +196,8 @@ export default function Directory() {
               onChange={(e) => setSortBy(e.target.value)}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50 appearance-none cursor-pointer"
             >
-              <option value="featured">Featured First</option>
               <option value="name">Name (A-Z)</option>
+              <option value="featured">Featured First</option>
             </select>
           </div>
 
