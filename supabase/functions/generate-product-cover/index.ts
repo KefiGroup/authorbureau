@@ -82,11 +82,10 @@ function buildPrompt(args: {
   slotIndex: number;
 }): string {
   const meta = PRODUCT_KIND_LABELS[args.kind] || PRODUCT_KIND_LABELS.generic;
-  // Defensive: drop any subtitle that looks like a paragraph/description.
-  const safeSubtitle =
-    args.productSubtitle && args.productSubtitle.trim().length > 0 && args.productSubtitle.trim().length <= 60
-      ? args.productSubtitle.trim()
-      : undefined;
+  // Defensive: drop any subtitle that looks like a paragraph/description, and
+  // strip redundant product-kind prefixes that the upstream content may include.
+  const cleaned = sanitizeSubtitle(args.productSubtitle, args.kind, args.productTitle);
+  const safeSubtitle = cleaned;
   const direction = ART_DIRECTIONS[args.slotIndex] ?? ART_DIRECTIONS[0];
 
   const allowedTextLines = [
