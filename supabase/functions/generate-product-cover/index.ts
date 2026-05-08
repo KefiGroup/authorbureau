@@ -58,6 +58,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const {
       authorNodeId,
+      authorId,
+      nodeId,
+      bookId,
       productKind = "workbook",
       productTitle,
       productSubtitle,
@@ -65,21 +68,29 @@ Deno.serve(async (req) => {
       force = false,
     } = body || {};
 
-    if (!authorNodeId || !productTitle) {
+    if (!productTitle) {
       return new Response(
-        JSON.stringify({ success: false, status: 400, message: "authorNodeId and productTitle are required" }),
+        JSON.stringify({ success: false, status: 400, message: "productTitle is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
 
-    // Load node + book cover
-    const { data: node, error: nodeErr } = await admin
-      .from("author_nodes")
-      .select("id, author_id, book_id, cover_image_url")
-      .eq("id", authorNodeId)
-      .maybeSingle();
+    // Load node + book cover (lookup either by id, or by author/node/book triple)
+    let nodeQuery = admin.from("author_nodes").select("id, author_id, book_id, cover_image_url");
+    if (authorNodeId) {
+      nodeQuery = nodeQuery.eq("id", authorNodeId);
+    } else if (authorId && nodeId) {
+      nodeQuery = nodeQuery.eq("author_id", authorId).eq("node_id", nodeId);
+      if (bookId) nodeQuery = nodeQuery.eq("book_id", bookId);
+    } else {
+      return new Response(
+        JSON.stringify({ success: false, status: 400, message: "Provide authorNodeId or (authorId + nodeId)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const { data: node, error: nodeErr } = await nodeQuery.maybeSingle();
 
     if (nodeErr || !node) {
       return new Response(

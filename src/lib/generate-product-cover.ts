@@ -9,7 +9,11 @@ export type ProductKind =
   | "generic";
 
 export interface GenerateProductCoverInput {
-  authorNodeId: string;
+  /** Either authorNodeId, OR authorId + nodeId (+ bookId optional). */
+  authorNodeId?: string;
+  authorId?: string;
+  nodeId?: string;
+  bookId?: string | null;
   productKind: ProductKind;
   productTitle: string;
   productSubtitle?: string;
