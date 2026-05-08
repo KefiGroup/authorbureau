@@ -137,6 +137,7 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "*", label: "Online course package", type: "pdf", formats: [...PDF_FORMATS, "csv"] },
     { key: "slides", label: "Course overview deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "slides")),
   ],
   "BA-11": [
     { key: "zip_url", label: "Audiobook export pack (ZIP)", type: "audio", formats: [],
@@ -154,6 +155,7 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "*", label: "Group coaching package", type: "pdf", formats: PDF_FORMATS },
     { key: "slides", label: "Group coaching pitch deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "slides")),
   ],
   "BA-14": [{ key: "*", label: "Podcast season package", type: "text", formats: TEXT_FORMATS }],
   "BA-15": [
@@ -165,29 +167,34 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "*", label: "Affiliate programme package", type: "text", formats: TEXT_FORMATS },
     { key: "pitch_deck", label: "Affiliate pitch deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "pitch_deck"), sizeHint: c => { const n = arrLen(c, "pitch_deck"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "pitch_deck")),
   ],
   "BA-17": [{ key: "*", label: "Upsell & bundle package", type: "text", formats: TEXT_FORMATS }],
   "BA-18": [
     { key: "*", label: "JV partnerships package", type: "text", formats: TEXT_FORMATS },
     { key: "pitch_deck", label: "JV pitch deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "pitch_deck"), sizeHint: c => { const n = arrLen(c, "pitch_deck"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "pitch_deck")),
   ],
   // ═══════════════ Yield Revenue ═══════════════
   "YR-19": [{ key: "*", label: "1-on-1 coaching package", type: "pdf", formats: PDF_FORMATS }],
   "YR-20": [{ key: "*", label: "Big-ticket offer package", type: "text", formats: TEXT_FORMATS }],
   "YR-21": [
     { key: "slides", label: "Keynote deck", type: "pptx", formats: SLIDE_FORMATS, probe: c => has(c, "slides") },
+    speakerScriptAsset(c => has(c, "slides")),
     { key: "one_sheet", label: "Speaker one-sheet", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "one_sheet") },
     { key: "topics", label: "Topic list", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "topics") },
   ],
   "YR-22": [
     { key: "curriculum", label: "Training curriculum", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "curriculum") },
     { key: "slides", label: "Training slide deck", type: "pptx", formats: SLIDE_FORMATS, probe: c => has(c, "slides") },
+    speakerScriptAsset(c => has(c, "slides")),
   ],
   "YR-23": [
     { key: "*", label: "Mastermind package", type: "pdf", formats: PDF_FORMATS },
     { key: "slides", label: "Mastermind pitch deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "slides")),
   ],
   "YR-24": [
     { key: "itinerary", label: "Retreat itinerary", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "itinerary") },
@@ -197,20 +204,24 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "*", label: "Certification package", type: "pdf", formats: PDF_FORMATS },
     { key: "slides", label: "Certification pitch deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "slides"), sizeHint: c => { const n = arrLen(c, "slides"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "slides")),
   ],
   "YR-26": [
     { key: "agenda", label: "Conference agenda", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "agenda") },
     { key: "sponsor_deck", label: "Sponsor deck", type: "pptx", formats: SLIDE_FORMATS, probe: c => has(c, "sponsor_deck") },
+    speakerScriptAsset(c => has(c, "sponsor_deck")),
   ],
   "YR-27": [
     { key: "campaign_copy", label: "Campaign copy", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "campaign_copy") },
     { key: "pitch_deck", label: "Pitch deck", type: "pptx", formats: SLIDE_FORMATS, probe: c => has(c, "pitch_deck") },
+    speakerScriptAsset(c => has(c, "pitch_deck")),
   ],
   "YR-28": [
     { key: "prospectus", label: "Sponsor prospectus", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "prospectus") },
     { key: "tiers", label: "Sponsorship tiers", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "tiers") },
     { key: "pitch_deck", label: "Sponsor pitch deck", type: "pptx", formats: SLIDE_FORMATS,
       probe: c => has(c, "pitch_deck"), sizeHint: c => { const n = arrLen(c, "pitch_deck"); return n ? `${n} slides` : undefined; } },
+    speakerScriptAsset(c => has(c, "pitch_deck")),
   ],
 };
 
