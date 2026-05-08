@@ -1,40 +1,56 @@
 ## Bug
 
-Clicking a saved cover design now returns "Invalid token" (401). The earlier fix sent the right (shared-backend) token, but the edge function rejects it.
+Token now resolves correctly, but `set-active-product-cover` returns 403 "Not your author_node".
 
 ## Root cause
 
-`supabase/functions/set-active-product-cover/index.ts` validates the bearer token with `userClient.auth.getUser()` against the **Cloud** project's anon key. The user's session JWT was issued by the **shared backend** (`wuftdpnekscrsghqtssd.supabase.co`), not Cloud. Cloud's GoTrue therefore returns `Invalid token` and the function 401s before it ever runs the ownership check.
+My previous fix added `email` to the ownership query:
 
-Every other edge function in the project handles this with `supabase/functions/_shared/resolve-user.ts`, which:
-1. tries Cloud `auth.getUser()`
-2. falls back to the shared-backend anon client
-3. reconciles the shared-backend email to a Cloud `auth.users.id` via service role
+```ts
+.from("author_profiles").select("user_id, email")
+```
 
-This is the canonical pattern (see core memory: "Edge Function User Resolver — All edge fns MUST import `_shared/resolve-user.ts`").
+But `author_profiles` has no `email` column (it lives on `auth.users` / `books.owner_email`). The query errors → `authorRow` is null → 403.
 
-## Fix (single edge function, no schema changes)
+The actual ownership data shows the by-id check would have worked: profile_user_id (`ef23c521-…`) matches the resolved user id. The email fallback was unnecessary for this row anyway.
 
-Refactor `supabase/functions/set-active-product-cover/index.ts`:
+## Fix
 
-1. Import `resolveUser` from `../_shared/resolve-user.ts`.
-2. Replace the manual `userClient.auth.getUser()` block with:
-   ```ts
-   const resolved = await resolveUser(req.headers.get("Authorization"));
-   if (!resolved.id && !resolved.email) return 401 "Invalid session";
-   ```
-3. Update the ownership check to accept either:
-   - `authorRow.user_id === resolved.id`, OR
-   - the author's `owner_email` (from `books.owner_email` for the node's book) matches `resolved.email` — mirroring the pattern in `get-author-book` and other shared-resolved functions.
+Edit `supabase/functions/set-active-product-cover/index.ts`:
 
-   Simplest path: keep the existing `author_profiles.user_id === resolved.id` check, and only fall through to email reconciliation when `resolved.id` is null.
+1. Drop the non-existent `email` column from the `author_profiles` select.
+2. Replace the email fallback with a `books.owner_email` fallback (the canonical pattern used by `get-author-book` and other resolvers): when `resolved.id` doesn't match `author_profiles.user_id`, look up `books.owner_email` for `node.book_id` and compare to `resolved.email`.
 
-No client changes. No migration. `generate-product-cover` already uses service role + ownership-by-author_id and isn't affected by this bug.
+```ts
+const { data: authorRow } = await admin
+  .from("author_profiles")
+  .select("user_id")
+  .eq("id", node.author_id)
+  .maybeSingle();
+
+let owns = !!(authorRow && resolved.id && authorRow.user_id === resolved.id);
+
+if (!owns && resolved.email && node.book_id) {
+  const { data: book } = await admin
+    .from("books")
+    .select("owner_email")
+    .eq("id", node.book_id)
+    .maybeSingle();
+  owns = !!(
+    book?.owner_email &&
+    book.owner_email.toLowerCase() === resolved.email.toLowerCase()
+  );
+}
+
+if (!owns) return 403 "Not your author_node";
+```
+
+3. Add `book_id` to the `author_nodes` select so the fallback has it.
+
+Then redeploy.
 
 ## Verification
 
-1. Hard-refresh BP-08 → AI Cover Designs.
-2. Click the inactive (left) design.
-3. Confirm: toast says "Active design updated", gold ring + Active badge moves to clicked card, network tab shows `POST 200 /set-active-product-cover`.
-4. Reload page → active design persists.
-5. Edge function logs show no 401s.
+1. Reload BP-08 cover designs.
+2. Click an inactive design → toast "Active design updated", gold ring moves, network shows 200.
+3. Edge function logs show no 403 errors.
