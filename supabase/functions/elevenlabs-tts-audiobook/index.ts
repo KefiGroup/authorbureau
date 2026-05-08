@@ -125,6 +125,7 @@ serve(async (req) => {
     }
 
     console.log("[elevenlabs-tts-audiobook]", { action, email: user.email });
+    const authorId = (await resolveAuthorId(supabase, user.id, user.email)) || user.id;
 
     // (preview-voice handled above without auth)
 
