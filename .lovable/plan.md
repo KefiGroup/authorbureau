@@ -1,42 +1,26 @@
-## What you're seeing
+## Goal
+Make all 3 generated product-cover designs faithfully follow the parent book cover's hero illustration, palette, and typography style — like the first two tiles in the screenshot. Drop the "typographic minimal" treatment that produced the inconsistent third tile.
 
-**Tile 3 inconsistency:** Tiles 1 and 2 are full-bleed, edge-to-edge cover art (correct). Tile 3 rendered a *photo of a small book sitting on a white background* — the model interpreted the "typographic minimal" art direction as "show me a product mockup" instead of "make the cover itself typographic." That's a prompt issue in art direction C.
+## Change
+Edit `supabase/functions/generate-product-cover/index.ts` only. No frontend or DB changes.
 
-**Redo vs the bottom button:** There is no "Regenerate" button. There are two different actions:
+### 1. Rewrite ART DIRECTION C (slot 2)
+Replace the current "typographic minimal" direction with a third book-cover-faithful variant that keeps the same hero illustration, palette, and typographic style as the reference book, and only varies a small customization detail. Proposed copy:
 
-- **Redo (on each tile)** → regenerates *that specific design in place*, keeping the same art direction (match / vary / typographic). Use it when one tile is broken (e.g. typo, truncation, or a mockup like tile 3) but you like the other two. It does NOT take a slot away.
-- **Replace oldest with new design (bottom CTA, only shown when 3/3 saved)** → generates a *brand-new* design and drops the oldest non-active one to make room. Use it when you want a fresh option but you're at the 3-design cap.
+> **ART DIRECTION C (match — alt customization):** Closely emulate the reference book cover — same hero illustration concept, same palette, same lighting, same typography style, same overall composition — so it reads as part of the same set as slots A and B. Vary ONLY one small customization detail (e.g. slightly different camera angle on the same hero, a small accent flourish, a subtle alternate sub-headline placement, or a minor lighting shift). Must look like it belongs to the same family as the book cover and the other two tiles.
 
-Before the cap, the same bottom button reads "Generate new design" and just adds a 4th… actually a 3rd slot.
+### 2. Always use the book cover as a reference for slot 2
+- Remove the `slotIndex === 2` branch in `refUsage` (line 53–55) — use the standard "palette/mood/style reference" copy for all slots.
+- Remove the `slotIndex === 2` branch in the `messages.content` block (line 221–226) — always send `[ {text}, {image_url: bookCoverUrl} ]`.
+- Simplify the refusal-retry guard (line 247) to retry text-only on any slot when the model refuses with a reference image.
 
-## Plan
+### 3. Keep all existing rules
+- Keep the anti-mockup, edge-to-edge, safe-margin, and strict-text rules in `ASPECT & FRAMING` and `STRICT TEXT RULES` exactly as they are.
+- Keep the "no inset panel / inner card / inner frame" rule (now applies uniformly to all 3 slots).
 
-### 1. Fix tile-3 ("typographic minimal" rendering as a book mockup)
+### 4. Deploy
+Deploy the `generate-product-cover` edge function after the edit.
 
-In `supabase/functions/generate-product-cover/index.ts`, tighten ART DIRECTION C and add a global anti-mockup rule:
-
-- Replace direction C copy with: *"Bold typographic cover treatment. The full 3:4 canvas IS the cover — large title typography is the focal point, set directly on a clean geometric or abstract gradient background in the brand palette. NO figurative illustration, NO characters, NO animals."*
-- Add to the global `ASPECT & FRAMING` block:
-  - *"The artwork must FILL the entire 3:4 canvas edge-to-edge. Do NOT render a small book, a 3D book mockup, a book on a desk/shelf/table, a book floating on a white or neutral background, or any product-photo-style framing. The output IS the cover, not a photo of the cover."*
-  - *"No drop shadow around a book shape, no page edges, no spine, no perspective tilt suggesting a physical book."*
-
-This applies to all three art directions and to the per-slot Redo, so clicking Redo on tile 3 will produce a proper full-bleed typographic cover.
-
-### 2. Clarify the button copy in the UI (small text-only change)
-
-In `src/components/dashboard/builders/shared/ProductCoverPreview.tsx`:
-
-- Per-tile button: keep label **Redo** but update the `title` tooltip to: *"Redo this design — same art direction, regenerates in place"*.
-- Bottom CTA when at cap: change label from "Replace oldest with new design" to **"Generate new design (replaces oldest)"** and helper line to: *"You're at the 3-design limit. Generating a new one creates a fresh design in a new style and drops the oldest non-active one."*
-- Update the "How to choose" helper to add one sentence: *"**Redo** fixes a single design in place. **Generate new design** creates an additional style and (at 3/3) drops the oldest non-active one."*
-
-### 3. Verify
-
-- Click **Redo** on tile 3 → expect a full-bleed typographic cover (no white-background book mockup).
-- Click **Redo** on tiles 1 and 2 → expect same art direction, no slot loss.
-- At 3/3, click the bottom CTA → expect a new design and the oldest non-active design replaced.
-
-### Files touched
-
-- `supabase/functions/generate-product-cover/index.ts` — prompt hardening only
-- `src/components/dashboard/builders/shared/ProductCoverPreview.tsx` — button labels, tooltips, helper copy
+## Out of scope
+- No changes to `ProductCoverPreview.tsx`, the Redo/Generate buttons, or any other file.
+- No prompt changes for slots A and B beyond what's already there.
