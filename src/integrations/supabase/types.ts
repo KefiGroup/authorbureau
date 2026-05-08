@@ -6130,9 +6130,13 @@ export type Database = {
       }
     }
     Functions: {
-      admin_acknowledge_errors: { Args: { p_ids: string[] }; Returns: number }
+      admin_acknowledge_errors:
+        | { Args: { p_ids: string[] }; Returns: number }
+        | { Args: { p_actor?: string; p_ids: string[] }; Returns: number }
       admin_error_summary: { Args: never; Returns: Json }
-      admin_resolve_errors: { Args: { p_ids: string[] }; Returns: number }
+      admin_resolve_errors:
+        | { Args: { p_ids: string[] }; Returns: number }
+        | { Args: { p_actor?: string; p_ids: string[] }; Returns: number }
       admin_send_broadcast: {
         Args: {
           p_audience?: string
