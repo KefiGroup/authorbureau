@@ -21,6 +21,8 @@ import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader"
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import { publishNodeToSite } from "@/lib/publish-node";
+import { generateProductCover } from "@/lib/generate-product-cover";
+import ProductCoverPreview from "@/components/dashboard/builders/shared/ProductCoverPreview";
 import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { startGeneration, getGeneration } from "@/lib/builder-generation-registry";
@@ -174,6 +176,15 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       }
       await publishNodeToSite(authorId!, "BP-09", authorSlug, activeBookId, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true }));
+      void generateProductCover({
+        authorId: authorId!,
+        nodeId: "BP-09",
+        bookId: activeBookId ?? null,
+        productKind: "toolkit",
+        productTitle: (typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit",
+        productSubtitle: typeof content?.tagline === "string" ? content.tagline : undefined,
+        authorName,
+      }).catch((err) => console.warn("[BP-09] cover gen failed", err));
     } catch (e: any) {
       const msg = toAbbyError(e?.message || "Publish failed");
       setError(msg); toast.error(msg, { duration: 12000 }); setStep(2);
@@ -447,6 +458,17 @@ export default function BP09Builder({ authorId, bookId }: Props) {
               penNameSlug={authorSlug}
               abbyMessage={`Your toolkit is saved here in your Brand Products library. Re-open BP-09 anytime to download the .pptx slide decks (workshop + corporate lunch), the printable PDF handout and bulk-order proposal, and copy the scripts, Q&A seeds, inscriptions and bios. Nothing is published publicly — this is your private field kit for live events.`}
             />
+            {authorId && (
+              <ProductCoverPreview
+                authorId={authorId}
+                nodeId="BP-09"
+                bookId={activeBookId}
+                productKind="toolkit"
+                productTitle={(typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit"}
+                productSubtitle={typeof content?.tagline === "string" ? content.tagline : undefined}
+                authorName={authorName}
+              />
+            )}
             <BackToReviewLink onClick={() => setStep(2)} />
           </>
         )}
