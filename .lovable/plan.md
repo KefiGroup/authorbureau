@@ -1,49 +1,28 @@
-## Goal
-Make the 3 generated product covers (BP-06/07/08/09) genuinely usable and meaningfully different from each other — and stop the AI from baking misspelled paragraph text into the artwork.
+## Bug
 
-## Problems observed
-1. AI rendered a long descriptive paragraph onto the cover with multiple typos ("retenchment", "betryal", "liived", "SUCKCESS").
-2. Subtitle inconsistency: "SPECIAL EDITION" vs "Special Editions".
-3. Designs 1 and 2 are near-duplicates — no real choice for the author.
+When clicking a saved cover design to make it active, the toast "Edge Function returned a non-2xx status code" appears. Function logs confirm a `POST 401 /functions/v1/set-active-product-cover`.
 
-## Changes
+## Root cause
 
-### 1. Tighten the prompt in `supabase/functions/generate-product-cover/index.ts`
-Rewrite `buildPrompt()` to strictly limit on-cover text to 4 elements:
-- Ribbon (e.g. "SPECIAL EDITION")
-- Title (exact string)
-- Optional subtitle (≤6 words)
-- Author byline
+`ProductCoverPreview.tsx` calls `supabase.functions.invoke("set-active-product-cover", …)` using the auto-generated client at `src/integrations/supabase/client.ts`. But this project stores the user's auth session in the **shared-backend** client (storage key `authorsbureau-shared-auth`), not in the default supabase client. So `invoke()` sends only the anon key → the edge function's `auth.getUser()` returns no user → 401.
 
-Add explicit negative instructions:
-- "Do NOT render any paragraph, description, blurb, tagline, or body copy on the cover."
-- "Do NOT invent words. Render ONLY the four text strings provided, spelled exactly as given."
-- "No more than 4 text elements total on the cover."
+Every other authenticated call in the codebase uses the standard pattern: `getActiveToken()` + `fetchWithTimeout()` against `${VITE_SUPABASE_URL}/functions/v1/<fn>`. This is also documented in the project's "Shared Backend Token Standard" core rule.
 
-Also strip/ignore any `productSubtitle` longer than ~60 chars before sending (defensive — prevents callers passing a description by mistake).
+## Fix (frontend only, single file)
 
-### 2. Force variant diversity for designs 2 and 3
-The function already knows the existing `history` length. Use it to pick an art-direction seed so each generation looks different:
+Edit `src/components/dashboard/builders/shared/ProductCoverPreview.tsx`:
 
-```text
-slot 1 → "Art direction A: same hero illustration and palette as the reference book cover."
-slot 2 → "Art direction B: VARY from the reference. Keep brand colors but use a different hero motif (e.g. mountain summit at dawn, open road, lighthouse) and a different composition. Must be visually distinct from a phoenix-on-fire scene."
-slot 3 → "Art direction C: Minimal / typographic. Bold geometric or abstract background, large title typography as the focal point, no figurative illustration."
-```
+- Replace the `supabase.functions.invoke("set-active-product-cover", { body })` call inside `handlePick` with:
+  - `const token = await getActiveToken();`
+  - `await fetchWithTimeout(\`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/set-active-product-cover\`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: \`Bearer ${token}\`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ authorId, nodeId, bookId: bookId ?? null, url }) }, 25_000);`
+  - Parse JSON response; on `!res.ok` or `success === false`, revert optimistic state via `loadCover()` and toast the message; on success, toast "Active design updated".
+- Add imports: `getActiveToken`, `fetchWithTimeout` from `@/lib/get-active-token`.
 
-Pass the corresponding directive into the prompt based on `history.length` (0 → A, 1 → B, 2 → C). When user clicks "Generate new design" with 3 already saved (replacing oldest), reuse the slot index of the one being dropped so the trio stays diverse.
+No backend changes — `set-active-product-cover` itself is correct (verified by reading its source). No DB migration. No other call sites.
 
-### 3. Lock subtitle wording
-In the BP-08 (special-edition) builder, normalize the subtitle to a single canonical form: **"Special Edition"** (singular, title case). Update the default productSubtitle and the prompt's ribbon constant accordingly.
+## Verification
 
-### 4. Update helper banner copy on `ProductCoverPreview.tsx`
-Reflect the new behavior: "Each new design uses a different art direction so your 3 saved options stay visually distinct."
-
-## Out of scope (not doing now)
-- OCR spell-check post-validation (can add later if typos still slip through).
-- Re-generating any covers automatically — author re-runs "Generate new design" when ready.
-
-## Files touched
-- `supabase/functions/generate-product-cover/index.ts` — prompt rewrite + slot-based art direction
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` — subtitle normalization
-- `src/components/dashboard/builders/shared/ProductCoverPreview.tsx` — helper banner copy
+1. Reload BP-08 → AI Cover Designs.
+2. Click the inactive saved design (left card).
+3. Confirm: toast says "Active design updated", gold ring + Active badge moves to clicked card, no 401 in network tab.
+4. Refresh page → active design persists.
