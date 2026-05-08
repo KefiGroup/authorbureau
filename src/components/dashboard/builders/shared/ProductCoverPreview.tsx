@@ -270,28 +270,19 @@ export default function ProductCoverPreview({
           <p className="text-sm text-muted-foreground">
             {history.length === 0
               ? "Generate a cover that visually emulates your book — same palette, mood, and typography."
-              : "The active design appears on your public product page. Click any saved design to switch — no republish needed."}
+              : "The active design appears on your public product page. Click any saved design to switch — no republish needed. Use Redo on a tile to regenerate that design in place."}
           </p>
-          <div className="flex flex-wrap gap-2">
-            <Button size="sm" onClick={handleGenerate} disabled={busy}>
-              {busy ? (
-                <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-              ) : history.length === 0 ? (
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" />
-              ) : (
-                <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
-              )}
-              {history.length === 0
-                ? "Generate cover"
-                : atCap
-                ? "Generate new design (replaces oldest)"
-                : "Generate new design"}
-            </Button>
-          </div>
-          {atCap && (
-            <p className="text-xs text-muted-foreground/70">
-              You're at the {MAX_DESIGNS}-design limit. Generating a new one creates a fresh design in a new style and drops the oldest non-active one. Use <span className="font-medium">Redo</span> on a tile if you just want to fix that one design without losing a slot.
-            </p>
+          {history.length === 0 && (
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" onClick={handleGenerate} disabled={busy}>
+                {busy ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" />
+                )}
+                Generate cover
+              </Button>
+            </div>
           )}
         </div>
       </CardContent>
