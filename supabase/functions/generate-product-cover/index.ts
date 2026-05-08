@@ -200,7 +200,33 @@ Deno.serve(async (req) => {
     const { data: pub } = admin.storage.from("product-covers").getPublicUrl(path);
     const coverUrl = pub.publicUrl;
 
-    await admin.from("author_nodes").update({ cover_image_url: coverUrl }).eq("id", node.id);
+    // Demote all existing entries; push new active.
+    const updated: HistEntry[] = history.map((h) => ({ ...h, is_active: false }));
+    updated.push({ url: coverUrl, created_at: new Date().toISOString(), is_active: true });
+
+    // Cap at 3: drop oldest non-active if needed (delete its storage file).
+    if (updated.length > 3) {
+      const inactiveSorted = updated
+        .filter((h) => !h.is_active)
+        .sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+      const toDrop = inactiveSorted[0];
+      if (toDrop) {
+        const idx = updated.findIndex((h) => h.url === toDrop.url && !h.is_active);
+        if (idx >= 0) updated.splice(idx, 1);
+        try {
+          // url like .../object/public/product-covers/<path>
+          const m = toDrop.url.match(/\/product-covers\/(.+)$/);
+          if (m && m[1]) await admin.storage.from("product-covers").remove([decodeURIComponent(m[1])]);
+        } catch (delErr) {
+          console.warn("Failed to delete old cover file", delErr);
+        }
+      }
+    }
+
+    await admin
+      .from("author_nodes")
+      .update({ cover_image_url: coverUrl, cover_image_history: updated })
+      .eq("id", node.id);
 
     return new Response(
       JSON.stringify({ success: true, status: 200, message: "ok", cover_url: coverUrl }),
