@@ -115,6 +115,7 @@ function buildPrompt(args: {
     ``,
     `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
     allowedTextLines,
+    `Render the subtitle EXACTLY as given above — do NOT prepend the product type, the ribbon text, or the title to it. No "Home Study:", "Workbook:", "Course:", or similar prefix may be added to the subtitle.`,
     ``,
     `FORBIDDEN TEXT (do NOT render, even small, even at the bottom):`,
     `  • No descriptive paragraph, blurb, summary, tagline, quote, review, endorsement, or marketing sentence.`,
