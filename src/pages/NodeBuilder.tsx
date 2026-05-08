@@ -1,8 +1,7 @@
 import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import * as LucideIcons from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
