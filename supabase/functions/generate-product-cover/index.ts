@@ -25,7 +25,7 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
 const ART_DIRECTIONS: Record<number, string> = {
   0: "ART DIRECTION A (match): Closely emulate the reference book cover — same hero illustration concept, palette, lighting, and typography style so the two read as a matching set.",
   1: "ART DIRECTION B (vary): Keep the SAME brand color palette and mood, but use a DIFFERENT hero motif and composition than the reference (e.g. mountain summit at dawn, open road, lighthouse, soaring eagle, abstract sunburst). Must look visually distinct from the reference book cover at a glance.",
-  2: "ART DIRECTION C (typographic minimal): Bold typographic cover treatment. The full 3:4 canvas IS the cover — large title typography is the focal point, set DIRECTLY on a clean geometric or abstract gradient background in the brand palette that fills every pixel edge-to-edge. NO figurative illustration, NO characters, NO animals.",
+  2: "ART DIRECTION C (typographic minimal): Bold typographic cover treatment. The full 3:4 canvas IS the cover — large title typography is the focal point, set DIRECTLY on a clean geometric or abstract gradient background in the brand palette that fills every pixel edge-to-edge. NO figurative illustration, NO characters, NO animals. CRITICAL: the gradient/background must extend fully to all four edges of the 3:4 canvas with NO inset panel, NO inset card, NO inner frame, NO inner border, NO secondary darker rectangle floating inside the canvas, and NO contrasting margin band around the typography. The title sits directly on the full-canvas background — never inside a smaller inset shape. Visually the result must look like the other slots in scale and bleed: same edge-to-edge fill, same overall density, same apparent size — only the style differs.",
 };
 
 function buildPrompt(args: {
@@ -68,6 +68,7 @@ function buildPrompt(args: {
     `  • The artwork MUST FILL the entire 3:4 canvas edge-to-edge. The output IS the cover, not a photo of the cover.`,
     `  • DO NOT render a small book, a 3D book mockup, a book on a desk/shelf/table, a book floating on a white or neutral background, or any product-photo-style framing.`,
     `  • No drop shadow around a book shape, no visible page edges, no spine, no perspective tilt suggesting a physical book.`,
+    `  • No inset panel, inner card, inner frame, inner border, or secondary rectangle inside the canvas. The background extends fully to all four edges; typography sits directly on it.`,
     ``,
     `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
     allowedTextLines,
