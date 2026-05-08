@@ -158,7 +158,7 @@ serve(async (req) => {
 
       const { data: book } = await supabase
         .from("books").select("id, author_id, title").eq("id", bookId).single();
-      if (!book || book.author_id !== user.id) {
+      if (!book || book.author_id !== authorId) {
         return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -208,7 +208,7 @@ serve(async (req) => {
 
       const { data: book } = await supabase
         .from("books").select("id, author_id, title").eq("id", bookId).single();
-      if (!book || book.author_id !== user.id) {
+      if (!book || book.author_id !== authorId) {
         return new Response(JSON.stringify({ error: "Book not found or unauthorized" }), {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
