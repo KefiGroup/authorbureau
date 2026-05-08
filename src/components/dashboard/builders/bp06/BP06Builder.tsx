@@ -33,6 +33,7 @@ import StripeRequiredModal from "@/components/dashboard/StripeRequiredModal";
 import { isPaidNode } from "@/lib/is-paid-node";
 import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
 import { generateProductCover } from "@/lib/generate-product-cover";
+import ProductCoverPreview from "@/components/dashboard/builders/shared/ProductCoverPreview";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish"];
 const GEN_MSGS = [
@@ -425,6 +426,17 @@ export default function BP06Builder({ authorId, bookId }: Props) {
         {step === 3 && content?.activated && (
           <>
             <PublishSuccessScreen nodeId="BP-06" authorName={authorName} penNameSlug={authorSlug} />
+            {authorId && (
+              <ProductCoverPreview
+                authorId={authorId}
+                nodeId="BP-06"
+                bookId={activeBookId}
+                productKind="workbook"
+                productTitle={content.workbook_title || content.title || "Companion Workbook"}
+                productSubtitle={content.workbook_subtitle || content.subtitle}
+                authorName={authorName}
+              />
+            )}
             <Button variant="default" size="lg" className="w-full" onClick={() => downloadWorkbookPdf({ content, bookTitle: effectiveBookTitle, authorName })}>
               <FileDown className="h-4 w-4 mr-2" /> Download Workbook PDF
             </Button>

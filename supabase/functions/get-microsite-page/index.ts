@@ -178,6 +178,7 @@ serve(async (req) => {
           third_party_url: node.third_party_url,
           price_usd: node.price_usd,
           currency: node.currency,
+          cover_image_url: node.cover_image_url,
         },
         context: context || null,
         book: book || null,
