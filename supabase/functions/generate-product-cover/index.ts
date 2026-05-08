@@ -121,6 +121,7 @@ function buildPrompt(args: {
     `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
     allowedTextLines,
     `Render the subtitle EXACTLY as given above — do NOT prepend the product type, the ribbon text, or the title to it. No "Home Study:", "Workbook:", "Course:", or similar prefix may be added to the subtitle.`,
+    `The subtitle must NEVER repeat, restate, paraphrase, or pluralise the ribbon text (e.g. if ribbon says "SPECIAL EDITION", do NOT render "Special Edition" or "Special Editions" anywhere as a subtitle). If no subtitle line is listed above, render ONLY the ribbon, title, and byline — do not invent a "Special Edition / Workbook / Course / Bundle / Toolkit" line under the title.`,
     ``,
     `FORBIDDEN TEXT (do NOT render, even small, even at the bottom):`,
     `  • No descriptive paragraph, blurb, summary, tagline, quote, review, endorsement, or marketing sentence.`,
