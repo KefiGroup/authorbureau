@@ -177,6 +177,8 @@ export default function ProductCoverPreview({
             <div>
               <span className="font-medium text-foreground">Variety:</span> all 3 designs follow your book cover with slight variations in fonts, colours, and styling. Use <span className="font-medium text-foreground">Redo</span> on any tile to regenerate that design in place.
             </div>
+          </div>
+        )}
 
         {loading ? (
           <div className="flex items-center justify-center h-32">
