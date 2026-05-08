@@ -1,45 +1,26 @@
-## Issue
-The Home Study cover shows the subtitle as **"Home Study: Home Study: Disaster to Mastery in 21 Days"**. Root causes:
+## Problem
 
-1. The BP-07 AI generator stores `programme_subtitle` already prefixed with "Home Study:" (e.g. *"Home Study: Disaster to Mastery in 21 Days"*).
-2. The cover prompt also passes the productKind via the ribbon ("HOME STUDY COURSE"), and the subtitle is then rendered verbatim — which already contains the prefix. When combined, the visible subtitle reads twice. (Other product kinds — workbook with `workbook_subtitle`, BP-09 `tagline`, BP-08 hard-coded "Special Edition" — can hit the same class of bug whenever the source content already includes the kind label.)
+On the BP-09 Special Editions covers, the ribbon at the top says **"SPECIAL EDITION"** and the subtitle directly under the title also says **"Special Editions"** — the same label is rendered twice on the same cover.
 
-## Goal
-Subtitles on AI cover designs must never duplicate the product-kind prefix already conveyed by the top ribbon. Authors should see a clean line under the title (e.g. *"Disaster to Mastery in 21 Days"*) regardless of what the upstream generator stored.
+Root cause: BP-09 passes `content.tagline` (which the upstream generator sets to "Special Editions") as `productSubtitle` to `generate-product-cover`. The current `sanitizeSubtitle()` in the edge function strips a leading `"special edition"` prefix, but only matches the singular form — `"Special Editions"` (plural) survives because after stripping `"Special Edition"` it leaves a stray `"s"` which then falls below the 3-char floor in some cases but still slips through in others, and the AI model also tends to re-add a "Special Edition(s)" line on its own when the kind is `special-edition`.
 
-## Change — single file
-Edit `supabase/functions/generate-product-cover/index.ts` only. Add a **`sanitizeSubtitle(rawSubtitle, kind)`** helper that runs before `safeSubtitle` is built (around line 40), and use its output for the prompt.
+The duplication will recur on any `productKind` whose subtitle is just a restatement of the ribbon (e.g. `workbook` → "Workbook", `home-study` → "Home Study Course").
 
-### Sanitization rules
-- Trim and collapse internal whitespace.
-- Strip a leading product-kind label if the subtitle starts with one of the redundant prefixes for the current `kind`. Match case-insensitive, allow optional trailing `:`, `-`, `–`, `—`, or whitespace. Apply repeatedly so a doubly-prefixed string ("Home Study: Home Study: …") collapses to the clean tail.
-- Strip a leading copy of the product TITLE if the subtitle starts with it (handles "Be SUCKcessful — Be SUCKcessful: …").
-- After stripping, if the remaining string is empty or shorter than 3 chars, return `undefined` so no subtitle line is sent.
-- Re-apply the existing 60-char defensive cap.
+## Fix (single file: `supabase/functions/generate-product-cover/index.ts`)
 
-### Per-kind prefix list (in `PRODUCT_KIND_LABELS` or a new sibling map)
-| kind | redundant prefixes to strip |
-|---|---|
-| workbook | "workbook", "companion workbook", "the workbook" |
-| home-study | "home study", "home study course", "home-study", "home study programme/program" |
-| course | "online course", "course", "the course" |
-| special-edition | "special edition", "special-edition", "the special edition" |
-| bundle | "bundle", "the bundle" |
-| toolkit | "toolkit", "live audience toolkit" |
-| generic | "companion", "companion edition" |
+1. **Tighten `sanitizeSubtitle()`** so it also catches plurals and "echo of the ribbon":
+   - Add plural variants to `REDUNDANT_SUBTITLE_PREFIXES` (e.g. `"special editions"`, `"workbooks"`, `"home study courses"`, `"online courses"`, `"bundles"`, `"toolkits"`).
+   - After stripping prefixes, also reject the subtitle if the cleaned string, lowercased and stripped of punctuation, is **equal to or fully contained in** the kind's ribbon label (e.g. cleaned = "special editions" vs ribbon "SPECIAL EDITION" → drop).
+   - Treat any cleaned result of length < 4 as undefined (currently 3).
 
-### Wiring
-- In `buildPrompt`, replace lines 40–43 with:
-  ```
-  const cleaned = sanitizeSubtitle(args.productSubtitle, args.kind, args.productTitle);
-  const safeSubtitle = cleaned && cleaned.length > 0 && cleaned.length <= 60 ? cleaned : undefined;
-  ```
-- Add a one-line note above `STRICT TEXT RULES` instructing the model: *"Render the subtitle exactly as given; do NOT prepend the product type, ribbon text, or title to it."* (Defense-in-depth so the model itself doesn't re-add "Home Study:".)
+2. **Strengthen the prompt** in `buildPrompt()`:
+   - Add an explicit forbidden-text rule: the subtitle must NOT repeat or paraphrase the ribbon text. If no subtitle is supplied, render only the ribbon, title, and byline — do not invent a "Special Edition / Workbook / Course" line under the title.
 
-### Deploy
-Deploy `generate-product-cover` after the edit.
+3. **Deploy** the `generate-product-cover` edge function.
+
+No other files change. Existing covers won't auto-fix; authors hit **Redo** on a tile to regenerate cleanly. No DB or frontend changes.
 
 ## Out of scope
-- No changes to BP-06/07/08/09 builders or to upstream generator prompts (those still write what they write; the cover function defends against it).
-- No DB migration. No frontend changes.
-- Existing already-saved covers won't auto-fix; authors can hit **Redo** on a tile to regenerate cleanly.
+
+- Changing what BP-09's upstream generator stores in `content.tagline` (would need a separate audit across BP-06/07/08/09).
+- Removing the ribbon entirely for `special-edition` (the ribbon is the strongest visual signal of the product kind; keeping it and dropping the redundant subtitle is the correct trade-off).

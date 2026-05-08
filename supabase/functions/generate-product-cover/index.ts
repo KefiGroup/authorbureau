@@ -26,13 +26,13 @@ const PRODUCT_KIND_LABELS: Record<string, { ribbon: string; descriptor: string }
 // them so the cover doesn't read e.g. "Home Study: Home Study: …" once the
 // ribbon already conveys the product kind.
 const REDUNDANT_SUBTITLE_PREFIXES: Record<string, string[]> = {
-  workbook: ["companion workbook", "the workbook", "workbook"],
-  "home-study": ["home study course", "home-study course", "home study programme", "home study program", "home-study", "home study"],
-  course: ["online course", "the course", "course"],
-  "special-edition": ["the special edition", "special-edition", "special edition"],
-  bundle: ["the bundle", "bundle"],
-  toolkit: ["live audience toolkit", "live-audience toolkit", "toolkit"],
-  generic: ["companion edition", "companion"],
+  workbook: ["companion workbooks", "companion workbook", "the workbooks", "the workbook", "workbooks", "workbook"],
+  "home-study": ["home study courses", "home-study courses", "home study course", "home-study course", "home study programmes", "home study programs", "home study programme", "home study program", "home-study", "home study"],
+  course: ["online courses", "online course", "the courses", "the course", "courses", "course"],
+  "special-edition": ["the special editions", "the special edition", "special-editions", "special editions", "special-edition", "special edition"],
+  bundle: ["the bundles", "the bundle", "bundles", "bundle"],
+  toolkit: ["live audience toolkits", "live-audience toolkits", "live audience toolkit", "live-audience toolkit", "toolkits", "toolkit"],
+  generic: ["companion editions", "companion edition", "companions", "companion"],
 };
 
 function escapeRegex(s: string): string {
@@ -63,7 +63,12 @@ function sanitizeSubtitle(raw: string | undefined, kind: string, productTitle?: 
     }
   }
 
-  if (s.length < 3) return undefined;
+  // Reject if cleaned subtitle just echoes the ribbon label (e.g. "Special Editions" vs ribbon "SPECIAL EDITION").
+  const ribbon = (PRODUCT_KIND_LABELS[kind]?.ribbon || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  const norm = s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim();
+  if (ribbon && (norm === ribbon || ribbon.includes(norm) || norm.includes(ribbon))) return undefined;
+
+  if (s.length < 4) return undefined;
   if (s.length > 60) return undefined;
   return s;
 }
@@ -116,6 +121,7 @@ function buildPrompt(args: {
     `STRICT TEXT RULES — render ONLY these text elements, spelled EXACTLY as written, nothing else:`,
     allowedTextLines,
     `Render the subtitle EXACTLY as given above — do NOT prepend the product type, the ribbon text, or the title to it. No "Home Study:", "Workbook:", "Course:", or similar prefix may be added to the subtitle.`,
+    `The subtitle must NEVER repeat, restate, paraphrase, or pluralise the ribbon text (e.g. if ribbon says "SPECIAL EDITION", do NOT render "Special Edition" or "Special Editions" anywhere as a subtitle). If no subtitle line is listed above, render ONLY the ribbon, title, and byline — do not invent a "Special Edition / Workbook / Course / Bundle / Toolkit" line under the title.`,
     ``,
     `FORBIDDEN TEXT (do NOT render, even small, even at the bottom):`,
     `  • No descriptive paragraph, blurb, summary, tagline, quote, review, endorsement, or marketing sentence.`,
