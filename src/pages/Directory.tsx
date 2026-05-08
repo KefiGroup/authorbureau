@@ -59,7 +59,7 @@ export default function Directory() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedGenre, setSelectedGenre] = useState<string | null>(searchParams.get("genre") || null);
-  const [sortBy, setSortBy] = useState<string>(searchParams.get("sort") || "featured");
+  const [sortBy, setSortBy] = useState<string>(searchParams.get("sort") || "name");
   const [dynamicAuthors, setDynamicAuthors] = useState<DirectoryAuthor[]>([]);
   const [showAllGenres, setShowAllGenres] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
