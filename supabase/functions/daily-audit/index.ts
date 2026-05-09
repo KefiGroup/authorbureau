@@ -49,6 +49,12 @@ const REQUIRED_KIND: Record<string, string> = {
 };
 
 async function authorize(req: Request, admin: ReturnType<typeof createClient>) {
+  // Internal cron path: shared secret bypasses gateway header rewriting.
+  const cronSecretHdr = req.headers.get("x-cron-secret") || req.headers.get("X-Cron-Secret") || "";
+  const CRON_SECRET = Deno.env.get("CROSS_PLATFORM_SECRET") || "";
+  if (cronSecretHdr && CRON_SECRET && cronSecretHdr === CRON_SECRET) {
+    return { ok: true, actor: "service-role" };
+  }
   const auth = req.headers.get("Authorization") || req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
   const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
