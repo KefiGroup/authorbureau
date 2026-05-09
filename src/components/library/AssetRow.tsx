@@ -275,7 +275,7 @@ export default function AssetRow({
           <DialogHeader>
             <DialogTitle>Choose session length</DialogTitle>
             <DialogDescription>
-              ABBY will scale talking points, exercises and break cues to actually fill the runtime you pick. A 240-min script contains roughly 30,000 words of content; a 45-min keynote about 5,800.
+              ABBY will reshape the slide deck itself (expanding or contracting slides) AND scale talking points, exercises and break cues so the deck and the speaker script stay in sync. A 240-min half-day grows the deck to ~16 slides with ~30,000 words of script; a 30-min pitch keeps it tight at ~6 slides.
             </DialogDescription>
           </DialogHeader>
           <RadioGroup value={runtimeChoice} onValueChange={setRuntimeChoice} className="gap-3 py-2">
