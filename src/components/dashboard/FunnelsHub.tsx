@@ -182,13 +182,20 @@ export default function FunnelsHub() {
     if (funnels.length === 0) return;
     let cancelled = false;
     (async () => {
-      const entries = await Promise.all(
-        funnels.map(async (f) => [f.id, await loadOverrides(f.id)] as const),
-      );
-      if (cancelled) return;
-      const map: Record<string, OverridesMap> = {};
-      for (const [id, ov] of entries) map[id] = ov;
-      setOverridesByFunnel(map);
+      try {
+        const { overrides_by_funnel } = await listOverridesBulk(funnels.map((f) => f.id));
+        if (cancelled) return;
+        const map: Record<string, OverridesMap> = {};
+        for (const f of funnels) {
+          const rows = overrides_by_funnel[f.id] || [];
+          const stageMap: OverridesMap = {};
+          for (const r of rows) stageMap[r.stage_id] = r.field_overrides || {};
+          map[f.id] = stageMap;
+        }
+        setOverridesByFunnel(map);
+      } catch (e: any) {
+        console.error("[FunnelsHub] listOverridesBulk failed:", e?.message);
+      }
     })();
     return () => { cancelled = true; };
   }, [funnels]);
