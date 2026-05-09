@@ -2935,7 +2935,6 @@ async function resolveUser(req: Request): Promise<{ id: string; email: string } 
     const email = payload.email;
     if (email) {
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
       const { data: { users } } = await adminClient.auth.admin.listUsers();
       const match = users?.find((u: any) => u.email === email);
       if (match) return { id: match.id, email };
