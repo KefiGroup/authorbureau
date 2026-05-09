@@ -5,6 +5,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Download, ExternalLink, Loader2, Link2, ChevronDown } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 import {
@@ -139,7 +140,22 @@ export default function AssetRow({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium truncate">{asset.label}</span>
-            {sizeHint && <Badge variant="outline" className="text-[10px]">{sizeHint}</Badge>}
+            {sizeHint && (
+              asset.formats.includes("script_docx") && sizeHint === "Generate on demand" ? (
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="text-[10px] cursor-help">{sizeHint}</Badge>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      Downloads a .docx speaker script — one talking-point page per slide. First generation takes ~30 seconds; subsequent downloads are instant.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <Badge variant="outline" className="text-[10px]">{sizeHint}</Badge>
+              )
+            )}
             <Badge variant="secondary" className="text-[10px] uppercase">{asset.type}</Badge>
           </div>
           {showNodeName && (
