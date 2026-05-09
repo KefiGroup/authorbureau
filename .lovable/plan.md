@@ -1,65 +1,41 @@
-## Sprint Closeout — 3 Bug Fixes
+## Bug 2 — "My Funnels" stage cards show "Not set" despite overrides existing
 
-### Bug 1 — Gate engine doesn't fire on publish
+**Root cause:** `FunnelsHub.tsx` loads stage overrides via `loadOverrides()` in `src/lib/funnel-overrides.ts`, which calls `supabase.from("funnel_stage_overrides")…` directly from the browser. The project's Cloud PostgREST rejects the shared-backend JWT for owner-side queries on this table (same root issue documented for `funnels` — that's why `funnels-api.ts` exists). Reads silently return `[]`, so `getStagesForArchetype` sees no overrides and every stage renders as `missing` ("Not set"). The data IS in the DB (BP-02: 4 rows, BP-06: 2 rows) — only the read path is wrong.
 
-**Findings**
-- Today the gate engine is only kicked off from the client (`useBuilderPublish.ts`) and a future cron. Any server-side publish path (cascade, admin action, library adopt) bypasses it.
-- `author_nodes` already has 5 triggers but none calls `abby-gate-engine`.
+**Fix:**
+1. Add a new action `list_overrides` to the existing `supabase/functions/funnels-manage/index.ts` edge function. Body: `{ funnel_ids: string[] }`. Verifies the caller owns each funnel (same author-id resolver the function already uses), then returns `{ overrides_by_funnel: { [funnel_id]: OverrideRow[] } }` using the service-role client.
+2. Add `listOverridesBulk(funnelIds: string[])` to `src/lib/funnels-api.ts` mirroring the existing helpers.
+3. In `src/components/dashboard/FunnelsHub.tsx`, replace the per-funnel `loadOverrides()` loop (around lines 182–195) with a single `listOverridesBulk(funnels.map(f => f.id))` call. Map the result into `overridesByFunnel` exactly as before. Remove the `loadOverrides` import.
+4. Leave `src/lib/funnel-overrides.ts` in place for `StageEditorDrawer` (which is already inside an authorized writer context using `saveStageOverrideViaFn`); but update the editor to also read overrides via `getFunnel(funnelId)` if it currently reads via the direct client. (Quick check shows `StageEditorDrawer` already gets overrides passed in as props from the hub, so no further change needed there.)
 
-**Fix**
-1. Add a fire-and-forget `fetch` to `abby-gate-engine` in `supabase/functions/save-author-node/index.ts`, inside the `:publish` block right after the row update succeeds (line ~478). Pass `{ author_id, book_id }`. Wrap in try/catch — never block publish.
-2. Add a DB trigger as a safety net so any path that flips `author_nodes.status` to `'live'` (cascades, manual SQL, future jobs) also calls the engine via `pg_net.http_post`. Pattern mirrors the existing `trigger_generate_asset_pack()` trigger — same shape, different URL/body. Trigger only on `OLD.status IS DISTINCT FROM NEW.status AND NEW.status = 'live'` (or INSERT with status='live').
-3. Keep the existing client-side trigger as a third safety net (already works).
+No schema change. No DB migration.
 
-### Bug 2 — Funnels created in draft with empty stages
+## BP-03 builder ignores `?bookId=` URL parameter
 
-**Findings**
-- `generate-funnel/index.ts` writes ONE row to `funnels` (`status: 'draft'`, body_copy only) and never touches `funnel_stage_overrides`.
-- The 5-stage UI is read from `funnel-flow-stages.ts` (Archetype B = Traffic, Opt-in Page, Confirm Email, Deliver Magnet, Nurture Day 1, Upsell). Each stage's overrides live in `funnel_stage_overrides`. With no overrides + no defaults, stages render `incomplete`.
-- Library already has the source content: BP-01 email sequence (welcome + day-1 nurture), BP-02 lead-magnet delivery URL, BP-03 social post, BP-06/upsell product info.
+**Root cause:** Two issues compound:
 
-**Fix — extend `ensureFunnel()` in `abby-gate-engine`**
-After `generate-funnel` returns the new funnel row (Archetype B for Gate 1's BP-02 funnel, Archetype A for Gate 2's BP-06 funnel), the engine pulls Library assets and seeds `funnel_stage_overrides` for the missing stages, then flips the funnel `status` to `'published'` (or `'live'` — whatever the existing `funnels-manage` publish path uses):
+1. **Nav links drop the bookId.** Several entry points navigate to BP-03 without a query string:
+   - `src/components/dashboard/MarketingHub.tsx` line ~350: `navigate("/node-builder/BP-03")`
+   - `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` lines 545 and 568: same.
+   When `?bookId=` is missing, `BP03Builder` falls back to `useAuthorBook()` which returns the author's most recently created book — exactly the reported behavior.
 
-| Stage | Source |
-|---|---|
-| `traffic` | `author_nodes` BP-03 → first `social_posts` row body |
-| `confirm_email` | `email_sequences` for BP-01 → step 1 (subject + body) |
-| `deliver_magnet` | `author_nodes` BP-02 → `library_asset.public_url` |
-| `nurture_1` | `email_sequences` for BP-01 → step 2 (delay 1d) |
-| `upsell` | `author_nodes` BP-06 → product title + microsite URL |
+2. **One internal poll in `BP03Builder.tsx` is not book-scoped.** Around lines 305–311 the progress poll queries `author_nodes` filtered only by `author_id` + `node_id` with `.maybeSingle()`. Under per-book scoping (Sprint 8) an author can have multiple BP-03 rows (one per book); this poll can read the wrong row's `content_json.progress` and confuse state, even when `activeBookId` is correct.
 
-Implementation:
-1. Refactor `ensureFunnel()` so after creating the funnel it calls a new helper `autoCompleteFunnelStages(funnelId, archetype, authorId, bookId)`.
-2. Helper queries Library, builds a `Record<stageId, Record<field, value>>`, upserts into `funnel_stage_overrides` (one row per stage_id).
-3. After overrides written, update `funnels.status = 'published'` and `published_at = now()`.
-4. If a Library source is missing, leave that stage blank (don't block publish — funnel still goes live with whatever stages are filled). Log the gap to `console.warn`.
-5. Idempotent: re-running on an already-published funnel is a no-op (`select id from funnels where node_id = ... limit 1` already short-circuits).
+**Fix:**
+1. In `MarketingHub.tsx` and `SocialCalendarTab.tsx`, change every `navigate("/node-builder/BP-03")` to include the active book: `navigate(\`/node-builder/BP-03${activeBookId ? \`?bookId=\${activeBookId}\` : ""}\`)`. (`MarketingHub` already has a selected book context via the hub's `bookId`; `SocialCalendarTab` reads `bookId` from its parent — pass it through if not already in scope.)
+2. In `src/components/dashboard/builders/bp03/BP03Builder.tsx`, change the progress poll (~lines 305–314) to add `.eq("book_id", activeBookId)` when `activeBookId` is set, otherwise `.is("book_id", null)` — mirroring the pattern already used by `upsertAuthorNode` / `snapshotAuthorNode` server-side.
+3. Sweep the rest of `BP03Builder.tsx` for any other direct `from("author_nodes")…eq("node_id","BP-03")` reads and apply the same `book_id` filter (there's at least one in the activation/refresh path). Edge-function calls already pass `book_id: activeBookId` so they're fine.
 
-### Bug 3 — CRM scoring stuck at zero
+No schema, no migration.
 
-**Findings**
-- DB confirms: `email_send_log` has 1,977 rows, but **0 opens / 0 clicks** ever recorded. `lead_activities` only has 1 `quiz_completed` event.
-- `process-email-events/index.ts` exists and correctly mirrors scores into `crm_contacts` — it just never gets called.
-- The `abby-daily-report-hourly` cron IS running (`5 * * * *`). That's not the bottleneck.
-- Root cause: the Resend webhook is not pointed at `/functions/v1/process-email-events`, so `email.opened` / `email.clicked` events never reach the platform. Without engagement events, `abby_score` never moves and contacts never advance to Engaged → Warm → Hot.
+## Files touched
+- `supabase/functions/funnels-manage/index.ts` — add `list_overrides` action
+- `src/lib/funnels-api.ts` — add `listOverridesBulk`
+- `src/components/dashboard/FunnelsHub.tsx` — switch override fetch to edge fn
+- `src/components/dashboard/MarketingHub.tsx` — append `?bookId=` to BP-03 nav
+- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` — append `?bookId=` to BP-03 nav
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx` — book-scope all direct `author_nodes` reads
 
-**Fix**
-1. Verify the Resend webhook configuration: confirm a webhook exists for events `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained`, `email.unsubscribed` pointed at `https://tubpbslfrxyfhldkcyyq.supabase.co/functions/v1/process-email-events`. If missing, configure it (Resend dashboard or via API) — this is the actual fix.
-2. Set `verify_jwt = false` on `process-email-events` in `supabase/config.toml` (Resend can't sign with a Supabase JWT). Add HMAC verification using the existing `RESEND_WEBHOOK_SECRET` secret to `process-email-events/index.ts` — currently the function does no signature check, which is a security gap revealed by this audit.
-3. Add a one-time backfill: a small admin script or extension to `abby-daily-report` that, for each `crm_contacts` row with at least one `email_send_log` (joined via email + author_id), gives a baseline `+1` per delivered email so legacy contacts don't sit at 0 forever. Cap at 10. Optional but recommended — confirm with user before shipping.
-4. Add a `lead_activities` insert path keyed off `crm_contacts` directly (not just `leads`) so future contacts captured outside the leads pipeline still score. Currently `process-email-events` only inserts to `lead_activities` if a `leads` row exists — direct CRM contacts get the score mirror but no activity timeline.
-
-### Files touched
-
-- `supabase/functions/save-author-node/index.ts` — Bug 1 hook
-- `supabase/migrations/<ts>_author_nodes_gate_engine_trigger.sql` — Bug 1 trigger
-- `supabase/functions/abby-gate-engine/index.ts` — Bug 2 (extend `ensureFunnel`, add `autoCompleteFunnelStages`)
-- `supabase/functions/process-email-events/index.ts` — Bug 3 (HMAC verify + crm_contacts-direct activity insert)
-- `supabase/config.toml` — `verify_jwt = false` for `process-email-events`
-- Resend dashboard — webhook URL config (one-time)
-
-### Open questions before I build
-1. **Bug 2 publish status:** confirm the `funnels` "live" status string — is it `'published'`, `'live'`, or `'active'`? I'll grep `funnels-manage` to be sure but flag it now.
-2. **Bug 3 backfill:** ship the one-time legacy-contact baseline scoring, or skip it and only fix forward?
-3. **Bug 3 webhook:** can you add the Resend webhook in the Resend dashboard yourself (I can't reach it), or do you want me to add a small admin UI + edge function that registers it via the Resend API using `RESEND_API_KEY`?
+## Verification
+- DB confirms BP-02 has 4 override rows and BP-06 has 2 → after fix, those stages should render as "Ready" in My Funnels without any data change.
+- Open BP-03 from Marketing Hub → URL should now contain `?bookId=…` and the builder should load that book's content (not the most recent book).
