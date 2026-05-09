@@ -42,7 +42,8 @@ const REQUIRED_KIND: Record<string, string> = {
   "BP-03": "docx",
   "BP-04": "external_url",
   "BP-06": "docx",
-  "BP-09": "external_url",
+  "BP-08": "txt",
+  "BP-09": "txt",
   "BA-11": "audio_zip",
   "BA-14": "podcast_pack",
 };

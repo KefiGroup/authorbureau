@@ -274,22 +274,20 @@ export default function BP08Builder({ authorId, bookId }: Props) {
       }
 
       // Sprint 55g — TXT compilation + library_asset before publish (BP-06 pattern).
-      let libraryAsset: Record<string, unknown> | null = null;
-      try {
-        const effectiveTitle =
-          (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book";
-        const txtBlob = buildBp08Txt(content, authorName, effectiveTitle);
-        const safeName = (effectiveTitle || "special-editions").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
-        libraryAsset = (await uploadAndRegisterLibraryAsset({
-          authorId: authorId!,
-          nodeId: "BP-08",
-          title: (typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions",
-          primary: { blob: txtBlob, filename: `${safeName}-special-editions.txt`, kind: "txt" },
-          isPaid: true,
-        })) as unknown as Record<string, unknown>;
-      } catch (uploadErr) {
-        console.warn("[BP-08] library_asset upload failed, publishing without it", uploadErr);
-      }
+      // BP-08 is an adopter node — if the upload fails we MUST NOT publish
+      // (otherwise the node goes live without a deliverable; see daily-audit
+      // adopter contract).
+      const effectiveTitle =
+        (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book";
+      const txtBlob = buildBp08Txt(content, authorName, effectiveTitle);
+      const safeName = (effectiveTitle || "special-editions").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+      const libraryAsset = (await uploadAndRegisterLibraryAsset({
+        authorId: authorId!,
+        nodeId: "BP-08",
+        title: (typeof content?.edition_title === "string" && content.edition_title.trim()) || "Special Editions",
+        primary: { blob: txtBlob, filename: `${safeName}-special-editions.txt`, kind: "txt" },
+        isPaid: true,
+      })) as unknown as Record<string, unknown>;
 
       await publishNodeToSite(authorId!, "BP-08", authorSlug, activeBookId, libraryAsset);
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));

@@ -392,9 +392,21 @@ Deno.serve(async (req: Request) => {
     // Sprint 55: prefer caller-supplied library_asset (built from real uploaded
     // files). Fall back to conservative server-side synthesis from legacy
     // fields only if the caller didn't pass one.
-    const callerAsset = libraryAsset && typeof libraryAsset === "object" && libraryAsset.url
+    const callerAsset = libraryAsset && typeof libraryAsset === "object" && (libraryAsset as Record<string, unknown>).url
       ? (libraryAsset as Record<string, unknown>)
       : null;
+    // Sprint 55 adopter contract: these builders MUST upload a real library_asset.
+    // Refuse to publish them as `live` without one — prevents the silent-publish
+    // bug where a transient upload failure leaves a node live with no deliverable.
+    const ADOPTER_NODES = new Set(["BP-01", "BP-03", "BP-04", "BP-06", "BP-08", "BP-09", "BA-11", "BA-14"]);
+    const previousAssetCheck = (existingContent.library_asset as Record<string, unknown> | undefined);
+    if (ADOPTER_NODES.has(nodeId!) && !callerAsset && !(previousAssetCheck && previousAssetCheck.url)) {
+      console.warn("[save-author-node:publish] adopter node missing library_asset", { nodeId, authorId });
+      return new Response(
+        JSON.stringify({ success: false, status: 422, message: `library_asset required for ${nodeId}` }),
+        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
     const derivedAsset = callerAsset ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
     const previousAsset = existingContent.library_asset as Record<string, unknown> | undefined;
     const previousHistory = Array.isArray(existingContent.library_asset_history)
