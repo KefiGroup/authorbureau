@@ -154,6 +154,51 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Direct crm_contacts path — when no leads row exists (contact captured
+    // outside the leads pipeline), still score the contact AND log to
+    // lead_activities. crm_contacts.author_id stores user_id (legacy per
+    // Sprint 58); lead_activities.author_id wants author_profiles.id, so we
+    // resolve via author_profiles.user_id.
+    if (!leadId && SCORE_WEIGHTS[eventType]) {
+      try {
+        const recipientLower = recipient.toLowerCase();
+        const { data: contacts } = await supabase
+          .from('crm_contacts')
+          .select('id, author_id, abby_score, stage')
+          .eq('email', recipientLower);
+        for (const contact of contacts ?? []) {
+          const delta = SCORE_WEIGHTS[eventType] || 0;
+          const contactNewScore = Math.min(100, Math.max(0, (contact.abby_score || 0) + delta));
+          let contactStage = 'new_lead';
+          if (contactNewScore >= 50) contactStage = 'hot';
+          else if (contactNewScore >= 20) contactStage = 'warm';
+          else if (contactNewScore >= 5) contactStage = 'engaged';
+          await supabase.from('crm_contacts').update({
+            abby_score: contactNewScore,
+            stage: contactStage,
+            last_activity_at: now,
+          }).eq('id', contact.id);
+
+          const { data: ap } = await supabase
+            .from('author_profiles').select('id').eq('user_id', contact.author_id).maybeSingle();
+          if (ap?.id) {
+            await supabase.from('lead_activities').insert({
+              lead_id: null,
+              author_id: ap.id,
+              activity_type: eventType,
+              metadata: {
+                message_id: messageId,
+                source: 'crm_contact_direct',
+                crm_contact_id: contact.id,
+              },
+            });
+          }
+        }
+      } catch (directErr) {
+        console.warn('[process-email-events] direct crm_contacts path failed', directErr);
+      }
+    }
+
     return new Response(JSON.stringify({ success: true, status: 200, message: 'Event processed' }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
