@@ -135,24 +135,36 @@ Deno.serve(async (req) => {
     checks.push({ key: "errors_24h", label: "Errors (24h)", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
   }
 
-  // 2. Stuck-live nodes
+  // 2. Stuck-live nodes (per Sprint 55 adoption policy)
   try {
     const { data } = await admin
       .from("author_nodes")
-      .select("id, author_id, node_id, content_json")
+      .select("id, author_id, node_id, content_json, delivery_url")
       .eq("status", "live");
-    const stuck = (data || []).filter((row) => {
+    const adopterMissing: any[] = [];
+    const fallbackMissingUrl: any[] = [];
+    for (const row of data || []) {
       const a: any = row.content_json?.library_asset;
-      return !(a?.url && a?.kind === REQUIRED_KIND[row.node_id]);
-    });
+      if (ADOPTER_NODES.has(row.node_id)) {
+        if (!(a?.url && a?.kind === REQUIRED_KIND[row.node_id])) {
+          adopterMissing.push({ id: row.id, node_id: row.node_id, author_id: row.author_id });
+        }
+      } else if (!row.delivery_url) {
+        fallbackMissingUrl.push({ id: row.id, node_id: row.node_id, author_id: row.author_id });
+      }
+    }
+    const totalIssues = adopterMissing.length + fallbackMissingUrl.length;
+    const sev: Severity = adopterMissing.length > 0 ? "fail" : fallbackMissingUrl.length > 0 ? "warn" : "ok";
     checks.push({
       key: "stuck_live",
-      label: "Stuck-live nodes (legacy fallback)",
-      severity: stuck.length > 50 ? "warn" : "ok",
-      count: stuck.length,
-      message: `${stuck.length} live node(s) without uniform library_asset (re-publish to upgrade)`,
+      label: "Stuck-live nodes",
+      severity: sev,
+      count: totalIssues,
+      message: totalIssues === 0
+        ? "All live nodes have valid deliverables"
+        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissingUrl.length} fallback node(s) missing delivery_url`,
       link: "/admin?tab=books",
-      details: { sample: stuck.slice(0, 10).map((s) => ({ id: s.id, node_id: s.node_id, author_id: s.author_id })) },
+      details: { adopter_missing: adopterMissing.slice(0, 10), fallback_missing_url: fallbackMissingUrl.slice(0, 10) },
     });
   } catch (e) {
     checks.push({ key: "stuck_live", label: "Stuck-live nodes", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
