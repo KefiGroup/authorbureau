@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { supabase } from "@/integrations/supabase/client";
+import DailyOpsReportCard from "./DailyOpsReportCard";
 
 type Severity = "ok" | "warn" | "fail";
 interface CheckResult {
@@ -116,6 +117,7 @@ export default function DailyAuditTab() {
 
   return (
     <div className="space-y-4">
+      <DailyOpsReportCard />
       {/* Header / status */}
       <Card className="p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">

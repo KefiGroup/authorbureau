@@ -14,6 +14,9 @@ interface CheckSummary {
   message: string
 }
 
+interface DeltaItem { key: string; label: string; from?: string; to?: string; message?: string }
+interface SprintItem { sprint_id?: string; title: string; summary?: string; category?: string }
+
 interface Props {
   status?: 'green' | 'amber' | 'red'
   issueCount?: number
@@ -22,6 +25,10 @@ interface Props {
   warnCount?: number
   checks?: CheckSummary[]
   dashboardUrl?: string
+  resolved?: DeltaItem[]
+  opened?: DeltaItem[]
+  sprints?: SprintItem[]
+  takeaway?: string
 }
 
 const STATUS_COLOR = { green: '#2d6a2d', amber: '#a4471f', red: '#a82424' } as const
@@ -37,12 +44,13 @@ const SEV_BADGE: Record<string, { color: string; bg: string; label: string }> = 
 const DailyAuditReportEmail = ({
   status = 'green', issueCount = 0, generatedAt, failCount = 0, warnCount = 0,
   checks = [], dashboardUrl = 'https://authorsbureau.com/admin?tab=daily-audit',
+  resolved = [], opened = [], sprints = [], takeaway,
 }: Props) => {
   const ts = generatedAt ? new Date(generatedAt).toUTCString() : new Date().toUTCString()
   return (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>{`Daily audit ${status.toUpperCase()} — ${issueCount} issue${issueCount === 1 ? '' : 's'}`}</Preview>
+    <Preview>{`Daily ops ${status.toUpperCase()} — ${resolved.length} resolved · ${opened.length} new · ${sprints.length} shipped`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
@@ -61,6 +69,49 @@ const DailyAuditReportEmail = ({
           </Text>
           <Text style={statusTime}>Generated {ts}</Text>
         </Section>
+
+        {takeaway && (
+          <Section style={{ background: '#f9f6ef', borderLeft: '3px solid #c8a55a', padding: '12px 14px', margin: '16px 0' }}>
+            <Text style={{ fontSize: '11px', color: '#c8a55a', fontWeight: 'bold' as const, margin: '0 0 4px', letterSpacing: '0.5px' }}>ABBY TAKEAWAY</Text>
+            <Text style={{ fontSize: '14px', color: '#1a2744', margin: 0, lineHeight: '1.5' }}>{takeaway}</Text>
+          </Section>
+        )}
+
+        {resolved.length > 0 && (
+          <>
+            <Heading as="h3" style={h3}>✅ Fixes auto-resolved (last 24h)</Heading>
+            {resolved.map((r) => (
+              <Section key={r.key} style={checkRow}>
+                <Text style={checkLabel}>{r.label}</Text>
+                <Text style={checkMessage}>was {r.from?.toUpperCase()} → now OK{r.message ? ` · ${r.message}` : ''}</Text>
+              </Section>
+            ))}
+          </>
+        )}
+
+        {opened.length > 0 && (
+          <>
+            <Heading as="h3" style={h3}>🔴 New issues opened (last 24h)</Heading>
+            {opened.map((r) => (
+              <Section key={r.key} style={checkRow}>
+                <Text style={checkLabel}>{r.label}</Text>
+                <Text style={checkMessage}>now {r.to?.toUpperCase()}{r.message ? ` · ${r.message}` : ''}</Text>
+              </Section>
+            ))}
+          </>
+        )}
+
+        {sprints.length > 0 && (
+          <>
+            <Heading as="h3" style={h3}>🚀 Shipped (last 24h)</Heading>
+            {sprints.map((s, i) => (
+              <Section key={i} style={checkRow}>
+                <Text style={checkLabel}>{s.sprint_id ? `${s.sprint_id} — ` : ''}{s.title}</Text>
+                {s.summary && <Text style={checkMessage}>{s.summary}</Text>}
+              </Section>
+            ))}
+          </>
+        )}
 
         <Heading as="h3" style={h3}>Check results</Heading>
         {checks.map((c) => {
@@ -91,10 +142,11 @@ export const template = {
   component: DailyAuditReportEmail,
   subject: (data: Record<string, any>) => {
     const status = (data.status as string) || 'green'
-    const issues = data.issueCount ?? 0
-    if (status === 'red') return `🚨 Daily audit RED — ${issues} issue${issues === 1 ? '' : 's'}`
-    if (status === 'amber') return `⚠️ Daily audit AMBER — ${issues} warning${issues === 1 ? '' : 's'}`
-    return `✅ Daily audit GREEN — all clear`
+    const resolved = Array.isArray(data.resolved) ? data.resolved.length : 0
+    const opened = Array.isArray(data.opened) ? data.opened.length : 0
+    const sprints = Array.isArray(data.sprints) ? data.sprints.length : 0
+    const dot = status === 'red' ? '🔴' : status === 'amber' ? '🟡' : '🟢'
+    return `${dot} Daily ops — ${resolved} resolved · ${opened} new · ${sprints} shipped`
   },
   displayName: 'Daily audit report',
   previewData: {
@@ -105,10 +157,12 @@ export const template = {
     warnCount: 2,
     checks: [
       { key: 'errors_24h', label: 'Errors (24h)', severity: 'ok', count: 0, message: '0 critical, 0 error, 1 warning' },
-      { key: 'stuck_live', label: 'Stuck-live nodes', severity: 'ok', count: 5, message: '5 live nodes using legacy fallback' },
       { key: 'email_queue', label: 'Email queue (24h)', severity: 'warn', count: 2, message: 'sent 412 · dlq 0 · failed 2 · suppressed 1' },
-      { key: 'content_quality', label: 'Content quality (24h)', severity: 'warn', count: 12, message: '12 total — top: emdash(8), placeholder(4)' },
     ],
+    resolved: [{ key: 'stuck_live', label: 'Stuck-live nodes', from: 'warn', message: '3 → 0' }],
+    opened: [{ key: 'email_queue', label: 'Email queue', to: 'warn', message: '2 failed sends' }],
+    sprints: [{ sprint_id: 'Sprint 58', title: 'CRM Daily Intelligence', summary: 'New abby-daily-crm-digest cron + DailyIntelligenceCard' }],
+    takeaway: 'Stuck-live cleanup landed; keep an eye on the email queue tomorrow.',
     dashboardUrl: 'https://authorsbureau.com/admin?tab=daily-audit',
   },
 } satisfies TemplateEntry

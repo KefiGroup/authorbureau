@@ -2260,6 +2260,60 @@ export type Database = {
         }
         Relationships: []
       }
+      daily_ops_reports: {
+        Row: {
+          created_at: string
+          email_sent_at: string | null
+          id: string
+          payload: Json
+          report_date: string
+        }
+        Insert: {
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          payload: Json
+          report_date: string
+        }
+        Update: {
+          created_at?: string
+          email_sent_at?: string | null
+          id?: string
+          payload?: Json
+          report_date?: string
+        }
+        Relationships: []
+      }
+      dev_activity_log: {
+        Row: {
+          category: string
+          created_at: string
+          files_touched: string[] | null
+          id: string
+          sprint_id: string | null
+          summary: string | null
+          title: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          files_touched?: string[] | null
+          id?: string
+          sprint_id?: string | null
+          summary?: string | null
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          files_touched?: string[] | null
+          id?: string
+          sprint_id?: string | null
+          summary?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       email_campaigns: {
         Row: {
           author_id: string
