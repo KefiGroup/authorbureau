@@ -53,6 +53,18 @@ function defaultRuntimeMinutes(nodeId: string): number {
   }
 }
 
+/** Recommend a slide count when the author picks a runtime but no explicit count. */
+function recommendSlideCount(targetMinutes: number): number {
+  if (targetMinutes <= 30) return 6;
+  if (targetMinutes <= 45) return 8;
+  if (targetMinutes <= 60) return 10;
+  if (targetMinutes <= 90) return 12;
+  if (targetMinutes <= 180) return 14;
+  if (targetMinutes <= 240) return 16;   // half-day
+  if (targetMinutes <= 300) return 18;
+  return 22;                              // full-day
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const supabase = makeServiceClient();
