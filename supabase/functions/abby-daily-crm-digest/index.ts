@@ -272,19 +272,24 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Process all authors with at least one CRM contact
-  const { data: authors } = await supabase
+  // crm_contacts.author_id is actually a user_id (legacy). Map to author_profiles.id.
+  const { data: rawAuthors } = await supabase
     .from("crm_contacts")
     .select("author_id")
     .limit(10000);
-  const uniqueAuthors = Array.from(new Set((authors ?? []).map((r: any) => r.author_id)));
+  const userIds = Array.from(new Set((rawAuthors ?? []).map((r: any) => r.author_id)));
+  const { data: profiles } = await supabase
+    .from("author_profiles")
+    .select("id, user_id")
+    .in("user_id", userIds);
+  const profileIds = (profiles ?? []).map((p: any) => p.id);
 
   const results: Array<{ authorId: string; status: string; reason?: string }> = [];
-  for (const a of uniqueAuthors) {
+  for (const pid of profileIds) {
     try {
-      results.push(await processAuthor(supabase, a, todayUTC, !!dryRun));
+      results.push(await processAuthor(supabase, pid, todayUTC, !!dryRun));
     } catch (e) {
-      results.push({ authorId: a, status: "error", reason: String(e) });
+      results.push({ authorId: pid, status: "error", reason: String(e) });
     }
   }
 
