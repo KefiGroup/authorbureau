@@ -44,12 +44,13 @@ const SEV_BADGE: Record<string, { color: string; bg: string; label: string }> = 
 const DailyAuditReportEmail = ({
   status = 'green', issueCount = 0, generatedAt, failCount = 0, warnCount = 0,
   checks = [], dashboardUrl = 'https://authorsbureau.com/admin?tab=daily-audit',
+  resolved = [], opened = [], sprints = [], takeaway,
 }: Props) => {
   const ts = generatedAt ? new Date(generatedAt).toUTCString() : new Date().toUTCString()
   return (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>{`Daily audit ${status.toUpperCase()} — ${issueCount} issue${issueCount === 1 ? '' : 's'}`}</Preview>
+    <Preview>{`Daily ops ${status.toUpperCase()} — ${resolved.length} resolved · ${opened.length} new · ${sprints.length} shipped`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
