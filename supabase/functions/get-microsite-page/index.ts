@@ -26,6 +26,7 @@ serve(async (req) => {
     const authorSlug = url.searchParams.get("author");
     let nodeId = url.searchParams.get("node");
     const micrositeSlug = url.searchParams.get("slug");
+    const bookSlugParam = url.searchParams.get("book"); // Sprint 56: book-scoped lookup
 
     if (!authorSlug || (!nodeId && !micrositeSlug)) {
       return new Response(
