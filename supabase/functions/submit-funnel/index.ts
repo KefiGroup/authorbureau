@@ -231,6 +231,25 @@ Deno.serve(async (req) => {
       });
       const enrollData = await enrollResp.json().catch(() => ({}));
       subscriberId = enrollData?.subscriber_id || null;
+
+      // Sprint 57: Log autowire on the lead's timeline so authors can see
+      // BP-01 / node-specific sequences were enrolled automatically.
+      if (leadId && Array.isArray(enrollData?.enrollments) && enrollData.enrollments.length) {
+        try {
+          await supabase.from('lead_activities').insert({
+            lead_id: leadId,
+            author_id: funnel.author_id,
+            activity_type: 'nurture_autowired',
+            metadata: {
+              funnel_id: funnel.id,
+              node_id: funnel.node_id,
+              enrollments: enrollData.enrollments,
+            },
+          });
+        } catch (e) {
+          console.warn('[submit-funnel] nurture_autowired log failed', e);
+        }
+      }
     } catch (e) {
       console.warn('[submit-funnel] enroll-subscriber failed', e);
     }
