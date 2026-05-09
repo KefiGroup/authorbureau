@@ -36,7 +36,7 @@ import {
   type Frequency,
 } from "@/components/dashboard/builders/shared/socialKitHelpers";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
-import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
+// Sprint 60: BP-03 now uploads via render-library-asset (service role) directly.
 import { buildBp03Txt } from "@/lib/build-library-txt";
 
 const STEPS = ["Introduction", "Generating", "Review", "Activate"];
