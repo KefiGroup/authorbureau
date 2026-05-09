@@ -323,7 +323,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
   const [onboardingRedirect, setOnboardingRedirect] = useState<"profile" | "my-books" | null>(null);
   const checkingOnboarding = false;
 
-  // Check if journey onboarding should show (first time user has an analyzed book)
+  // Check if journey onboarding should show (first time user with a book and no progress yet)
   useEffect(() => {
     if (!user || !stats.bookCount || stats.analyzedCount > 0) return;
     (async () => {
@@ -332,11 +332,27 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
         .select("has_seen_journey_onboarding")
         .eq("user_id", user.id)
         .maybeSingle();
-      if (data && !(data as any).has_seen_journey_onboarding) {
-        setShowJourneyOnboarding(true);
+      if (!data || (data as any).has_seen_journey_onboarding) return;
+
+      // Established user signal: any node activity at all means they've moved past intro.
+      // Silently mark the flag so the modal never re-evaluates on future mounts.
+      const { count: nodeCount } = await supabase
+        .from("author_nodes")
+        .select("id", { count: "exact", head: true })
+        .eq("author_id", user.id)
+        .limit(1);
+
+      if ((nodeCount ?? 0) > 0) {
+        await supabase
+          .from("author_profiles")
+          .update({ has_seen_journey_onboarding: true } as any)
+          .eq("user_id", user.id);
+        return;
       }
+
+      setShowJourneyOnboarding(true);
     })();
-  }, [user, stats.analyzedCount]);
+  }, [user, stats.analyzedCount, stats.bookCount]);
 
   // Fetch analyzed book list separately (lightweight, needed for navigation)
   useEffect(() => {
