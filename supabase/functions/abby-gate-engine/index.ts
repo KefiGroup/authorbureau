@@ -258,28 +258,182 @@ async function ensureFunnel(
   try {
     const { data: existing } = await supabase
       .from("funnels")
-      .select("id")
+      .select("id, status")
       .eq("author_id", authorId)
       .eq("node_id", nodeId)
       .limit(1)
       .maybeSingle();
-    if (existing) return;
-    const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-funnel`;
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-      },
-      body: JSON.stringify({
-        author_id: authorId,
-        node_id: nodeId,
-        book_id: bookId,
-        funnel_type: funnelType,
-      }),
-    }).catch((e) => console.warn(`[gate-engine] generate-funnel ${nodeId} failed:`, e));
+
+    let funnelId: string | null = existing?.id ?? null;
+
+    if (!funnelId) {
+      const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-funnel`;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({
+          author_id: authorId,
+          node_id: nodeId,
+          book_id: bookId,
+          funnel_type: funnelType,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      funnelId = data?.funnel?.id ?? null;
+      if (!funnelId) {
+        console.warn(`[gate-engine] generate-funnel ${nodeId} returned no funnel id`);
+        return;
+      }
+    }
+
+    // Auto-complete stages from Library + publish.
+    const archetype: "A" | "B" =
+      nodeId === "BP-06" ? "A" : "B";
+    await autoCompleteFunnelStages(supabase, {
+      funnelId,
+      archetype,
+      authorId,
+      bookId,
+    });
+
+    // Publish if not already live.
+    if (existing?.status !== "live") {
+      await supabase
+        .from("funnels")
+        .update({ status: "live", published_at: new Date().toISOString() })
+        .eq("id", funnelId);
+    }
   } catch (e) {
     console.warn(`[gate-engine] ensureFunnel(${nodeId}) error:`, e);
+  }
+}
+
+// Pulls Library content (BP-01 welcome sequence, BP-02 lead magnet,
+// BP-03 social post, BP-06 product) and seeds funnel_stage_overrides
+// for any stage that is still empty. Idempotent — does not overwrite
+// existing overrides.
+async function autoCompleteFunnelStages(
+  supabase: ReturnType<typeof createClient>,
+  opts: {
+    funnelId: string;
+    archetype: "A" | "B";
+    authorId: string;
+    bookId: string | null;
+  },
+) {
+  try {
+    // Pull source nodes for this book.
+    const { data: nodes } = await supabase
+      .from("author_nodes")
+      .select("node_id, content_json, microsite_url, book_id")
+      .eq("author_id", opts.authorId)
+      .in("node_id", ["BP-01", "BP-02", "BP-03", "BP-06"]);
+
+    const filtered = (nodes ?? []).filter(
+      (n: any) => !opts.bookId || !n.book_id || n.book_id === opts.bookId,
+    );
+    const byNode: Record<string, any> = {};
+    for (const n of filtered) byNode[n.node_id] = n;
+
+    const bp01 = byNode["BP-01"]?.content_json ?? {};
+    const bp02 = byNode["BP-02"]?.content_json ?? {};
+    const bp06 = byNode["BP-06"];
+    const welcome = Array.isArray(bp01.welcome_sequence) ? bp01.welcome_sequence : [];
+    const step1 = welcome[0] ?? null;
+    const step2 = welcome[1] ?? null;
+
+    // Pull a recent BP-03 social post body (any platform).
+    const { data: socialRows } = await supabase
+      .from("social_posts")
+      .select("content")
+      .eq("author_id", opts.authorId)
+      .eq("node_id", "BP-03")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const socialBody = socialRows?.[0]?.content ?? "";
+
+    // Lead magnet delivery URL: prefer BP-02 microsite_url, else library_asset.
+    const leadMagnetUrl =
+      byNode["BP-02"]?.microsite_url ||
+      bp02?.library_asset?.public_url ||
+      bp02?.optin_page?.cta_url ||
+      "";
+
+    const upsellHeadline =
+      bp06?.content_json?.tagline ||
+      bp06?.content_json?.sales_page?.headline ||
+      bp06?.content_json?.funnel_name ||
+      "";
+    const upsellUrl = bp06?.microsite_url || "";
+
+    const stages: Record<string, Record<string, string>> =
+      opts.archetype === "B"
+        ? {
+            traffic: socialBody ? { source_notes: socialBody } : {},
+            confirm_email: step1
+              ? {
+                  subject: step1.subject ?? "",
+                  body: step1.body ?? "",
+                }
+              : {},
+            deliver_magnet: leadMagnetUrl
+              ? {
+                  delivery_url: leadMagnetUrl,
+                  subject: `Your free download is here`,
+                }
+              : {},
+            nurture_1: step2
+              ? {
+                  delay_days: String(step2.send_delay_days ?? 1),
+                  subject: step2.subject ?? "",
+                  body: step2.body ?? "",
+                }
+              : {},
+            upsell:
+              upsellHeadline || upsellUrl
+                ? {
+                    offer_headline: upsellHeadline,
+                    offer_url: upsellUrl,
+                  }
+                : {},
+          }
+        : {
+            // Archetype A (sales) — seed onboarding email from BP-01 step 1
+            // and thank_you next-step from BP-02 magnet URL.
+            onboarding_email: step1
+              ? { subject: step1.subject ?? "", body: step1.body ?? "" }
+              : {},
+            thank_you: leadMagnetUrl
+              ? { headline: "Thanks — here's your bonus", next_step_url: leadMagnetUrl }
+              : {},
+          };
+
+    // Existing overrides — don't clobber.
+    const { data: existingOverrides } = await supabase
+      .from("funnel_stage_overrides")
+      .select("stage_id")
+      .eq("funnel_id", opts.funnelId);
+    const existingStageIds = new Set((existingOverrides ?? []).map((r: any) => r.stage_id));
+
+    for (const [stageId, fields] of Object.entries(stages)) {
+      if (existingStageIds.has(stageId)) continue;
+      if (Object.keys(fields).length === 0) {
+        console.warn(`[gate-engine] autoComplete: no Library content for stage ${stageId}`);
+        continue;
+      }
+      const { error } = await supabase.from("funnel_stage_overrides").insert({
+        funnel_id: opts.funnelId,
+        author_id: opts.authorId,
+        stage_id: stageId,
+        field_overrides: fields,
+      });
+      if (error) console.warn(`[gate-engine] autoComplete insert ${stageId}:`, error.message);
+    }
+  } catch (e) {
+    console.warn("[gate-engine] autoCompleteFunnelStages error:", e);
   }
 }
 
