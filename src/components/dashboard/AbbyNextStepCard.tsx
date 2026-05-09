@@ -58,7 +58,7 @@ export default function AbbyNextStepCard({ bookId, bookTitle, onUpgrade }: Props
         <div className="mt-4">
           <Button
             size="lg"
-            onClick={() => onUpgrade?.() || navigate("/dashboard?section=settings")}
+            onClick={() => { if (onUpgrade) onUpgrade(); else navigate("/dashboard?section=settings"); }}
             className="gap-2"
           >
             <Crown className="h-4 w-4" /> Upgrade now
