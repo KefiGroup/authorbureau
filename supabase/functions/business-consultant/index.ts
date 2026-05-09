@@ -3166,20 +3166,27 @@ serve(async (req) => {
       const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
 
       // Verify ownership of the book before returning the plan.
-      // Books may be owned by either owner_user_id or owner_email (legacy).
-      const { data: bookRow } = await adminClient
+      // Books table uses owner_email + author_id (no owner_user_id column).
+      const { data: bookRow, error: bookErr } = await adminClient
         .from("books")
-        .select("id, owner_user_id, owner_email")
+        .select("id, owner_email, author_id")
         .eq("id", getPlanBookId)
         .maybeSingle();
 
+      if (bookErr) {
+        console.error("[get-plan] book lookup failed:", bookErr.message);
+        return new Response(JSON.stringify({ error: "Book lookup failed", content: null }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const ownsBook = !!bookRow && (
-        bookRow.owner_user_id === user.id ||
+        bookRow.author_id === authorId ||
         (!!user.email && !!bookRow.owner_email && bookRow.owner_email.toLowerCase() === user.email.toLowerCase())
       );
 
       if (!ownsBook) {
-        return new Response(JSON.stringify({ content: null }), {
+        return new Response(JSON.stringify({ content: null, reason: "not_owner" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
