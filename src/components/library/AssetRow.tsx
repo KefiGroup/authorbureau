@@ -96,6 +96,14 @@ export default function AssetRow({
 
   const hasScript = !!node.content_json?.speaker_script?.slides?.length;
 
+  // Augment the slide-deck size hint with the runtime the deck was last
+  // resized for, so authors see "10 slides · 90 min" instead of just "10 slides".
+  const deckRuntime = node.content_json?.deck_runtime_minutes;
+  const isSlideAsset = ["slides", "pitch_deck", "sponsor_deck"].includes(asset.key);
+  const effectiveSizeHint = (isSlideAsset && deckRuntime && sizeHint && /slide/i.test(sizeHint))
+    ? `${sizeHint} · ${deckRuntime} min`
+    : sizeHint;
+
   const handleOpen = () => {
     navigate(`/node-builder/${node.node_id}`);
   };
