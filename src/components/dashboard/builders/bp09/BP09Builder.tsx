@@ -147,27 +147,22 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       // Sprint 55: build a TXT compilation of the toolkit and stamp the
       // canonical library_asset record before publishing. BP-09 has no
       // microsite, so the TXT becomes the downloadable deliverable.
-      let libraryAsset: Record<string, unknown> | null = null;
-      try {
-        const txtBlob = buildBp09Txt(
-          content,
-          authorName,
-          (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book",
-        );
-        const safeName = (resolvedBookTitle || detectedBookTitle || "live-toolkit").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
-        // kind=txt overrides the contract default (external_url) so the
-        // Library UI surfaces a "Download TXT" button rather than a generic
-        // external link label.
-        const asset = await uploadAndRegisterLibraryAsset({
-          authorId: authorId!,
-          nodeId: "BP-09",
-          title: (typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit",
-          primary: { blob: txtBlob, filename: `${safeName}-live-toolkit.txt`, kind: "txt" },
-        });
-        libraryAsset = asset as unknown as Record<string, unknown>;
-      } catch (e) {
-        console.warn("[BP-09] library_asset upload failed, publishing without it", e);
-      }
+      // BP-09 is an adopter node — if the upload fails we MUST NOT publish
+      // (otherwise the node goes live without a deliverable; see daily-audit
+      // adopter contract).
+      const txtBlob = buildBp09Txt(
+        content,
+        authorName,
+        (detectedBookTitle && detectedBookTitle !== "your book" ? detectedBookTitle : resolvedBookTitle) || "your book",
+      );
+      const safeName = (resolvedBookTitle || detectedBookTitle || "live-toolkit").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+      const asset = await uploadAndRegisterLibraryAsset({
+        authorId: authorId!,
+        nodeId: "BP-09",
+        title: (typeof content?.kit_title === "string" && content.kit_title.trim()) || "Live Audience Toolkit",
+        primary: { blob: txtBlob, filename: `${safeName}-live-toolkit.txt`, kind: "txt" },
+      });
+      const libraryAsset = asset as unknown as Record<string, unknown>;
 
       if (content && authorId) {
         const merged = { ...content, _currentStep: 3, ...(libraryAsset ? { library_asset: libraryAsset } : {}) };
