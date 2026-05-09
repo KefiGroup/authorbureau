@@ -213,20 +213,20 @@ export default function AssetRow({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium truncate">{asset.label}</span>
-            {sizeHint && (
-              supportsScript && sizeHint === "Generate on demand" ? (
+            {effectiveSizeHint && (
+              supportsScript && effectiveSizeHint === "Generate on demand" ? (
                 <TooltipProvider delayDuration={150}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant="outline" className="text-[10px] cursor-help">{sizeHint}</Badge>
+                      <Badge variant="outline" className="text-[10px] cursor-help">{effectiveSizeHint}</Badge>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
-                      Downloads a .docx speaker script. You'll pick the session length (keynote · workshop · half-day · full-day) and ABBY scales the talking points, exercises and break cues to match. First generation takes 30-120 seconds.
+                      Downloads a .docx speaker script. You'll pick the session length (short pitch · keynote · workshop · half-day · full-day) and ABBY reshapes the slide deck AND scales the talking points, exercises and break cues to match. First generation takes 30-120 seconds.
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               ) : (
-                <Badge variant="outline" className="text-[10px]">{sizeHint}</Badge>
+                <Badge variant="outline" className="text-[10px]">{effectiveSizeHint}</Badge>
               )
             )}
             <Badge variant="secondary" className="text-[10px] uppercase">{asset.type}</Badge>
