@@ -542,7 +542,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                     {repairing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Loader2 className="h-4 w-4 mr-1" />}
                     {repairing ? "Rebuilding…" : "Refresh Posts"}
                   </Button>
-                  <Button variant="outline" onClick={() => navigate("/node-builder/BP-03")}>
+                  <Button variant="outline" onClick={() => navigate(`/node-builder/BP-03${bookId ? `?bookId=${bookId}` : ""}`)}>
                     Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
                   </Button>
                 </div>
