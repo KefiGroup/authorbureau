@@ -17,22 +17,15 @@ Exit code 0 = green, 1 = amber/red. Suitable for cron / CI.
 
 ## 3. Daily email (cron)
 - `daily-audit-cron` edge function calls `daily-audit` then emails each admin via `send-transactional-email` (template `daily-audit-report`) when status is amber or red.
-- To schedule via pg_cron (run once, manually), insert this SQL via the Supabase insert tool — replace `ANON_KEY` with the project's anon key:
+- **Schedule:** `0 21 * * *` UTC = **05:00 SGT daily** (job name: `daily-audit-cron`).
+- To change the time or remove the schedule:
   ```sql
-  select cron.schedule(
-    'daily-audit-cron',
-    '0 7 * * *', -- 07:00 UTC daily
-    $$
-    select net.http_post(
-      url := 'https://tubpbslfrxyfhldkcyyq.supabase.co/functions/v1/daily-audit-cron',
-      headers := jsonb_build_object(
-        'Content-Type', 'application/json',
-        'Authorization', 'Bearer ANON_KEY'
-      ),
-      body := '{}'::jsonb
-    );
-    $$
-  );
+  -- Inspect
+  select jobid, schedule, jobname from cron.job where jobname = 'daily-audit-cron';
+  -- Remove
+  select cron.unschedule('daily-audit-cron');
+  -- Reschedule (use the Supabase insert tool; replace the bearer with the anon key)
+  select cron.schedule('daily-audit-cron', '0 21 * * *', $$ select net.http_post(...); $$);
   ```
 - Idempotency key: `daily-audit-{YYYY-MM-DD}-{adminId}` — re-runs the same day will not duplicate.
 
