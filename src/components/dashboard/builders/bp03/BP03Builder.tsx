@@ -570,6 +570,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
                   await fetchBp03NodeState({
                     action: "save",
                     author_id: authorId,
+                    book_id: activeBookId ?? undefined,
                     status: content?.publishStatus === "live" ? "live" : "content_ready",
                     content: nextContent,
                   });
