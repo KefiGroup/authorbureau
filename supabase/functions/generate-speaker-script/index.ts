@@ -173,26 +173,61 @@ Return JSON exactly in this shape:
   "outro": "Final CTA and thank-you, 3-5 sentences."
 }`;
 
-    const aiRes = await fetchAiGateway({
-      method: "POST",
-      headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "openai/gpt-5",
-        response_format: { type: "json_object" },
-        max_completion_tokens: tokenBudget,
-        messages: [
-          { role: "system", content: sys },
-          { role: "user", content: user },
-        ],
-      }),
-    }, "generate-speaker-script");
+    // For long runtimes (>=120 min) chunk the slides and run two parallel calls
+    // to stay under the 150s edge idle timeout.
+    const chunkIt = targetMinutes >= 120 && slidesPayload.length >= 4;
+    const half = Math.ceil(slidesPayload.length / 2);
+    const chunks = chunkIt ? [slidesPayload.slice(0, half), slidesPayload.slice(half)] : [slidesPayload];
 
-    if (!aiRes.ok) return failResponse(aiGatewayErrorMessage(aiRes.status, await aiRes.text()));
-    const aiData = await aiRes.json();
-    const script = parseAiJson(aiData.choices?.[0]?.message?.content || "");
+    async function runChunk(slidesChunk: any[], chunkIndex: number, totalChunks: number) {
+      const isFirst = chunkIndex === 0;
+      const isLast = chunkIndex === totalChunks - 1;
+      const chunkMin = Math.round(targetMinutes * (slidesChunk.length / slidesPayload.length));
+      const chunkWordTarget = Math.round(chunkMin * 130);
+      const chunkUser = `${user}
 
-    if (!script || !Array.isArray(script.slides) || script.slides.length === 0) {
-      return failResponse("Speaker script generation returned no slides. Please try again.");
+CHUNK INFO: You are scripting slides ${slidesChunk[0].slide_index}-${slidesChunk[slidesChunk.length-1].slide_index} of ${slidesPayload.length}.
+This chunk represents ~${chunkMin} minutes of the session and should contain roughly ${chunkWordTarget} words of content.
+${isFirst ? `Include the "intro" field in your response.` : `Set "intro" to "" (empty string) — only the first chunk has an intro.`}
+${isLast ? `Include the "outro" field in your response.` : `Set "outro" to "" (empty string) — only the last chunk has an outro.`}
+Return ONLY these slides in the "slides" array.`;
+
+      const res = await fetchAiGateway({
+        method: "POST",
+        headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "openai/gpt-5-mini",
+          response_format: { type: "json_object" },
+          max_completion_tokens: 16000,
+          messages: [
+            { role: "system", content: sys },
+            { role: "user", content: chunkUser },
+          ],
+        }),
+      }, `generate-speaker-script-chunk-${chunkIndex}`);
+      if (!res.ok) throw new Error(aiGatewayErrorMessage(res.status, await res.text()));
+      const data = await res.json();
+      return parseAiJson(data.choices?.[0]?.message?.content || "");
+    }
+
+    let script: any;
+    if (chunkIt) {
+      const [a, b] = await Promise.all(chunks.map((c, i) => runChunk(c, i, chunks.length)));
+      if (!a?.slides?.length || !b?.slides?.length) {
+        return failResponse("Speaker script generation returned an incomplete response. Please try again.");
+      }
+      script = {
+        deck_title: a.deck_title || deckTitle,
+        total_runtime_minutes: targetMinutes,
+        intro: a.intro || "",
+        slides: [...a.slides, ...b.slides],
+        outro: b.outro || "",
+      };
+    } else {
+      script = await runChunk(chunks[0], 0, 1);
+      if (!script || !Array.isArray(script.slides) || script.slides.length === 0) {
+        return failResponse("Speaker script generation returned no slides. Please try again.");
+      }
     }
 
     // Merge into content_json WITHOUT touching status / current_step.
