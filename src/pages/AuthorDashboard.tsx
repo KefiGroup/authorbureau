@@ -415,7 +415,20 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     <PremiumGate isPremium={isPremium || isAdmin || userIsSuperAdmin} featureName={featureName} requiredTier={requiredTier} currentTier={userIsSuperAdmin ? "yield" : tier}>{children}</PremiumGate>
   );
 
-  const handleNavigate = (s: string) => setActiveSection(s as DashboardSection);
+  const handleNavigate = (s: string) => {
+    // Support "section?key=val" shorthand: forward extra params to the URL.
+    const [sectionRaw, queryRaw] = s.split("?");
+    if (queryRaw) {
+      const next = new URLSearchParams(searchParams);
+      const incoming = new URLSearchParams(queryRaw);
+      incoming.forEach((v, k) => next.set(k, v));
+      next.set("section", URL_SECTION_ALIASES[sectionRaw] || sectionRaw);
+      setSearchParams(next, { replace: false });
+      setActiveSectionState((URL_SECTION_ALIASES[sectionRaw] || sectionRaw) as DashboardSection);
+      return;
+    }
+    setActiveSection(s as DashboardSection);
+  };
 
   // Map sections to their node IDs for DB gating lookup
   const SECTION_TO_NODE: Record<string, string> = {
