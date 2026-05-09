@@ -405,8 +405,17 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         });
         activeContent = { ...content, library_asset: asset };
         setContent(activeContent);
-      } catch (e) {
-        console.warn("[BP-03] library_asset upload failed, activating without it", e);
+      } catch (uploadErr) {
+        // Sprint 55d: surface upload failures instead of silently activating
+        // without a library_asset (same fix as BP-06/BP-08/BP-09).
+        const msg = (uploadErr as Error)?.message || "Upload failed";
+        console.error("[BP-03] activate: library upload failed", uploadErr);
+        toast.error("Couldn't save social media kit to your Library", {
+          description: `${msg}. Activation was cancelled — try again or contact support.`,
+        });
+        setError(msg);
+        setStep(2);
+        return;
       }
 
       const savedNode = await persistNodeState("live", activeContent);

@@ -1,43 +1,65 @@
-## Fix the BP-08 / BP-09 silent-publish bug (root cause for Pauline's stuck nodes)
+## Spot-check results — adopter builder silent-catch audit
 
-The audit caught a real defect, not just bad data. Two builders silently publish a node `live` even when their `library_asset` upload fails, and the audit's adopter contract is out of sync with what the builders actually upload. Fixing it prevents the same trap on every other author who publishes BP-08 or BP-09.
+I checked the publish flow in all 6 remaining adopter builders (BP-01, BP-03, BP-04, BP-06, BA-11, BA-14) for the same swallowed-`catch` pattern that left Pauline's BP-08/BP-09 stuck.
 
-### 1. Stop the silent fall-through in the two builders
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` `handlePublish`: remove the swallowed `catch` around `uploadAndRegisterLibraryAsset`. If the upload throws, surface a toast and stay on step 2 (do **not** call `publishNodeToSite`). Mirror the existing error-handling style at the bottom of the function.
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` `handlePublish`: same change at lines 285-294.
-- Net effect: a transient upload error now blocks publish (correct) instead of leaving the node live without a deliverable.
+### Findings
 
-### 2. Align the canonical adopter contract with reality
-Sprint 55 memory currently says: adopters = BP-01, BP-03, BP-04, BP-06, BP-09 (kind=external_url). The codebase says:
-- BP-08 is **also** an adopter and uploads `kind: "txt"`.
-- BP-09 uploads `kind: "txt"` (not `external_url`).
+| Builder | Status | Notes |
+|---|---|---|
+| **BP-01** | 🔴 Same bug | `handlePublish` (lines 207-219) wraps `uploadAndRegisterLibraryAsset` in `try { … } catch { console.warn(…); libraryAsset = null }` and still calls `publishNodeToSite`. |
+| **BP-03** | 🔴 Same bug | `handleActivate` (lines 397-411) wraps the upload in the same swallowed `catch` and still calls `persistNodeState("live", …)`. |
+| **BP-04** | ✅ Clean | No upload — relies on `deriveLibraryAsset` to stamp `kind=external_url` from the microsite URL. Correct by design. |
+| **BP-06** | ✅ Fixed | Already corrected in Sprint 55c (lines 297-313): surfaces upload error, calls `setStep(2)`, returns. **This is the pattern to mirror.** |
+| **BA-11** | ✅ Out of scope | Publish lives in the Audiobook Studio "Save & Distribute" flow, not in `BA11Builder.tsx`. The new server-side 422 guard in `save-author-node:publish` will now block any path that tries to flip BA-11 live without a `library_asset`. |
+| **BA-14** | ✅ Trusted to server guard | `handlePublish` calls `publishNodeToSite` without a `libraryAsset` argument. Today the row's `library_asset` (kind=`podcast_pack`) is written elsewhere when the podcast pack is generated. Server-side 422 guard now blocks publish if that pack is missing — correct fail-fast behavior. |
 
-Update both sides so they match:
-- `supabase/functions/daily-audit/index.ts` `REQUIRED_KIND`: `BP-08: "txt"`, `BP-09: "txt"` (BP-01/03/04/06 unchanged).
-- Update memory `mem://architecture/library-asset-adoption` to: adopters = **BP-01, BP-03, BP-04, BP-06, BP-08, BP-09** with their actual `kind` values.
+### What to fix
 
-### 3. Server-side guard rail in `save-author-node:publish`
-Add a final check inside the publish branch of `supabase/functions/save-author-node/index.ts`: for adopter nodes, refuse to write `status='live'` if neither the caller-supplied `libraryAsset` nor the existing row has a non-empty `library_asset.url`. Return `{ success: false, status: 422, message: "library_asset required for <node_id>" }`. This stops any future builder regression from re-introducing the same bug.
+Two builders, same one-line pattern. Mirror BP-06's fixed shape (toast + `setStep(2)` + return on upload failure).
 
-### 4. Repair Pauline's two stuck rows
-After the fix is deployed:
-- `BP-09` (`8b6d54da…`): set `status='draft'` and clear `delivery_url` so she re-publishes through the corrected builder.
-- `BP-08` (`e0a33228…`): same treatment.
+### 1. `BP01Builder.tsx` `handlePublish`
+Replace the swallowed `catch` (lines 207-219) with:
+```ts
+let libraryAsset: Record<string, unknown> | null = null;
+try {
+  const txtBlob = buildBp01Txt(content, authorName, bookTitle || detectedBookTitle || "your book");
+  const safe = (bookTitle || "email-marketing").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
+  const asset = await uploadAndRegisterLibraryAsset({
+    authorId: authorId!,
+    nodeId: "BP-01",
+    title: content?.lead_magnet_offer?.title || "Email Marketing Kit",
+    primary: { blob: txtBlob, filename: `${safe}-email-kit.txt`, kind: "email_sequence" },
+  });
+  libraryAsset = asset as unknown as Record<string, unknown>;
+} catch (uploadErr) {
+  const msg = (uploadErr as Error)?.message || "Upload failed";
+  console.error("[BP-01] publish: library upload failed", uploadErr);
+  toast.error("Couldn't save email kit to your Library", {
+    description: `${msg}. Publish was cancelled — try again or contact support.`,
+    duration: 14000,
+  });
+  setError(msg);
+  setStep(2);
+  return;
+}
+```
 
-I'll do this via a one-off `supabase--insert` UPDATE (it's a status reset, not a schema change).
+### 2. `BP03Builder.tsx` `handleActivate`
+Replace the swallowed `catch` (lines 397-411) with the same pattern (toast, `setStep(2)`, `setIsActivating(false)` via the existing `finally`, return). Do not proceed to `persistNodeState("live", …)` if the upload failed.
 
-### 5. Re-run the audit
-Call `/daily-audit-cron` once more; expect green / amber (errors_24h still warns from historic entries until the 24h window rolls).
+### 3. Memory update
+Add a one-line note to `mem://architecture/library-asset-adoption`:
+> Sprint 55d: BP-01 and BP-03 silent-catch removed (same bug class as BP-08/09). All 6 file-uploading adopters (BP-01/03/06/08/09 + workbook PDF) now fail fast on upload errors. BP-04/BA-11/BA-14 covered by the server-side 422 guard.
+
+### 4. Verification
+- Re-run `daily-audit` — expect green/amber unchanged. The fix is preventative; no current authors are stuck on BP-01 or BP-03 (already verified during the platform sweep on Pauline).
+- No data repair needed.
 
 ### Files touched
-- `src/components/dashboard/builders/bp08/BP08Builder.tsx` (publish error handling)
-- `src/components/dashboard/builders/bp09/BP09Builder.tsx` (publish error handling)
-- `supabase/functions/daily-audit/index.ts` (REQUIRED_KIND adopter map)
-- `supabase/functions/save-author-node/index.ts` (server-side adopter guard)
-- Memory: `mem://architecture/library-asset-adoption` (adopter list update)
-- Re-deploy: `daily-audit`, `save-author-node`
-- Data fix: reset Pauline's BP-08 and BP-09 nodes to `draft`
+- `src/components/dashboard/builders/bp01/BP01Builder.tsx`
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+- Memory: `mem://architecture/library-asset-adoption`
 
 ### Out of scope
-- Backfilling historical assets for any author who already published one of these nodes — they'll naturally re-publish through the fixed builder (or admin can reset them on demand). Audit will keep flagging until they do.
-- Other adopter builders (BP-01/03/04/06) — they don't show the same silent-catch pattern in this audit window, but I'll spot-check them while editing the file.
+- BP-04, BP-06, BA-11, BA-14 (already correct or covered by server guard).
+- Refactoring the duplicated try/catch shape into a shared helper — worth doing in a later cleanup sprint, not here.
