@@ -201,7 +201,8 @@ const AppRoutes = () => (
       <Route path="/:authorSlug/members/portal" element={<MemberPortalPage />} />
       <Route path="/:authorSlug/members" element={<MembershipSalesPage />} />
       <Route path="/:authorSlug/home-study-bundle/:purchaseId" element={<HomeStudyBundlePage />} />
-      <Route path="/:authorSlug/:bookSlug/:productType" element={<AuthorProductPage />} />
+      {/* Sprint 56: 3-segment route resolves to per-book microsite node OR product page */}
+      <Route path="/:authorSlug/:bookSlug/:nodeSlug" element={<BookNodeResolver />} />
       <Route path="/:authorSlug/:bookSlug" element={<AuthorSubpageResolver />} />
       <Route path="/:authorSlug" element={<AuthorSite />} />
       <Route path="*" element={<NotFound />} />
