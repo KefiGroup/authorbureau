@@ -9,22 +9,39 @@
  * Removing all keys deletes the override row entirely.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { listOverridesBulk } from "./funnels-api";
 import type { OverridesMap } from "./funnel-flow-stages";
 
 export async function loadOverrides(funnelId: string): Promise<OverridesMap> {
-  const { data, error } = await supabase
-    .from("funnel_stage_overrides")
-    .select("stage_id, field_overrides")
-    .eq("funnel_id", funnelId);
-  if (error) {
-    console.warn("[funnel-overrides] load failed:", error.message);
-    return {};
+  // Sprint 60 fix: read via edge function (service-role) so override rows
+  // saved by authors are visible regardless of shared-backend RLS state.
+  // The direct browser query was hidden by RLS for owners using the shared
+  // session token, which is why stage cards showed "Not set" even when
+  // funnel_stage_overrides rows existed.
+  try {
+    const { overrides_by_funnel } = await listOverridesBulk([funnelId]);
+    const rows = overrides_by_funnel[funnelId] || [];
+    const map: OverridesMap = {};
+    for (const row of rows) {
+      map[row.stage_id] = (row.field_overrides as Record<string, string>) || {};
+    }
+    return map;
+  } catch (e) {
+    console.warn("[funnel-overrides] edge load failed, falling back to direct:", (e as Error).message);
+    const { data, error } = await supabase
+      .from("funnel_stage_overrides")
+      .select("stage_id, field_overrides")
+      .eq("funnel_id", funnelId);
+    if (error) {
+      console.warn("[funnel-overrides] direct load failed:", error.message);
+      return {};
+    }
+    const map: OverridesMap = {};
+    for (const row of data || []) {
+      map[row.stage_id] = (row.field_overrides as Record<string, string>) || {};
+    }
+    return map;
   }
-  const map: OverridesMap = {};
-  for (const row of data || []) {
-    map[row.stage_id] = (row.field_overrides as Record<string, string>) || {};
-  }
-  return map;
 }
 
 /**
