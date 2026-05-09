@@ -3163,14 +3163,46 @@ serve(async (req) => {
       }
 
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
+      const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
+
+      // Verify ownership of the book before returning the plan.
+      // Books may be owned by either owner_user_id or owner_email (legacy).
+      const { data: bookRow } = await adminClient
+        .from("books")
+        .select("id, owner_user_id, owner_email")
+        .eq("id", getPlanBookId)
+        .maybeSingle();
+
+      const ownsBook = !!bookRow && (
+        bookRow.owner_user_id === user.id ||
+        (!!user.email && !!bookRow.owner_email && bookRow.owner_email.toLowerCase() === user.email.toLowerCase())
+      );
+
+      if (!ownsBook) {
+        return new Response(JSON.stringify({ content: null }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Lookup by (book_id, asset_type) only — that's the unique key. Historical
+      // rows may have author_id set to either auth.users.id or author_profiles.id.
       const { data: planData } = await adminClient
         .from("generated_assets")
-        .select("content")
+        .select("id, content, author_id")
         .eq("book_id", getPlanBookId)
-        .eq("author_id", authorId)
         .eq("asset_type", "business_plan")
         .maybeSingle();
+
+      // Self-heal: normalise drifted author_id to the canonical resolved value.
+      if (planData?.id && planData.author_id !== authorId) {
+        adminClient
+          .from("generated_assets")
+          .update({ author_id: authorId })
+          .eq("id", planData.id)
+          .then(({ error }) => {
+            if (error) console.warn("[get-plan] author_id normalise failed:", error.message);
+          });
+      }
 
       return new Response(JSON.stringify({ content: planData?.content || null }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
