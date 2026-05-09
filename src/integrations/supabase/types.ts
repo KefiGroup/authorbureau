@@ -617,6 +617,30 @@ export type Database = {
         }
         Relationships: []
       }
+      author_node_skips: {
+        Row: {
+          author_id: string
+          book_id: string | null
+          created_at: string
+          id: string
+          node_id: string
+        }
+        Insert: {
+          author_id: string
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          node_id: string
+        }
+        Update: {
+          author_id?: string
+          book_id?: string | null
+          created_at?: string
+          id?: string
+          node_id?: string
+        }
+        Relationships: []
+      }
       author_nodes: {
         Row: {
           activated_at: string | null
