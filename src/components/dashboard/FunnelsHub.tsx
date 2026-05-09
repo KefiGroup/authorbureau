@@ -20,8 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
-import { listFunnels, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
-import { loadOverrides } from "@/lib/funnel-overrides";
+import { listFunnels, listOverridesBulk, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
 import { getStagesForArchetype, type OverridesMap } from "@/lib/funnel-flow-stages";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
