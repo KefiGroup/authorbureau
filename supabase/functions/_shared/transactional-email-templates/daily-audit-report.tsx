@@ -142,10 +142,11 @@ export const template = {
   component: DailyAuditReportEmail,
   subject: (data: Record<string, any>) => {
     const status = (data.status as string) || 'green'
-    const issues = data.issueCount ?? 0
-    if (status === 'red') return `🚨 Daily audit RED — ${issues} issue${issues === 1 ? '' : 's'}`
-    if (status === 'amber') return `⚠️ Daily audit AMBER — ${issues} warning${issues === 1 ? '' : 's'}`
-    return `✅ Daily audit GREEN — all clear`
+    const resolved = Array.isArray(data.resolved) ? data.resolved.length : 0
+    const opened = Array.isArray(data.opened) ? data.opened.length : 0
+    const sprints = Array.isArray(data.sprints) ? data.sprints.length : 0
+    const dot = status === 'red' ? '🔴' : status === 'amber' ? '🟡' : '🟢'
+    return `${dot} Daily ops — ${resolved} resolved · ${opened} new · ${sprints} shipped`
   },
   displayName: 'Daily audit report',
   previewData: {
@@ -156,10 +157,12 @@ export const template = {
     warnCount: 2,
     checks: [
       { key: 'errors_24h', label: 'Errors (24h)', severity: 'ok', count: 0, message: '0 critical, 0 error, 1 warning' },
-      { key: 'stuck_live', label: 'Stuck-live nodes', severity: 'ok', count: 5, message: '5 live nodes using legacy fallback' },
       { key: 'email_queue', label: 'Email queue (24h)', severity: 'warn', count: 2, message: 'sent 412 · dlq 0 · failed 2 · suppressed 1' },
-      { key: 'content_quality', label: 'Content quality (24h)', severity: 'warn', count: 12, message: '12 total — top: emdash(8), placeholder(4)' },
     ],
+    resolved: [{ key: 'stuck_live', label: 'Stuck-live nodes', from: 'warn', message: '3 → 0' }],
+    opened: [{ key: 'email_queue', label: 'Email queue', to: 'warn', message: '2 failed sends' }],
+    sprints: [{ sprint_id: 'Sprint 58', title: 'CRM Daily Intelligence', summary: 'New abby-daily-crm-digest cron + DailyIntelligenceCard' }],
+    takeaway: 'Stuck-live cleanup landed; keep an eye on the email queue tomorrow.',
     dashboardUrl: 'https://authorsbureau.com/admin?tab=daily-audit',
   },
 } satisfies TemplateEntry
