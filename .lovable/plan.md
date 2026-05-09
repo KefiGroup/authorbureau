@@ -1,53 +1,43 @@
-## Run audits + fix the 2 real bugs
+## Fix the BP-08 / BP-09 silent-publish bug (root cause for Pauline's stuck nodes)
 
-I ran the 9 underlying audit checks directly against the database. Results:
+The audit caught a real defect, not just bad data. Two builders silently publish a node `live` even when their `library_asset` upload fails, and the audit's adopter contract is out of sync with what the builders actually upload. Fixing it prevents the same trap on every other author who publishes BP-08 or BP-09.
 
-| # | Check | Result | Status |
-|---|---|---|---|
-| 1 | Errors (24h) | 3 errors, all from `daily-audit-cron` saying "audit call failed → 401 invalid token" | **fail** (bug 1) |
-| 2 | Stuck-live nodes | 27 reported, but 22 of those are nodes that correctly use the `deriveLibraryAsset` fallback per the Sprint 55 memory (BA-10/12/13/15/16/17/18, BP-02/05/07/08, YR-19→YR-28). Only 5 nodes have real assets (BP-01, BP-04, BP-06, BA-11, BA-14). | **false positive** (bug 2) |
-| 3 | Node registry parity | 28/28, all canonical labels present | green |
-| 4 | Connector secrets | All 8 present | green |
-| 5 | Cron freshness | OK (last email_sync recent) | green |
-| 6 | Email queue (24h) | No dlq/failed | green |
-| 7 | Content quality (24h) | 0 violations | green |
-| 8 | Ghost author UIDs (24h) | 0 | green |
-| 9 | Book ownership orphans | 0 | green |
+### 1. Stop the silent fall-through in the two builders
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx` `handlePublish`: remove the swallowed `catch` around `uploadAndRegisterLibraryAsset`. If the upload throws, surface a toast and stay on step 2 (do **not** call `publishNodeToSite`). Mirror the existing error-handling style at the bottom of the function.
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` `handlePublish`: same change at lines 285-294.
+- Net effect: a transient upload error now blocks publish (correct) instead of leaving the node live without a deliverable.
 
-So **2 real bugs** to fix.
+### 2. Align the canonical adopter contract with reality
+Sprint 55 memory currently says: adopters = BP-01, BP-03, BP-04, BP-06, BP-09 (kind=external_url). The codebase says:
+- BP-08 is **also** an adopter and uploads `kind: "txt"`.
+- BP-09 uploads `kind: "txt"` (not `external_url`).
 
-### Bug 1 — daily-audit-cron 401 "invalid token"
+Update both sides so they match:
+- `supabase/functions/daily-audit/index.ts` `REQUIRED_KIND`: `BP-08: "txt"`, `BP-09: "txt"` (BP-01/03/04/06 unchanged).
+- Update memory `mem://architecture/library-asset-adoption` to: adopters = **BP-01, BP-03, BP-04, BP-06, BP-08, BP-09** with their actual `kind` values.
 
-`daily-audit-cron` calls `daily-audit` with `Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}`. The platform's gateway is rewriting that header for inter-function calls, so when `daily-audit` runs `authorize()` the token no longer matches `SERVICE_ROLE_KEY`, falls through to `getUser()`, which returns no user → "invalid token".
+### 3. Server-side guard rail in `save-author-node:publish`
+Add a final check inside the publish branch of `supabase/functions/save-author-node/index.ts`: for adopter nodes, refuse to write `status='live'` if neither the caller-supplied `libraryAsset` nor the existing row has a non-empty `library_asset.url`. Return `{ success: false, status: 422, message: "library_asset required for <node_id>" }`. This stops any future builder regression from re-introducing the same bug.
 
-**Fix:** Add a private shared-secret header that bypasses the gateway's rewriting.
+### 4. Repair Pauline's two stuck rows
+After the fix is deployed:
+- `BP-09` (`8b6d54da…`): set `status='draft'` and clear `delivery_url` so she re-publishes through the corrected builder.
+- `BP-08` (`e0a33228…`): same treatment.
 
-- In `supabase/functions/daily-audit/index.ts`, also accept the request when header `x-cron-secret` equals `Deno.env.get("CROSS_PLATFORM_SECRET")` (already in project secrets — used elsewhere for the same pattern).
-- In `supabase/functions/daily-audit-cron/index.ts`, send that header alongside the existing Authorization bearer.
+I'll do this via a one-off `supabase--insert` UPDATE (it's a status reset, not a schema change).
 
-This keeps service-role and admin-JWT paths working for CLI / panel use, and adds a reliable cron path.
-
-### Bug 2 — Stuck-live false positives
-
-The check requires every live node to have `library_asset.url + library_asset.kind`. That's wrong: per the Sprint 55 memory, only **BP-01, BP-03, BP-04, BP-06, BP-09** write a real asset. All others legitimately rely on the `deriveLibraryAsset` fallback.
-
-**Fix:** In `daily-audit/index.ts`, restrict the stuck-live check to those 5 "adopter" builders. For all other live nodes, only flag when `delivery_url` is missing (their actual contract). Re-label severity:
-- Adopter node missing `library_asset.kind/url` → fail member.
-- Non-adopter node missing `delivery_url` → warn member.
-- Otherwise OK.
-
-This matches the canonical adoption rule and removes 22 false alarms.
-
-### Cleanup
-After deploying the two fixes, re-invoke `daily-audit-cron`, then mark the 3 stale `system_error_log` rows from `daily-audit-cron` as resolved (via `admin_resolve_errors` RPC) so the next run reports green/amber accurately.
+### 5. Re-run the audit
+Call `/daily-audit-cron` once more; expect green / amber (errors_24h still warns from historic entries until the 24h window rolls).
 
 ### Files touched
-- `supabase/functions/daily-audit/index.ts` (auth + stuck-live logic)
-- `supabase/functions/daily-audit-cron/index.ts` (send `x-cron-secret`)
-- Re-deploy both edge functions.
-- Resolve 3 stale error rows.
+- `src/components/dashboard/builders/bp08/BP08Builder.tsx` (publish error handling)
+- `src/components/dashboard/builders/bp09/BP09Builder.tsx` (publish error handling)
+- `supabase/functions/daily-audit/index.ts` (REQUIRED_KIND adopter map)
+- `supabase/functions/save-author-node/index.ts` (server-side adopter guard)
+- Memory: `mem://architecture/library-asset-adoption` (adopter list update)
+- Re-deploy: `daily-audit`, `save-author-node`
+- Data fix: reset Pauline's BP-08 and BP-09 nodes to `draft`
 
 ### Out of scope
-- Changing the rest of the checks (all green).
-- Schema/UI changes (the admin Daily Audit panel will benefit automatically).
-- Schedule changes (already running 21:00 UTC = 05:00 SGT daily).
+- Backfilling historical assets for any author who already published one of these nodes — they'll naturally re-publish through the fixed builder (or admin can reset them on demand). Audit will keep flagging until they do.
+- Other adopter builders (BP-01/03/04/06) — they don't show the same silent-catch pattern in this audit window, but I'll spot-check them while editing the file.
