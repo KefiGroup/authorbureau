@@ -1,74 +1,73 @@
-## Goal
 
-Close two related gaps from `.lovable/audit-3-must-have.md`:
+## Sprint 58 — Audit reconciliation + CRM Daily Intelligence push
 
-1. **Lead capture → BP-01 nurture autowire** — currently a quiz/lead-magnet submission only enrolls the new subscriber into the BP-02 flow + `master_nurture`. The actual welcome/nurture series lives in BP-01 and is silently skipped, so newly captured leads receive no follow-up emails until the author manually wires something up.
-2. **Hot-Leads CRM widget — surface it where authors actually look.** The widget component already exists (`src/components/dashboard/crm/HotLeadsCard.tsx`, threshold ≥20) but is only mounted on the CRM page. Authors land on the Revenue Dashboard daily — a focused "Hot Leads" card belongs there too, with a one-click jump to the CRM and the contact's detail panel.
+### Why this scope
 
-No schema changes; no new edge functions; no breaking changes.
+While preparing the originally-queued "Mark-as-Posted + Social ZIP + Email scoring" sprint, exploration uncovered that **all three items are already shipped**:
 
-## Current state (verified)
+- **ZIP social pack** — `export-social-pack-zip` edge function is deployed; `SocialCalendarTab` already has a "Download Pack (.zip)" button (line 632).
+- **Mark-as-Posted** — `social_posts.posted_at` column + status `'posted'` flow + "Mark as Posted" button (SocialCalendarTab line 945) are live.
+- **Open/click → ABBY scoring** — `resend-webhook` already bumps `leads.abby_score` (open +2, click +5), mirrors to `crm_contacts`, and logs `email_open` / `email_click` rows in `lead_activities`.
 
-- `submit-funnel` calls `enroll-subscriber` with `node_id: funnel.node_id` (=`BP-02` for lead magnets).
-- `enroll-subscriber` enrolls in flows where `flow_type === 'master_nurture'` OR `node_id === body.node_id`. BP-01 flows are never matched.
-- DB today has 1 BP-01 flow + 1 BP-02 flow (both `draft`, single author). No `master_nurture` flow exists in production. So today, a captured lead gets **zero** automated email follow-up.
-- Revenue Dashboard already shows `hotLeads` (>60 score) inline at line 122 of `RevenueDashboard.tsx`, but there is no compact, visually distinct "Hot Leads" card and no link into the CRM contact panel — it's a dense bullet list.
-- `HotLeadsCard` (≥20 score) is mounted only on `AuthorCRMPage` line 389.
+So Sprint 58 splits into **(A) reconcile the audit doc + verify** the existing infra is actually wired, and **(B) ship the next genuinely-missing CRM rail item — the Daily Intelligence push**. Larger remaining gaps (Course-Learn portal, Member portal, Podcast RSS, Daily.co coaching) are each big enough to deserve their own sprints and are explicitly out-of-scope here.
 
-## Plan
+---
 
-### Step 1 — `enroll-subscriber`: treat BP-01 as the global welcome engine
+### Part A — Audit reconciliation & verification
 
-In `supabase/functions/enroll-subscriber/index.ts`, change the target-flow filter so a subscriber is enrolled in:
+1. **Verify Resend webhook is reachable in production.**
+   - Check `RESEND_WEBHOOK_SECRET` secret is set; if missing, prompt to add it (without it the function accepts unsigned events, which is a soft security risk).
+   - Confirm Resend dashboard webhook is pointed at `…/functions/v1/resend-webhook` for events: `email.bounced`, `email.complained`, `email.delivered`, `email.opened`, `email.clicked`, `email.failed`, `email.delivery_delayed`. If unset, surface a one-line note to the user (cannot do it from code).
+   - Tail recent `resend-webhook` logs to confirm real opens/clicks are coming through and ABBY scores are moving.
 
-- every `flow_type === 'master_nurture'` flow (unchanged), AND
-- every `flow_type === 'BP-01'` flow (new — BP-01 is the always-on welcome/nurture engine), AND
-- the node-specific flow when `body.node_id` matches (unchanged — covers BP-02, BP-05, etc.).
+2. **Verify ZIP + Mark-as-Posted end-to-end** with one live author's pack — ensure the download produces a valid zip, captions+graphics are present, and the post flips to `posted` status.
 
-De-dupe by `flow.id` so a BP-01-keyed master flow isn't enrolled twice. Suppression check, `email_flow_enrollments` upsert, and the instant `process-email-flows` kick remain untouched.
+3. **Update `.lovable/audit-3-must-have.md`** capability table:
+   - Social media kit → ✅ (ZIP + Mark-as-Posted shipped)
+   - Email marketing → ✅ (open/click scoring shipped)
+   - CRM → flip "daily intelligence push" gap to in-progress for Part B.
+   - Add a "Sprint 58 — Audit reconciliation" section recording these findings.
 
-### Step 2 — Lead-capture telemetry
+---
 
-In `submit-funnel`, when the captured node is `BP-02`, log a structured `lead_activities` row with `activity_type='nurture_autowired'` and metadata `{ enrollments: enrollData.enrollments }` so authors can see in the contact timeline that the BP-01 sequence was triggered. Also bump `crm_contacts.abby_score` by +3 on quiz completion (currently fixed at 2) — quiz finishers are warmer than email-only opt-ins.
+### Part B — CRM Daily Intelligence push
 
-### Step 3 — Revenue Dashboard: new "Hot Leads" card
+A once-per-day per-author email/dashboard summary of CRM movement, leveraging the now-functional engagement scoring.
 
-Replace the existing dense hot-leads bullet block on `RevenueDashboard.tsx` with the existing `<HotLeadsCard />` component (re-keyed by `author_profiles.id`), placed alongside the "Leads This Week" stat. Each row links to `/dashboard?section=crm&contactId=<id>` so the CRM page can deep-link the contact.
+**New edge function: `abby-daily-crm-digest`** (`verify_jwt = false`, runs via pg_cron)
 
-### Step 4 — CRM deep-link from URL
+For each `author_profiles` row with at least one CRM contact:
 
-In `AuthorCRMPage.tsx`, read `contactId` from the URL search params on mount; if present, scroll the matching row into view and open `ContactDetailPanel` for it. No new state plumbing — just a `useEffect` watching `searchParams`.
+- New leads in last 24h (count + top 3 by score)
+- Hot leads (score ≥ 60) currently in pipeline (count + delta vs previous day)
+- Email engagement: opens / clicks in last 24h (from `lead_activities`)
+- Top-moving contact (largest `abby_score` increase in 24h)
+- One ABBY-generated next-action recommendation per author (1 sentence, gpt-5-mini)
 
-### Step 5 — Verification
+Emit via existing `send-transactional-email` (`authorId` set so it inherits author-branded From/Reply-To). Also write a row to a new table `crm_daily_digests` so the dashboard can render the same intel as a card without re-emailing.
 
-- Unit: extend `supabase/functions/enroll-subscriber/__tests__` (or add) to assert BP-01 flows are matched even when `body.node_id='BP-02'`.
-- Manual: pick the existing Pauline Teo BP-01 flow, flip it to `active`, submit a test lead via `/{author}/{book}/free-gift`, confirm:
-  - one row in `email_flow_enrollments` against the BP-01 flow,
-  - one row in `lead_activities` with `activity_type='nurture_autowired'`,
-  - `process-email-flows` fires the first BP-01 step within ~1.5s,
-  - the contact appears on Revenue Dashboard's Hot Leads card after the score bump,
-  - clicking the row deep-links to the CRM contact panel.
-- Run `daily-audit` (cron will re-run overnight) to confirm no regression in `email_queue` / `connectors` checks.
+**Migration:** create `crm_daily_digests` (`author_id`, `digest_date` unique pair, `payload jsonb`, RLS: authors read own).
 
-## Files touched
+**Cron:** schedule `abby-daily-crm-digest` at 13:00 UTC daily (matches existing `abby-daily-report-dispatcher` window).
 
-- `supabase/functions/enroll-subscriber/index.ts` — add BP-01 branch in flow filter, de-dupe by `flow.id`.
-- `supabase/functions/submit-funnel/index.ts` — log `nurture_autowired` activity, +3 score on quiz completion.
-- `src/components/dashboard/RevenueDashboard.tsx` — swap inline hot-leads list for `<HotLeadsCard />`, add deep-link query param.
-- `src/components/dashboard/crm/HotLeadsCard.tsx` — make rows clickable; emit `onClick` that pushes `contactId` query param.
-- `src/components/dashboard/AuthorCRMPage.tsx` — read `contactId` from URL → open panel + scroll.
-- `.lovable/audit-3-must-have.md` — mark Lead-capture and CRM gaps closed; remove from "Next sprints".
-- `mem://sprints/sprint-34-abby-email-engine` — note BP-01 is enrolled globally (parity with master_nurture).
+**UI:** add a "Today's CRM Intelligence" card at the top of `AuthorCRMPage` rendering the latest `crm_daily_digests` row for the active author. Falls back gracefully when no digest exists yet.
 
-## Out of scope
+---
 
-- Daily intelligence push email (separate item — `abby-daily-report-dispatcher` already handles it).
-- Open/click → ABBY score bumps (audit-3 item, separate sprint — touches `process-email-events`, not lead capture).
-- Marketing-Hub flow status flips (authors still flip `draft` → `active` themselves; we don't auto-activate).
-- Schema changes; no new tables, no migrations.
+### Files to touch
 
-## Risks & mitigations
+- `.lovable/audit-3-must-have.md` (reconcile table + Sprint 58 notes)
+- `supabase/functions/abby-daily-crm-digest/index.ts` (new)
+- `supabase/migrations/<new>.sql` (new `crm_daily_digests` + cron job)
+- `src/components/dashboard/AuthorCRMPage.tsx` (top card)
+- `src/components/dashboard/crm/DailyIntelligenceCard.tsx` (new)
+- `mem://sprints/sprint-58-audit-reconciliation.md` (new)
+- `mem://index.md` (add reference)
 
-- **Risk**: an author has both a BP-01 flow and a BP-02 flow; both could send a "welcome" email at the same time. **Mitigation**: BP-01 is the welcome series, BP-02 sends the lead magnet itself (different intent). Authors who want only one can set the other to `draft`. Doc this in the memory note.
-- **Risk**: existing `total_subscribers` counts go up unexpectedly when BP-01 flows that were previously orphaned start receiving enrollments. **Mitigation**: count is a soft analytics column, not gated behavior; no user impact beyond a more accurate number.
-- **Risk**: `<HotLeadsCard />` queries `leads` (author_profile_id) while Revenue Dashboard already passes `aid = author_profiles.id` — so wiring is straight. No RLS change needed.
+### Out of scope (future sprints)
+
+- Course `/courses/:slug/learn` portal + enrollments
+- Member `/members/:slug` gated route
+- Podcast RSS feed
+- Daily.co coaching booking
+- Per-node ZIP/MP3 export rail

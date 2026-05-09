@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Service role manages daily digests" ON public.crm_daily_digests;

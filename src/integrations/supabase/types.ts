@@ -2108,6 +2108,52 @@ export type Database = {
           },
         ]
       }
+      crm_daily_digests: {
+        Row: {
+          author_id: string
+          created_at: string
+          digest_date: string
+          id: string
+          payload: Json
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          digest_date: string
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          digest_date?: string
+          id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_daily_digests_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_daily_digests_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_daily_digests_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cross_builder_pushes: {
         Row: {
           author_id: string

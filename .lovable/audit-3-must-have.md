@@ -11,18 +11,18 @@
 | Capability | Status | Gap |
 |---|---|---|
 | AI content generation | ✅ Documents + microsites + Stripe wiring (28 nodes) | None |
-| Social media kit | ⚠️ Graphics + captions + calendar | Add ZIP download + "Mark as Posted" |
-| Email marketing | ⚠️ Sequences via Resend, suppression, flows | Add open/click → ABBY score bumps |
-| Lead capture | ⚠️ Quiz + thank-you + CRM | Auto-trigger BP-01 nurture sequence on quiz submit |
+| Social media kit | ✅ Graphics + captions + calendar + ZIP download + Mark-as-Posted | None |
+| Email marketing | ✅ Sequences via Resend, suppression, flows, open/click → ABBY scoring | None |
+| Lead capture | ✅ Quiz + thank-you + CRM + BP-01 nurture autowire | None |
 | Sales funnel | ✅ Auto-generated + live Stripe checkout | None |
-| CRM | ⚠️ Pipeline + tagging | Hot-leads widget + daily intelligence push |
+| CRM | ✅ Pipeline + tagging + Hot Leads + Daily Intelligence digest (email + dashboard card) | None |
 | Payment processing | ✅ Stripe Connect Express, auto-product per node | None |
-| Revenue dashboard | ✅ Real-time gross/fee/net | Add hot-leads + 7d new-lead widgets |
+| Revenue dashboard | ✅ Real-time gross/fee/net + hot-leads deep-link | None |
 | Coaching/sessions | ❌ | Daily.co room + booking calendar + payment |
 | Course platform | ⚠️ Generation done | Build `/courses/:slug/learn` portal + enrollments |
 | Podcast hosting | ⚠️ MP3 pipeline reused | Add RSS feed for Spotify/Apple |
 | Membership site | ⚠️ Stripe + portal exist | Build `/members/:slug` gated route |
-| Daily AI insights | ✅ `abby-daily-report-dispatcher` | Confirm cron + settings UI |
+| Daily AI insights | ✅ `abby-daily-report-dispatcher` + `abby-daily-crm-digest` | None |
 | Export portability | ⚠️ TXT/DOCX/PDF | Add per-node ZIP + MP3 export |
 
 ## Next sprints (in order)
