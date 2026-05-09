@@ -162,9 +162,41 @@ serve(async (req) => {
       children.push(...section("Opening hook", slide.opening_hook));
       children.push(...section("Transition in", slide.transition_in));
       children.push(...section("Talking points", slide.talking_points));
+      children.push(...section("Book callbacks", slide.book_callbacks));
       children.push(...section("Facilitation prompts", slide.facilitation_prompts));
+
+      // Exercise block (half-day / full-day sessions)
+      if (slide.exercise && (slide.exercise.instructions || slide.exercise.debrief_questions?.length)) {
+        children.push(new Paragraph({
+          spacing: { before: 180, after: 60 },
+          children: [new TextRun({ text: "Exercise", bold: true, color: "1E2761" })],
+        }));
+        if (slide.exercise.time_minutes) {
+          children.push(new Paragraph({
+            spacing: { after: 60 },
+            children: [new TextRun({ text: `⏱  ${slide.exercise.time_minutes} min`, italics: true, color: "6B6B7B" })],
+          }));
+        }
+        if (slide.exercise.instructions) children.push(p(String(slide.exercise.instructions)));
+        if (Array.isArray(slide.exercise.debrief_questions) && slide.exercise.debrief_questions.length) {
+          children.push(new Paragraph({
+            spacing: { before: 60, after: 60 },
+            children: [new TextRun({ text: "Debrief questions", bold: true, color: "1E2761" })],
+          }));
+          for (const q of slide.exercise.debrief_questions) if (q) children.push(bullet(String(q)));
+        }
+      }
+
       children.push(...section("Transition out", slide.transition_out));
       children.push(...section("Closing anchor", slide.closing_anchor));
+
+      // Break cue (rendered as a centred italic divider)
+      if (slide.break_cue) {
+        children.push(new Paragraph({
+          alignment: AlignmentType.CENTER, spacing: { before: 240, after: 240 },
+          children: [new TextRun({ text: `── ${slide.break_cue} ──`, italics: true, bold: true, color: "C25D2E" })],
+        }));
+      }
     }
 
     // Outro
