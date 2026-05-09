@@ -303,7 +303,13 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
             ) : (
               <div className="divide-y">
                 {hotLeads.map((lead) => (
-                  <div key={lead.id} className="flex items-center justify-between py-2.5 gap-3">
+                  <button
+                    key={lead.id}
+                    type="button"
+                    onClick={() => onNavigate?.(`author-crm?contactId=${lead.id}`)}
+                    className="w-full flex items-center justify-between py-2.5 gap-3 text-left hover:bg-muted/40 rounded px-2 -mx-2 transition-colors"
+                    title="Open contact in CRM"
+                  >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-medium truncate">{lead.name || lead.email}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{lead.email}</p>
@@ -314,7 +320,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                     <span className="text-[11px] text-muted-foreground tabular-nums w-16 text-right">
                       {formatAgo(lead.last_activity_at || lead.created_at)}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             )}
