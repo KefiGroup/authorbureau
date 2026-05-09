@@ -20,8 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
-import { listFunnels, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
-import { loadOverrides } from "@/lib/funnel-overrides";
+import { listFunnels, listOverridesBulk, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
 import { getStagesForArchetype, type OverridesMap } from "@/lib/funnel-flow-stages";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -183,13 +182,20 @@ export default function FunnelsHub() {
     if (funnels.length === 0) return;
     let cancelled = false;
     (async () => {
-      const entries = await Promise.all(
-        funnels.map(async (f) => [f.id, await loadOverrides(f.id)] as const),
-      );
-      if (cancelled) return;
-      const map: Record<string, OverridesMap> = {};
-      for (const [id, ov] of entries) map[id] = ov;
-      setOverridesByFunnel(map);
+      try {
+        const { overrides_by_funnel } = await listOverridesBulk(funnels.map((f) => f.id));
+        if (cancelled) return;
+        const map: Record<string, OverridesMap> = {};
+        for (const f of funnels) {
+          const rows = overrides_by_funnel[f.id] || [];
+          const stageMap: OverridesMap = {};
+          for (const r of rows) stageMap[r.stage_id] = r.field_overrides || {};
+          map[f.id] = stageMap;
+        }
+        setOverridesByFunnel(map);
+      } catch (e: any) {
+        console.error("[FunnelsHub] listOverridesBulk failed:", e?.message);
+      }
     })();
     return () => { cancelled = true; };
   }, [funnels]);

@@ -303,12 +303,13 @@ export default function BP03Builder({ authorId, bookId }: Props) {
     setProgressLabel("");
 
     progressPollRef.current = setInterval(async () => {
-      const { data } = await supabase
+      let q = supabase
         .from("author_nodes")
         .select("content_json")
         .eq("author_id", authorId!)
-        .eq("node_id", "BP-03")
-        .maybeSingle();
+        .eq("node_id", "BP-03");
+      q = activeBookId ? q.eq("book_id", activeBookId) : q.is("book_id", null);
+      const { data } = await q.maybeSingle();
       const prog = (data?.content_json as any)?.progress;
       if (prog?.label) setProgressLabel(prog.label);
     }, 2000);

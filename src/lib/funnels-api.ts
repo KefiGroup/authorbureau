@@ -69,6 +69,13 @@ export async function listFunnels(): Promise<{ funnels: FunnelRow[]; authorId: s
   return callFn("list");
 }
 
+export async function listOverridesBulk(
+  funnelIds: string[],
+): Promise<{ overrides_by_funnel: Record<string, OverrideRow[]> }> {
+  if (!funnelIds.length) return { overrides_by_funnel: {} };
+  return callFn("list_overrides", { funnel_ids: funnelIds });
+}
+
 export async function getFunnel(funnelId: string): Promise<{ funnel: FunnelRow; overrides: OverrideRow[] }> {
   return callFn("get", { funnel_id: funnelId });
 }

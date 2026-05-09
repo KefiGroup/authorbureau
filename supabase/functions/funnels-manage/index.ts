@@ -220,6 +220,43 @@ Deno.serve(async (req: Request) => {
     return json(200, { ok: true });
   }
 
+  // ---------- LIST OVERRIDES (bulk) ----------
+  if (action === "list_overrides") {
+    const { funnel_ids } = body;
+    if (!Array.isArray(funnel_ids) || funnel_ids.length === 0) {
+      return json(200, { overrides_by_funnel: {} });
+    }
+    const authorId = await resolveAuthorIdForUser(admin, userId, userEmail);
+    if (!authorId) return json(200, { overrides_by_funnel: {} });
+
+    // Filter to funnels owned by this author (defense in depth).
+    const { data: ownedFunnels } = await admin
+      .from("funnels")
+      .select("id")
+      .eq("author_id", authorId)
+      .in("id", funnel_ids);
+    const ownedIds = (ownedFunnels ?? []).map((f: any) => f.id as string);
+    if (ownedIds.length === 0) return json(200, { overrides_by_funnel: {} });
+
+    const { data: rows, error } = await admin
+      .from("funnel_stage_overrides")
+      .select("funnel_id, stage_id, field_overrides")
+      .in("funnel_id", ownedIds);
+    if (error) return json(500, { error: error.message });
+
+    const map: Record<string, { stage_id: string; field_overrides: Record<string, string> }[]> = {};
+    for (const id of ownedIds) map[id] = [];
+    for (const r of rows ?? []) {
+      const fid = (r as any).funnel_id as string;
+      if (!map[fid]) map[fid] = [];
+      map[fid].push({
+        stage_id: (r as any).stage_id,
+        field_overrides: (r as any).field_overrides || {},
+      });
+    }
+    return json(200, { overrides_by_funnel: map });
+  }
+
   // ---------- SET STATUS ----------
   if (action === "set_status") {
     const { funnel_id, status } = body;

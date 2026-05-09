@@ -347,7 +347,7 @@ export default function MarketingHub({ onNavigate }: Props) {
             description: "Open the Social Media builder and generate your starter kit before activating.",
             variant: "destructive",
           });
-          navigate("/node-builder/BP-03");
+          navigate(`/node-builder/BP-03${bookCtx.activeBookId ? `?bookId=${bookCtx.activeBookId}` : ""}`);
           return;
         }
 
