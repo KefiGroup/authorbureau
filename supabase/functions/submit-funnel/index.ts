@@ -161,12 +161,14 @@ Deno.serve(async (req) => {
 
         let contactId: string | undefined = existingContact?.id;
         const quizDone = Array.isArray(quiz_responses) && quiz_responses.length > 0;
+        // Sprint 57: warmer baseline for quiz finishers (+3) vs raw opt-ins (+2).
+        const baseScore = quizDone ? 5 : 2;
 
         if (existingContact) {
           await supabase.from('crm_contacts').update({
             full_name: name || cleanEmail,
             last_activity_at: new Date().toISOString(),
-            abby_score: Math.max(existingContact.abby_score || 0, 2),
+            abby_score: Math.max(existingContact.abby_score || 0, baseScore),
             ...(funnel.node_id ? { last_node_id: funnel.node_id } : {}),
             ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
           }).eq('id', existingContact.id);
@@ -178,7 +180,7 @@ Deno.serve(async (req) => {
             phone: phone || null,
             source: sourceLabel,
             stage: 'new_lead',
-            abby_score: 2,
+            abby_score: baseScore,
             last_activity_at: new Date().toISOString(),
             last_node_id: funnel.node_id || null,
             ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
