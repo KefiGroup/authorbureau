@@ -331,6 +331,43 @@ Deno.serve(async (req) => {
     checks.push({ key: "book_orphans", label: "Book ownership orphans", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
   }
 
+  // Sprint 56 — Multi-book microsite URL health.
+  // Warns if any live author_node belonging to an author with >1 book has a
+  // 2-segment delivery_url (`/{author}/{node}`), which is ambiguous.
+  try {
+    const [{ data: books }, { data: liveNodes }] = await Promise.all([
+      admin.from("books").select("id, author_id"),
+      admin.from("author_nodes").select("id, author_id, node_id, delivery_url, book_id").eq("status", "live"),
+    ]);
+    const bookCountByAuthor = new Map<string, number>();
+    for (const b of books || []) {
+      if (!b.author_id) continue;
+      bookCountByAuthor.set(b.author_id, (bookCountByAuthor.get(b.author_id) || 0) + 1);
+    }
+    const ambiguous: Array<{ id: string; author_id: string; node_id: string; delivery_url: string }> = [];
+    for (const n of liveNodes || []) {
+      if (!n.delivery_url) continue;
+      const isMultiBook = (bookCountByAuthor.get(n.author_id) || 0) > 1;
+      if (!isMultiBook) continue;
+      const parts = String(n.delivery_url).replace(/^https?:\/\/[^/]+\//, "").split("/").filter(Boolean);
+      if (parts.length < 3) {
+        ambiguous.push({ id: n.id, author_id: n.author_id, node_id: n.node_id, delivery_url: n.delivery_url });
+      }
+    }
+    checks.push({
+      key: "multi_book_url_health",
+      label: "Multi-book microsite URL health",
+      severity: ambiguous.length > 0 ? "warn" : "ok",
+      count: ambiguous.length,
+      message: ambiguous.length === 0
+        ? "All multi-book authors use book-scoped 3-segment URLs"
+        : `${ambiguous.length} live node(s) on multi-book authors using legacy 2-segment URL — re-publish to upgrade`,
+      details: { sample: ambiguous.slice(0, 10) },
+    });
+  } catch (e) {
+    checks.push({ key: "multi_book_url_health", label: "Multi-book microsite URL health", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
+  }
+
   // Summary
   const failCount = checks.filter((c) => c.severity === "fail").length;
   const warnCount = checks.filter((c) => c.severity === "warn").length;
