@@ -92,24 +92,23 @@ function defaultRecommendation(p: DigestPayload): string {
 
 async function buildDigestForAuthor(
   supabase: any,
-  authorId: string,
+  authorProfileId: string,
+  userId: string,
   digestDate: string,
 ): Promise<DigestPayload | null> {
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  const prevSince = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
-  // 1. Total contact sanity check
+  // crm_contacts.author_id stores user_id (legacy data model)
   const { count: totalContacts } = await supabase
     .from("crm_contacts")
     .select("*", { count: "exact", head: true })
-    .eq("author_id", authorId);
+    .eq("author_id", userId);
   if (!totalContacts || totalContacts === 0) return null;
 
-  // 2. New leads in last 24h (top 3 by score)
   const { data: newLeads } = await supabase
     .from("crm_contacts")
     .select("id, full_name, abby_score, email")
-    .eq("author_id", authorId)
+    .eq("author_id", userId)
     .gte("created_at", since)
     .order("abby_score", { ascending: false })
     .limit(3);
@@ -117,21 +116,19 @@ async function buildDigestForAuthor(
   const { count: newLeadsCount } = await supabase
     .from("crm_contacts")
     .select("*", { count: "exact", head: true })
-    .eq("author_id", authorId)
+    .eq("author_id", userId)
     .gte("created_at", since);
 
-  // 3. Hot leads (score >= 60) — current vs 24h ago
   const { count: hotNow } = await supabase
     .from("crm_contacts")
     .select("*", { count: "exact", head: true })
-    .eq("author_id", authorId)
+    .eq("author_id", userId)
     .gte("abby_score", 60);
 
-  // Approximate previous-day hot lead count using yesterday's digest if present
   const { data: prevDigest } = await supabase
     .from("crm_daily_digests")
     .select("payload")
-    .eq("author_id", authorId)
+    .eq("author_id", authorProfileId)
     .lt("digest_date", digestDate)
     .order("digest_date", { ascending: false })
     .limit(1)
@@ -139,69 +136,57 @@ async function buildDigestForAuthor(
   const prevHotTotal = (prevDigest?.payload as any)?.hot_leads_total ?? hotNow ?? 0;
   const hotDelta = (hotNow ?? 0) - prevHotTotal;
 
-  // 4. Email engagement in last 24h (lead_activities)
+  // lead_activities.author_id references author_profiles.id
   const { count: opens } = await supabase
     .from("lead_activities")
     .select("*", { count: "exact", head: true })
-    .eq("author_id", authorId)
+    .eq("author_id", authorProfileId)
     .eq("activity_type", "email_open")
     .gte("created_at", since);
   const { count: clicks } = await supabase
     .from("lead_activities")
     .select("*", { count: "exact", head: true })
-    .eq("author_id", authorId)
+    .eq("author_id", authorProfileId)
     .eq("activity_type", "email_click")
     .gte("created_at", since);
 
-  // 5. Top mover — contact with most score-bumping activities in last 24h.
-  // Heuristic: count activity rows per lead_id, pick highest, look up name.
   const { data: recentActs } = await supabase
     .from("lead_activities")
-    .select("lead_id, activity_type, metadata")
-    .eq("author_id", authorId)
-    .in("activity_type", ["email_open", "email_click", "nurture_autowired"])
+    .select("lead_id, activity_type")
+    .eq("author_id", authorProfileId)
+    .in("activity_type", ["email_open", "email_click"])
     .gte("created_at", since);
 
   let topMover: DigestPayload["top_mover"] = null;
   if (recentActs && recentActs.length > 0) {
     const tally: Record<string, number> = {};
     for (const a of recentActs) {
-      const delta = a.activity_type === "email_click" ? 5 : a.activity_type === "email_open" ? 2 : 0;
+      const delta = a.activity_type === "email_click" ? 5 : 2;
       tally[a.lead_id] = (tally[a.lead_id] || 0) + delta;
     }
-    const [topId, topDelta] = Object.entries(tally).sort((a, b) => b[1] - a[1])[0] || [];
-    if (topId && topDelta > 0) {
-      const { data: lead } = await supabase
-        .from("crm_contacts")
-        .select("id, full_name")
-        .eq("author_id", authorId)
-        .eq("id", topId)
+    const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
+    if (sorted.length > 0) {
+      const [topLeadId, topDelta] = sorted[0];
+      const { data: leadRow } = await supabase
+        .from("leads")
+        .select("id, email")
+        .eq("id", topLeadId)
         .maybeSingle();
-      // crm_contacts.id may not match leads.id directly — try by email join via leads table fallback
-      if (lead) {
-        topMover = { id: lead.id, full_name: lead.full_name, score_delta: topDelta };
-      } else {
-        const { data: leadRow } = await supabase
-          .from("leads")
-          .select("id, email")
-          .eq("id", topId)
+      if (leadRow?.email) {
+        const { data: contact } = await supabase
+          .from("crm_contacts")
+          .select("id, full_name")
+          .eq("author_id", userId)
+          .eq("email", leadRow.email.toLowerCase())
           .maybeSingle();
-        if (leadRow?.email) {
-          const { data: contact } = await supabase
-            .from("crm_contacts")
-            .select("id, full_name")
-            .eq("author_id", authorId)
-            .eq("email", leadRow.email.toLowerCase())
-            .maybeSingle();
-          if (contact) {
-            topMover = { id: contact.id, full_name: contact.full_name, score_delta: topDelta };
-          }
+        if (contact) {
+          topMover = { id: contact.id, full_name: contact.full_name, score_delta: topDelta };
         }
       }
     }
   }
 
-  const partial: DigestPayload = {
+  return {
     digest_date: digestDate,
     new_leads_24h: newLeadsCount ?? 0,
     top_new_leads: newLeads ?? [],
@@ -212,25 +197,23 @@ async function buildDigestForAuthor(
     top_mover: topMover,
     recommendation: "",
   };
-  return partial;
 }
 
 async function processAuthor(
   supabase: any,
-  authorId: string,
+  authorProfileId: string,
   digestDate: string,
   dryRun: boolean,
 ): Promise<{ authorId: string; status: string; reason?: string }> {
-  const partial = await buildDigestForAuthor(supabase, authorId, digestDate);
-  if (!partial) return { authorId, status: "skipped", reason: "no_contacts" };
-
-  // Look up author for personalization + email
   const { data: profile } = await supabase
     .from("author_profiles")
     .select("id, user_id, pen_name")
-    .eq("id", authorId)
+    .eq("id", authorProfileId)
     .maybeSingle();
-  if (!profile) return { authorId, status: "skipped", reason: "no_profile" };
+  if (!profile) return { authorId: authorProfileId, status: "skipped", reason: "no_profile" };
+
+  const partial = await buildDigestForAuthor(supabase, authorProfileId, profile.user_id, digestDate);
+  if (!partial) return { authorId: authorProfileId, status: "skipped", reason: "no_contacts" };
 
   const { data: userRes } = await supabase.auth.admin.getUserById(profile.user_id);
   const recipientEmail = userRes?.user?.email;
@@ -238,15 +221,13 @@ async function processAuthor(
 
   partial.recommendation = await generateRecommendation(supabase, authorName, partial);
 
-  // Upsert digest row
   await supabase
     .from("crm_daily_digests")
     .upsert(
-      { author_id: authorId, digest_date: digestDate, payload: partial as any },
+      { author_id: authorProfileId, digest_date: digestDate, payload: partial as any },
       { onConflict: "author_id,digest_date" },
     );
 
-  // Skip email if nothing meaningful happened (avoid noise)
   const meaningful =
     partial.new_leads_24h > 0 ||
     partial.email_opens_24h > 0 ||
@@ -254,7 +235,7 @@ async function processAuthor(
     partial.hot_leads_delta !== 0;
 
   if (dryRun || !meaningful || !recipientEmail) {
-    return { authorId, status: meaningful ? "persisted_no_email" : "no_activity" };
+    return { authorId: authorProfileId, status: meaningful ? "persisted_no_email" : "no_activity" };
   }
 
   try {
@@ -262,18 +243,15 @@ async function processAuthor(
       body: {
         templateName: "crm-daily-digest",
         recipientEmail,
-        authorId,
-        idempotencyKey: `crm-digest-${authorId}-${digestDate}`,
-        templateData: {
-          authorName,
-          ...partial,
-        },
+        authorId: authorProfileId,
+        idempotencyKey: `crm-digest-${authorProfileId}-${digestDate}`,
+        templateData: { authorName, ...partial },
       },
     });
-    return { authorId, status: "sent" };
+    return { authorId: authorProfileId, status: "sent" };
   } catch (e) {
-    console.warn(`[abby-daily-crm-digest] send failed for ${authorId}`, e);
-    return { authorId, status: "send_failed", reason: String(e) };
+    console.warn(`[abby-daily-crm-digest] send failed for ${authorProfileId}`, e);
+    return { authorId: authorProfileId, status: "send_failed", reason: String(e) };
   }
 }
 
