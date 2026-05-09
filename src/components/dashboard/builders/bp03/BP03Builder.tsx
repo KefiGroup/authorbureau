@@ -397,15 +397,38 @@ export default function BP03Builder({ authorId, bookId }: Props) {
       // the saved content_json carries the canonical library_asset record.
       let activeContent = content;
       try {
+        // Sprint 60 fix: upload via render-library-asset (service-role) instead
+        // of a browser-side storage.objects insert. The browser path fails RLS
+        // because shared-backend tokens don't carry auth.uid().
         const txtBlob = buildBp03Txt(content, authorName, bookTitle || "your book");
-        const safeName = (bookTitle || "social-kit").replace(/[^a-z0-9]+/gi, "-").toLowerCase().slice(0, 40);
-        const asset = await uploadAndRegisterLibraryAsset({
-          authorId,
-          nodeId: "BP-03",
-          title: "Social Media Kit",
-          primary: { blob: txtBlob, filename: `${safeName}-social-kit.txt`, kind: "docx" },
-        });
-        activeContent = { ...content, library_asset: asset };
+        const txtBody = await txtBlob.text();
+        const token = await getActiveToken();
+        const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+        const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        const res = await fetchWithTimeout(
+          `https://${projectId}.supabase.co/functions/v1/render-library-asset`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              apikey: anonKey,
+              Authorization: `Bearer ${token ?? anonKey}`,
+            },
+            body: JSON.stringify({
+              mode: "txt_only",
+              author_id: authorId,
+              node_id: "BP-03",
+              title: "Social Media Kit",
+              text: txtBody,
+            }),
+          },
+          30_000,
+        );
+        const parsed = await res.json().catch(() => null);
+        if (!res.ok || !parsed?.library_asset) {
+          throw new Error(parsed?.message || `Upload failed (HTTP ${res.status})`);
+        }
+        activeContent = { ...content, library_asset: parsed.library_asset };
         setContent(activeContent);
       } catch (uploadErr) {
         // Sprint 55d: surface upload failures instead of silently activating
