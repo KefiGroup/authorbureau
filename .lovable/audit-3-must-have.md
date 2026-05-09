@@ -36,3 +36,23 @@
 - `supabase/functions/generate-asset-pack/index.ts` — validation + retry + failed-status path
 - `src/components/library/MarketingPackCard.tsx` — `readyCount`, hide empty buckets, failure state
 - `.lovable/audit-3-must-have.md` (this file)
+
+---
+
+## Sprint 57 — Lead-magnet → BP-01 nurture autowire (DONE)
+
+- `enroll-subscriber`: BP-01 flows are now matched globally (parity with `master_nurture`) in addition to node-specific match. De-duped by `flow.id`.
+- `submit-funnel`: quiz finishers seed `crm_contacts.abby_score=5` (was 2); raw opt-ins remain at 2. After enrollment, a `lead_activities` row with `activity_type='nurture_autowired'` is logged with `{enrollments}` metadata so authors see the autowire on the contact timeline.
+- Revenue Dashboard "Hot Leads Today" card rows are now clickable and deep-link via `onNavigate('author-crm?contactId=<id>')`. Dashboard `handleNavigate` now supports `section?key=val` shorthand. `AuthorCRMPage` already consumed `?contactId=` (Sprint 36b), so the panel opens automatically.
+
+### Capability table delta
+| Capability | Before | After |
+|---|---|---|
+| Lead capture | ⚠️ Quiz + thank-you + CRM | ✅ Auto-enrolls in BP-01 nurture + node-specific flow + master_nurture; timeline event logged |
+| CRM | ⚠️ Pipeline + tagging | ⚠️ Hot-Leads on Revenue Dashboard now deep-links to contact panel; daily intelligence push remains |
+
+### Next sprints (in order)
+1. Mark-as-Posted + ZIP social pack + ABBY email scoring
+2. Member portal + course-learn portal + podcast RSS
+3. Daily.co coaching booking
+4. Per-node ZIP/MP3 export rail
