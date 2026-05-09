@@ -311,12 +311,13 @@ Deno.serve(async (req) => {
 
     if (action === "repair_calendar") {
       // Idempotently rebuild social_posts from saved node content_json
-      const { data: existingNode, error: existingNodeError } = await cloudAdmin
+      let existingNodeQuery = cloudAdmin
         .from("author_nodes")
-        .select("id, status, activated_at, current_step, content_json")
+        .select("id, status, activated_at, current_step, content_json, book_id")
         .eq("author_id", authorProfile.id)
-        .eq("node_id", "BP-03")
-        .maybeSingle();
+        .eq("node_id", "BP-03");
+      if (requestedBookId) existingNodeQuery = existingNodeQuery.eq("book_id", requestedBookId);
+      const { data: existingNode, error: existingNodeError } = await existingNodeQuery.maybeSingle();
       if (existingNodeError) throw existingNodeError;
 
       const cj: any = existingNode?.content_json || null;
