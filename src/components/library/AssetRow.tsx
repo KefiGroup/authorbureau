@@ -59,6 +59,7 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
 };
 
 const RUNTIME_OPTIONS: { value: string; minutes: number; slides: number; label: string; sub: string }[] = [
+  { value: "30",  minutes: 30,  slides: 6,  label: "Short pitch",    sub: "30 min · ~6 slides · no exercises" },
   { value: "45",  minutes: 45,  slides: 8,  label: "Keynote",        sub: "45 min · ~6-8 slides · no exercises" },
   { value: "90",  minutes: 90,  slides: 12, label: "Workshop short", sub: "90 min · ~10-12 slides · light exercises" },
   { value: "240", minutes: 240, slides: 16, label: "Half-day",       sub: "240 min · ~14-16 slides · full exercises + breaks" },
@@ -67,7 +68,11 @@ const RUNTIME_OPTIONS: { value: string; minutes: number; slides: number; label: 
 
 function defaultRuntimeForNode(nodeId: string): string {
   if (nodeId === "YR-22") return "240";
-  if (nodeId === "BA-10" || nodeId === "BP-05") return "90";
+  if (nodeId === "BA-10") return "90";
+  if (nodeId === "BP-05" || nodeId === "BA-13") return "90";
+  if (nodeId === "BA-16" || nodeId === "BA-18") return "30";
+  if (nodeId === "YR-23") return "90";
+  if (nodeId === "YR-25" || nodeId === "YR-27" || nodeId === "YR-28") return "45";
   return "45";
 }
 
@@ -90,6 +95,14 @@ export default function AssetRow({
     : null;
 
   const hasScript = !!node.content_json?.speaker_script?.slides?.length;
+
+  // Augment the slide-deck size hint with the runtime the deck was last
+  // resized for, so authors see "10 slides · 90 min" instead of just "10 slides".
+  const deckRuntime = node.content_json?.deck_runtime_minutes;
+  const isSlideAsset = ["slides", "pitch_deck", "sponsor_deck"].includes(asset.key);
+  const effectiveSizeHint = (isSlideAsset && deckRuntime && sizeHint && /slide/i.test(sizeHint))
+    ? `${sizeHint} · ${deckRuntime} min`
+    : sizeHint;
 
   const handleOpen = () => {
     navigate(`/node-builder/${node.node_id}`);
@@ -200,20 +213,20 @@ export default function AssetRow({
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium truncate">{asset.label}</span>
-            {sizeHint && (
-              supportsScript && sizeHint === "Generate on demand" ? (
+            {effectiveSizeHint && (
+              supportsScript && effectiveSizeHint === "Generate on demand" ? (
                 <TooltipProvider delayDuration={150}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Badge variant="outline" className="text-[10px] cursor-help">{sizeHint}</Badge>
+                      <Badge variant="outline" className="text-[10px] cursor-help">{effectiveSizeHint}</Badge>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
-                      Downloads a .docx speaker script. You'll pick the session length (keynote · workshop · half-day · full-day) and ABBY scales the talking points, exercises and break cues to match. First generation takes 30-120 seconds.
+                      Downloads a .docx speaker script. You'll pick the session length (short pitch · keynote · workshop · half-day · full-day) and ABBY reshapes the slide deck AND scales the talking points, exercises and break cues to match. First generation takes 30-120 seconds.
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               ) : (
-                <Badge variant="outline" className="text-[10px]">{sizeHint}</Badge>
+                <Badge variant="outline" className="text-[10px]">{effectiveSizeHint}</Badge>
               )
             )}
             <Badge variant="secondary" className="text-[10px] uppercase">{asset.type}</Badge>
@@ -270,7 +283,7 @@ export default function AssetRow({
           <DialogHeader>
             <DialogTitle>Choose session length</DialogTitle>
             <DialogDescription>
-              ABBY will scale talking points, exercises and break cues to actually fill the runtime you pick. A 240-min script contains roughly 30,000 words of content; a 45-min keynote about 5,800.
+              ABBY will reshape the slide deck itself (expanding or contracting slides) AND scale talking points, exercises and break cues so the deck and the speaker script stay in sync. A 240-min half-day grows the deck to ~16 slides with ~30,000 words of script; a 30-min pitch keeps it tight at ~6 slides.
             </DialogDescription>
           </DialogHeader>
           <RadioGroup value={runtimeChoice} onValueChange={setRuntimeChoice} className="gap-3 py-2">
