@@ -24,7 +24,13 @@ interface MicrositeData {
 }
 
 export default function MicrositePage() {
-  const { authorSlug, bookSlug: nodeSlug } = useParams<{ authorSlug: string; bookSlug: string }>();
+  // Sprint 56 — Mounted under either route shape:
+  //   /:authorSlug/:bookSlug                  → 2-seg legacy: bookSlug holds the node slug
+  //   /:authorSlug/:bookSlug/:nodeSlug        → 3-seg book-scoped: nodeSlug is the node slug
+  const params = useParams<{ authorSlug: string; bookSlug?: string; nodeSlug?: string }>();
+  const authorSlug = params.authorSlug;
+  const nodeSlug = params.nodeSlug ?? params.bookSlug;
+  const bookSlug = params.nodeSlug ? params.bookSlug : undefined;
   const [data, setData] = useState<MicrositeData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -56,8 +62,9 @@ export default function MicrositePage() {
         const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
         // Use node param for known slugs, slug param for dynamic/personalised slugs
         const queryParam = nodeId ? `node=${nodeId}` : `slug=${encodeURIComponent(nodeSlug!)}`;
+        const bookParam = bookSlug ? `&book=${encodeURIComponent(bookSlug)}` : "";
         const res = await fetch(
-          `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&${queryParam}`,
+          `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&${queryParam}${bookParam}`,
           { headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
         );
 
@@ -85,7 +92,7 @@ export default function MicrositePage() {
     }
 
     fetchPage();
-  }, [authorSlug, nodeId, nodeSlug, isDynamicSlug]);
+  }, [authorSlug, nodeId, nodeSlug, isDynamicSlug, bookSlug]);
 
   const nodeName = nodeId ? NODE_NAMES[nodeId] || "" : "";
   const authorName = data?.author?.pen_name || authorSlug || "";
