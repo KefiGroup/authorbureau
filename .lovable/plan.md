@@ -1,69 +1,87 @@
 ## Goal
 
-Let the author choose the speaker-script runtime (45 / 90 / half-day / full-day) before generation, and make the AI actually fill that time with real content — not just relabel `timing_minutes`. Today the YR-22 script claims 240 min but contains only ~1,000 words of narration (≈8 min of speech).
+Make sure that, for every node that ships with a slide deck, the **deck length itself** scales with the runtime the author picks — not just the speaker-script word count. Today the script expands talking points to fit (e.g.) 240 minutes, but the underlying deck is still the 10 slides the generator originally produced. That mismatch means a half-day "training" still looks like a 10-slide keynote in the .pptx.
+
+## Nodes in scope (slide-bearing)
+
+| Node | Field | Default count | Deck role |
+|------|-------|---------------|-----------|
+| BP-05 Webinars | `slides` | 10 | Webinar |
+| BA-10 Online course | `slides` | 12 | Course overview |
+| BA-13 Group coaching | `slides` | 7 | Pitch |
+| BA-16 Affiliate | `pitch_deck` | 6-8 | Pitch |
+| BA-18 JV | `pitch_deck` | 6-8 | Pitch |
+| YR-22 Corporate training | `slides` | 10 | Training |
+| YR-23 Mastermind | `slides` | 10-12 | Pitch |
+| YR-25 Certification | `slides` | 10 | Pitch |
+| YR-27 Fundraising | `pitch_deck` | 8-10 | Pitch |
+| YR-28 Sponsors | `pitch_deck` / `sponsor_deck` | 8-10 | Pitch |
+
+**Out of scope:** BP-09 (workshop deck is locked at exactly 14 slides and corporate at 10 by spec — its prompt already forbids changing the count). We will NOT resize BP-09.
 
 ## What changes
 
-### 1. UI — runtime picker before download
+### 1. New helper edge function: `resize-slide-deck`
 
-`src/components/library/AssetRow.tsx` (script_docx branch only)
+Generic, AI-driven. Body: `{ author_id, book_id, node_id, target_slide_count, target_minutes }`.
 
-When the user clicks **Download speaker script (.docx)** for the first time (no `speaker_script` yet), open a small dialog instead of firing immediately:
+- Loads the node, finds the slide field via the same `pickSlides` logic already in `generate-speaker-script`.
+- If `|current - target| < 2` OR `node_id === 'BP-09'` → no-op, return existing slides.
+- Otherwise calls Lovable AI (`openai/gpt-5-mini`, JSON mode) with a system prompt that:
+  - Preserves the cover, agenda, and CTA slides verbatim.
+  - **Expanding**: splits each content/module slide into deeper sub-topics (one sub-topic per new slide), pulling from the book's frameworks supplied via `buildAuthorContext`.
+  - **Contracting**: merges adjacent module slides, keeping the strongest framework callbacks.
+  - Keeps the same slide schema (`title`, `body`/`bullets`, `notes`, `layout_hint`, `headline`, `evidence` — whichever the original used).
+- Persists the new array back to `content_json[<field>]` and stores `content_json.deck_runtime_minutes` + `content_json.deck_target_slide_count` for visibility.
+- Returns `{ success, slides, slides_count, field }`.
 
-```
-Choose session length
-○ Keynote          (45 min,  6-8 slides)
-○ Workshop short   (90 min,  10-12 slides)
-● Half-day         (240 min, 14-16 slides)   ← default for YR-22
-○ Full-day         (420 min, 20-24 slides)
+### 2. Wire it into the speaker-script flow
 
-[ Generate script ]
-```
+In `generate-speaker-script/index.ts`, after `pickSlides` and before building `slidesPayload`:
 
-If `speaker_script` already exists, skip the dialog and download immediately. Add a "Regenerate at different length" item inside the existing dropdown so authors can re-pick later.
+- If `targetSlideCount` differs from `slides.length` by ≥2 (and node ≠ BP-09), `await fetch(.../resize-slide-deck)` with the resolved minutes + count, then re-load the node.
+- Then proceed with the existing script generation against the (possibly new) deck.
 
-The dialog passes `target_minutes` and `target_slide_count` through to the edge function.
+### 3. Allow runtime picker for ALL slide-bearing nodes (not just YR-22)
 
-### 2. Edge function — accept and enforce runtime
+`AssetRow.tsx` already shows the runtime dialog whenever `script_docx` is requested for the first time. Two small adjustments:
 
-`supabase/functions/export-speaker-script/index.ts`
-- Accept `target_minutes` and `target_slide_count` in the request body, forward them to `generate-speaker-script` when auto-generating.
+- Update `defaultRuntimeForNode` so each node's default matches its current generator default (BP-05 → 60, BA-10 → 90, BA-13 → 60, BA-16/18 → 30, YR-22 → 240, YR-23 → 90, YR-25/27/28 → 45). These already exist in `defaultRuntimeMinutes` inside `generate-speaker-script` — mirror them.
+- Add a 5th option to `RUNTIME_OPTIONS`: **"Short pitch · 30 min · ~6 slides · no exercises"** for the affiliate/JV/sponsor pitch decks where 45 min is too long.
+- Update the dialog copy: "ABBY will also reshape the slide deck itself to match — expanding or contracting slides — so the deck and the speaker script stay in sync."
 
-`supabase/functions/generate-speaker-script/index.ts`
-- Accept `target_minutes` (override `defaultRuntimeMinutes`) and `target_slide_count`.
-- If `target_slide_count` is supplied AND differs from the existing slide count, **regenerate the slide deck first** by calling the node's own deck generator (BA-13 / YR-21 / YR-22 / YR-23 / YR-25 / YR-27 / YR-28) with a `slide_count` hint. That way 240-min and 45-min versions actually have a different number of slides, not the same 10 slides with stretched timings.
-- Rewrite the prompt to **scale content depth with runtime**:
-  - **Per slide**, require ALL of:
-    - 8-12 sentences of `talking_points` for content slides (cover/agenda/CTA stay short)
-    - 1-2 `book_callbacks` (named framework / story / stat from the book — not generic)
-  - **For runtimes ≥ 90 min**, also require per content slide:
-    - `exercise` block: `{ instructions, time_minutes, debrief_questions[] }`
-    - `break_cue` on every ~60 min boundary
-  - Spell out the word-count target in the system prompt: *"At ~130 wpm narration plus exercise/debrief overhead, a {target_minutes}-min session needs roughly {target_minutes * 130} words of `talking_points` + exercise text across all slides combined. Distribute this realistically — cover/agenda short, modules long."*
-- Bump `max_completion_tokens` to 24000 for runtimes ≥ 240, keep 16000 below.
+### 4. Surface deck length in the asset row
 
-### 3. DOCX export — render the new fields
+When `content_json.deck_runtime_minutes` is set, the deck `sizeHint` becomes `"${n} slides · ${m} min"` instead of just `"${n} slides"`. Adds a small piece of `pluck` logic in `nodeAssetRegistry.ts`'s `sizeHint` callbacks for the affected nodes, or simpler: read the field directly inside `AssetRow` when rendering the badge.
 
-`supabase/functions/export-speaker-script/index.ts`
-- Render new `exercise` block (heading "Exercise", instructions, "⏱ X min", debrief questions as bullets).
-- Render `break_cue` as a centred italic divider.
+### 5. Regenerate-deck side effect
 
-### 4. Backfill
+Because the deck array is replaced in-place, the existing `.pptx` exporter (`export-pro-slides`) automatically picks up the new slides next time the author downloads. No changes needed to the exporter.
 
-No migration. Existing `speaker_script` blobs stay valid (new fields are optional). Authors who want a denser version click "Regenerate at different length".
+## Files touched
+
+- **NEW** `supabase/functions/resize-slide-deck/index.ts`
+- `supabase/functions/generate-speaker-script/index.ts` — call resize step, refresh node row after.
+- `src/components/library/AssetRow.tsx` — extra runtime option, copy update, per-node defaults, deck size hint with minutes.
+- `src/lib/nodeAssetRegistry.ts` — optional: extend `sizeHint` to include runtime when known.
+
+## Validation
+
+1. Pick YR-23 mastermind (currently 10 slides). Choose **Half-day (240 min)**.
+   - `resize-slide-deck` should bump deck to ~16 slides.
+   - Speaker script should reference all 16.
+   - `.pptx` download should contain 16 slides, .docx should contain 16 sections + exercises + 2 break cues.
+2. Pick BA-16 affiliate (currently 6 slides). Choose **30-min pitch**.
+   - Resize is a no-op (within tolerance).
+   - Script stays short, no exercise blocks.
+3. Pick BP-09 (workshop locked at 14). Choose any runtime.
+   - Resize MUST be skipped (logged: `bp09_deck_locked`).
+   - Script still scales talking points but slide count stays 14.
+4. Manual `.pptx` open in PowerPoint to confirm new slides have proper cover/CTA preserved and module slides carry framework names from the book.
 
 ## Out of scope
-- Changing pitch-deck visuals (`export-pro-slides` unchanged).
-- Adding runtime picker to nodes that don't have a speaker-script row.
-- Per-author speaking-pace tuning — 130 wpm is a reasonable global default.
 
-## Files to touch
-- `src/components/library/AssetRow.tsx` — add runtime dialog + regenerate menu item
-- `supabase/functions/export-speaker-script/index.ts` — accept runtime args, render new fields
-- `supabase/functions/generate-speaker-script/index.ts` — runtime-aware prompt, depth requirements, optional deck regen
-- `src/components/ui/dialog` (existing) and `radio-group` (existing) — reused
-
-## Verification
-1. Generate a 45-min keynote for YR-22 → expect 6-8 slides, ~5,800 words narration, no exercises required.
-2. Generate a 240-min half-day for YR-22 → expect 14-16 slides, ~31,000 words across narration+exercises, every module slide has an exercise + debrief, ≥3 break cues.
-3. Re-render DOCX, convert to PDF, eyeball page count: 45 min ≈ 8-12 pages; 240 min ≈ 60+ pages.
+- Restyling slides visually.
+- Per-slide image regeneration.
+- Per-author speaking pace tuning.
+- BP-09 deck restructuring (locked by node spec).
