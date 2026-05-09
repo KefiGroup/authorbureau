@@ -34,21 +34,27 @@ interface CheckResult {
   details?: unknown;
 }
 
-// Required library_asset.kind per node — matches scripts/audit-stuck-live.mjs
+// Required library_asset.kind per node — only "adopter" builders that write a
+// real asset (Sprint 55). All other live nodes legitimately rely on the
+// deriveLibraryAsset fallback and only need a delivery_url.
 const REQUIRED_KIND: Record<string, string> = {
-  "BP-01": "email_sequence", "BP-02": "docx", "BP-03": "docx",
-  "BP-04": "external_url", "BP-05": "pptx", "BP-06": "docx",
-  "BP-07": "docx", "BP-08": "docx", "BP-09": "external_url",
-  "BA-10": "docx", "BA-11": "audio_zip", "BA-12": "docx",
-  "BA-13": "docx", "BA-14": "podcast_pack", "BA-15": "docx",
-  "BA-16": "docx", "BA-17": "docx", "BA-18": "docx",
-  "YR-19": "docx", "YR-20": "docx", "YR-21": "pptx",
-  "YR-22": "pptx", "YR-23": "docx", "YR-24": "docx",
-  "YR-25": "docx", "YR-26": "docx", "YR-27": "docx",
-  "YR-28": "docx",
+  "BP-01": "email_sequence",
+  "BP-03": "docx",
+  "BP-04": "external_url",
+  "BP-06": "docx",
+  "BP-09": "external_url",
+  "BA-11": "audio_zip",
+  "BA-14": "podcast_pack",
 };
+const ADOPTER_NODES = new Set(Object.keys(REQUIRED_KIND));
 
 async function authorize(req: Request, admin: ReturnType<typeof createClient>) {
+  // Internal cron path: shared secret bypasses gateway header rewriting.
+  const cronSecretHdr = req.headers.get("x-cron-secret") || req.headers.get("X-Cron-Secret") || "";
+  const CRON_SECRET = Deno.env.get("CROSS_PLATFORM_SECRET") || "";
+  if (cronSecretHdr && CRON_SECRET && cronSecretHdr === CRON_SECRET) {
+    return { ok: true, actor: "service-role" };
+  }
   const auth = req.headers.get("Authorization") || req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i, "").trim();
   const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -129,24 +135,36 @@ Deno.serve(async (req) => {
     checks.push({ key: "errors_24h", label: "Errors (24h)", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
   }
 
-  // 2. Stuck-live nodes
+  // 2. Stuck-live nodes (per Sprint 55 adoption policy)
   try {
     const { data } = await admin
       .from("author_nodes")
-      .select("id, author_id, node_id, content_json")
+      .select("id, author_id, node_id, content_json, delivery_url")
       .eq("status", "live");
-    const stuck = (data || []).filter((row) => {
+    const adopterMissing: any[] = [];
+    const fallbackMissingUrl: any[] = [];
+    for (const row of data || []) {
       const a: any = row.content_json?.library_asset;
-      return !(a?.url && a?.kind === REQUIRED_KIND[row.node_id]);
-    });
+      if (ADOPTER_NODES.has(row.node_id)) {
+        if (!(a?.url && a?.kind === REQUIRED_KIND[row.node_id])) {
+          adopterMissing.push({ id: row.id, node_id: row.node_id, author_id: row.author_id });
+        }
+      } else if (!row.delivery_url) {
+        fallbackMissingUrl.push({ id: row.id, node_id: row.node_id, author_id: row.author_id });
+      }
+    }
+    const totalIssues = adopterMissing.length + fallbackMissingUrl.length;
+    const sev: Severity = adopterMissing.length > 0 ? "fail" : fallbackMissingUrl.length > 0 ? "warn" : "ok";
     checks.push({
       key: "stuck_live",
-      label: "Stuck-live nodes (legacy fallback)",
-      severity: stuck.length > 50 ? "warn" : "ok",
-      count: stuck.length,
-      message: `${stuck.length} live node(s) without uniform library_asset (re-publish to upgrade)`,
+      label: "Stuck-live nodes",
+      severity: sev,
+      count: totalIssues,
+      message: totalIssues === 0
+        ? "All live nodes have valid deliverables"
+        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissingUrl.length} fallback node(s) missing delivery_url`,
       link: "/admin?tab=books",
-      details: { sample: stuck.slice(0, 10).map((s) => ({ id: s.id, node_id: s.node_id, author_id: s.author_id })) },
+      details: { adopter_missing: adopterMissing.slice(0, 10), fallback_missing_url: fallbackMissingUrl.slice(0, 10) },
     });
   } catch (e) {
     checks.push({ key: "stuck_live", label: "Stuck-live nodes", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });

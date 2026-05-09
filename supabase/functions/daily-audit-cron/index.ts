@@ -17,10 +17,15 @@ Deno.serve(async (req) => {
   const admin = createClient(SUPABASE_URL, SERVICE, { auth: { persistSession: false } });
 
   try {
-    // 1. Run audit (service-role bearer authorizes us)
+    // 1. Run audit (shared cron secret bypasses gateway header rewriting)
+    const CRON_SECRET = Deno.env.get("CROSS_PLATFORM_SECRET") || "";
     const auditRes = await fetch(`${SUPABASE_URL}/functions/v1/daily-audit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE}` },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${SERVICE}`,
+        "x-cron-secret": CRON_SECRET,
+      },
       body: JSON.stringify({ triggeredBy: "cron" }),
     });
     const auditData = await auditRes.json();
