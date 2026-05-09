@@ -18,11 +18,44 @@ const SCORE_WEIGHTS: Record<string, number> = {
   'email.unsubscribed': -15,
 };
 
+// Verify Resend webhook signature (svix-style HMAC SHA-256). Returns true on
+// success, or true if no secret is configured (dev/local). Returns false on
+// signature mismatch.
+async function verifyResendSignature(req: Request, rawBody: string): Promise<boolean> {
+  const secret = Deno.env.get('RESEND_WEBHOOK_SECRET');
+  if (!secret) return true; // No secret set — accept (dev mode)
+  const svixId = req.headers.get('svix-id');
+  const svixTimestamp = req.headers.get('svix-timestamp');
+  const svixSignature = req.headers.get('svix-signature');
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    console.warn('[process-email-events] missing svix headers');
+    return false;
+  }
+  const signedPayload = `${svixId}.${svixTimestamp}.${rawBody}`;
+  // svix secret is "whsec_<base64>"; strip prefix.
+  const secretKey = secret.startsWith('whsec_') ? secret.slice(6) : secret;
+  const keyBytes = Uint8Array.from(atob(secretKey), (c) => c.charCodeAt(0));
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', cryptoKey, new TextEncoder().encode(signedPayload));
+  const expected = btoa(String.fromCharCode(...new Uint8Array(sig)));
+  // Header is "v1,<sig> v1,<sig2>" — accept if any matches.
+  const provided = svixSignature.split(' ').map((p) => p.split(',')[1]);
+  return provided.includes(expected);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+    if (!(await verifyResendSignature(req, rawBody))) {
+      return new Response(JSON.stringify({ success: false, status: 401, message: 'Invalid signature' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    const payload = JSON.parse(rawBody);
     // Resend webhook shape: { type, created_at, data: { email_id, to, ... } }
     const eventType = payload.type || payload.event;
     const data = payload.data || payload;
