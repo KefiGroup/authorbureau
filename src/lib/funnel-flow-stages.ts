@@ -191,11 +191,18 @@ export function getStagesForArchetype(
       if (overrideVal !== undefined) isEdited = true;
     }
 
-    // Status: 'ready' if every required-ish field has a value; 'incomplete' if some;
-    // 'missing' if nothing at all.
+    // Status:
+    //  - 'ready' if every field has a value, OR if the author has saved any
+    //    override for this stage (override presence == author has confirmed it).
+    //    This covers auto-completed stages like Thank You / Confirm Email
+    //    where ABBY pre-populates the override but the base funnel row has
+    //    no matching column.
+    //  - 'incomplete' if some fields are filled (no override).
+    //  - 'missing' if nothing at all.
     const filledCount = tpl.fields.filter((f) => (values[f.key] || "").trim().length > 0).length;
     let status: StageStatus = "missing";
-    if (filledCount === tpl.fields.length && tpl.fields.length > 0) status = "ready";
+    if (isEdited) status = "ready";
+    else if (filledCount === tpl.fields.length && tpl.fields.length > 0) status = "ready";
     else if (filledCount > 0) status = "incomplete";
 
     // Stat surfacing for the page-style stages.
