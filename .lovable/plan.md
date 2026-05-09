@@ -1,87 +1,65 @@
-## Goal
+## Sprint Closeout — 3 Bug Fixes
 
-Make sure that, for every node that ships with a slide deck, the **deck length itself** scales with the runtime the author picks — not just the speaker-script word count. Today the script expands talking points to fit (e.g.) 240 minutes, but the underlying deck is still the 10 slides the generator originally produced. That mismatch means a half-day "training" still looks like a 10-slide keynote in the .pptx.
+### Bug 1 — Gate engine doesn't fire on publish
 
-## Nodes in scope (slide-bearing)
+**Findings**
+- Today the gate engine is only kicked off from the client (`useBuilderPublish.ts`) and a future cron. Any server-side publish path (cascade, admin action, library adopt) bypasses it.
+- `author_nodes` already has 5 triggers but none calls `abby-gate-engine`.
 
-| Node | Field | Default count | Deck role |
-|------|-------|---------------|-----------|
-| BP-05 Webinars | `slides` | 10 | Webinar |
-| BA-10 Online course | `slides` | 12 | Course overview |
-| BA-13 Group coaching | `slides` | 7 | Pitch |
-| BA-16 Affiliate | `pitch_deck` | 6-8 | Pitch |
-| BA-18 JV | `pitch_deck` | 6-8 | Pitch |
-| YR-22 Corporate training | `slides` | 10 | Training |
-| YR-23 Mastermind | `slides` | 10-12 | Pitch |
-| YR-25 Certification | `slides` | 10 | Pitch |
-| YR-27 Fundraising | `pitch_deck` | 8-10 | Pitch |
-| YR-28 Sponsors | `pitch_deck` / `sponsor_deck` | 8-10 | Pitch |
+**Fix**
+1. Add a fire-and-forget `fetch` to `abby-gate-engine` in `supabase/functions/save-author-node/index.ts`, inside the `:publish` block right after the row update succeeds (line ~478). Pass `{ author_id, book_id }`. Wrap in try/catch — never block publish.
+2. Add a DB trigger as a safety net so any path that flips `author_nodes.status` to `'live'` (cascades, manual SQL, future jobs) also calls the engine via `pg_net.http_post`. Pattern mirrors the existing `trigger_generate_asset_pack()` trigger — same shape, different URL/body. Trigger only on `OLD.status IS DISTINCT FROM NEW.status AND NEW.status = 'live'` (or INSERT with status='live').
+3. Keep the existing client-side trigger as a third safety net (already works).
 
-**Out of scope:** BP-09 (workshop deck is locked at exactly 14 slides and corporate at 10 by spec — its prompt already forbids changing the count). We will NOT resize BP-09.
+### Bug 2 — Funnels created in draft with empty stages
 
-## What changes
+**Findings**
+- `generate-funnel/index.ts` writes ONE row to `funnels` (`status: 'draft'`, body_copy only) and never touches `funnel_stage_overrides`.
+- The 5-stage UI is read from `funnel-flow-stages.ts` (Archetype B = Traffic, Opt-in Page, Confirm Email, Deliver Magnet, Nurture Day 1, Upsell). Each stage's overrides live in `funnel_stage_overrides`. With no overrides + no defaults, stages render `incomplete`.
+- Library already has the source content: BP-01 email sequence (welcome + day-1 nurture), BP-02 lead-magnet delivery URL, BP-03 social post, BP-06/upsell product info.
 
-### 1. New helper edge function: `resize-slide-deck`
+**Fix — extend `ensureFunnel()` in `abby-gate-engine`**
+After `generate-funnel` returns the new funnel row (Archetype B for Gate 1's BP-02 funnel, Archetype A for Gate 2's BP-06 funnel), the engine pulls Library assets and seeds `funnel_stage_overrides` for the missing stages, then flips the funnel `status` to `'published'` (or `'live'` — whatever the existing `funnels-manage` publish path uses):
 
-Generic, AI-driven. Body: `{ author_id, book_id, node_id, target_slide_count, target_minutes }`.
+| Stage | Source |
+|---|---|
+| `traffic` | `author_nodes` BP-03 → first `social_posts` row body |
+| `confirm_email` | `email_sequences` for BP-01 → step 1 (subject + body) |
+| `deliver_magnet` | `author_nodes` BP-02 → `library_asset.public_url` |
+| `nurture_1` | `email_sequences` for BP-01 → step 2 (delay 1d) |
+| `upsell` | `author_nodes` BP-06 → product title + microsite URL |
 
-- Loads the node, finds the slide field via the same `pickSlides` logic already in `generate-speaker-script`.
-- If `|current - target| < 2` OR `node_id === 'BP-09'` → no-op, return existing slides.
-- Otherwise calls Lovable AI (`openai/gpt-5-mini`, JSON mode) with a system prompt that:
-  - Preserves the cover, agenda, and CTA slides verbatim.
-  - **Expanding**: splits each content/module slide into deeper sub-topics (one sub-topic per new slide), pulling from the book's frameworks supplied via `buildAuthorContext`.
-  - **Contracting**: merges adjacent module slides, keeping the strongest framework callbacks.
-  - Keeps the same slide schema (`title`, `body`/`bullets`, `notes`, `layout_hint`, `headline`, `evidence` — whichever the original used).
-- Persists the new array back to `content_json[<field>]` and stores `content_json.deck_runtime_minutes` + `content_json.deck_target_slide_count` for visibility.
-- Returns `{ success, slides, slides_count, field }`.
+Implementation:
+1. Refactor `ensureFunnel()` so after creating the funnel it calls a new helper `autoCompleteFunnelStages(funnelId, archetype, authorId, bookId)`.
+2. Helper queries Library, builds a `Record<stageId, Record<field, value>>`, upserts into `funnel_stage_overrides` (one row per stage_id).
+3. After overrides written, update `funnels.status = 'published'` and `published_at = now()`.
+4. If a Library source is missing, leave that stage blank (don't block publish — funnel still goes live with whatever stages are filled). Log the gap to `console.warn`.
+5. Idempotent: re-running on an already-published funnel is a no-op (`select id from funnels where node_id = ... limit 1` already short-circuits).
 
-### 2. Wire it into the speaker-script flow
+### Bug 3 — CRM scoring stuck at zero
 
-In `generate-speaker-script/index.ts`, after `pickSlides` and before building `slidesPayload`:
+**Findings**
+- DB confirms: `email_send_log` has 1,977 rows, but **0 opens / 0 clicks** ever recorded. `lead_activities` only has 1 `quiz_completed` event.
+- `process-email-events/index.ts` exists and correctly mirrors scores into `crm_contacts` — it just never gets called.
+- The `abby-daily-report-hourly` cron IS running (`5 * * * *`). That's not the bottleneck.
+- Root cause: the Resend webhook is not pointed at `/functions/v1/process-email-events`, so `email.opened` / `email.clicked` events never reach the platform. Without engagement events, `abby_score` never moves and contacts never advance to Engaged → Warm → Hot.
 
-- If `targetSlideCount` differs from `slides.length` by ≥2 (and node ≠ BP-09), `await fetch(.../resize-slide-deck)` with the resolved minutes + count, then re-load the node.
-- Then proceed with the existing script generation against the (possibly new) deck.
+**Fix**
+1. Verify the Resend webhook configuration: confirm a webhook exists for events `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, `email.complained`, `email.unsubscribed` pointed at `https://tubpbslfrxyfhldkcyyq.supabase.co/functions/v1/process-email-events`. If missing, configure it (Resend dashboard or via API) — this is the actual fix.
+2. Set `verify_jwt = false` on `process-email-events` in `supabase/config.toml` (Resend can't sign with a Supabase JWT). Add HMAC verification using the existing `RESEND_WEBHOOK_SECRET` secret to `process-email-events/index.ts` — currently the function does no signature check, which is a security gap revealed by this audit.
+3. Add a one-time backfill: a small admin script or extension to `abby-daily-report` that, for each `crm_contacts` row with at least one `email_send_log` (joined via email + author_id), gives a baseline `+1` per delivered email so legacy contacts don't sit at 0 forever. Cap at 10. Optional but recommended — confirm with user before shipping.
+4. Add a `lead_activities` insert path keyed off `crm_contacts` directly (not just `leads`) so future contacts captured outside the leads pipeline still score. Currently `process-email-events` only inserts to `lead_activities` if a `leads` row exists — direct CRM contacts get the score mirror but no activity timeline.
 
-### 3. Allow runtime picker for ALL slide-bearing nodes (not just YR-22)
+### Files touched
 
-`AssetRow.tsx` already shows the runtime dialog whenever `script_docx` is requested for the first time. Two small adjustments:
+- `supabase/functions/save-author-node/index.ts` — Bug 1 hook
+- `supabase/migrations/<ts>_author_nodes_gate_engine_trigger.sql` — Bug 1 trigger
+- `supabase/functions/abby-gate-engine/index.ts` — Bug 2 (extend `ensureFunnel`, add `autoCompleteFunnelStages`)
+- `supabase/functions/process-email-events/index.ts` — Bug 3 (HMAC verify + crm_contacts-direct activity insert)
+- `supabase/config.toml` — `verify_jwt = false` for `process-email-events`
+- Resend dashboard — webhook URL config (one-time)
 
-- Update `defaultRuntimeForNode` so each node's default matches its current generator default (BP-05 → 60, BA-10 → 90, BA-13 → 60, BA-16/18 → 30, YR-22 → 240, YR-23 → 90, YR-25/27/28 → 45). These already exist in `defaultRuntimeMinutes` inside `generate-speaker-script` — mirror them.
-- Add a 5th option to `RUNTIME_OPTIONS`: **"Short pitch · 30 min · ~6 slides · no exercises"** for the affiliate/JV/sponsor pitch decks where 45 min is too long.
-- Update the dialog copy: "ABBY will also reshape the slide deck itself to match — expanding or contracting slides — so the deck and the speaker script stay in sync."
-
-### 4. Surface deck length in the asset row
-
-When `content_json.deck_runtime_minutes` is set, the deck `sizeHint` becomes `"${n} slides · ${m} min"` instead of just `"${n} slides"`. Adds a small piece of `pluck` logic in `nodeAssetRegistry.ts`'s `sizeHint` callbacks for the affected nodes, or simpler: read the field directly inside `AssetRow` when rendering the badge.
-
-### 5. Regenerate-deck side effect
-
-Because the deck array is replaced in-place, the existing `.pptx` exporter (`export-pro-slides`) automatically picks up the new slides next time the author downloads. No changes needed to the exporter.
-
-## Files touched
-
-- **NEW** `supabase/functions/resize-slide-deck/index.ts`
-- `supabase/functions/generate-speaker-script/index.ts` — call resize step, refresh node row after.
-- `src/components/library/AssetRow.tsx` — extra runtime option, copy update, per-node defaults, deck size hint with minutes.
-- `src/lib/nodeAssetRegistry.ts` — optional: extend `sizeHint` to include runtime when known.
-
-## Validation
-
-1. Pick YR-23 mastermind (currently 10 slides). Choose **Half-day (240 min)**.
-   - `resize-slide-deck` should bump deck to ~16 slides.
-   - Speaker script should reference all 16.
-   - `.pptx` download should contain 16 slides, .docx should contain 16 sections + exercises + 2 break cues.
-2. Pick BA-16 affiliate (currently 6 slides). Choose **30-min pitch**.
-   - Resize is a no-op (within tolerance).
-   - Script stays short, no exercise blocks.
-3. Pick BP-09 (workshop locked at 14). Choose any runtime.
-   - Resize MUST be skipped (logged: `bp09_deck_locked`).
-   - Script still scales talking points but slide count stays 14.
-4. Manual `.pptx` open in PowerPoint to confirm new slides have proper cover/CTA preserved and module slides carry framework names from the book.
-
-## Out of scope
-
-- Restyling slides visually.
-- Per-slide image regeneration.
-- Per-author speaking pace tuning.
-- BP-09 deck restructuring (locked by node spec).
+### Open questions before I build
+1. **Bug 2 publish status:** confirm the `funnels` "live" status string — is it `'published'`, `'live'`, or `'active'`? I'll grep `funnels-manage` to be sure but flag it now.
+2. **Bug 3 backfill:** ship the one-time legacy-contact baseline scoring, or skip it and only fix forward?
+3. **Bug 3 webhook:** can you add the Resend webhook in the Resend dashboard yourself (I can't reach it), or do you want me to add a small admin UI + edge function that registers it via the Resend API using `RESEND_API_KEY`?
