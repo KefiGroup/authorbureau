@@ -1,5 +1,23 @@
 import { useState } from "react";
 import { publishNodeToSite, StripeRequiredError } from "@/lib/publish-node";
+import { getActiveToken } from "@/lib/get-active-token";
+
+/** Fire-and-forget: ask the gate engine to re-evaluate after a successful publish. */
+function fireGateEngine(authorId: string, bookId: string | null) {
+  (async () => {
+    try {
+      const token = await getActiveToken();
+      if (!token) return;
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-gate-engine`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ author_id: authorId, book_id: bookId }),
+      });
+    } catch (e) {
+      console.warn("[useBuilderPublish] gate engine fire failed:", e);
+    }
+  })();
+}
 
 /**
  * Canonical publish helper — modelled on the BP-06 reference.
@@ -55,14 +73,18 @@ export function useBuilderPublish(opts: UseBuilderPublishOptions) {
 
     try {
       try {
-        return await attempt();
+        const result = await attempt();
+        fireGateEngine(opts.authorId!, opts.activeBookId);
+        return result;
       } catch (firstErr) {
         if (firstErr instanceof StripeRequiredError) throw firstErr;
         const msg = (firstErr as Error)?.message || "";
         if (isTerminal(msg)) throw firstErr;
         // Silent single retry after a brief backoff for transient failures.
         await new Promise((r) => setTimeout(r, 800));
-        return await attempt();
+        const result = await attempt();
+        fireGateEngine(opts.authorId!, opts.activeBookId);
+        return result;
       }
     } catch (e: unknown) {
       if (e instanceof StripeRequiredError) {
