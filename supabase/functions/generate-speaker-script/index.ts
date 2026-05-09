@@ -69,7 +69,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   const supabase = makeServiceClient();
   try {
-    const { author_id, book_id, node_id } = await req.json();
+    const { author_id, book_id, node_id, target_minutes: targetMinutesArg, target_slide_count: targetSlideCountArg } = await req.json();
     if (!author_id) throw new Error("author_id required");
     if (!node_id) throw new Error("node_id required");
 
@@ -100,7 +100,11 @@ serve(async (req) => {
     );
 
     const deckTitle = nodeRow.personalised_name || nodeRow.node_name || node_id;
-    const targetMinutes = defaultRuntimeMinutes(node_id);
+    const targetMinutes = Math.max(15, Math.min(720, Number(targetMinutesArg) || defaultRuntimeMinutes(node_id)));
+    const targetSlideCount = Number(targetSlideCountArg) || recommendSlideCount(targetMinutes);
+    const requireExercises = targetMinutes >= 90;
+    const wordTarget = Math.round(targetMinutes * 130); // ~130 wpm spoken
+    const tokenBudget = targetMinutes >= 240 ? 24000 : 16000;
 
     const slidesPayload = slides.map((s: any, i: number) => ({
       slide_index: i + 1,
@@ -121,9 +125,17 @@ HARD RULES:
 - Each slide's narration MUST reference the same framework, story or stat that appears in the slide's evidence/bullets — never generic filler.
 - NEVER use the emdash or endash character. Use commas, periods or " - " for ranges.
 - NEVER include dollar amounts or pricing tier labels in the script body.
-- timing_minutes per slide must sum to roughly ${targetMinutes}, distributed sensibly (cover/agenda/cta short, content modules longer).
-- talking_points: 4-8 short narration sentences the speaker can read verbatim.
-- facilitation_prompts: 1-3 questions to ask the room (only when relevant; an empty array is allowed for cover/divider/CTA slides).`;
+- timing_minutes per slide must sum to roughly ${targetMinutes}, distributed sensibly (cover/agenda/CTA short, content modules long).
+- facilitation_prompts: 1-3 questions to ask the room (only when relevant; an empty array is allowed for cover/divider/CTA slides).
+
+CONTENT DEPTH (CRITICAL — match runtime):
+- Target session length: ${targetMinutes} minutes.
+- At ~130 words-per-minute spoken pace plus exercise/debrief overhead, the FULL script (talking_points + exercise text combined across ALL slides) MUST contain roughly ${wordTarget} words. Distribute realistically.
+- For COVER / AGENDA / CTA / divider slides: keep talking_points to 3-5 sentences.
+- For CONTENT / MODULE slides: write 8-14 substantive talking-point sentences, AND include 1-2 book_callbacks (named framework, story or stat from the book — never generic).
+${requireExercises ? `- Every CONTENT/MODULE slide MUST include an "exercise" block: { instructions, time_minutes, debrief_questions: [3-5 questions] }. Cover/agenda/CTA slides may omit exercise (use null).
+- Insert a "break_cue" string on slides that fall on a ~60-minute boundary (e.g. "BREAK · 15 min · Resume at hh:mm"). At least ${Math.floor(targetMinutes / 90)} break cues total.` : `- Exercises and break cues are NOT required for sessions under 90 minutes.`}
+`;
 
     const user = `Author: ${author.pen_name}
 Book: ${bookTitle}
@@ -132,6 +144,7 @@ Frameworks: ${JSON.stringify(ctx?.key_frameworks ?? [])}
 Audience: ${JSON.stringify(ctx?.target_audience_persona ?? {})}
 Deck: ${deckTitle}
 Target total runtime (minutes): ${targetMinutes}
+Target slide count guidance: ${targetSlideCount} (existing deck has ${slides.length} — script the existing slides; if the deck is much shorter than the runtime needs, expand each content slide with deeper talking points and exercises rather than inventing new slides).
 
 Slides to script (in order):
 ${JSON.stringify(slidesPayload, null, 2)}
@@ -148,10 +161,13 @@ Return JSON exactly in this shape:
       "timing_minutes": 4,
       "opening_hook": "Story or stat that opens this slide.",
       "talking_points": ["sentence 1", "sentence 2", "..."],
+      "book_callbacks": ["Named framework or story from the book"],
       "transition_in": "How to arrive at this slide from the previous one.",
       "transition_out": "Bridge into the next slide.",
       "facilitation_prompts": ["Ask the room: ..."],
-      "closing_anchor": "The one line they must remember."
+      ${requireExercises ? `"exercise": { "instructions": "What participants do, step by step.", "time_minutes": 12, "debrief_questions": ["q1", "q2", "q3"] },
+      "break_cue": null,
+      ` : ``}"closing_anchor": "The one line they must remember."
     }
   ],
   "outro": "Final CTA and thank-you, 3-5 sentences."
@@ -163,7 +179,7 @@ Return JSON exactly in this shape:
       body: JSON.stringify({
         model: "openai/gpt-5",
         response_format: { type: "json_object" },
-        max_completion_tokens: 16000,
+        max_completion_tokens: tokenBudget,
         messages: [
           { role: "system", content: sys },
           { role: "user", content: user },
