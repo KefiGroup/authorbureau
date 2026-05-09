@@ -361,7 +361,7 @@ export default function MarketingHub({ onNavigate }: Props) {
           {
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ action: "repair_calendar", author_id: authorProfileId }),
+            body: JSON.stringify({ action: "repair_calendar", author_id: authorProfileId, book_id: bookCtx.activeBookId ?? undefined }),
           },
         );
         const json = await res.json().catch(() => null);

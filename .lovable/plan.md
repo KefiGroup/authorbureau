@@ -1,35 +1,28 @@
-## Problem
+## Plan
 
-The "Welcome / Build your business" modal fires every time `AuthorDashboard` mounts for `support@paulineteo.com`, including when navigating into My CRM. She has 2 books and 27 built nodes — clearly not a new user — but her `author_profiles.has_seen_journey_onboarding` is still `false` because she has never clicked through the modal to dismiss it.
+1. Fix BP-03 book scoping end to end
+- Update the BP-03 builder intro and saved-state flow to use the active URL-scoped book instead of `useAuthorBook()`’s fallback latest book.
+- Pass `book_id` on every BP-03 state-changing request, not just the initial generate call. That includes save/edit/activate flows and Marketing Hub’s `repair_calendar` activation call.
+- Update the `bp03-node-state` function so load/save/repair queries are consistently scoped by `(author_id, node_id, book_id)` when a `bookId` is present, instead of reading/updating the unscoped row.
+- Verify the generation function already accepts `book_id` and preserves it when writing the node, then align the frontend with that contract.
 
-The trigger in `src/pages/AuthorDashboard.tsx` (lines 326–339) only checks:
-- `stats.bookCount > 0`
-- `stats.analyzedCount === 0` (no book has had BP-00 analysis run)
-- `has_seen_journey_onboarding === false`
+2. Fix My Funnels stage-card readiness for override-backed stages
+- Update the funnel stage-card rendering path so a stage shows `Ready` when a `funnel_stage_overrides` row exists for that `(funnel_id, stage_id)`, even if the stage has no base funnel copy.
+- Keep current base-content readiness intact for stages like Sales Page / Checkout, but treat override presence as a completion signal for auto-completed stages such as Thank You, Confirm Email, Deliver Magnet, Nurture Day 1, and Upsell.
+- Reuse the existing `listOverridesBulk()` data already loaded in `FunnelsHub` rather than adding a new database call.
 
-It does **not** consider whether the author has already built nodes / made progress, so any author who skipped BP-00 but built content elsewhere keeps getting the intro modal forever.
+3. Validate Stripe Express payout capability for connected authors
+- Review the existing payout flow and confirm whether an author with completed Stripe Connect Express onboarding is eligible to receive payouts.
+- Confirm the current system uses payout-only Express accounts (`transfers` capability), checks onboarding completion, and sends transfers from the monthly payout runner.
+- Call out any important practical limits still enforced by the current code, such as minimum payout threshold, admin/manual trigger path vs scheduled run, and failure states when Stripe needs more verification.
 
-## Fix (single file, frontend only)
+## Technical details
+- **Frontend files likely touched:** `src/components/dashboard/builders/bp03/BP03Builder.tsx`, `src/components/dashboard/MarketingHub.tsx`, `src/components/dashboard/FunnelsHub.tsx`, and possibly `src/lib/funnel-flow-stages.ts`.
+- **Backend files likely touched:** `supabase/functions/bp03-node-state/index.ts`.
+- **No schema changes expected** for these fixes.
 
-**`src/pages/AuthorDashboard.tsx`** — strengthen the gate and auto-mark the flag so it never re-shows for established users.
-
-1. In the `useEffect` that decides whether to show the modal, also bail out if the author has any meaningful progress. Use signals already available on `stats` from `useAuthorStats`:
-   - `stats.products?.totalLive > 0` (any node live), OR
-   - `stats.products?.totalReadyForReview > 0`, OR
-   - any node count > 0 (use `stats.nodes?.total` if present; otherwise add a quick `author_nodes` head-count via `supabase.from('author_nodes').select('id', { count: 'exact', head: true }).eq('author_id', authorId).limit(1)`).
-
-2. When we detect an established user (books > 0 AND has any node activity) AND `has_seen_journey_onboarding === false`, **silently flip the flag to `true`** via `save-author-profile` (`action: 'save'`, payload `{ has_seen_journey_onboarding: true }`) so it stops re-evaluating on every mount.
-
-3. Keep the original "first analyzed book" path intact for genuine new users (books > 0, analyzedCount === 0, AND zero nodes).
-
-## Verification
-
-- Re-open `/dashboard?section=crm` as `support@paulineteo.com` → modal must not appear.
-- DB: `author_profiles.has_seen_journey_onboarding` flips to `true` for her on next dashboard mount.
-- A brand-new test account with 1 book and no nodes still sees the modal once.
-
-## Files touched
-
-- `src/pages/AuthorDashboard.tsx` (gate + silent flag write)
-
-No backend, schema, or other component changes.
+## Expected outcome
+- Opening `/node-builder/BP-03?bookId=...` will show and save against the correct book.
+- Activating BP-03 from Marketing Hub will rebuild the calendar for the correct book only.
+- Funnel stages with confirmed override rows will display `Ready` instead of `Not set`.
+- For payouts: authors who completed Stripe Connect Express onboarding can receive payouts through the existing payout runner, subject to the current threshold and Stripe account readiness checks.
