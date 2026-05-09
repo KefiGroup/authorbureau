@@ -22,11 +22,12 @@ import NodeGatingTab from "@/components/admin/NodeGatingTab";
 import AdminNotificationBell from "@/components/admin/AdminNotificationBell";
 import AuditLogTab from "@/components/admin/AuditLogTab";
 import ErrorsTab from "@/components/admin/ErrorsTab";
-import { FileSearch, AlertOctagon } from "lucide-react";
+import DailyAuditTab from "@/components/admin/DailyAuditTab";
+import { FileSearch, AlertOctagon, Activity } from "lucide-react";
 
 import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
-type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating" | "audit" | "errors";
+type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating" | "audit" | "errors" | "daily-audit";
 
 async function adminFetch(action: string, body: Record<string, unknown> = {}) {
   const token = await getActiveToken();
@@ -281,6 +282,7 @@ export default function AdminDashboard() {
     { key: "support", label: "Support", icon: Headphones },
     { key: "payouts", label: "Payouts", icon: Wallet },
     { key: "errors", label: "Errors", icon: AlertOctagon },
+    { key: "daily-audit", label: "Daily Audit", icon: Activity },
     { key: "node-gating", label: "Node Gating", icon: ToggleRight, superOnly: true },
     { key: "admins", label: "Admins", icon: ShieldCheck, superOnly: true },
     { key: "audit", label: "Audit", icon: FileSearch, superOnly: true },
@@ -371,6 +373,7 @@ export default function AdminDashboard() {
           {tab === "node-gating" && <NodeGatingTab />}
           {tab === "audit" && <AuditLogTab />}
           {tab === "errors" && <ErrorsTab />}
+          {tab === "daily-audit" && <DailyAuditTab />}
           {tab === "platforms" && <PlatformAccessTab />}
           {tab === "admins" && (
             <AdminsTab
