@@ -34,19 +34,19 @@ interface CheckResult {
   details?: unknown;
 }
 
-// Required library_asset.kind per node — matches scripts/audit-stuck-live.mjs
+// Required library_asset.kind per node — only "adopter" builders that write a
+// real asset (Sprint 55). All other live nodes legitimately rely on the
+// deriveLibraryAsset fallback and only need a delivery_url.
 const REQUIRED_KIND: Record<string, string> = {
-  "BP-01": "email_sequence", "BP-02": "docx", "BP-03": "docx",
-  "BP-04": "external_url", "BP-05": "pptx", "BP-06": "docx",
-  "BP-07": "docx", "BP-08": "docx", "BP-09": "external_url",
-  "BA-10": "docx", "BA-11": "audio_zip", "BA-12": "docx",
-  "BA-13": "docx", "BA-14": "podcast_pack", "BA-15": "docx",
-  "BA-16": "docx", "BA-17": "docx", "BA-18": "docx",
-  "YR-19": "docx", "YR-20": "docx", "YR-21": "pptx",
-  "YR-22": "pptx", "YR-23": "docx", "YR-24": "docx",
-  "YR-25": "docx", "YR-26": "docx", "YR-27": "docx",
-  "YR-28": "docx",
+  "BP-01": "email_sequence",
+  "BP-03": "docx",
+  "BP-04": "external_url",
+  "BP-06": "docx",
+  "BP-09": "external_url",
+  "BA-11": "audio_zip",
+  "BA-14": "podcast_pack",
 };
+const ADOPTER_NODES = new Set(Object.keys(REQUIRED_KIND));
 
 async function authorize(req: Request, admin: ReturnType<typeof createClient>) {
   // Internal cron path: shared secret bypasses gateway header rewriting.
