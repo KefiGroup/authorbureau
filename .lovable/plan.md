@@ -1,37 +1,40 @@
-## Bug
+## Goal
+Make the “My Business Plan” / full-plan dialog reliably load the saved plan instead of falling through to “No plan found”.
 
-Opening **My Business Plan → View Plan** for "Invest Like Buffett for Parents" shows **"No plan found"**, even though a saved plan exists in the database.
+## Plan
+1. Standardize the client request auth for plan loading
+- Update the plan-loading UI to use the project-standard token flow (`getActiveToken()` and timeout-safe fetch) instead of reading the shared session directly.
+- Apply the same fix to both places that request the saved plan so they behave consistently.
+- Keep the existing chat-content fallback only when there truly is no saved plan, not when auth silently failed.
 
-## Root cause
+2. Replace the custom user resolver in `business-consultant`
+- Remove the function-local `resolveUser()` implementation and switch this edge function to the canonical shared resolver in `supabase/functions/_shared/resolve-user.ts`.
+- This aligns the function with the project rule for identity resolution and avoids the current broken fallback path.
+- Preserve book ownership checks, but make them work with the resolved user identity/email from the shared helper.
 
-`generated_assets` for this book has `author_id = ef23c521…` (Pauline's `auth.users.id`, saved by an older version of the function). Pauline's real `author_profiles.id` is `92326a2f…`.
+3. Harden the `get-plan` response behavior
+- Stop returning the same empty payload for different failure modes.
+- Return clear outcomes for:
+  - unauthenticated request
+  - book not owned by current user
+  - no saved business plan exists for that book
+- Update the UI to distinguish these cases so an auth/ownership failure is not shown as “No plan found”.
 
-In `supabase/functions/business-consultant/index.ts`, the `get-plan` action now resolves the canonical `author_profiles.id` via `resolveAuthorId(...)` and filters on it:
+4. Validate against the existing saved-plan data path
+- Verify the saved plan lookup still uses the existing `(book_id, asset_type = business_plan)` path.
+- Keep the author-id normalization/self-heal, but only after a valid owned-book lookup succeeds.
+- Confirm the dialog and saved-plan card both read the same backend result shape.
 
-```ts
-.eq("book_id", getPlanBookId)
-.eq("author_id", authorId)        // ← 92326a2f… (profile id)
-.eq("asset_type", "business_plan")
-```
+5. Ship a focused regression check
+- Test loading a saved plan from the main business-plan surface and from the full-plan dialog.
+- Confirm the empty state only appears when there is genuinely no saved plan for that owned book.
+- Confirm expired/missing tokens no longer degrade into a false “No plan found” result.
 
-The stored row's `author_id` is the legacy `user.id`, so the query returns `null` and the dialog renders the empty state. The same drift would silently break `save-plan` (it would insert a second row… except the unique constraint is `(book_id, asset_type)`, so the upsert overwrites — but `get-plan` still won't find it on the next read because the new row's `author_id` is now the profile id while older code paths may still write `user.id`).
-
-## Fix (single file)
-
-`supabase/functions/business-consultant/index.ts` — `get-plan` action (~lines 3150–3178):
-
-1. The unique key on `generated_assets` is `(book_id, asset_type)`, so `author_id` is **redundant** in the lookup. Drop the `author_id` filter from `get-plan` so the row is found regardless of which id (user_id vs author_profiles.id) historical writes used.
-2. Verify ownership instead via the existing book context: confirm the book belongs to this user (already implicit — books are filtered by `owner_email`/owner elsewhere; here we additionally check `books.owner_email = user.email OR books.owner_user_id = user.id` via a quick lookup) and only then return the content. This keeps the endpoint safe without depending on the drifted `author_id`.
-3. While we're here, normalise the historical row by updating its `author_id` to the resolved `authorId` (best-effort, non-blocking) so future writes/reads are consistent.
-
-No client changes, no schema changes, no other endpoints touched.
-
-## Out of scope
-
-- Backfill migration for every drifted `generated_assets` row (we self-heal on read instead).
-- `save-plan` / `expand-plan` logic (they already write the resolved `authorId`; the read fix is sufficient to unblock the user).
-- Any UI changes to `FullPlanDialog.tsx`.
-
-## Verification
-
-After deploy, refresh the dialog for "Invest Like Buffett for Parents" — the saved plan (1,867 chars) should render with sections instead of the empty state.
+## Technical details
+- Frontend files likely involved:
+  - `src/components/dashboard/FullPlanDialog.tsx`
+  - `src/components/dashboard/SavedBusinessPlan.tsx`
+  - token helper utilities already present in `src/lib/get-active-token.ts`
+- Backend file involved:
+  - `supabase/functions/business-consultant/index.ts`
+- No database migration is planned; this should be a request/auth-path fix only.
