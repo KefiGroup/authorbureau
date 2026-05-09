@@ -86,8 +86,9 @@ serve(async (req) => {
     let node = rows?.[0];
     if (!node) throw new Error("Node not found.");
 
-    // Auto-generate the speaker script on demand if it's missing.
-    if (!node?.content_json?.speaker_script) {
+    // Auto-generate the speaker script on demand if it's missing OR if a regenerate was requested.
+    const needsGen = !node?.content_json?.speaker_script || force_regenerate;
+    if (needsGen) {
       const genUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-speaker-script`;
       const genRes = await fetch(genUrl, {
         method: "POST",
@@ -95,7 +96,13 @@ serve(async (req) => {
           "Content-Type": "application/json",
           Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
         },
-        body: JSON.stringify({ author_id: profile.id, book_id: book_id ?? null, node_id }),
+        body: JSON.stringify({
+          author_id: profile.id,
+          book_id: book_id ?? null,
+          node_id,
+          target_minutes: target_minutes ?? null,
+          target_slide_count: target_slide_count ?? null,
+        }),
       });
       if (!genRes.ok) {
         const txt = await genRes.text();
