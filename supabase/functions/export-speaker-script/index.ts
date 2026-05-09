@@ -70,7 +70,7 @@ serve(async (req) => {
     }
     const userId = claims.claims.sub;
 
-    const { node_id, book_id } = await req.json();
+    const { node_id, book_id, target_minutes, target_slide_count, force_regenerate } = await req.json();
     if (!node_id) throw new Error("node_id required");
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
