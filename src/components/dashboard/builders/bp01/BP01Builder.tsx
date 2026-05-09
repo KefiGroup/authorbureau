@@ -202,6 +202,8 @@ export default function BP01Builder({ authorId, bookId }: Props) {
     try {
       // Sprint 55: build a TXT compilation of the email kit and stamp the
       // canonical library_asset record so it appears in the author's Library.
+      // Sprint 55d: surface upload failures instead of silently publishing
+      // without a library_asset (same fix as BP-06/BP-08/BP-09).
       let libraryAsset: Record<string, unknown> | null = null;
       try {
         const txtBlob = buildBp01Txt(content, authorName, bookTitle || detectedBookTitle || "your book");
@@ -213,8 +215,16 @@ export default function BP01Builder({ authorId, bookId }: Props) {
           primary: { blob: txtBlob, filename: `${safe}-email-kit.txt`, kind: "email_sequence" },
         });
         libraryAsset = asset as unknown as Record<string, unknown>;
-      } catch (e) {
-        console.warn("[BP-01] library_asset upload failed, publishing without it", e);
+      } catch (uploadErr) {
+        const msg = (uploadErr as Error)?.message || "Upload failed";
+        console.error("[BP-01] publish: library upload failed", uploadErr);
+        toast.error("Couldn't save email kit to your Library", {
+          description: `${msg}. Publish was cancelled — try again or contact support.`,
+          duration: 14000,
+        });
+        setError(msg);
+        setStep(2);
+        return;
       }
 
       const mergedContent = libraryAsset ? { ...content, library_asset: libraryAsset } : content;
