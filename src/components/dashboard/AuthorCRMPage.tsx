@@ -10,6 +10,7 @@ import {
 import ContactForm from "./crm/ContactForm";
 import PipelineView from "@/components/crm/PipelineView";
 import HotLeadsCard from "./crm/HotLeadsCard";
+import DailyIntelligenceCard from "./crm/DailyIntelligenceCard";
 import ContactListView from "@/components/crm/ContactListView";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
@@ -384,6 +385,23 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
           );
         })}
       </div>
+
+      {authorProfileId && (
+        <DailyIntelligenceCard
+          authorId={authorProfileId}
+          onContactClick={async (contactId) => {
+            const { data } = await supabase
+              .from("crm_contacts")
+              .select("id, full_name, email, phone, company, notes, source, stage, abby_score, last_activity_at, created_at")
+              .eq("id", contactId)
+              .maybeSingle();
+            if (data) {
+              setSelectedContact({ ...(data as any), tags: [] });
+              setDetailOpen(true);
+            }
+          }}
+        />
+      )}
 
       {authorProfileId && (
         <HotLeadsCard authorId={authorProfileId} />
