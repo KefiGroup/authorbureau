@@ -1,28 +1,38 @@
 ## Plan
 
-1. Fix BP-03 book scoping end to end
-- Update the BP-03 builder intro and saved-state flow to use the active URL-scoped book instead of `useAuthorBook()`’s fallback latest book.
-- Pass `book_id` on every BP-03 state-changing request, not just the initial generate call. That includes save/edit/activate flows and Marketing Hub’s `repair_calendar` activation call.
-- Update the `bp03-node-state` function so load/save/repair queries are consistently scoped by `(author_id, node_id, book_id)` when a `bookId` is present, instead of reading/updating the unscoped row.
-- Verify the generation function already accepts `book_id` and preserves it when writing the node, then align the frontend with that contract.
+1. Fix BP-03 activation so Library upload happens through the backend
+- Replace the browser-side storage upload used by BP-03 Activate with a backend-owned upload path that writes the TXT asset using a service-role client.
+- Keep the existing `library_asset` contract intact so BP-03 still stores the canonical asset metadata on `content_json` before publish.
+- Preserve the current user-facing behavior: if upload fails, activation is blocked and the user sees a clear error.
 
-2. Fix My Funnels stage-card readiness for override-backed stages
-- Update the funnel stage-card rendering path so a stage shows `Ready` when a `funnel_stage_overrides` row exists for that `(funnel_id, stage_id)`, even if the stage has no base funnel copy.
-- Keep current base-content readiness intact for stages like Sales Page / Checkout, but treat override presence as a completion signal for auto-completed stages such as Thank You, Confirm Email, Deliver Magnet, Nurture Day 1, and Upsell.
-- Reuse the existing `listOverridesBulk()` data already loaded in `FunnelsHub` rather than adding a new database call.
+2. Wire the backend upload into the BP-03 Activate flow
+- Update the BP-03 builder so Activate calls the backend upload/register path instead of `uploadAndRegisterLibraryAsset()` directly from the browser.
+- Continue passing the active `book_id` and the generated TXT payload so the saved asset stays book-scoped and shows in My Library.
+- Reuse existing auth/token helpers and keep the rest of the activation sequence unchanged: upload asset -> persist node live -> write scheduled social posts.
 
-3. Validate Stripe Express payout capability for connected authors
-- Review the existing payout flow and confirm whether an author with completed Stripe Connect Express onboarding is eligible to receive payouts.
-- Confirm the current system uses payout-only Express accounts (`transfers` capability), checks onboarding completion, and sends transfers from the monthly payout runner.
-- Call out any important practical limits still enforced by the current code, such as minimum payout threshold, admin/manual trigger path vs scheduled run, and failure states when Stripe needs more verification.
+3. Fix Funnel stage cards so override-backed stages render as Ready everywhere
+- Remove the remaining direct browser read path for funnel stage overrides in the visual flow used by My Funnels cards.
+- Make the flow component consume the already edge-fetched override data, or fetch overrides through the same edge-function client used elsewhere, so shared-auth/RLS never hides saved override rows.
+- Keep the current readiness rule: a stage is `Ready` if it has a saved override row or all required base fields are present.
+
+4. Validate deploy targets and refresh paths
+- Ensure the affected frontend paths all use the corrected data source after save/reload, especially the card-level `NodeFunnelFlow` inside `FunnelsHub`.
+- Re-deploy the affected backend function(s) and verify the production path matches the fixed implementation.
 
 ## Technical details
-- **Frontend files likely touched:** `src/components/dashboard/builders/bp03/BP03Builder.tsx`, `src/components/dashboard/MarketingHub.tsx`, `src/components/dashboard/FunnelsHub.tsx`, and possibly `src/lib/funnel-flow-stages.ts`.
-- **Backend files likely touched:** `supabase/functions/bp03-node-state/index.ts`.
-- **No schema changes expected** for these fixes.
+
+- Likely frontend files:
+  - `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+  - `src/lib/publish-library-asset.ts` or a new BP-03/backend upload helper
+  - `src/components/dashboard/FunnelsHub.tsx`
+  - `src/components/dashboard/builders/shared/NodeFunnelFlow.tsx`
+  - possibly `src/lib/funnels-api.ts`
+- Likely backend files:
+  - `supabase/functions/render-library-asset/index.ts` or a dedicated upload/register function if needed
+- Database schema changes are probably not required unless the existing storage policies prove incomplete for non-admin author reads.
 
 ## Expected outcome
-- Opening `/node-builder/BP-03?bookId=...` will show and save against the correct book.
-- Activating BP-03 from Marketing Hub will rebuild the calendar for the correct book only.
-- Funnel stages with confirmed override rows will display `Ready` instead of `Not set`.
-- For payouts: authors who completed Stripe Connect Express onboarding can receive payouts through the existing payout runner, subject to the current threshold and Stripe account readiness checks.
+
+- BP-03 Activate no longer fails with `storage.objects` RLS errors and successfully writes the social kit into My Library.
+- Funnel stages backed by `funnel_stage_overrides` show `Ready` instead of `Not set` in My Funnels after reload.
+- Existing good fixes remain intact: BP-03 stays book-scoped and generated content quality is unchanged.
