@@ -565,7 +565,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                 Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll write 20 posts and drop them here for you to schedule.
               </p>
               <div className="flex flex-wrap gap-2">
-                <Button onClick={() => navigate("/node-builder/BP-03")}>
+                <Button onClick={() => navigate(`/node-builder/BP-03${bookId ? `?bookId=${bookId}` : ""}`)}>
                   Go to Social Media <ArrowRight className="h-4 w-4 ml-1" />
                 </Button>
                 <Button variant="outline" onClick={repairCalendar} disabled={repairing}>
