@@ -116,6 +116,7 @@ export default function DailyAuditTab() {
 
   return (
     <div className="space-y-4">
+      <DailyOpsReportCard />
       {/* Header / status */}
       <Card className="p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
