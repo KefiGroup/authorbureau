@@ -58,11 +58,27 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
   script_docx: "Download speaker script (.docx)",
 };
 
+const RUNTIME_OPTIONS: { value: string; minutes: number; slides: number; label: string; sub: string }[] = [
+  { value: "45",  minutes: 45,  slides: 8,  label: "Keynote",        sub: "45 min · ~6-8 slides · no exercises" },
+  { value: "90",  minutes: 90,  slides: 12, label: "Workshop short", sub: "90 min · ~10-12 slides · light exercises" },
+  { value: "240", minutes: 240, slides: 16, label: "Half-day",       sub: "240 min · ~14-16 slides · full exercises + breaks" },
+  { value: "420", minutes: 420, slides: 22, label: "Full-day",       sub: "420 min · ~20-24 slides · deep facilitation" },
+];
+
+function defaultRuntimeForNode(nodeId: string): string {
+  if (nodeId === "YR-22") return "240";
+  if (nodeId === "BA-10" || nodeId === "BP-05") return "90";
+  return "45";
+}
+
 export default function AssetRow({
   node, asset, sizeHint, authorSlug, penName, icon: Icon, showNodeName,
 }: Props) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState<ExportFormat | null>(null);
+  const [runtimeDialogOpen, setRuntimeDialogOpen] = useState(false);
+  const [runtimeForceRegen, setRuntimeForceRegen] = useState(false);
+  const [runtimeChoice, setRuntimeChoice] = useState<string>(defaultRuntimeForNode(node.node_id));
 
   const nodeName = node.personalised_name || NODE_NAMES[node.node_id] || node.node_name;
   const bookTitle = nodeName;
@@ -72,6 +88,8 @@ export default function AssetRow({
   const publicUrl = !NO_MICROSITE_NODES.has(node.node_id) && authorSlug
     ? getMicrositeUrl(authorSlug, node.node_id)
     : null;
+
+  const hasScript = !!node.content_json?.speaker_script?.slides?.length;
 
   const handleOpen = () => {
     navigate(`/node-builder/${node.node_id}`);
@@ -83,8 +101,52 @@ export default function AssetRow({
     toast.success("Public link copied");
   };
 
+  const downloadScript = async (target_minutes?: number, target_slide_count?: number, force_regenerate?: boolean) => {
+    if (busy) return;
+    setBusy("script_docx");
+    try {
+      if (!hasScript || force_regenerate) {
+        toast.info(
+          target_minutes && target_minutes >= 240
+            ? "Generating a half-day speaker script — this can take up to 2 minutes…"
+            : "Generating speaker script — this can take up to 60 seconds…",
+        );
+      }
+      const { data, error } = await invokeWithTimeout<{ filename: string; base64: string }>(
+        "export-speaker-script",
+        {
+          node_id: node.node_id,
+          book_id: node.book_id ?? null,
+          target_minutes: target_minutes ?? null,
+          target_slide_count: target_slide_count ?? null,
+          force_regenerate: !!force_regenerate,
+        },
+        180000,
+      );
+      if (error) throw error;
+      if (!data?.base64) throw new Error("No script returned");
+      const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+      triggerDownload(blob, data.filename || `${asset.label}.docx`);
+    } catch (err: any) {
+      console.error("AssetRow export error", err);
+      toast.error(err?.message || "Export failed");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   const run = async (fmt: ExportFormat) => {
     if (busy) return;
+    if (fmt === "script_docx") {
+      // First time: ask for runtime. After that: use existing script.
+      if (!hasScript) {
+        setRuntimeForceRegen(false);
+        setRuntimeDialogOpen(true);
+        return;
+      }
+      await downloadScript();
+      return;
+    }
     setBusy(fmt);
     try {
       if (fmt === "copy") {
@@ -106,20 +168,6 @@ export default function AssetRow({
         if (!data?.base64) throw new Error("No slides returned");
         const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         triggerDownload(blob, data.filename || `${asset.label}.pptx`);
-      } else if (fmt === "script_docx") {
-        const hasScript = !!node.content_json?.speaker_script?.slides?.length;
-        if (!hasScript) {
-          toast.info("Generating speaker script — this can take up to 60 seconds…");
-        }
-        const { data, error } = await invokeWithTimeout<{ filename: string; base64: string }>(
-          "export-speaker-script",
-          { node_id: node.node_id, book_id: node.book_id ?? null },
-          180000,
-        );
-        if (error) throw error;
-        if (!data?.base64) throw new Error("No script returned");
-        const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        triggerDownload(blob, data.filename || `${asset.label}.docx`);
       } else if (fmt === "csv") {
         // basic CSV: rows of strings if subContent is array
         const csv = toCsv(subContent);
@@ -134,7 +182,14 @@ export default function AssetRow({
     }
   };
 
+  const handleRuntimeConfirm = async () => {
+    const opt = RUNTIME_OPTIONS.find(o => o.value === runtimeChoice) ?? RUNTIME_OPTIONS[0];
+    setRuntimeDialogOpen(false);
+    await downloadScript(opt.minutes, opt.slides, runtimeForceRegen);
+  };
+
   const primaryFormat = asset.formats[0];
+  const supportsScript = asset.formats.includes("script_docx");
 
   return (
     <div className="flex items-center justify-between gap-3 rounded-lg border bg-card/50 px-3 py-2 hover:bg-accent/30 transition-colors">
@@ -146,14 +201,14 @@ export default function AssetRow({
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium truncate">{asset.label}</span>
             {sizeHint && (
-              asset.formats.includes("script_docx") && sizeHint === "Generate on demand" ? (
+              supportsScript && sizeHint === "Generate on demand" ? (
                 <TooltipProvider delayDuration={150}>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Badge variant="outline" className="text-[10px] cursor-help">{sizeHint}</Badge>
                     </TooltipTrigger>
                     <TooltipContent side="top" className="max-w-xs">
-                      Downloads a .docx speaker script — one talking-point page per slide. First generation takes ~30 seconds; subsequent downloads are instant.
+                      Downloads a .docx speaker script. You'll pick the session length (keynote · workshop · half-day · full-day) and ABBY scales the talking points, exercises and break cues to match. First generation takes 30-120 seconds.
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -193,10 +248,60 @@ export default function AssetRow({
                   {FORMAT_LABELS[f]}
                 </DropdownMenuItem>
               ))}
+              {supportsScript && hasScript && (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setRuntimeForceRegen(true);
+                    setRuntimeDialogOpen(true);
+                  }}
+                >
+                  <RefreshCw className="h-3.5 w-3.5 mr-2" />
+                  Regenerate at different length…
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         )}
       </div>
+
+      {/* Runtime picker dialog (script_docx only) */}
+      <Dialog open={runtimeDialogOpen} onOpenChange={setRuntimeDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose session length</DialogTitle>
+            <DialogDescription>
+              ABBY will scale talking points, exercises and break cues to actually fill the runtime you pick. A 240-min script contains roughly 30,000 words of content; a 45-min keynote about 5,800.
+            </DialogDescription>
+          </DialogHeader>
+          <RadioGroup value={runtimeChoice} onValueChange={setRuntimeChoice} className="gap-3 py-2">
+            {RUNTIME_OPTIONS.map(opt => (
+              <Label
+                key={opt.value}
+                htmlFor={`rt-${opt.value}`}
+                className="flex items-start gap-3 rounded-md border bg-card/50 p-3 cursor-pointer hover:bg-accent/30 transition-colors"
+              >
+                <RadioGroupItem id={`rt-${opt.value}`} value={opt.value} className="mt-1" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium">{opt.label}</div>
+                  <div className="text-xs text-muted-foreground">{opt.sub}</div>
+                </div>
+              </Label>
+            ))}
+          </RadioGroup>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setRuntimeDialogOpen(false)} disabled={busy !== null}>
+              Cancel
+            </Button>
+            <Button onClick={handleRuntimeConfirm} disabled={busy !== null}>
+              {busy === "script_docx" ? (
+                <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating…</>
+              ) : (
+                <>Generate script</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
