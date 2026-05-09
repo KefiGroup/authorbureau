@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { supabase } from "@/integrations/supabase/client";
+import DailyOpsReportCard from "./DailyOpsReportCard";
 
 type Severity = "ok" | "warn" | "fail";
 interface CheckResult {
