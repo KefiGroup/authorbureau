@@ -2187,6 +2187,33 @@ export type Database = {
           },
         ]
       }
+      daily_audit_runs: {
+        Row: {
+          generated_at: string
+          id: string
+          issue_count: number
+          report: Json
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          generated_at?: string
+          id?: string
+          issue_count?: number
+          report: Json
+          status: string
+          triggered_by?: string
+        }
+        Update: {
+          generated_at?: string
+          id?: string
+          issue_count?: number
+          report?: Json
+          status?: string
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       email_campaigns: {
         Row: {
           author_id: string
