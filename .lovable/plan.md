@@ -1,59 +1,69 @@
-# Sprint 11 Bug Audit — YR-23 / Speaker Script
+## Goal
 
-## Audit Results
+Let the author choose the speaker-script runtime (45 / 90 / half-day / full-day) before generation, and make the AI actually fill that time with real content — not just relabel `timing_minutes`. Today the YR-22 script claims 240 min but contains only ~1,000 words of narration (≈8 min of speech).
 
-### Bug 1 — YR-23 missing PPTX → no script row · ❌ NOT FIXED
+## What changes
 
-`supabase/functions/generate-yr23-mastermind/index.ts` only emits:
-`mastermind_title, tagline, programme_promise, membership_tiers, curriculum_pillars, application_questions, sales_page, abby_summary`.
+### 1. UI — runtime picker before download
 
-`src/lib/nodeAssetRegistry.ts:193-198` probes `c => has(c, "slides")` for both the pitch-deck row AND the speaker-script row. With no `slides` key, neither row ever renders — only the catch-all "Mastermind package" PDF shows up. Confirmed by reading both files.
+`src/components/library/AssetRow.tsx` (script_docx branch only)
 
-### Bug 2 — "Generate on demand" needs a tooltip · ❌ NOT FIXED
+When the user clicks **Download speaker script (.docx)** for the first time (no `speaker_script` yet), open a small dialog instead of firing immediately:
 
-`src/components/library/AssetRow.tsx` renders the `sizeHint` (which is the literal string "Generate on demand" from `speakerScriptAsset` in `nodeAssetRegistry.ts:69`) as a plain `<Badge variant="outline">` (line 142). No `Tooltip` wrapper, no description anywhere on the row. First-time users see only "Generate on demand · SCRIPT".
+```
+Choose session length
+○ Keynote          (45 min,  6-8 slides)
+○ Workshop short   (90 min,  10-12 slides)
+● Half-day         (240 min, 14-16 slides)   ← default for YR-22
+○ Full-day         (420 min, 20-24 slides)
 
-### Bug 3 — YR-22 script quality validation · ❌ NOT DONE
+[ Generate script ]
+```
 
-No evidence in code, sprint logs, or `dev_activity_log` that a YR-22 script was downloaded and inspected. The `export-speaker-script` function exists but has never been QA'd against the four required criteria (slide-by-slide talking points, facilitation prompts, timing cues, author-story references).
+If `speaker_script` already exists, skip the dialog and download immediately. Add a "Regenerate at different length" item inside the existing dropdown so authors can re-pick later.
 
----
+The dialog passes `target_minutes` and `target_slide_count` through to the edge function.
 
-## Fix Plan
+### 2. Edge function — accept and enforce runtime
 
-### 1. YR-23 generator → add a pitch-deck `slides` array
-File: `supabase/functions/generate-yr23-mastermind/index.ts`
+`supabase/functions/export-speaker-script/index.ts`
+- Accept `target_minutes` and `target_slide_count` in the request body, forward them to `generate-speaker-script` when auto-generating.
 
-Extend the JSON schema in the user prompt to include a `slides` array (≈ 10-12 slides for an investor/applicant pitch: cover, problem, opportunity, programme overview, who it's for, the 4 curriculum pillars, the two membership tiers, application process, CTA). Persist `slides` into `content_json` like BA-13/YR-21/YR-22 already do. No registry change needed — once `slides` exist, both the pitch-deck row and the speaker-script row appear automatically.
+`supabase/functions/generate-speaker-script/index.ts`
+- Accept `target_minutes` (override `defaultRuntimeMinutes`) and `target_slide_count`.
+- If `target_slide_count` is supplied AND differs from the existing slide count, **regenerate the slide deck first** by calling the node's own deck generator (BA-13 / YR-21 / YR-22 / YR-23 / YR-25 / YR-27 / YR-28) with a `slide_count` hint. That way 240-min and 45-min versions actually have a different number of slides, not the same 10 slides with stretched timings.
+- Rewrite the prompt to **scale content depth with runtime**:
+  - **Per slide**, require ALL of:
+    - 8-12 sentences of `talking_points` for content slides (cover/agenda/CTA stay short)
+    - 1-2 `book_callbacks` (named framework / story / stat from the book — not generic)
+  - **For runtimes ≥ 90 min**, also require per content slide:
+    - `exercise` block: `{ instructions, time_minutes, debrief_questions[] }`
+    - `break_cue` on every ~60 min boundary
+  - Spell out the word-count target in the system prompt: *"At ~130 wpm narration plus exercise/debrief overhead, a {target_minutes}-min session needs roughly {target_minutes * 130} words of `talking_points` + exercise text across all slides combined. Distribute this realistically — cover/agenda short, modules long."*
+- Bump `max_completion_tokens` to 24000 for runtimes ≥ 240, keep 16000 below.
 
-### 2. Tooltip on the Generate-on-demand chip
-File: `src/components/library/AssetRow.tsx`
+### 3. DOCX export — render the new fields
 
-When `asset.formats` includes `"script_docx"` AND `sizeHint === "Generate on demand"`, wrap the badge in the existing `Tooltip` primitive (`@/components/ui/tooltip`) with the copy:
+`supabase/functions/export-speaker-script/index.ts`
+- Render new `exercise` block (heading "Exercise", instructions, "⏱ X min", debrief questions as bullets).
+- Render `break_cue` as a centred italic divider.
 
-> "Downloads a .docx speaker script — one talking-point page per slide. First generation takes ~30 seconds; subsequent downloads are instant."
+### 4. Backfill
 
-Keep the badge style identical; only add `TooltipProvider/Trigger/Content`. Pure UI change.
-
-### 3. YR-22 speaker-script QA pass
-Use a sandbox script (no UI changes):
-
-1. `code--exec` calls `export-speaker-script` for the existing seeded YR-22 author/book via `supabase--curl_edge_functions`.
-2. Decode the base64 DOCX to `/mnt/documents/yr22-script-qa.docx`.
-3. Convert to PDF + per-page JPGs with the LibreOffice + pdftoppm pipeline.
-4. Read the rendered pages and verify each slide has: talking points, facilitator prompt, timing cue (e.g. "~3 min"), and a Pauline-story callback.
-5. Surface a pass/fail with the exact deficiencies. If it fails, propose a prompt patch to `supabase/functions/export-speaker-script/index.ts` (separate follow-up).
-
-Deliverable: a short QA report attached to this thread; the DOCX itself in `/mnt/documents/`.
-
----
+No migration. Existing `speaker_script` blobs stay valid (new fields are optional). Authors who want a denser version click "Regenerate at different length".
 
 ## Out of scope
-- Re-theming pitch deck visuals (existing `export-pro-slides` handles render).
-- Backfilling `slides` into already-generated YR-23 nodes — authors can re-run the YR-23 generator to pick up the new schema.
-- Changing speaker-script prompt unless QA in step 3 fails.
+- Changing pitch-deck visuals (`export-pro-slides` unchanged).
+- Adding runtime picker to nodes that don't have a speaker-script row.
+- Per-author speaking-pace tuning — 130 wpm is a reasonable global default.
 
 ## Files to touch
-- `supabase/functions/generate-yr23-mastermind/index.ts` (extend prompt + persist `slides`)
-- `src/components/library/AssetRow.tsx` (tooltip on script-on-demand chip)
-- `/mnt/documents/yr22-script-qa.docx` + QA report (no project file changes unless QA fails)
+- `src/components/library/AssetRow.tsx` — add runtime dialog + regenerate menu item
+- `supabase/functions/export-speaker-script/index.ts` — accept runtime args, render new fields
+- `supabase/functions/generate-speaker-script/index.ts` — runtime-aware prompt, depth requirements, optional deck regen
+- `src/components/ui/dialog` (existing) and `radio-group` (existing) — reused
+
+## Verification
+1. Generate a 45-min keynote for YR-22 → expect 6-8 slides, ~5,800 words narration, no exercises required.
+2. Generate a 240-min half-day for YR-22 → expect 14-16 slides, ~31,000 words across narration+exercises, every module slide has an exercise + debrief, ≥3 break cues.
+3. Re-render DOCX, convert to PDF, eyeball page count: 45 min ≈ 8-12 pages; 240 min ≈ 60+ pages.
