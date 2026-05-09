@@ -90,18 +90,55 @@ serve(async (req) => {
     const nodeRow = nodeRows?.[0];
     if (!nodeRow) return failResponse(`No ${node_id} content found. Generate the deck first.`);
 
-    const picked = pickSlides(nodeRow.content_json);
+    let picked = pickSlides(nodeRow.content_json);
     if (!picked) return failResponse(`No slide deck found in ${node_id}. Generate the deck first.`);
+
+    const deckTitle = nodeRow.personalised_name || nodeRow.node_name || node_id;
+    const targetMinutes = Math.max(15, Math.min(720, Number(targetMinutesArg) || defaultRuntimeMinutes(node_id)));
+    const targetSlideCount = Number(targetSlideCountArg) || recommendSlideCount(targetMinutes);
+
+    // Resize the deck FIRST if the count drifts from the runtime by 2+ slides
+    // (BP-09 has a locked count and is skipped server-side by resize-slide-deck).
+    if (Math.abs(picked.slides.length - targetSlideCount) >= 2 && node_id !== "BP-09") {
+      try {
+        const resizeUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/resize-slide-deck`;
+        const resizeRes = await fetch(resizeUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            author_id, book_id: nodeRow.book_id ?? book_id ?? null, node_id,
+            target_slide_count: targetSlideCount, target_minutes: targetMinutes,
+          }),
+        });
+        if (resizeRes.ok) {
+          // Re-fetch the node to pick up the new slides.
+          let q2 = supabase
+            .from("author_nodes")
+            .select("id, book_id, content_json, personalised_name, node_name")
+            .eq("author_id", author_id).eq("node_id", node_id);
+          if (book_id) q2 = q2.eq("book_id", book_id);
+          const { data: rows2 } = await q2.limit(1);
+          if (rows2?.[0]) {
+            (nodeRow as any).content_json = rows2[0].content_json;
+            const repicked = pickSlides(rows2[0].content_json);
+            if (repicked) picked = repicked;
+          }
+        } else {
+          console.warn("resize-slide-deck failed, scripting against existing deck:", await resizeRes.text());
+        }
+      } catch (e) {
+        console.warn("resize-slide-deck threw, scripting against existing deck:", e);
+      }
+    }
 
     const slides = picked.slides.map(normaliseSlide);
 
     const { ctx, bookTitle, coreThesis } = await buildAuthorContext(
       supabase, author_id, author.user_id ?? null, nodeRow.book_id ?? book_id ?? null, node_id,
     );
-
-    const deckTitle = nodeRow.personalised_name || nodeRow.node_name || node_id;
-    const targetMinutes = Math.max(15, Math.min(720, Number(targetMinutesArg) || defaultRuntimeMinutes(node_id)));
-    const targetSlideCount = Number(targetSlideCountArg) || recommendSlideCount(targetMinutes);
     const requireExercises = targetMinutes >= 90;
     const wordTarget = Math.round(targetMinutes * 130); // ~130 wpm spoken
     const tokenBudget = targetMinutes >= 240 ? 24000 : 16000;
