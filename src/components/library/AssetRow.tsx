@@ -59,6 +59,7 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
 };
 
 const RUNTIME_OPTIONS: { value: string; minutes: number; slides: number; label: string; sub: string }[] = [
+  { value: "30",  minutes: 30,  slides: 6,  label: "Short pitch",    sub: "30 min · ~6 slides · no exercises" },
   { value: "45",  minutes: 45,  slides: 8,  label: "Keynote",        sub: "45 min · ~6-8 slides · no exercises" },
   { value: "90",  minutes: 90,  slides: 12, label: "Workshop short", sub: "90 min · ~10-12 slides · light exercises" },
   { value: "240", minutes: 240, slides: 16, label: "Half-day",       sub: "240 min · ~14-16 slides · full exercises + breaks" },
@@ -67,7 +68,11 @@ const RUNTIME_OPTIONS: { value: string; minutes: number; slides: number; label: 
 
 function defaultRuntimeForNode(nodeId: string): string {
   if (nodeId === "YR-22") return "240";
-  if (nodeId === "BA-10" || nodeId === "BP-05") return "90";
+  if (nodeId === "BA-10") return "90";
+  if (nodeId === "BP-05" || nodeId === "BA-13") return "90";
+  if (nodeId === "BA-16" || nodeId === "BA-18") return "30";
+  if (nodeId === "YR-23") return "90";
+  if (nodeId === "YR-25" || nodeId === "YR-27" || nodeId === "YR-28") return "45";
   return "45";
 }
 
