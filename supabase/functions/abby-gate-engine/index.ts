@@ -87,13 +87,13 @@ serve(async (req) => {
       const { data: existing } = await supabase
         .from("abby_nudges")
         .select("id")
-        .eq("author_id", profile.user_id)
+        .eq("author_id", author_id)
         .eq("nudge_type", nudgeKey)
         .limit(1);
       if (existing && existing.length > 0) return { alreadyFired: true };
 
       await supabase.from("abby_nudges").insert({
-        author_id: profile.user_id, // abby_nudges keyed on user_id (legacy)
+        author_id, // abby_nudges.author_id FK → author_profiles.id
         nudge_type: nudgeKey,
         title: opts.title,
         content: opts.content,
