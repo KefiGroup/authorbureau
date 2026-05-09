@@ -476,6 +476,23 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log("[save-author-node:publish] published successfully", { rowId: node.id, nodeId, authorId, bookId, micrositeUrl });
+
+    // Fire-and-forget: re-evaluate ABBY gates immediately after a successful publish.
+    // Never blocks the publish response.
+    try {
+      const gateUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/abby-gate-engine`;
+      fetch(gateUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({ author_id: authorId, book_id: bookId ?? null }),
+      }).catch((e) => console.warn("[save-author-node:publish] gate-engine fire-and-forget failed:", e));
+    } catch (e) {
+      console.warn("[save-author-node:publish] gate-engine kickoff error:", e);
+    }
+
     return json(200, { ok: true, status: "live", micrositeUrl: micrositeUrl ?? null });
   }
 
