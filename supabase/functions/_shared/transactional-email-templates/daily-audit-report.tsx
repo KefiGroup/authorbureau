@@ -14,6 +14,9 @@ interface CheckSummary {
   message: string
 }
 
+interface DeltaItem { key: string; label: string; from?: string; to?: string; message?: string }
+interface SprintItem { sprint_id?: string; title: string; summary?: string; category?: string }
+
 interface Props {
   status?: 'green' | 'amber' | 'red'
   issueCount?: number
@@ -22,6 +25,10 @@ interface Props {
   warnCount?: number
   checks?: CheckSummary[]
   dashboardUrl?: string
+  resolved?: DeltaItem[]
+  opened?: DeltaItem[]
+  sprints?: SprintItem[]
+  takeaway?: string
 }
 
 const STATUS_COLOR = { green: '#2d6a2d', amber: '#a4471f', red: '#a82424' } as const
