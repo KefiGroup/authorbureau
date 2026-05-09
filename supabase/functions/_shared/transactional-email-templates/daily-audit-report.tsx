@@ -70,6 +70,49 @@ const DailyAuditReportEmail = ({
           <Text style={statusTime}>Generated {ts}</Text>
         </Section>
 
+        {takeaway && (
+          <Section style={{ background: '#f9f6ef', borderLeft: '3px solid #c8a55a', padding: '12px 14px', margin: '16px 0' }}>
+            <Text style={{ fontSize: '11px', color: '#c8a55a', fontWeight: 'bold' as const, margin: '0 0 4px', letterSpacing: '0.5px' }}>ABBY TAKEAWAY</Text>
+            <Text style={{ fontSize: '14px', color: '#1a2744', margin: 0, lineHeight: '1.5' }}>{takeaway}</Text>
+          </Section>
+        )}
+
+        {resolved.length > 0 && (
+          <>
+            <Heading as="h3" style={h3}>✅ Fixes auto-resolved (last 24h)</Heading>
+            {resolved.map((r) => (
+              <Section key={r.key} style={checkRow}>
+                <Text style={checkLabel}>{r.label}</Text>
+                <Text style={checkMessage}>was {r.from?.toUpperCase()} → now OK{r.message ? ` · ${r.message}` : ''}</Text>
+              </Section>
+            ))}
+          </>
+        )}
+
+        {opened.length > 0 && (
+          <>
+            <Heading as="h3" style={h3}>🔴 New issues opened (last 24h)</Heading>
+            {opened.map((r) => (
+              <Section key={r.key} style={checkRow}>
+                <Text style={checkLabel}>{r.label}</Text>
+                <Text style={checkMessage}>now {r.to?.toUpperCase()}{r.message ? ` · ${r.message}` : ''}</Text>
+              </Section>
+            ))}
+          </>
+        )}
+
+        {sprints.length > 0 && (
+          <>
+            <Heading as="h3" style={h3}>🚀 Shipped (last 24h)</Heading>
+            {sprints.map((s, i) => (
+              <Section key={i} style={checkRow}>
+                <Text style={checkLabel}>{s.sprint_id ? `${s.sprint_id} — ` : ''}{s.title}</Text>
+                {s.summary && <Text style={checkMessage}>{s.summary}</Text>}
+              </Section>
+            ))}
+          </>
+        )}
+
         <Heading as="h3" style={h3}>Check results</Heading>
         {checks.map((c) => {
           const b = SEV_BADGE[c.severity] || SEV_BADGE.ok
