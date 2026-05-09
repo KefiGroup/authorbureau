@@ -89,14 +89,43 @@ serve(async (req) => {
       }
     }
 
-    // Get node data — tolerate duplicate rows (a unique constraint now prevents
-    // them at the DB level, but we still order by "best row first" so the resolver
-    // never silently 404s if a duplicate ever slips in via a future migration).
-    const { data: nodeRows } = await supabase
+    // Sprint 56 — Book-scoped lookup.
+    // If a `book` slug is supplied, resolve it to a book id and use that to
+    // pick the exact (author, node, book) row. Without a book param we keep
+    // the legacy "best row first" behaviour but log a warning so we can find
+    // any external links still pointing at the ambiguous shape.
+    let bookIdForLookup: string | null = null;
+    let bookRow: Record<string, unknown> | null = null;
+    if (bookSlugParam) {
+      // Lookup book by (author_id, slug). books.slug is globally unique so the
+      // author filter is a defence-in-depth check, not strictly required.
+      const { data: b } = await supabase
+        .from("books")
+        .select("id, title, subtitle, cover_image_url, description, genre, slug, amazon_url, price, currency, author_id, published_at")
+        .eq("author_id", profile.id)
+        .eq("slug", bookSlugParam)
+        .maybeSingle();
+      if (b) {
+        bookIdForLookup = b.id as string;
+        bookRow = b;
+      } else {
+        console.warn("get-microsite-page: book param did not resolve", { authorSlug, bookSlugParam });
+      }
+    } else {
+      console.warn("get-microsite-page: legacy 2-segment call (no book param)", { authorSlug, nodeId });
+    }
+
+    // Get node data — when book context is known, filter by it; otherwise fall
+    // back to "best row first" for backward compatibility.
+    let nodeQuery = supabase
       .from("author_nodes")
       .select("*")
       .eq("author_id", profile.id)
-      .eq("node_id", nodeId!)
+      .eq("node_id", nodeId!);
+    if (bookIdForLookup) {
+      nodeQuery = nodeQuery.eq("book_id", bookIdForLookup);
+    }
+    const { data: nodeRows } = await nodeQuery
       .order("microsite_url", { ascending: false, nullsFirst: false })
       .order("updated_at", { ascending: false })
       .limit(1);
@@ -129,15 +158,31 @@ serve(async (req) => {
       .limit(1)
       .maybeSingle();
 
-    // Get first published book for cover image & metadata
-    const { data: book } = await supabase
-      .from("books")
-      .select("id, title, subtitle, cover_image_url, description, genre, slug, amazon_url, price, currency")
-      .eq("author_id", profile.user_id)
-      .not("published_at", "is", null)
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    // Sprint 56 — Per-book book context.
+    // Prefer the book resolved from the URL's book slug. If none was given,
+    // try the node row's own book_id. Only as a last resort fall back to the
+    // first published book — the legacy behaviour that mixed contexts for
+    // multi-book authors.
+    let book = bookRow;
+    if (!book && (node as { book_id?: string }).book_id) {
+      const { data: nb } = await supabase
+        .from("books")
+        .select("id, title, subtitle, cover_image_url, description, genre, slug, amazon_url, price, currency")
+        .eq("id", (node as { book_id?: string }).book_id!)
+        .maybeSingle();
+      if (nb) book = nb;
+    }
+    if (!book) {
+      const { data: fb } = await supabase
+        .from("books")
+        .select("id, title, subtitle, cover_image_url, description, genre, slug, amazon_url, price, currency")
+        .eq("author_id", profile.user_id)
+        .not("published_at", "is", null)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (fb) book = fb;
+    }
 
     // Inject node-appropriate primary_cta if the generator omitted one.
     // Mutates content_json in place; safe because we just read it.
