@@ -131,7 +131,7 @@ const DailyAuditReportEmail = ({
           </Button>
         </Section>
 
-        <Text style={footer}>You're receiving this because you're an Authors Bureau admin. Audit runs daily at 07:00 UTC.</Text>
+        <Text style={footer}>You're receiving this because you're an Authors Bureau admin. Audit runs daily at 05:00 SGT (21:00 UTC).</Text>
       </Container>
     </Body>
   </Html>
