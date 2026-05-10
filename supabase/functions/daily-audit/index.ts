@@ -7,6 +7,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logError } from "../_shared/log-error.ts";
+import { hasRequiredAssets } from "../_shared/node-readiness.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,36 +137,36 @@ Deno.serve(async (req) => {
     checks.push({ key: "errors_24h", label: "Errors (24h)", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
   }
 
-  // 2. Stuck-live nodes (per Sprint 55 adoption policy)
+  // 2. Stuck-live nodes — uses the SAME hasRequiredAssets() the dashboard
+  // uses, so the audit and the X/28 counter never disagree (Sprint 60).
+  // A node is "stuck live" when status='live' but readiness fails. We split
+  // adopter vs fallback only for reporting clarity.
   try {
     const { data } = await admin
       .from("author_nodes")
       .select("id, author_id, node_id, content_json, delivery_url")
       .eq("status", "live");
     const adopterMissing: any[] = [];
-    const fallbackMissingUrl: any[] = [];
+    const fallbackMissing: any[] = [];
     for (const row of data || []) {
-      const a: any = row.content_json?.library_asset;
-      if (ADOPTER_NODES.has(row.node_id)) {
-        if (!(a?.url && a?.kind === REQUIRED_KIND[row.node_id])) {
-          adopterMissing.push({ id: row.id, node_id: row.node_id, author_id: row.author_id });
-        }
-      } else if (!row.delivery_url) {
-        fallbackMissingUrl.push({ id: row.id, node_id: row.node_id, author_id: row.author_id });
-      }
+      const ready = hasRequiredAssets(row.node_id, row.content_json || {});
+      if (ready) continue;
+      const item = { id: row.id, node_id: row.node_id, author_id: row.author_id };
+      if (ADOPTER_NODES.has(row.node_id)) adopterMissing.push(item);
+      else fallbackMissing.push(item);
     }
-    const totalIssues = adopterMissing.length + fallbackMissingUrl.length;
-    const sev: Severity = adopterMissing.length > 0 ? "fail" : fallbackMissingUrl.length > 0 ? "warn" : "ok";
+    const totalIssues = adopterMissing.length + fallbackMissing.length;
+    const sev: Severity = adopterMissing.length > 0 ? "fail" : fallbackMissing.length > 0 ? "warn" : "ok";
     checks.push({
       key: "stuck_live",
       label: "Stuck-live nodes",
       severity: sev,
       count: totalIssues,
       message: totalIssues === 0
-        ? "All live nodes have valid deliverables"
-        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissingUrl.length} fallback node(s) missing delivery_url`,
+        ? "All live nodes pass hasRequiredAssets()"
+        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissing.length} fallback node(s) failing readiness`,
       link: "/admin?tab=books",
-      details: { adopter_missing: adopterMissing.slice(0, 10), fallback_missing_url: fallbackMissingUrl.slice(0, 10) },
+      details: { adopter_missing: adopterMissing.slice(0, 10), fallback_missing: fallbackMissing.slice(0, 10) },
     });
   } catch (e) {
     checks.push({ key: "stuck_live", label: "Stuck-live nodes", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
