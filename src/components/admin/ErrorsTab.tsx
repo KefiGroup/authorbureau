@@ -127,7 +127,7 @@ export default function ErrorsTab() {
           const b = summary?.[k] ?? { critical: 0, error: 0, warning: 0 };
           return (
             <Card key={k} className="p-4">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{label}</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2">{label} <span className="normal-case tracking-normal text-[10px]">(total — incl. resolved)</span></p>
               <div className="flex items-center gap-2 flex-wrap">
                 <Badge className={SEVERITY_META.critical.cls}>{b.critical} critical</Badge>
                 <Badge className={SEVERITY_META.error.cls}>{b.error} error</Badge>
