@@ -696,6 +696,26 @@ Deno.serve(async (req) => {
       return json({ rows: data || [], total: count ?? 0 });
     }
 
+    if (action === "daily-ops-history") {
+      const { data, error } = await client
+        .from("daily_ops_reports")
+        .select("id, report_date, payload, email_sent_at")
+        .order("report_date", { ascending: false })
+        .limit(14);
+      if (error) throw error;
+      return json({ rows: data || [] });
+    }
+
+    if (action === "daily-audit-history") {
+      const { data, error } = await client
+        .from("daily_audit_runs")
+        .select("id, generated_at, status, issue_count, report")
+        .order("generated_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return json({ rows: data || [] });
+    }
+
     return json({ error: "Unknown action" }, 400);
   } catch (err) {
     return json({ error: (err as Error).message }, 500);
