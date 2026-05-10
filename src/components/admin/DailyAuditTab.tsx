@@ -6,7 +6,7 @@ import { Loader2, RefreshCw, CheckCircle2, AlertTriangle, AlertOctagon, Copy, Do
 import { toast } from "sonner";
 import { format, formatDistanceToNow } from "date-fns";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
-import { supabase } from "@/integrations/supabase/client";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 import DailyOpsReportCard from "./DailyOpsReportCard";
 
 type Severity = "ok" | "warn" | "fail";
@@ -61,14 +61,15 @@ export default function DailyAuditTab() {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
 
   const loadHistory = useCallback(async () => {
-    const { data } = await supabase
-      .from("daily_audit_runs")
-      .select("id, generated_at, status, issue_count, report")
-      .order("generated_at", { ascending: false })
-      .limit(20);
-    setHistory(data || []);
-    if (data && data.length > 0 && !report) {
-      setReport((data[0] as any).report as Report);
+    try {
+      const data = await adminDataFetch("daily-audit-history");
+      const rows = (data?.rows || []) as any[];
+      setHistory(rows);
+      if (rows.length > 0 && !report) {
+        setReport(rows[0].report as Report);
+      }
+    } catch (e) {
+      console.error("daily-audit-history failed", e);
     }
   }, [report]);
 
