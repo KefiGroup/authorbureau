@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, AlertOctagon, Rocket, Sparkles, ChevronDown } from "lucide-react";
 import { format } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 
 interface DeltaItem { key: string; label: string; from?: string; to?: string; message?: string }
 interface SprintItem { sprint_id?: string; title: string; summary?: string; category?: string }
@@ -40,14 +40,14 @@ export default function DailyOpsReportCard() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from("daily_ops_reports")
-        .select("id, report_date, payload, email_sent_at")
-        .order("report_date", { ascending: false })
-        .limit(14);
-      const rows = (data || []) as unknown as OpsRow[];
-      setHistory(rows);
-      setToday(rows[0] || null);
+      try {
+        const data = await adminDataFetch("daily-ops-history");
+        const rows = (data?.rows || []) as unknown as OpsRow[];
+        setHistory(rows);
+        setToday(rows[0] || null);
+      } catch (e) {
+        console.error("daily-ops-history failed", e);
+      }
     })();
   }, []);
 
