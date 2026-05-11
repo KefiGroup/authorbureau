@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
