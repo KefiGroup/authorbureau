@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useSocialConnectionStatus } from "@/hooks/useSocialConnectionStatus";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Card, CardContent } from "@/components/ui/card";
@@ -132,6 +133,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const navigate = useNavigate();
   const { isReady: isAuthReady } = useAuthReady();
+  const { hasAnyConnection: hasSocialConnection, loading: socialConnLoading } = useSocialConnectionStatus();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [repairing, setRepairing] = useState(false);
@@ -581,7 +583,26 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Runway / unscheduled banner — author-driven scheduling */}
+      {/* Connection gate — hard nudge when no social account is linked. */}
+      {!socialConnLoading && !hasSocialConnection && (
+        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3">
+          <Sparkles className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">
+              Connect a social account to schedule and auto-publish
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              You can still copy any post manually, but Authors Bureau can't publish on your scheduled dates until you link LinkedIn, Facebook Page, or Instagram Business.
+            </p>
+            <div className="mt-3">
+              <Button size="sm" onClick={() => navigate("/connect-settings")}>
+                Connect accounts <ArrowRight className="h-3.5 w-3.5 ml-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {scheduledCount > 0 && daysOfRunway > 0 && daysOfRunway <= 7 ? (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground flex items-center gap-2">
           <Sparkles className="h-4 w-4 shrink-0 text-amber-600" />

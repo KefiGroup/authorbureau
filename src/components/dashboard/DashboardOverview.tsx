@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback } from "react";
 import BadgeDisplay, { type BadgeLevel } from "@/components/BadgeDisplay";
 import ABBYFrameworkGrid from "@/components/dashboard/ABBYFrameworkGrid";
 import AbbyNextStepCard from "@/components/dashboard/AbbyNextStepCard";
+import ConnectSocialAccountsBanner from "@/components/dashboard/ConnectSocialAccountsBanner";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
@@ -463,7 +464,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           </h2>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-3">
+          <ConnectSocialAccountsBanner />
           <AbbyNextStepCard onUpgrade={handleUpgrade} />
         </div>
 

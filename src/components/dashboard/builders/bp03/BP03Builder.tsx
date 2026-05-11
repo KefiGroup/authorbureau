@@ -28,6 +28,7 @@ import {
 } from "./socialGraphic";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
+import { useSocialConnectionStatus } from "@/hooks/useSocialConnectionStatus";
 import {
   PLATFORMS,
   PLATFORM_LABELS,
@@ -151,7 +152,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [savedCount, setSavedCount] = useState<number>(0);
-  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
+  const { connectedPlatforms, hasAnyConnection } = useSocialConnectionStatus();
   const [authorPhotoUrl, setAuthorPhotoUrl] = useState<string | null>(null);
   const [bookColor, setBookColor] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -161,27 +162,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
 
-  // Check which social accounts the author has connected. Re-checks every time we land on Review.
-  useEffect(() => {
-    if (!isAuthReady || !authorId || step !== 2) return;
-    let cancelled = false;
-    (async () => {
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("user_id")
-        .eq("id", authorId)
-        .maybeSingle();
-      const userId = profile?.user_id;
-      if (!userId) return;
-      const { data } = await supabase
-        .from("social_connections")
-        .select("platform, status")
-        .eq("user_id", userId)
-        .eq("status", "connected");
-      if (!cancelled) setConnectedPlatforms((data || []).map((r: any) => r.platform));
-    })();
-    return () => { cancelled = true; };
-  }, [authorId, isAuthReady, step]);
+  // Social connections come from useSocialConnectionStatus() above (single source of truth).
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
@@ -389,6 +370,12 @@ export default function BP03Builder({ authorId, bookId }: Props) {
    */
   const handleActivate = async () => {
     if (!authorId) return;
+    if (!hasAnyConnection) {
+      toast.error("Connect a social account first", {
+        description: "Open Connect Settings and link LinkedIn, Facebook Page, or Instagram Business so we can publish on schedule.",
+      });
+      return;
+    }
     setStep(3);
     setError(null);
     setIsActivating(true);
@@ -566,13 +553,32 @@ export default function BP03Builder({ authorId, bookId }: Props) {
               </Card>
             )}
 
-            {/* Social-account connection note (manual posting model) */}
-            {connectedPlatforms.length > 0 && (
+            {/* Social-account connection gate (hard block on Activate when nothing is connected) */}
+            {hasAnyConnection ? (
               <Card className="p-3 border-border bg-muted/40">
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
                   <Check className="h-3.5 w-3.5" />
-                  Connected accounts saved for reference: <strong>{connectedPlatforms.join(", ")}</strong>. You'll post manually using your kit.
+                  Connected accounts: <strong>{connectedPlatforms.join(", ")}</strong>. Activate to send your kit to the Social Calendar.
                 </p>
+              </Card>
+            ) : (
+              <Card className="p-4 border-amber-500/40 bg-amber-500/5">
+                <div className="flex items-start gap-3">
+                  <Share2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Connect a social account to activate
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Your kit is ready, but Authors Bureau can't auto-publish or schedule posts until you connect LinkedIn, Facebook Page, or Instagram Business.
+                    </p>
+                    <div className="mt-3">
+                      <Button size="sm" onClick={() => navigate("/connect-settings")}>
+                        Connect accounts <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </Card>
             )}
             <ReviewStep
@@ -583,6 +589,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
               bookColor={bookColor}
               onSave={handleSave}
               onActivate={handleActivate}
+              canActivate={hasAnyConnection}
               onSavePost={async (updatedPost) => {
                 const nextPosts = (content.posts || []).map((p: any) =>
                   p.day === updatedPost.day ? updatedPost : p,
@@ -764,6 +771,7 @@ function ReviewStep({
   bookColor,
   onSave,
   onActivate,
+  canActivate = true,
   onSavePost,
   isSaving,
 }: {
@@ -774,6 +782,7 @@ function ReviewStep({
   bookColor?: string | null;
   onSave: () => void;
   onActivate: () => void;
+  canActivate?: boolean;
   onSavePost: (updatedPost: any) => Promise<void> | void;
   isSaving: boolean;
 }) {
@@ -881,11 +890,13 @@ function ReviewStep({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Button className="w-full" size="default" onClick={onActivate}>
+            <Button className="w-full" size="default" onClick={onActivate} disabled={!canActivate}>
               Activate <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Sends all 20 posts to your Social Calendar (Marketing Hub) where you can copy, post and mark them done.
+              {canActivate
+                ? "Sends all 20 posts to your Social Calendar (Marketing Hub) where you can copy, post and mark them done."
+                : "Connect at least one social account in Connect Settings to enable Activate."}
             </p>
           </div>
         </div>
