@@ -77,7 +77,12 @@ export default function SocialAuthCallback() {
         }
         setStatus("success");
         setMessage(`Connected ${platform} as ${data.account_name}`);
-        setTimeout(() => navigate("/connect-settings"), 1500);
+        const qs = new URLSearchParams({
+          social: "connected",
+          platform,
+          account: data.account_name || "",
+        }).toString();
+        setTimeout(() => navigate(`/connect-settings?${qs}`), 1200);
       } catch (e) {
         setStatus("error");
         setMessage(e instanceof Error ? e.message : "Connection failed.");

@@ -1,33 +1,32 @@
-## Problem
-After choosing the Facebook Page, the callback fails with `there is no unique or exclusion constraint matching the ON CONFLICT specification`.
+## Goal
+Make it obvious when an author has successfully connected a social account, even after the OAuth redirect returns to Connect Settings.
 
-The `social-connect-callback` edge function does:
-```
-.upsert(..., { onConflict: "author_id,platform,account_id" })
-```
-But the `social_connections` table only has this unique constraint:
-```
-UNIQUE (author_id, channel_id)
-```
-Postgres requires `onConflict` columns to match an actual unique/exclusion constraint, so the upsert blows up before any row is written.
+## What I’ll build
+1. **Persist a post-connect success signal**
+   - Update the social auth callback flow so a successful connect returns to Connect Settings with a small success marker in the URL or navigation state.
+   - Include the connected platform and account name so the page can show a precise confirmation.
 
-## Fix
-Change the `onConflict` target in `supabase/functions/social-connect-callback/index.ts` to match the existing unique constraint:
+2. **Show a clear success confirmation on Connect Settings**
+   - Add a visible success banner/toast near the top of the page saying the account connected successfully.
+   - Make the message specific, e.g. “Facebook Page connected: Pauline Teo Wellness”.
+   - Clear the temporary success signal after it has been shown so it does not reappear forever.
 
-```ts
-{ onConflict: "author_id,channel_id" }
-```
+3. **Force-refresh social connection data on callback return**
+   - When the page detects the post-connect success signal, re-fetch `social_connections` immediately.
+   - Keep the existing focus/visibility refresh behavior as a fallback.
 
-`channel_id` is already set to `accountId` in the same upsert payload, so behavior stays identical (one row per author + page/IG account), and we don't need a DB migration.
+4. **Make the connected state more explicit in the social cards**
+   - Keep the current connected badge, but ensure the connected account name is the primary status indicator.
+   - If available, show “Connected” alongside the page/account name so it reads as an explicit outcome rather than just replacing the button.
 
-## Files
-- `supabase/functions/social-connect-callback/index.ts` — single-line change to the `onConflict` argument.
+## Expected result
+After choosing a Facebook Page like Pauline, the author will return to Connect Settings and immediately see:
+- a success confirmation at the top of the page, and
+- the Facebook row updated to a connected state with the connected page name.
 
-## Verification
-1. Publish so the live site picks up the edge function change.
-2. Reconnect Facebook → choose Pauline page → confirm:
-   - Callback page shows "Connected facebook as …"
-   - A row exists/updates in `social_connections` with `status='connected'`
-   - Connect Settings shows Facebook as connected.
-
-No database migration, no other code touched.
+## Technical details
+- Files likely to change:
+  - `src/pages/SocialAuthCallback.tsx`
+  - `src/pages/ConnectSettings.tsx`
+- No database migration should be needed.
+- I will keep the existing backend callback logic intact unless the frontend flow needs a small redirect payload adjustment only.
