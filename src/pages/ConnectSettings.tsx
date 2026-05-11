@@ -64,6 +64,7 @@ export default function ConnectSettings() {
   const [loading, setLoading] = useState(true);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [pendingPaidCount, setPendingPaidCount] = useState(0);
+  const [justConnected, setJustConnected] = useState<{ platform: string; account: string } | null>(null);
 
   const refresh = async () => {
     if (!user?.id) return;
