@@ -307,6 +307,7 @@ Deno.serve(async (req) => {
       severity: c > 0 ? "warn" : "ok",
       count: c,
       message: c === 0 ? "No ghost UIDs detected" : `${c} author_profile rows pointing to non-existent auth.users`,
+      ...(c > 0 ? { link: "/admin?tab=authors" } : {}),
     });
   } catch (e) {
     checks.push({ key: "ghost_uids", label: "Ghost author UIDs", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
