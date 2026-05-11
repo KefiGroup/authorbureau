@@ -1,31 +1,31 @@
-## Goal
-Keep admins on the same `/admin?tab=...` view after a browser refresh instead of falling back to Overview.
+## Hide "Open" links on healthy audit checks
 
-## Plan
-1. Update `AdminDashboard` to preserve the current admin URL when it sends a user to admin sign-in.
-   - Read the current route with `useLocation()`.
-   - Change the unauthenticated redirect from plain `/admin-auth` to `/admin-auth?redirect=<current admin path + search>`.
+**Problem:** The Daily Platform Audit still shows `Open →` arrows on green/OK rows (e.g. Errors 24h, Content quality, sometimes Stuck-live). Two reasons:
 
-2. Update `AdminAuth` to honor that redirect after auth succeeds.
-   - Read the `redirect` query param.
-   - Use it for all successful admin-return paths:
-     - existing admin session redirect
-     - OTP verification success
-     - magic-link success
-   - Keep `/admin` as the fallback when no redirect is provided.
+1. The audit function sets a `link` unconditionally on a few checks (Errors, Content quality), so even when severity is `ok`, the UI renders the link.
+2. The dashboard is currently displaying the persisted cron report from ~6 hours ago, which was generated before the previous server-side conditional-link change. Stale reports still carry old links.
 
-3. Validate the affected flows.
-   - Reload `/admin?tab=daily-audit` and confirm it stays on Daily Audit.
-   - Reload at least one other admin tab to confirm the fix works across the tab system.
-   - Confirm normal admin sign-in still lands on `/admin` when no redirect is present.
+**Fix:** Make the UI the source of truth for "is this link actionable?" — only render the `Open →` link when `c.severity !== "ok"`. This:
+- Instantly cleans up the currently displayed (stale) cron report without waiting for a re-run.
+- Keeps links on warn/fail rows where the admin actually has something to do.
+- Doesn't require backend changes or a data backfill.
 
-## Technical details
-- Files expected:
-  - `src/pages/AdminDashboard.tsx`
-  - `src/pages/AdminAuth.tsx`
-- Root cause:
-  - On refresh, the app can briefly bounce through `/admin-auth`.
-  - `AdminAuth` currently redirects successful admin sessions to plain `/admin`, which drops `?tab=...` and defaults back to Overview.
-- Scope:
-  - Frontend routing only.
-  - No backend, audit, or tab business-logic changes.
+### Change
+
+`src/components/admin/DailyAuditTab.tsx` — line ~179, change:
+
+```tsx
+{c.link && (
+```
+to:
+```tsx
+{c.link && c.severity !== "ok" && (
+```
+
+### Validation
+
+- Reload `/admin?tab=daily-audit` — confirm OK rows (Errors 24h, Connector secrets, Cron freshness, Email queue, Content quality, etc.) no longer show `Open →`.
+- Confirm the Stuck-live nodes WARN row still shows no link (server already strips it; severity-gate is irrelevant here).
+- Confirm a WARN/FAIL row that does have a meaningful link (e.g. Errors 24h if errors exist) still shows `Open →`.
+
+Scope: single-line frontend change. No backend, no migration.
