@@ -176,7 +176,7 @@ export default function DailyAuditTab() {
                     <div className="font-medium">{c.label}</div>
                     <div className="text-sm text-muted-foreground">{c.message}</div>
                   </div>
-                  {c.link && (
+                  {c.link && c.severity !== "ok" && (
                     <a
                       href={c.link}
                       onClick={(e) => e.stopPropagation()}
