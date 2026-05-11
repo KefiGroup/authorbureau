@@ -890,11 +890,13 @@ function ReviewStep({
             </p>
           </div>
           <div className="space-y-1.5">
-            <Button className="w-full" size="default" onClick={onActivate}>
+            <Button className="w-full" size="default" onClick={onActivate} disabled={!canActivate}>
               Activate <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Sends all 20 posts to your Social Calendar (Marketing Hub) where you can copy, post and mark them done.
+              {canActivate
+                ? "Sends all 20 posts to your Social Calendar (Marketing Hub) where you can copy, post and mark them done."
+                : "Connect at least one social account in Connect Settings to enable Activate."}
             </p>
           </div>
         </div>
