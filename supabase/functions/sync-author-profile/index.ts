@@ -296,7 +296,7 @@ Deno.serve(async (req) => {
 
     if (upsertError) {
       console.error("Upsert error:", upsertError);
-      return new Response(JSON.stringify({ error: upsertError.message }), {
+      return new Response(JSON.stringify({ error: "Failed to save author profile. Please try again." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
