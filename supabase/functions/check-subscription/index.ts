@@ -132,6 +132,21 @@ serve(async (req) => {
       tier = TIER_MAP[productId as string] || "free";
       logStep("Active subscription found", { subscriptionId: subscription.id, productId, tier, endDate: subscriptionEnd });
 
+      // Fire-and-forget: ensure this paying subscriber appears in the platform CRM.
+      try {
+        const syncUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/sync-stripe-subscriber-to-crm`;
+        fetch(syncUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({ subscription_id: subscription.id }),
+        }).catch((e) => logStep("CRM sync fire-and-forget failed (non-fatal)", { error: String(e) }));
+      } catch (e) {
+        logStep("CRM sync invoke error (non-fatal)", { error: String(e) });
+      }
+
       // Sync tier to author_profiles so DB stays consistent
       if (userId && tier !== "free") {
         try {
