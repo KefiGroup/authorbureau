@@ -294,7 +294,7 @@ Deno.serve(async (req) => {
 
     if (queryError) {
       console.error("Query error:", queryError);
-      return new Response(JSON.stringify({ error: queryError.message }), {
+      return new Response(JSON.stringify({ error: "Failed to load books. Please try again." }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
