@@ -28,6 +28,7 @@ import {
 } from "./socialGraphic";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
+import { useSocialConnectionStatus } from "@/hooks/useSocialConnectionStatus";
 import {
   PLATFORMS,
   PLATFORM_LABELS,
