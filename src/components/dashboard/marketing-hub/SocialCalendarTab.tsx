@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
+import { useSocialConnectionStatus } from "@/hooks/useSocialConnectionStatus";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { callMarketingHubState } from "@/lib/marketing-hub-state";
 import { Card, CardContent } from "@/components/ui/card";
