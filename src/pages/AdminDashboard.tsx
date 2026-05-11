@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
@@ -49,7 +49,24 @@ export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
   const { toast } = useToast();
 
-  const [tab, setTab] = useState<Tab>("overview");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const VALID_TABS: Tab[] = ["overview","books","authors","admins","platforms","crm","messages","reading-club","support","payouts","node-gating","audit","errors","daily-audit"];
+  const initialTab = (VALID_TABS.includes(searchParams.get("tab") as Tab) ? searchParams.get("tab") : "overview") as Tab;
+  const [tab, setTabState] = useState<Tab>(initialTab);
+  const setTab = useCallback((next: Tab) => {
+    setTabState(next);
+    const sp = new URLSearchParams(searchParams);
+    if (next === "overview") sp.delete("tab"); else sp.set("tab", next);
+    setSearchParams(sp, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  // Sync state when URL changes (e.g. clicking an audit deep-link from email)
+  useEffect(() => {
+    const urlTab = searchParams.get("tab") as Tab | null;
+    const next = (urlTab && VALID_TABS.includes(urlTab) ? urlTab : "overview") as Tab;
+    setTabState((prev) => (prev === next ? prev : next));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [isPublishNowAdmin, setIsPublishNowAdmin] = useState(false);
 
