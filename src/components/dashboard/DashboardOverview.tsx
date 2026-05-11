@@ -18,6 +18,7 @@ import { useState, useEffect, useCallback } from "react";
 import BadgeDisplay, { type BadgeLevel } from "@/components/BadgeDisplay";
 import ABBYFrameworkGrid from "@/components/dashboard/ABBYFrameworkGrid";
 import AbbyNextStepCard from "@/components/dashboard/AbbyNextStepCard";
+import ConnectSocialAccountsBanner from "@/components/dashboard/ConnectSocialAccountsBanner";
 
 interface DashboardOverviewProps {
   onNavigate?: (section: string) => void;
