@@ -164,8 +164,7 @@ Deno.serve(async (req) => {
       count: totalIssues,
       message: totalIssues === 0
         ? "All live nodes pass hasRequiredAssets()"
-        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissing.length} fallback node(s) failing readiness`,
-      link: "/admin?tab=books",
+        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissing.length} fallback node(s) failing readiness — author must re-publish`,
       details: { adopter_missing: adopterMissing.slice(0, 10), fallback_missing: fallbackMissing.slice(0, 10) },
     });
   } catch (e) {
@@ -265,6 +264,7 @@ Deno.serve(async (req) => {
       severity: sev,
       count: dlq + failed,
       message: `sent ${sent} · dlq ${dlq} · failed ${failed} · suppressed ${suppressed} · pending ${pending}`,
+      ...(dlq + failed > 0 ? { link: "/admin?tab=errors" } : {}),
       details: { sent, dlq, failed, suppressed, pending, total_unique: latestPerId.size },
     });
   } catch (e) {
@@ -307,6 +307,7 @@ Deno.serve(async (req) => {
       severity: c > 0 ? "warn" : "ok",
       count: c,
       message: c === 0 ? "No ghost UIDs detected" : `${c} author_profile rows pointing to non-existent auth.users`,
+      ...(c > 0 ? { link: "/admin?tab=authors" } : {}),
     });
   } catch (e) {
     checks.push({ key: "ghost_uids", label: "Ghost author UIDs", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
@@ -326,6 +327,7 @@ Deno.serve(async (req) => {
       severity: orphans.length > 0 ? "warn" : "ok",
       count: orphans.length,
       message: orphans.length === 0 ? "All books linked to valid author profiles" : `${orphans.length} book(s) with missing author profile`,
+      ...(orphans.length > 0 ? { link: "/admin?tab=books" } : {}),
       details: { sample: orphans.slice(0, 10) },
     });
   } catch (e) {
