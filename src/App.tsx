@@ -166,7 +166,7 @@ const AppRoutes = () => (
       <Route path="/node-builder/:nodeId" element={<ProtectedRoute><NodeBuilder /></ProtectedRoute>} />
       <Route path="/marketing-hub" element={<ProtectedRoute><AuthorDashboard initialSection={"marketing-hub" as any} /></ProtectedRoute>} />
       <Route path="/connect-settings" element={<ProtectedRoute><ConnectSettings /></ProtectedRoute>} />
-      <Route path="/auth/social-callback" element={<ProtectedRoute><SocialAuthCallback /></ProtectedRoute>} />
+      <Route path="/auth/social-callback" element={<SocialAuthCallback />} />
       <Route path="/pricing" element={<Navigate to="/" replace />} />
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/contact" element={<Contact />} />

@@ -4,6 +4,21 @@ import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
+import { getSharedSession } from "@/lib/shared-backend";
+
+async function waitForToken(maxMs = 6000): Promise<string | null> {
+  const start = Date.now();
+  // Try cached/getSession path repeatedly while shared-auth restores from storage.
+  while (Date.now() - start < maxMs) {
+    const t = await getActiveToken();
+    if (t) return t;
+    // Nudge restore from sessionStorage fallback.
+    await getSharedSession().catch(() => null);
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  // Last attempt with force refresh.
+  return await getActiveToken({ forceRefresh: true });
+}
 
 export default function SocialAuthCallback() {
   const [params] = useSearchParams();
@@ -34,33 +49,39 @@ export default function SocialAuthCallback() {
         setMessage("Invalid state.");
         return;
       }
-      const token = await getActiveToken({ forceRefresh: true });
+
+      const token = await waitForToken();
       if (!token) {
         setStatus("error");
-        setMessage("Please sign in first.");
+        setMessage("Your sign-in session expired during the redirect. Please sign in again, then click Connect.");
         return;
       }
 
-      const res = await fetchWithTimeout(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-callback`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+      try {
+        const res = await fetchWithTimeout(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-callback`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ code, state, platform, origin: window.location.origin }),
           },
-          body: JSON.stringify({ code, state, platform, origin: window.location.origin }),
-        },
-      );
-      const data = await res.json();
-      if (!res.ok || !data.success) {
+        );
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.success) {
+          setStatus("error");
+          setMessage(data.error || `Connection failed (HTTP ${res.status}).`);
+          return;
+        }
+        setStatus("success");
+        setMessage(`Connected ${platform} as ${data.account_name}`);
+        setTimeout(() => navigate("/connect-settings"), 1500);
+      } catch (e) {
         setStatus("error");
-        setMessage(data.error || "Connection failed.");
-        return;
+        setMessage(e instanceof Error ? e.message : "Connection failed.");
       }
-      setStatus("success");
-      setMessage(`Connected ${platform} as ${data.account_name}`);
-      setTimeout(() => navigate("/connect-settings"), 1500);
     })();
   }, [params, navigate]);
 
