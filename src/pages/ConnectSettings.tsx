@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -134,13 +135,13 @@ export default function ConnectSettings() {
   const handleConnect = async (platform: string) => {
     setConnectingPlatform(platform);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast({ title: "Please sign in again", variant: "destructive" }); return; }
-      const res = await fetch(
+      const token = await getActiveToken({ forceRefresh: true });
+      if (!token) { toast({ title: "Please sign in again", variant: "destructive" }); return; }
+      const res = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-start`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ platform, origin: window.location.origin }),
         },
       );
