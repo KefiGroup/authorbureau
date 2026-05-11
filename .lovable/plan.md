@@ -1,41 +1,33 @@
-## Goal
-Make the Facebook/Instagram connect flow land back in the app and immediately show the account as connected instead of bouncing the user back to Connect again.
+## Problem
+After choosing the Facebook Page, the callback fails with `there is no unique or exclusion constraint matching the ON CONFLICT specification`.
 
-## What I found
-- Your screenshot is on `authorsbureau.com` (the live site), but the last code fix was only applied in the current draft/preview.
-- The callback route `/auth/social-callback` is currently wrapped in a protected route, which can interrupt the OAuth handoff before the callback finishes saving the connection.
-- The UI only treats `status = 'connected'` as a valid connection, while existing database rows for your account are stored as `active`, so the app can incorrectly look disconnected even when records exist.
-- The callback function logs don’t show a successful completion entry yet, so I should add proper instrumentation and validate the end-to-end save path.
+The `social-connect-callback` edge function does:
+```
+.upsert(..., { onConflict: "author_id,platform,account_id" })
+```
+But the `social_connections` table only has this unique constraint:
+```
+UNIQUE (author_id, channel_id)
+```
+Postgres requires `onConflict` columns to match an actual unique/exclusion constraint, so the upsert blows up before any row is written.
 
-## Plan
-1. **Ungate the OAuth callback route**
-   - Let `/auth/social-callback` load without the protected-route redirect.
-   - Keep the callback page responsible for validating the session/token and handling the save safely.
+## Fix
+Change the `onConflict` target in `supabase/functions/social-connect-callback/index.ts` to match the existing unique constraint:
 
-2. **Harden callback session recovery**
-   - Use the shared-auth token flow consistently on the callback page.
-   - Add a small retry/fallback path so the callback can finish even if auth restoration is still settling after the Facebook redirect.
+```ts
+{ onConflict: "author_id,channel_id" }
+```
 
-3. **Normalize connection status handling**
-   - Update the UI status checks so legacy `active` rows are recognized, or normalize statuses to a single canonical value.
-   - Ensure Connect Settings, banners, and social gates all use the same definition of “connected.”
+`channel_id` is already set to `accountId` in the same upsert payload, so behavior stays identical (one row per author + page/IG account), and we don't need a DB migration.
 
-4. **Add targeted logging and verify the backend save**
-   - Add explicit logs in `social-connect-callback` around user resolution, token exchange, page lookup, and connection upsert.
-   - Re-test the callback and confirm a new/updated `social_connections` row is written for your user.
+## Files
+- `supabase/functions/social-connect-callback/index.ts` — single-line change to the `onConflict` argument.
 
-5. **Validate on the right environment**
-   - Verify both draft preview and the live domain behavior.
-   - If the issue is only on live, publish the fix and confirm the live OAuth redirect works on `authorsbureau.com`.
+## Verification
+1. Publish so the live site picks up the edge function change.
+2. Reconnect Facebook → choose Pauline page → confirm:
+   - Callback page shows "Connected facebook as …"
+   - A row exists/updates in `social_connections` with `status='connected'`
+   - Connect Settings shows Facebook as connected.
 
-## Files I expect to touch
-- `src/App.tsx`
-- `src/pages/SocialAuthCallback.tsx`
-- `src/pages/ConnectSettings.tsx`
-- `src/hooks/useSocialConnectionStatus.ts`
-- `supabase/functions/social-connect-callback/index.ts`
-
-## Technical notes
-- No new feature scope.
-- No auth provider reconfiguration unless testing proves the issue is environment-specific.
-- Focus is only on the Facebook/Instagram connect return flow and connected-state detection.
+No database migration, no other code touched.
