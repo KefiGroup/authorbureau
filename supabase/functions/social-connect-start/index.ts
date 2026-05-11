@@ -6,9 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Public callback URL (frontend route that calls /social-connect-callback)
-function getRedirectUri(origin: string) {
-  return `${origin}/auth/social-callback`;
+// Canonical redirect URL — must EXACTLY match the value registered in the
+// LinkedIn and Meta app dashboards. We deliberately ignore the caller's
+// origin so apex / www / lovable.app preview all use the one pre-registered URL.
+const CANONICAL_REDIRECT_URI = "https://authorsbureau.com/auth/social-callback";
+function getRedirectUri(_origin: string) {
+  return CANONICAL_REDIRECT_URI;
 }
 
 Deno.serve(async (req) => {
