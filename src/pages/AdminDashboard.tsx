@@ -50,6 +50,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
 
   const [searchParams, setSearchParams] = useSearchParams();
+  const location = useLocation();
   const VALID_TABS: Tab[] = ["overview","books","authors","admins","platforms","crm","messages","reading-club","support","payouts","node-gating","audit","errors","daily-audit"];
   const urlTab = searchParams.get("tab") as Tab | null;
   const tab: Tab = (urlTab && VALID_TABS.includes(urlTab) ? urlTab : "overview");
