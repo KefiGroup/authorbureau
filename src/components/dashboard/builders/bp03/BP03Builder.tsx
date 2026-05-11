@@ -162,27 +162,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
 
-  // Check which social accounts the author has connected. Re-checks every time we land on Review.
-  useEffect(() => {
-    if (!isAuthReady || !authorId || step !== 2) return;
-    let cancelled = false;
-    (async () => {
-      const { data: profile } = await supabase
-        .from("author_profiles")
-        .select("user_id")
-        .eq("id", authorId)
-        .maybeSingle();
-      const userId = profile?.user_id;
-      if (!userId) return;
-      const { data } = await supabase
-        .from("social_connections")
-        .select("platform, status")
-        .eq("user_id", userId)
-        .eq("status", "connected");
-      if (!cancelled) setConnectedPlatforms((data || []).map((r: any) => r.platform));
-    })();
-    return () => { cancelled = true; };
-  }, [authorId, isAuthReady, step]);
+  // Social connections come from useSocialConnectionStatus() above (single source of truth).
 
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
