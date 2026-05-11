@@ -131,6 +131,32 @@ export default function ConnectSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // If we just returned from a social OAuth connect, show a confirmation
+  // banner and force-refresh the connection list immediately.
+  useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("social") === "connected") {
+      const platform = params.get("platform") || "";
+      const account = params.get("account") || "";
+      const platformLabel = PLATFORMS.find(p => p.key === platform)?.name || platform;
+      setJustConnected({ platform: platformLabel, account });
+      refresh().then(() => {
+        toast({
+          title: `${platformLabel} connected`,
+          description: account ? `Connected as ${account}.` : "Your account is now connected.",
+        });
+      });
+      params.delete("social");
+      params.delete("platform");
+      params.delete("account");
+      const qs = params.toString();
+      const newUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const connFor = (p: string) => connections.find(c => c.platform === p && (c.status === "connected" || c.status === "active"));
 
   const handleConnect = async (platform: string) => {
