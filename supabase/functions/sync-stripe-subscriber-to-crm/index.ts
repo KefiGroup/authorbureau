@@ -70,7 +70,6 @@ serve(async (req) => {
     const email = (customer?.email || rawEmail || "").toLowerCase();
     if (!email) throw new Error("Could not resolve email");
 
-    const fullName = customer?.name || email.split("@")[0];
     const productId = sub?.items.data[0]?.price.product as string | undefined;
     const tier = (productId && TIER_MAP[productId]) || "unknown";
     const couponId = sub?.discount?.coupon?.id ?? null;
@@ -85,13 +84,18 @@ serve(async (req) => {
     if (!platformAdminUserId) throw new Error("No admin user found to own platform CRM contacts");
 
     // Resolve author_profile.id for lead_activities (FK to author_profiles.id)
+    // and prefer the author's pen_name over Stripe billing name for the CRM display name.
     let authorProfileId: string | null = null;
+    let penName: string | null = null;
     const { data: profByEmail } = await admin
       .from("books")
-      .select("author_id")
+      .select("author_id, author_profiles:author_id(pen_name)")
       .ilike("owner_email", email)
       .limit(1);
-    authorProfileId = profByEmail?.[0]?.author_id ?? null;
+    if (profByEmail && profByEmail.length > 0) {
+      authorProfileId = (profByEmail[0] as any).author_id ?? null;
+      penName = (profByEmail[0] as any).author_profiles?.pen_name ?? null;
+    }
     if (!authorProfileId) {
       const { data: adminProf } = await admin
         .from("author_profiles")
@@ -100,6 +104,9 @@ serve(async (req) => {
         .limit(1);
       authorProfileId = adminProf?.[0]?.id ?? null;
     }
+
+    // Display-name priority: pen_name > Stripe billing name > email local-part
+    const fullName = penName || customer?.name || email.split("@")[0];
 
     // Upsert contact (case-insensitive on email, scoped to platform admin author_id)
     const { data: existing } = await admin
