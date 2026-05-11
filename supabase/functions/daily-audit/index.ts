@@ -327,6 +327,7 @@ Deno.serve(async (req) => {
       severity: orphans.length > 0 ? "warn" : "ok",
       count: orphans.length,
       message: orphans.length === 0 ? "All books linked to valid author profiles" : `${orphans.length} book(s) with missing author profile`,
+      ...(orphans.length > 0 ? { link: "/admin?tab=books" } : {}),
       details: { sample: orphans.slice(0, 10) },
     });
   } catch (e) {
