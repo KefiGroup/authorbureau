@@ -133,6 +133,7 @@ const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const navigate = useNavigate();
   const { isReady: isAuthReady } = useAuthReady();
+  const { hasAnyConnection: hasSocialConnection, loading: socialConnLoading } = useSocialConnectionStatus();
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [repairing, setRepairing] = useState(false);
