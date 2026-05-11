@@ -1,38 +1,82 @@
-## Goal
-Make every subscriber who originally redeemed promo code **BP100**, **BA100**, or **YR100** never be charged again — replace their current discount with a 100%-off **forever** coupon.
 
-## Background
-The existing Stripe coupons `BP100` / `BA100` / `YR100` are 100% off but `duration: once`, so they only zeroed the first invoice. From the next renewal onward, customers were getting charged full price. We need a forever-duration equivalent and to retro-apply it.
+# Plan: Close the "paying subscriber but invisible" gap
 
-There is already a `SUCK100` coupon (100% off, forever) we can reuse, but for clarity I'll create three properly named ones.
+Two independent fixes, shipped together. Both are admin/back-office plumbing — no author-facing UI changes.
 
-## Steps
+---
 
-1. **Create three new forever coupons in Stripe** (100% off, duration `forever`):
-   - `BP100-FOREVER` — Brand Package, 100% off forever
-   - `BA100-FOREVER` — Build Package, 100% off forever
-   - `YR100-FOREVER` — Yield Package, 100% off forever
+## Part 1 — Auto-create CRM contact on every paid subscription
 
-2. **Collect the subscriber list from the user.** You provide the customer emails grouped by which code they used (BP100 / BA100 / YR100). Include Pauline Teo and Veronica Tan under YR100 — their previously-applied $250-off-forever coupon will be replaced with 100%-off-forever.
+**Goal:** Every Stripe customer with an active subscription appears in the platform CRM, regardless of whether they came through a lead funnel.
 
-3. **For each email**, reuse the existing `admin-apply-subscription-coupon` edge function to:
-   - Look up the customer in Stripe by email
-   - Find their active subscription
-   - Attach the matching forever coupon (replacing any existing discount)
+### What we build
 
-4. **Verify** by re-fetching each subscription and confirming `discount.coupon.id` matches the new forever coupon and `duration: forever`.
+1. **New edge function `sync-stripe-subscriber-to-crm`** (`verify_jwt = false`, service-role)
+   - Input: `{ stripe_customer_id?, email?, subscription_id? }` (any one is enough; we fetch the rest from Stripe)
+   - Resolves: email, name, subscription status, price/product, coupon
+   - Upserts into `crm_contacts` keyed on email (case-insensitive). Sets:
+     - `source = 'stripe_subscription'`
+     - `tags` += `['paying_subscriber', tier]` (tier inferred from price → BP/BA/YR)
+     - `last_node_id` left null (no funnel touchpoint), `archetype` skipped
+     - `author_id` = the Authors Bureau platform admin author (so it shows in admin CRM, not a single author's CRM). If we have a matching `author_profiles.user_id` for that email, attach there too.
+   - Logs a `lead_activities` row: `type = 'subscription_started'`, payload = subscription/price/coupon ids
+   - Idempotent: re-running on the same subscription updates tags + activity, never duplicates.
 
-5. **Report back** a summary table: email, subscription id, coupon attached, next-invoice amount (should be $0.00).
+2. **Stripe webhook handler additions** (existing `stripe-webhook` function — extend, don't fork)
+   - Listen for `customer.subscription.created` and `customer.subscription.updated` (status → active)
+   - Fire `sync-stripe-subscriber-to-crm` with the subscription id
+   - Webhook secret already in env (`STRIPE_WEBHOOK_SECRET`)
 
-## What I need from you to start implementation
-Please paste the list of customer emails grouped by code, e.g.:
-```
-BP100: alice@example.com, bob@example.com
-BA100: carol@example.com
-YR100: pauline@..., veronica@..., dave@example.com
-```
+3. **One-time backfill**
+   - Admin-only edge function `backfill-stripe-subscribers-to-crm` that lists all active Stripe subscriptions and runs the sync function for each. Run once after deploy. Idempotent so re-runs are safe.
+
+### Verify
+- Trigger: create a test subscription → confirm row appears in `crm_contacts` within seconds, with `paying_subscriber` tag and a `lead_activities` entry.
+- Backfill: confirm Veronica + Pauline + every other paying author shows up.
+
+---
+
+## Part 2 — Ghost author profile claim flow
+
+**Goal:** Veronica (and any future ghost) can log into the dashboard.
+
+### What we build
+
+1. **Admin RPC `admin_send_claim_invite(p_author_profile_id uuid)`** (security definer)
+   - Verifies caller is admin
+   - Reads `author_profiles.id` → resolves email via `books.owner_email` (since `user_id` is null/ghost)
+   - Calls Supabase Admin API `inviteUserByEmail(email, { data: { claim_author_profile_id } })` via an edge function (RPCs can't call admin API directly — so this is really an edge function `admin-invite-ghost-author` that the RPC just routes to)
+   - On invite acceptance, a trigger on `auth.users` insert backfills `author_profiles.user_id` where `author_profiles.id = raw_user_meta_data->>'claim_author_profile_id'`
+   - Logs to `admin_audit_log` with `event_key = 'author.claim_invite_sent'`
+
+2. **Admin UI surface** (small addition only)
+   - In the existing admin Authors tab, ghost rows (`user_id is null` or fails `auth.users` exists check) get a **"Send claim invite"** button
+   - Uses the existing `list_author_profile_orphans()` RPC to surface them in a dedicated "Ghost profiles" section above the main list
+   - After click → toast "Invite sent to {email}" + audit log entry
+
+3. **One-shot for Veronica**
+   - Run the invite for `veronicagogetter320@gmail.com` immediately after deploy as the smoke test.
+
+### Verify
+- Veronica receives invite email → sets password → logs in → her existing `author_profiles` row gets `user_id` populated → her book + subscription appear in her dashboard.
+
+---
 
 ## Out of scope
-- Not modifying any application code or UI
-- Not touching the original BP100/BA100/YR100 coupon definitions (they remain `once` for any future redemptions you may want to convert manually)
-- Not issuing refunds for any past charges (let me know separately if you want that)
+- No changes to the BP100/BA100/YR100 forever-coupon work (still pending the email list from you).
+- No author-facing CRM changes (this fills the *admin* CRM; per-author CRM still requires funnel touchpoints).
+- No new pricing/plan logic.
+
+## Technical notes (for the dev)
+- Stripe webhook events to add: `customer.subscription.created`, `customer.subscription.updated`. Already wired for `checkout.session.completed` and `invoice.*`.
+- `crm_contacts.author_id` legacy convention = `user_id` (per memory `Sprint 58 — CRM Daily Intelligence`). Use the platform admin's `auth.uid()` for platform-level subscriber rows.
+- `lead_activities.author_id` = `author_profiles.id` (different convention — same memory).
+- Invite link uses Supabase auth's built-in invite flow; redirect URL = `/auth/claim?profile={id}`.
+- Trigger on `auth.users` AFTER INSERT: if `raw_user_meta_data->>'claim_author_profile_id'` is set and that profile has `user_id IS NULL`, set `user_id = NEW.id`.
+
+## Order of operations
+1. Migration: add `auth.users` AFTER INSERT trigger for claim backfill.
+2. Deploy `sync-stripe-subscriber-to-crm` + extend `stripe-webhook`.
+3. Deploy `backfill-stripe-subscribers-to-crm` and `admin-invite-ghost-author`.
+4. Add admin UI ghost-profile section + invite button.
+5. Run backfill once. Send Veronica's invite. Verify both.
