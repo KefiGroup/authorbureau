@@ -1,13 +1,10 @@
 // Initiates OAuth flow for a given social platform. Returns auth URL.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 
 // Public callback URL (frontend route that calls /social-connect-callback)
 function getRedirectUri(origin: string) {
@@ -18,22 +15,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return json({ error: "Unauthorized" }, 401);
-    }
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (claimsErr || !claims?.claims) return json({ error: "Unauthorized" }, 401);
+    const resolved = await resolveUser(req.headers.get("Authorization"));
+    if (!resolved.id) return json({ error: "Unauthorized" }, 401);
 
     const { platform, origin } = await req.json();
     if (!platform) return json({ error: "platform required" }, 400);
 
-    const userId = claims.claims.sub as string;
+    const userId = resolved.id;
     const redirectUri = getRedirectUri(origin);
     const state = btoa(JSON.stringify({ uid: userId, p: platform, t: Date.now() }));
 

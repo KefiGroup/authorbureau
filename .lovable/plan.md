@@ -1,72 +1,54 @@
-## Goal
+# Fix "Unauthorized" when connecting LinkedIn / Facebook / Instagram
 
-Stop Pauline (and every author) from activating BP-03 or hitting Post Now / Schedule before they've connected at least one social account in **Connect Settings**. Add a persistent dashboard nudge until they do.
+## Root cause
+`supabase/functions/social-connect-start/index.ts` validates the caller's JWT with `supabase.auth.getClaims(token)` against the Authors Bureau project's anon client. Pauline's session token is issued by the **shared PublishNow backend**, so that call returns an error and the function responds `401 Unauthorized` — which surfaces as the red "Could not start connection / Unauthorized" toast.
 
-## Single source of truth
+Every other edge function in this project resolves the user via `_shared/resolve-user.ts` (Cloud token → shared-backend token → JWT decode). `social-connect-start` is the only social function that skipped it. This violates the Edge Function User Resolver rule.
 
-A new hook `useSocialConnectionStatus()` reads `social_connections` for the logged-in user and returns:
+## Change (1 file)
+
+**`supabase/functions/social-connect-start/index.ts`**
+
+Replace the auth block:
 
 ```ts
-{ loading, connectedPlatforms: string[], hasAnyConnection: boolean }
+// before
+const authHeader = req.headers.get("Authorization");
+if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  global: { headers: { Authorization: authHeader } },
+});
+const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
+  authHeader.replace("Bearer ", ""),
+);
+if (claimsErr || !claims?.claims) return json({ error: "Unauthorized" }, 401);
+const userId = claims.claims.sub as string;
 ```
 
-All three gate points consume this hook so behaviour can never drift.
+with the canonical resolver:
 
----
+```ts
+import { resolveUser } from "../_shared/resolve-user.ts";
 
-## Gate 1 — BP-03 Builder Activate (hard block)
+const resolved = await resolveUser(req.headers.get("Authorization"));
+if (!resolved.id) return json({ error: "Unauthorized" }, 401);
+const userId = resolved.id;
+```
 
-File: `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+Everything else (state encoding, redirect URL, LinkedIn/Meta param building) stays unchanged. The function already runs with `verify_jwt = false`, so no config change.
 
-- Replace the existing ad-hoc `connectedPlatforms` query with the new hook.
-- On the **Review / Activate** step, when `hasAnyConnection === false`:
-  - Render an amber warning card above the Activate button:
-    > **Connect a social account to activate.** Your kit is ready, but Authors Bureau can't auto-publish or schedule posts until you connect LinkedIn, Facebook Page, or Instagram Business.
-    >
-    > [ Connect accounts → ] (navigates to `/connect-settings`)
-  - Disable the Activate button (`disabled` + muted style + tooltip: "Connect at least one account first").
-- `handleActivate()` adds a defensive guard: if `!hasAnyConnection`, toast the same message and `return` early — protects against any stale enabled state.
-
-## Gate 2 — Marketing Hub Social Calendar (hard block per-action)
-
-File: `src/components/marketing-hub/SocialCalendarTab.tsx` (and the row card subcomponent that renders Schedule / Post Now).
-
-- Top of the tab: if `!hasAnyConnection`, render the same amber banner with a **Connect accounts** CTA. This sits above the calendar grid.
-- Per-post buttons:
-  - **Post Now** and **Schedule** become `disabled` when the post's `platform` is not in `connectedPlatforms`.
-  - Hover tooltip: "Connect {Platform} in Connect Settings to enable this."
-  - **Copy** stays enabled in all cases (manual fallback).
-- No backend change — the existing `social-publish` 400 ("No connected …") becomes unreachable from the UI but stays as the server-side safety net.
-
-## Gate 3 — Dashboard banner (persistent nudge)
-
-File: `src/components/dashboard/DashboardOverview.tsx` (or the existing banner stack near `OnboardingBanner`/`AbbyNextStepCard`).
-
-- New small component `ConnectSocialAccountsBanner` shown when:
-  - User is an author, AND
-  - `hasAnyConnection === false`, AND
-  - At least one BP-03 node exists for the author with `status='live'` OR there are unscheduled posts in `social_media_content` (i.e. they actually have content waiting). This avoids nagging brand-new accounts.
-- Copy:
-  > **Your social posts are waiting.** Connect LinkedIn, Facebook Page, or Instagram Business to start auto-publishing. → **Connect accounts**
-- Dismissible per session (sessionStorage flag), but reappears on next login until they connect.
-
-## What we are NOT changing
-
-- `social-publish` and `social-scheduler` edge functions stay as-is (already fail safely).
-- `hasRequiredAssets()` / X-of-28 counter is **untouched** — connecting a social account is a publishing prerequisite, not a node-readiness gate (same separation rule we use for Stripe).
-- No DB migration needed.
-
-## Files touched
-
-- New: `src/hooks/useSocialConnectionStatus.ts`
-- New: `src/components/dashboard/ConnectSocialAccountsBanner.tsx`
-- Edited: `src/components/dashboard/builders/bp03/BP03Builder.tsx`
-- Edited: `src/components/marketing-hub/SocialCalendarTab.tsx` (+ its post-row child component)
-- Edited: `src/components/dashboard/DashboardOverview.tsx` (mount banner)
+## Why this is the right fix
+- Matches the project-wide Edge Function User Resolver rule (memory).
+- Same pattern used by `social-connect-callback`, `social-publish`, `enroll-subscriber`, etc.
+- Restores cross-backend auth without weakening security — `resolveUser` still rejects unknown / invalid tokens.
 
 ## Acceptance check
+1. As Pauline, open Connect Settings.
+2. Click **Connect** on LinkedIn → browser redirects to `linkedin.com/oauth/...` instead of showing the red Unauthorized toast.
+3. Same for Facebook Page and Instagram Business (those will instead surface the existing "needs_setup" toast if `META_APP_ID` is missing — that's a separate, expected message, not 401).
+4. After connecting LinkedIn, the BP-03 Activate button enables and the dashboard nudge banner disappears.
 
-1. As Pauline with zero `social_connections`: open BP-03 → Review step shows amber banner, Activate is disabled.
-2. Click "Connect accounts" → lands on Connect Settings.
-3. After connecting LinkedIn only: BP-03 Activate enables; in Social Calendar, LinkedIn post buttons enable, Facebook/IG/X stay disabled with tooltip; Copy works for all.
-4. Dashboard banner disappears once `hasAnyConnection` flips true.
+## Out of scope
+- No changes to `social-connect-callback`, `social-publish`, `social-scheduler`.
+- No DB migration.
+- No frontend changes — the previous `getActiveToken({ forceRefresh: true })` + `fetchWithTimeout` work stays.
