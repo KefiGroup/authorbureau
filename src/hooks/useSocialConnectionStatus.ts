@@ -33,7 +33,7 @@ export function useSocialConnectionStatus(): SocialConnectionStatus {
       .from("social_connections")
       .select("platform, status")
       .eq("user_id", user.id)
-      .eq("status", "connected");
+      .in("status", ["connected", "active"]);
     setConnectedPlatforms((data || []).map((r: any) => r.platform));
     setLoading(false);
   };
