@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Navigate, Link, useSearchParams } from "react-router-dom";
+import { Navigate, Link, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { adminApi } from "@/lib/admin-api";
 import { useToast } from "@/hooks/use-toast";
@@ -277,7 +277,10 @@ export default function AdminDashboard() {
   };
 
   if (loading) return null;
-  if (!user) return <Navigate to="/admin-auth" replace />;
+  if (!user) {
+    const here = location.pathname + location.search;
+    return <Navigate to={`/admin-auth?redirect=${encodeURIComponent(here)}`} replace />;
+  }
   if (!isAdmin) return <Navigate to="/dashboard" replace />;
 
   const tabs: { key: Tab; label: string; icon: typeof BarChart3; superOnly?: boolean; pnAdminOnly?: boolean }[] = [

@@ -1,36 +1,31 @@
 ## Goal
+Keep admins on the same `/admin?tab=...` view after a browser refresh instead of falling back to Overview.
 
-The "Open →" link on each Daily Audit check should take the admin to the **place where they can act on the issue**. If there is no admin-side fix, the link should be **dropped entirely** (the expandable row already shows the JSON details).
+## Plan
+1. Update `AdminDashboard` to preserve the current admin URL when it sends a user to admin sign-in.
+   - Read the current route with `useLocation()`.
+   - Change the unauthenticated redirect from plain `/admin-auth` to `/admin-auth?redirect=<current admin path + search>`.
 
-## Per-check link mapping
+2. Update `AdminAuth` to honor that redirect after auth succeeds.
+   - Read the `redirect` query param.
+   - Use it for all successful admin-return paths:
+     - existing admin session redirect
+     - OTP verification success
+     - magic-link success
+   - Keep `/admin` as the fallback when no redirect is provided.
 
-Edits are in `supabase/functions/daily-audit/index.ts` only — each check sets a `link` field that the audit UI renders as "Open →".
+3. Validate the affected flows.
+   - Reload `/admin?tab=daily-audit` and confirm it stays on Daily Audit.
+   - Reload at least one other admin tab to confirm the fix works across the tab system.
+   - Confirm normal admin sign-in still lands on `/admin` when no redirect is present.
 
-| # | Check | Current link | Next step for admin | New link |
-|---|---|---|---|---|
-| 1 | Errors (24h) | `/admin?tab=errors` | Triage / resolve in Errors tab | **keep** `/admin?tab=errors` |
-| 2 | Stuck-live nodes | `/admin?tab=books` (misleading) | No admin-side fix — author must re-publish or attach `library_asset`. Details JSON already lists offending nodes. | **drop link** |
-| 3 | Node registry parity | (none) | Requires migration / code release, not an admin UI action | **no link** |
-| 4 | Connector secrets | (none) | Add secrets in Lovable Cloud settings — outside the app | **no link** |
-| 5 | Cron freshness | (none) | No in-app fix | **no link** |
-| 6 | Email queue (24h) | (none) | DLQ/failed rows surface in Errors via `system_error_log` | **add** `/admin?tab=errors` only when `dlq + failed > 0` (otherwise no link) |
-| 7 | Content quality (24h) | `/admin/content-quality` | Review violations | **keep** `/admin/content-quality` |
-| 8 | Ghost author UIDs | (none) | Investigate via author list | **add** `/admin?tab=authors` only when `count > 0` |
-| 9 | Book ownership orphans | (none) | Investigate / reassign in Books | **add** `/admin?tab=books` only when `count > 0` |
-| 10 | Multi-book microsite URL health | (none) | Author must re-publish — no admin button | **no link** |
-
-## Rule of thumb (encoded in code)
-
-For each check, only emit `link` when **both** are true:
-1. There is a real admin destination that lets us act on the row.
-2. `severity !== "ok"` AND `count > 0` (no point linking on a green check).
-
-## Out of scope
-
-- No new admin pages or tabs.
-- No change to the audit logic or severity thresholds.
-- The expanded row JSON (with `details.sample`) stays as-is — that's how admins see exactly which IDs are affected.
-
-## Files touched
-
-- `supabase/functions/daily-audit/index.ts` — adjust the `link` field on checks #1, #2, #6, #7, #8, #9 per the table above.
+## Technical details
+- Files expected:
+  - `src/pages/AdminDashboard.tsx`
+  - `src/pages/AdminAuth.tsx`
+- Root cause:
+  - On refresh, the app can briefly bounce through `/admin-auth`.
+  - `AdminAuth` currently redirects successful admin sessions to plain `/admin`, which drops `?tab=...` and defaults back to Overview.
+- Scope:
+  - Frontend routing only.
+  - No backend, audit, or tab business-logic changes.
