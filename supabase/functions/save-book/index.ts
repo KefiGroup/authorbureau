@@ -380,7 +380,7 @@ serve(async (req) => {
     if (insertError) {
       console.error("Insert error:", insertError);
       return new Response(
-        JSON.stringify({ error: insertError.message }),
+        JSON.stringify({ error: "Failed to save book. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
