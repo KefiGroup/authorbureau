@@ -589,6 +589,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
               bookColor={bookColor}
               onSave={handleSave}
               onActivate={handleActivate}
+              canActivate={hasAnyConnection}
               onSavePost={async (updatedPost) => {
                 const nextPosts = (content.posts || []).map((p: any) =>
                   p.day === updatedPost.day ? updatedPost : p,
