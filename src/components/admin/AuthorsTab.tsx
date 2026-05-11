@@ -206,6 +206,8 @@ export default function AuthorsTab() {
     <div>
       <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
 
+      <GhostAuthorsCard />
+
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!deletingAuthor} onOpenChange={() => { if (!deleting) setDeletingAuthor(null); }}>
         <AlertDialogContent>
