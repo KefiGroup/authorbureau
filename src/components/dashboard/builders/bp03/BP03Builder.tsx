@@ -771,6 +771,7 @@ function ReviewStep({
   bookColor,
   onSave,
   onActivate,
+  canActivate = true,
   onSavePost,
   isSaving,
 }: {
@@ -781,6 +782,7 @@ function ReviewStep({
   bookColor?: string | null;
   onSave: () => void;
   onActivate: () => void;
+  canActivate?: boolean;
   onSavePost: (updatedPost: any) => Promise<void> | void;
   isSaving: boolean;
 }) {
