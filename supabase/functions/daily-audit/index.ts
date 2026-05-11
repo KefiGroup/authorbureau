@@ -164,8 +164,7 @@ Deno.serve(async (req) => {
       count: totalIssues,
       message: totalIssues === 0
         ? "All live nodes pass hasRequiredAssets()"
-        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissing.length} fallback node(s) failing readiness`,
-      link: "/admin?tab=books",
+        : `${adopterMissing.length} adopter node(s) missing library_asset, ${fallbackMissing.length} fallback node(s) failing readiness — author must re-publish`,
       details: { adopter_missing: adopterMissing.slice(0, 10), fallback_missing: fallbackMissing.slice(0, 10) },
     });
   } catch (e) {

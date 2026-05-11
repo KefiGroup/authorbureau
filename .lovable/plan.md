@@ -1,45 +1,36 @@
-## Problem
-Hitting browser **Reload** on any admin tab (e.g. `/admin?tab=daily-audit`) drops you back on the **Overview** tab instead of staying on the tab you were viewing.
+## Goal
 
-## Root cause
-The fix shipped earlier added `useSearchParams` to `AdminDashboard.tsx`, but the URL never actually receives the `?tab=…` segment in a way that survives a full page reload:
+The "Open →" link on each Daily Audit check should take the admin to the **place where they can act on the issue**. If there is no admin-side fix, the link should be **dropped entirely** (the expandable row already shows the JSON details).
 
-1. **Tab clicks don't push real history.** `setTab` calls `setSearchParams(sp, { replace: true })`. With `replace: true`, react-router rewrites the entry in place. Combined with the auth-loading early-return (`if (loading) return null;`), the URL update sometimes runs **before** the router/history has settled (auth re-hydration races with the first render), so the new query string is dropped on the floor. Reload then sees plain `/admin`.
-2. **Initial-mount sync wipes the tab.** The `useEffect` that syncs `searchParams → tab state` runs on mount with `searchParams.get("tab") === null` (because step 1 lost it), and forces state back to `"overview"`. So even when the URL *did* contain `?tab=daily-audit`, the effect can clobber it during the auth-loading flicker.
-3. **Email/audit deep-links** (e.g. `SystemHealthCard`'s `<a href="/admin?tab=errors">`) work the first time, but the moment any other interaction re-renders the dashboard, the same sync effect can revert to Overview.
+## Per-check link mapping
 
-## Fix
-Make tab state the **single source of truth driven by the URL**, and make every tab change a real history push so reloads always restore correctly.
+Edits are in `supabase/functions/daily-audit/index.ts` only — each check sets a `link` field that the audit UI renders as "Open →".
 
-### Changes in `src/pages/AdminDashboard.tsx`
+| # | Check | Current link | Next step for admin | New link |
+|---|---|---|---|---|
+| 1 | Errors (24h) | `/admin?tab=errors` | Triage / resolve in Errors tab | **keep** `/admin?tab=errors` |
+| 2 | Stuck-live nodes | `/admin?tab=books` (misleading) | No admin-side fix — author must re-publish or attach `library_asset`. Details JSON already lists offending nodes. | **drop link** |
+| 3 | Node registry parity | (none) | Requires migration / code release, not an admin UI action | **no link** |
+| 4 | Connector secrets | (none) | Add secrets in Lovable Cloud settings — outside the app | **no link** |
+| 5 | Cron freshness | (none) | No in-app fix | **no link** |
+| 6 | Email queue (24h) | (none) | DLQ/failed rows surface in Errors via `system_error_log` | **add** `/admin?tab=errors` only when `dlq + failed > 0` (otherwise no link) |
+| 7 | Content quality (24h) | `/admin/content-quality` | Review violations | **keep** `/admin/content-quality` |
+| 8 | Ghost author UIDs | (none) | Investigate via author list | **add** `/admin?tab=authors` only when `count > 0` |
+| 9 | Book ownership orphans | (none) | Investigate / reassign in Books | **add** `/admin?tab=books` only when `count > 0` |
+| 10 | Multi-book microsite URL health | (none) | Author must re-publish — no admin button | **no link** |
 
-1. **Remove the `useState` mirror of `tab`.** Derive `tab` directly from `searchParams.get("tab")` on every render:
-   ```ts
-   const tab: Tab = (VALID_TABS.includes(searchParams.get("tab") as Tab)
-     ? (searchParams.get("tab") as Tab)
-     : "overview");
-   ```
-   No more `useState`, no more sync `useEffect` — eliminates the clobber path.
+## Rule of thumb (encoded in code)
 
-2. **`setTab` becomes a pure URL update, with `replace: false`** so the browser keeps a real history entry (and back/forward also work):
-   ```ts
-   const setTab = useCallback((next: Tab) => {
-     const sp = new URLSearchParams(searchParams);
-     if (next === "overview") sp.delete("tab"); else sp.set("tab", next);
-     setSearchParams(sp);   // push, not replace
-   }, [searchParams, setSearchParams]);
-   ```
-
-3. **Guard the early-return so it doesn't unmount the dashboard during auth re-hydration.** Replace `if (loading) return null;` with a lightweight loading shell that keeps the same `<AdminDashboard>` tree mounted (so the URL-derived `tab` stays consistent and there's no flash of "Overview").
-
-4. **Drop the now-redundant `useEffect` that synced URL → state** (lines 64-69). With `tab` derived from `searchParams`, react-router already triggers a re-render when the URL changes — no manual sync needed.
-
-### Verification
-- Click **Daily Audit**, **Errors**, **Books**, **Audit**, **Admins** in turn → URL updates to `/admin?tab=…` for each.
-- Press browser **Reload** on each → page returns to the same tab, not Overview.
-- Click an audit-warning email link `/admin?tab=errors` from a fresh tab → opens directly on Errors and stays there.
-- Browser **Back/Forward** moves between previously-visited admin tabs.
+For each check, only emit `link` when **both** are true:
+1. There is a real admin destination that lets us act on the row.
+2. `severity !== "ok"` AND `count > 0` (no point linking on a green check).
 
 ## Out of scope
-- No changes to data-fetching logic, edge functions, or to any tab component (`DailyAuditTab`, `ErrorsTab`, etc.).
-- No changes to `/admin/payouts` and `/admin/content-quality` (separate routes, unaffected).
+
+- No new admin pages or tabs.
+- No change to the audit logic or severity thresholds.
+- The expanded row JSON (with `details.sample`) stays as-is — that's how admins see exactly which IDs are affected.
+
+## Files touched
+
+- `supabase/functions/daily-audit/index.ts` — adjust the `link` field on checks #1, #2, #6, #7, #8, #9 per the table above.
