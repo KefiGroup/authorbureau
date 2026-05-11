@@ -7,11 +7,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-// Parent coupon IDs for each tier (fixed $-off coupons)
+// Parent coupon IDs for each tier (fixed $-off coupons, duration: forever)
+// Discount applies to first invoice AND every subsequent renewal cycle.
 const COUPON_IDS: Record<string, string> = {
-  starter: "Iblo1SlC",   // BRAND-SPECIAL: $20 off
-  pro: "NhaSWmhA",       // BUILD-SPECIAL: $100 off
-  enterprise: "nBNMgDQH", // YIELD-SPECIAL: $250 off
+  starter: "4znjuHsM",   // BRAND-SPECIAL: $20 off forever
+  pro: "MotCxLmb",       // BUILD-SPECIAL: $100 off forever
+  enterprise: "mzy3vcL8", // YIELD-SPECIAL: $250 off forever
 };
 
 serve(async (req) => {
