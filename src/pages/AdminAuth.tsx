@@ -22,6 +22,12 @@ export default function AdminAuth() {
   const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
   const { toast } = useToast();
 
+  const redirectTo = (() => {
+    const r = new URLSearchParams(location.search).get("redirect");
+    if (r && r.startsWith("/")) return r;
+    return "/admin";
+  })();
+
   // Magic link handling
   useEffect(() => {
     const hash = location.hash;
