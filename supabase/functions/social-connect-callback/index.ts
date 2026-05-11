@@ -79,7 +79,8 @@ Deno.serve(async (req) => {
       const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`;
       const tokenRes = await fetch(tokenUrl);
       tokenData = await tokenRes.json();
-      if (!tokenRes.ok) return json({ error: "Meta token exchange failed", detail: tokenData }, 400);
+      console.log("[social-connect-callback] meta token exchange", { ok: tokenRes.ok, hasAccessToken: !!tokenData?.access_token });
+      if (!tokenRes.ok) return json({ error: `Meta token exchange failed: ${tokenData?.error?.message || tokenRes.status}`, detail: tokenData }, 400);
 
       const meRes = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${tokenData.access_token}`);
       const me = await meRes.json();
@@ -143,10 +144,15 @@ Deno.serve(async (req) => {
         },
         { onConflict: "author_id,platform,account_id" },
       );
-    if (upsertErr) return json({ error: upsertErr.message }, 500);
+    if (upsertErr) {
+      console.error("[social-connect-callback] upsert error", upsertErr);
+      return json({ error: upsertErr.message }, 500);
+    }
+    console.log("[social-connect-callback] success", { platform, accountId, accountName });
 
     return json({ success: true, platform, account_name: accountName });
   } catch (e) {
+    console.error("[social-connect-callback] unhandled", e);
     return json({ error: e instanceof Error ? e.message : "Unknown" }, 500);
   }
 });
