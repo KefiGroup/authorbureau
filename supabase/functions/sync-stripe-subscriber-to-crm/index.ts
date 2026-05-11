@@ -70,7 +70,6 @@ serve(async (req) => {
     const email = (customer?.email || rawEmail || "").toLowerCase();
     if (!email) throw new Error("Could not resolve email");
 
-    const fullName = customer?.name || email.split("@")[0];
     const productId = sub?.items.data[0]?.price.product as string | undefined;
     const tier = (productId && TIER_MAP[productId]) || "unknown";
     const couponId = sub?.discount?.coupon?.id ?? null;
