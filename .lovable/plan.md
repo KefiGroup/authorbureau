@@ -1,31 +1,38 @@
-## Hide "Open" links on healthy audit checks
+## Goal
+Make every subscriber who originally redeemed promo code **BP100**, **BA100**, or **YR100** never be charged again — replace their current discount with a 100%-off **forever** coupon.
 
-**Problem:** The Daily Platform Audit still shows `Open →` arrows on green/OK rows (e.g. Errors 24h, Content quality, sometimes Stuck-live). Two reasons:
+## Background
+The existing Stripe coupons `BP100` / `BA100` / `YR100` are 100% off but `duration: once`, so they only zeroed the first invoice. From the next renewal onward, customers were getting charged full price. We need a forever-duration equivalent and to retro-apply it.
 
-1. The audit function sets a `link` unconditionally on a few checks (Errors, Content quality), so even when severity is `ok`, the UI renders the link.
-2. The dashboard is currently displaying the persisted cron report from ~6 hours ago, which was generated before the previous server-side conditional-link change. Stale reports still carry old links.
+There is already a `SUCK100` coupon (100% off, forever) we can reuse, but for clarity I'll create three properly named ones.
 
-**Fix:** Make the UI the source of truth for "is this link actionable?" — only render the `Open →` link when `c.severity !== "ok"`. This:
-- Instantly cleans up the currently displayed (stale) cron report without waiting for a re-run.
-- Keeps links on warn/fail rows where the admin actually has something to do.
-- Doesn't require backend changes or a data backfill.
+## Steps
 
-### Change
+1. **Create three new forever coupons in Stripe** (100% off, duration `forever`):
+   - `BP100-FOREVER` — Brand Package, 100% off forever
+   - `BA100-FOREVER` — Build Package, 100% off forever
+   - `YR100-FOREVER` — Yield Package, 100% off forever
 
-`src/components/admin/DailyAuditTab.tsx` — line ~179, change:
+2. **Collect the subscriber list from the user.** You provide the customer emails grouped by which code they used (BP100 / BA100 / YR100). Include Pauline Teo and Veronica Tan under YR100 — their previously-applied $250-off-forever coupon will be replaced with 100%-off-forever.
 
-```tsx
-{c.link && (
+3. **For each email**, reuse the existing `admin-apply-subscription-coupon` edge function to:
+   - Look up the customer in Stripe by email
+   - Find their active subscription
+   - Attach the matching forever coupon (replacing any existing discount)
+
+4. **Verify** by re-fetching each subscription and confirming `discount.coupon.id` matches the new forever coupon and `duration: forever`.
+
+5. **Report back** a summary table: email, subscription id, coupon attached, next-invoice amount (should be $0.00).
+
+## What I need from you to start implementation
+Please paste the list of customer emails grouped by code, e.g.:
 ```
-to:
-```tsx
-{c.link && c.severity !== "ok" && (
+BP100: alice@example.com, bob@example.com
+BA100: carol@example.com
+YR100: pauline@..., veronica@..., dave@example.com
 ```
 
-### Validation
-
-- Reload `/admin?tab=daily-audit` — confirm OK rows (Errors 24h, Connector secrets, Cron freshness, Email queue, Content quality, etc.) no longer show `Open →`.
-- Confirm the Stuck-live nodes WARN row still shows no link (server already strips it; severity-gate is irrelevant here).
-- Confirm a WARN/FAIL row that does have a meaningful link (e.g. Errors 24h if errors exist) still shows `Open →`.
-
-Scope: single-line frontend change. No backend, no migration.
+## Out of scope
+- Not modifying any application code or UI
+- Not touching the original BP100/BA100/YR100 coupon definitions (they remain `once` for any future redemptions you may want to convert manually)
+- Not issuing refunds for any past charges (let me know separately if you want that)
