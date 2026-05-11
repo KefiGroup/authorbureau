@@ -15,22 +15,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return json({ error: "Unauthorized" }, 401);
-    }
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claims, error: claimsErr } = await supabase.auth.getClaims(
-      authHeader.replace("Bearer ", ""),
-    );
-    if (claimsErr || !claims?.claims) return json({ error: "Unauthorized" }, 401);
+    const resolved = await resolveUser(req.headers.get("Authorization"));
+    if (!resolved.id) return json({ error: "Unauthorized" }, 401);
 
     const { platform, origin } = await req.json();
     if (!platform) return json({ error: "platform required" }, 400);
 
-    const userId = claims.claims.sub as string;
+    const userId = resolved.id;
     const redirectUri = getRedirectUri(origin);
     const state = btoa(JSON.stringify({ uid: userId, p: platform, t: Date.now() }));
 
