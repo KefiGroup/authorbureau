@@ -370,6 +370,12 @@ export default function BP03Builder({ authorId, bookId }: Props) {
    */
   const handleActivate = async () => {
     if (!authorId) return;
+    if (!hasAnyConnection) {
+      toast.error("Connect a social account first", {
+        description: "Open Connect Settings and link LinkedIn, Facebook Page, or Instagram Business so we can publish on schedule.",
+      });
+      return;
+    }
     setStep(3);
     setError(null);
     setIsActivating(true);
