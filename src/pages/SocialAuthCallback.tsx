@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
 
 export default function SocialAuthCallback() {
   const [params] = useSearchParams();
@@ -34,20 +34,20 @@ export default function SocialAuthCallback() {
         setMessage("Invalid state.");
         return;
       }
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      const token = await getActiveToken({ forceRefresh: true });
+      if (!token) {
         setStatus("error");
         setMessage("Please sign in first.");
         return;
       }
 
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-callback`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ code, state, platform, origin: window.location.origin }),
         },
