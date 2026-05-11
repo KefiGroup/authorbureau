@@ -214,6 +214,26 @@ export default function ConnectSettings() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+        {justConnected && (
+          <Card className="p-4 border-green-500/40 bg-green-500/5">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">
+                  {justConnected.platform} connected successfully
+                </p>
+                {justConnected.account && (
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Connected as <span className="font-medium">{justConnected.account}</span>. Auto-posting is now enabled.
+                  </p>
+                )}
+              </div>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setJustConnected(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </Card>
+        )}
         {pendingPaidCount > 0 && !stripeConnected && (
           <Card className="p-4 border-amber-500/30 bg-amber-500/5">
             <div className="flex items-start gap-3">
