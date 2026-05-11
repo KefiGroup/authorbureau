@@ -22,6 +22,12 @@ export default function AdminAuth() {
   const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
   const { toast } = useToast();
 
+  const redirectTo = (() => {
+    const r = new URLSearchParams(location.search).get("redirect");
+    if (r && r.startsWith("/")) return r;
+    return "/admin";
+  })();
+
   // Magic link handling
   useEffect(() => {
     const hash = location.hash;
@@ -42,7 +48,7 @@ export default function AdminAuth() {
         sessionStorage.setItem("ab_admin_auth", "true");
 
         window.history.replaceState(null, "", location.pathname);
-        navigate("/admin", { replace: true });
+        navigate(redirectTo, { replace: true });
       } catch (err) {
         toast({ title: err.message || "Admin magic link failed", variant: "destructive" });
       } finally {
@@ -65,7 +71,7 @@ export default function AdminAuth() {
     );
   }
 
-  if (user && isAdmin) return <Navigate to="/admin" replace />;
+  if (user && isAdmin) return <Navigate to={redirectTo} replace />;
   if (user && !isAdmin) return <Navigate to="/dashboard" replace />;
 
   const handleContinue = async (e: React.FormEvent) => {
@@ -93,7 +99,7 @@ export default function AdminAuth() {
         const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: data?.type || "email" });
         if (error) throw error;
         sessionStorage.setItem("ab_admin_auth", "true");
-        navigate("/admin", { replace: true });
+        navigate(redirectTo, { replace: true });
         return;
       }
 
@@ -104,7 +110,7 @@ export default function AdminAuth() {
         const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
         if (error) throw error;
         sessionStorage.setItem("ab_admin_auth", "true");
-        navigate("/admin", { replace: true });
+        navigate(redirectTo, { replace: true });
         return;
       }
 
