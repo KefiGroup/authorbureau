@@ -1,34 +1,23 @@
 ## Goal
+Make Pauline Teo and Veronica Tan free forever on their existing subscriptions, and fix Pauline's missing email in Stripe.
 
-Reconcile the mismatch between Stripe billing names (e.g. "Veronica Chung") and the author's true pen name (e.g. "Veronica Tan") in the CRM, and prevent it from happening again.
+## Actions
 
-## Part 1 — One-time fix for Veronica
+**1. Update Pauline's Stripe customer email**
+- Customer: `cus_UJUky0qgRpdVKc` (Pauline Teo)
+- Set `email = support@paulineteo.com`
+- Tool: `stripe_api_execute` → `PostCustomersCustomer`
 
-Update the existing `crm_contacts` row for `veronicagogetter320@gmail.com`:
-- `full_name`: `Veronica Chung` → `Veronica Tan`
+**2. Attach coupon `SUCK100` (100% off, forever) to both subscriptions**
+- Pauline: `sub_1TKrlPCk4r0emyO8EEMKpuW3`
+- Veronica: `sub_1TUep4Ck4r0emyO8SbpVsbli`
+- Tool: `stripe_api_execute` → `PostSubscriptionsSubscription` with `discounts[0][coupon]=SUCK100`
+- No proration, no plan change — they stay on the same price, just net $0
 
-Done via a single data update; no schema change.
+## Result
+- Both renew automatically every month at $0
+- Pauline's customer record now has a proper email for future lookups
+- Reversible anytime by removing the discount in Stripe
 
-## Part 2 — Pen-name preference in future syncs
-
-Update the `sync-stripe-subscriber-to-crm` edge function so that when it resolves a contact's display name, it uses this priority:
-
-1. **Author profile pen name** — look up `author_profiles.pen_name` via the email (match `books.owner_email` → `author_id` → `author_profiles.pen_name`). This is the name the author uses publicly on Authors Bureau.
-2. **Stripe customer name** — fallback if no author profile is found (e.g. paying subscriber who hasn't built a profile yet).
-3. **Email local part** — last-resort fallback.
-
-Same priority applied on both initial sync and updates, so the CRM name stays consistent with the author's public identity even if Stripe billing name differs.
-
-Also update `backfill-stripe-subscribers-to-crm` to use the same resolver, so any existing rows already synced from Stripe billing names get corrected on the next backfill run.
-
-## Out of scope
-
-- No changes to Stripe customer billing names (those stay as the author entered them — needed for invoices/receipts).
-- No changes to author profile, books, or auth tables.
-- No UI changes.
-
-## Technical notes
-
-- Resolver lives inline in `sync-stripe-subscriber-to-crm/index.ts` (small helper).
-- Lookup uses service role: `books.owner_email` (case-insensitive) → `author_id` → `author_profiles.pen_name`. Falls back gracefully if no match.
-- Re-running the backfill after deploy will heal any other rows where Stripe billing name ≠ pen name.
+## No code changes
+This is a Stripe data operation only — no files in the project are modified.
