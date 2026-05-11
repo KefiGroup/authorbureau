@@ -464,7 +464,8 @@ export default function DashboardOverview({ onNavigate }: DashboardOverviewProps
           </h2>
         </div>
 
-        <div className="mb-6">
+        <div className="mb-6 space-y-3">
+          <ConnectSocialAccountsBanner />
           <AbbyNextStepCard onUpgrade={handleUpgrade} />
         </div>
 
