@@ -13,6 +13,7 @@ import { Loader2, RefreshCw, BookOpen, Globe, ImageIcon, Search, Upload, Pencil,
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
 import AuthorActionMenu from "@/components/admin/AuthorActionMenu";
+import GhostAuthorsCard from "@/components/admin/GhostAuthorsCard";
 
 interface DirectoryAuthor {
   id: string;                          // author_profiles.id
