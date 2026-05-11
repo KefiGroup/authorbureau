@@ -69,7 +69,7 @@ export default function ConnectSettings() {
     if (!user?.id) return;
     const [{ data: profile }, { data: conns }] = await Promise.all([
       supabase.from("author_profiles").select("id, stripe_onboarding_complete").eq("user_id", user.id).maybeSingle(),
-      supabase.from("social_connections").select("id, platform, account_name, status").eq("user_id", user.id),
+      supabase.from("social_connections").select("id, platform, account_name, status").eq("user_id", user.id).in("status", ["connected", "active"]),
     ]);
     setStripeConnected(!!profile?.stripe_onboarding_complete);
     setConnections((conns as ConnRow[]) || []);
@@ -130,7 +130,7 @@ export default function ConnectSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const connFor = (p: string) => connections.find(c => c.platform === p && c.status === "connected");
+  const connFor = (p: string) => connections.find(c => c.platform === p && (c.status === "connected" || c.status === "active"));
 
   const handleConnect = async (platform: string) => {
     setConnectingPlatform(platform);

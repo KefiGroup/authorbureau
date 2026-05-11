@@ -1,5 +1,6 @@
 // Exchanges OAuth code for tokens and stores connection in DB.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,26 +8,23 @@ const corsHeaders = {
 };
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
-const SUPABASE_ANON_KEY = Deno.env.get("SUPABASE_ANON_KEY")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) return json({ error: "Unauthorized" }, 401);
-    const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-    if (!claims?.claims) return json({ error: "Unauthorized" }, 401);
-    const userId = claims.claims.sub as string;
+    const resolved = await resolveUser(req.headers.get("Authorization"));
+    console.log("[social-connect-callback] resolved", { id: resolved.id, source: resolved.source, email: resolved.email });
+    if (!resolved.id) return json({ error: "Unauthorized — please sign in again." }, 401);
+    const userId = resolved.id;
 
     const { code, state, origin, platform } = await req.json();
+    console.log("[social-connect-callback] req", { platform, origin, hasCode: !!code, hasState: !!state });
     if (!code || !platform) return json({ error: "code + platform required" }, 400);
 
-    const redirectUri = `${origin}/auth/social-callback`;
+    // Must EXACTLY match what social-connect-start sent.
+    const redirectUri = "https://authorsbureau.com/auth/social-callback";
 
     // Get author_profile id
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -81,7 +79,8 @@ Deno.serve(async (req) => {
       const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${appId}&client_secret=${appSecret}&redirect_uri=${encodeURIComponent(redirectUri)}&code=${code}`;
       const tokenRes = await fetch(tokenUrl);
       tokenData = await tokenRes.json();
-      if (!tokenRes.ok) return json({ error: "Meta token exchange failed", detail: tokenData }, 400);
+      console.log("[social-connect-callback] meta token exchange", { ok: tokenRes.ok, hasAccessToken: !!tokenData?.access_token });
+      if (!tokenRes.ok) return json({ error: `Meta token exchange failed: ${tokenData?.error?.message || tokenRes.status}`, detail: tokenData }, 400);
 
       const meRes = await fetch(`https://graph.facebook.com/v19.0/me?access_token=${tokenData.access_token}`);
       const me = await meRes.json();
@@ -145,10 +144,15 @@ Deno.serve(async (req) => {
         },
         { onConflict: "author_id,platform,account_id" },
       );
-    if (upsertErr) return json({ error: upsertErr.message }, 500);
+    if (upsertErr) {
+      console.error("[social-connect-callback] upsert error", upsertErr);
+      return json({ error: upsertErr.message }, 500);
+    }
+    console.log("[social-connect-callback] success", { platform, accountId, accountName });
 
     return json({ success: true, platform, account_name: accountName });
   } catch (e) {
+    console.error("[social-connect-callback] unhandled", e);
     return json({ error: e instanceof Error ? e.message : "Unknown" }, 500);
   }
 });
