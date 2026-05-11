@@ -547,13 +547,32 @@ export default function BP03Builder({ authorId, bookId }: Props) {
               </Card>
             )}
 
-            {/* Social-account connection note (manual posting model) */}
-            {connectedPlatforms.length > 0 && (
+            {/* Social-account connection gate (hard block on Activate when nothing is connected) */}
+            {hasAnyConnection ? (
               <Card className="p-3 border-border bg-muted/40">
                 <p className="text-xs text-muted-foreground flex items-center gap-2">
                   <Check className="h-3.5 w-3.5" />
-                  Connected accounts saved for reference: <strong>{connectedPlatforms.join(", ")}</strong>. You'll post manually using your kit.
+                  Connected accounts: <strong>{connectedPlatforms.join(", ")}</strong>. Activate to send your kit to the Social Calendar.
                 </p>
+              </Card>
+            ) : (
+              <Card className="p-4 border-amber-500/40 bg-amber-500/5">
+                <div className="flex items-start gap-3">
+                  <Share2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground">
+                      Connect a social account to activate
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Your kit is ready, but Authors Bureau can't auto-publish or schedule posts until you connect LinkedIn, Facebook Page, or Instagram Business.
+                    </p>
+                    <div className="mt-3">
+                      <Button size="sm" onClick={() => navigate("/connect-settings")}>
+                        Connect accounts <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
               </Card>
             )}
             <ReviewStep
