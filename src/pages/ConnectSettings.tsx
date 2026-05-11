@@ -135,13 +135,13 @@ export default function ConnectSettings() {
   const handleConnect = async (platform: string) => {
     setConnectingPlatform(platform);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { toast({ title: "Please sign in again", variant: "destructive" }); return; }
-      const res = await fetch(
+      const token = await getActiveToken({ forceRefresh: true });
+      if (!token) { toast({ title: "Please sign in again", variant: "destructive" }); return; }
+      const res = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-start`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ platform, origin: window.location.origin }),
         },
       );
