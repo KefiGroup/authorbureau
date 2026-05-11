@@ -264,6 +264,7 @@ Deno.serve(async (req) => {
       severity: sev,
       count: dlq + failed,
       message: `sent ${sent} · dlq ${dlq} · failed ${failed} · suppressed ${suppressed} · pending ${pending}`,
+      ...(dlq + failed > 0 ? { link: "/admin?tab=errors" } : {}),
       details: { sent, dlq, failed, suppressed, pending, total_unique: latestPerId.size },
     });
   } catch (e) {
