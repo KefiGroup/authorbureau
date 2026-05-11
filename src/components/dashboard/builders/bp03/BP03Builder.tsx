@@ -152,7 +152,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const [isSaving, setIsSaving] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
   const [savedCount, setSavedCount] = useState<number>(0);
-  const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
+  const { connectedPlatforms, hasAnyConnection } = useSocialConnectionStatus();
   const [authorPhotoUrl, setAuthorPhotoUrl] = useState<string | null>(null);
   const [bookColor, setBookColor] = useState<string | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
