@@ -17,10 +17,10 @@ Deno.serve(async (req) => {
     });
 
     const sub1 = await stripe.subscriptions.update("sub_1TKrlPCk4r0emyO8EEMKpuW3", {
-      discounts: [{ coupon: "SUCK100" }],
+      discounts: [{ coupon: "aSelv0my" }],
     });
     const sub2 = await stripe.subscriptions.update("sub_1TUep4Ck4r0emyO8SbpVsbli", {
-      discounts: [{ coupon: "SUCK100" }],
+      discounts: [{ coupon: "aSelv0my" }],
     });
 
     return new Response(
