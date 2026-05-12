@@ -71,6 +71,16 @@ const PLATFORM_FILTERS = [
   { id: "x", label: "X" },
 ];
 
+// Sprint 62 — fallback rotation that never renders "Insight". Keeps badges
+// correct even if a legacy row sneaks through with archetype=null.
+const ARCHETYPES_FE = ["Quote", "Lesson", "Question", "Story", "Framework", "Proof"] as const;
+const archetypeLabel = (post: { archetype?: string | null; post_type?: string | null; post_index?: number | null }) => {
+  if (post.archetype && post.archetype !== "Insight") return post.archetype;
+  if (post.post_type && post.post_type !== "Insight") return post.post_type;
+  const idx = typeof post.post_index === "number" ? post.post_index : 0;
+  return ARCHETYPES_FE[Math.floor(idx / 4) % ARCHETYPES_FE.length];
+};
+
 const PLATFORM_COLORS: Record<string, string> = {
   linkedin: "bg-[#0A66C2]",
   instagram: "bg-pink-500",
