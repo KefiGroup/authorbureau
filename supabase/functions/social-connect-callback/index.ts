@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
           channel_name: accountName,
           connected_at: new Date().toISOString(),
         },
-        { onConflict: "author_id,channel_id" },
+        { onConflict: "user_id,platform" },
       );
     if (upsertErr) {
       console.error("[social-connect-callback] upsert error", upsertErr);
