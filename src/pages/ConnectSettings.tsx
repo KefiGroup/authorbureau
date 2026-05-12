@@ -310,21 +310,44 @@ export default function ConnectSettings() {
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         {justConnected && (
-          <Card className="p-4 border-green-500/40 bg-green-500/5">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">
-                  {justConnected.platform} connected successfully
-                </p>
-                {justConnected.account && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Connected as <span className="font-medium">{justConnected.account}</span>. Auto-posting is now enabled.
+          <Card className="p-5 border-green-500/40 bg-green-500/5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">
+                    {justConnected.platform} connected{justConnected.account ? ` as ${justConnected.account}` : ""}
                   </p>
-                )}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Auto-posting is enabled. Here's what to do next:
+                  </p>
+                </div>
               </div>
               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setJustConnected(null)}>
                 Dismiss
+              </Button>
+            </div>
+
+            {/* Two-step "what's next" */}
+            <ol className="space-y-2 ml-8">
+              <li className="flex items-start gap-2 text-xs">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-600 text-white text-[10px] font-semibold">✓</span>
+                <span className="text-muted-foreground line-through">Connect your account</span>
+              </li>
+              <li className="flex items-start gap-2 text-xs">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary text-[10px] font-semibold">2</span>
+                <span>Open your Social Calendar to review, schedule, and publish your posts.</span>
+              </li>
+            </ol>
+
+            <div className="ml-8 mt-3 flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}
+              >
+                <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                Open Social Calendar
+                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
               </Button>
             </div>
           </Card>
