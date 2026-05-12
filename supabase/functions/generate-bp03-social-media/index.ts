@@ -27,9 +27,9 @@ function archetypeForDay(day: number): string {
   return ARCHETYPES[(day - 1) % ARCHETYPES.length];
 }
 
-// Decide which Instagram days are carousel posts. Spec: ~30% of 30 = 9 carousels.
-// Spread evenly: days 3, 6, 9, 12, 15, 18, 21, 24, 27.
-const CAROUSEL_IG_DAYS = new Set([3, 6, 9, 12, 15, 18, 21, 24, 27]);
+// Decide which Instagram days are carousel posts. Spec: ~30% of 20 = 6 carousels.
+// Spread evenly across the 20-day calendar.
+const CAROUSEL_IG_DAYS = new Set([3, 6, 9, 12, 15, 18]);
 
 async function callAI(userPrompt: string, maxTokens: number) {
   const resp = await fetchAiGateway({
