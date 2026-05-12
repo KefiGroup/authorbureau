@@ -717,8 +717,9 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
             {refilling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
             Generate 30 more days of content
           </Button>
-          <Button size="sm" variant="outline" onClick={repairCalendar} disabled={repairing}>
-            {repairing ? <Loader2 className="h-4 w-4 animate-spin" /> : "Refresh"}
+          <Button size="sm" variant="outline" onClick={generateAllGraphics} disabled={generatingGraphics || !authorId}>
+            {generatingGraphics ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
+            {generatingGraphics ? "Designing graphics…" : "Generate graphics"}
           </Button>
           <Button size="sm" variant="outline" onClick={() => shiftCursor(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button size="sm" variant="outline" onClick={goToday}>Today</Button>
