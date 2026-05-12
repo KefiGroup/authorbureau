@@ -262,7 +262,7 @@ twitter_posts MUST have exactly 30 items in day order. outreach_kit MUST have ex
         day,
         theme: li.theme || ig.theme || fb.theme || tw.theme || "",
         post_type: archetype, // canonical archetype label
-        cta_type: archetype === "Direct CTA" ? "cta" : archetype === "Question / Engagement" ? "question" : "insight",
+        cta_type: archetype === "Question" ? "question" : archetype === "Quote" ? "quote" : "insight",
         linkedin: { caption: li.caption || "", hashtags: applyPool(li.hashtags || [], i * 4 + 0) },
         instagram: {
           caption: ig.caption || "",
