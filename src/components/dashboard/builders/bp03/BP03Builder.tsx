@@ -127,7 +127,7 @@ async function persistSocialPostsToCalendar(authorId: string, content: any, star
       post_index: p.index,
       post_type: p.post_type,
       archetype: p.post_type || null,
-      carousel_slides: p.carousel_slides ?? null,
+      carousel_slides: (p as any).carousel_slides ?? null,
     };
   });
 
