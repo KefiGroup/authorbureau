@@ -8,8 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
   ArrowLeft, CreditCard, Sparkles, CheckCircle2, AlertCircle, Loader2,
-  Share2, Linkedin, Instagram, Facebook, Twitter, ExternalLink,
+  Share2, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Calendar as CalendarIcon, ArrowRight,
 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
