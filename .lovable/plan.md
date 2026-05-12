@@ -1,38 +1,50 @@
-## BP-03 Bug Fixes — Pure Copy-Paste Library
+## Honest answer
 
-### Root cause
-After the previous pivot, the generator stamps the canonical archetype + carousel days into `content_json.posts`, but **(a)** existing/legacy days where the AI returned `post_type: "Insight"` slip through `flattenPosts` because we only kept the AI value if it matched the archetype set, and **(b)** carousels only appear when the AI complied with `format: "carousel"` + 5 slides — there's no fallback. Per-card download is also gated on `post.graphic_url` existing, so cards without graphics show no button at all.
+Yes, but the previous fixes only repair **newly generated** kits. Your current 20 rows in the calendar were written **before** the deploy, so they still carry the old shape:
 
-### Fixes
+```
+DB state (current 20 rows):
+  post_type = "Insight"   (all 20)
+  archetype = NULL        (all 20)
+  carousel_slides = NULL  (all 20)
+  graphic_url = NULL      (all 20)  ← that's why every card shows "Generate graphic" only
+  1 platform per row      (LI/IG/FB/TW rotating, not 4 per day)
+```
 
-**BUG-1 — Deterministic archetype assignment**
+The new `flattenPosts` logic (deterministic archetype rotation + carousel synthesis) is correct, but it never re-runs against rows that were inserted before the fix shipped. That is the entire reason the DOM still reads "19 × Insight, 0 carousels".
+
+## What I'll actually do
+
+**FIX-1 — One-shot repair on load (BUG-1 + BUG-2)**
 File: `supabase/functions/bp03-node-state/index.ts`
-- In `flattenPosts`, replace the `ARCHETYPES.has(d?.post_type)` check with a deterministic `archetypeForDay(day)` rotation matching the generator (Quote, Lesson, Question, Story, Framework, Proof). This guarantees the 6-archetype label distribution is preserved even on legacy/repaired data — never falls back to "Insight".
-- Persist this archetype to both `social_posts.archetype` and `social_posts.post_type`.
+- In the existing `repair_calendar` action, drop the `hasUsableSocialKit` precondition for one specific case: if **any** existing `social_posts` row for this author/BP-03 has `archetype IS NULL` OR `post_type = 'Insight'`, force-rebuild from `content_json` (calls the already-fixed `flattenPosts` → 4 platforms × 20 days = 80 rows, 6 archetypes, 6 IG carousels with `carousel_slides` populated).
+- Add a new `action: "auto_repair_if_stale"` returning `{ repaired: true|false, count }` so the UI can call it once on mount.
 
-**BUG-2 — Per-card "Download graphic" / "Generate graphic" button**
 File: `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
-- In the **Unscheduled posts** card row (~line 949-953), always render a graphic button:
-  - If `post.graphic_url` exists → "Download graphic" (existing behavior via `downloadGraphic(post)`).
-  - If not → "Generate graphic" button that calls a new lightweight handler `generateOneGraphic(post)` which invokes a single-post pass of `bp03-generate-all-graphics` (using the existing edge fn with a `post_id` filter, see below) and then refreshes.
-- Add the same per-card button in the expanded-day post list for parity (~line 1047).
+- On first mount (after the existing fetch), if any loaded post has `archetype == null` or `post_type === 'Insight'`, fire `bp03-node-state` with `action: "auto_repair_if_stale"` then refetch. Silent — no toast unless it fails.
 
-File: `supabase/functions/bp03-generate-all-graphics/index.ts`
-- Accept an optional `post_id` in the request body; when present, restrict the loop to that single post and skip the "already has one" gate. Keeps the bulk path unchanged.
+**FIX-2 — UI hardening so legacy null archetypes never render "Insight" (BUG-1 belt-and-braces)**
+File: `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` (lines 943, 1055)
+- Replace `{post.archetype || post.post_type}` with `{post.archetype || (ARCHETYPES_FE[post.post_index % 6])}`. Local constant `ARCHETYPES_FE = ["Quote","Lesson","Question","Story","Framework","Proof"]`. Means even if a row sneaks through with `archetype=null`, the badge will never say "Insight".
 
-**BUG-3 — Carousel fallback synthesis**
-File: `supabase/functions/bp03-node-state/index.ts` (`flattenPosts`)
-- If `platform === "instagram"` AND `day ∈ {3,6,9,12,15,18}` AND the IG record is missing valid carousel_slides, synthesize 5 slides from the caption (cover hook + 3 insight lines split from caption + CTA line). Mark `isCarousel = true` so the caption gets the "— Carousel script (5 slides) —" appendage and `carousel_slides` is populated. This guarantees 6 IG carousels regardless of AI compliance.
+**FIX-3 — Clarify "Download graphic" expectation (BUG-3)**
+This is **not actually a missing button** — it's gated correctly on `graphic_url` existing. Your 20 rows have `graphic_url = NULL`, so the UI correctly shows "Generate graphic" instead. After FIX-1 reseeds the rows, click **"Generate graphics"** (the bulk button at line 773) once → graphics get generated → "Download graphic" appears on every card. No code change needed; I'll add a one-line tooltip on the Generate button: *"Generates a branded graphic; once ready, this becomes Download graphic."* so the affordance is obvious.
 
-File: `supabase/functions/generate-bp03-social-media/index.ts`
-- Add the same synthesis as a post-AI safety net for `instagram_posts[i]` when the day is a carousel day and the AI returned `format: "single"` or fewer than 5 slides — so freshly-generated kits also always have 6 carousels stored in `content_json`.
+**FIX-4 — Backfill SQL migration (so even users who never re-open the page get repaired)**
+Migration: `UPDATE public.social_posts SET archetype = (ARRAY['Quote','Lesson','Question','Story','Framework','Proof'])[((post_index % 6) + 1)], post_type = (ARRAY['Quote','Lesson','Question','Story','Framework','Proof'])[((post_index % 6) + 1)] WHERE node_id = 'BP-03' AND (archetype IS NULL OR post_type = 'Insight');`
+This guarantees the badges read correctly even before the user reloads. Carousels still need the in-app repair (FIX-1) because their slides come from caption text, not from a constant.
 
-### Out of scope
-- No DB migration. `social_posts.archetype` already accepts the 6 canonical values.
-- No changes to ZIP export, calendar grid, or scheduling flow.
-- No changes to BP-02, MarketingHub, or other builders.
+## Out of scope
+- No regeneration of caption/AI content — your existing captions stay.
+- No social-account reconnection — model is still copy-paste.
+- No changes to BP-02, scheduling, or ZIP export.
 
-### Verification
-1. Click "Generate 20 more posts" on Social Calendar → archetypes rotate Quote/Lesson/Question/Story/Framework/Proof across 20 days; 0 cards labelled "Insight".
-2. Each unscheduled card shows either "Download graphic" or "Generate graphic"; clicking "Generate graphic" produces a graphic and the button flips to "Download graphic".
-3. Days 3, 6, 9, 12, 15, 18 (Instagram only) render the `<CarouselPreview>` with 5 slides and a Download Carousel ZIP control.
+## Verification (after approval + run)
+1. Refresh Social Calendar → silent auto-repair fires once → 80 rows now exist (4 platforms × 20 days), badges rotate Quote/Lesson/Question/Story/Framework/Proof, 0 cards say "Insight".
+2. Days 3, 6, 9, 12, 15, 18 (Instagram only) show the carousel preview block with 5 slides.
+3. Click "Generate graphics" → all 80 cards flip to "Download graphic".
+
+## Files touched
+- `supabase/functions/bp03-node-state/index.ts` (add `auto_repair_if_stale` action)
+- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` (mount-time call + badge fallback + tooltip)
+- 1 SQL migration (archetype backfill)
