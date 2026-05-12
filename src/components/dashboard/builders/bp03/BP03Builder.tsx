@@ -39,6 +39,8 @@ import {
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 // Sprint 60: BP-03 now uploads via render-library-asset (service role) directly.
 import { buildBp03Txt } from "@/lib/build-library-txt";
+import { autosaveBuilderDraft } from "@/lib/builder-autosave";
+import { resolveBookTitle } from "@/lib/resolve-book-title";
 
 const STEPS = ["Introduction", "Generating", "Review", "Send to Calendar"];
 
@@ -161,6 +163,12 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const { isReady: isAuthReady } = useAuthReady();
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
+  const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
+  const hasResolvedBook =
+    hasBook ||
+    Boolean(resolvedBookTitle) ||
+    Boolean(detectedBookTitle && detectedBookTitle !== "your book") ||
+    Boolean(bookTitle);
 
   // Social connections come from useSocialConnectionStatus() above (single source of truth).
 
@@ -190,10 +198,24 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         try {
           const { data: ap } = await supabase
             .from("author_profiles")
-            .select("photo_url")
+            .select("photo_url, user_id")
             .eq("id", authorId)
             .maybeSingle();
           if (!cancelled && ap?.photo_url) setAuthorPhotoUrl(ap.photo_url);
+
+          // Client-side per-book fallback (parity with BP-06/BP-08).
+          // Catches the case where the edge function returned no title.
+          try {
+            const fallback = await resolveBookTitle(authorId, activeBookId, ap?.user_id);
+            if (!cancelled && fallback) {
+              setResolvedBookTitle(fallback);
+              setBookTitle((prev) => prev || fallback);
+              setHasContext((prev) => prev || true);
+            }
+          } catch (_e) {
+            // swallow — fallback only
+          }
+
           const { data: book } = await supabase
             .from("books")
             .select("cover_image_url")
@@ -313,6 +335,16 @@ export default function BP03Builder({ authorId, bookId }: Props) {
       if (!data?.success) throw new Error(data?.error || "Generation failed. Please try again.");
       setContent(data.content);
       setStep(2);
+      // Autosave parity with BP-02/04/05/06/08: persist the freshly generated
+      // kit so a refresh resumes at Step 2 even if the user never clicks Save.
+      void autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-03",
+        nodeName: "Social Media",
+        content: { ...data.content, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId,
+      });
     } catch (e: any) {
       setError(e.message);
       const hasUsableKit =
@@ -443,6 +475,15 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         scheduledCount: saved,
       });
 
+      void autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-03",
+        nodeName: "Social Media",
+        content: { ...(savedNode.content_json as any), _currentStep: 3, scheduledCount: saved },
+        currentStep: 3,
+        bookId: activeBookId,
+      });
+
       toast.success(`${saved} posts saved to your Social Calendar.`);
     } catch (e: any) {
       console.error("Activate error:", e);
@@ -496,7 +537,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         ) : step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your social media kit, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-03${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
@@ -587,6 +628,14 @@ export default function BP03Builder({ authorId, bookId }: Props) {
                     book_id: activeBookId ?? undefined,
                     status: content?.publishStatus === "live" ? "live" : "content_ready",
                     content: nextContent,
+                  });
+                  void autosaveBuilderDraft({
+                    authorId: authorId!,
+                    nodeId: "BP-03",
+                    nodeName: "Social Media",
+                    content: { ...nextContent, _currentStep: content?.publishStatus === "live" ? 3 : 2 },
+                    currentStep: content?.publishStatus === "live" ? 3 : 2,
+                    bookId: activeBookId,
                   });
                   toast.success("Post updated.");
                 } catch (e: any) {

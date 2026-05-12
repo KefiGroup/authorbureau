@@ -1,123 +1,54 @@
-# BP-03 Reframed: ABBY Copy-Paste Content Factory
+## Audit findings — why BP-03 "can't read the book profile"
 
-## What we're building (one line)
-ABBY mines the book and produces a constant stream of platform-perfect, copy-paste-ready posts (LinkedIn, Facebook, Instagram single + 5-slide carousels) with custom graphics, dropped into the Social Calendar, auto-refilled when stock runs low.
+I compared BP-03 to its siblings (BP-02, BP-04, BP-05, BP-06, BP-08, which all read book profile + autosave correctly) and traced every code path BP-03 takes to load book context.
 
----
-
-## End-to-end workflow
-
-```text
-1. SOURCE       Manuscript + BP-00 analysis (themes, frameworks, quotes, audience)
-                                │
-2. PLAN         generate-bp03-social-media writes 30 posts using 6 archetypes
-                (Quote · Lesson · Question · Story · Framework · Proof)
-                ~70% single-image posts, ~30% Instagram carousel posts
-                                │
-3. CAPTIONS     generate-social-content writes 3 platform voices per post:
-                • LinkedIn  ≤1300 ch, hook + insight + CTA + 3 tags
-                • Facebook  400-800 ch, conversational + question
-                • Instagram 150-220 ch + hashtag block + alt-text
-                                │
-4. HASHTAGS     5 anchor tags (locked from book themes) + 5 rotating tags
-                drawn from a 30-tag pool. Same author = consistent identity,
-                no spammy repetition.
-                                │
-5. GRAPHICS     compose-social-post (Nano Banana 2 -> burn-in template):
-                Single posts:    LI 1200×627 · FB 1200×630 · IG 1080×1350 + 1080×1080
-                Carousel posts:  5 slides × 1080×1350 (cover, 3 insight, CTA)
-                Brand-kit aware (colors, font, author handle, book cover)
-                                │
-6. CALENDAR     Marketing Hub → Social Calendar grid. Each card has tabs:
-                LinkedIn · Facebook · Instagram (Single | Carousel if applicable)
-                [Copy caption] [Download image / Download all 5 slides]
-                [Open LinkedIn ↗] [Open Facebook ↗] [Open Instagram ↗]
-                  ↳ all three open the platform's compose home page,
-                    NO pre-fill, consistent UX across platforms
-                [Edit] [Regenerate] [Mark as posted]
-                                │
-7. AUTHOR LOOP  ~20 sec / post: pick tab → Copy → Download → Open app →
-                paste + attach + post → Mark as posted
-                                │
-8. AUTO-REFILL  auto-refill-social-calendar (cron, daily check):
-                when unposted < 7, generate next 14 posts, exclude last 30
-                themes, notify author "+14 new posts ready"
-                                │
-9. LEARNING     Mark-as-posted feeds CRM scoring + biases next refill toward
-                archetypes the author actually publishes
+### 1. The real bug — wrong fallback in `bp03-node-state` edge function
+`supabase/functions/bp03-node-state/index.ts` line 294 falls back to:
 ```
-
----
-
-## Author-facing changes in BP-03 builder
-
-- **Step 4 "Activate" → renamed "Send to Social Calendar"** with honest copy:
-  > "30 ready-to-post packages now live in your Social Calendar. Each one has a LinkedIn, Facebook, and Instagram version with a custom graphic — Instagram includes 9 carousel sets too. Open the Calendar, copy, download, paste, post. ~20 seconds per post. ABBY will refill 14 more automatically when you drop below 7 unused posts."
-- All "automated posting" / "auto-publish" wording removed from BP-03, ABBY chat, Marketing Hub, and `/docs/04-node-frameworks/BP-03.md`.
-
----
-
-## Confirmed decisions (your answers)
-
-| Question | Decision |
-|---|---|
-| Image cost (~$1-2 per refill) | ✅ OK |
-| Instagram carousels | ✅ Yes — 5-slide carousels on ~30% of posts |
-| Hashtag strategy | ✅ 5 anchor + 5 rotating from 30-tag pool |
-| Open-app deep links | ✅ No pre-fill — open compose home page on all 3 platforms (consistent) |
-| Auto-refill threshold | ✅ Trigger 14 new when <7 remain |
-
-> Your last line was cut off ("i do not understa…"). I'm proceeding with the 5 decisions above. If there's something else you wanted to flag, tell me before approving.
-
----
-
-## Out of scope
-- True API auto-posting to LinkedIn / Meta (parked — revisit after we see real copy-paste usage)
-- TikTok / X / Threads (single generic export only, no platform-tuning)
-- Video posts
-- Reusing the existing half-wired `social-publish` / `social-scheduler` / `social-connect-callback` code — these will be hidden from UI so nothing implies auto-post; code kept for a possible future sprint
-
----
-
-## Technical appendix
-
-**Schema** — `author_nodes.content_json` for BP-03:
-```ts
-posts: Array<{
-  id: string
-  archetype: 'quote'|'lesson'|'question'|'story'|'framework'|'proof'
-  format: 'single' | 'carousel'           // carousel = IG only
-  source_chapter?: string
-  variants: {
-    linkedin:  { caption; hashtags[]; image_url }
-    facebook:  { caption; hashtags[]; image_url }
-    instagram: {
-      caption; hashtags[]; alt_text
-      image_url_portrait; image_url_square
-      carousel_slides?: string[]          // 5 urls when format='carousel'
-    }
-  }
-  status: 'draft'|'ready'|'posted'
-  posted_at?: string
-  posted_platforms?: ('linkedin'|'facebook'|'instagram')[]
-}>
-hashtag_pool: { anchors: string[5]; rotating: string[30] }
+.from("books").eq("author_id", authorProfile.user_id)
 ```
+This is forbidden per the canonical rule in `mem://architecture/author-id-resolution.md`: **`books.author_id` is FK to `author_profiles.id`, NOT `auth.users.id`**. For every account where `user_id ≠ author_profiles.id` (i.e. all accounts created after the early matching-UUID era — Veronica, Kat, etc.), this query silently returns zero rows → `book_title = ""` → `has_context = false` → BP-03 shows "Complete Book Profile" even though the book exists. This is exactly the regression the user is hitting again.
 
-**Edge functions**
-- `generate-social-content` — add 3-voice generation + carousel scripts (5 slides w/ cover-insight×3-CTA)
-- `compose-social-post` — render 4 single sizes + optional 5-slide carousel; brand-kit pull from `author_email_settings` + `author_profiles`
-- `auto-refill-social-calendar` (NEW) — cron via `pg_cron` daily 13:00 UTC; threshold check + generation + notification
-- `bp03-node-state` — count `status='posted'` for stats
+### 2. BP-03 doesn't use the canonical client-side resolver
+BP-06 and BP-08 import `resolveBookTitle(authorId, activeBookId, profile?.user_id)` from `src/lib/resolve-book-title.ts` as a second safety net. BP-03 relies entirely on the (broken) edge-function path with no client-side fallback.
 
-**UI**
-- `src/components/dashboard/builders/bp03/*` — Step 4 rename + copy
-- `src/components/marketing-hub/SocialCalendarTab.tsx` — platform tabs, Single/Carousel sub-tab, Copy/Download/Open buttons (no pre-fill), Mark-as-posted, Regenerate
-- `src/components/dashboard/SocialMediaManager.tsx` — replace list with card grid
-- Hide `ConnectSettings` social section + `SocialAuthCallback` UI surfaces
+### 3. BP-03 is the only BP node without `autosaveBuilderDraft`
+BP-02, BP-04, BP-05, BP-06, BP-08 all call `autosaveBuilderDraft({ authorId, nodeId, bookId, ... })` after every step transition (generate, edit, review). BP-03 only writes to the server when the user clicks **Save** or **Send to Calendar**. If the user generates, tweaks captions, then refreshes, partial edits are lost because they live only in component state.
 
-**Docs**
-- `docs/04-node-frameworks/BP-03.md`, README, `docs/03-abby-ai/03-node-activation-prompts.md` — full honesty rewrite
+### 4. Refresh / same-page resume
+The resume flow itself is correct (`bp03-node-state load` rehydrates `status` → `step`), and `NodeBuilder.tsx` already preserves `?bookId=…` in the URL. Once #1–#3 are fixed, refresh will land on the right step with the right book.
 
-**Memory updates**
-- Update `mem://features/buffer-social-scheduling-sprint36b` → mark deprecated, replace with new "ABBY Copy-Paste Social Factory" memory describing the workflow above.
+---
+
+## Changes
+
+### A. Fix the edge function (root cause)
+`supabase/functions/bp03-node-state/index.ts` — line 294: change `eq("author_id", authorProfile.user_id)` → `eq("author_id", authorProfile.id)`.
+
+While here, also use the same `(author_id, book_id)` per-book lookup the rest of the function already uses for the `requestedBookId` branch — keeping behaviour identical to BP-06/07's edge functions. Redeploy the function.
+
+### B. Bring BP-03 client up to BP-06/BP-08 parity
+`src/components/dashboard/builders/bp03/BP03Builder.tsx`:
+
+1. After the `useAuthorBook()` call, add a client-side fallback identical to BP-08:
+   ```ts
+   const { resolveBookTitle } = await import("@/lib/resolve-book-title");
+   const _title = await resolveBookTitle(authorId, activeBookId, profile?.user_id);
+   ```
+   Use it to seed `bookTitle` when the edge function returns an empty title.
+2. Compute `hasResolvedBook = hasBook || !!resolvedBookTitle || (detectedBookTitle && detectedBookTitle !== "your book")` and gate the "Complete Book Profile" message on `hasResolvedBook` instead of raw `hasBook` — same pattern BP-06/08 use to stop a flapping gate when only the per-book lookup found the book.
+
+### C. Add autosave parity
+Import `autosaveBuilderDraft` from `@/lib/builder-autosave` and call it (with `bookId: activeBookId`) at three points, mirroring BP-02/BP-04:
+- After `handleGenerate` succeeds (step 1 → 2), so the freshly generated kit survives a refresh even before the user clicks Save.
+- After in-place caption edits inside the Step 2 review (where the user mutates `content`).
+- After successful `handleActivate` (step 3) — defensive, since `persistNodeState("live")` already writes, but autosave keeps the unified `author_nodes.book_id` autosave row in sync.
+
+### D. Verification
+- Deploy `bp03-node-state`, hard-refresh BP-03 from Book Hub for a multi-book author whose `user_id ≠ author_profiles.id`. Expect: hero copy reads `'…book title…'` (not "your book"), no "Complete Book Profile" gate.
+- Generate a kit, refresh mid-edit. Expect: returns to Step 2 with the latest captions intact.
+- Open BP-03 directly via `/node-builder/BP-03?bookId=…`, refresh. Expect: same step, same book, same content.
+
+### Out of scope
+- Migrating BP-03 from `useAuthorBook` to `useBookContext` wholesale — every BP node uses `useAuthorBook` consistently; switching just BP-03 would create one-off divergence. The fallback in B gives the same correctness without the wider refactor.
+- Touching other builders. The audit confirmed only `bp03-node-state` has the wrong-FK fallback in BP-* edge functions.
