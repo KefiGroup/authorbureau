@@ -97,6 +97,12 @@ export default function SocialAuthCallback() {
         }
         setStatus("success");
         setMessage(`Connected ${platform} as ${data.account_name}`);
+        // Tell every open tab/window to refresh its connection state.
+        try {
+          const bc = new BroadcastChannel("social-connect");
+          bc.postMessage({ type: "connected", platform, account: data.account_name });
+          bc.close();
+        } catch (_) {}
         const qs = new URLSearchParams({
           social: "connected",
           platform,

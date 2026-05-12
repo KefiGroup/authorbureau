@@ -82,10 +82,25 @@ export default function ConnectSettings() {
     if (!user?.id) return;
     const [{ data: profile }, { data: conns }] = await Promise.all([
       supabase.from("author_profiles").select("id, stripe_onboarding_complete").eq("user_id", user.id).maybeSingle(),
-      supabase.from("social_connections").select("id, platform, account_name, status").eq("user_id", user.id).in("status", ["connected", "active"]),
+      supabase
+        .from("social_connections")
+        .select("id, platform, account_name, status, created_at")
+        .eq("user_id", user.id)
+        .in("status", ["connected", "active"])
+        .order("created_at", { ascending: false }),
     ]);
     setStripeConnected(!!profile?.stripe_onboarding_complete);
-    setConnections((conns as ConnRow[]) || []);
+    // De-dupe by platform — keep only the newest active row per platform so a
+    // historic duplicate row (with a different status) can never make a real
+    // connection look "not connected".
+    const seen = new Set<string>();
+    const deduped: ConnRow[] = [];
+    for (const row of (conns as ConnRow[]) || []) {
+      if (!row.platform || seen.has(row.platform)) continue;
+      seen.add(row.platform);
+      deduped.push(row);
+    }
+    setConnections(deduped);
 
     // Count paid products waiting for Stripe activation.
     if (profile?.id && !profile?.stripe_onboarding_complete) {
@@ -108,6 +123,22 @@ export default function ConnectSettings() {
   };
 
   useEffect(() => { refresh(); }, [user?.id]);
+
+  // Listen for OAuth-callback broadcasts so newly-connected accounts appear
+  // immediately in this tab without requiring a manual refresh.
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    try {
+      bc = new BroadcastChannel("social-connect");
+      bc.onmessage = (ev) => {
+        if (ev?.data?.type === "connected" || ev?.data?.type === "disconnected") {
+          refresh();
+        }
+      };
+    } catch (_) {}
+    return () => { try { bc?.close(); } catch (_) {} };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Auto-refresh the connection badges when the tab regains focus.
   // Stripe Connect happens in another tab/window; without this the badge

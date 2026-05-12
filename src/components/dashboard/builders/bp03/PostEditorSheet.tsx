@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CarouselPreview from "./CarouselPreview";
 import {
   Sheet,
   SheetContent,
@@ -95,7 +96,7 @@ export default function PostEditorSheet({
               ))}
             </TabsList>
             {PLATFORMS.map((p) => (
-              <TabsContent key={p} value={p} className="mt-3">
+              <TabsContent key={p} value={p} className="mt-3 space-y-3">
                 <SocialGraphicCard
                   key={`${p}-${renderKey}`}
                   platform={p}
@@ -109,6 +110,15 @@ export default function PostEditorSheet({
                       : extractPullQuote(draft[p]?.caption || "")
                   }
                 />
+                {p === "instagram" && draft.instagram?.format === "carousel" && Array.isArray(draft.instagram?.carousel_slides) && (
+                  <CarouselPreview
+                    slides={draft.instagram.carousel_slides}
+                    bookTitle={bookTitle}
+                    authorName={authorName}
+                    bookColor={bookColor}
+                    filenamePrefix={`day-${draft.day}-carousel`}
+                  />
+                )}
               </TabsContent>
             ))}
           </Tabs>
