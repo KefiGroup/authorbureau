@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import CarouselPreview from "./CarouselPreview";
 import {
   Sheet,
   SheetContent,
