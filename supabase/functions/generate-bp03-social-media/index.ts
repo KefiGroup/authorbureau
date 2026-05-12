@@ -8,21 +8,22 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const SYSTEM_PROMPT =
   "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. Always personalise to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.";
 
-// 6 post archetypes, 5 posts each => 30 posts.
-// Order matters: this is the sequence assigned to days 1..30 across platforms.
+// 6 post archetypes (BP-03 v2), 5 posts each => 30 posts.
+// Author/thought-leader voice. These exact values are also stored in
+// social_posts.archetype (CHECK constraint), so changing them requires a
+// matching DB migration.
 const ARCHETYPES = [
-  "Quote Card",
-  "Stat / Insight",
-  "Story / Anecdote",
-  "Question / Engagement",
-  "Behind-the-Scenes",
-  "Direct CTA",
+  "Quote",
+  "Lesson",
+  "Question",
+  "Story",
+  "Framework",
+  "Proof",
 ] as const;
 
 // Build a 30-slot archetype map: 5 of each archetype, interleaved so the feed
 // doesn't look like a block of one type. Day index is 1-based.
 function archetypeForDay(day: number): string {
-  // Round-robin: day 1=Quote, 2=Stat, 3=Story, 4=Question, 5=BTS, 6=CTA, 7=Quote, ...
   return ARCHETYPES[(day - 1) % ARCHETYPES.length];
 }
 
@@ -120,13 +121,13 @@ Key frameworks: ${frameworks}
 POST ARCHETYPE MAP (30 days, 6 archetypes × 5 posts each, interleaved):
 ${archetypeManifest()}
 
-Each post MUST honour its assigned archetype:
-- Quote Card: a single sharp pull-quote from the book.
-- Stat / Insight: a surprising number or research-backed insight.
-- Story / Anecdote: a short narrative beat (your story, a client story, a scene).
-- Question / Engagement: open with a provocative question; invite reply.
-- Behind-the-Scenes: process, craft, or "how I built this" peek.
-- Direct CTA: a clear ask — read the book, opt in, share, etc.
+Each post MUST honour its assigned archetype (one short word):
+- Quote: a single sharp pull-quote drawn from the book.
+- Lesson: a teach-this-back insight from the book; one clear takeaway.
+- Question: open with a provocative question; invite a reply in the comments.
+- Story: a short narrative beat (your story, a client story, a scene from the book).
+- Framework: name and walk through one of the book's frameworks/models in 3-4 lines.
+- Proof: a result, case study, testimonial, or research-backed proof point.
 `.trim();
 
     const setProgress = async (step: number, label: string, partial: Record<string, unknown> = {}) => {
@@ -261,7 +262,7 @@ twitter_posts MUST have exactly 30 items in day order. outreach_kit MUST have ex
         day,
         theme: li.theme || ig.theme || fb.theme || tw.theme || "",
         post_type: archetype, // canonical archetype label
-        cta_type: archetype === "Direct CTA" ? "cta" : archetype === "Question / Engagement" ? "question" : "insight",
+        cta_type: archetype === "Question" ? "question" : archetype === "Quote" ? "quote" : "insight",
         linkedin: { caption: li.caption || "", hashtags: applyPool(li.hashtags || [], i * 4 + 0) },
         instagram: {
           caption: ig.caption || "",

@@ -4956,13 +4956,16 @@ export type Database = {
       }
       social_posts: {
         Row: {
+          archetype: string | null
           author_id: string
           book_id: string | null
+          carousel_slides: Json | null
           channel_id: string | null
           content: string
           created_at: string
           error_message: string | null
           graphic_url: string | null
+          graphics: Json | null
           id: string
           node_id: string
           platform: string
@@ -4975,13 +4978,16 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          archetype?: string | null
           author_id: string
           book_id?: string | null
+          carousel_slides?: Json | null
           channel_id?: string | null
           content: string
           created_at?: string
           error_message?: string | null
           graphic_url?: string | null
+          graphics?: Json | null
           id?: string
           node_id?: string
           platform: string
@@ -4994,13 +5000,16 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          archetype?: string | null
           author_id?: string
           book_id?: string | null
+          carousel_slides?: Json | null
           channel_id?: string | null
           content?: string
           created_at?: string
           error_message?: string | null
           graphic_url?: string | null
+          graphics?: Json | null
           id?: string
           node_id?: string
           platform?: string
