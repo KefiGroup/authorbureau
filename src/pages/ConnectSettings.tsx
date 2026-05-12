@@ -70,6 +70,13 @@ export default function ConnectSettings() {
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [pendingPaidCount, setPendingPaidCount] = useState(0);
   const [justConnected, setJustConnected] = useState<{ platform: string; account: string } | null>(null);
+  const [pagePicker, setPagePicker] = useState<{
+    platform: string;
+    tempToken: string;
+    pages: { id: string; name: string; picture: string | null }[];
+    selectedId: string | null;
+    submitting: boolean;
+  } | null>(null);
 
   const refresh = async () => {
     if (!user?.id) return;
