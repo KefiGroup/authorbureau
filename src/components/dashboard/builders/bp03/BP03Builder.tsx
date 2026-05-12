@@ -475,6 +475,15 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         scheduledCount: saved,
       });
 
+      void autosaveBuilderDraft({
+        authorId,
+        nodeId: "BP-03",
+        nodeName: "Social Media",
+        content: { ...(savedNode.content_json as any), _currentStep: 3, scheduledCount: saved },
+        currentStep: 3,
+        bookId: activeBookId,
+      });
+
       toast.success(`${saved} posts saved to your Social Calendar.`);
     } catch (e: any) {
       console.error("Activate error:", e);
