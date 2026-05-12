@@ -300,23 +300,40 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     }
   };
 
-  const downloadGraphic = async (post: SocialPost) => {
-    if (!post.graphic_url) return;
+  const downloadGraphic = async (post: SocialPost, sizeUrl?: string, sizeLabel?: string) => {
+    const url = sizeUrl || post.graphic_url;
+    if (!url) return;
     try {
-      const res = await fetch(post.graphic_url);
+      const res = await fetch(url);
       const blob = await res.blob();
       const ext = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg");
       const a = document.createElement("a");
-      const url = URL.createObjectURL(blob);
-      a.href = url;
-      a.download = `${post.platform}-post-${(post.post_index ?? 0) + 1}.${ext}`;
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      const suffix = sizeLabel ? `-${sizeLabel}` : "";
+      a.download = `${post.platform}-post-${(post.post_index ?? 0) + 1}${suffix}.${ext}`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objUrl);
     } catch {
-      window.open(post.graphic_url, "_blank", "noopener,noreferrer");
+      window.open(url, "_blank", "noopener,noreferrer");
     }
+  };
+
+  /** Returns up to three [label, url] pairs for the post's graphic variants. */
+  const graphicVariants = (post: SocialPost): Array<[string, string]> => {
+    const out: Array<[string, string]> = [];
+    const g = post.graphics;
+    if (g && typeof g === "object" && !Array.isArray(g)) {
+      if (g.landscape) out.push(["Landscape (1200×627)", g.landscape]);
+      if (g.portrait) out.push(["Portrait (1080×1350)", g.portrait]);
+      if (g.square) out.push(["Square (1080×1080)", g.square]);
+    }
+    if (out.length === 0 && post.graphic_url) {
+      out.push(["Graphic", post.graphic_url]);
+    }
+    return out;
   };
 
   const filteredPosts = useMemo(() => {
