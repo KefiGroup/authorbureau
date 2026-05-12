@@ -6312,6 +6312,67 @@ export type Database = {
           },
         ]
       }
+      membership_content_public: {
+        Row: {
+          author_id: string | null
+          benefits: Json | null
+          created_at: string | null
+          currency: string | null
+          monthly_price: number | null
+          name: string | null
+          sales_copy: Json | null
+          status: string | null
+          tagline: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          benefits?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          monthly_price?: number | null
+          name?: string | null
+          sales_copy?: Json | null
+          status?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          benefits?: Json | null
+          created_at?: string | null
+          currency?: string | null
+          monthly_price?: number | null
+          name?: string | null
+          sales_copy?: Json | null
+          status?: string | null
+          tagline?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_acknowledge_errors:
@@ -6446,6 +6507,7 @@ export type Database = {
         }[]
       }
       scrub_microsite_jsonb: { Args: { v: Json }; Returns: Json }
+      viewer_is_member: { Args: { p_author_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"

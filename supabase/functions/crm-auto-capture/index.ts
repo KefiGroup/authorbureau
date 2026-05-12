@@ -20,9 +20,42 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Basic email shape validation
+    const emailNorm = String(email).toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm) || emailNorm.length > 254) {
+      return new Response(JSON.stringify({ error: "invalid email" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Cap message size to prevent abuse
+    if (message && String(message).length > 4000) {
+      return new Response(JSON.stringify({ error: "message too long" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const sb = createClient(supabaseUrl, serviceRoleKey);
+
+    // Rate limit: max 5 captures per email per 5 minutes
+    try {
+      const { data: allowed } = await sb.rpc("check_rate_limit", {
+        p_key: `crm-auto-capture:${emailNorm}`,
+        p_limit: 5,
+        p_window_seconds: 300,
+      });
+      if (allowed === false) {
+        return new Response(JSON.stringify({ error: "rate limited, try again shortly" }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch (_) { /* rate-limit failure is non-fatal */ }
+
 
     // Determine which author_id to use — if not provided, use first admin
     let targetAuthorId = author_id;
