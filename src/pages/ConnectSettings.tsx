@@ -169,6 +169,45 @@ export default function ConnectSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // If we just returned from OAuth and the backend asked us to pick a Page,
+  // open the picker modal with the cached page list.
+  useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("social") === "pick-page") {
+      const platform = params.get("platform") || "";
+      const tempToken = params.get("token") || "";
+      if (tempToken) {
+        try {
+          const cached = sessionStorage.getItem(`social_pick_pages_${tempToken}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            setPagePicker({
+              platform: parsed.platform || platform,
+              tempToken,
+              pages: parsed.pages || [],
+              selectedId: parsed.pages?.[0]?.id || null,
+              submitting: false,
+            });
+          } else {
+            toast({
+              title: "Page list expired",
+              description: "Please click Connect again to choose your Facebook Page.",
+              variant: "destructive",
+            });
+          }
+        } catch (_) { /* noop */ }
+      }
+      params.delete("social");
+      params.delete("platform");
+      params.delete("token");
+      const qs = params.toString();
+      const newUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const connFor = (p: string) => connections.find(c => c.platform === p && (c.status === "connected" || c.status === "active"));
 
   const handleConnect = async (platform: string) => {
