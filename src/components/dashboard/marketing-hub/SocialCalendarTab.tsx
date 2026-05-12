@@ -1086,16 +1086,16 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         {copiedId === post.id ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
                         Copy
                       </Button>
-                      {graphicVariants(post).length > 0 && (
+                      {graphicVariants(post).length > 0 ? (
                         graphicVariants(post).length === 1 ? (
                           <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
-                            <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                            <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
                           </Button>
                         ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button size="sm" variant="outline">
-                                <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                                <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
@@ -1107,6 +1107,18 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => generateOneGraphic(post)}
+                          disabled={generatingGraphicForId === post.id}
+                        >
+                          {generatingGraphicForId === post.id
+                            ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                            : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                          {generatingGraphicForId === post.id ? "Designing…" : "Generate graphic"}
+                        </Button>
                       )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
