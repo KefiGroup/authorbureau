@@ -79,6 +79,9 @@ function flattenPosts(content: any): Array<{
       // Carousel resolution for Instagram: trust AI when it complied, else
       // synthesize 5 slides on every designated carousel day so we always
       // ship 6 carousels regardless of model compliance.
+      // Sprint 63: every Instagram post is a carousel. We synthesize 5 slides
+      // from the caption whenever the AI didn't produce a compliant set, so
+      // there are no longer "0 carousels" gaps when content_json is short.
       let carouselSlides: any = null;
       if (platform === "instagram") {
         const aiCompliant =
@@ -87,7 +90,7 @@ function flattenPosts(content: any): Array<{
           p.carousel_slides.length === 5;
         if (aiCompliant) {
           carouselSlides = p.carousel_slides;
-        } else if (CAROUSEL_IG_DAYS.has(dayNum)) {
+        } else {
           carouselSlides = synthesizeCarouselSlides(caption, archetype);
         }
         if (carouselSlides) {
@@ -425,12 +428,13 @@ Deno.serve(async (req) => {
       // Sniff for stale rows (legacy data with archetype=NULL or post_type='Insight').
       // If found, rebuild from content_json so the deterministic archetype rotation
       // and IG carousel synthesis from flattenPosts() take effect.
+      // Sprint 63: also treat any Instagram row missing carousel_slides as stale.
       let stalePostsQuery = cloudAdmin
         .from("social_posts")
-        .select("id, archetype, post_type", { count: "exact", head: false })
+        .select("id, archetype, post_type, platform, carousel_slides", { count: "exact", head: false })
         .eq("author_id", authorProfile.id)
         .eq("node_id", "BP-03")
-        .or("archetype.is.null,post_type.eq.Insight")
+        .or("archetype.is.null,post_type.eq.Insight,and(platform.eq.instagram,carousel_slides.is.null)")
         .limit(1);
       const { data: staleProbe } = await stalePostsQuery;
       const isStale = Array.isArray(staleProbe) && staleProbe.length > 0;

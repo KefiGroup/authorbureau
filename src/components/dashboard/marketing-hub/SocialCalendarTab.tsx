@@ -201,8 +201,13 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
 
       // Sprint 62 — silent one-shot repair for legacy rows written before the
       // archetype/carousel fix shipped (archetype=NULL or post_type='Insight').
+      // Sprint 63 — widen staleness check: legacy archetype/Insight OR
+      // Instagram rows missing carousel_slides (BUG-2).
       const isStale = loadedPosts.some(
-        (p) => !p.archetype || p.post_type === "Insight",
+        (p) =>
+          !p.archetype ||
+          p.post_type === "Insight" ||
+          (p.platform === "instagram" && !(Array.isArray(p.carousel_slides) && p.carousel_slides.length > 0)),
       );
       if (isStale && authorId) {
         try {
@@ -338,8 +343,17 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         toast.error(json?.message || "Couldn't generate graphics. Please try again.");
         return;
       }
-      if (json.generated > 0) toast.success(json.message || `${json.generated} graphic(s) ready`);
-      else toast.info(json.message || "No new graphics needed — every post already has one.");
+      const gen = Number(json.generated || 0);
+      const failed = Number(json.failed || 0);
+      if (gen > 0 && failed === 0) {
+        toast.success(json.message || `${gen} graphic(s) ready — each card now has a Download graphic button.`);
+      } else if (gen > 0 && failed > 0) {
+        toast.success(`${gen} graphic(s) ready, ${failed} failed. Try the failed ones one at a time.`);
+      } else if (gen === 0 && failed > 0) {
+        toast.error(`Generation ran but ${failed} graphic(s) failed. Please try again in a moment.`);
+      } else {
+        toast.info(json.message || "No new graphics needed — every post already has one.");
+      }
       await load();
     } finally {
       setGeneratingGraphics(false);
@@ -798,6 +812,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         <div className="space-y-1">
           <p><strong className="text-foreground">How this works:</strong> Each unscheduled post below shows the AI-written copy. <strong className="text-foreground">Click Schedule</strong> to pick the exact date and time it should go live, <strong className="text-foreground">drag it</strong> onto a calendar day, or click <strong className="text-foreground">Post Now</strong> to publish immediately.</p>
           <p>Once scheduled, posts appear on the calendar as blue dots. Click any day with a dot to view, edit, or reschedule.</p>
+          <p><strong className="text-foreground">Graphics:</strong> Click <em>Generate graphic</em> on any card. Once it's ready (about 10 seconds), the same button becomes <em>Download graphic</em>.</p>
         </div>
       </div>
 
