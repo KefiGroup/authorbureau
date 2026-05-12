@@ -41,6 +41,7 @@ import {
   composerUrl,
   dayKey,
 } from "@/components/dashboard/builders/shared/socialKitHelpers";
+import CarouselPreview from "@/components/dashboard/builders/bp03/CarouselPreview";
 
 interface Props {
   authorId: string | null;
