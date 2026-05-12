@@ -343,8 +343,17 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         toast.error(json?.message || "Couldn't generate graphics. Please try again.");
         return;
       }
-      if (json.generated > 0) toast.success(json.message || `${json.generated} graphic(s) ready`);
-      else toast.info(json.message || "No new graphics needed — every post already has one.");
+      const gen = Number(json.generated || 0);
+      const failed = Number(json.failed || 0);
+      if (gen > 0 && failed === 0) {
+        toast.success(json.message || `${gen} graphic(s) ready — each card now has a Download graphic button.`);
+      } else if (gen > 0 && failed > 0) {
+        toast.success(`${gen} graphic(s) ready, ${failed} failed. Try the failed ones one at a time.`);
+      } else if (gen === 0 && failed > 0) {
+        toast.error(`Generation ran but ${failed} graphic(s) failed. Please try again in a moment.`);
+      } else {
+        toast.info(json.message || "No new graphics needed — every post already has one.");
+      }
       await load();
     } finally {
       setGeneratingGraphics(false);
