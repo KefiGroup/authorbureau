@@ -421,6 +421,38 @@ Deno.serve(async (req) => {
       return respond({ success: true, saved, node: normalizeNode(existingNode) });
     }
 
+    if (action === "auto_repair_if_stale") {
+      // Sniff for stale rows (legacy data with archetype=NULL or post_type='Insight').
+      // If found, rebuild from content_json so the deterministic archetype rotation
+      // and IG carousel synthesis from flattenPosts() take effect.
+      let stalePostsQuery = cloudAdmin
+        .from("social_posts")
+        .select("id, archetype, post_type", { count: "exact", head: false })
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03")
+        .or("archetype.is.null,post_type.eq.Insight")
+        .limit(1);
+      const { data: staleProbe } = await stalePostsQuery;
+      const isStale = Array.isArray(staleProbe) && staleProbe.length > 0;
+      if (!isStale) {
+        return respond({ success: true, repaired: false, count: 0 });
+      }
+
+      let nodeQ = cloudAdmin
+        .from("author_nodes")
+        .select("id, content_json, book_id")
+        .eq("author_id", authorProfile.id)
+        .eq("node_id", "BP-03");
+      if (requestedBookId) nodeQ = nodeQ.eq("book_id", requestedBookId);
+      const { data: existingNode } = await nodeQ.maybeSingle();
+      const cj: any = existingNode?.content_json || null;
+      if (!hasUsableSocialKit(cj)) {
+        return respond({ success: true, repaired: false, count: 0 });
+      }
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj);
+      return respond({ success: true, repaired: true, count: saved });
+    }
+
     if (action !== "save") {
       return respond({ success: false, error: "Unsupported action." });
     }

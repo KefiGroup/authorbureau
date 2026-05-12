@@ -71,6 +71,16 @@ const PLATFORM_FILTERS = [
   { id: "x", label: "X" },
 ];
 
+// Sprint 62 — fallback rotation that never renders "Insight". Keeps badges
+// correct even if a legacy row sneaks through with archetype=null.
+const ARCHETYPES_FE = ["Quote", "Lesson", "Question", "Story", "Framework", "Proof"] as const;
+const archetypeLabel = (post: { archetype?: string | null; post_type?: string | null; post_index?: number | null }) => {
+  if (post.archetype && post.archetype !== "Insight") return post.archetype;
+  if (post.post_type && post.post_type !== "Insight") return post.post_type;
+  const idx = typeof post.post_index === "number" ? post.post_index : 0;
+  return ARCHETYPES_FE[Math.floor(idx / 4) % ARCHETYPES_FE.length];
+};
+
 const PLATFORM_COLORS: Record<string, string> = {
   linkedin: "bg-[#0A66C2]",
   instagram: "bg-pink-500",
@@ -188,6 +198,41 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
       const loadedPosts: SocialPost[] = result.posts || [];
       setBp03Activated(!!result.bp03_activated);
       setPosts(loadedPosts);
+
+      // Sprint 62 — silent one-shot repair for legacy rows written before the
+      // archetype/carousel fix shipped (archetype=NULL or post_type='Insight').
+      const isStale = loadedPosts.some(
+        (p) => !p.archetype || p.post_type === "Insight",
+      );
+      if (isStale && authorId) {
+        try {
+          const token = await getActiveToken();
+          if (token) {
+            const repairRes = await fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-node-state`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                  action: "auto_repair_if_stale",
+                  author_id: authorId,
+                  ...(bookId ? { book_id: bookId } : {}),
+                }),
+              },
+            );
+            const repairJson = await repairRes.json().catch(() => null);
+            if (repairJson?.repaired) {
+              const refreshed = await callMarketingHubState<{
+                bp03_activated: boolean;
+                posts: SocialPost[];
+              }>("social_calendar", bookId ? { book_id: bookId } : {});
+              setPosts(refreshed.posts || []);
+            }
+          }
+        } catch (repairErr) {
+          console.warn("[SocialCalendar] auto-repair skipped:", repairErr);
+        }
+      }
 
       const earliest = loadedPosts
         .filter((p) => !!p.scheduled_at)
@@ -940,7 +985,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
                           {platformIcon(post.platform)}
                           <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
-                          {(post.archetype || post.post_type) && <Badge variant="outline" className="text-[10px]">{post.archetype || post.post_type}</Badge>}
+                          <Badge variant="outline" className="text-[10px]">{archetypeLabel(post)}</Badge>
                         </div>
                         {statusBadge(post.status)}
                       </div>
@@ -1052,7 +1097,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
                         {platformIcon(post.platform)}
                         <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
-                        {(post.archetype || post.post_type) && <Badge variant="outline" className="text-[10px]">{post.archetype || post.post_type}</Badge>}
+                        <Badge variant="outline" className="text-[10px]">{archetypeLabel(post)}</Badge>
                         {post.scheduled_at && (
                           <span className="text-[10px] text-muted-foreground">
                             · {new Date(post.scheduled_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
