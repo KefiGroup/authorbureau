@@ -244,6 +244,25 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
     // Always emit exactly 20 days
     const days = 20;
     const posts = [];
+
+    // Carousel fallback: if AI didn't honour format=carousel + 5 slides on a
+    // designated day, manufacture slides from the IG caption so we always ship 6.
+    const synthesizeSlides = (caption: string, archetype: string) => {
+      const lines = (caption || "").split(/\n+/).map((s) => s.trim()).filter(Boolean);
+      const sentences = (caption || "").replace(/\s+/g, " ").split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+      const pool = lines.length >= 4 ? lines : sentences;
+      const cover = (pool[0] || archetype || "Read this").slice(0, 60);
+      const insights = [pool[1], pool[2], pool[3]].map((s, i) => (s || `Key insight ${i + 1}`).slice(0, 200));
+      const cta = (pool[pool.length - 1] || "Grab the book to go deeper.").slice(0, 200);
+      return [
+        { headline: cover, body: archetype ? `${archetype} from the book.` : "From the book." },
+        { headline: "Insight 1", body: insights[0] },
+        { headline: "Insight 2", body: insights[1] },
+        { headline: "Insight 3", body: insights[2] },
+        { headline: "Get the book", body: cta },
+      ];
+    };
+
     for (let i = 0; i < days; i++) {
       const day = i + 1;
       const archetype = archetypeForDay(day);
@@ -252,11 +271,14 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
       const fb = facebook[i] || {};
       const tw = twitter[i] || {};
 
-      // Force-correct format flag for IG: if AI didn't comply, snap to spec.
+      // Force-correct format flag for IG. On a designated carousel day,
+      // ALWAYS persist carousel_slides (synthesize when AI didn't comply).
       const shouldBeCarousel = CAROUSEL_IG_DAYS.has(day);
       const aiSaysCarousel = (ig.format === "carousel") && Array.isArray(ig.carousel_slides) && ig.carousel_slides.length === 5;
-      const igFormat = shouldBeCarousel && aiSaysCarousel ? "carousel" : "single";
-      const igSlides = shouldBeCarousel && aiSaysCarousel ? ig.carousel_slides : null;
+      const igFormat = shouldBeCarousel ? "carousel" : "single";
+      const igSlides = shouldBeCarousel
+        ? (aiSaysCarousel ? ig.carousel_slides : synthesizeSlides(ig.caption || "", archetype))
+        : null;
 
       posts.push({
         day,

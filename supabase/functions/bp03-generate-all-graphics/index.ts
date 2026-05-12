@@ -119,6 +119,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const authorId: string | null = body?.author_id ?? null;
     const bookId: string | null = body?.book_id ?? null;
+    const postId: string | null = body?.post_id ?? null;
     const limit: number = Math.min(Math.max(Number(body?.limit) || 30, 1), 30);
 
     if (!authorId) {
@@ -167,19 +168,24 @@ Deno.serve(async (req) => {
       .select("id, platform, content, archetype, post_type, graphics, graphic_url")
       .eq("author_id", authorId)
       .eq("node_id", "BP-03")
-      .in("status", ["draft", "ready"])
-      .order("post_index", { ascending: true })
-      .limit(limit);
+      .order("post_index", { ascending: true });
+    if (postId) {
+      postsQuery = postsQuery.eq("id", postId);
+    } else {
+      postsQuery = postsQuery.in("status", ["draft", "ready"]).limit(limit);
+    }
     if (bookId) postsQuery = postsQuery.eq("book_id", bookId);
     const { data: posts, error: pErr } = await postsQuery;
     if (pErr) throw pErr;
 
-    // Skip posts that already have all 3 sizes generated.
-    const targets = (posts || []).filter((p: any) => {
-      const g = p.graphics;
-      const has3 = g && typeof g === "object" && g.landscape && g.portrait && g.square;
-      return !has3;
-    });
+    // For single-post mode, always generate (skip the "already has 3 sizes" gate).
+    const targets = postId
+      ? (posts || [])
+      : (posts || []).filter((p: any) => {
+          const g = p.graphics;
+          const has3 = g && typeof g === "object" && g.landscape && g.portrait && g.square;
+          return !has3;
+        });
 
     const SIZES: SizeKey[] = ["landscape", "portrait", "square"];
     let generated = 0;

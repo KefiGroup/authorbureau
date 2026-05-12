@@ -1,43 +1,38 @@
-## Goal
+## BP-03 Bug Fixes — Pure Copy-Paste Library
 
-Pivot BP-03 to a pure **copy-paste social library** model: 20 posts across 6 archetypes, ~6 Instagram carousels, no platform connections anywhere.
+### Root cause
+After the previous pivot, the generator stamps the canonical archetype + carousel days into `content_json.posts`, but **(a)** existing/legacy days where the AI returned `post_type: "Insight"` slip through `flattenPosts` because we only kept the AI value if it matched the archetype set, and **(b)** carousels only appear when the AI complied with `format: "carousel"` + 5 slides — there's no fallback. Per-card download is also gated on `post.graphic_url` existing, so cards without graphics show no button at all.
 
----
+### Fixes
 
-## Changes
+**BUG-1 — Deterministic archetype assignment**
+File: `supabase/functions/bp03-node-state/index.ts`
+- In `flattenPosts`, replace the `ARCHETYPES.has(d?.post_type)` check with a deterministic `archetypeForDay(day)` rotation matching the generator (Quote, Lesson, Question, Story, Framework, Proof). This guarantees the 6-archetype label distribution is preserved even on legacy/repaired data — never falls back to "Insight".
+- Persist this archetype to both `social_posts.archetype` and `social_posts.post_type`.
 
-### 1. Spec: 30 → 20 posts (5 files)
-- **`generate-bp03-social-media/index.ts`** — change loop `days = 30` → `20`; archetype manifest 30 → 20; `CAROUSEL_IG_DAYS` set → 6 evenly-spread days `{3, 6, 10, 13, 17, 20}`; update all "30 LinkedIn / 30 Instagram / 30 Facebook / 30 X" prompts to "20"; update `rotating` hashtag pool count from 30 → 20; update default `calendar_name` and `abby_summary`.
-- **`bp03-node-state/index.ts`** — update repair-path day count and any `30` literals to `20`.
-- **`bp03-generate-all-graphics/index.ts`** — update batch size if it iterates 30.
-- **`BP03Builder.tsx`** — subtitle and intro copy: "20 posts across 6 archetypes (5 each from Quote / Lesson / Question / Story / Framework / Proof) + ~6 Instagram carousels + outreach kit".
-- **`MarketingHub.tsx`** — campaign description "20 posts".
-- **`SocialCalendarTab.tsx`** — any visible "30 posts" labels.
-- **`docs/04-node-frameworks/BP-03.md`** + **`README.md`** — update spec to 20.
+**BUG-2 — Per-card "Download graphic" / "Generate graphic" button**
+File: `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
+- In the **Unscheduled posts** card row (~line 949-953), always render a graphic button:
+  - If `post.graphic_url` exists → "Download graphic" (existing behavior via `downloadGraphic(post)`).
+  - If not → "Generate graphic" button that calls a new lightweight handler `generateOneGraphic(post)` which invokes a single-post pass of `bp03-generate-all-graphics` (using the existing edge fn with a `post_id` filter, see below) and then refreshes.
+- Add the same per-card button in the expanded-day post list for parity (~line 1047).
 
-### 2. Archetype labels actually render
-Already canonical in generator (Sprint fix landed). Verify `SocialCalendarTab.tsx` reads `post.post_type` (or `archetype` column) and renders that as the badge — not a hardcoded "Insight" string. Fix if still hardcoded.
+File: `supabase/functions/bp03-generate-all-graphics/index.ts`
+- Accept an optional `post_id` in the request body; when present, restrict the loop to that single post and skip the "already has one" gate. Keeps the bulk path unchanged.
 
-### 3. Hide ALL social-connection UI (copy-paste only)
-- **`src/pages/ConnectSettings.tsx`** — remove the entire "Social Accounts" section (LinkedIn / Facebook / Instagram / X tiles). Keep email + payout sections only.
-- **`SocialCalendarTab.tsx`** — remove "Connect" CTAs, remove the `useSocialConnectionStatus` gate, remove "Mark as Posted" auto-publish path. Replace per-card actions with: **Copy Caption**, **Copy Hashtags**, **Download Image**, **Download Carousel ZIP** (where applicable).
-- **`BP03Builder.tsx`** — Step 4 stays "Send to Social Calendar" but description reframes as "Save to your copy-paste library" (no "Activate auto-posting" wording).
-- **Dashboard banner** — remove "Connect your social accounts" prompt if it appears (search `useSocialConnectionStatus` callsites).
-- Leave the underlying `social_connections` table + `social-connect-callback` edge function in place (no DB drops) — just hide the UI. This keeps the rollback path open.
+**BUG-3 — Carousel fallback synthesis**
+File: `supabase/functions/bp03-node-state/index.ts` (`flattenPosts`)
+- If `platform === "instagram"` AND `day ∈ {3,6,9,12,15,18}` AND the IG record is missing valid carousel_slides, synthesize 5 slides from the caption (cover hook + 3 insight lines split from caption + CTA line). Mark `isCarousel = true` so the caption gets the "— Carousel script (5 slides) —" appendage and `carousel_slides` is populated. This guarantees 6 IG carousels regardless of AI compliance.
 
-### 4. Instagram carousels (~6 of 20)
-Generator already produces `format: "carousel"` with 5 slides on the `CAROUSEL_IG_DAYS`. Confirm `SocialCalendarTab.tsx` renders `<CarouselPreview>` when `instagram.format === "carousel"` and offers a "Download Carousel ZIP" (5 image variants) action. If ZIP download doesn't exist yet, add a client-side JSZip bundler over the existing `graphics` URLs.
+File: `supabase/functions/generate-bp03-social-media/index.ts`
+- Add the same synthesis as a post-AI safety net for `instagram_posts[i]` when the day is a carousel day and the AI returned `format: "single"` or fewer than 5 slides — so freshly-generated kits also always have 6 carousels stored in `content_json`.
 
-### 5. Copy/docs sweep
-- Replace every "30 posts" / "30-day" string in BP-03 surfaces with "20 posts" / "20-day".
-- Memory update: amend `mem://features/abby-copy-paste-social-factory-sprint61` to lock the new spec (20 posts, 6 archetypes, ~6 carousels, no connections).
+### Out of scope
+- No DB migration. `social_posts.archetype` already accepts the 6 canonical values.
+- No changes to ZIP export, calendar grid, or scheduling flow.
+- No changes to BP-02, MarketingHub, or other builders.
 
----
-
-## Out of scope
-- No DB migration. `social_connections` table and OAuth functions stay (dormant).
-- No changes to BP-02 social pack or other builders.
-- No new dependencies beyond JSZip (only if ZIP download is missing — will check first).
-
-## Files touched (estimated)
-~10 files: 4 edge functions, 4 React components/pages, 2 doc/markdown files, 1 memory file.
+### Verification
+1. Click "Generate 20 more posts" on Social Calendar → archetypes rotate Quote/Lesson/Question/Story/Framework/Proof across 20 days; 0 cards labelled "Insight".
+2. Each unscheduled card shows either "Download graphic" or "Generate graphic"; clicking "Generate graphic" produces a graphic and the button flips to "Download graphic".
+3. Days 3, 6, 9, 12, 15, 18 (Instagram only) render the `<CarouselPreview>` with 5 slides and a Download Carousel ZIP control.

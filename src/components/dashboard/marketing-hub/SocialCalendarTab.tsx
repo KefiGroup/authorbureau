@@ -157,6 +157,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const [refilling, setRefilling] = useState(false);
   const [autoRefilling, setAutoRefilling] = useState(false);
   const [generatingGraphics, setGeneratingGraphics] = useState(false);
+  const [generatingGraphicForId, setGeneratingGraphicForId] = useState<string | null>(null);
   const autoRefilledFor = useRef<Set<string>>(new Set());
 
   const formatDateTimeInput = (value: string | null) => {
@@ -297,6 +298,35 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
       await load();
     } finally {
       setGeneratingGraphics(false);
+    }
+  };
+
+  // Generate the 3 graphic variants for a single post on-demand.
+  const generateOneGraphic = async (post: SocialPost) => {
+    if (!authorId) return;
+    setGeneratingGraphicForId(post.id);
+    try {
+      const token = await getActiveToken();
+      if (!token) { toast.error("Session expired. Please sign in again."); return; }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-generate-all-graphics`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ author_id: authorId, book_id: bookId || null, post_id: post.id }),
+        },
+        180000,
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        toast.error(json?.message || "Couldn't generate graphic. Please try again.");
+        return;
+      }
+      if ((json.generated || 0) > 0) toast.success("Graphic ready");
+      else toast.info("Graphic already exists.");
+      await load();
+    } finally {
+      setGeneratingGraphicForId(null);
     }
   };
 
@@ -946,9 +976,21 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         <Button size="sm" variant="outline" onClick={() => copyAndOpen(post)}>
                           <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open {PLATFORM_LABELS[post.platform] || post.platform}
                         </Button>
-                        {post.graphic_url && (
+                        {post.graphic_url ? (
                           <Button size="sm" variant="outline" onClick={() => downloadGraphic(post)}>
-                            <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                            <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateOneGraphic(post)}
+                            disabled={generatingGraphicForId === post.id}
+                          >
+                            {generatingGraphicForId === post.id
+                              ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                            {generatingGraphicForId === post.id ? "Designing…" : "Generate graphic"}
                           </Button>
                         )}
                         <Button size="sm" variant="ghost" onClick={() => markAsPosted(post)}>
@@ -1044,16 +1086,16 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         {copiedId === post.id ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
                         Copy
                       </Button>
-                      {graphicVariants(post).length > 0 && (
+                      {graphicVariants(post).length > 0 ? (
                         graphicVariants(post).length === 1 ? (
                           <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
-                            <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                            <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
                           </Button>
                         ) : (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button size="sm" variant="outline">
-                                <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                                <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start">
@@ -1065,6 +1107,18 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         )
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => generateOneGraphic(post)}
+                          disabled={generatingGraphicForId === post.id}
+                        >
+                          {generatingGraphicForId === post.id
+                            ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                            : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                          {generatingGraphicForId === post.id ? "Designing…" : "Generate graphic"}
+                        </Button>
                       )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
