@@ -301,7 +301,34 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     }
   };
 
-  const downloadGraphic = async (post: SocialPost, sizeUrl?: string, sizeLabel?: string) => {
+  // Generate the 3 graphic variants for a single post on-demand.
+  const generateOneGraphic = async (post: SocialPost) => {
+    if (!authorId) return;
+    setGeneratingGraphicForId(post.id);
+    try {
+      const token = await getActiveToken();
+      if (!token) { toast.error("Session expired. Please sign in again."); return; }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-generate-all-graphics`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ author_id: authorId, book_id: bookId || null, post_id: post.id }),
+        },
+        180000,
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        toast.error(json?.message || "Couldn't generate graphic. Please try again.");
+        return;
+      }
+      if ((json.generated || 0) > 0) toast.success("Graphic ready");
+      else toast.info("Graphic already exists.");
+      await load();
+    } finally {
+      setGeneratingGraphicForId(null);
+    }
+  };
     const url = sizeUrl || post.graphic_url;
     if (!url) return;
     try {
