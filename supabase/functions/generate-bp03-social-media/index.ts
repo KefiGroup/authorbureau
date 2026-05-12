@@ -117,23 +117,26 @@ The array must have exactly 5 items.`,
       6000
     );
 
-    // STEP 2 — Instagram + Facebook
+    // STEP 2 — Instagram + Facebook (with 5-slide carousel scripts on ~30% of IG posts)
     await setProgress(2, "Writing Instagram & Facebook posts...", step1);
     const step2 = await callAI(
       `${baseContext}
 
 Generate exactly 5 Instagram posts and 5 Facebook posts for the book above.
-- Instagram: visual-first caption, hook in line 1, conversational and aspirational, 80–120 words.
+- Instagram: visual-first caption, hook in line 1, conversational and aspirational, 80–120 words. Add alt_text describing the suggested image (1 short sentence).
 - Facebook: story-format with question at end, warm community-focused tone, 100–150 words.
 Each ends with a CTA pointing to the book.
 
+CAROUSEL RULE: Mark exactly 2 of the 5 Instagram posts (positions 2 and 4) as format="carousel" and supply carousel_slides — exactly 5 slides each in this structure: slide 1 = cover hook, slides 2-4 = three insights from the book, slide 5 = CTA. Each slide has { headline (≤8 words), body (≤25 words) }.
+The other 3 Instagram posts use format="single" and omit carousel_slides.
+
 Respond with JSON only:
 {
-  "instagram_posts": [{ "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }],
+  "instagram_posts": [{ "day": 1, "theme": "...", "format": "single", "caption": "...", "hashtags": ["..."], "alt_text": "...", "cta": "...", "carousel_slides": null }],
   "facebook_posts": [{ "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }]
 }
-Each array must have exactly 5 items.`,
-      8000
+Each array must have exactly 5 items. carousel_slides is null for single posts and a 5-item array for carousel posts.`,
+      10000
     );
 
     // STEP 3 — Twitter/X + outreach
@@ -151,13 +154,12 @@ Respond with JSON only:
   "outreach_kit": [{ "type": "Podcast Pitch Email", "subject": "...", "body": "..." }],
   "calendar_name": "Short name for this starter kit",
   "abby_summary": "2-3 sentence summary of what was created",
-  "hashtag_strategy": {
-    "primary_hashtags": ["3-5"],
-    "secondary_hashtags": ["5-8"],
-    "author_hashtag": "#..."
+  "hashtag_pool": {
+    "anchors": ["5 anchor hashtags locked from the book's core themes — used on every post for identity consistency. No # symbol, just the word."],
+    "rotating": ["30 rotating hashtags drawn from the book's adjacent topics, audience interests, and niche communities. No # symbol."]
   }
 }
-The twitter_posts array must have exactly 5 items. The outreach_kit array must have exactly 3 items.`,
+The twitter_posts array must have exactly 5 items. The outreach_kit array must have exactly 3 items. anchors must have exactly 5 items. rotating must have exactly 30 items.`,
       6000
     );
 
@@ -167,6 +169,26 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
     const facebook = merged.facebook_posts || [];
     const twitter = merged.twitter_posts || [];
 
+    // Hashtag pool: 5 anchor (locked) + 30 rotating. Each post gets anchors + 5 rotating tags
+    // selected by index so the same post slot always shows the same rotation (deterministic).
+    const rawPool = merged.hashtag_pool || {};
+    const anchorTags: string[] = (Array.isArray(rawPool.anchors) ? rawPool.anchors : [])
+      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 5);
+    const rotatingPool: string[] = (Array.isArray(rawPool.rotating) ? rawPool.rotating : [])
+      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 30);
+    const pickRotating = (seed: number): string[] => {
+      if (rotatingPool.length === 0) return [];
+      const out: string[] = [];
+      for (let k = 0; k < 5; k++) out.push(rotatingPool[(seed * 5 + k) % rotatingPool.length]);
+      return out;
+    };
+    const applyPool = (existing: string[], seed: number): string[] => {
+      const merged = new Set<string>([...anchorTags, ...pickRotating(seed)]);
+      // Keep up to 3 of the AI-generated platform-specific tags as flavour
+      (existing || []).slice(0, 3).forEach((t) => merged.add(String(t).replace(/^#/, "").trim()));
+      return Array.from(merged).filter(Boolean);
+    };
+
     const days = Math.max(linkedin.length, instagram.length, facebook.length, twitter.length);
     const posts = [];
     for (let i = 0; i < days; i++) {
@@ -174,24 +196,31 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
       const ig = instagram[i] || {};
       const fb = facebook[i] || {};
       const tw = twitter[i] || {};
+      const igCarousel = Array.isArray(ig.carousel_slides) && ig.carousel_slides.length === 5;
       posts.push({
         day: i + 1,
         theme: li.theme || ig.theme || fb.theme || tw.theme || "",
         post_type: "Insight",
         cta_type: "insight",
-        linkedin: { caption: li.caption || "", hashtags: li.hashtags || [] },
-        instagram: { caption: ig.caption || "", hashtags: ig.hashtags || [] },
-        facebook: { caption: fb.caption || "", hashtags: fb.hashtags || [] },
-        twitter: { caption: tw.caption || "", hashtags: tw.hashtags || [] },
+        linkedin: { caption: li.caption || "", hashtags: applyPool(li.hashtags || [], i * 4 + 0) },
+        instagram: {
+          caption: ig.caption || "",
+          hashtags: applyPool(ig.hashtags || [], i * 4 + 1),
+          alt_text: ig.alt_text || "",
+          format: igCarousel ? "carousel" : "single",
+          carousel_slides: igCarousel ? ig.carousel_slides : null,
+        },
+        facebook: { caption: fb.caption || "", hashtags: applyPool(fb.hashtags || [], i * 4 + 2) },
+        twitter: { caption: tw.caption || "", hashtags: applyPool(tw.hashtags || [], i * 4 + 3) },
       });
     }
 
     const finalContent = {
       calendar_name: merged.calendar_name || "Social Media Starter Kit",
-      hashtag_strategy: merged.hashtag_strategy || { primary_hashtags: [], secondary_hashtags: [], author_hashtag: "" },
+      hashtag_pool: { anchors: anchorTags, rotating: rotatingPool },
       posts,
       outreach_kit: merged.outreach_kit || [],
-      abby_summary: merged.abby_summary || `Your social media starter kit for '${bookTitle}' is ready — 20 posts across 4 platforms plus 3 outreach templates.`,
+      abby_summary: merged.abby_summary || `Your copy-paste social kit for '${bookTitle}' is ready — 20 posts across 4 platforms (with Instagram carousels) plus 3 outreach templates.`,
     };
 
     await upsertAuthorNode(sb, author_id, "BP-03", "Social Media", {
