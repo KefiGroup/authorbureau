@@ -896,6 +896,16 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                       <p className="text-sm text-foreground whitespace-pre-line mb-2 line-clamp-3">
                         {post.content}
                       </p>
+                      {post.graphic_url && (
+                        <div className="mb-2">
+                          <img
+                            src={post.graphic_url}
+                            alt=""
+                            className="rounded-md border border-border max-h-32 object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-2">
                         <Button size="sm" onClick={() => startSchedule(post)}>
                           <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Schedule
@@ -907,6 +917,11 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           {copiedId === post.id ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
                           Copy
                         </Button>
+                        {post.graphic_url && (
+                          <Button size="sm" variant="outline" onClick={() => downloadGraphic(post)}>
+                            <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </div>
