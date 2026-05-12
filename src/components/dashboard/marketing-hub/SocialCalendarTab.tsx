@@ -267,7 +267,53 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     }
   };
 
-  const filteredPosts = useMemo(() => {
+  // Batch-generate copy-paste-ready graphics for every BP-03 post that doesn't yet have one.
+  const generateAllGraphics = async () => {
+    if (!authorId) return;
+    setGeneratingGraphics(true);
+    try {
+      const token = await getActiveToken();
+      if (!token) { toast.error("Session expired. Please sign in again."); return; }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-generate-all-graphics`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ author_id: authorId, book_id: bookId || null, limit: 20 }),
+        },
+        180000,
+      );
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.success) {
+        toast.error(json?.message || "Couldn't generate graphics. Please try again.");
+        return;
+      }
+      if (json.generated > 0) toast.success(json.message || `${json.generated} graphic(s) ready`);
+      else toast.info(json.message || "No new graphics needed — every post already has one.");
+      await load();
+    } finally {
+      setGeneratingGraphics(false);
+    }
+  };
+
+  const downloadGraphic = async (post: SocialPost) => {
+    if (!post.graphic_url) return;
+    try {
+      const res = await fetch(post.graphic_url);
+      const blob = await res.blob();
+      const ext = (blob.type.split("/")[1] || "png").replace("jpeg", "jpg");
+      const a = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = `${post.platform}-post-${(post.post_index ?? 0) + 1}.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      window.open(post.graphic_url, "_blank", "noopener,noreferrer");
+    }
+  };
     if (filter === "all") return posts;
     return posts.filter(p => {
       if (filter === "x") return p.platform === "x" || p.platform === "twitter";
