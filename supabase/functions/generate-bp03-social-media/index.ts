@@ -8,21 +8,22 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
 const SYSTEM_PROMPT =
   "You are ABBY, the AI business agent for Authors Bureau. You help authors turn their books into complete business empires. Always personalise to the author's specific book, audience, and niche. Never be generic. Always respond with valid JSON only — no markdown, no code fences.";
 
-// 6 post archetypes, 5 posts each => 30 posts.
-// Order matters: this is the sequence assigned to days 1..30 across platforms.
+// 6 post archetypes (BP-03 v2), 5 posts each => 30 posts.
+// Author/thought-leader voice. These exact values are also stored in
+// social_posts.archetype (CHECK constraint), so changing them requires a
+// matching DB migration.
 const ARCHETYPES = [
-  "Quote Card",
-  "Stat / Insight",
-  "Story / Anecdote",
-  "Question / Engagement",
-  "Behind-the-Scenes",
-  "Direct CTA",
+  "Quote",
+  "Lesson",
+  "Question",
+  "Story",
+  "Framework",
+  "Proof",
 ] as const;
 
 // Build a 30-slot archetype map: 5 of each archetype, interleaved so the feed
 // doesn't look like a block of one type. Day index is 1-based.
 function archetypeForDay(day: number): string {
-  // Round-robin: day 1=Quote, 2=Stat, 3=Story, 4=Question, 5=BTS, 6=CTA, 7=Quote, ...
   return ARCHETYPES[(day - 1) % ARCHETYPES.length];
 }
 
