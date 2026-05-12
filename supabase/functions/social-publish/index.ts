@@ -151,6 +151,27 @@ Deno.serve(async (req) => {
         publish_error: null,
       }).eq("id", post_id);
 
+      // Bell notification — author sees this even if they're on another page.
+      try {
+        const { data: ap } = await admin
+          .from("author_profiles")
+          .select("user_id")
+          .eq("id", post.author_id)
+          .maybeSingle();
+        if (ap?.user_id) {
+          const platformLabel = post.platform.charAt(0).toUpperCase() + post.platform.slice(1);
+          await admin.from("notifications").insert({
+            user_id: ap.user_id,
+            title: `${platformLabel} post is live`,
+            message: (post.content_text || "").slice(0, 140),
+            link: publishedUrl || "/dashboard?section=marketing-hub&tab=social-calendar",
+            read: false,
+          });
+        }
+      } catch (notifyErr) {
+        console.warn("[social-publish] notification insert failed", notifyErr);
+      }
+
       return json({ success: true, url: publishedUrl, id: publishedId });
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Publish failed";
@@ -158,6 +179,27 @@ Deno.serve(async (req) => {
         status: "failed",
         publish_error: msg,
       }).eq("id", post_id);
+
+      try {
+        const { data: ap } = await admin
+          .from("author_profiles")
+          .select("user_id")
+          .eq("id", post.author_id)
+          .maybeSingle();
+        if (ap?.user_id) {
+          const platformLabel = post.platform.charAt(0).toUpperCase() + post.platform.slice(1);
+          await admin.from("notifications").insert({
+            user_id: ap.user_id,
+            title: `${platformLabel} post failed`,
+            message: msg.slice(0, 200),
+            link: "/dashboard?section=marketing-hub&tab=social-calendar",
+            read: false,
+          });
+        }
+      } catch (notifyErr) {
+        console.warn("[social-publish] failure-notification insert failed", notifyErr);
+      }
+
       return json({ error: msg }, 500);
     }
   } catch (e) {
