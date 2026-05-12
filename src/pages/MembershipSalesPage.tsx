@@ -31,7 +31,7 @@ export default function MembershipSalesPage() {
       if (!author) { setAuthorMissing(true); setLoading(false); return; }
       setAuthorName(author.pen_name || "");
       const { data: m } = await supabase
-        .from("membership_content")
+        .from("membership_content_public")
         .select("name, tagline, benefits, sales_copy, monthly_price, status")
         .eq("author_id", author.id).maybeSingle();
       if (!m) { setNotFound(true); setLoading(false); return; }
