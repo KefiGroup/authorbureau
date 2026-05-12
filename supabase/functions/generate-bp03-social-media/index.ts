@@ -279,12 +279,12 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
     const carouselCount = posts.filter((p) => p.instagram.format === "carousel").length;
 
     const finalContent = {
-      calendar_name: merged.calendar_name || "30-Day Social Media Kit",
+      calendar_name: merged.calendar_name || "20-Post Social Media Kit",
       hashtag_pool: { anchors: anchorTags, rotating: rotatingPool },
       posts,
       outreach_kit: merged.outreach_kit || [],
       abby_summary: merged.abby_summary
-        || `Your 30-day copy-paste social kit for '${bookTitle}' is ready — 30 posts × 4 platforms (with ${carouselCount} Instagram carousels) plus 3 outreach templates.`,
+        || `Your copy-paste social kit for '${bookTitle}' is ready — 20 posts × 4 platforms (with ${carouselCount} Instagram carousels) plus 3 outreach templates.`,
       stats: {
         post_count: posts.length,
         platforms: 4,
