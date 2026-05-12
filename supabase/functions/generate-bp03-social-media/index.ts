@@ -117,23 +117,26 @@ The array must have exactly 5 items.`,
       6000
     );
 
-    // STEP 2 — Instagram + Facebook
+    // STEP 2 — Instagram + Facebook (with 5-slide carousel scripts on ~30% of IG posts)
     await setProgress(2, "Writing Instagram & Facebook posts...", step1);
     const step2 = await callAI(
       `${baseContext}
 
 Generate exactly 5 Instagram posts and 5 Facebook posts for the book above.
-- Instagram: visual-first caption, hook in line 1, conversational and aspirational, 80–120 words.
+- Instagram: visual-first caption, hook in line 1, conversational and aspirational, 80–120 words. Add alt_text describing the suggested image (1 short sentence).
 - Facebook: story-format with question at end, warm community-focused tone, 100–150 words.
 Each ends with a CTA pointing to the book.
 
+CAROUSEL RULE: Mark exactly 2 of the 5 Instagram posts (positions 2 and 4) as format="carousel" and supply carousel_slides — exactly 5 slides each in this structure: slide 1 = cover hook, slides 2-4 = three insights from the book, slide 5 = CTA. Each slide has { headline (≤8 words), body (≤25 words) }.
+The other 3 Instagram posts use format="single" and omit carousel_slides.
+
 Respond with JSON only:
 {
-  "instagram_posts": [{ "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }],
+  "instagram_posts": [{ "day": 1, "theme": "...", "format": "single", "caption": "...", "hashtags": ["..."], "alt_text": "...", "cta": "...", "carousel_slides": null }],
   "facebook_posts": [{ "day": 1, "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }]
 }
-Each array must have exactly 5 items.`,
-      8000
+Each array must have exactly 5 items. carousel_slides is null for single posts and a 5-item array for carousel posts.`,
+      10000
     );
 
     // STEP 3 — Twitter/X + outreach
@@ -151,13 +154,12 @@ Respond with JSON only:
   "outreach_kit": [{ "type": "Podcast Pitch Email", "subject": "...", "body": "..." }],
   "calendar_name": "Short name for this starter kit",
   "abby_summary": "2-3 sentence summary of what was created",
-  "hashtag_strategy": {
-    "primary_hashtags": ["3-5"],
-    "secondary_hashtags": ["5-8"],
-    "author_hashtag": "#..."
+  "hashtag_pool": {
+    "anchors": ["5 anchor hashtags locked from the book's core themes — used on every post for identity consistency. No # symbol, just the word."],
+    "rotating": ["30 rotating hashtags drawn from the book's adjacent topics, audience interests, and niche communities. No # symbol."]
   }
 }
-The twitter_posts array must have exactly 5 items. The outreach_kit array must have exactly 3 items.`,
+The twitter_posts array must have exactly 5 items. The outreach_kit array must have exactly 3 items. anchors must have exactly 5 items. rotating must have exactly 30 items.`,
       6000
     );
 
