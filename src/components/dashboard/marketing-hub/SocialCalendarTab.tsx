@@ -976,9 +976,21 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         <Button size="sm" variant="outline" onClick={() => copyAndOpen(post)}>
                           <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open {PLATFORM_LABELS[post.platform] || post.platform}
                         </Button>
-                        {post.graphic_url && (
+                        {post.graphic_url ? (
                           <Button size="sm" variant="outline" onClick={() => downloadGraphic(post)}>
-                            <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                            <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                          </Button>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateOneGraphic(post)}
+                            disabled={generatingGraphicForId === post.id}
+                          >
+                            {generatingGraphicForId === post.id
+                              ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              : <Sparkles className="h-3.5 w-3.5 mr-1" />}
+                            {generatingGraphicForId === post.id ? "Designing…" : "Generate graphic"}
                           </Button>
                         )}
                         <Button size="sm" variant="ghost" onClick={() => markAsPosted(post)}>
