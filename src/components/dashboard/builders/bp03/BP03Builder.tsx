@@ -94,7 +94,7 @@ async function fetchBp03NodeState(body: Record<string, unknown>) {
  * Persist the flattened kit into the social_posts table so it shows up in the
  * Social Calendar with status='ready' and a deterministic schedule.
  */
-async function persistSocialPostsToCalendar(authorId: string, content: any, startDate: Date, frequency: Frequency) {
+async function persistSocialPostsToCalendar(authorId: string, content: any, startDate: Date, frequency: Frequency, bookId: string | null = null) {
   const flat = flattenPosts(content);
   if (flat.length === 0) return { saved: 0 };
 
