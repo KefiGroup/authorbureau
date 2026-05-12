@@ -57,6 +57,9 @@ interface SocialPost {
   post_type: string | null;
   post_index: number | null;
   graphic_url: string | null;
+  archetype?: string | null;
+  carousel_slides?: any;
+  graphics?: any;
 }
 
 const PLATFORM_FILTERS = [
@@ -611,7 +614,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-extrabold text-secondary uppercase tracking-[0.15em] mb-1">Abby</p>
               <p className="text-sm text-foreground mb-4">
-                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Send to Social Calendar</strong> — I'll write 20 posts and drop them here, ready to copy and paste into LinkedIn, Facebook and Instagram.
+                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Send to Social Calendar</strong> — I'll write 30 posts (5 each across 6 archetypes: Quote, Lesson, Question, Story, Framework, Proof) and drop them here, ready to copy and paste into LinkedIn, Facebook and Instagram.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => navigate(`/node-builder/BP-03${bookId ? `?bookId=${bookId}` : ""}`)}>
