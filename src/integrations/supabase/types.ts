@@ -6157,9 +6157,9 @@ export type Database = {
       }
       books_public: {
         Row: {
-          ai_enriched: boolean | null
-          amazon_author_profile_url: string | null
+          amazon_kindle_url: string | null
           amazon_url: string | null
+          approval_status: string | null
           author_bio: string | null
           author_id: string | null
           author_name: string | null
@@ -6170,7 +6170,6 @@ export type Database = {
           created_at: string | null
           currency: string | null
           description: string | null
-          entry_mode: string | null
           genre: string | null
           id: string | null
           kindle_price: string | null
@@ -6186,9 +6185,9 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
-          ai_enriched?: boolean | null
-          amazon_author_profile_url?: string | null
+          amazon_kindle_url?: string | null
           amazon_url?: string | null
+          approval_status?: string | null
           author_bio?: string | null
           author_id?: string | null
           author_name?: string | null
@@ -6199,7 +6198,6 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           description?: string | null
-          entry_mode?: string | null
           genre?: string | null
           id?: string | null
           kindle_price?: string | null
@@ -6215,9 +6213,9 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
-          ai_enriched?: boolean | null
-          amazon_author_profile_url?: string | null
+          amazon_kindle_url?: string | null
           amazon_url?: string | null
+          approval_status?: string | null
           author_bio?: string | null
           author_id?: string | null
           author_name?: string | null
@@ -6228,7 +6226,6 @@ export type Database = {
           created_at?: string | null
           currency?: string | null
           description?: string | null
-          entry_mode?: string | null
           genre?: string | null
           id?: string | null
           kindle_price?: string | null
@@ -6391,6 +6388,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_funnel_counter: {
+        Args: { p_field: string; p_funnel_id: string }
+        Returns: undefined
       }
       list_author_profile_orphans: {
         Args: never
