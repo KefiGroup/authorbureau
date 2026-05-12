@@ -461,83 +461,9 @@ export default function ConnectSettings() {
           </div>
         </Card>
 
-        {/* Social Media — native direct connections */}
-        <Card className="p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-primary/10">
-              <Share2 className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <p className="font-semibold text-sm">Social Media — Direct Connections</p>
-                <Badge variant="secondary" className="bg-primary/10 text-primary text-[10px]">Native</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Connect each network directly. Posts will publish automatically on their scheduled date — no Buffer, no third-party scheduler.
-              </p>
-
-              <div className="space-y-3">
-                {PLATFORMS.map(({ key, name, Icon, autoPost, capability, note }) => {
-                  const conn = connFor(key);
-                  return (
-                    <div
-                      key={key}
-                      className="rounded-lg border border-border bg-background/50 p-3 space-y-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
-                          <span className="text-sm font-medium truncate">{name}</span>
-                          <Badge
-                            variant="secondary"
-                            className={`text-[10px] ${autoPost ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}
-                          >
-                            {capability}
-                          </Badge>
-                        </div>
-                        {conn ? (
-                          <div className="flex items-center gap-2">
-                            <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
-                              <CheckCircle2 className="h-3 w-3 mr-1" /> {conn.account_name || "Connected"}
-                            </Badge>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 text-xs"
-                              onClick={() => handleDisconnect(conn.id, name)}
-                            >
-                              Disconnect
-                            </Button>
-                          </div>
-                        ) : autoPost ? (
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs"
-                            disabled={connectingPlatform === key}
-                            onClick={() => handleConnect(key)}
-                          >
-                            {connectingPlatform === key ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <>Connect <ExternalLink className="h-3 w-3 ml-1" /></>
-                            )}
-                          </Button>
-                        ) : (
-                          <Badge variant="outline" className="text-[10px]">Manual only</Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{note}</p>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <Button size="sm" className="mt-4" onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}>
-                Open Social Calendar
-              </Button>
-            </div>
-          </div>
-        </Card>
+        {/* Sprint 62: Social Media direct-connections removed.
+            BP-03 is a copy-paste library now — authors copy captions and download
+            graphics from Marketing Hub → Social Calendar and post manually. */}
       </div>
 
       {/* Facebook Page picker — shown only when the author admins multiple Pages */}

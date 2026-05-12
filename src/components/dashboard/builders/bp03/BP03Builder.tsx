@@ -511,7 +511,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         <BuilderHeader
           nodeId="BP-03"
           title="Social Media"
-          subtitle="30 branded posts across 6 archetypes + outreach kit"
+          subtitle="20 branded posts across 6 archetypes + outreach kit"
           icon={Share2}
           onBack={() => navigate(bookId ? `/book-hub/${bookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
@@ -548,7 +548,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  I'm going to create your social media starter kit for '{bookTitle || detectedBookTitle || "your book"}' — 30 ready-to-post pieces (5 each across Quote, Lesson, Question, Story, Framework and Proof) for LinkedIn, Instagram, Facebook and X, plus 3 outreach email templates. Ready?
+                  I'm going to create your social media starter kit for '{bookTitle || detectedBookTitle || "your book"}' — 20 ready-to-post pieces across Quote, Lesson, Question, Story, Framework and Proof archetypes for LinkedIn, Instagram, Facebook and X (with ~6 Instagram carousels), plus 3 outreach email templates. Ready?
                 </p>
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-03"]} />
@@ -604,7 +604,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
                     Your copy-paste kit is ready
                   </p>
                   <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                    When you click "Send to Social Calendar" below, every one of the 30 posts moves into Marketing Hub → Social Calendar. Each card has the caption (Copy), the graphic (Download), and an "Open LinkedIn / Facebook / Instagram" button. About 20 seconds per post — paste, attach, publish, then tap "Mark as posted." ABBY refills 30 more automatically when you drop below 7 unposted.
+                    When you click "Send to Social Calendar" below, every one of the 20 posts moves into Marketing Hub → Social Calendar. Each card has the caption (Copy), the graphic (Download), and an "Open LinkedIn / Facebook / Instagram" button. About 20 seconds per post — paste, attach, publish, then tap "Mark as posted." ABBY refills 20 more automatically when you drop below 7 unposted.
                   </p>
                 </div>
               </div>
@@ -730,7 +730,7 @@ async function downloadKitZip(
     const platforms: SocialPlatform[] = ["instagram", "linkedin", "facebook", "twitter"];
     const socialFolder = folder.folder("social_media")!;
 
-    // Generate 80 PNG graphics: 4 platforms × 30 posts
+    // Generate up to 80 PNG graphics: 4 platforms × 20 posts
     for (const platform of platforms) {
       const platformFolder = socialFolder.folder(platform)!;
       for (const post of content.posts || []) {
@@ -783,7 +783,7 @@ async function downloadKitZip(
     // VA-friendly README
     folder.file(
       "README.md",
-      `# ${bookTitle} — Social Media Kit\n\nPrepared for ${authorName}.\n\nThis kit contains everything needed to post 30 days of content across 4 platforms.\n\n## Folder structure\n\n- \`social_media/instagram/\` — 30 portrait graphics (1080×1350), one per day\n- \`social_media/linkedin/\` — 30 landscape graphics (1200×627)\n- \`social_media/facebook/\` — 30 landscape graphics (1200×630)\n- \`social_media/twitter/\` — 30 widescreen graphics (1200×675)\n- \`captions.csv\` — every caption, hashtags, and matching image filename\n- \`outreach_kit/\` — 3 outreach email templates\n\n## How to post (for the VA / social manager)\n\n1. Open the folder for the platform you're posting to today.\n2. Grab the PNG named \`day_NN.png\` (NN = the day number).\n3. Open \`captions.csv\` and find the row with the same day + platform.\n4. Copy the caption and hashtags into the platform's post composer.\n5. Upload the PNG and publish.\n6. Mark the row done in your tracker.\n\n## Schedule suggestion\n\nPost one piece per day, rotating platforms. Spread the 30 days across 4 to 6 weeks for steady cadence.\n\n— Authors Bureau\n`,
+      `# ${bookTitle} — Social Media Kit\n\nPrepared for ${authorName}.\n\nThis kit contains everything needed to post 20 pieces of content across 4 platforms.\n\n## Folder structure\n\n- \`social_media/instagram/\` — 20 portrait graphics (1080×1350), one per day\n- \`social_media/linkedin/\` — 20 landscape graphics (1200×627)\n- \`social_media/facebook/\` — 20 landscape graphics (1200×630)\n- \`social_media/twitter/\` — 20 widescreen graphics (1200×675)\n- \`captions.csv\` — every caption, hashtags, and matching image filename\n- \`outreach_kit/\` — 3 outreach email templates\n\n## How to post (for the VA / social manager)\n\n1. Open the folder for the platform you're posting to today.\n2. Grab the PNG named \`day_NN.png\` (NN = the day number).\n3. Open \`captions.csv\` and find the row with the same day + platform.\n4. Copy the caption and hashtags into the platform's post composer.\n5. Upload the PNG and publish.\n6. Mark the row done in your tracker.\n\n## Schedule suggestion\n\nPost one piece per day, rotating platforms. Spread the 20 posts across 3 to 4 weeks for steady cadence.\n\n— Authors Bureau\n`,
     );
 
     const blob = await zip.generateAsync({ type: "blob" });
@@ -841,7 +841,7 @@ function ReviewStep({
     <div className="space-y-4">
       <AbbyCard>
         <p className="text-muted-foreground">
-          Your copy-paste kit is ready: 30 posts × 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates, all personalised to your book. Review below, then click <strong>Send to Social Calendar</strong> — every post drops into Marketing Hub with Copy / Download / Open buttons so you can paste into the platform in about 20 seconds.
+          Your copy-paste kit is ready: 20 posts × 4 platforms (LinkedIn, Instagram, Facebook, X) with ~6 Instagram carousels, plus 3 outreach email templates, all personalised to your book. Review below, then click <strong>Send to Social Calendar</strong> — every post drops into Marketing Hub with Copy / Download / Open buttons so you can paste into the platform in about 20 seconds.
         </p>
       </AbbyCard>
 
@@ -922,7 +922,7 @@ function ReviewStep({
               <Download className="h-4 w-4 mr-2" />{downloading ? "Building ZIP…" : "Download Full Kit (.zip)"}
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              ZIP with all 120 branded graphics (4 platforms × 30 posts), captions.csv & a VA-friendly README.
+              ZIP with all 80 branded graphics (4 platforms × 20 posts), captions.csv & a VA-friendly README.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -930,12 +930,12 @@ function ReviewStep({
               Send to Social Calendar <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Drops all 30 posts into Marketing Hub → Social Calendar with Copy, Download and Open-app buttons. You paste into LinkedIn/Facebook/Instagram yourself (about 20 seconds per post), then tap Mark as posted.
+              Drops all 20 posts into Marketing Hub → Social Calendar with Copy, Download and Open-app buttons. You paste into LinkedIn/Facebook/Instagram yourself (about 20 seconds per post), then tap Mark as posted.
             </p>
           </div>
         </div>
         <p className="text-xs text-center text-muted-foreground pt-1 border-t border-border">
-          ✓ 30 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Copy-paste workflow — no auto-posting
+          ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Copy-paste workflow — no auto-posting
         </p>
       </div>
 
@@ -1102,7 +1102,7 @@ function SuccessScreen({
             <DestinationCard
               icon={<Calendar className="h-5 w-5" />}
               title="View Social Calendar"
-              description="See, copy, and mark off all 30 posts."
+              description="See, copy, and mark off all 20 posts."
               cta="Open Calendar"
               primary
               onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}
@@ -1117,7 +1117,7 @@ function SuccessScreen({
             <DestinationCard
               icon={<Download className="h-5 w-5" />}
               title="Download Full Kit (.zip)"
-              description="120 branded graphics + captions.csv + VA README."
+              description="80 branded graphics + captions.csv + VA README."
               cta="Download .zip"
               onClick={onDownloadZip}
             />

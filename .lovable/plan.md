@@ -1,48 +1,43 @@
-## Plan
+## Goal
 
-1. **Fix the BP-03 data model flow so 30 posts survive every save/repair path**
-   - Update the BP-03 repair/save pipeline to preserve the new 30-day, 6-archetype structure instead of falling back to legacy defaults.
-   - Remove the remaining `"insight"` fallback in `bp03-node-state` and persist the canonical archetype label into calendar rows.
-   - Ensure Instagram carousel rows also carry both the canonical archetype and `carousel_slides` data when rebuilt from saved content.
+Pivot BP-03 to a pure **copy-paste social library** model: 20 posts across 6 archetypes, ~6 Instagram carousels, no platform connections anywhere.
 
-2. **Correct the remaining BP-03 builder copy and step labels**
-   - Change any remaining BP-03 UI strings that still say `20 posts`, `Publish`, or `Send to Calendar` to the approved wording.
-   - Make the step label read exactly **"Send to Social Calendar"** and align the intro/subtitle/success copy with the 30-post spec.
-   - Update the Marketing Hub BP-03 campaign description so the dashboard no longer advertises the old 20-post version.
+---
 
-3. **Fix Facebook Page OAuth persistence in Connect Settings**
-   - Reconcile the connection upsert logic with the new uniqueness rule on `social_connections(user_id, platform)` so Facebook page connections don’t disappear after authorization.
-   - Keep the page-pick flow intact, but make sure the final stored row is the one that Connect Settings and `useSocialConnectionStatus()` actually read.
-   - Preserve the instant refresh behavior via `BroadcastChannel` and existing focus refresh.
+## Changes
 
-4. **Finish the Instagram carousel implementation in the calendar UI**
-   - Verify the generator, persistence, and Marketing Hub state all treat the required ~9 Instagram carousel days as real carousel posts.
-   - Ensure carousel posts render their preview/download UI consistently in both unscheduled and scheduled calendar cards.
-   - Confirm calendar actions (schedule, copy/open, mark posted) work without stripping carousel metadata.
+### 1. Spec: 30 → 20 posts (5 files)
+- **`generate-bp03-social-media/index.ts`** — change loop `days = 30` → `20`; archetype manifest 30 → 20; `CAROUSEL_IG_DAYS` set → 6 evenly-spread days `{3, 6, 10, 13, 17, 20}`; update all "30 LinkedIn / 30 Instagram / 30 Facebook / 30 X" prompts to "20"; update `rotating` hashtag pool count from 30 → 20; update default `calendar_name` and `abby_summary`.
+- **`bp03-node-state/index.ts`** — update repair-path day count and any `30` literals to `20`.
+- **`bp03-generate-all-graphics/index.ts`** — update batch size if it iterates 30.
+- **`BP03Builder.tsx`** — subtitle and intro copy: "20 posts across 6 archetypes (5 each from Quote / Lesson / Question / Story / Framework / Proof) + ~6 Instagram carousels + outreach kit".
+- **`MarketingHub.tsx`** — campaign description "20 posts".
+- **`SocialCalendarTab.tsx`** — any visible "30 posts" labels.
+- **`docs/04-node-frameworks/BP-03.md`** + **`README.md`** — update spec to 20.
 
-5. **Validate the BP-03 experience end-to-end**
-   - Verify the generator now produces 30 posts across the 6 approved archetypes.
-   - Verify the builder shows the correct step label and updated 30-post copy.
-   - Verify Facebook Page connection remains visible after the OAuth return flow.
-   - Verify carousel posts appear in the calendar with previewable/downloadable slides.
+### 2. Archetype labels actually render
+Already canonical in generator (Sprint fix landed). Verify `SocialCalendarTab.tsx` reads `post.post_type` (or `archetype` column) and renders that as the badge — not a hardcoded "Insight" string. Fix if still hardcoded.
 
-## Technical details
+### 3. Hide ALL social-connection UI (copy-paste only)
+- **`src/pages/ConnectSettings.tsx`** — remove the entire "Social Accounts" section (LinkedIn / Facebook / Instagram / X tiles). Keep email + payout sections only.
+- **`SocialCalendarTab.tsx`** — remove "Connect" CTAs, remove the `useSocialConnectionStatus` gate, remove "Mark as Posted" auto-publish path. Replace per-card actions with: **Copy Caption**, **Copy Hashtags**, **Download Image**, **Download Carousel ZIP** (where applicable).
+- **`BP03Builder.tsx`** — Step 4 stays "Send to Social Calendar" but description reframes as "Save to your copy-paste library" (no "Activate auto-posting" wording).
+- **Dashboard banner** — remove "Connect your social accounts" prompt if it appears (search `useSocialConnectionStatus` callsites).
+- Leave the underlying `social_connections` table + `social-connect-callback` edge function in place (no DB drops) — just hide the UI. This keeps the rollback path open.
 
-**Files likely to update**
-- `supabase/functions/bp03-node-state/index.ts`
-- `supabase/functions/social-connect-callback/index.ts`
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
-- `src/components/dashboard/MarketingHub.tsx`
-- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
-- Possibly `src/components/dashboard/builders/shared/socialKitHelpers.ts` if any platform/archetype normalization needs a final cleanup.
+### 4. Instagram carousels (~6 of 20)
+Generator already produces `format: "carousel"` with 5 slides on the `CAROUSEL_IG_DAYS`. Confirm `SocialCalendarTab.tsx` renders `<CarouselPreview>` when `instagram.format === "carousel"` and offers a "Download Carousel ZIP" (5 image variants) action. If ZIP download doesn't exist yet, add a client-side JSZip bundler over the existing `graphics` URLs.
 
-**Key fixes**
-- Replace the legacy fallback `d.post_type || "insight"` with canonical BP-03 archetype persistence.
-- Make the social connection upsert conflict target match the unique-per-platform behavior used by the UI.
-- Keep carousel rows distinct from archetype labels by storing archetype canonically while using separate format/carousel metadata for rendering.
+### 5. Copy/docs sweep
+- Replace every "30 posts" / "30-day" string in BP-03 surfaces with "20 posts" / "20-day".
+- Memory update: amend `mem://features/abby-copy-paste-social-factory-sprint61` to lock the new spec (20 posts, 6 archetypes, ~6 carousels, no connections).
 
-**Expected outcome**
-- BP-03 consistently behaves as a 30-post, 6-archetype social kit.
-- The builder label reads exactly `Send to Social Calendar`.
-- Facebook Page connections persist visibly in Connect Settings after auth.
-- Instagram carousel posts are present and usable in the Social Calendar.
+---
+
+## Out of scope
+- No DB migration. `social_connections` table and OAuth functions stay (dormant).
+- No changes to BP-02 social pack or other builders.
+- No new dependencies beyond JSZip (only if ZIP download is missing — will check first).
+
+## Files touched (estimated)
+~10 files: 4 edge functions, 4 React components/pages, 2 doc/markdown files, 1 memory file.

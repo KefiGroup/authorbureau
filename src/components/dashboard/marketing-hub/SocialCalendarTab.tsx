@@ -388,7 +388,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     (async () => {
       const result = await requestRefill();
       if (result.ok) {
-        toast.success("ABBY has added 30 new post ideas to your Unscheduled queue.");
+        toast.success("ABBY has added 20 new post ideas to your Unscheduled queue.");
         setTimeout(() => { load(); }, 4000);
       } else {
         console.warn("[SocialCalendar] auto-refill failed:", result.error);
@@ -632,7 +632,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-extrabold text-secondary uppercase tracking-[0.15em] mb-1">Abby</p>
               <p className="text-sm text-foreground mb-4">
-                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Send to Social Calendar</strong> — I'll write 30 posts (5 each across 6 archetypes: Quote, Lesson, Question, Story, Framework, Proof) and drop them here, ready to copy and paste into LinkedIn, Facebook and Instagram.
+                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Send to Social Calendar</strong> — I'll write 20 posts across 6 archetypes (Quote, Lesson, Question, Story, Framework, Proof) with ~6 Instagram carousels, and drop them here, ready to copy and paste into LinkedIn, Facebook and Instagram.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => navigate(`/node-builder/BP-03${bookId ? `?bookId=${bookId}` : ""}`)}>
@@ -659,7 +659,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
             Copy-paste workflow (no auto-posting)
           </p>
           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-            Each card has <strong>Copy caption</strong>, <strong>Download graphic</strong>, and <strong>Open LinkedIn / Facebook / Instagram</strong>. Paste into the platform yourself (~20 seconds), then tap <strong>Mark as posted</strong>. ABBY refills 14 more posts whenever your unposted queue drops below 7.
+            Each card has <strong>Copy caption</strong>, <strong>Download graphic</strong>, and <strong>Open LinkedIn / Facebook / Instagram</strong>. Paste into the platform yourself (~20 seconds), then tap <strong>Mark as posted</strong>. ABBY refills 20 more posts whenever your unposted queue drops below 7.
           </p>
         </div>
       </div>
@@ -670,8 +670,8 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
           <span className="flex-1">
             <strong>Your scheduled posts run out in {daysOfRunway} day{daysOfRunway === 1 ? "" : "s"}.</strong>{" "}
             {autoRefilling
-              ? "ABBY is topping up your queue with 30 more post ideas…"
-              : "ABBY is preparing 30 more — they'll appear as Unscheduled below."}
+              ? "ABBY is topping up your queue with 20 more post ideas…"
+              : "ABBY is preparing 20 more — they'll appear as Unscheduled below."}
           </span>
         </div>
       ) : unscheduledCount > 0 ? (
@@ -736,7 +736,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         <div className="flex items-center gap-1 flex-wrap justify-end">
           <Button size="sm" variant="outline" onClick={refillCalendar} disabled={refilling || !authorId}>
             {refilling ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}
-            Generate 30 more days of content
+            Generate 20 more posts
           </Button>
           <Button size="sm" variant="outline" onClick={generateAllGraphics} disabled={generatingGraphics || !authorId}>
             {generatingGraphics ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Sparkles className="h-4 w-4 mr-1" />}

@@ -27,9 +27,9 @@ function archetypeForDay(day: number): string {
   return ARCHETYPES[(day - 1) % ARCHETYPES.length];
 }
 
-// Decide which Instagram days are carousel posts. Spec: ~30% of 30 = 9 carousels.
-// Spread evenly: days 3, 6, 9, 12, 15, 18, 21, 24, 27.
-const CAROUSEL_IG_DAYS = new Set([3, 6, 9, 12, 15, 18, 21, 24, 27]);
+// Decide which Instagram days are carousel posts. Spec: ~30% of 20 = 6 carousels.
+// Spread evenly across the 20-day calendar.
+const CAROUSEL_IG_DAYS = new Set([3, 6, 9, 12, 15, 18]);
 
 async function callAI(userPrompt: string, maxTokens: number) {
   const resp = await fetchAiGateway({
@@ -58,9 +58,9 @@ async function callAI(userPrompt: string, maxTokens: number) {
   return JSON.parse(match[0]);
 }
 
-// Build the archetype manifest the AI will see — 30 entries, each with day + post_type.
+// Build the archetype manifest the AI will see — 20 entries, each with day + post_type.
 function archetypeManifest(): string {
-  return Array.from({ length: 30 }, (_, i) => {
+  return Array.from({ length: 20 }, (_, i) => {
     const day = i + 1;
     return `Day ${day} = ${archetypeForDay(day)}`;
   }).join("\n");
@@ -118,7 +118,7 @@ Core thesis: ${coreThesis}
 Target audience: ${audience}
 Key frameworks: ${frameworks}
 
-POST ARCHETYPE MAP (30 days, 6 archetypes × 5 posts each, interleaved):
+POST ARCHETYPE MAP (20 days, 6 archetypes interleaved across the run):
 ${archetypeManifest()}
 
 Each post MUST honour its assigned archetype (one short word):
@@ -137,31 +137,31 @@ Each post MUST honour its assigned archetype (one short word):
       }, resolvedBookId);
     };
 
-    // STEP 1 — LinkedIn (30)
-    await setProgress(1, "Writing 30 LinkedIn posts...");
+    // STEP 1 — LinkedIn (20)
+    await setProgress(1, "Writing 20 LinkedIn posts...");
     const step1 = await callAI(
       `${baseContext}
 
-Generate exactly 30 LinkedIn posts (Day 1..Day 30), one per day, each matching the archetype mapped to that day above.
+Generate exactly 20 LinkedIn posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
 Voice: professional thought leadership. Long-form narrative with line breaks, insight-driven, 150–200 words. Each post ends with a CTA pointing to the book.
 
 Respond with JSON only:
 {
   "linkedin_posts": [
-    { "day": 1, "post_type": "Quote Card", "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
+    { "day": 1, "post_type": "Quote", "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
   ]
 }
-The array MUST have exactly 30 items in day order. post_type MUST match the archetype map.`,
-      14000,
+The array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
+      12000,
     );
 
-    // STEP 2 — Instagram (30, with 9 carousels) + Facebook (30)
-    await setProgress(2, "Writing 30 Instagram + 30 Facebook posts...", step1);
+    // STEP 2 — Instagram (20, with 6 carousels) + Facebook (20)
+    await setProgress(2, "Writing 20 Instagram + 20 Facebook posts...", step1);
     const carouselDaysList = Array.from(CAROUSEL_IG_DAYS).sort((a, b) => a - b).join(", ");
     const step2 = await callAI(
       `${baseContext}
 
-Generate exactly 30 Instagram posts AND 30 Facebook posts (Day 1..Day 30), one per day, each matching the archetype mapped to that day above.
+Generate exactly 20 Instagram posts AND 20 Facebook posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
 
 INSTAGRAM voice: visual-first caption, hook in line 1, conversational and aspirational, 80–120 words. Each post ends with a CTA pointing to the book. Add alt_text describing the suggested image (1 short sentence).
 
@@ -174,22 +174,22 @@ FACEBOOK voice: warm story-format, community-focused, 100–150 words, ends with
 Respond with JSON only:
 {
   "instagram_posts": [
-    { "day": 1, "post_type": "Quote Card", "theme": "...", "format": "single", "caption": "...", "hashtags": ["..."], "alt_text": "...", "cta": "...", "carousel_slides": null }
+    { "day": 1, "post_type": "Quote", "theme": "...", "format": "single", "caption": "...", "hashtags": ["..."], "alt_text": "...", "cta": "...", "carousel_slides": null }
   ],
   "facebook_posts": [
-    { "day": 1, "post_type": "Quote Card", "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
+    { "day": 1, "post_type": "Quote", "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
   ]
 }
-Each array MUST have exactly 30 items in day order. post_type MUST match the archetype map.`,
-      24000,
+Each array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
+      20000,
     );
 
-    // STEP 3 — Twitter/X (30) + outreach
-    await setProgress(3, "Writing 30 X posts and outreach templates...", { ...step1, ...step2 });
+    // STEP 3 — Twitter/X (20) + outreach
+    await setProgress(3, "Writing 20 X posts and outreach templates...", { ...step1, ...step2 });
     const step3 = await callAI(
       `${baseContext}
 
-Generate exactly 30 Twitter/X posts (Day 1..Day 30) AND 3 outreach email templates.
+Generate exactly 20 Twitter/X posts (Day 1..Day 20) AND 3 outreach email templates.
 
 TWITTER/X voice: sharp thread opener, punchy and provocative, 40–60 words, ends with a CTA pointing to the book. Each must match its archetype.
 
@@ -201,20 +201,20 @@ Outreach templates:
 Respond with JSON only:
 {
   "twitter_posts": [
-    { "day": 1, "post_type": "Quote Card", "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
+    { "day": 1, "post_type": "Quote", "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
   ],
   "outreach_kit": [
     { "type": "Podcast Pitch Email", "subject": "...", "body": "..." }
   ],
-  "calendar_name": "Short name for this 30-day kit",
+  "calendar_name": "Short name for this 20-post kit",
   "abby_summary": "2-3 sentence summary of what was created",
   "hashtag_pool": {
     "anchors": ["5 anchor hashtags locked from the book's core themes — used on every post for identity consistency. No # symbol."],
-    "rotating": ["30 rotating hashtags drawn from the book's adjacent topics, audience interests, and niche communities. No # symbol."]
+    "rotating": ["20 rotating hashtags drawn from the book's adjacent topics, audience interests, and niche communities. No # symbol."]
   }
 }
-twitter_posts MUST have exactly 30 items in day order. outreach_kit MUST have exactly 3. anchors MUST have 5. rotating MUST have 30.`,
-      14000,
+twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have exactly 3. anchors MUST have 5. rotating MUST have 20.`,
+      12000,
     );
 
     const merged = { ...step1, ...step2, ...step3 } as Record<string, any>;
@@ -228,7 +228,7 @@ twitter_posts MUST have exactly 30 items in day order. outreach_kit MUST have ex
     const anchorTags: string[] = (Array.isArray(rawPool.anchors) ? rawPool.anchors : [])
       .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 5);
     const rotatingPool: string[] = (Array.isArray(rawPool.rotating) ? rawPool.rotating : [])
-      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 30);
+      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 20);
     const pickRotating = (seed: number): string[] => {
       if (rotatingPool.length === 0) return [];
       const out: string[] = [];
@@ -241,8 +241,8 @@ twitter_posts MUST have exactly 30 items in day order. outreach_kit MUST have ex
       return Array.from(merged).filter(Boolean);
     };
 
-    // Always emit exactly 30 days
-    const days = 30;
+    // Always emit exactly 20 days
+    const days = 20;
     const posts = [];
     for (let i = 0; i < days; i++) {
       const day = i + 1;
@@ -279,12 +279,12 @@ twitter_posts MUST have exactly 30 items in day order. outreach_kit MUST have ex
     const carouselCount = posts.filter((p) => p.instagram.format === "carousel").length;
 
     const finalContent = {
-      calendar_name: merged.calendar_name || "30-Day Social Media Kit",
+      calendar_name: merged.calendar_name || "20-Post Social Media Kit",
       hashtag_pool: { anchors: anchorTags, rotating: rotatingPool },
       posts,
       outreach_kit: merged.outreach_kit || [],
       abby_summary: merged.abby_summary
-        || `Your 30-day copy-paste social kit for '${bookTitle}' is ready — 30 posts × 4 platforms (with ${carouselCount} Instagram carousels) plus 3 outreach templates.`,
+        || `Your copy-paste social kit for '${bookTitle}' is ready — 20 posts × 4 platforms (with ${carouselCount} Instagram carousels) plus 3 outreach templates.`,
       stats: {
         post_count: posts.length,
         platforms: 4,
