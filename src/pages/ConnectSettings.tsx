@@ -8,8 +8,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import {
   ArrowLeft, CreditCard, Sparkles, CheckCircle2, AlertCircle, Loader2,
-  Share2, Linkedin, Instagram, Facebook, Twitter, ExternalLink,
+  Share2, Linkedin, Instagram, Facebook, Twitter, ExternalLink, Calendar as CalendarIcon, ArrowRight,
 } from "lucide-react";
 import DashboardLayout from "@/components/dashboard/DashboardLayout";
 
@@ -65,6 +70,13 @@ export default function ConnectSettings() {
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(null);
   const [pendingPaidCount, setPendingPaidCount] = useState(0);
   const [justConnected, setJustConnected] = useState<{ platform: string; account: string } | null>(null);
+  const [pagePicker, setPagePicker] = useState<{
+    platform: string;
+    tempToken: string;
+    pages: { id: string; name: string; picture: string | null }[];
+    selectedId: string | null;
+    submitting: boolean;
+  } | null>(null);
 
   const refresh = async () => {
     if (!user?.id) return;
@@ -157,6 +169,45 @@ export default function ConnectSettings() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
+  // If we just returned from OAuth and the backend asked us to pick a Page,
+  // open the picker modal with the cached page list.
+  useEffect(() => {
+    if (!user?.id) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("social") === "pick-page") {
+      const platform = params.get("platform") || "";
+      const tempToken = params.get("token") || "";
+      if (tempToken) {
+        try {
+          const cached = sessionStorage.getItem(`social_pick_pages_${tempToken}`);
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            setPagePicker({
+              platform: parsed.platform || platform,
+              tempToken,
+              pages: parsed.pages || [],
+              selectedId: parsed.pages?.[0]?.id || null,
+              submitting: false,
+            });
+          } else {
+            toast({
+              title: "Page list expired",
+              description: "Please click Connect again to choose your Facebook Page.",
+              variant: "destructive",
+            });
+          }
+        } catch (_) { /* noop */ }
+      }
+      params.delete("social");
+      params.delete("platform");
+      params.delete("token");
+      const qs = params.toString();
+      const newUrl = window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash;
+      window.history.replaceState({}, "", newUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   const connFor = (p: string) => connections.find(c => c.platform === p && (c.status === "connected" || c.status === "active"));
 
   const handleConnect = async (platform: string) => {
@@ -197,6 +248,50 @@ export default function ConnectSettings() {
     refresh();
   };
 
+  const submitPagePick = async () => {
+    if (!pagePicker?.selectedId) return;
+    setPagePicker(p => p ? { ...p, submitting: true } : p);
+    try {
+      const token = await getActiveToken({ forceRefresh: true });
+      if (!token) {
+        toast({ title: "Please sign in again", variant: "destructive" });
+        return;
+      }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-callback`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            temp_token: pagePicker.tempToken,
+            page_id: pagePicker.selectedId,
+            platform: pagePicker.platform,
+          }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        toast({
+          title: "Couldn't connect that Page",
+          description: data?.error || `HTTP ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      try { sessionStorage.removeItem(`social_pick_pages_${pagePicker.tempToken}`); } catch (_) {}
+      const platformLabel = PLATFORMS.find(p => p.key === pagePicker.platform)?.name || pagePicker.platform;
+      setJustConnected({ platform: platformLabel, account: data.account_name || "" });
+      setPagePicker(null);
+      await refresh();
+      toast({
+        title: `${platformLabel} connected`,
+        description: data.account_name ? `Connected as ${data.account_name}.` : "Your account is now connected.",
+      });
+    } finally {
+      setPagePicker(p => p ? { ...p, submitting: false } : p);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -215,21 +310,44 @@ export default function ConnectSettings() {
 
       <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
         {justConnected && (
-          <Card className="p-4 border-green-500/40 bg-green-500/5">
-            <div className="flex items-start gap-3">
-              <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold">
-                  {justConnected.platform} connected successfully
-                </p>
-                {justConnected.account && (
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Connected as <span className="font-medium">{justConnected.account}</span>. Auto-posting is now enabled.
+          <Card className="p-5 border-green-500/40 bg-green-500/5">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">
+                    {justConnected.platform} connected{justConnected.account ? ` as ${justConnected.account}` : ""}
                   </p>
-                )}
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Auto-posting is enabled. Here's what to do next:
+                  </p>
+                </div>
               </div>
               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setJustConnected(null)}>
                 Dismiss
+              </Button>
+            </div>
+
+            {/* Two-step "what's next" */}
+            <ol className="space-y-2 ml-8">
+              <li className="flex items-start gap-2 text-xs">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-green-600 text-white text-[10px] font-semibold">✓</span>
+                <span className="text-muted-foreground line-through">Connect your account</span>
+              </li>
+              <li className="flex items-start gap-2 text-xs">
+                <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary/40 text-primary text-[10px] font-semibold">2</span>
+                <span>Open your Social Calendar to review, schedule, and publish your posts.</span>
+              </li>
+            </ol>
+
+            <div className="ml-8 mt-3 flex gap-2">
+              <Button
+                size="sm"
+                onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}
+              >
+                <CalendarIcon className="h-3.5 w-3.5 mr-1.5" />
+                Open Social Calendar
+                <ArrowRight className="h-3.5 w-3.5 ml-1.5" />
               </Button>
             </div>
           </Card>
@@ -384,6 +502,67 @@ export default function ConnectSettings() {
           </div>
         </Card>
       </div>
+
+      {/* Facebook Page picker — shown only when the author admins multiple Pages */}
+      <Dialog
+        open={!!pagePicker}
+        onOpenChange={(open) => { if (!open && !pagePicker?.submitting) setPagePicker(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose your Facebook Page</DialogTitle>
+            <DialogDescription>
+              You admin more than one Page. Pick the one you want Authors Bureau to post to.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pagePicker && (
+            <RadioGroup
+              value={pagePicker.selectedId || ""}
+              onValueChange={(v) => setPagePicker(p => p ? { ...p, selectedId: v } : p)}
+              className="space-y-2 max-h-72 overflow-y-auto"
+            >
+              {pagePicker.pages.map((pg) => (
+                <Label
+                  key={pg.id}
+                  htmlFor={`pg-${pg.id}`}
+                  className="flex items-center gap-3 rounded-md border border-border p-2.5 cursor-pointer hover:bg-muted/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                >
+                  <RadioGroupItem id={`pg-${pg.id}`} value={pg.id} />
+                  {pg.picture ? (
+                    <img src={pg.picture} alt="" className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                      <Facebook className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium truncate">{pg.name}</span>
+                </Label>
+              ))}
+            </RadioGroup>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setPagePicker(null)}
+              disabled={pagePicker?.submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitPagePick}
+              disabled={!pagePicker?.selectedId || pagePicker?.submitting}
+            >
+              {pagePicker?.submitting ? (
+                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Connecting…</>
+              ) : (
+                <>Connect this Page</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
