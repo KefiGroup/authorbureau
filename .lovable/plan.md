@@ -1,86 +1,123 @@
-## Goal
-Two related fixes so authors never feel lost in the social posting flow:
+# BP-03 Reframed: ABBY Copy-Paste Content Factory
 
-1. **Pick which Facebook Page to connect** (instead of silently grabbing the first one).
-2. **Make the whole "connect → schedule → publish" journey visible** with status, next-step prompts, and clear feedback at every stage.
-
----
-
-## Part 1 — Facebook Page picker
-
-Today, when an author connects Facebook, the callback grabs `pagesJson.data[0]` automatically. If they admin multiple Pages (or the wrong one is first), they get the wrong account silently.
-
-**What changes**
-- `social-connect-callback` (Facebook + Instagram path):
-  - If `pagesJson.data.length > 1` AND no `page_id` was supplied in the request, return `{ success: false, needs_page_selection: true, pages: [{id,name,picture}], temp_token }` instead of saving.
-  - Cache the user-access-token + state under a short-lived row keyed by `temp_token` (5 min TTL) so the next call can complete without a second OAuth round trip.
-  - When called again with `{ temp_token, page_id }`, look up the cached token, fetch that page's access token + IG business account, and upsert as today.
-- `SocialAuthCallback.tsx`:
-  - When the response is `needs_page_selection`, navigate to `/connect-settings?social=pick-page&platform=...&token=...` with the page list passed via `sessionStorage` (avoids long URLs).
-- `ConnectSettings.tsx`:
-  - New "Choose your Facebook Page" modal (radio list with page name + thumbnail + Confirm button).
-  - On confirm, POST `{ temp_token, page_id }` back to `social-connect-callback`, then show the existing green success banner with the chosen page name.
-- Single-page authors keep the current zero-click flow (no modal shown).
+## What we're building (one line)
+ABBY mines the book and produces a constant stream of platform-perfect, copy-paste-ready posts (LinkedIn, Facebook, Instagram single + 5-slide carousels) with custom graphics, dropped into the Social Calendar, auto-refilled when stock runs low.
 
 ---
 
-## Part 2 — End-to-end feedback loop
+## End-to-end workflow
 
-The author journey today:
-
+```text
+1. SOURCE       Manuscript + BP-00 analysis (themes, frameworks, quotes, audience)
+                                │
+2. PLAN         generate-bp03-social-media writes 30 posts using 6 archetypes
+                (Quote · Lesson · Question · Story · Framework · Proof)
+                ~70% single-image posts, ~30% Instagram carousel posts
+                                │
+3. CAPTIONS     generate-social-content writes 3 platform voices per post:
+                • LinkedIn  ≤1300 ch, hook + insight + CTA + 3 tags
+                • Facebook  400-800 ch, conversational + question
+                • Instagram 150-220 ch + hashtag block + alt-text
+                                │
+4. HASHTAGS     5 anchor tags (locked from book themes) + 5 rotating tags
+                drawn from a 30-tag pool. Same author = consistent identity,
+                no spammy repetition.
+                                │
+5. GRAPHICS     compose-social-post (Nano Banana 2 -> burn-in template):
+                Single posts:    LI 1200×627 · FB 1200×630 · IG 1080×1350 + 1080×1080
+                Carousel posts:  5 slides × 1080×1350 (cover, 3 insight, CTA)
+                Brand-kit aware (colors, font, author handle, book cover)
+                                │
+6. CALENDAR     Marketing Hub → Social Calendar grid. Each card has tabs:
+                LinkedIn · Facebook · Instagram (Single | Carousel if applicable)
+                [Copy caption] [Download image / Download all 5 slides]
+                [Open LinkedIn ↗] [Open Facebook ↗] [Open Instagram ↗]
+                  ↳ all three open the platform's compose home page,
+                    NO pre-fill, consistent UX across platforms
+                [Edit] [Regenerate] [Mark as posted]
+                                │
+7. AUTHOR LOOP  ~20 sec / post: pick tab → Copy → Download → Open app →
+                paste + attach + post → Mark as posted
+                                │
+8. AUTO-REFILL  auto-refill-social-calendar (cron, daily check):
+                when unposted < 7, generate next 14 posts, exclude last 30
+                themes, notify author "+14 new posts ready"
+                                │
+9. LEARNING     Mark-as-posted feeds CRM scoring + biases next refill toward
+                archetypes the author actually publishes
 ```
-BP-03 builder → "Activate" → Connect Settings → OAuth → ??? → Marketing Hub → ??? → Posted?
-```
-
-After OAuth they land back on Connect Settings with no signpost to the Calendar, no proof a scheduled post will actually fire, and no record of what was posted. We will close every gap.
-
-### 2a. After successful connect
-- Replace the static green banner with a **two-step "What's next" card**:
-  - Step 1 ✓ "Connected as {Page Name}"
-  - Step 2 → "Open your Social Calendar to review and schedule your posts" with a primary `Open Social Calendar` button (deep-links to `/dashboard?section=marketing-hub&tab=social-calendar`).
-- If the author arrived from BP-03, also show a "Return to BP-03" link.
-
-### 2b. In the Social Calendar (`SocialCalendarTab.tsx`)
-- Add a **status legend + per-post status pill** with five states sourced from `social_posts.status`:
-  - `draft` (grey), `scheduled` (blue + scheduled time), `posting` (amber spinner), `posted` (green + "Posted {time}" + external-link to live URL when `external_url` exists), `failed` (red + tooltip with `last_error`).
-- New top-of-tab **summary strip**: `X scheduled · Y posted this week · Z failed (Retry all)`.
-- Each calendar day cell shows a small dot per post colored by status so the author sees at-a-glance progress without opening a day.
-- "Schedule" and "Post now" buttons disabled with a clear tooltip when the relevant platform is not connected, plus an inline "Connect {platform}" link.
-
-### 2c. Publishing pipeline transparency
-- `social-publish` / `social-scheduler` already write `status`, `posted_at`, `external_url`, `last_error`. Surface those:
-  - On a successful publish, fire a Sonner toast "Posted to {platform}" with a "View post" action (opens `external_url`).
-  - On failure, toast red "Couldn't post to {platform}" + "Open Calendar" action that scrolls to the failed post.
-- New **"Recent activity" panel** in the Calendar sidebar: last 10 social_posts events (posted/failed/scheduled) with timestamp, platform icon, and link.
-
-### 2d. Notifications (lightweight)
-- Reuse the existing `notifications` table (already used for book.approved etc.):
-  - On `posted`: insert a notification "{platform} post is live" linking to `external_url`.
-  - On `failed`: "{platform} post failed — tap to retry" linking to the Calendar with the post highlighted.
-- This means the bell icon in the dashboard becomes the global feedback channel even when the author is on another tab.
-
-### 2e. Dashboard at-a-glance card
-- Add a small "Social posting" tile to the dashboard overview showing: connected platforms, next scheduled post (date + platform), and any failed posts needing attention. Click → Calendar.
 
 ---
 
-## Expected result
-- Multi-Page authors pick the right Facebook Page during connect.
-- After connecting, the author sees exactly what to do next and one click takes them there.
-- In the Calendar they always know which posts are draft / scheduled / posted / failed, with timestamps and links to the live post.
-- Failures and successes generate toasts + bell notifications so the author is never wondering "did it actually post?"
-- A dashboard tile gives a global pulse on social posting without opening the Calendar.
+## Author-facing changes in BP-03 builder
 
-## Files to change
-- `supabase/functions/social-connect-callback/index.ts` (page-selection branch + temp-token cache)
-- `supabase/migrations/*` — new `social_connect_pending` table (`temp_token`, `user_id`, `user_access_token`, `pages_json`, `expires_at`) with RLS limited to service role
-- `src/pages/SocialAuthCallback.tsx` (handle `needs_page_selection`)
-- `src/pages/ConnectSettings.tsx` (page-picker modal + new "What's next" card)
-- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` (status pills, summary strip, day-cell dots, Recent activity panel, disabled-state tooltips)
-- `supabase/functions/social-publish/index.ts` and `social-scheduler/index.ts` (insert into `notifications` on success/failure; ensure `external_url` + `last_error` always written)
-- `src/components/dashboard/OverviewTab` (or equivalent) — new Social posting tile
+- **Step 4 "Activate" → renamed "Send to Social Calendar"** with honest copy:
+  > "30 ready-to-post packages now live in your Social Calendar. Each one has a LinkedIn, Facebook, and Instagram version with a custom graphic — Instagram includes 9 carousel sets too. Open the Calendar, copy, download, paste, post. ~20 seconds per post. ABBY will refill 14 more automatically when you drop below 7 unused posts."
+- All "automated posting" / "auto-publish" wording removed from BP-03, ABBY chat, Marketing Hub, and `/docs/04-node-frameworks/BP-03.md`.
+
+---
+
+## Confirmed decisions (your answers)
+
+| Question | Decision |
+|---|---|
+| Image cost (~$1-2 per refill) | ✅ OK |
+| Instagram carousels | ✅ Yes — 5-slide carousels on ~30% of posts |
+| Hashtag strategy | ✅ 5 anchor + 5 rotating from 30-tag pool |
+| Open-app deep links | ✅ No pre-fill — open compose home page on all 3 platforms (consistent) |
+| Auto-refill threshold | ✅ Trigger 14 new when <7 remain |
+
+> Your last line was cut off ("i do not understa…"). I'm proceeding with the 5 decisions above. If there's something else you wanted to flag, tell me before approving.
+
+---
 
 ## Out of scope
-- Adding new platforms.
-- Changing the BP-03 generation flow itself.
-- Any visual redesign of the Calendar grid beyond the status affordances above.
+- True API auto-posting to LinkedIn / Meta (parked — revisit after we see real copy-paste usage)
+- TikTok / X / Threads (single generic export only, no platform-tuning)
+- Video posts
+- Reusing the existing half-wired `social-publish` / `social-scheduler` / `social-connect-callback` code — these will be hidden from UI so nothing implies auto-post; code kept for a possible future sprint
+
+---
+
+## Technical appendix
+
+**Schema** — `author_nodes.content_json` for BP-03:
+```ts
+posts: Array<{
+  id: string
+  archetype: 'quote'|'lesson'|'question'|'story'|'framework'|'proof'
+  format: 'single' | 'carousel'           // carousel = IG only
+  source_chapter?: string
+  variants: {
+    linkedin:  { caption; hashtags[]; image_url }
+    facebook:  { caption; hashtags[]; image_url }
+    instagram: {
+      caption; hashtags[]; alt_text
+      image_url_portrait; image_url_square
+      carousel_slides?: string[]          // 5 urls when format='carousel'
+    }
+  }
+  status: 'draft'|'ready'|'posted'
+  posted_at?: string
+  posted_platforms?: ('linkedin'|'facebook'|'instagram')[]
+}>
+hashtag_pool: { anchors: string[5]; rotating: string[30] }
+```
+
+**Edge functions**
+- `generate-social-content` — add 3-voice generation + carousel scripts (5 slides w/ cover-insight×3-CTA)
+- `compose-social-post` — render 4 single sizes + optional 5-slide carousel; brand-kit pull from `author_email_settings` + `author_profiles`
+- `auto-refill-social-calendar` (NEW) — cron via `pg_cron` daily 13:00 UTC; threshold check + generation + notification
+- `bp03-node-state` — count `status='posted'` for stats
+
+**UI**
+- `src/components/dashboard/builders/bp03/*` — Step 4 rename + copy
+- `src/components/marketing-hub/SocialCalendarTab.tsx` — platform tabs, Single/Carousel sub-tab, Copy/Download/Open buttons (no pre-fill), Mark-as-posted, Regenerate
+- `src/components/dashboard/SocialMediaManager.tsx` — replace list with card grid
+- Hide `ConnectSettings` social section + `SocialAuthCallback` UI surfaces
+
+**Docs**
+- `docs/04-node-frameworks/BP-03.md`, README, `docs/03-abby-ai/03-node-activation-prompts.md` — full honesty rewrite
+
+**Memory updates**
+- Update `mem://features/buffer-social-scheduling-sprint36b` → mark deprecated, replace with new "ABBY Copy-Paste Social Factory" memory describing the workflow above.
