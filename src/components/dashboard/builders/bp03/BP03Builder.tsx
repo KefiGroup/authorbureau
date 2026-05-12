@@ -39,6 +39,8 @@ import {
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 // Sprint 60: BP-03 now uploads via render-library-asset (service role) directly.
 import { buildBp03Txt } from "@/lib/build-library-txt";
+import { autosaveBuilderDraft } from "@/lib/builder-autosave";
+import { resolveBookTitle } from "@/lib/resolve-book-title";
 
 const STEPS = ["Introduction", "Generating", "Review", "Send to Calendar"];
 
