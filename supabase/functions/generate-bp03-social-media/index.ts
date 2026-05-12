@@ -121,13 +121,13 @@ Key frameworks: ${frameworks}
 POST ARCHETYPE MAP (30 days, 6 archetypes × 5 posts each, interleaved):
 ${archetypeManifest()}
 
-Each post MUST honour its assigned archetype:
-- Quote Card: a single sharp pull-quote from the book.
-- Stat / Insight: a surprising number or research-backed insight.
-- Story / Anecdote: a short narrative beat (your story, a client story, a scene).
-- Question / Engagement: open with a provocative question; invite reply.
-- Behind-the-Scenes: process, craft, or "how I built this" peek.
-- Direct CTA: a clear ask — read the book, opt in, share, etc.
+Each post MUST honour its assigned archetype (one short word):
+- Quote: a single sharp pull-quote drawn from the book.
+- Lesson: a teach-this-back insight from the book; one clear takeaway.
+- Question: open with a provocative question; invite a reply in the comments.
+- Story: a short narrative beat (your story, a client story, a scene from the book).
+- Framework: name and walk through one of the book's frameworks/models in 3-4 lines.
+- Proof: a result, case study, testimonial, or research-backed proof point.
 `.trim();
 
     const setProgress = async (step: number, label: string, partial: Record<string, unknown> = {}) => {
