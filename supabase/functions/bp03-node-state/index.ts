@@ -30,13 +30,22 @@ function flattenPosts(content: any): Array<{
     for (const platform of PLATFORMS) {
       const p = d?.[platform];
       if (!p?.caption) continue;
+      let caption: string = p.caption;
+      // Instagram carousel: append the 5-slide script to the caption so authors
+      // can copy the full carousel package from the calendar.
+      if (platform === "instagram" && p.format === "carousel" && Array.isArray(p.carousel_slides)) {
+        const slidesBlock = p.carousel_slides
+          .map((s: any, i: number) => `Slide ${i + 1} — ${s?.headline || ""}\n${s?.body || ""}`.trim())
+          .join("\n\n");
+        caption = `${caption}\n\n— Carousel script (5 slides) —\n\n${slidesBlock}`;
+      }
       flat.push({
         index: idx++,
         day: Number(d.day) || 0,
         platform,
-        caption: p.caption,
+        caption,
         hashtags: Array.isArray(p.hashtags) ? p.hashtags : [],
-        post_type: d.post_type || "insight",
+        post_type: platform === "instagram" && p.format === "carousel" ? "carousel" : (d.post_type || "insight"),
       });
     }
   }
