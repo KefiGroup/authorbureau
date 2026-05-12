@@ -169,6 +169,26 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
     const facebook = merged.facebook_posts || [];
     const twitter = merged.twitter_posts || [];
 
+    // Hashtag pool: 5 anchor (locked) + 30 rotating. Each post gets anchors + 5 rotating tags
+    // selected by index so the same post slot always shows the same rotation (deterministic).
+    const rawPool = merged.hashtag_pool || {};
+    const anchorTags: string[] = (Array.isArray(rawPool.anchors) ? rawPool.anchors : [])
+      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 5);
+    const rotatingPool: string[] = (Array.isArray(rawPool.rotating) ? rawPool.rotating : [])
+      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 30);
+    const pickRotating = (seed: number): string[] => {
+      if (rotatingPool.length === 0) return [];
+      const out: string[] = [];
+      for (let k = 0; k < 5; k++) out.push(rotatingPool[(seed * 5 + k) % rotatingPool.length]);
+      return out;
+    };
+    const applyPool = (existing: string[], seed: number): string[] => {
+      const merged = new Set<string>([...anchorTags, ...pickRotating(seed)]);
+      // Keep up to 3 of the AI-generated platform-specific tags as flavour
+      (existing || []).slice(0, 3).forEach((t) => merged.add(String(t).replace(/^#/, "").trim()));
+      return Array.from(merged).filter(Boolean);
+    };
+
     const days = Math.max(linkedin.length, instagram.length, facebook.length, twitter.length);
     const posts = [];
     for (let i = 0; i < days; i++) {
@@ -176,24 +196,31 @@ The twitter_posts array must have exactly 5 items. The outreach_kit array must h
       const ig = instagram[i] || {};
       const fb = facebook[i] || {};
       const tw = twitter[i] || {};
+      const igCarousel = Array.isArray(ig.carousel_slides) && ig.carousel_slides.length === 5;
       posts.push({
         day: i + 1,
         theme: li.theme || ig.theme || fb.theme || tw.theme || "",
         post_type: "Insight",
         cta_type: "insight",
-        linkedin: { caption: li.caption || "", hashtags: li.hashtags || [] },
-        instagram: { caption: ig.caption || "", hashtags: ig.hashtags || [] },
-        facebook: { caption: fb.caption || "", hashtags: fb.hashtags || [] },
-        twitter: { caption: tw.caption || "", hashtags: tw.hashtags || [] },
+        linkedin: { caption: li.caption || "", hashtags: applyPool(li.hashtags || [], i * 4 + 0) },
+        instagram: {
+          caption: ig.caption || "",
+          hashtags: applyPool(ig.hashtags || [], i * 4 + 1),
+          alt_text: ig.alt_text || "",
+          format: igCarousel ? "carousel" : "single",
+          carousel_slides: igCarousel ? ig.carousel_slides : null,
+        },
+        facebook: { caption: fb.caption || "", hashtags: applyPool(fb.hashtags || [], i * 4 + 2) },
+        twitter: { caption: tw.caption || "", hashtags: applyPool(tw.hashtags || [], i * 4 + 3) },
       });
     }
 
     const finalContent = {
       calendar_name: merged.calendar_name || "Social Media Starter Kit",
-      hashtag_strategy: merged.hashtag_strategy || { primary_hashtags: [], secondary_hashtags: [], author_hashtag: "" },
+      hashtag_pool: { anchors: anchorTags, rotating: rotatingPool },
       posts,
       outreach_kit: merged.outreach_kit || [],
-      abby_summary: merged.abby_summary || `Your social media starter kit for '${bookTitle}' is ready — 20 posts across 4 platforms plus 3 outreach templates.`,
+      abby_summary: merged.abby_summary || `Your copy-paste social kit for '${bookTitle}' is ready — 20 posts across 4 platforms (with Instagram carousels) plus 3 outreach templates.`,
     };
 
     await upsertAuthorNode(sb, author_id, "BP-03", "Social Media", {
