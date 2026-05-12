@@ -502,6 +502,67 @@ export default function ConnectSettings() {
           </div>
         </Card>
       </div>
+
+      {/* Facebook Page picker — shown only when the author admins multiple Pages */}
+      <Dialog
+        open={!!pagePicker}
+        onOpenChange={(open) => { if (!open && !pagePicker?.submitting) setPagePicker(null); }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Choose your Facebook Page</DialogTitle>
+            <DialogDescription>
+              You admin more than one Page. Pick the one you want Authors Bureau to post to.
+            </DialogDescription>
+          </DialogHeader>
+
+          {pagePicker && (
+            <RadioGroup
+              value={pagePicker.selectedId || ""}
+              onValueChange={(v) => setPagePicker(p => p ? { ...p, selectedId: v } : p)}
+              className="space-y-2 max-h-72 overflow-y-auto"
+            >
+              {pagePicker.pages.map((pg) => (
+                <Label
+                  key={pg.id}
+                  htmlFor={`pg-${pg.id}`}
+                  className="flex items-center gap-3 rounded-md border border-border p-2.5 cursor-pointer hover:bg-muted/40 has-[[data-state=checked]]:border-primary has-[[data-state=checked]]:bg-primary/5"
+                >
+                  <RadioGroupItem id={`pg-${pg.id}`} value={pg.id} />
+                  {pg.picture ? (
+                    <img src={pg.picture} alt="" className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
+                      <Facebook className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  )}
+                  <span className="text-sm font-medium truncate">{pg.name}</span>
+                </Label>
+              ))}
+            </RadioGroup>
+          )}
+
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => setPagePicker(null)}
+              disabled={pagePicker?.submitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={submitPagePick}
+              disabled={!pagePicker?.selectedId || pagePicker?.submitting}
+            >
+              {pagePicker?.submitting ? (
+                <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Connecting…</>
+              ) : (
+                <>Connect this Page</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
