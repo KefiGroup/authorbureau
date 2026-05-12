@@ -10,7 +10,7 @@ const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
-const SUPERADMIN_EMAILS = ["paulinet77@gmail.com", "mitchcarson@rocketmail.com"];
+// Admin authorization is driven exclusively by user_roles.
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -25,7 +25,6 @@ async function verifyAdmin(token: string) {
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Try Cloud auth first
   const { data: { user: cloudUser } } = await client.auth.getUser(token);
   if (cloudUser) {
     const { data: roleData } = await client
@@ -35,25 +34,12 @@ async function verifyAdmin(token: string) {
       .eq("role", "admin")
       .maybeSingle();
     if (roleData) return { userId: cloudUser.id, client };
-    if (cloudUser.email && SUPERADMIN_EMAILS.includes(cloudUser.email.toLowerCase())) {
-      return { userId: cloudUser.id, client };
-    }
     return { userId: null, client: null };
   }
 
-  // Fallback: shared backend token
   const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
   const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
   if (!sharedUser) return { userId: null, client: null };
-
-  if (sharedUser.email && SUPERADMIN_EMAILS.includes(sharedUser.email.toLowerCase())) {
-    const { data: profile } = await client
-      .from("author_profiles")
-      .select("user_id")
-      .eq("user_id", sharedUser.id)
-      .maybeSingle();
-    return { userId: profile?.user_id || sharedUser.id, client };
-  }
 
   const { data: roleData } = await client
     .from("user_roles")

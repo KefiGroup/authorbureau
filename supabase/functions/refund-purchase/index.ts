@@ -10,7 +10,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SUPERADMIN_EMAILS = ["paulinet77@gmail.com", "mitchcarson@rocketmail.com"];
+// Admin authorization is driven exclusively by user_roles.
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -35,12 +35,8 @@ Deno.serve(async (req) => {
     // Verify admin
     const { data: { user } } = await admin.auth.getUser(token);
     if (!user) return json({ success: false, status: 401, message: "Invalid token" }, 401);
-    let isAdmin = false;
-    if (user.email && SUPERADMIN_EMAILS.includes(user.email.toLowerCase())) isAdmin = true;
-    if (!isAdmin) {
-      const { data: role } = await admin.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-      isAdmin = !!role;
-    }
+    const { data: role } = await admin.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    const isAdmin = !!role;
     if (!isAdmin) return json({ success: false, status: 403, message: "Admin access required" }, 403);
 
     const body = await req.json().catch(() => ({}));

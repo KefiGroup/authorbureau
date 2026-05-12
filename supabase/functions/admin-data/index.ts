@@ -17,7 +17,8 @@ function json(body: unknown, status = 200) {
   });
 }
 
-const SUPERADMIN_EMAILS = ["paulinet77@gmail.com", "mitchcarson@rocketmail.com"];
+// Admin authorization is now driven exclusively by the user_roles table.
+// Use the admin UI (or a SQL migration) to grant 'admin' role.
 
 async function verifyAdmin(token: string) {
   const client = createClient(
@@ -28,7 +29,6 @@ async function verifyAdmin(token: string) {
   // Try Cloud auth first
   const { data: { user: cloudUser } } = await client.auth.getUser(token);
   if (cloudUser) {
-    // Check user_roles table
     const { data: roleData } = await client
       .from("user_roles")
       .select("role")
@@ -36,11 +36,6 @@ async function verifyAdmin(token: string) {
       .eq("role", "admin")
       .maybeSingle();
     if (roleData) return { userId: cloudUser.id, client };
-
-    // Check superadmin emails
-    if (cloudUser.email && SUPERADMIN_EMAILS.includes(cloudUser.email.toLowerCase())) {
-      return { userId: cloudUser.id, client };
-    }
     return { userId: null, client: null };
   }
 
@@ -49,19 +44,6 @@ async function verifyAdmin(token: string) {
   const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
   if (!sharedUser) return { userId: null, client: null };
 
-  // Check superadmin emails for shared backend users
-  if (sharedUser.email && SUPERADMIN_EMAILS.includes(sharedUser.email.toLowerCase())) {
-    // Find or use the shared user's ID — look up matching Cloud user by email
-    const { data: profile } = await client
-      .from("author_profiles")
-      .select("user_id")
-      .eq("user_id", sharedUser.id)
-      .maybeSingle();
-    const resolvedId = profile?.user_id || sharedUser.id;
-    return { userId: resolvedId, client };
-  }
-
-  // Non-superadmin shared user: check user_roles by shared user ID
   const { data: roleData } = await client
     .from("user_roles")
     .select("role")
