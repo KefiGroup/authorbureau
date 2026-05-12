@@ -24,7 +24,7 @@ const ACTIVE_STATUSES = new Set(["connected", "active"]);
 
 export function useSocialConnectionStatus(): SocialConnectionStatus {
   const { user } = useAuth();
-  const { ready: authReady } = useAuthReady();
+  const { isReady: authReady } = useAuthReady();
   const [loading, setLoading] = useState(true);
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
 
