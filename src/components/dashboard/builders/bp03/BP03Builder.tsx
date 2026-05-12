@@ -335,6 +335,16 @@ export default function BP03Builder({ authorId, bookId }: Props) {
       if (!data?.success) throw new Error(data?.error || "Generation failed. Please try again.");
       setContent(data.content);
       setStep(2);
+      // Autosave parity with BP-02/04/05/06/08: persist the freshly generated
+      // kit so a refresh resumes at Step 2 even if the user never clicks Save.
+      void autosaveBuilderDraft({
+        authorId: authorId!,
+        nodeId: "BP-03",
+        nodeName: "Social Media",
+        content: { ...data.content, _currentStep: 2 },
+        currentStep: 2,
+        bookId: activeBookId,
+      });
     } catch (e: any) {
       setError(e.message);
       const hasUsableKit =
