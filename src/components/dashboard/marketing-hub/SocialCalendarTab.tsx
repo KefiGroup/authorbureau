@@ -985,7 +985,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
                           {platformIcon(post.platform)}
                           <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
-                          {(post.archetype || post.post_type) && <Badge variant="outline" className="text-[10px]">{post.archetype || post.post_type}</Badge>}
+                          <Badge variant="outline" className="text-[10px]">{archetypeLabel(post)}</Badge>
                         </div>
                         {statusBadge(post.status)}
                       </div>
@@ -1097,7 +1097,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
                         {platformIcon(post.platform)}
                         <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
-                        {(post.archetype || post.post_type) && <Badge variant="outline" className="text-[10px]">{post.archetype || post.post_type}</Badge>}
+                        <Badge variant="outline" className="text-[10px]">{archetypeLabel(post)}</Badge>
                         {post.scheduled_at && (
                           <span className="text-[10px] text-muted-foreground">
                             · {new Date(post.scheduled_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
