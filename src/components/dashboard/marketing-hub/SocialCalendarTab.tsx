@@ -314,6 +314,8 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
       window.open(post.graphic_url, "_blank", "noopener,noreferrer");
     }
   };
+
+  const filteredPosts = useMemo(() => {
     if (filter === "all") return posts;
     return posts.filter(p => {
       if (filter === "x") return p.platform === "x" || p.platform === "twitter";
