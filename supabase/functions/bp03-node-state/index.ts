@@ -15,6 +15,8 @@ type NextStatus = "content_ready" | "live";
 
 const PLATFORMS = ["linkedin", "instagram", "facebook", "twitter"] as const;
 
+const ARCHETYPES = new Set(["Quote", "Lesson", "Question", "Story", "Framework", "Proof"]);
+
 function flattenPosts(content: any): Array<{
   index: number;
   day: number;
@@ -22,18 +24,21 @@ function flattenPosts(content: any): Array<{
   caption: string;
   hashtags: string[];
   post_type: string;
+  archetype: string | null;
+  carousel_slides: any;
 }> {
   const days: any[] = Array.isArray(content?.posts) ? content.posts : [];
   const flat: any[] = [];
   let idx = 0;
   for (const d of days) {
+    // Canonical archetype lives on the day record (d.post_type from the generator).
+    const archetype = ARCHETYPES.has(d?.post_type) ? d.post_type : null;
     for (const platform of PLATFORMS) {
       const p = d?.[platform];
       if (!p?.caption) continue;
       let caption: string = p.caption;
-      // Instagram carousel: append the 5-slide script to the caption so authors
-      // can copy the full carousel package from the calendar.
-      if (platform === "instagram" && p.format === "carousel" && Array.isArray(p.carousel_slides)) {
+      const isCarousel = platform === "instagram" && p.format === "carousel" && Array.isArray(p.carousel_slides);
+      if (isCarousel) {
         const slidesBlock = p.carousel_slides
           .map((s: any, i: number) => `Slide ${i + 1} — ${s?.headline || ""}\n${s?.body || ""}`.trim())
           .join("\n\n");
@@ -45,7 +50,10 @@ function flattenPosts(content: any): Array<{
         platform,
         caption,
         hashtags: Array.isArray(p.hashtags) ? p.hashtags : [],
-        post_type: platform === "instagram" && p.format === "carousel" ? "carousel" : (d.post_type || "insight"),
+        // post_type stays canonical archetype; carousel-ness is tracked via carousel_slides.
+        post_type: archetype || "Insight",
+        archetype,
+        carousel_slides: isCarousel ? p.carousel_slides : null,
       });
     }
   }
@@ -82,6 +90,8 @@ async function rebuildSocialPosts(
     status: "draft",
     post_index: p.index,
     post_type: p.post_type,
+    archetype: p.archetype,
+    carousel_slides: p.carousel_slides,
   }));
 
   for (let i = 0; i < rows.length; i += 50) {

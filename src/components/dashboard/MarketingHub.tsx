@@ -45,7 +45,7 @@ const CAMPAIGNS: CampaignConfig[] = [
   },
   {
     id: "social-media", label: "Social Media", phase: "A",
-    description: "20 posts across LinkedIn, Instagram, Facebook & X — copy, post, mark done",
+    description: "30 posts (6 archetypes) across LinkedIn, Instagram, Facebook & X — copy, post, mark done",
     nodeIds: ["BP-03"],
     successMessage: "Your Social Media Kit is in the Social Calendar — copy and post when you're ready.",
   },
