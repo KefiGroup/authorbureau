@@ -1010,7 +1010,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
                         {platformIcon(post.platform)}
                         <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
-                        {post.post_type && <Badge variant="outline" className="text-[10px]">{post.post_type}</Badge>}
+                        {(post.archetype || post.post_type) && <Badge variant="outline" className="text-[10px]">{post.archetype || post.post_type}</Badge>}
                         {post.scheduled_at && (
                           <span className="text-[10px] text-muted-foreground">
                             · {new Date(post.scheduled_at).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}
@@ -1034,15 +1034,37 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         />
                       </div>
                     )}
+                    {Array.isArray(post.carousel_slides) && post.carousel_slides.length > 0 && (
+                      <div className="mb-2">
+                        <CarouselPreview slides={post.carousel_slides} filenamePrefix={`post-${(post.post_index ?? 0) + 1}`} />
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => copyCaption(post)}>
                         {copiedId === post.id ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
                         Copy
                       </Button>
-                      {post.graphic_url && (
-                        <Button size="sm" variant="outline" onClick={() => downloadGraphic(post)}>
-                          <Download className="h-3.5 w-3.5 mr-1" /> Graphic
-                        </Button>
+                      {graphicVariants(post).length > 0 && (
+                        graphicVariants(post).length === 1 ? (
+                          <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
+                            <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                          </Button>
+                        ) : (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="outline">
+                                <Download className="h-3.5 w-3.5 mr-1" /> Graphic
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start">
+                              {graphicVariants(post).map(([label, url]) => (
+                                <DropdownMenuItem key={label} onClick={() => downloadGraphic(post, url, label.split(" ")[0].toLowerCase())}>
+                                  Download {label}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )
                       )}
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
