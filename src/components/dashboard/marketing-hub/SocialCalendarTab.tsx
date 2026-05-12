@@ -893,7 +893,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           <span className={cn("h-2 w-2 rounded-full", PLATFORM_COLORS[post.platform] || "bg-muted-foreground")} />
                           {platformIcon(post.platform)}
                           <span className="capitalize">{PLATFORM_LABELS[post.platform] || post.platform}</span>
-                          {post.post_type && <Badge variant="outline" className="text-[10px]">{post.post_type}</Badge>}
+                          {(post.archetype || post.post_type) && <Badge variant="outline" className="text-[10px]">{post.archetype || post.post_type}</Badge>}
                         </div>
                         {statusBadge(post.status)}
                       </div>
@@ -910,6 +910,11 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           />
                         </div>
                       )}
+                      {Array.isArray(post.carousel_slides) && post.carousel_slides.length > 0 && (
+                        <div className="mb-2">
+                          <CarouselPreview slides={post.carousel_slides} filenamePrefix={`post-${(post.post_index ?? 0) + 1}`} />
+                        </div>
+                      )}
                       <div className="flex flex-wrap items-center gap-2">
                         <Button size="sm" onClick={() => startSchedule(post)}>
                           <CalendarIcon className="h-3.5 w-3.5 mr-1" /> Schedule
@@ -921,11 +926,17 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           {copiedId === post.id ? <Check className="h-3.5 w-3.5 mr-1" /> : <Copy className="h-3.5 w-3.5 mr-1" />}
                           Copy
                         </Button>
+                        <Button size="sm" variant="outline" onClick={() => copyAndOpen(post)}>
+                          <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open {PLATFORM_LABELS[post.platform] || post.platform}
+                        </Button>
                         {post.graphic_url && (
                           <Button size="sm" variant="outline" onClick={() => downloadGraphic(post)}>
                             <Download className="h-3.5 w-3.5 mr-1" /> Graphic
                           </Button>
                         )}
+                        <Button size="sm" variant="ghost" onClick={() => markAsPosted(post)}>
+                          <Check className="h-3.5 w-3.5 mr-1" /> Mark as Posted
+                        </Button>
                       </div>
                     </div>
                   </div>
