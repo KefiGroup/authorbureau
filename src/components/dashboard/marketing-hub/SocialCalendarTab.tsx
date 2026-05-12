@@ -329,6 +329,8 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
       setGeneratingGraphicForId(null);
     }
   };
+
+  const downloadGraphic = async (post: SocialPost, sizeUrl?: string, sizeLabel?: string) => {
     const url = sizeUrl || post.graphic_url;
     if (!url) return;
     try {
