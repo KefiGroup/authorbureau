@@ -228,7 +228,7 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
     const anchorTags: string[] = (Array.isArray(rawPool.anchors) ? rawPool.anchors : [])
       .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 5);
     const rotatingPool: string[] = (Array.isArray(rawPool.rotating) ? rawPool.rotating : [])
-      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 30);
+      .map((t: any) => String(t).replace(/^#/, "").trim()).filter(Boolean).slice(0, 20);
     const pickRotating = (seed: number): string[] => {
       if (rotatingPool.length === 0) return [];
       const out: string[] = [];
@@ -241,8 +241,8 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
       return Array.from(merged).filter(Boolean);
     };
 
-    // Always emit exactly 30 days
-    const days = 30;
+    // Always emit exactly 20 days
+    const days = 20;
     const posts = [];
     for (let i = 0; i < days; i++) {
       const day = i + 1;
