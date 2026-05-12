@@ -313,6 +313,12 @@ export default function ConnectSettings() {
       const platformLabel = PLATFORMS.find(p => p.key === pagePicker.platform)?.name || pagePicker.platform;
       setJustConnected({ platform: platformLabel, account: data.account_name || "" });
       setPagePicker(null);
+      // Bug 5: notify all open tabs (and this one) that a new social account is live
+      try {
+        const bc = new BroadcastChannel("social-connect");
+        bc.postMessage({ type: "connected", platform: pagePicker.platform, account: data.account_name });
+        bc.close();
+      } catch (_) {}
       await refresh();
       toast({
         title: `${platformLabel} connected`,
