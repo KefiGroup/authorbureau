@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
 
       let postsQuery = cloudAdmin
         .from("social_posts")
-        .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index, graphic_url")
+        .select("id, platform, content, scheduled_at, status, posted_at, post_type, post_index, graphic_url, archetype, carousel_slides, graphics")
         .eq("author_id", authorProfile.id)
         .eq("node_id", "BP-03")
         .order("scheduled_at", { ascending: true })
