@@ -1,90 +1,48 @@
-## BP-03 Spec Reconciliation v2 — 9 Bugs
+## Plan
 
-Locking in: archetypes = **Quote / Lesson / Question / Story / Framework / Proof**. Graphics = full scope (3 sizes per post + brand-kit on every post). BUG-10 excluded (user action, not a bug).
+1. **Fix the BP-03 data model flow so 30 posts survive every save/repair path**
+   - Update the BP-03 repair/save pipeline to preserve the new 30-day, 6-archetype structure instead of falling back to legacy defaults.
+   - Remove the remaining `"insight"` fallback in `bp03-node-state` and persist the canonical archetype label into calendar rows.
+   - Ensure Instagram carousel rows also carry both the canonical archetype and `carousel_slides` data when rebuilt from saved content.
 
----
+2. **Correct the remaining BP-03 builder copy and step labels**
+   - Change any remaining BP-03 UI strings that still say `20 posts`, `Publish`, or `Send to Calendar` to the approved wording.
+   - Make the step label read exactly **"Send to Social Calendar"** and align the intro/subtitle/success copy with the 30-post spec.
+   - Update the Marketing Hub BP-03 campaign description so the dashboard no longer advertises the old 20-post version.
 
-### BUG-1 + BUG-2 — 30 posts across 6 archetypes (Critical)
+3. **Fix Facebook Page OAuth persistence in Connect Settings**
+   - Reconcile the connection upsert logic with the new uniqueness rule on `social_connections(user_id, platform)` so Facebook page connections don’t disappear after authorization.
+   - Keep the page-pick flow intact, but make sure the final stored row is the one that Connect Settings and `useSocialConnectionStatus()` actually read.
+   - Preserve the instant refresh behavior via `BroadcastChannel` and existing focus refresh.
 
-**Root cause:** `generate-bp03-social-media` produces 5 posts × 4 platforms = 20. There is no `archetype` concept anywhere — the "Insight" badge is a hardcoded UI fallback.
+4. **Finish the Instagram carousel implementation in the calendar UI**
+   - Verify the generator, persistence, and Marketing Hub state all treat the required ~9 Instagram carousel days as real carousel posts.
+   - Ensure carousel posts render their preview/download UI consistently in both unscheduled and scheduled calendar cards.
+   - Confirm calendar actions (schedule, copy/open, mark posted) work without stripping carousel metadata.
 
-**Fix:**
-1. Rewrite each platform prompt to produce **30 posts** organised as 5 posts × 6 archetypes (Quote / Lesson / Question / Story / Framework / Proof), each with a strict `archetype` field.
-2. Add `archetype TEXT` column to `social_posts` + a CHECK constraint on the 6 values.
-3. Generator writes `archetype` per row; UI badge reads from the row (falls back to `Insight` only if NULL legacy data).
-4. Token bumps: LinkedIn ~14k, IG+FB ~18k, X ~12k. No `temperature` override (gpt-5 ban).
+5. **Validate the BP-03 experience end-to-end**
+   - Verify the generator now produces 30 posts across the 6 approved archetypes.
+   - Verify the builder shows the correct step label and updated 30-post copy.
+   - Verify Facebook Page connection remains visible after the OAuth return flow.
+   - Verify carousel posts appear in the calendar with previewable/downloadable slides.
 
-### BUG-3 — Mark as Posted button on every card (High)
+## Technical details
 
-`markAsPosted` already exists in `SocialCalendarTab.tsx` but is gated. Surface it on **every** card whose status is `scheduled`/`ready`, plus the BP-03 builder preview list. On click → `status='posted'`, `posted_at=now()`, increment "X of 30 posted" counter, trigger `auto-refill-social-calendar` if unposted < 7.
+**Files likely to update**
+- `supabase/functions/bp03-node-state/index.ts`
+- `supabase/functions/social-connect-callback/index.ts`
+- `src/components/dashboard/builders/bp03/BP03Builder.tsx`
+- `src/components/dashboard/MarketingHub.tsx`
+- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
+- Possibly `src/components/dashboard/builders/shared/socialKitHelpers.ts` if any platform/archetype normalization needs a final cleanup.
 
-### BUG-4 — Open LinkedIn / Facebook / Instagram buttons (High)
+**Key fixes**
+- Replace the legacy fallback `d.post_type || "insight"` with canonical BP-03 archetype persistence.
+- Make the social connection upsert conflict target match the unique-per-platform behavior used by the UI.
+- Keep carousel rows distinct from archetype labels by storing archetype canonically while using separate format/carousel metadata for rendering.
 
-Honest copy-paste per Sprint 61. Each card gets 3 buttons:
-- **Copy + Open LinkedIn** → copies caption+hashtags, opens `linkedin.com/feed/?shareActive=true`
-- **Copy + Open Facebook** → opens `facebook.com/`
-- **Copy + Open Instagram** → opens `instagram.com/` (mobile detect → `instagram://camera`)
-
-No deep-link publishing — clipboard + new-tab composer only.
-
-### BUG-5 — Facebook / Instagram persistence (High)
-
-Two co-existing causes:
-1. OAuth callback doesn't notify the parent — add `BroadcastChannel('social-connect')` ping in `SocialAuthCallback.tsx`; `useSocialConnectionStatus` already listens.
-2. Duplicate `(user_id, platform)` rows confuse render. Migration: collapse duplicates keeping newest, add unique index `(user_id, platform)`.
-3. Gate first query on `useAuthReady` (already wired in current hook — verify on `ConnectSettings.tsx` too).
-4. Verify `meta-oauth-callback` actually writes the row (logs check).
-
-### BUG-6 — Instagram carousels (Medium)
-
-Mark exactly **9 of the 30 IG posts** as `format: "carousel"` with 5-slide arrays (`carousel_slides: [{headline, body, image_prompt}]`). New `CarouselPreview.tsx` (already created last loop) renders horizontal swiper. "Download all 5 slides" button calls `bp03-generate-all-graphics` with `slide_index`.
-
-### BUG-7 — 3 size variants per post (Medium, full scope)
-
-For every post, generate **3 graphics**:
-- **Landscape 1200×628** → LinkedIn + Facebook
-- **Portrait 1080×1350** → Instagram default
-- **Square 1080×1080** → Instagram alternate / X fallback
-
-Schema: replace `graphic_url TEXT` with `graphics JSONB` on `social_posts`:
-```json
-{ "landscape": "url", "portrait": "url", "square": "url" }
-```
-Migration keeps `graphic_url` as a generated/back-compat column pointing at the platform's preferred size. Download menu on each card lists all 3 sizes.
-
-### BUG-8 — Brand-kit on graphics (Medium, full scope)
-
-**Reuse `compose-social-post`** from Sprint 37 instead of building parallel logic in `bp03-generate-all-graphics`. That function already pulls brand kit (colors, font, book cover) and does 2-step generate-then-burn-in.
-
-Refactor `bp03-generate-all-graphics` to:
-1. For each post × each of 3 sizes → call `compose-social-post` with the right aspect ratio + brand kit + caption headline + book cover.
-2. Store all 3 URLs in the new `graphics` JSONB column.
-3. Cost guardrail: regen confirmation modal warns "Generating 90 graphics (30 posts × 3 sizes), takes ~5 min".
-
-### BUG-9 — Step 5 label verification (Low)
-
-Open BP-03 Builder, confirm Step 5 reads **"Send to Social Calendar"**. If not, change the label string in `BP03Builder.tsx`. (One-line fix.)
-
----
-
-### Files touched
-
-- `supabase/functions/generate-bp03-social-media/index.ts` — 30-post / 6-archetype prompts, token bumps, carousel marker
-- `supabase/functions/bp03-generate-all-graphics/index.ts` — refactored to call `compose-social-post` × 3 sizes per post
-- `supabase/functions/compose-social-post/index.ts` — verify it accepts `aspect_ratio` param; add if missing
-- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` — archetype badge, Mark-as-posted on every card, 3 platform "Copy + Open" buttons, size-picker download menu, carousel preview, "X of 30" counter
-- `src/components/dashboard/builders/bp03/BP03Builder.tsx` — same buttons in builder preview, Step 5 label check, "30 posts" copy everywhere
-- `src/components/dashboard/builders/bp03/CarouselPreview.tsx` — already exists, wire into both surfaces
-- `src/hooks/useSocialConnectionStatus.ts` — already updated; verify `useAuthReady` gate
-- `src/pages/SocialAuthCallback.tsx` — emit BroadcastChannel on success
-- `src/pages/ConnectSettings.tsx` — same de-dupe + auth-ready gate
-- **Migration:**
-  - Add `archetype TEXT` + CHECK constraint to `social_posts`
-  - Add `graphics JSONB` to `social_posts`, migrate existing `graphic_url` → `graphics.square`
-  - Collapse duplicate `(user_id, platform)` rows in `social_connections` + unique index
-
-### Out of scope
-Buffer, X OAuth, automated publishing, BUG-10 (Pauline clicks Connect on LinkedIn herself).
-
-### Risk / open question
-Brand-kit + 3-size generation triples image-gen cost per regen (~90 calls per BP-03 build). I'll add a confirm modal and a "regenerate one platform only" option to keep iteration cheap.
+**Expected outcome**
+- BP-03 consistently behaves as a 30-post, 6-archetype social kit.
+- The builder label reads exactly `Send to Social Calendar`.
+- Facebook Page connections persist visibly in Connect Settings after auth.
+- Instagram carousel posts are present and usable in the Social Calendar.

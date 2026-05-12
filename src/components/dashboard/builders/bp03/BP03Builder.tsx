@@ -511,7 +511,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         <BuilderHeader
           nodeId="BP-03"
           title="Social Media"
-          subtitle="20 branded posts + 4-week calendar + outreach kit"
+          subtitle="30 branded posts across 6 archetypes + outreach kit"
           icon={Share2}
           onBack={() => navigate(bookId ? `/book-hub/${bookId}?tab=revenue-streams` : "/dashboard?section=my-books")}
         />
@@ -548,7 +548,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
             ) : (
               <>
                 <p className="text-muted-foreground mb-4">
-                  I'm going to create your social media starter kit for '{bookTitle || detectedBookTitle || "your book"}' — 20 ready-to-post pieces across LinkedIn, Instagram, Facebook, and X, plus 3 outreach email templates. Ready?
+                  I'm going to create your social media starter kit for '{bookTitle || detectedBookTitle || "your book"}' — 30 ready-to-post pieces (5 each across Quote, Lesson, Question, Story, Framework and Proof) for LinkedIn, Instagram, Facebook and X, plus 3 outreach email templates. Ready?
                 </p>
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-03"]} />
