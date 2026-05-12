@@ -727,7 +727,7 @@ async function downloadKitZip(
     const platforms: SocialPlatform[] = ["instagram", "linkedin", "facebook", "twitter"];
     const socialFolder = folder.folder("social_media")!;
 
-    // Generate 80 PNG graphics: 4 platforms × 20 posts
+    // Generate 80 PNG graphics: 4 platforms × 30 posts
     for (const platform of platforms) {
       const platformFolder = socialFolder.folder(platform)!;
       for (const post of content.posts || []) {
@@ -919,7 +919,7 @@ function ReviewStep({
               <Download className="h-4 w-4 mr-2" />{downloading ? "Building ZIP…" : "Download Full Kit (.zip)"}
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              ZIP with all 80 branded graphics (4 platforms × 20 posts), captions.csv & a VA-friendly README.
+              ZIP with all 120 branded graphics (4 platforms × 30 posts), captions.csv & a VA-friendly README.
             </p>
           </div>
           <div className="space-y-1.5">
@@ -927,12 +927,12 @@ function ReviewStep({
               Send to Social Calendar <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Drops all 20 posts into Marketing Hub → Social Calendar with Copy, Download and Open-app buttons. You paste into LinkedIn/Facebook/Instagram yourself (about 20 seconds per post), then tap Mark as posted.
+              Drops all 30 posts into Marketing Hub → Social Calendar with Copy, Download and Open-app buttons. You paste into LinkedIn/Facebook/Instagram yourself (about 20 seconds per post), then tap Mark as posted.
             </p>
           </div>
         </div>
         <p className="text-xs text-center text-muted-foreground pt-1 border-t border-border">
-          ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Copy-paste workflow — no auto-posting
+          ✓ 30 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Copy-paste workflow — no auto-posting
         </p>
       </div>
 
@@ -1099,7 +1099,7 @@ function SuccessScreen({
             <DestinationCard
               icon={<Calendar className="h-5 w-5" />}
               title="View Social Calendar"
-              description="See, copy, and mark off all 20 posts."
+              description="See, copy, and mark off all 30 posts."
               cta="Open Calendar"
               primary
               onClick={() => navigate("/dashboard?section=marketing-hub&tab=social-calendar")}
@@ -1114,7 +1114,7 @@ function SuccessScreen({
             <DestinationCard
               icon={<Download className="h-5 w-5" />}
               title="Download Full Kit (.zip)"
-              description="80 branded graphics + captions.csv + VA README."
+              description="120 branded graphics + captions.csv + VA README."
               cta="Download .zip"
               onClick={onDownloadZip}
             />
