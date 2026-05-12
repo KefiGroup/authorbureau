@@ -620,6 +620,14 @@ export default function BP03Builder({ authorId, bookId }: Props) {
                     status: content?.publishStatus === "live" ? "live" : "content_ready",
                     content: nextContent,
                   });
+                  void autosaveBuilderDraft({
+                    authorId: authorId!,
+                    nodeId: "BP-03",
+                    nodeName: "Social Media",
+                    content: { ...nextContent, _currentStep: content?.publishStatus === "live" ? 3 : 2 },
+                    currentStep: content?.publishStatus === "live" ? 3 : 2,
+                    bookId: activeBookId,
+                  });
                   toast.success("Post updated.");
                 } catch (e: any) {
                   toast.error(e.message || "We couldn't save your edit.");
