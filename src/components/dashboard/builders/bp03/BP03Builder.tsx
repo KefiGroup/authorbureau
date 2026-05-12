@@ -163,6 +163,12 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const { isReady: isAuthReady } = useAuthReady();
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
+  const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
+  const hasResolvedBook =
+    hasBook ||
+    Boolean(resolvedBookTitle) ||
+    Boolean(detectedBookTitle && detectedBookTitle !== "your book") ||
+    Boolean(bookTitle);
 
   // Social connections come from useSocialConnectionStatus() above (single source of truth).
 
