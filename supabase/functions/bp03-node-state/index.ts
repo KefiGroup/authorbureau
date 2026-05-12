@@ -15,7 +15,40 @@ type NextStatus = "content_ready" | "live";
 
 const PLATFORMS = ["linkedin", "instagram", "facebook", "twitter"] as const;
 
-const ARCHETYPES = new Set(["Quote", "Lesson", "Question", "Story", "Framework", "Proof"]);
+const ARCHETYPES = ["Quote", "Lesson", "Question", "Story", "Framework", "Proof"] as const;
+const ARCHETYPE_SET = new Set<string>(ARCHETYPES as readonly string[]);
+// Must mirror generate-bp03-social-media so legacy/repaired data labels correctly.
+function archetypeForDay(day: number): string {
+  const d = Math.max(1, Number(day) || 1);
+  return ARCHETYPES[(d - 1) % ARCHETYPES.length];
+}
+const CAROUSEL_IG_DAYS = new Set([3, 6, 9, 12, 15, 18]);
+
+// Synthesize 5 carousel slides from a caption when AI didn't comply.
+function synthesizeCarouselSlides(caption: string, archetype: string): Array<{ headline: string; body: string }> {
+  const lines = (caption || "")
+    .split(/\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const sentences = (caption || "")
+    .replace(/\s+/g, " ")
+    .split(/(?<=[.!?])\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const pool = lines.length >= 4 ? lines : sentences;
+  const cover = (pool[0] || archetype || "Read this").slice(0, 60);
+  const insights = [pool[1], pool[2], pool[3]].map((s, i) =>
+    (s || `Key insight ${i + 1}`).slice(0, 200),
+  );
+  const cta = (pool[pool.length - 1] || "Grab the book to go deeper.").slice(0, 200);
+  return [
+    { headline: cover, body: archetype ? `${archetype} from the book.` : "From the book." },
+    { headline: "Insight 1", body: insights[0] },
+    { headline: "Insight 2", body: insights[1] },
+    { headline: "Insight 3", body: insights[2] },
+    { headline: "Get the book", body: cta },
+  ];
+}
 
 function flattenPosts(content: any): Array<{
   index: number;
@@ -30,30 +63,50 @@ function flattenPosts(content: any): Array<{
   const days: any[] = Array.isArray(content?.posts) ? content.posts : [];
   const flat: any[] = [];
   let idx = 0;
+  let dayCounter = 0;
   for (const d of days) {
-    // Canonical archetype lives on the day record (d.post_type from the generator).
-    const archetype = ARCHETYPES.has(d?.post_type) ? d.post_type : null;
+    dayCounter++;
+    // Day index from data when present, else fall back to position.
+    const dayNum = Number(d?.day) || dayCounter;
+    // Deterministic archetype rotation. We trust the day index, not whatever
+    // the AI happened to write (legacy data often returns "Insight").
+    const archetype = ARCHETYPE_SET.has(d?.post_type) ? d.post_type : archetypeForDay(dayNum);
     for (const platform of PLATFORMS) {
       const p = d?.[platform];
       if (!p?.caption) continue;
       let caption: string = p.caption;
-      const isCarousel = platform === "instagram" && p.format === "carousel" && Array.isArray(p.carousel_slides);
-      if (isCarousel) {
-        const slidesBlock = p.carousel_slides
-          .map((s: any, i: number) => `Slide ${i + 1} — ${s?.headline || ""}\n${s?.body || ""}`.trim())
-          .join("\n\n");
-        caption = `${caption}\n\n— Carousel script (5 slides) —\n\n${slidesBlock}`;
+
+      // Carousel resolution for Instagram: trust AI when it complied, else
+      // synthesize 5 slides on every designated carousel day so we always
+      // ship 6 carousels regardless of model compliance.
+      let carouselSlides: any = null;
+      if (platform === "instagram") {
+        const aiCompliant =
+          p.format === "carousel" &&
+          Array.isArray(p.carousel_slides) &&
+          p.carousel_slides.length === 5;
+        if (aiCompliant) {
+          carouselSlides = p.carousel_slides;
+        } else if (CAROUSEL_IG_DAYS.has(dayNum)) {
+          carouselSlides = synthesizeCarouselSlides(caption, archetype);
+        }
+        if (carouselSlides) {
+          const slidesBlock = (carouselSlides as Array<any>)
+            .map((s: any, i: number) => `Slide ${i + 1} — ${s?.headline || ""}\n${s?.body || ""}`.trim())
+            .join("\n\n");
+          caption = `${caption}\n\n— Carousel script (5 slides) —\n\n${slidesBlock}`;
+        }
       }
+
       flat.push({
         index: idx++,
-        day: Number(d.day) || 0,
+        day: dayNum,
         platform,
         caption,
         hashtags: Array.isArray(p.hashtags) ? p.hashtags : [],
-        // post_type stays canonical archetype; carousel-ness is tracked via carousel_slides.
-        post_type: archetype || "Insight",
+        post_type: archetype,
         archetype,
-        carousel_slides: isCarousel ? p.carousel_slides : null,
+        carousel_slides: carouselSlides,
       });
     }
   }
