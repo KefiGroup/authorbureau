@@ -198,10 +198,24 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         try {
           const { data: ap } = await supabase
             .from("author_profiles")
-            .select("photo_url")
+            .select("photo_url, user_id")
             .eq("id", authorId)
             .maybeSingle();
           if (!cancelled && ap?.photo_url) setAuthorPhotoUrl(ap.photo_url);
+
+          // Client-side per-book fallback (parity with BP-06/BP-08).
+          // Catches the case where the edge function returned no title.
+          try {
+            const fallback = await resolveBookTitle(authorId, activeBookId, ap?.user_id);
+            if (!cancelled && fallback) {
+              setResolvedBookTitle(fallback);
+              setBookTitle((prev) => prev || fallback);
+              setHasContext((prev) => prev || true);
+            }
+          } catch (_e) {
+            // swallow — fallback only
+          }
+
           const { data: book } = await supabase
             .from("books")
             .select("cover_image_url")
