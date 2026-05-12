@@ -106,7 +106,7 @@ export function flattenPosts(content: any): FlatPost[] {
         caption: p.caption,
         hashtags: Array.isArray(p.hashtags) ? p.hashtags : [],
         theme: d.theme || "",
-        post_type: d.post_type || "insight",
+        post_type: d.post_type || "",
         cta_type: d.cta_type,
       });
     }
