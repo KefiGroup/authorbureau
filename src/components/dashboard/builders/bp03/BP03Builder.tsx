@@ -528,7 +528,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         ) : step === 0 && (
           <AbbyCard>
             <h2 className="text-xl font-bold mb-3">Let's build your Social Media</h2>
-            {!isBookLoading && !hasBook ? (
+            {!isBookLoading && !hasResolvedBook ? (
               <>
                 <p className="text-muted-foreground mb-4">Hi {authorName}! Before I build your social media kit, I need to know about your book. Please complete your book profile first.</p>
                 <Button onClick={() => navigate(`/my-books?returnTo=${encodeURIComponent(`/node-builder/BP-03${activeBookId ? `?bookId=${activeBookId}` : ""}`)}`)}>Complete Book Profile</Button>
