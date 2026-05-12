@@ -157,6 +157,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const [refilling, setRefilling] = useState(false);
   const [autoRefilling, setAutoRefilling] = useState(false);
   const [generatingGraphics, setGeneratingGraphics] = useState(false);
+  const [generatingGraphicForId, setGeneratingGraphicForId] = useState<string | null>(null);
   const autoRefilledFor = useRef<Set<string>>(new Set());
 
   const formatDateTimeInput = (value: string | null) => {
