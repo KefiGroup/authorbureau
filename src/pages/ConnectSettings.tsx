@@ -248,6 +248,50 @@ export default function ConnectSettings() {
     refresh();
   };
 
+  const submitPagePick = async () => {
+    if (!pagePicker?.selectedId) return;
+    setPagePicker(p => p ? { ...p, submitting: true } : p);
+    try {
+      const token = await getActiveToken({ forceRefresh: true });
+      if (!token) {
+        toast({ title: "Please sign in again", variant: "destructive" });
+        return;
+      }
+      const res = await fetchWithTimeout(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/social-connect-callback`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            temp_token: pagePicker.tempToken,
+            page_id: pagePicker.selectedId,
+            platform: pagePicker.platform,
+          }),
+        },
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        toast({
+          title: "Couldn't connect that Page",
+          description: data?.error || `HTTP ${res.status}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      try { sessionStorage.removeItem(`social_pick_pages_${pagePicker.tempToken}`); } catch (_) {}
+      const platformLabel = PLATFORMS.find(p => p.key === pagePicker.platform)?.name || pagePicker.platform;
+      setJustConnected({ platform: platformLabel, account: data.account_name || "" });
+      setPagePicker(null);
+      await refresh();
+      toast({
+        title: `${platformLabel} connected`,
+        description: data.account_name ? `Connected as ${data.account_name}.` : "Your account is now connected.",
+      });
+    } finally {
+      setPagePicker(p => p ? { ...p, submitting: false } : p);
+    }
+  };
+
   if (authLoading || loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
