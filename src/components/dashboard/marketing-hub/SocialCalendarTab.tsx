@@ -367,14 +367,11 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
 
   const copyAndOpen = (post: SocialPost) => {
     navigator.clipboard.writeText(post.content);
-    if (post.platform === "instagram") {
-      toast.message("Caption copied", {
-        description: "Instagram doesn't support web pre-fill — paste it into the IG mobile app.",
-      });
-    } else {
-      toast.success("Caption copied — opening composer");
-    }
-    window.open(composerUrl(post.platform, post.content), "_blank", "noopener,noreferrer");
+    const platformLabel = PLATFORM_LABELS[post.platform] || post.platform;
+    toast.success(`Caption copied — opening ${platformLabel}`, {
+      description: "Paste it into the compose box, attach the graphic, and post.",
+    });
+    window.open(composerUrl(post.platform), "_blank", "noopener,noreferrer");
   };
 
   const markAsPosted = async (post: SocialPost) => {
