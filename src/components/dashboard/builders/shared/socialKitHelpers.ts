@@ -27,19 +27,23 @@ export const PLATFORM_CHAR_LIMIT: Record<string, number> = {
   x: 280,
 };
 
-/** Build composer URL that pre-fills text where possible. */
-export function composerUrl(platform: string, text: string): string {
-  const t = encodeURIComponent(text);
+/**
+ * Build a composer URL for the given platform.
+ * Sprint 61 (Copy-Paste Factory): consistent UX across all platforms — we always
+ * open the platform's home/compose page WITHOUT pre-filling, because pre-fill
+ * works on LinkedIn, only partially on Facebook, and not at all on Instagram.
+ * The author copies the caption from our card and pastes into the platform.
+ */
+export function composerUrl(platform: string, _text?: string): string {
   switch (platform) {
     case "linkedin":
-      return `https://www.linkedin.com/feed/?shareActive=true&text=${t}`;
+      return "https://www.linkedin.com/feed/";
     case "facebook":
-      return `https://www.facebook.com/sharer/sharer.php?quote=${t}&u=https://authorsbureau.com`;
+      return "https://www.facebook.com/";
     case "twitter":
     case "x":
-      return `https://twitter.com/intent/tweet?text=${t}`;
+      return "https://twitter.com/compose/post";
     case "instagram":
-      // Instagram doesn't support web composer prefill — open the homepage
       return "https://www.instagram.com/";
     default:
       return "#";
