@@ -189,6 +189,41 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
       setBp03Activated(!!result.bp03_activated);
       setPosts(loadedPosts);
 
+      // Sprint 62 — silent one-shot repair for legacy rows written before the
+      // archetype/carousel fix shipped (archetype=NULL or post_type='Insight').
+      const isStale = loadedPosts.some(
+        (p) => !p.archetype || p.post_type === "Insight",
+      );
+      if (isStale && authorId) {
+        try {
+          const token = await getActiveToken();
+          if (token) {
+            const repairRes = await fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bp03-node-state`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({
+                  action: "auto_repair_if_stale",
+                  author_id: authorId,
+                  ...(bookId ? { book_id: bookId } : {}),
+                }),
+              },
+            );
+            const repairJson = await repairRes.json().catch(() => null);
+            if (repairJson?.repaired) {
+              const refreshed = await callMarketingHubState<{
+                bp03_activated: boolean;
+                posts: SocialPost[];
+              }>("social_calendar", bookId ? { book_id: bookId } : {});
+              setPosts(refreshed.posts || []);
+            }
+          }
+        } catch (repairErr) {
+          console.warn("[SocialCalendar] auto-repair skipped:", repairErr);
+        }
+      }
+
       const earliest = loadedPosts
         .filter((p) => !!p.scheduled_at)
         .reduce((acc: string | null, p) => (!acc || (p.scheduled_at as string) < acc ? (p.scheduled_at as string) : acc), null as string | null);
