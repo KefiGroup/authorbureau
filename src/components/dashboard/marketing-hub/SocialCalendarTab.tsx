@@ -56,6 +56,7 @@ interface SocialPost {
   posted_at: string | null;
   post_type: string | null;
   post_index: number | null;
+  graphic_url: string | null;
 }
 
 const PLATFORM_FILTERS = [
@@ -151,6 +152,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const [dropTargetKey, setDropTargetKey] = useState<string | null>(null);
   const [refilling, setRefilling] = useState(false);
   const [autoRefilling, setAutoRefilling] = useState(false);
+  const [generatingGraphics, setGeneratingGraphics] = useState(false);
   const autoRefilledFor = useRef<Set<string>>(new Set());
 
   const formatDateTimeInput = (value: string | null) => {
