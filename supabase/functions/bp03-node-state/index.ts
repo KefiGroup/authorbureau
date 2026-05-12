@@ -288,10 +288,13 @@ Deno.serve(async (req) => {
           .maybeSingle();
         bookTitle = ctx?.book_title || "";
         if (!bookTitle) {
+          // FK: books.author_id → author_profiles.id (NOT auth.users.id).
+          // Using authorProfile.user_id silently returned zero rows whenever
+          // user_id != author_profiles.id, which is now the standard case.
           const { data: book } = await cloudAdmin
             .from("books")
             .select("title")
-            .eq("author_id", authorProfile.user_id)
+            .eq("author_id", authorProfile.id)
             .order("created_at", { ascending: false })
             .limit(1)
             .maybeSingle();
