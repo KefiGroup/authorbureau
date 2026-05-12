@@ -70,6 +70,26 @@ export default function SocialAuthCallback() {
           },
         );
         const data = await res.json().catch(() => ({}));
+
+        // Two-step Facebook flow: ask the author which Page to connect.
+        if (data?.needs_page_selection && data?.temp_token && Array.isArray(data?.pages)) {
+          try {
+            sessionStorage.setItem(
+              `social_pick_pages_${data.temp_token}`,
+              JSON.stringify({ platform: data.platform || platform, pages: data.pages, ts: Date.now() }),
+            );
+          } catch (_) {}
+          setStatus("success");
+          setMessage("Almost done — choose your Facebook Page…");
+          const qs = new URLSearchParams({
+            social: "pick-page",
+            platform: data.platform || platform,
+            token: data.temp_token,
+          }).toString();
+          setTimeout(() => navigate(`/connect-settings?${qs}`), 600);
+          return;
+        }
+
         if (!res.ok || !data.success) {
           setStatus("error");
           setMessage(data.error || `Connection failed (HTTP ${res.status}).`);
