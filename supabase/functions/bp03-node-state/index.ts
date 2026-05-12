@@ -79,6 +79,9 @@ function flattenPosts(content: any): Array<{
       // Carousel resolution for Instagram: trust AI when it complied, else
       // synthesize 5 slides on every designated carousel day so we always
       // ship 6 carousels regardless of model compliance.
+      // Sprint 63: every Instagram post is a carousel. We synthesize 5 slides
+      // from the caption whenever the AI didn't produce a compliant set, so
+      // there are no longer "0 carousels" gaps when content_json is short.
       let carouselSlides: any = null;
       if (platform === "instagram") {
         const aiCompliant =
@@ -87,7 +90,7 @@ function flattenPosts(content: any): Array<{
           p.carousel_slides.length === 5;
         if (aiCompliant) {
           carouselSlides = p.carousel_slides;
-        } else if (CAROUSEL_IG_DAYS.has(dayNum)) {
+        } else {
           carouselSlides = synthesizeCarouselSlides(caption, archetype);
         }
         if (carouselSlides) {
