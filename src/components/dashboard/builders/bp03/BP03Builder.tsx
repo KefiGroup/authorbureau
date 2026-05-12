@@ -789,7 +789,7 @@ function ReviewStep({
     <div className="space-y-4">
       <AbbyCard>
         <p className="text-muted-foreground">
-          Your complete marketing kit is ready! You have 20 social posts across 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates — all personalised to your book. Review everything below, then click Activate to send them to your Social Calendar.
+          Your copy-paste kit is ready: 20 posts × 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates, all personalised to your book. Review below, then click <strong>Send to Social Calendar</strong> — every post drops into Marketing Hub with Copy / Download / Open buttons so you can paste into the platform in about 20 seconds.
         </p>
       </AbbyCard>
 
@@ -875,17 +875,15 @@ function ReviewStep({
           </div>
           <div className="space-y-1.5">
             <Button className="w-full" size="default" onClick={onActivate} disabled={!canActivate}>
-              Activate <ArrowRight className="h-4 w-4 ml-2" />
+              Send to Social Calendar <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {canActivate
-                ? "Sends all 20 posts to your Social Calendar (Marketing Hub) where you can copy, post and mark them done."
-                : "Connect at least one social account in Connect Settings to enable Activate."}
+              Drops all 20 posts into Marketing Hub → Social Calendar with Copy, Download and Open-app buttons. You paste into LinkedIn/Facebook/Instagram yourself (about 20 seconds per post), then tap Mark as posted.
             </p>
           </div>
         </div>
         <p className="text-xs text-center text-muted-foreground pt-1 border-t border-border">
-          ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Saved to your Social Calendar on Activate
+          ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Copy-paste workflow — no auto-posting
         </p>
       </div>
 

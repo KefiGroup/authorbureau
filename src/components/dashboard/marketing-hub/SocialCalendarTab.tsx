@@ -564,7 +564,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
             <div className="flex-1 min-w-0">
               <p className="text-[11px] font-extrabold text-secondary uppercase tracking-[0.15em] mb-1">Abby</p>
               <p className="text-sm text-foreground mb-4">
-                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Activate</strong> — I'll write 20 posts and drop them here for you to schedule.
+                Your Social Calendar is empty. Open <strong>Social Media</strong> in Brand Products and click <strong>Send to Social Calendar</strong> — I'll write 20 posts and drop them here, ready to copy and paste into LinkedIn, Facebook and Instagram.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button onClick={() => navigate(`/node-builder/BP-03${bookId ? `?bookId=${bookId}` : ""}`)}>
@@ -583,25 +583,18 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Connection gate — hard nudge when no social account is linked. */}
-      {!socialConnLoading && !hasSocialConnection && (
-        <div className="rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 flex items-start gap-3">
-          <Sparkles className="h-4 w-4 shrink-0 text-amber-600 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground">
-              Connect a social account to schedule and auto-publish
-            </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              You can still copy any post manually, but Authors Bureau can't publish on your scheduled dates until you link LinkedIn, Facebook Page, or Instagram Business.
-            </p>
-            <div className="mt-3">
-              <Button size="sm" onClick={() => navigate("/connect-settings")}>
-                Connect accounts <ArrowRight className="h-3.5 w-3.5 ml-1" />
-              </Button>
-            </div>
-          </div>
+      {/* Sprint 61: Honest copy-paste workflow — no auto-publish claim. */}
+      <div className="rounded-lg border border-teal-500/30 bg-teal-500/5 p-4 flex items-start gap-3">
+        <Copy className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground">
+            Copy-paste workflow (no auto-posting)
+          </p>
+          <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+            Each card has <strong>Copy caption</strong>, <strong>Download graphic</strong>, and <strong>Open LinkedIn / Facebook / Instagram</strong>. Paste into the platform yourself (~20 seconds), then tap <strong>Mark as posted</strong>. ABBY refills 14 more posts whenever your unposted queue drops below 7.
+          </p>
         </div>
-      )}
+      </div>
 
       {scheduledCount > 0 && daysOfRunway > 0 && daysOfRunway <= 7 ? (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground flex items-center gap-2">
