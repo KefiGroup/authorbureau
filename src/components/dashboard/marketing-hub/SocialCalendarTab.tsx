@@ -812,6 +812,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         <div className="space-y-1">
           <p><strong className="text-foreground">How this works:</strong> Each unscheduled post below shows the AI-written copy. <strong className="text-foreground">Click Schedule</strong> to pick the exact date and time it should go live, <strong className="text-foreground">drag it</strong> onto a calendar day, or click <strong className="text-foreground">Post Now</strong> to publish immediately.</p>
           <p>Once scheduled, posts appear on the calendar as blue dots. Click any day with a dot to view, edit, or reschedule.</p>
+          <p><strong className="text-foreground">Graphics:</strong> Click <em>Generate graphic</em> on any card. Once it's ready (about 10 seconds), the same button becomes <em>Download graphic</em>.</p>
         </div>
       </div>
 
