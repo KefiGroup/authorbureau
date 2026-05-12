@@ -4773,6 +4773,36 @@ export type Database = {
         }
         Relationships: []
       }
+      social_connect_pending: {
+        Row: {
+          created_at: string
+          expires_at: string
+          pages_json: Json
+          platform: string
+          temp_token: string
+          user_access_token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string
+          pages_json?: Json
+          platform: string
+          temp_token: string
+          user_access_token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          pages_json?: Json
+          platform?: string
+          temp_token?: string
+          user_access_token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       social_connections: {
         Row: {
           access_token: string | null
