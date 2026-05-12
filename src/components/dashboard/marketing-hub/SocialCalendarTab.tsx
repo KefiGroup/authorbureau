@@ -201,8 +201,13 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
 
       // Sprint 62 — silent one-shot repair for legacy rows written before the
       // archetype/carousel fix shipped (archetype=NULL or post_type='Insight').
+      // Sprint 63 — widen staleness check: legacy archetype/Insight OR
+      // Instagram rows missing carousel_slides (BUG-2).
       const isStale = loadedPosts.some(
-        (p) => !p.archetype || p.post_type === "Insight",
+        (p) =>
+          !p.archetype ||
+          p.post_type === "Insight" ||
+          (p.platform === "instagram" && !(Array.isArray(p.carousel_slides) && p.carousel_slides.length > 0)),
       );
       if (isStale && authorId) {
         try {
