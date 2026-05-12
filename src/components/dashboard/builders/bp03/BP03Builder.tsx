@@ -40,7 +40,7 @@ import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBook
 // Sprint 60: BP-03 now uploads via render-library-asset (service role) directly.
 import { buildBp03Txt } from "@/lib/build-library-txt";
 
-const STEPS = ["Introduction", "Generating", "Review", "Activate"];
+const STEPS = ["Introduction", "Generating", "Review", "Send to Calendar"];
 
 const GENERATING_MESSAGES = [
   "Step 1 of 3 — Writing your LinkedIn posts...",
@@ -370,12 +370,10 @@ export default function BP03Builder({ authorId, bookId }: Props) {
    */
   const handleActivate = async () => {
     if (!authorId) return;
-    if (!hasAnyConnection) {
-      toast.error("Connect a social account first", {
-        description: "Open Connect Settings and link LinkedIn, Facebook Page, or Instagram Business so we can publish on schedule.",
-      });
-      return;
-    }
+    // Sprint 61 (Copy-Paste Factory): no social-account gate. Activation simply
+    // sends every post to the Social Calendar where the author copies the
+    // caption + downloads the graphic + pastes into LinkedIn/Facebook/Instagram.
+    // No auto-publishing, ever.
     setStep(3);
     setError(null);
     setIsActivating(true);
@@ -553,34 +551,20 @@ export default function BP03Builder({ authorId, bookId }: Props) {
               </Card>
             )}
 
-            {/* Social-account connection gate (hard block on Activate when nothing is connected) */}
-            {hasAnyConnection ? (
-              <Card className="p-3 border-border bg-muted/40">
-                <p className="text-xs text-muted-foreground flex items-center gap-2">
-                  <Check className="h-3.5 w-3.5" />
-                  Connected accounts: <strong>{connectedPlatforms.join(", ")}</strong>. Activate to send your kit to the Social Calendar.
-                </p>
-              </Card>
-            ) : (
-              <Card className="p-4 border-amber-500/40 bg-amber-500/5">
-                <div className="flex items-start gap-3">
-                  <Share2 className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-foreground">
-                      Connect a social account to activate
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Your kit is ready, but Authors Bureau can't auto-publish or schedule posts until you connect LinkedIn, Facebook Page, or Instagram Business.
-                    </p>
-                    <div className="mt-3">
-                      <Button size="sm" onClick={() => navigate("/connect-settings")}>
-                        Connect accounts <ArrowRight className="h-3.5 w-3.5 ml-1" />
-                      </Button>
-                    </div>
-                  </div>
+            {/* Sprint 61: Honest copy-paste card — no auto-publishing claim */}
+            <Card className="p-4 border-teal-500/30 bg-teal-500/5">
+              <div className="flex items-start gap-3">
+                <Copy className="h-5 w-5 text-teal-600 dark:text-teal-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-foreground">
+                    Your copy-paste kit is ready
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                    When you click "Send to Social Calendar" below, every post moves into Marketing Hub → Social Calendar. Each card has the caption (Copy), the graphic (Download), and an "Open LinkedIn / Facebook / Instagram" button. About 20 seconds per post — paste, attach, publish, then tap "Mark as posted." ABBY refills 14 more automatically when you drop below 7 unposted.
+                  </p>
                 </div>
-              </Card>
-            )}
+              </div>
+            </Card>
             <ReviewStep
               content={content}
               authorName={authorName}
@@ -589,7 +573,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
               bookColor={bookColor}
               onSave={handleSave}
               onActivate={handleActivate}
-              canActivate={hasAnyConnection}
+              canActivate={true}
               onSavePost={async (updatedPost) => {
                 const nextPosts = (content.posts || []).map((p: any) =>
                   p.day === updatedPost.day ? updatedPost : p,
@@ -805,7 +789,7 @@ function ReviewStep({
     <div className="space-y-4">
       <AbbyCard>
         <p className="text-muted-foreground">
-          Your complete marketing kit is ready! You have 20 social posts across 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates — all personalised to your book. Review everything below, then click Activate to send them to your Social Calendar.
+          Your copy-paste kit is ready: 20 posts × 4 platforms (LinkedIn, Instagram, Facebook, X) plus 3 outreach email templates, all personalised to your book. Review below, then click <strong>Send to Social Calendar</strong> — every post drops into Marketing Hub with Copy / Download / Open buttons so you can paste into the platform in about 20 seconds.
         </p>
       </AbbyCard>
 
@@ -891,17 +875,15 @@ function ReviewStep({
           </div>
           <div className="space-y-1.5">
             <Button className="w-full" size="default" onClick={onActivate} disabled={!canActivate}>
-              Activate <ArrowRight className="h-4 w-4 ml-2" />
+              Send to Social Calendar <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              {canActivate
-                ? "Sends all 20 posts to your Social Calendar (Marketing Hub) where you can copy, post and mark them done."
-                : "Connect at least one social account in Connect Settings to enable Activate."}
+              Drops all 20 posts into Marketing Hub → Social Calendar with Copy, Download and Open-app buttons. You paste into LinkedIn/Facebook/Instagram yourself (about 20 seconds per post), then tap Mark as posted.
             </p>
           </div>
         </div>
         <p className="text-xs text-center text-muted-foreground pt-1 border-t border-border">
-          ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Saved to your Social Calendar on Activate
+          ✓ 20 posts ready · ✓ 4 platforms · ✓ 3 outreach templates · ✓ Copy-paste workflow — no auto-posting
         </p>
       </div>
 
