@@ -58,9 +58,9 @@ async function callAI(userPrompt: string, maxTokens: number) {
   return JSON.parse(match[0]);
 }
 
-// Build the archetype manifest the AI will see — 30 entries, each with day + post_type.
+// Build the archetype manifest the AI will see — 20 entries, each with day + post_type.
 function archetypeManifest(): string {
-  return Array.from({ length: 30 }, (_, i) => {
+  return Array.from({ length: 20 }, (_, i) => {
     const day = i + 1;
     return `Day ${day} = ${archetypeForDay(day)}`;
   }).join("\n");
