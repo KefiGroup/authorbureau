@@ -191,10 +191,21 @@ Deno.serve(async (req) => {
     let generated = 0;
     let failed = 0;
 
+    console.info("[bp03-generate-all-graphics] start", {
+      authorId,
+      bookId,
+      postId,
+      scanned: targets.length,
+      bookTitle,
+      hasBookCover: !!bookCoverUrl,
+    });
+
     for (const p of targets as any[]) {
       try {
         const existing = (p.graphics && typeof p.graphics === "object") ? p.graphics : {};
         const next: Record<string, string> = { ...existing };
+        let postGenerated = 0;
+        let postFailed = 0;
         for (const size of SIZES) {
           if (next[size]) continue;
           const url = await generateOneGraphic({
@@ -210,8 +221,10 @@ Deno.serve(async (req) => {
           if (url) {
             next[size] = url;
             generated++;
+            postGenerated++;
           } else {
             failed++;
+            postFailed++;
           }
         }
         // Choose the legacy preview URL based on platform default.
@@ -221,11 +234,25 @@ Deno.serve(async (req) => {
           .from("social_posts")
           .update({ graphics: next, graphic_url: legacyUrl })
           .eq("id", p.id);
+        console.info("[bp03-generate-all-graphics] post done", {
+          postId: p.id,
+          platform: p.platform,
+          generated: postGenerated,
+          failed: postFailed,
+          legacyUrlSet: !!legacyUrl,
+        });
       } catch (e) {
         console.error("[bp03-generate-all-graphics] post failed", p.id, e);
         failed++;
       }
     }
+
+    console.info("[bp03-generate-all-graphics] summary", {
+      authorId,
+      scanned: targets.length,
+      generated,
+      failed,
+    });
 
     return new Response(
       JSON.stringify({
