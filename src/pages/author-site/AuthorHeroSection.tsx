@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { BookOpen, Mail, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BookOpen, Sparkles, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
 import type { AuthorData, BookWithProducts, ThemeVars } from "./types";
+import { getLowestPrice } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import { stripHtml } from "@/lib/stripHtml";
 
@@ -66,6 +68,15 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
 
           {/* Text Content */}
           <div className="text-center md:text-left flex-1">
+            {booksWithProducts.some(b => b.badges && b.badges.length > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-[0.12em]"
+                style={{ background: v.accent, color: v.accentText }}
+              >
+                Bestselling Author
+              </motion.div>
+            )}
             <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="text-3xl md:text-5xl font-bold mb-3"
               style={{ color: v.primaryText, fontFamily: theme.headingFont }}
@@ -131,20 +142,37 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
 
             {/* CTAs */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="flex gap-3 justify-center md:justify-start">
-              {booksWithProducts.length > 0 && (
-                <button
-                  onClick={() => document.getElementById("books-section")?.scrollIntoView({ behavior: "smooth" })}
-                  className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
-                  style={{ background: v.accent, color: v.accentText, padding: "14px 32px", borderRadius: "8px", boxShadow: `0 4px 12px ${v.accent}4D` }}>
-                  <BookOpen className="h-4 w-4" /> Explore My Books
-                </button>
-              )}
+              className="flex flex-wrap gap-3 justify-center md:justify-start">
+              {(() => {
+                const heroBook = booksWithProducts[0];
+                const lowest = heroBook ? getLowestPrice(heroBook) : null;
+                if (heroBook && lowest) {
+                  return (
+                    <Link
+                      to={`/${(author.author_slug || "")}/${heroBook.slug}`}
+                      className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
+                      style={{ background: v.accent, color: v.accentText, padding: "14px 32px", borderRadius: "8px", boxShadow: `0 4px 16px ${v.accent}66` }}>
+                      <BookOpen className="h-4 w-4" /> Get the Book — {lowest}
+                    </Link>
+                  );
+                }
+                if (heroBook) {
+                  return (
+                    <Link
+                      to={`/${(author.author_slug || "")}/${heroBook.slug}`}
+                      className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
+                      style={{ background: v.accent, color: v.accentText, padding: "14px 32px", borderRadius: "8px", boxShadow: `0 4px 16px ${v.accent}66` }}>
+                      <BookOpen className="h-4 w-4" /> Read the Book
+                    </Link>
+                  );
+                }
+                return null;
+              })()}
               <button
                 onClick={() => document.getElementById("subscribe-section")?.scrollIntoView({ behavior: "smooth" })}
-                className="inline-flex items-center gap-2 font-bold rounded-lg transition-all"
+                className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:brightness-110"
                 style={{ background: "transparent", border: `2px solid ${v.accent}`, color: v.accent, padding: "12px 32px", borderRadius: "8px" }}>
-                <Mail className="h-4 w-4" /> Subscribe for Updates
+                <Sparkles className="h-4 w-4" /> Get the Free Starter Kit
               </button>
             </motion.div>
           </div>

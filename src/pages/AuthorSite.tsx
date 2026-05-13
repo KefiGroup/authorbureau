@@ -10,6 +10,7 @@ import AuthorContactModal from "@/components/public/AuthorContactModal";
 import NotFound from "./NotFound";
 
 import type { AuthorData, BookWithProducts, ProductLink, RelatedAuthor, CoachingService, ThemeVars } from "./author-site/types";
+import { getLowestPrice } from "./author-site/types";
 import AuthorHeroSection from "./author-site/AuthorHeroSection";
 import AuthorAboutSection from "./author-site/AuthorAboutSection";
 import AuthorBooksSection from "./author-site/AuthorBooksSection";
@@ -272,21 +273,34 @@ export default function AuthorSite() {
       breadcrumbs={[{ label: "Home", to: "/" }, { label: displayName }]}
       footerSlot={<AuthorMicrositeFooter author={author} displayName={displayName} />}
     >
-      <AuthorBrandedNav
-        authorSlug={authorSlug!}
-        authorName={displayName}
-        authorPhotoUrl={author.photo_url}
-        books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
-        hasServices={coachingServices.length > 0}
-        hasLearnSection={learnNodes.length > 0}
-        hasQuizSection={leadMagnets.length > 0}
-        hasEvents={eventNodes.length > 0}
-        hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
-        vars={v}
-        headingFont={theme.headingFont}
-        bodyFont={theme.bodyFont}
-        onContactClick={() => setContactOpen(true)}
-      />
+      {(() => {
+        const heroBook =
+          booksWithProducts.find(b => b.id === whatsInsideSourceBookId) ||
+          booksWithProducts[0] ||
+          null;
+        const heroPrice = heroBook ? getLowestPrice(heroBook) : null;
+        const buyCta = heroBook && heroPrice
+          ? { label: `Get the Book — ${heroPrice}`, to: `/${authorSlug}/${heroBook.slug}` }
+          : null;
+        return (
+          <AuthorBrandedNav
+            authorSlug={authorSlug!}
+            authorName={displayName}
+            authorPhotoUrl={author.photo_url}
+            books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
+            hasServices={coachingServices.length > 0}
+            hasLearnSection={learnNodes.length > 0}
+            hasQuizSection={leadMagnets.length > 0}
+            hasEvents={eventNodes.length > 0}
+            hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
+            vars={v}
+            headingFont={theme.headingFont}
+            bodyFont={theme.bodyFont}
+            onContactClick={() => setContactOpen(true)}
+            buyCta={buyCta}
+          />
+        );
+      })()}
 
       <AuthorContactModal
         open={contactOpen}

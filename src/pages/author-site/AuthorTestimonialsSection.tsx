@@ -101,6 +101,21 @@ export default function AuthorTestimonialsSection({ testimonials, theme, v, isOw
           ))}
         </div>
         )}
+
+        {!isEmpty && (
+          <div className="mt-10 text-center">
+            <p className="text-sm mb-3" style={{ color: v.mutedText, fontFamily: theme.bodyFont }}>
+              Join the readers starting their journey.
+            </p>
+            <button
+              onClick={() => document.getElementById("books-section")?.scrollIntoView({ behavior: "smooth" })}
+              className="inline-flex items-center gap-2 font-bold rounded-full transition-all hover:scale-105"
+              style={{ background: v.accent, color: v.accentText, padding: "12px 28px", boxShadow: `0 4px 14px ${v.accent}55` }}
+            >
+              Get the Book →
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );
