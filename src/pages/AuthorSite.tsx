@@ -10,6 +10,7 @@ import AuthorContactModal from "@/components/public/AuthorContactModal";
 import NotFound from "./NotFound";
 
 import type { AuthorData, BookWithProducts, ProductLink, RelatedAuthor, CoachingService, ThemeVars } from "./author-site/types";
+import { getLowestPrice } from "./author-site/types";
 import AuthorHeroSection from "./author-site/AuthorHeroSection";
 import AuthorAboutSection from "./author-site/AuthorAboutSection";
 import AuthorBooksSection from "./author-site/AuthorBooksSection";
