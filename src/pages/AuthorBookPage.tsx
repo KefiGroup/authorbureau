@@ -182,6 +182,15 @@ const NODE_TO_PRODUCT: Record<string, { type: string; label: string; route: stri
   "YR-28": { type: "sponsors", label: "Sponsors", route: "sponsors" },
 };
 
+/** Buckets the "Go Deeper" grid into the two reader-facing sections. */
+const FORMATS_TYPES = new Set(["audiobook", "workbook", "homestudy", "bundles"]);
+const SERVICES_TYPES = new Set([
+  "onlinecourse", "membership", "groupcoaching", "coaching", "group_coaching",
+  "consulting", "mastermind", "big_ticket", "coaching_membership", "vip",
+  "speaking", "corporate", "retreat", "bootcamp", "certification",
+  "convention", "conference", "webinar",
+]);
+
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
   visible: (i: number) => ({
