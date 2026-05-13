@@ -24,6 +24,7 @@ import AuthorTestimonialsSection, { type Testimonial } from "./author-site/Autho
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
 import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
 import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
+import AuthorFrameworkSection, { type FrameworkStage } from "./author-site/AuthorFrameworkSection";
 import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
@@ -37,6 +38,8 @@ export default function AuthorSite() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [whatsInsideHighlights, setWhatsInsideHighlights] = useState<string[]>([]);
   const [whatsInsideSourceBookId, setWhatsInsideSourceBookId] = useState<string | null>(null);
+  const [frameworkName, setFrameworkName] = useState<string | null>(null);
+  const [frameworkStages, setFrameworkStages] = useState<FrameworkStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
