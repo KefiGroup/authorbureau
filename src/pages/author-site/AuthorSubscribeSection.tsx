@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
+import { useAuth } from "@/hooks/useAuth";
 import type { AuthorData, ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
@@ -16,6 +17,10 @@ interface Props {
 }
 
 export default function AuthorSubscribeSection({ author, authorSlug, displayName, affiliateNodes = [], theme, v }: Props) {
+  const { user } = useAuth();
+  const meta = (user?.user_metadata || {}) as Record<string, unknown>;
+  const initialName = (meta.full_name as string) || (meta.name as string) || "";
+  const initialEmail = user?.email || "";
   return (
     <section id="subscribe-section" className="relative py-14 md:py-20" style={{ background: v.secondaryBg }}>
       <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: v.accent }} />
@@ -31,6 +36,8 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
               description={`Join the readers and get ${displayName}'s framework guide, delivered instantly.`}
               showMessage={false}
               redirectTo={`/${authorSlug}/thank-you`}
+              initialName={initialName}
+              initialEmail={initialEmail}
               accent={v.accent}
               accentText={v.accentText}
               primaryText={v.headingText}
