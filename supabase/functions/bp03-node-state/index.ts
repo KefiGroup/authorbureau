@@ -440,6 +440,8 @@ Deno.serve(async (req) => {
       // If found, rebuild from content_json so the deterministic archetype rotation
       // and IG carousel synthesis from flattenPosts() take effect.
       // Sprint 63: also treat any Instagram row missing carousel_slides as stale.
+      // Sprint 64 — book-scope the stale probe so a stale row on another
+      // book can't trigger a rebuild scoped to the current book.
       let stalePostsQuery = cloudAdmin
         .from("social_posts")
         .select("id, archetype, post_type, platform, carousel_slides", { count: "exact", head: false })
@@ -447,6 +449,11 @@ Deno.serve(async (req) => {
         .eq("node_id", "BP-03")
         .or("archetype.is.null,post_type.eq.Insight,and(platform.eq.instagram,carousel_slides.is.null)")
         .limit(1);
+      if (requestedBookId) {
+        stalePostsQuery = stalePostsQuery.eq("book_id", requestedBookId);
+      } else {
+        stalePostsQuery = stalePostsQuery.is("book_id", null);
+      }
       const { data: staleProbe } = await stalePostsQuery;
       const isStale = Array.isArray(staleProbe) && staleProbe.length > 0;
       if (!isStale) {
