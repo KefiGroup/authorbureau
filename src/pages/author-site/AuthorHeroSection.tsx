@@ -44,7 +44,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
       }}
     >
       <div className="relative container max-w-5xl py-16 md:py-24">
-        <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12">
+        <div className="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-12">
           {/* Author Photo */}
           {author.photo_url ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
@@ -170,7 +170,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               })()}
               <button
                 onClick={() => document.getElementById("subscribe-section")?.scrollIntoView({ behavior: "smooth" })}
-                className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:brightness-110"
+                className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:brightness-110 min-h-[48px]"
                 style={{ background: "transparent", border: `2px solid ${v.accent}`, color: v.accent, padding: "12px 32px", borderRadius: "8px" }}>
                 <Sparkles className="h-4 w-4" /> Get the Free Starter Kit
               </button>
@@ -196,7 +196,7 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               </div>
             )}
             {testimonialsCount > 0 && (
-              <div className="text-center md:text-left">
+              <div className="hidden sm:block text-center md:text-left">
                 <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{testimonialsCount}</span>
                 <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Reader Testimonials</span>
               </div>
