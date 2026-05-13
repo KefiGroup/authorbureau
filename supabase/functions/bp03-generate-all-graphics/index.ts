@@ -142,6 +142,7 @@ Deno.serve(async (req) => {
     const authorId: string | null = body?.author_id ?? null;
     const bookId: string | null = body?.book_id ?? null;
     const postId: string | null = body?.post_id ?? null;
+    const force: boolean = body?.force === true;
     const limit: number = Math.min(Math.max(Number(body?.limit) || 30, 1), 30);
 
     if (!authorId) {
@@ -230,11 +231,12 @@ Deno.serve(async (req) => {
     for (const p of targets as any[]) {
       try {
         const existing = (p.graphics && typeof p.graphics === "object") ? p.graphics : {};
-        const next: Record<string, string> = { ...existing };
+        // When force=true (regenerate), start fresh so every size is replaced.
+        const next: Record<string, string> = force ? {} : { ...existing };
         let postGenerated = 0;
         let postFailed = 0;
         for (const size of SIZES) {
-          if (next[size]) continue;
+          if (!force && next[size]) continue;
           const url = await generateOneGraphic({
             userId: profile.user_id,
             size,

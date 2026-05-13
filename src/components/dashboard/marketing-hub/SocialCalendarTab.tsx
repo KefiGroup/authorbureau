@@ -33,6 +33,7 @@ import {
   GripVertical,
   Inbox,
   Download,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -366,7 +367,8 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   };
 
   // Generate the 3 graphic variants for a single post on-demand.
-  const generateOneGraphic = async (post: SocialPost) => {
+  // Pass force=true to replace existing graphics (regenerate).
+  const generateOneGraphic = async (post: SocialPost, force = false) => {
     if (!authorId) return;
     setGeneratingGraphicForId(post.id);
     try {
@@ -377,7 +379,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ author_id: authorId, book_id: bookId || null, post_id: post.id }),
+          body: JSON.stringify({ author_id: authorId, book_id: bookId || null, post_id: post.id, force }),
         },
         180000,
       );
@@ -386,12 +388,17 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         toast.error(json?.message || "Couldn't generate graphic. Please try again.");
         return;
       }
-      if ((json.generated || 0) > 0) toast.success("Graphic ready");
+      if ((json.generated || 0) > 0) toast.success(force ? "New graphic ready" : "Graphic ready");
       else toast.info("Graphic already exists.");
       await load();
     } finally {
       setGeneratingGraphicForId(null);
     }
+  };
+
+  const regenerateGraphic = (post: SocialPost) => {
+    if (!window.confirm("Replace this graphic? The current image will be deleted and a fresh one generated.")) return;
+    generateOneGraphic(post, true);
   };
 
   const downloadGraphic = async (post: SocialPost, sizeUrl?: string, sizeLabel?: string) => {
@@ -1042,26 +1049,40 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open {PLATFORM_LABELS[post.platform] || post.platform}
                         </Button>
                         {graphicVariants(post).length > 0 ? (
-                          graphicVariants(post).length === 1 ? (
-                            <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
-                              <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                          <>
+                            {graphicVariants(post).length === 1 ? (
+                              <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
+                                <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                              </Button>
+                            ) : (
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button size="sm" variant="outline">
+                                    <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="start">
+                                  {graphicVariants(post).map(([label, url]) => (
+                                    <DropdownMenuItem key={label} onClick={() => downloadGraphic(post, url, label.split(" ")[0].toLowerCase())}>
+                                      Download {label}
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => regenerateGraphic(post)}
+                              disabled={generatingGraphicForId === post.id}
+                              title="Replace this graphic with a fresh one"
+                            >
+                              {generatingGraphicForId === post.id
+                                ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                                : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                              {generatingGraphicForId === post.id ? "Designing…" : "Regenerate"}
                             </Button>
-                          ) : (
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="sm" variant="outline">
-                                  <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="start">
-                                {graphicVariants(post).map(([label, url]) => (
-                                  <DropdownMenuItem key={label} onClick={() => downloadGraphic(post, url, label.split(" ")[0].toLowerCase())}>
-                                    Download {label}
-                                  </DropdownMenuItem>
-                                ))}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          )
+                          </>
                         ) : (
                           <Button
                             size="sm"
@@ -1169,26 +1190,40 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         Copy
                       </Button>
                       {graphicVariants(post).length > 0 ? (
-                        graphicVariants(post).length === 1 ? (
-                          <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
-                            <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                        <>
+                          {graphicVariants(post).length === 1 ? (
+                            <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
+                              <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                            </Button>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                  <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                {graphicVariants(post).map(([label, url]) => (
+                                  <DropdownMenuItem key={label} onClick={() => downloadGraphic(post, url, label.split(" ")[0].toLowerCase())}>
+                                    Download {label}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => regenerateGraphic(post)}
+                            disabled={generatingGraphicForId === post.id}
+                            title="Replace this graphic with a fresh one"
+                          >
+                            {generatingGraphicForId === post.id
+                              ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+                              : <RefreshCw className="h-3.5 w-3.5 mr-1" />}
+                            {generatingGraphicForId === post.id ? "Designing…" : "Regenerate"}
                           </Button>
-                        ) : (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="sm" variant="outline">
-                                <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start">
-                              {graphicVariants(post).map(([label, url]) => (
-                                <DropdownMenuItem key={label} onClick={() => downloadGraphic(post, url, label.split(" ")[0].toLowerCase())}>
-                                  Download {label}
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        )
+                        </>
                       ) : (
                         <Button
                           size="sm"

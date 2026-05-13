@@ -1,64 +1,38 @@
-# Fix BP-03 graphic ↔ caption mismatch
+# Add "Regenerate graphic" to social post cards
 
-## What you're seeing
+## Problem
+On the Marketing Hub → Social Calendar, once a post has a graphic the card only shows **Download graphic**. To redo the image the author has to open the Post Editor sheet and click **Regenerate Graphic**, which is hidden and not discoverable. The top-bar **Generate graphics** button only fills in *missing* graphics — it won't replace an existing one.
 
-On the LinkedIn "Quote" card in the screenshot, the graphic reads:
+There is also a backend gate that prevents regeneration even if the UI did call it: in `bp03-generate-all-graphics/index.ts` the per-post loop does `if (next[size]) continue;`, so a second call for the same post returns "Graphic already exists" without producing anything new.
 
-> "Most people don't fail because they're incapable. **they fail because they don't START.**"
+## Fix
 
-…but the actual caption underneath says:
+### 1. Frontend — `SocialCalendarTab.tsx`
+Where the card currently renders the **Download graphic** button (both list views, around lines 1044–1064 and 1167–1190), add a sibling **Regenerate** button:
+- Icon: `RefreshCw` (already imported elsewhere in the project).
+- Variant: `outline`, same size as Download.
+- Disabled while `generatingGraphicForId === post.id`, shows spinner + "Designing…".
+- Confirms with a small inline `AlertDialog` ("Replace this graphic? The current image will be deleted.") to prevent accidental re-spend.
+- On confirm: clears `graphics` and `graphic_url` for that row (reuse the same Supabase update pattern already in `BP03Builder.tsx` lines 638–646), then calls existing `generateOneGraphic(post)`.
 
-> "Most people don't fail because they're incapable. **They fail because they're ashamed of being a beginner.** Early in my life, I 'sucked' at things…"
+### 2. Backend — `supabase/functions/bp03-generate-all-graphics/index.ts`
+Accept an optional `force: boolean` flag. When `post_id` is provided AND `force === true`:
+- Skip the `if (next[size]) continue;` short-circuit so every requested size is regenerated.
+- Optionally start from `next = {}` instead of merging with existing, so stale URLs don't linger if one size fails.
 
-The first sentence matches; the second sentence on the image is invented.
+The frontend's regenerate flow sends `{ post_id, force: true }`. The existing batch and "fill missing only" flows are unchanged.
 
-## Why it happens
-
-`supabase/functions/bp03-generate-all-graphics/index.ts` builds the image prompt like this:
-
-```ts
-const firstLine = (opts.caption || "").split(/\n+/)[0]?.slice(0, 160) || "";
-…
-Visual concept inspired by this caption opening: "${firstLine}".
-```
-
-Two real bugs fall out of that one line:
-
-1. **The model is told to be "inspired by" the first line, not to render it verbatim.** Gemini Nano Banana then writes its *own* punchy quote on the image. That's why the second sentence drifts ("don't START" vs "ashamed of being a beginner").
-2. **Only the first 160 chars of the FIRST PARAGRAPH are sent.** For multi-paragraph captions like this LinkedIn Quote post, the model never sees the real second sentence — so it can't render it even if instructed to.
-
-There's also a staleness problem: when an author edits the caption in `PostEditorSheet`, the existing `graphics.{landscape,portrait,square}` URLs are *not* invalidated. The copy says "Tweak the caption, then regenerate the graphic" but nothing forces a re-render — so an edited caption can keep an old image indefinitely.
-
-## Fix plan
-
-### 1. Render the EXACT pull quote on the graphic
-In `bp03-generate-all-graphics/index.ts`:
-- Reuse the existing `extractPullQuote()` logic (port the small helper from `src/components/dashboard/builders/bp03/socialGraphic.ts` into the edge function, or inline an equivalent ~20 line version).
-- Compute `pullQuote` from the **full caption** (not just first line, not sliced to 160 before sentence detection).
-- Change the prompt from "inspired by this caption opening" to an explicit, non-negotiable instruction:
-  > Render this EXACT text on the graphic, verbatim, with no paraphrasing, no added words, no removed words, no punctuation changes:
-  > "{pullQuote}"
-  > Author attribution line: — {authorName}
-  > Book footer: {bookTitle}
-- Keep the brand-kit block, archetype hint, and aspect-ratio guidance unchanged.
-
-### 2. Invalidate stale graphics on caption edit
-In the edit/save path used by `PostEditorSheet` (the social-post update mutation):
-- When `content` changes, also write `graphics: {}` and `graphic_url: null` so the card shows "Generate graphic" instead of an out-of-date image.
-- Calendar's "Generate graphic" / batch generator already handles empty `graphics`, so no other change needed.
-
-### 3. (Small, same-file) Make the prompt instruction order explicit
-Re-order the prompt so the literal text-to-render is the FIRST instruction, not buried after the visual brief — image models follow leading instructions far more reliably.
-
-## Files in scope
-- `supabase/functions/bp03-generate-all-graphics/index.ts` — pull-quote extraction + verbatim-render prompt.
-- The post-update handler used by `PostEditorSheet.tsx` (likely a mutation in `SocialCalendarTab.tsx` or a sibling hook — to be confirmed during implementation) — invalidate `graphics` on caption edit.
-
-## Out of scope
-- Replacing AI graphics with the deterministic canvas renderer (`socialGraphic.ts`) wholesale. That's a bigger product call — happy to do it as a separate option if you'd rather have 100% predictable text and accept a less "designed" look.
-- Carousel layout, brand palette, or the empty-state banner work from the previous sprint.
+### 3. Out of scope
+- The PostEditorSheet's Regenerate Graphic button keeps working as-is.
+- No change to `generateAllGraphics` (top bar) — it stays "fill missing only" so authors don't accidentally rebuild the whole queue.
+- No change to graphics rendering, brand kit, or the verbatim-quote prompt logic shipped previously.
 
 ## Verification
-- Re-generate the LinkedIn Quote post in the screenshot; the graphic must read exactly "Most people don't fail because they're incapable. They fail because they're ashamed of being a beginner." (or whatever the current first sentence is), no invented words.
-- Edit a caption in PostEditorSheet → save → confirm the card flips back to "Generate graphic" and the new render matches the new text.
-- Check 2–3 other posts (Lesson, Framework) across LinkedIn / Instagram / X to confirm verbatim rendering holds across archetypes and aspect ratios.
+- Card with existing graphic: Regenerate → confirm dialog → spinner → new image appears, old storage URL replaced.
+- Card without graphic: Regenerate button is hidden (only Generate graphic shows).
+- Top-bar **Generate graphics** still skips posts that already have all 3 sizes.
+- Edit caption in PostEditorSheet → save → card flips back to **Generate graphic** (existing behavior preserved).
+
+## Files touched
+- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
+- `supabase/functions/bp03-generate-all-graphics/index.ts`
