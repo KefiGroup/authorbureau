@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
-import { BookOpen, Mail, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
+import { Link } from "react-router-dom";
+import { BookOpen, Sparkles, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
 import type { AuthorData, BookWithProducts, ThemeVars } from "./types";
+import { getLowestPrice } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import { stripHtml } from "@/lib/stripHtml";
 
