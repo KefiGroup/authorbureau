@@ -34,7 +34,9 @@ import {
   Inbox,
   Download,
   RefreshCw,
+  Maximize2,
 } from "lucide-react";
+import GraphicLightbox from "./GraphicLightbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -1021,12 +1023,27 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                       </p>
                       {post.graphic_url && (
                         <div className="mb-2">
-                          <img
-                            src={post.graphic_url}
-                            alt=""
-                            className="rounded-md border border-border max-h-32 object-cover"
-                            loading="lazy"
-                          />
+                          <GraphicLightbox
+                            variants={graphicVariants(post)}
+                            title={post.content?.split("\n")[0]?.slice(0, 140)}
+                            onDownload={(url, label) => downloadGraphic(post, url, label)}
+                          >
+                            <button
+                              type="button"
+                              className="group relative inline-block rounded-md overflow-hidden border border-border cursor-zoom-in"
+                              title="Click to view full size"
+                            >
+                              <img
+                                src={post.graphic_url}
+                                alt=""
+                                className="max-h-32 object-cover block"
+                                loading="lazy"
+                              />
+                              <span className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs gap-1">
+                                <Maximize2 className="h-3.5 w-3.5" /> View full size
+                              </span>
+                            </button>
+                          </GraphicLightbox>
                         </div>
                       )}
                       {Array.isArray(post.carousel_slides) && post.carousel_slides.length > 0 && (
@@ -1050,6 +1067,15 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         </Button>
                         {graphicVariants(post).length > 0 ? (
                           <>
+                            <GraphicLightbox
+                              variants={graphicVariants(post)}
+                              title={post.content?.split("\n")[0]?.slice(0, 140)}
+                              onDownload={(url, label) => downloadGraphic(post, url, label)}
+                            >
+                              <Button size="sm" variant="outline">
+                                <Maximize2 className="h-3.5 w-3.5 mr-1" /> Preview
+                              </Button>
+                            </GraphicLightbox>
                             {graphicVariants(post).length === 1 ? (
                               <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
                                 <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
@@ -1171,12 +1197,27 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                     </p>
                     {post.graphic_url && (
                       <div className="mb-2">
-                        <img
-                          src={post.graphic_url}
-                          alt=""
-                          className="rounded-md border border-border max-h-40 object-cover"
-                          loading="lazy"
-                        />
+                        <GraphicLightbox
+                          variants={graphicVariants(post)}
+                          title={post.content?.split("\n")[0]?.slice(0, 140)}
+                          onDownload={(url, label) => downloadGraphic(post, url, label)}
+                        >
+                          <button
+                            type="button"
+                            className="group relative inline-block rounded-md overflow-hidden border border-border cursor-zoom-in"
+                            title="Click to view full size"
+                          >
+                            <img
+                              src={post.graphic_url}
+                              alt=""
+                              className="max-h-40 object-cover block"
+                              loading="lazy"
+                            />
+                            <span className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-xs gap-1">
+                              <Maximize2 className="h-3.5 w-3.5" /> View full size
+                            </span>
+                          </button>
+                        </GraphicLightbox>
                       </div>
                     )}
                     {Array.isArray(post.carousel_slides) && post.carousel_slides.length > 0 && (
@@ -1191,6 +1232,15 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                       </Button>
                       {graphicVariants(post).length > 0 ? (
                         <>
+                          <GraphicLightbox
+                            variants={graphicVariants(post)}
+                            title={post.content?.split("\n")[0]?.slice(0, 140)}
+                            onDownload={(url, label) => downloadGraphic(post, url, label)}
+                          >
+                            <Button size="sm" variant="outline">
+                              <Maximize2 className="h-3.5 w-3.5 mr-1" /> Preview
+                            </Button>
+                          </GraphicLightbox>
                           {graphicVariants(post).length === 1 ? (
                             <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
                               <Download className="h-3.5 w-3.5 mr-1" /> Download graphic

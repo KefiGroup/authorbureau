@@ -1,38 +1,34 @@
-# Add "Regenerate graphic" to social post cards
+# Full-size graphic preview (no download)
 
-## Problem
-On the Marketing Hub → Social Calendar, once a post has a graphic the card only shows **Download graphic**. To redo the image the author has to open the Post Editor sheet and click **Regenerate Graphic**, which is hidden and not discoverable. The top-bar **Generate graphics** button only fills in *missing* graphics — it won't replace an existing one.
+## Goal
+On the Marketing Hub → Social Calendar, let authors view any post's graphic at full size right in the browser. Today the card shows a small ~128px thumbnail and the only way to see the real image is **Download graphic**.
 
-There is also a backend gate that prevents regeneration even if the UI did call it: in `bp03-generate-all-graphics/index.ts` the per-post loop does `if (next[size]) continue;`, so a second call for the same post returns "Graphic already exists" without producing anything new.
+## What changes (UI only)
 
-## Fix
+1. **Make the thumbnail clickable.** Hovering the small preview shows a subtle "Click to view full size" overlay with a magnifying-glass icon and `cursor-zoom-in`. Clicking opens a lightbox.
 
-### 1. Frontend — `SocialCalendarTab.tsx`
-Where the card currently renders the **Download graphic** button (both list views, around lines 1044–1064 and 1167–1190), add a sibling **Regenerate** button:
-- Icon: `RefreshCw` (already imported elsewhere in the project).
-- Variant: `outline`, same size as Download.
-- Disabled while `generatingGraphicForId === post.id`, shows spinner + "Designing…".
-- Confirms with a small inline `AlertDialog` ("Replace this graphic? The current image will be deleted.") to prevent accidental re-spend.
-- On confirm: clears `graphics` and `graphic_url` for that row (reuse the same Supabase update pattern already in `BP03Builder.tsx` lines 638–646), then calls existing `generateOneGraphic(post)`.
+2. **Add a "Preview" button** next to **Download graphic** / **Regenerate** on cards that already have a graphic. Same affordance for users who don't realize the thumbnail is clickable. Icon: `Maximize2` (or `Eye`).
 
-### 2. Backend — `supabase/functions/bp03-generate-all-graphics/index.ts`
-Accept an optional `force: boolean` flag. When `post_id` is provided AND `force === true`:
-- Skip the `if (next[size]) continue;` short-circuit so every requested size is regenerated.
-- Optionally start from `next = {}` instead of merging with existing, so stale URLs don't linger if one size fails.
+3. **Lightbox dialog** (shadcn `Dialog`):
+   - Dark backdrop, image centered, `max-h-[90vh] max-w-[90vw]`, `object-contain` so the full graphic is visible at native aspect ratio (Instagram 4:5, LinkedIn/Facebook 1.91:1, X 16:9).
+   - Header shows post platform + caption's first line for context.
+   - When the post has **multiple variants** (square / portrait / landscape from `graphicVariants(post)`), show a small tab/segmented control above the image to switch between sizes — same labels already used in the Download dropdown.
+   - Footer has two buttons: **Download this size** (reuses existing `downloadGraphic`) and **Close**. Esc and backdrop-click also close.
+   - No new network calls — purely renders `post.graphic_url` / `post.graphics[size]` URLs already loaded.
 
-The frontend's regenerate flow sends `{ post_id, force: true }`. The existing batch and "fill missing only" flows are unchanged.
+4. **Apply to both card layouts** in `SocialCalendarTab.tsx`: the unscheduled block (~line 1022) and the scheduled block (~line 1172). Extract a small `<GraphicLightbox>` component within the same file (or a sibling file under `marketing-hub/`) so both blocks share it.
 
-### 3. Out of scope
-- The PostEditorSheet's Regenerate Graphic button keeps working as-is.
-- No change to `generateAllGraphics` (top bar) — it stays "fill missing only" so authors don't accidentally rebuild the whole queue.
-- No change to graphics rendering, brand kit, or the verbatim-quote prompt logic shipped previously.
+## Out of scope
+- No backend / edge-function changes.
+- No changes to graphic generation, regeneration, brand kit, or the verbatim-quote prompt.
+- No changes to PostEditorSheet, top-bar Generate Graphics, or Download Pack.
+- Carousel slides (`CarouselPreview`) already have their own preview affordance — left as-is.
 
-## Verification
-- Card with existing graphic: Regenerate → confirm dialog → spinner → new image appears, old storage URL replaced.
-- Card without graphic: Regenerate button is hidden (only Generate graphic shows).
-- Top-bar **Generate graphics** still skips posts that already have all 3 sizes.
-- Edit caption in PostEditorSheet → save → card flips back to **Generate graphic** (existing behavior preserved).
+## Files in scope
+- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` (thumbnail → trigger, add lightbox component, wire to both card blocks)
 
-## Files touched
-- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx`
-- `supabase/functions/bp03-generate-all-graphics/index.ts`
+## Technical notes
+- Reuse shadcn `Dialog` (`@/components/ui/dialog`) — already used elsewhere in the project.
+- Use `Maximize2` from `lucide-react` (already imported in many files; add to existing import list).
+- Preserve existing `loading="lazy"` on the thumbnail; the dialog `<img>` loads only when opened.
+- No new state in parent for lightbox — encapsulate `open` state inside the `<GraphicLightbox>` component, triggered by either the thumbnail or the Preview button via `<DialogTrigger asChild>`.
