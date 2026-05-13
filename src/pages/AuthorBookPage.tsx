@@ -789,53 +789,14 @@ export default function AuthorBookPage() {
         </section>
       )}
 
-      {/* ===== SECTION 3: BESTSELLER PROOF ===== */}
-      {book.bestseller_proof_url && (
-        <section className="py-14 md:py-20" style={{ background: v.secondaryBg }}>
-          <div className="container max-w-3xl">
-            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-              <h2 className="text-xl md:text-2xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                <Star className="inline h-5 w-5 mr-2" style={{ color: v.accent }} />
-                Amazon Bestseller Proof
-              </h2>
-              <div
-                className="rounded-xl overflow-hidden shadow-lg"
-                style={{ background: "#1E293B", borderRadius: "12px" }}
-              >
-                <div className="flex items-center gap-1.5 px-4 py-3">
-                  <div className="w-3 h-3 rounded-full" style={{ background: "#ef4444" }} />
-                  <div className="w-3 h-3 rounded-full" style={{ background: "#eab308" }} />
-                  <div className="w-3 h-3 rounded-full" style={{ background: "#22c55e" }} />
-                  <div className="ml-3 flex-1 flex justify-center">
-                    <span className="text-xs px-4 py-1 rounded-md" style={{ background: "#F1F1F1", color: "#666666" }}>
-                      amazon.com
-                    </span>
-                  </div>
-                </div>
-                <img
-                  src={book.bestseller_proof_url}
-                  alt={`${book.title} bestseller proof`}
-                  loading="lazy"
-                  className="w-full"
-                  style={{ maxHeight: "400px", objectFit: "contain" }}
-                />
-              </div>
-              <p className="text-sm text-center mt-4 italic" style={{ color: v.bodyText }}>
-                {book.title} reached #1 on Amazon Best Sellers
-              </p>
-            </motion.div>
-          </div>
-        </section>
-      )}
-
-      {/* ===== SECTION 3.5: GET THE FULL EXPERIENCE — buyable live nodes ===== */}
+      {/* ===== SECTION 3: GET THE FULL EXPERIENCE — buyable live nodes (moved up per redesign brief) ===== */}
       {buyableNodes.length > 0 && (
         <section className="py-14 md:py-16" style={{ background: v.cardBg }}>
           <div className="container max-w-5xl">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-5 w-5" style={{ color: v.accent }} />
               <h2 className="text-2xl md:text-[2rem] font-bold" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                Get the Full Experience
+                Everything in the {book.title} Ecosystem
               </h2>
             </div>
             <p className="text-base mb-8" style={{ color: v.mutedText }}>
@@ -890,6 +851,45 @@ export default function AuthorBookPage() {
                 );
               })}
             </div>
+          </div>
+        </section>
+      )}
+
+      {/* ===== SECTION 3.5: BESTSELLER PROOF ===== */}
+      {book.bestseller_proof_url && (
+        <section className="py-14 md:py-20" style={{ background: v.secondaryBg }}>
+          <div className="container max-w-3xl">
+            <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
+              <h2 className="text-xl md:text-2xl font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                <Star className="inline h-5 w-5 mr-2" style={{ color: v.accent }} />
+                Amazon Bestseller Proof
+              </h2>
+              <div
+                className="rounded-xl overflow-hidden shadow-lg"
+                style={{ background: "#1E293B", borderRadius: "12px" }}
+              >
+                <div className="flex items-center gap-1.5 px-4 py-3">
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#ef4444" }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#eab308" }} />
+                  <div className="w-3 h-3 rounded-full" style={{ background: "#22c55e" }} />
+                  <div className="ml-3 flex-1 flex justify-center">
+                    <span className="text-xs px-4 py-1 rounded-md" style={{ background: "#F1F1F1", color: "#666666" }}>
+                      amazon.com
+                    </span>
+                  </div>
+                </div>
+                <img
+                  src={book.bestseller_proof_url}
+                  alt={`${book.title} bestseller proof`}
+                  loading="lazy"
+                  className="w-full"
+                  style={{ maxHeight: "400px", objectFit: "contain" }}
+                />
+              </div>
+              <p className="text-sm text-center mt-4 italic" style={{ color: v.bodyText }}>
+                {book.title} reached #1 on Amazon Best Sellers
+              </p>
+            </motion.div>
           </div>
         </section>
       )}
