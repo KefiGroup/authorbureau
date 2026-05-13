@@ -435,11 +435,11 @@ export default function AuthorBookPage() {
         .eq("author_id", profile.id)
         .eq("book_id", bookId)
         .eq("status", "live")
-        .not("price_usd", "is", null)
         .gt("price_usd", 0);
       setBuyableNodes((buyable as any[]) || []);
     }
 
+    setProducts(prods);
     setOtherBooks((otherBooksRes.data || []) as OtherBook[]);
     setAllAuthorBooks((allBooksRes.data || []) as any[]);
     setCoachingServices(coachRes.data || []);
