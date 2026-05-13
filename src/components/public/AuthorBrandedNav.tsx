@@ -34,6 +34,8 @@ interface AuthorBrandedNavProps {
   bodyFont: string;
   activeSection?: string;
   onContactClick?: () => void;
+  /** Sticky gold CTA pinned to the right of the nav. Hidden when null. */
+  buyCta?: { label: string; to: string } | null;
 }
 
 export default function AuthorBrandedNav({
