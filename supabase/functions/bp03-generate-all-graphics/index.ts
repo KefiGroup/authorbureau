@@ -231,11 +231,12 @@ Deno.serve(async (req) => {
     for (const p of targets as any[]) {
       try {
         const existing = (p.graphics && typeof p.graphics === "object") ? p.graphics : {};
-        const next: Record<string, string> = { ...existing };
+        // When force=true (regenerate), start fresh so every size is replaced.
+        const next: Record<string, string> = force ? {} : { ...existing };
         let postGenerated = 0;
         let postFailed = 0;
         for (const size of SIZES) {
-          if (next[size]) continue;
+          if (!force && next[size]) continue;
           const url = await generateOneGraphic({
             userId: profile.user_id,
             size,
