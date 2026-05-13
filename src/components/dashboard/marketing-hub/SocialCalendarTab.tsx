@@ -1036,10 +1036,27 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                         <Button size="sm" variant="outline" onClick={() => copyAndOpen(post)}>
                           <ExternalLink className="h-3.5 w-3.5 mr-1" /> Open {PLATFORM_LABELS[post.platform] || post.platform}
                         </Button>
-                        {post.graphic_url ? (
-                          <Button size="sm" variant="outline" onClick={() => downloadGraphic(post)}>
-                            <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
-                          </Button>
+                        {graphicVariants(post).length > 0 ? (
+                          graphicVariants(post).length === 1 ? (
+                            <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
+                              <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                            </Button>
+                          ) : (
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                  <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start">
+                                {graphicVariants(post).map(([label, url]) => (
+                                  <DropdownMenuItem key={label} onClick={() => downloadGraphic(post, url, label.split(" ")[0].toLowerCase())}>
+                                    Download {label}
+                                  </DropdownMenuItem>
+                                ))}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          )
                         ) : (
                           <Button
                             size="sm"
