@@ -34,7 +34,9 @@ import {
   Inbox,
   Download,
   RefreshCw,
+  Maximize2,
 } from "lucide-react";
+import GraphicLightbox from "./GraphicLightbox";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
