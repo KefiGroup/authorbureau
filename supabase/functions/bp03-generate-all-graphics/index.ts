@@ -46,6 +46,20 @@ function brandKitBlock(opts: {
 - Keep author name and book title as PART OF THE DESIGN SYSTEM (typography, lower-third or footer line) where it serves the layout.`;
 }
 
+/**
+ * Extract a short, render-ready pull quote from the full caption.
+ * Mirrors the deterministic logic in src/components/dashboard/builders/bp03/socialGraphic.ts
+ * so the AI graphic shows the SAME text the author actually wrote.
+ */
+function extractPullQuote(caption: string, max = 180): string {
+  if (!caption) return "";
+  const cleaned = caption.replace(/\s+/g, " ").trim();
+  const match = cleaned.match(/^(.{20,}?[.!?])(\s|$)/);
+  let quote = match ? match[1] : cleaned;
+  if (quote.length > max) quote = quote.slice(0, max - 1).trimEnd() + "…";
+  return quote;
+}
+
 async function generateOneGraphic(opts: {
   userId: string;
   size: SizeKey;
