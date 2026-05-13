@@ -93,8 +93,8 @@ export default function LeadCaptureForm({
         outline: "none",
       };
   const inputClass = useTokens
-    ? "h-11 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    : "h-11 text-sm w-full";
+    ? "h-12 sm:h-11 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    : "h-12 sm:h-11 text-sm w-full";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -234,8 +234,8 @@ export default function LeadCaptureForm({
           disabled={submitting}
           className={
             useTokens
-              ? "w-full h-11 rounded-md bg-primary text-primary-foreground font-bold text-sm transition-all hover:opacity-90 disabled:opacity-60"
-              : "w-full h-11 font-bold text-sm transition-all hover:brightness-110 disabled:opacity-60"
+              ? "w-full h-12 sm:h-11 rounded-md bg-primary text-primary-foreground font-bold text-sm transition-all hover:opacity-90 disabled:opacity-60"
+              : "w-full h-12 sm:h-11 font-bold text-sm transition-all hover:brightness-110 disabled:opacity-60"
           }
           style={
             useTokens
