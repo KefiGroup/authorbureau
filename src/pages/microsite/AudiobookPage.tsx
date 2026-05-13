@@ -415,7 +415,7 @@ export default function AudiobookPage({ data, content, v, hFont, bgColor }: Prop
               <p className="text-5xl font-bold" style={{ color: v.accent, fontFamily: hFont }}>${price}</p>
             )}
             <ul className="text-sm space-y-2 max-w-xs mx-auto text-left" style={{ color: v.bodyText }}>
-              <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 shrink-0" style={{ color: v.accent }} /> Lifetime access — yours to keep</li>
+              <li className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 shrink-0" style={{ color: v.accent }} /> Lifetime access, yours to keep</li>
               <li className="flex items-center gap-2"><Headphones className="h-4 w-4 shrink-0" style={{ color: v.accent }} /> Listen on any device, anywhere</li>
               <li className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 shrink-0" style={{ color: v.accent }} /> Instant delivery after purchase</li>
             </ul>
@@ -427,9 +427,6 @@ export default function AudiobookPage({ data, content, v, hFont, bgColor }: Prop
               className="rounded-full px-10 py-3.5 text-base font-semibold"
               style={{ background: v.accent, color: v.accentText || bgColor }}
             />
-            <p className="text-xs pt-2" style={{ color: v.mutedText }}>
-              By buying you agree to our <a href="/reader-terms-of-sale" className="underline">Terms of Sale</a> and <a href="/privacy-policy" className="underline">Privacy Policy</a>.
-            </p>
           </div>
         </section>
       )}
