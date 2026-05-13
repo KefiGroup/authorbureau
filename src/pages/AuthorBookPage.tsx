@@ -440,7 +440,7 @@ export default function AuthorBookPage() {
     if (profile?.id) {
       const { data: buyable } = await supabase
         .from("author_nodes")
-        .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url, tagline, content_json")
+        .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url, content_json")
         .eq("author_id", profile.id)
         .eq("book_id", bookId)
         .eq("status", "live")
