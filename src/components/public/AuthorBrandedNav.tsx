@@ -53,6 +53,7 @@ export default function AuthorBrandedNav({
   bodyFont,
   activeSection,
   onContactClick,
+  buyCta,
 }: AuthorBrandedNavProps) {
   const [booksOpen, setBooksOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
