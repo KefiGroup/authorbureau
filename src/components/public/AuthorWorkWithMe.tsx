@@ -9,23 +9,64 @@ interface Props {
   authorSlug: string;
   authorName: string;
   authorContactEmail?: string | null;
-  /** True if the logged-in user owns this author profile */
   isOwnerViewing: boolean;
-  /** True if author has Stripe Connect onboarded */
   stripeReady: boolean;
-  /** Live BA/YR/BP nodes that have been published */
   liveNodes: StorefrontNode[];
   theme: AuthorTheme;
   v: ThemeVars;
 }
 
-// Order categories so brand → build → yield reads naturally
-function categoryOrder(nodeId: string): number {
-  if (nodeId.startsWith("BA-")) return 1;
-  if (nodeId.startsWith("YR-")) return 2;
-  if (nodeId.startsWith("BP-")) return 3;
-  return 9;
+type Tier = "start" | "deeper" | "enterprise";
+
+/** Map a node_id prefix to a tier in the value ladder. */
+function nodeTier(nodeId: string): Tier {
+  // Tier 1 — Start Here: low-cost / free entry points
+  if (
+    nodeId.startsWith("BP-02") || // Free assessment / lead magnet
+    nodeId.startsWith("BA-12") || // Membership
+    nodeId.startsWith("BP-05") || // Webinar
+    nodeId.startsWith("BP-07") || // Home study
+    nodeId.startsWith("BA-10")    // Online course
+  ) return "start";
+
+  // Tier 3 — Enterprise: high-touch, inquiry-led
+  if (
+    nodeId.startsWith("YR-20") || // Big-ticket consulting
+    nodeId.startsWith("YR-21") || // Speaking
+    nodeId.startsWith("YR-22") || // Corporate training
+    nodeId.startsWith("YR-23") || // Mastermind
+    nodeId.startsWith("YR-24") || // Retreat
+    nodeId.startsWith("YR-26") || // Conference
+    nodeId.startsWith("YR-27") || // Fundraising
+    nodeId.startsWith("YR-28") || // Sponsors
+    nodeId.startsWith("BA-15") || // Press / Media
+    nodeId.startsWith("BA-18")    // JV partnerships
+  ) return "enterprise";
+
+  // Tier 2 — Go Deeper: 1:1 / group / certification (and any unmapped fall here)
+  return "deeper";
 }
+
+const TIER_META: Record<Tier, { label: string; sub: string; eyebrowColorKey: keyof ThemeVars; bordered?: boolean }> = {
+  start: {
+    label: "Start Here",
+    sub: "Low-risk first steps to get the win.",
+    eyebrowColorKey: "accent",
+    bordered: true,
+  },
+  deeper: {
+    label: "Go Deeper",
+    sub: "1-on-1, group, and certification programmes.",
+    eyebrowColorKey: "accent",
+  },
+  enterprise: {
+    label: "Enterprise",
+    sub: "Speaking, consulting, and bespoke engagements.",
+    eyebrowColorKey: "accent",
+  },
+};
+
+const TIER_ORDER: Tier[] = ["start", "deeper", "enterprise"];
 
 export default function AuthorWorkWithMe({
   authorId,
@@ -38,14 +79,14 @@ export default function AuthorWorkWithMe({
   theme,
   v,
 }: Props) {
-  // Hide entirely for guests when there are no live products
   if (!liveNodes || liveNodes.length === 0) return null;
 
-  const sorted = [...liveNodes].sort((a, b) => {
-    const co = categoryOrder(a.node_id) - categoryOrder(b.node_id);
-    if (co !== 0) return co;
-    return a.node_id.localeCompare(b.node_id);
-  });
+  const grouped: Record<Tier, StorefrontNode[]> = { start: [], deeper: [], enterprise: [] };
+  for (const node of liveNodes) {
+    grouped[nodeTier(node.node_id)].push(node);
+  }
+  // Stable internal sort by node_id
+  for (const t of TIER_ORDER) grouped[t].sort((a, b) => a.node_id.localeCompare(b.node_id));
 
   return (
     <section
@@ -60,6 +101,7 @@ export default function AuthorWorkWithMe({
           viewport={{ once: true }}
           variants={fadeUp}
           custom={0}
+          className="mb-10"
         >
           <h2
             className="text-2xl md:text-[2rem] font-bold mb-2"
@@ -67,37 +109,76 @@ export default function AuthorWorkWithMe({
           >
             Work With Me
           </h2>
-          <p className="text-base mb-10" style={{ color: v.mutedText }}>
-            Programmes and resources from {authorName}.
+          <p className="text-base" style={{ color: v.mutedText }}>
+            Programmes and resources from {authorName} — pick where you are right now.
           </p>
         </motion.div>
 
-        {/* Note: Authors Bureau is Merchant of Record — readers always see live
-            checkout. No owner-only Stripe banner needed. */}
+        {TIER_ORDER.map((tier, tIdx) => {
+          const nodes = grouped[tier];
+          if (nodes.length === 0) return null;
+          const meta = TIER_META[tier];
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {sorted.map((node, idx) => (
-            <motion.div
-              key={node.id}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true }}
-              variants={fadeUp}
-              custom={idx + 1}
-            >
-              <AuthorProductCard
-                node={node}
-                authorId={authorId}
-                authorSlug={authorSlug}
-                authorContactEmail={authorContactEmail}
-                stripeReady={stripeReady}
-                isOwnerViewing={isOwnerViewing}
-                v={v}
-                headingFont={theme.headingFont}
-              />
-            </motion.div>
-          ))}
-        </div>
+          return (
+            <div key={tier} className={tIdx > 0 ? "mt-12" : ""}>
+              <motion.div
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                variants={fadeUp}
+                custom={0}
+                className="mb-5 flex items-baseline gap-3 flex-wrap"
+              >
+                <span
+                  className="text-xs font-semibold uppercase tracking-[0.2em]"
+                  style={{ color: v[meta.eyebrowColorKey] }}
+                >
+                  Tier {tIdx + 1}
+                </span>
+                <h3
+                  className="text-xl md:text-2xl font-bold"
+                  style={{ color: v.headingText, fontFamily: theme.headingFont }}
+                >
+                  {meta.label}
+                </h3>
+                <span className="text-sm" style={{ color: v.mutedText }}>
+                  {meta.sub}
+                </span>
+              </motion.div>
+
+              <div
+                className={`grid gap-5 sm:grid-cols-2 lg:grid-cols-3 ${meta.bordered ? "rounded-2xl p-4 md:p-5" : ""}`}
+                style={
+                  meta.bordered
+                    ? { border: `1px solid ${v.accent}40`, background: `${v.accent}08` }
+                    : undefined
+                }
+              >
+                {nodes.map((node, idx) => (
+                  <motion.div
+                    key={node.id}
+                    initial="hidden"
+                    whileInView="visible"
+                    viewport={{ once: true }}
+                    variants={fadeUp}
+                    custom={idx + 1}
+                  >
+                    <AuthorProductCard
+                      node={node}
+                      authorId={authorId}
+                      authorSlug={authorSlug}
+                      authorContactEmail={authorContactEmail}
+                      stripeReady={stripeReady}
+                      isOwnerViewing={isOwnerViewing}
+                      v={v}
+                      headingFont={theme.headingFont}
+                    />
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </section>
   );
