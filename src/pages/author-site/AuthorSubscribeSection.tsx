@@ -27,8 +27,8 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
               displayName={displayName}
               source="author_homepage"
               sourceDetail={authorSlug}
-              headline={`Stay Connected with ${displayName}`}
-              description={`Get exclusive updates, early access to new products, and insights from ${displayName}.`}
+              headline={`Get the ${displayName} Starter Kit — Free`}
+              description={`Join the readers and get ${displayName}'s framework guide, delivered instantly.`}
               showMessage={false}
               redirectTo={`/${authorSlug}/thank-you`}
               accent={v.accent}
@@ -40,7 +40,7 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
             />
           </div>
           <p className="text-xs mt-4" style={{ color: v.mutedText, fontSize: "0.8rem" }}>
-            We respect your privacy. Unsubscribe anytime.
+            No spam. Unsubscribe anytime. Your kit arrives in 2 minutes.
           </p>
 
           {affiliateNodes.length > 0 && (
