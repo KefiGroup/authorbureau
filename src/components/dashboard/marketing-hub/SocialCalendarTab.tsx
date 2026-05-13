@@ -1232,6 +1232,15 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                       </Button>
                       {graphicVariants(post).length > 0 ? (
                         <>
+                          <GraphicLightbox
+                            variants={graphicVariants(post)}
+                            title={post.content?.split("\n")[0]?.slice(0, 140)}
+                            onDownload={(url, label) => downloadGraphic(post, url, label)}
+                          >
+                            <Button size="sm" variant="outline">
+                              <Maximize2 className="h-3.5 w-3.5 mr-1" /> Preview
+                            </Button>
+                          </GraphicLightbox>
                           {graphicVariants(post).length === 1 ? (
                             <Button size="sm" variant="outline" onClick={() => downloadGraphic(post, graphicVariants(post)[0][1])}>
                               <Download className="h-3.5 w-3.5 mr-1" /> Download graphic
