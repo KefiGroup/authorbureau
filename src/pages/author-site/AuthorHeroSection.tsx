@@ -68,6 +68,15 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
 
           {/* Text Content */}
           <div className="text-center md:text-left flex-1">
+            {booksWithProducts.some(b => b.badges && b.badges.length > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+                className="inline-flex items-center gap-1.5 mb-4 px-3 py-1 rounded-full text-[0.7rem] font-bold uppercase tracking-[0.12em]"
+                style={{ background: v.accent, color: v.accentText }}
+              >
+                Bestselling Author
+              </motion.div>
+            )}
             <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               className="text-3xl md:text-5xl font-bold mb-3"
               style={{ color: v.primaryText, fontFamily: theme.headingFont }}
