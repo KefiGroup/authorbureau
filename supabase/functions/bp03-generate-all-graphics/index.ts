@@ -149,18 +149,23 @@ Deno.serve(async (req) => {
     let bookTitle = "your book";
     let bookCoverUrl: string | null = null;
     if (bookId) {
-      const { data: b } = await admin.from("books").select("title, cover_url").eq("id", bookId).maybeSingle();
-      if (b) { bookTitle = b.title || bookTitle; bookCoverUrl = b.cover_url || null; }
+      const { data: b, error: bErr } = await admin.from("books").select("title, cover_image_url").eq("id", bookId).maybeSingle();
+      if (bErr) console.error("[bp03-generate-all-graphics] book lookup (by id) error", bErr);
+      if (b) { bookTitle = b.title || bookTitle; bookCoverUrl = (b as any).cover_image_url || null; }
     }
     if (!bookCoverUrl) {
-      const { data: b } = await admin
+      const { data: b, error: bErr } = await admin
         .from("books")
-        .select("title, cover_url")
+        .select("title, cover_image_url")
         .eq("author_id", authorId)
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (b) { bookTitle = bookTitle === "your book" ? (b.title || bookTitle) : bookTitle; bookCoverUrl = bookCoverUrl || b.cover_url || null; }
+      if (bErr) console.error("[bp03-generate-all-graphics] book lookup (latest) error", bErr);
+      if (b) {
+        bookTitle = bookTitle === "your book" ? (b.title || bookTitle) : bookTitle;
+        bookCoverUrl = bookCoverUrl || (b as any).cover_image_url || null;
+      }
     }
 
     let postsQuery = admin
@@ -230,10 +235,20 @@ Deno.serve(async (req) => {
         // Choose the legacy preview URL based on platform default.
         const defaultSize = PLATFORM_DEFAULT_SIZE[p.platform] || "square";
         const legacyUrl = next[defaultSize] || next.square || next.landscape || next.portrait || null;
-        await admin
+        const { error: updErr } = await admin
           .from("social_posts")
           .update({ graphics: next, graphic_url: legacyUrl })
           .eq("id", p.id);
+        if (updErr) {
+          console.error("[bp03-generate-all-graphics] social_posts update FAILED", {
+            postId: p.id,
+            error: updErr,
+          });
+          // Roll back the success counters for this post — persistence failed.
+          generated -= postGenerated;
+          failed += postGenerated + (SIZES.length - postGenerated - postFailed);
+          continue;
+        }
         console.info("[bp03-generate-all-graphics] post done", {
           postId: p.id,
           platform: p.platform,
