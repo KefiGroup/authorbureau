@@ -71,14 +71,22 @@ async function generateOneGraphic(opts: {
   archetype?: string | null;
 }): Promise<string | null> {
   const spec = SIZE_SPECS[opts.size];
-  const firstLine = (opts.caption || "").split(/\n+/)[0]?.slice(0, 160) || "";
-  const archetype = opts.archetype ? `Archetype: ${opts.archetype}.` : "";
-  const prompt = `Create a premium scroll-stopping ${spec.label} social graphic for the book "${opts.bookTitle}".
+  const pullQuote = extractPullQuote(opts.caption || "", 180);
+  const archetype = opts.archetype ? `Archetype hint: ${opts.archetype}.` : "";
+  const prompt = `TEXT TO RENDER ON THE GRAPHIC — VERBATIM, NO PARAPHRASING:
+"${pullQuote}"
+
+NON-NEGOTIABLE RULES:
+- Render the quoted text above EXACTLY as written. Do not invent, paraphrase, shorten, or "improve" any words. Do not change punctuation. Do not add a closing line or tagline that wasn't in the source.
+- The author attribution line is: — ${opts.authorName}
+- The book footer line is: ${opts.bookTitle}
+
+DESIGN BRIEF:
+Create a premium scroll-stopping ${spec.label} social graphic that presents the quoted text as the hero element.
 ${archetype}
-Visual concept inspired by this caption opening: "${firstLine}".
 ${brandKitBlock({ authorName: opts.authorName, bookTitle: opts.bookTitle, siteTheme: opts.siteTheme })}
 Clean editorial composition. Aspect ratio ${spec.width}x${spec.height}.
-Look like a senior brand designer made it — no AI tells, no clip-art, no awkward typography.`;
+Look like a senior brand designer made it — no AI tells, no clip-art, no awkward typography. Spelling MUST be perfect.`;
 
   const messageContent: any[] = [{ type: "text", text: prompt }];
   if (opts.bookCoverUrl) {
