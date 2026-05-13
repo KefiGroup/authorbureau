@@ -120,23 +120,34 @@ async function rebuildSocialPosts(
   cloudAdmin: ReturnType<typeof createClient>,
   authorId: string,
   content: any,
+  bookId: string | null = null,
 ): Promise<number> {
   const flat = flattenPosts(content);
   if (flat.length === 0) return 0;
 
   // Idempotent: wipe previous BP-03 draft/ready posts that the author has not yet posted.
   // Posts already marked posted are preserved for the "X of Y posted" counter.
-  await cloudAdmin
+  // Sprint 64 — book-scoped: only wipe rows for the same (author_id, book_id)
+  // so other books' calendars stay intact.
+  let deleteQuery = cloudAdmin
     .from("social_posts")
     .delete()
     .eq("author_id", authorId)
     .eq("node_id", "BP-03")
     .in("status", ["draft", "ready"]);
+  if (bookId) {
+    deleteQuery = deleteQuery.eq("book_id", bookId);
+  } else {
+    deleteQuery = deleteQuery.is("book_id", null);
+  }
+  const { error: delErr } = await deleteQuery;
+  if (delErr) throw delErr;
 
   // Author-driven scheduling: every newly-generated post starts as an Unscheduled draft.
   // The author picks a date+time per post (or "Post Now") from the Social Calendar UI.
   const rows = flat.map((p) => ({
     author_id: authorId,
+    book_id: bookId,
     node_id: "BP-03",
     platform: p.platform,
     content: [p.caption, p.hashtags.length ? p.hashtags.map((h: string) => `#${h}`).join(" ") : ""]
