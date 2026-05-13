@@ -367,7 +367,8 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   };
 
   // Generate the 3 graphic variants for a single post on-demand.
-  const generateOneGraphic = async (post: SocialPost) => {
+  // Pass force=true to replace existing graphics (regenerate).
+  const generateOneGraphic = async (post: SocialPost, force = false) => {
     if (!authorId) return;
     setGeneratingGraphicForId(post.id);
     try {
@@ -378,7 +379,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ author_id: authorId, book_id: bookId || null, post_id: post.id }),
+          body: JSON.stringify({ author_id: authorId, book_id: bookId || null, post_id: post.id, force }),
         },
         180000,
       );
@@ -387,12 +388,17 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         toast.error(json?.message || "Couldn't generate graphic. Please try again.");
         return;
       }
-      if ((json.generated || 0) > 0) toast.success("Graphic ready");
+      if ((json.generated || 0) > 0) toast.success(force ? "New graphic ready" : "Graphic ready");
       else toast.info("Graphic already exists.");
       await load();
     } finally {
       setGeneratingGraphicForId(null);
     }
+  };
+
+  const regenerateGraphic = (post: SocialPost) => {
+    if (!window.confirm("Replace this graphic? The current image will be deleted and a fresh one generated.")) return;
+    generateOneGraphic(post, true);
   };
 
   const downloadGraphic = async (post: SocialPost, sizeUrl?: string, sizeLabel?: string) => {
