@@ -76,12 +76,13 @@ export default function AuthorBrandedNav({
       : books.length > 1
         ? [{ label: "Books", to: "#", type: "dropdown" as const }]
         : []),
-    ...(hasQuizSection ? [{ label: "Quiz", to: `/${authorSlug}#quiz-section`, type: "link" as const }] : []),
-    ...(hasLearnSection ? [{ label: "Learn", to: `/${authorSlug}#learn-section`, type: "link" as const }] : []),
+    ...(hasQuizSection ? [{ label: "Free Quiz", to: `/${authorSlug}#quiz-section`, type: "link" as const }] : []),
     ...(hasWorkWithMe || hasServices ? [{ label: "Work With Me", to: `/${authorSlug}#services`, type: "link" as const }] : []),
-    ...(hasEvents ? [{ label: "Events", to: `/${authorSlug}#events-section`, type: "link" as const }] : []),
     { label: "Contact", to: "#", type: "action" as const },
   ];
+  // Note: Learn + Events are intentionally pruned from the primary nav (Sprint 4).
+  // They remain reachable via in-page scroll from other CTAs.
+  void hasLearnSection; void hasEvents;
 
   return (
     <nav
