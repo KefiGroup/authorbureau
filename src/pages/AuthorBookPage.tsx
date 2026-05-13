@@ -532,17 +532,32 @@ export default function AuthorBookPage() {
     ]}>
 
       {/* Author-branded nav */}
-      <AuthorBrandedNav
-        authorSlug={authorSlug!}
-        authorName={authorName}
-        authorPhotoUrl={authorProfile?.photo_url}
-        books={allAuthorBooks}
-        hasServices={coachingServices.length > 0}
-        vars={v}
-        headingFont={theme.headingFont}
-        bodyFont={theme.bodyFont}
-        onContactClick={() => setContactOpen(true)}
-      />
+      {(() => {
+        const lowest = (() => {
+          const prices = [book.kindle_price, book.paperback_price, book.price].filter(Boolean) as string[];
+          if (prices.length === 0) return null;
+          const nums = prices.map(p => parseFloat(String(p).replace(/[^0-9.]/g, ""))).filter(n => !isNaN(n));
+          if (nums.length === 0) return prices[0];
+          return `$${Math.min(...nums).toFixed(2)}`;
+        })();
+        const buyCta = lowest
+          ? { label: `Get the Book — ${lowest}`, to: "#book-hero" }
+          : null;
+        return (
+          <AuthorBrandedNav
+            authorSlug={authorSlug!}
+            authorName={authorName}
+            authorPhotoUrl={authorProfile?.photo_url}
+            books={allAuthorBooks}
+            hasServices={coachingServices.length > 0}
+            vars={v}
+            headingFont={theme.headingFont}
+            bodyFont={theme.bodyFont}
+            onContactClick={() => setContactOpen(true)}
+            buyCta={buyCta}
+          />
+        );
+      })()}
 
       <AuthorContactModal
         open={contactOpen}
