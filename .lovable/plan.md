@@ -1,65 +1,64 @@
-# Audit — Social Calendar empty-state banner ("Almost there")
+# Fix BP-03 graphic ↔ caption mismatch
 
-## What the user sees
-On book "Be SUCKcessful", the Social Calendar shows an amber banner: *"Your Social Media kit is activated, but your posts didn't load. This usually clears after a quick refresh."* with **Refresh Posts** and **Open Social Media Kit** buttons. Tapping Refresh does not fix it.
+## What you're seeing
 
-## Root cause (4 real bugs, 1 copy bug)
+On the LinkedIn "Quote" card in the screenshot, the graphic reads:
 
-The banner renders when `posts.length === 0 && bp03Activated === true`. Both signals come from `marketing-hub-state/social_calendar`, which **is** correctly scoped per `(author_id, book_id)`. So the state itself is honest: BP-03 was activated for some book context, but no `social_posts` rows exist for the currently selected book. The repair path is what's broken.
+> "Most people don't fail because they're incapable. **they fail because they don't START.**"
 
-### Bug 1 — `repairCalendar` never sends `book_id`
-`SocialCalendarTab.tsx` line 271:
+…but the actual caption underneath says:
+
+> "Most people don't fail because they're incapable. **They fail because they're ashamed of being a beginner.** Early in my life, I 'sucked' at things…"
+
+The first sentence matches; the second sentence on the image is invented.
+
+## Why it happens
+
+`supabase/functions/bp03-generate-all-graphics/index.ts` builds the image prompt like this:
+
 ```ts
-body: JSON.stringify({ action: "repair_calendar" })   // no book_id
+const firstLine = (opts.caption || "").split(/\n+/)[0]?.slice(0, 160) || "";
+…
+Visual concept inspired by this caption opening: "${firstLine}".
 ```
-Server-side `bp03-node-state` reads `body.book_id` and, when null, falls back to the **latest** BP-03 node for the author — which may be a different book entirely. Result: Refresh Posts can rebuild the wrong book's kit.
 
-### Bug 2 — `rebuildSocialPosts` writes `book_id = NULL`
-`bp03-node-state/index.ts` lines 119–158: the function signature is `(cloudAdmin, authorId, content)` and the inserted row literal has no `book_id` column. Every repaired post lands with `book_id = NULL`. The calendar query at `marketing-hub-state` line 212 is `.eq("book_id", bookId)`, so those rows are invisible to any per-book view. This is the **direct** cause of "Refresh Posts does nothing" on a book-scoped tab.
+Two real bugs fall out of that one line:
 
-### Bug 3 — `auto_repair_if_stale` is also book-blind on the staleness probe
-Same file, lines 432–438: the stale-row probe filters only by `author_id + node_id`, never by `book_id`. It can decide "stale" based on another book's rows and trigger a rebuild that, per Bug 2, lands NULL-scoped.
+1. **The model is told to be "inspired by" the first line, not to render it verbatim.** Gemini Nano Banana then writes its *own* punchy quote on the image. That's why the second sentence drifts ("don't START" vs "ashamed of being a beginner").
+2. **Only the first 160 chars of the FIRST PARAGRAPH are sent.** For multi-paragraph captions like this LinkedIn Quote post, the model never sees the real second sentence — so it can't render it even if instructed to.
 
-### Bug 4 — `bp03Activated` leaks across books in real usage
-`marketing-hub-state` does scope the node lookup with `.eq("book_id", bookId)`, but only when the client passes `bookId`. If the user lands on the calendar without a book selected (initial load, deep link, or stale `bookId` ref), the query reverts to author-wide and `bp03_activated` becomes "true if ANY book has activated BP-03". Combined with Bug 2's NULL rows being filtered out, the banner becomes the default empty state for any newly-selected book.
+There's also a staleness problem: when an author edits the caption in `PostEditorSheet`, the existing `graphics.{landscape,portrait,square}` URLs are *not* invalidated. The copy says "Tweak the caption, then regenerate the graphic" but nothing forces a re-render — so an edited caption can keep an old image indefinitely.
 
-### Bug 5 — Misleading copy
-Even after the bugs above are fixed, the current copy ("…but your posts didn't load. This usually clears after a quick refresh.") frames a per-book gap as a transient load failure. There is no flow on this screen to actually generate posts for the selected book — the only CTA that helps is **Open Social Media Kit**, which is the secondary button.
+## Fix plan
 
-## Severity
-- Bugs 1 + 2: high — Refresh Posts is silently a no-op for any book that wasn't the "latest" BP-03 node.
-- Bug 3: medium — can churn rows pointlessly and emit toasts that look like progress.
-- Bug 4: medium — the wrong empty-state branch shows for fresh books.
-- Bug 5: low/UX — confusing message, but accurate once the per-book reality is acknowledged.
+### 1. Render the EXACT pull quote on the graphic
+In `bp03-generate-all-graphics/index.ts`:
+- Reuse the existing `extractPullQuote()` logic (port the small helper from `src/components/dashboard/builders/bp03/socialGraphic.ts` into the edge function, or inline an equivalent ~20 line version).
+- Compute `pullQuote` from the **full caption** (not just first line, not sliced to 160 before sentence detection).
+- Change the prompt from "inspired by this caption opening" to an explicit, non-negotiable instruction:
+  > Render this EXACT text on the graphic, verbatim, with no paraphrasing, no added words, no removed words, no punctuation changes:
+  > "{pullQuote}"
+  > Author attribution line: — {authorName}
+  > Book footer: {bookTitle}
+- Keep the brand-kit block, archetype hint, and aspect-ratio guidance unchanged.
 
-## Proposed fix plan (no code changes yet — awaiting approval)
+### 2. Invalidate stale graphics on caption edit
+In the edit/save path used by `PostEditorSheet` (the social-post update mutation):
+- When `content` changes, also write `graphics: {}` and `graphic_url: null` so the card shows "Generate graphic" instead of an out-of-date image.
+- Calendar's "Generate graphic" / batch generator already handles empty `graphics`, so no other change needed.
 
-### 1. Make repair fully book-scoped (client + server)
-- `SocialCalendarTab.tsx` `repairCalendar`: include `book_id: bookId` in the POST body (and refuse to call when `bookId` is missing, surfacing a "Pick a book first" toast instead).
-- `bp03-node-state` `rebuildSocialPosts`: accept `bookId: string | null`, include it in the delete filter (`.eq("book_id", bookId)` when present, `.is("book_id", null)` when not) and in every inserted row.
-- Pass `requestedBookId` through both `repair_calendar` and `auto_repair_if_stale` call sites.
-
-### 2. Tighten staleness probe to the active book
-- In `auto_repair_if_stale`, add `.eq("book_id", requestedBookId)` (or `.is("book_id", null)` fallback) to `stalePostsQuery` so it can't trip on another book.
-
-### 3. Backfill orphaned NULL `book_id` posts
-One-shot migration: for each `social_posts` row where `node_id='BP-03' AND book_id IS NULL`, set `book_id` from the matching `author_nodes` row (`author_id, node_id='BP-03'`) when exactly one BP-03 node exists for that author; leave the rest for manual review and log the count.
-
-### 4. Rewrite the empty-state copy to match per-book reality
-Replace the amber "Almost there / posts didn't load" card with an honest two-line message:
-- Title: *"No posts for this book yet."*
-- Body: *"BP-03 is activated, but the Social Media kit hasn't been generated for **{bookTitle}**. Open the kit to write 20 posts for this book."*
-- Primary CTA: **Open Social Media Kit** (with `bookId`).
-- Secondary CTA: **Try Refresh** (kept for the genuine transient-fetch case, now with `book_id` wired).
-
-### 5. Verification
-- Reproduce by switching to "Be SUCKcessful": current behaviour = banner + dead Refresh; expected after fix = the rewritten card with a working Open Social Media Kit CTA, and (if the kit was generated) Refresh Posts populates the calendar for that book.
-- Check `social_posts` after Refresh: every new row has the correct `book_id`.
-- Check the original book's calendar still loads its posts unchanged.
+### 3. (Small, same-file) Make the prompt instruction order explicit
+Re-order the prompt so the literal text-to-render is the FIRST instruction, not buried after the visual brief — image models follow leading instructions far more reliably.
 
 ## Files in scope
-- `src/components/dashboard/marketing-hub/SocialCalendarTab.tsx` — copy + repair payload.
-- `supabase/functions/bp03-node-state/index.ts` — `rebuildSocialPosts` signature, `repair_calendar`, `auto_repair_if_stale`.
-- One database migration for the NULL-`book_id` backfill.
+- `supabase/functions/bp03-generate-all-graphics/index.ts` — pull-quote extraction + verbatim-render prompt.
+- The post-update handler used by `PostEditorSheet.tsx` (likely a mutation in `SocialCalendarTab.tsx` or a sibling hook — to be confirmed during implementation) — invalidate `graphics` on caption edit.
 
-Out of scope: graphics generation, carousel redesign, BP-03 builder flow itself.
+## Out of scope
+- Replacing AI graphics with the deterministic canvas renderer (`socialGraphic.ts`) wholesale. That's a bigger product call — happy to do it as a separate option if you'd rather have 100% predictable text and accept a less "designed" look.
+- Carousel layout, brand palette, or the empty-state banner work from the previous sprint.
+
+## Verification
+- Re-generate the LinkedIn Quote post in the screenshot; the graphic must read exactly "Most people don't fail because they're incapable. They fail because they're ashamed of being a beginner." (or whatever the current first sentence is), no invented words.
+- Edit a caption in PostEditorSheet → save → confirm the card flips back to "Generate graphic" and the new render matches the new text.
+- Check 2–3 other posts (Lesson, Framework) across LinkedIn / Instagram / X to confirm verbatim rendering holds across archetypes and aspect ratios.

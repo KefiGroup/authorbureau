@@ -46,6 +46,20 @@ function brandKitBlock(opts: {
 - Keep author name and book title as PART OF THE DESIGN SYSTEM (typography, lower-third or footer line) where it serves the layout.`;
 }
 
+/**
+ * Extract a short, render-ready pull quote from the full caption.
+ * Mirrors the deterministic logic in src/components/dashboard/builders/bp03/socialGraphic.ts
+ * so the AI graphic shows the SAME text the author actually wrote.
+ */
+function extractPullQuote(caption: string, max = 180): string {
+  if (!caption) return "";
+  const cleaned = caption.replace(/\s+/g, " ").trim();
+  const match = cleaned.match(/^(.{20,}?[.!?])(\s|$)/);
+  let quote = match ? match[1] : cleaned;
+  if (quote.length > max) quote = quote.slice(0, max - 1).trimEnd() + "…";
+  return quote;
+}
+
 async function generateOneGraphic(opts: {
   userId: string;
   size: SizeKey;
@@ -57,14 +71,22 @@ async function generateOneGraphic(opts: {
   archetype?: string | null;
 }): Promise<string | null> {
   const spec = SIZE_SPECS[opts.size];
-  const firstLine = (opts.caption || "").split(/\n+/)[0]?.slice(0, 160) || "";
-  const archetype = opts.archetype ? `Archetype: ${opts.archetype}.` : "";
-  const prompt = `Create a premium scroll-stopping ${spec.label} social graphic for the book "${opts.bookTitle}".
+  const pullQuote = extractPullQuote(opts.caption || "", 180);
+  const archetype = opts.archetype ? `Archetype hint: ${opts.archetype}.` : "";
+  const prompt = `TEXT TO RENDER ON THE GRAPHIC — VERBATIM, NO PARAPHRASING:
+"${pullQuote}"
+
+NON-NEGOTIABLE RULES:
+- Render the quoted text above EXACTLY as written. Do not invent, paraphrase, shorten, or "improve" any words. Do not change punctuation. Do not add a closing line or tagline that wasn't in the source.
+- The author attribution line is: — ${opts.authorName}
+- The book footer line is: ${opts.bookTitle}
+
+DESIGN BRIEF:
+Create a premium scroll-stopping ${spec.label} social graphic that presents the quoted text as the hero element.
 ${archetype}
-Visual concept inspired by this caption opening: "${firstLine}".
 ${brandKitBlock({ authorName: opts.authorName, bookTitle: opts.bookTitle, siteTheme: opts.siteTheme })}
 Clean editorial composition. Aspect ratio ${spec.width}x${spec.height}.
-Look like a senior brand designer made it — no AI tells, no clip-art, no awkward typography.`;
+Look like a senior brand designer made it — no AI tells, no clip-art, no awkward typography. Spelling MUST be perfect.`;
 
   const messageContent: any[] = [{ type: "text", text: prompt }];
   if (opts.bookCoverUrl) {

@@ -619,6 +619,8 @@ export default function BP03Builder({ authorId, bookId }: Props) {
               onActivate={handleActivate}
               canActivate={true}
               onSavePost={async (updatedPost) => {
+                const prevPost = (content.posts || []).find((p: any) => p.day === updatedPost.day && p.platform === updatedPost.platform);
+                const captionChanged = !!prevPost && (prevPost.content || "") !== (updatedPost.content || "");
                 const nextPosts = (content.posts || []).map((p: any) =>
                   p.day === updatedPost.day ? updatedPost : p,
                 );
@@ -632,6 +634,28 @@ export default function BP03Builder({ authorId, bookId }: Props) {
                     status: content?.publishStatus === "live" ? "live" : "content_ready",
                     content: nextContent,
                   });
+                  // Caption changed → invalidate stale AI graphics on the matching social_posts row(s)
+                  // so the calendar shows "Generate graphic" instead of an out-of-date image.
+                  if (captionChanged && authorId) {
+                    try {
+                      const { supabase } = await import("@/integrations/supabase/client");
+                      let q = supabase
+                        .from("social_posts")
+                        .update({ graphics: {}, graphic_url: null })
+                        .eq("author_id", authorId)
+                        .eq("node_id", "BP-03")
+                        .eq("platform", updatedPost.platform);
+                      if (activeBookId) q = q.eq("book_id", activeBookId);
+                      if (typeof updatedPost.post_index === "number") {
+                        q = q.eq("post_index", updatedPost.post_index);
+                      } else if (typeof updatedPost.day === "number") {
+                        q = q.eq("post_index", updatedPost.day);
+                      }
+                      await q;
+                    } catch (invErr) {
+                      console.warn("[BP03] graphic invalidation failed", invErr);
+                    }
+                  }
                   void autosaveBuilderDraft({
                     authorId: authorId!,
                     nodeId: "BP-03",
@@ -640,7 +664,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
                     currentStep: content?.publishStatus === "live" ? 3 : 2,
                     bookId: activeBookId,
                   });
-                  toast.success("Post updated.");
+                  toast.success(captionChanged ? "Post updated. Graphic cleared — regenerate when ready." : "Post updated.");
                 } catch (e: any) {
                   toast.error(e.message || "We couldn't save your edit.");
                 }
