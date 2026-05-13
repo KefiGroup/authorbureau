@@ -268,7 +268,12 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "repair_calendar" }),
+          // Sprint 64 — repair must be book-scoped so rebuilt posts land with the
+          // correct book_id and show up in this calendar view.
+          body: JSON.stringify({
+            action: "repair_calendar",
+            ...(bookId ? { book_id: bookId } : {}),
+          }),
         },
       );
       const json = await res.json().catch(() => null);
@@ -683,26 +688,26 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     if (bp03Activated) {
       return (
         <div className="space-y-5">
-          <Card className="border-amber-500/30 bg-amber-500/5">
+          <Card className="border-secondary/30 bg-gradient-to-br from-secondary/8 via-secondary/4 to-transparent">
             <CardContent className="p-6 flex items-start gap-4">
-              <div className="w-10 h-10 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow-md">
-                <Loader2 className="h-5 w-5 text-white" />
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary to-amber-500 flex items-center justify-center shrink-0 shadow-md">
+                <Sparkles className="h-5 w-5 text-white" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-extrabold text-amber-700 uppercase tracking-[0.15em] mb-1">Almost there</p>
+                <p className="text-[11px] font-extrabold text-secondary uppercase tracking-[0.15em] mb-1">No posts for this book yet</p>
                 <p className="text-sm text-foreground mb-1">
-                  Your Social Media kit is activated, but your posts didn't load. This usually clears after a quick refresh.
+                  Your Social Media kit is activated, but no posts have been generated for the book you're viewing.
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">
-                  If it persists, sign out and back in — your saved kit is safe.
+                  Open the Social Media kit to write 20 posts for this book, or tap Refresh if you've just generated them.
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Button onClick={repairCalendar} disabled={repairing}>
-                    {repairing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Loader2 className="h-4 w-4 mr-1" />}
-                    {repairing ? "Rebuilding…" : "Refresh Posts"}
-                  </Button>
-                  <Button variant="outline" onClick={() => navigate(`/node-builder/BP-03${bookId ? `?bookId=${bookId}` : ""}`)}>
+                  <Button onClick={() => navigate(`/node-builder/BP-03${bookId ? `?bookId=${bookId}` : ""}`)}>
                     Open Social Media Kit <ArrowRight className="h-4 w-4 ml-1" />
+                  </Button>
+                  <Button variant="outline" onClick={repairCalendar} disabled={repairing}>
+                    {repairing ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : null}
+                    {repairing ? "Rebuilding…" : "Refresh"}
                   </Button>
                 </div>
               </div>

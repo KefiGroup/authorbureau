@@ -120,23 +120,34 @@ async function rebuildSocialPosts(
   cloudAdmin: ReturnType<typeof createClient>,
   authorId: string,
   content: any,
+  bookId: string | null = null,
 ): Promise<number> {
   const flat = flattenPosts(content);
   if (flat.length === 0) return 0;
 
   // Idempotent: wipe previous BP-03 draft/ready posts that the author has not yet posted.
   // Posts already marked posted are preserved for the "X of Y posted" counter.
-  await cloudAdmin
+  // Sprint 64 — book-scoped: only wipe rows for the same (author_id, book_id)
+  // so other books' calendars stay intact.
+  let deleteQuery = cloudAdmin
     .from("social_posts")
     .delete()
     .eq("author_id", authorId)
     .eq("node_id", "BP-03")
     .in("status", ["draft", "ready"]);
+  if (bookId) {
+    deleteQuery = deleteQuery.eq("book_id", bookId);
+  } else {
+    deleteQuery = deleteQuery.is("book_id", null);
+  }
+  const { error: delErr } = await deleteQuery;
+  if (delErr) throw delErr;
 
   // Author-driven scheduling: every newly-generated post starts as an Unscheduled draft.
   // The author picks a date+time per post (or "Post Now") from the Social Calendar UI.
   const rows = flat.map((p) => ({
     author_id: authorId,
+    book_id: bookId,
     node_id: "BP-03",
     platform: p.platform,
     content: [p.caption, p.hashtags.length ? p.hashtags.map((h: string) => `#${h}`).join(" ") : ""]
@@ -406,7 +417,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj);
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId);
 
       // Promote node to live if it's not already, so Marketing Hub treats it as active
       if (existingNode && existingNode.status !== "live") {
@@ -429,6 +440,8 @@ Deno.serve(async (req) => {
       // If found, rebuild from content_json so the deterministic archetype rotation
       // and IG carousel synthesis from flattenPosts() take effect.
       // Sprint 63: also treat any Instagram row missing carousel_slides as stale.
+      // Sprint 64 — book-scope the stale probe so a stale row on another
+      // book can't trigger a rebuild scoped to the current book.
       let stalePostsQuery = cloudAdmin
         .from("social_posts")
         .select("id, archetype, post_type, platform, carousel_slides", { count: "exact", head: false })
@@ -436,6 +449,11 @@ Deno.serve(async (req) => {
         .eq("node_id", "BP-03")
         .or("archetype.is.null,post_type.eq.Insight,and(platform.eq.instagram,carousel_slides.is.null)")
         .limit(1);
+      if (requestedBookId) {
+        stalePostsQuery = stalePostsQuery.eq("book_id", requestedBookId);
+      } else {
+        stalePostsQuery = stalePostsQuery.is("book_id", null);
+      }
       const { data: staleProbe } = await stalePostsQuery;
       const isStale = Array.isArray(staleProbe) && staleProbe.length > 0;
       if (!isStale) {
@@ -453,7 +471,7 @@ Deno.serve(async (req) => {
       if (!hasUsableSocialKit(cj)) {
         return respond({ success: true, repaired: false, count: 0 });
       }
-      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj);
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId);
       return respond({ success: true, repaired: true, count: saved });
     }
 
