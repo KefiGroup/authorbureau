@@ -417,7 +417,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj);
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId);
 
       // Promote node to live if it's not already, so Marketing Hub treats it as active
       if (existingNode && existingNode.status !== "live") {
