@@ -80,10 +80,16 @@ export default function AuthorSite() {
     : `Author page for ${displayName} on Authors Bureau.`;
   const canonicalUrl = `https://authorsbureau.com/${authorSlug}`;
 
+  const heroBookTitle = booksWithProducts.find(b => b.id === whatsInsideSourceBookId)?.title || booksWithProducts[0]?.title;
+  const seoTitleParts = [
+    displayName,
+    heroBookTitle ? `Bestselling Author of ${heroBookTitle}` : (author?.tagline || "Author"),
+    frameworkName || null,
+  ].filter(Boolean);
   useDocumentMeta({
-    title: author ? `${displayName} - ${author.tagline || "Author"} | Authors Bureau` : "Author | Authors Bureau",
+    title: author ? `${seoTitleParts.join(" — ")} | Authors Bureau` : "Author | Authors Bureau",
     description: seoDescription,
-    ogTitle: author ? `${displayName} - ${author.tagline || "Author"} | Authors Bureau` : undefined,
+    ogTitle: author ? `${seoTitleParts.join(" — ")} | Authors Bureau` : undefined,
     ogDescription: seoDescription,
     ogImage: author?.photo_url || undefined,
     ogUrl: canonicalUrl,
