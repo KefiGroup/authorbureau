@@ -268,7 +268,12 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
         {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ action: "repair_calendar" }),
+          // Sprint 64 — repair must be book-scoped so rebuilt posts land with the
+          // correct book_id and show up in this calendar view.
+          body: JSON.stringify({
+            action: "repair_calendar",
+            ...(bookId ? { book_id: bookId } : {}),
+          }),
         },
       );
       const json = await res.json().catch(() => null);
