@@ -134,7 +134,7 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                         </button>
                       </Link>
                       {(bookFormatBadges.get(book.id) || []).some(fb => fb.label === "Audiobook") && (
-                        <Link to={`/${authorSlug}/audiobook`}>
+                        <Link to={`/${authorSlug}/${book.slug}/audiobook`}>
                           <button className="w-full inline-flex items-center justify-center gap-1.5 font-semibold text-xs rounded-lg transition-all px-4 py-2 border"
                             style={{ borderColor: v.primary, color: v.primary, background: "transparent" }}>
                             <Headphones className="h-3.5 w-3.5" /> Listen to Audiobook
