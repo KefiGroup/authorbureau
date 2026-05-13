@@ -25,6 +25,8 @@ import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
 import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
 import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
 import AuthorFrameworkSection, { type FrameworkStage } from "./author-site/AuthorFrameworkSection";
+import AuthorSocialProofBar from "./author-site/AuthorSocialProofBar";
+import AuthorPodcastMediaSection from "./author-site/AuthorPodcastMediaSection";
 import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
@@ -340,6 +342,7 @@ export default function AuthorSite() {
       />
 
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p))).length} theme={theme} v={v} />
+      <AuthorSocialProofBar booksWithProducts={booksWithProducts} testimonialsCount={testimonials.length} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorFrameworkSection
         frameworkName={frameworkName}
@@ -368,6 +371,7 @@ export default function AuthorSite() {
       <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} />
       <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
       <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} affiliateNodes={affiliateNodes} theme={theme} v={v} />
+      <AuthorPodcastMediaSection author={author} displayName={displayName} theme={theme} v={v} />
       <AuthorRelatedSection relatedAuthors={relatedAuthors} theme={theme} v={v} />
     </AuthorPageLayout>
   );
