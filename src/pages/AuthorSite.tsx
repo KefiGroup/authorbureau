@@ -218,13 +218,31 @@ export default function AuthorSite() {
       null;
 
     let highlights: string[] = [];
+    let stages: FrameworkStage[] = [];
+    let frameworkLabel: string | null = null;
     if (ctx) {
       const frameworks = Array.isArray(ctx.key_frameworks) ? ctx.key_frameworks : [];
       const insights = Array.isArray(ctx.unique_insights) ? ctx.unique_insights : [];
       const fromFrameworks = frameworks.map((f: any) => typeof f === "string" ? f : (f?.name || f?.title || f?.framework || "")).filter(Boolean);
       const fromInsights = insights.map((i: any) => typeof i === "string" ? i : (i?.insight || i?.text || i?.title || "")).filter(Boolean);
       highlights = [...fromFrameworks, ...fromInsights];
+
+      // Look for a structured framework with stages: { name, acronym?, stages: [{letter, name, description}] }
+      const structured = frameworks.find((f: any) =>
+        f && typeof f === "object" && Array.isArray(f.stages) && f.stages.length >= 6
+      );
+      if (structured) {
+        frameworkLabel = structured.acronym || structured.name || structured.title || null;
+        stages = (structured.stages as any[]).map((s: any): FrameworkStage => ({
+          letter: typeof s?.letter === "string" ? s.letter : undefined,
+          name: String(s?.name || s?.title || s?.label || "").trim(),
+          description: typeof s?.description === "string" ? s.description : (typeof s?.summary === "string" ? s.summary : undefined),
+        })).filter(s => s.name);
+      }
     }
+    setFrameworkName(frameworkLabel);
+    setFrameworkStages(stages);
+
     let sourceBookId: string | null = sourceBook?.id ?? null;
     if (highlights.length === 0 && sourceBook?.description) {
       highlights = sourceBook.description
