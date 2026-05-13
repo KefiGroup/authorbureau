@@ -471,7 +471,7 @@ Deno.serve(async (req) => {
       if (!hasUsableSocialKit(cj)) {
         return respond({ success: true, repaired: false, count: 0 });
       }
-      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj);
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId);
       return respond({ success: true, repaired: true, count: saved });
     }
 
