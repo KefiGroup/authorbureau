@@ -209,17 +209,38 @@ export default function AuthorBrandedNav({
               </Link>
             );
           })}
+
+          {buyCta && (
+            <Link
+              to={buyCta.to}
+              className="inline-flex items-center gap-1.5 font-bold text-[0.85rem] rounded-full px-4 py-2 transition-all hover:scale-[1.03] shrink-0"
+              style={{ background: v.accent, color: v.accentText, boxShadow: `0 4px 12px ${v.accent}55` }}
+            >
+              {buyCta.label}
+            </Link>
+          )}
         </div>
 
         {/* Mobile toggle */}
-        <button
-          className="md:hidden p-1.5"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          style={{ color: v.primaryText }}
-          aria-label="Toggle menu"
-        >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        <div className="md:hidden flex items-center gap-2">
+          {buyCta && (
+            <Link
+              to={buyCta.to}
+              className="inline-flex items-center font-bold text-[0.78rem] rounded-full px-3 py-1.5"
+              style={{ background: v.accent, color: v.accentText }}
+            >
+              {buyCta.label}
+            </Link>
+          )}
+          <button
+            className="p-1.5"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            style={{ color: v.primaryText }}
+            aria-label="Toggle menu"
+          >
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
