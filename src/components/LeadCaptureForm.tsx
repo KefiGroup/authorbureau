@@ -49,6 +49,9 @@ export interface LeadCaptureFormProps {
   className?: string;
   /** Optional path to navigate to after successful submit (replaces inline success state) */
   redirectTo?: string;
+  /** Optional pre-filled values (e.g. from logged-in reader profile) */
+  initialName?: string;
+  initialEmail?: string;
 }
 
 export default function LeadCaptureForm({
@@ -68,10 +71,12 @@ export default function LeadCaptureForm({
   layout = "stacked",
   className = "",
   redirectTo,
+  initialName,
+  initialEmail,
 }: LeadCaptureFormProps) {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
+  const [name, setName] = useState(initialName ?? "");
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [message, setMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
