@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
 import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlayer";
+import AudiobookPage from "@/pages/microsite/AudiobookPage";
 import { normalizeOutcome } from "@/lib/workbook-pdf";
 import { stripHtml } from "@/lib/stripHtml";
 import { WorkbookCoverArt } from "@/components/microsite/WorkbookCoverArt";
