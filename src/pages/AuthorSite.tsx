@@ -24,6 +24,7 @@ import AuthorTestimonialsSection, { type Testimonial } from "./author-site/Autho
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
 import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
 import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
+import AuthorFrameworkSection, { type FrameworkStage } from "./author-site/AuthorFrameworkSection";
 import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
@@ -37,6 +38,8 @@ export default function AuthorSite() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
   const [whatsInsideHighlights, setWhatsInsideHighlights] = useState<string[]>([]);
   const [whatsInsideSourceBookId, setWhatsInsideSourceBookId] = useState<string | null>(null);
+  const [frameworkName, setFrameworkName] = useState<string | null>(null);
+  const [frameworkStages, setFrameworkStages] = useState<FrameworkStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
@@ -215,13 +218,31 @@ export default function AuthorSite() {
       null;
 
     let highlights: string[] = [];
+    let stages: FrameworkStage[] = [];
+    let frameworkLabel: string | null = null;
     if (ctx) {
       const frameworks = Array.isArray(ctx.key_frameworks) ? ctx.key_frameworks : [];
       const insights = Array.isArray(ctx.unique_insights) ? ctx.unique_insights : [];
       const fromFrameworks = frameworks.map((f: any) => typeof f === "string" ? f : (f?.name || f?.title || f?.framework || "")).filter(Boolean);
       const fromInsights = insights.map((i: any) => typeof i === "string" ? i : (i?.insight || i?.text || i?.title || "")).filter(Boolean);
       highlights = [...fromFrameworks, ...fromInsights];
+
+      // Look for a structured framework with stages: { name, acronym?, stages: [{letter, name, description}] }
+      const structured = frameworks.find((f: any) =>
+        f && typeof f === "object" && Array.isArray(f.stages) && f.stages.length >= 6
+      );
+      if (structured) {
+        frameworkLabel = structured.acronym || structured.name || structured.title || null;
+        stages = (structured.stages as any[]).map((s: any): FrameworkStage => ({
+          letter: typeof s?.letter === "string" ? s.letter : undefined,
+          name: String(s?.name || s?.title || s?.label || "").trim(),
+          description: typeof s?.description === "string" ? s.description : (typeof s?.summary === "string" ? s.summary : undefined),
+        })).filter(s => s.name);
+      }
     }
+    setFrameworkName(frameworkLabel);
+    setFrameworkStages(stages);
+
     let sourceBookId: string | null = sourceBook?.id ?? null;
     if (highlights.length === 0 && sourceBook?.description) {
       highlights = sourceBook.description
@@ -314,6 +335,14 @@ export default function AuthorSite() {
 
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p))).length} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
+      <AuthorFrameworkSection
+        frameworkName={frameworkName}
+        stages={frameworkStages}
+        ctaHref={leadMagnets.length > 0 ? "#quiz-section" : null}
+        ctaLabel="Take the Free Quiz"
+        theme={theme}
+        v={v}
+      />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
       <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
       <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
