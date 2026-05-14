@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { fetchWithTimeout, waitForActiveToken } from "@/lib/get-active-token";
 
 export interface MyBook {
   id: string;
@@ -14,6 +14,7 @@ let cachedUserId: string | null = null;
 let cached: MyBook[] | null = null;
 let cachedAt = 0;
 const TTL = 60_000;
+let lastRequestedUserId: string | null = null;
 
 const CACHE_BUST_KEY = (userId: string) => `mybooks_cache_bust_${userId}`;
 
@@ -21,6 +22,9 @@ export function bustMyBooksCache(userId?: string) {
   cached = null;
   cachedUserId = null;
   cachedAt = 0;
+  if (!userId || lastRequestedUserId === userId) {
+    lastRequestedUserId = null;
+  }
   if (userId) {
     try { localStorage.setItem(CACHE_BUST_KEY(userId), String(Date.now())); } catch {}
   }
@@ -53,14 +57,8 @@ export function useMyBooks(userId: string | undefined) {
 
     inFlightRef.current = true;
     try {
-      // Wait briefly for the shared-backend session to restore before failing.
-      let token = await getActiveToken();
-      if (!token) {
-        for (let i = 0; i < 6 && !token; i++) {
-          await new Promise(r => setTimeout(r, 300));
-          token = await getActiveToken();
-        }
-      }
+      lastRequestedUserId = userId;
+      const token = await waitForActiveToken();
       if (!token) {
         // Auth still not ready: keep cached books visible, do NOT clear.
         setLoading(false);
@@ -85,6 +83,9 @@ export function useMyBooks(userId: string | undefined) {
         cover_image_url: b.cover_image_url ?? null,
         published_at: b.published_at ?? null,
       }));
+      if (lastRequestedUserId !== userId) {
+        return;
+      }
       // Always update on success — even when length is 0 — so deletes propagate.
       cached = list;
       cachedUserId = userId;
@@ -105,8 +106,15 @@ export function useMyBooks(userId: string | undefined) {
       cached = null;
       cachedUserId = null;
       cachedAt = 0;
+      lastRequestedUserId = null;
       setBooks([]);
       setLoading(true);
+    }
+    if (!userId) {
+      lastRequestedUserId = null;
+      setBooks([]);
+      setLoading(false);
+      return;
     }
     refetch();
   }, [refetch, userId]);
