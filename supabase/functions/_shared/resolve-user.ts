@@ -44,12 +44,12 @@ export async function resolveUser(authHeader: string | null): Promise<ResolvedUs
 
   // 2. Shared backend token → reconcile email to Cloud user
   let sharedEmail: string | null = null;
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
   try {
     const shared = createClient(SHARED_BACKEND_URL, SHARED_BACKEND_ANON, { auth: { persistSession: false } });
     const { data } = await shared.auth.getUser(token);
     if (data?.user?.email) {
       sharedEmail = data.user.email;
-      const admin = createClient(SUPABASE_URL, SERVICE_ROLE);
       const { data: users } = await admin.auth.admin.listUsers();
       const match = users?.users?.find(
         (u) => (u.email || "").toLowerCase() === sharedEmail!.toLowerCase()
@@ -64,13 +64,33 @@ export async function resolveUser(authHeader: string | null): Promise<ResolvedUs
   //    use it as a hint; downstream code must still gate by ownership)
   try {
     const payload = JSON.parse(atob(token.split(".")[1]));
-    const id = typeof payload.sub === "string" ? payload.sub : null;
+    const jwtSub = typeof payload.sub === "string" ? payload.sub : null;
     const email =
       payload.email ||
       payload.user_metadata?.email ||
       sharedEmail ||
       null;
-    if (id || email) return { id, email, source: "jwt" };
+
+    if (email) {
+      const { data: users } = await admin.auth.admin.listUsers();
+      const match = users?.users?.find(
+        (u) => (u.email || "").toLowerCase() === String(email).toLowerCase()
+      );
+      if (match) return { id: match.id, email, source: "jwt" };
+    }
+
+    if (jwtSub) {
+      try {
+        const { data } = await admin.auth.admin.getUserById(jwtSub);
+        if (data?.user?.id) {
+          return { id: data.user.id, email: data.user.email ?? email, source: "jwt" };
+        }
+      } catch (_e) {
+        // Ignore and fall through to email-only fallback below.
+      }
+    }
+
+    if (email) return { id: null, email, source: "jwt" };
   } catch (_e) { /* fall through */ }
 
   return { id: null, email: sharedEmail, source: "none" };
