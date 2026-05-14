@@ -194,6 +194,19 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
           </div>
         )}
       </div>
+
+      {activeNode && (
+        <ServiceDetailDialog
+          open={!!activeNode}
+          onOpenChange={(o) => { if (!o) setActiveNode(null); }}
+          node={activeNode}
+          serviceLabel={activeLabel}
+          authorName={displayName}
+          authorSlug={authorSlug}
+          theme={theme}
+          v={v}
+        />
+      )}
     </section>
   );
 }
