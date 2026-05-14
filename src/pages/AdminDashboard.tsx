@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { LogOut, BookOpen, BarChart3, ShieldCheck, Globe, UserCheck, Users, BookMarked, Headphones, MessageSquare, Wallet, ToggleRight } from "lucide-react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { useAuthReady } from "@/hooks/useAuthReady";
 import logoIcon from "@/assets/logo-icon.webp";
 
 import OverviewTab from "@/components/admin/OverviewTab";
@@ -29,9 +30,15 @@ import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
 type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating" | "audit" | "errors" | "daily-audit";
 
-async function adminFetch(action: string, body: Record<string, unknown> = {}) {
-  const token = await getActiveToken();
-  if (!token) throw new Error("Not authenticated");
+async function adminFetch(action: string, body: Record<string, unknown> = {}, attempt = 0): Promise<any> {
+  const token = await getActiveToken({ forceRefresh: attempt > 0 });
+  if (!token) {
+    if (attempt < 2) {
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+      return adminFetch(action, body, attempt + 1);
+    }
+    throw new Error("Not authenticated");
+  }
   const res = await fetchWithTimeout(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
     {
@@ -40,13 +47,20 @@ async function adminFetch(action: string, body: Record<string, unknown> = {}) {
       body: JSON.stringify({ action, ...body }),
     }
   );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // Auth failures: retry once with a forced token refresh before giving up.
+    if ((res.status === 401 || res.status === 403) && attempt < 1) {
+      return adminFetch(action, body, attempt + 1);
+    }
+    throw new Error(data?.error || `Request failed (${res.status})`);
+  }
   return data;
 }
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
+  const { isReady: isAuthReady } = useAuthReady();
   const { toast } = useToast();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -170,9 +184,17 @@ export default function AdminDashboard() {
     setBooksLoading(true);
     try {
       const data = await adminFetch("list", { page: booksPage, filter: booksFilter });
-      setBooks(data?.books || []);
-      setPendingBookCount(data?.pendingCount || 0);
+      // Only overwrite the local list when the server returned a real array.
+      // Preserves the last good data on transient/auth-race failures so the
+      // empty state doesn't lie about there being no books.
+      if (Array.isArray(data?.books)) {
+        setBooks(data.books);
+      }
+      if (typeof data?.pendingCount === "number") {
+        setPendingBookCount(data.pendingCount);
+      }
     } catch (error) {
+      console.error("fetchBooks failed:", error);
       toast({ title: "Failed to load books", variant: "destructive" });
     }
     setBooksLoading(false);
@@ -206,11 +228,11 @@ export default function AdminDashboard() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin || !isAuthReady) return;
     if (tab === "overview") { fetchStats(); fetchPendingCounts(); }
     else if (tab === "books") fetchBooks();
     else if (tab === "admins") fetchAdmins();
-  }, [tab, isAdmin, booksPage, booksFilter, fetchAdmins, fetchBooks, fetchPendingCounts, fetchStats]);
+  }, [tab, isAdmin, isAuthReady, booksPage, booksFilter, fetchAdmins, fetchBooks, fetchPendingCounts, fetchStats]);
 
   const handlePromote = async () => {
     if (!promoteEmail.trim()) return;
