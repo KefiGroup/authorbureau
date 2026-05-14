@@ -228,11 +228,11 @@ export default function AdminDashboard() {
   }, [isAdmin]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin || !isAuthReady) return;
     if (tab === "overview") { fetchStats(); fetchPendingCounts(); }
     else if (tab === "books") fetchBooks();
     else if (tab === "admins") fetchAdmins();
-  }, [tab, isAdmin, booksPage, booksFilter, fetchAdmins, fetchBooks, fetchPendingCounts, fetchStats]);
+  }, [tab, isAdmin, isAuthReady, booksPage, booksFilter, fetchAdmins, fetchBooks, fetchPendingCounts, fetchStats]);
 
   const handlePromote = async () => {
     if (!promoteEmail.trim()) return;
