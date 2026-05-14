@@ -184,9 +184,17 @@ export default function AdminDashboard() {
     setBooksLoading(true);
     try {
       const data = await adminFetch("list", { page: booksPage, filter: booksFilter });
-      setBooks(data?.books || []);
-      setPendingBookCount(data?.pendingCount || 0);
+      // Only overwrite the local list when the server returned a real array.
+      // Preserves the last good data on transient/auth-race failures so the
+      // empty state doesn't lie about there being no books.
+      if (Array.isArray(data?.books)) {
+        setBooks(data.books);
+      }
+      if (typeof data?.pendingCount === "number") {
+        setPendingBookCount(data.pendingCount);
+      }
     } catch (error) {
+      console.error("fetchBooks failed:", error);
       toast({ title: "Failed to load books", variant: "destructive" });
     }
     setBooksLoading(false);
