@@ -14,7 +14,7 @@ import MultiBookPicker from "./framework-dashboard/MultiBookPicker";
 import SpecialEditionCalendarCard from "./SpecialEditionCalendarCard";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { fetchWithTimeout, waitForActiveToken } from "@/lib/get-active-token";
 import { useMyBooks } from "@/hooks/useMyBooks";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -63,7 +63,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     }
 
     try {
-      const token = await getActiveToken();
+      const token = await waitForActiveToken();
       if (!token) {
         if (isInitialLoad) {
           setError("Unable to authenticate. Please sign out and back in.");
@@ -78,9 +78,17 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       // Soft-fail per call: each failure is captured but does not abort the dashboard.
       const [stateSettled, booksSettled, slugSettled] = await Promise.allSettled([
         fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/dashboard-state`, { method: "POST", headers }, TIMEOUT)
-          .then(r => r.json()),
+          .then(async (r) => {
+            const body = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error((body as any)?.error || `dashboard-state ${r.status}`);
+            return body;
+          }),
         fetchWithTimeout(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/list-my-books`, { method: "POST", headers }, TIMEOUT)
-          .then(r => r.json()),
+          .then(async (r) => {
+            const body = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error((body as any)?.error || `list-my-books ${r.status}`);
+            return body;
+          }),
         cloudSupabase.from("author_profiles").select("author_slug").eq("user_id", user.id).maybeSingle(),
       ]);
 

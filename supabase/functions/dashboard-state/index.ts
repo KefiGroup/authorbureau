@@ -1,14 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
-const SHARED_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,29 +22,8 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve user: try shared backend first, fall back to local Cloud auth
-    let userId: string | null = null;
-    let userEmail = "";
-
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-
-    if (sharedUser) {
-      userId = sharedUser.id;
-      userEmail = sharedUser.email || "";
-    } else {
-      // Fallback: validate against local Cloud auth
-      const localClient = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_ANON_KEY")!,
-        { global: { headers: { Authorization: `Bearer ${token}` } } }
-      );
-      const { data: { user: localUser } } = await localClient.auth.getUser();
-      if (localUser) {
-        userId = localUser.id;
-        userEmail = localUser.email || "";
-      }
-    }
+    const { id: userId, email: resolvedEmail } = await resolveUser(authHeader);
+    const userEmail = resolvedEmail || "";
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "Invalid session" }), {

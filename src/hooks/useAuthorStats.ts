@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { fetchWithTimeout, waitForActiveToken } from "@/lib/get-active-token";
 
 export interface AuthorStats {
   bookCount: number;
@@ -44,26 +44,29 @@ const DEFAULT_STATS: AuthorStats = {
 };
 
 // Module-level cache to prevent re-fetches across remounts
-let cachedStats: AuthorStats | null = null;
-let cacheTimestamp = 0;
+let cachedStatsByUser: Record<string, AuthorStats | undefined> = {};
+let cacheTimestampByUser: Record<string, number | undefined> = {};
 const CACHE_TTL = 30_000; // 30 seconds
 
 export function useAuthorStats(userId: string | undefined) {
+  const cachedStats = userId ? cachedStatsByUser[userId] ?? null : null;
   const [stats, setStats] = useState<AuthorStats>(cachedStats || DEFAULT_STATS);
   const [loading, setLoading] = useState(!cachedStats);
 
   const refetch = useCallback(async (force = false) => {
     if (!userId) return;
+    const userCachedStats = cachedStatsByUser[userId] ?? null;
+    const userCacheTimestamp = cacheTimestampByUser[userId] ?? 0;
     // Use cache if fresh and not forced
-    if (!force && cachedStats && Date.now() - cacheTimestamp < CACHE_TTL) {
-      setStats(cachedStats);
+    if (!force && userCachedStats && Date.now() - userCacheTimestamp < CACHE_TTL) {
+      setStats(userCachedStats);
       setLoading(false);
       return;
     }
     // Keep showing previous stats while we refetch — no flash of zero counts
-    if (!cachedStats) setLoading(true);
+    if (!userCachedStats) setLoading(true);
     try {
-      const token = await getActiveToken();
+      const token = await waitForActiveToken();
       // Auth not ready (shared session still restoring, or session expired):
       // do NOT reset to DEFAULT_STATS — keep cached stats so the dashboard
       // doesn't flip back to a "new user / no books" state mid-session.
@@ -80,8 +83,8 @@ export function useAuthorStats(userId: string | undefined) {
       );
       if (resp.ok) {
         const data = await resp.json();
-        cachedStats = data;
-        cacheTimestamp = Date.now();
+        cachedStatsByUser[userId] = data;
+        cacheTimestampByUser[userId] = Date.now();
         setStats(data);
       }
       // 401 / 5xx: keep prior stats; surface no error so cached state stays visible.
@@ -93,8 +96,17 @@ export function useAuthorStats(userId: string | undefined) {
   }, [userId]);
 
   useEffect(() => {
+    if (!userId) {
+      setStats(DEFAULT_STATS);
+      setLoading(false);
+      return;
+    }
+
+    const userCachedStats = cachedStatsByUser[userId] ?? null;
+    setStats(userCachedStats || DEFAULT_STATS);
+    setLoading(!userCachedStats);
     refetch();
-  }, [refetch]);
+  }, [refetch, userId]);
 
   return { stats, loading, refetch: () => refetch(true) };
 }

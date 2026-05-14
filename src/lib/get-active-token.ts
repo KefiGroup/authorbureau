@@ -1,4 +1,4 @@
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { getSharedSession, supabase as sharedSupabase } from "@/lib/shared-backend";
 
 const SHARED_AUTH_KEY = "authorsbureau-shared-auth";
 const SHARED_AUTH_MEMORY_KEY = `${SHARED_AUTH_KEY}:memory`;
@@ -144,6 +144,39 @@ export async function getActiveToken(
     }
   });
   return promise;
+}
+
+export interface WaitForActiveTokenOptions {
+  maxMs?: number;
+  intervalMs?: number;
+  forceRefreshOnTimeout?: boolean;
+}
+
+/**
+ * Wait for shared-auth restoration to finish before giving up on the token.
+ * This prevents dashboard queries from permanently booting with a false empty
+ * state when the first read races session restore.
+ */
+export async function waitForActiveToken(
+  options: WaitForActiveTokenOptions = {},
+): Promise<string | null> {
+  const {
+    maxMs = 8000,
+    intervalMs = 250,
+    forceRefreshOnTimeout = true,
+  } = options;
+
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < maxMs) {
+    const token = await getActiveToken();
+    if (token) return token;
+
+    await getSharedSession().catch(() => null);
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  return forceRefreshOnTimeout ? getActiveToken({ forceRefresh: true }) : null;
 }
 
 /**
