@@ -202,15 +202,39 @@ export default function AuthorBrandedNav({
             }
 
             const isActive = activeSection === link.label.toLowerCase();
-            return (
-              <Link
-                key={link.label}
-                to={link.to}
-                className="relative text-[0.9rem] font-medium transition-colors"
-                style={{ color: isActive ? v.accent : `${v.primaryText}D9` }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = v.accent)}
-                onMouseLeave={(e) => (e.currentTarget.style.color = isActive ? v.accent : `${v.primaryText}D9`)}
-              >
+            // Hash links (in-page or to same path) must scroll natively — react-router <Link>
+            // does not re-scroll when the pathname matches. Use a plain <a> for those.
+            const isHashLink =
+              link.to.startsWith("#") ||
+              (link.to.includes("#") && link.to.split("#")[0] === location.pathname);
+            const handleHashClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+              const hash = link.to.includes("#") ? `#${link.to.split("#")[1]}` : "";
+              if (!hash) return;
+              e.preventDefault();
+              const id = hash.slice(1);
+              const el = document.getElementById(id);
+              if (el) {
+                el.scrollIntoView({ behavior: "smooth", block: "start" });
+                history.replaceState(null, "", hash);
+              }
+            };
+            const commonStyle = { color: isActive ? v.accent : `${v.primaryText}D9` };
+            const commonProps = {
+              className: "relative text-[0.9rem] font-medium transition-colors",
+              style: commonStyle,
+              onMouseEnter: (e: React.MouseEvent<HTMLElement>) => (e.currentTarget.style.color = v.accent),
+              onMouseLeave: (e: React.MouseEvent<HTMLElement>) =>
+                (e.currentTarget.style.color = isActive ? v.accent : `${v.primaryText}D9`),
+            };
+            return isHashLink ? (
+              <a key={link.label} href={link.to} onClick={handleHashClick} {...commonProps}>
+                {link.label}
+                {isActive && (
+                  <span className="absolute -bottom-[17px] left-0 right-0 h-[2px]" style={{ background: v.accent }} />
+                )}
+              </a>
+            ) : (
+              <Link key={link.label} to={link.to} {...commonProps}>
                 {link.label}
                 {isActive && (
                   <span className="absolute -bottom-[17px] left-0 right-0 h-[2px]" style={{ background: v.accent }} />
@@ -270,14 +294,25 @@ export default function AuthorBrandedNav({
             </Link>
           ))}
           {hasServices && (
-            <Link
-              to={workWithHref}
+            <a
+              href={workWithHref}
               className="text-sm font-medium py-1.5"
               style={{ color: `${v.primaryText}D9` }}
-              onClick={() => setMobileOpen(false)}
+              onClick={(e) => {
+                setMobileOpen(false);
+                const hash = workWithHref.includes("#") ? workWithHref.split("#")[1] : "";
+                if (hash) {
+                  const el = document.getElementById(hash);
+                  if (el) {
+                    e.preventDefault();
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    history.replaceState(null, "", `#${hash}`);
+                  }
+                }
+              }}
             >
               Work With Me
-            </Link>
+            </a>
           )}
           <button
             className="text-sm font-medium py-1.5 text-left"
