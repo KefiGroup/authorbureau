@@ -34,9 +34,13 @@ interface Props {
   serviceNodes?: LiveNode[];
   theme: AuthorTheme;
   v: ThemeVars;
+  isOwnerViewing?: boolean;
 }
 
-export default function AuthorServicesSection({ authorSlug, displayName, coachingServices, allProducts, serviceNodes = [], theme, v }: Props) {
+export default function AuthorServicesSection({ authorSlug, displayName, coachingServices, allProducts, serviceNodes = [], theme, v, isOwnerViewing = false }: Props) {
+  const [activeNode, setActiveNode] = useState<LiveNode | null>(null);
+  const [activeLabel, setActiveLabel] = useState<string>("");
+
   if (coachingServices.length === 0 && allProducts.length === 0 && serviceNodes.length === 0) return null;
 
   // Sort service nodes by type order
