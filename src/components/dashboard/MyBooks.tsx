@@ -222,6 +222,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
         throw new Error(result.error);
       }
       toast({ title: "Book deleted" });
+      bustMyBooksCache(user?.id);
       fetchBooks();
     } catch (err) {
       toast({ title: "Failed to delete book", variant: "destructive" });
