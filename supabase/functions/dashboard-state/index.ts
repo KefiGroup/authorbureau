@@ -66,32 +66,39 @@ Deno.serve(async (req) => {
     // Fetch profile for this user
     const { data: profile } = await cloudAdmin
       .from("author_profiles")
-      .select("directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
+      .select("id, directory_status, pen_name, bio_short, bio_long, photo_url, tagline, genres")
       .eq("user_id", userId)
       .maybeSingle();
 
-    // Collect all user_ids that belong to this person (handles cross-platform ID mismatch)
-    // The same author may have profiles under different auth system IDs
+    // Collect all author identifiers that belong to this person.
+    // CRITICAL: books.author_id is a FK to author_profiles.id (NOT auth.users.id).
+    // We must include the profile id, plus the auth uid for legacy rows, plus
+    // sibling profile ids so cross-platform duplicates don't drop a book.
     const allUserIds: string[] = [userId];
+    const allAuthorIds: string[] = [];
+    if ((profile as any)?.id) allAuthorIds.push((profile as any).id);
+
     if (profile?.pen_name) {
       const { data: siblingProfiles } = await cloudAdmin
         .from("author_profiles")
-        .select("user_id")
+        .select("id, user_id")
         .eq("pen_name", profile.pen_name)
         .neq("user_id", userId);
       if (siblingProfiles) {
-        for (const sp of siblingProfiles) {
-          allUserIds.push(sp.user_id);
+        for (const sp of siblingProfiles as any[]) {
+          if (sp.user_id) allUserIds.push(sp.user_id);
+          if (sp.id) allAuthorIds.push(sp.id);
         }
       }
     }
-    console.log("dashboard-state: allUserIds=", allUserIds);
+    const allAuthorRefs = Array.from(new Set([...allUserIds, ...allAuthorIds]));
+    console.log("dashboard-state: allAuthorRefs=", allAuthorRefs);
 
-    // Count books across all user IDs + owner_email (deduplicated)
+    // Count books across all author refs + owner_email (deduplicated)
     const { data: booksByAuthor } = await cloudAdmin
       .from("books")
       .select("id")
-      .in("author_id", allUserIds);
+      .in("author_id", allAuthorRefs);
 
     const { data: booksByEmail } = userEmail
       ? await cloudAdmin
