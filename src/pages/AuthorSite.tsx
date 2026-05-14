@@ -8,6 +8,7 @@ import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
 import NotFound from "./NotFound";
+import { hasRequiredAssets } from "@/lib/node-readiness";
 
 import type { AuthorData, BookWithProducts, ProductLink, RelatedAuthor, CoachingService, ThemeVars } from "./author-site/types";
 import { getLowestPrice } from "./author-site/types";
