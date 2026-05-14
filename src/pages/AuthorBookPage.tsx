@@ -443,16 +443,15 @@ export default function AuthorBookPage() {
       existingRoutes.add(mapping.route);
     });
 
-    // Buyable live nodes (priced) tied to this specific book — for the
-    // "Get the Full Experience" Buy-Now panel rendered on the book page.
+    // Sprint 66 — reader-facing live nodes for this book + author. Splits in render
+    // into Formats / Courses & Membership / Work With Pauline. No price filter
+    // here — free items get a "Get Free" CTA, inquiry items get "Contact" CTA.
     if (profile?.id) {
       const { data: buyable } = await supabase
         .from("author_nodes")
         .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url, content_json")
         .eq("author_id", profile.id)
-        .eq("book_id", bookId)
-        .eq("status", "live")
-        .gt("price_usd", 0);
+        .eq("status", "live");
       setBuyableNodes((buyable as any[]) || []);
     }
 
