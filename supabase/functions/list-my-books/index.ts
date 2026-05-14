@@ -44,7 +44,12 @@ async function resolveIdentity(
     }
   } catch (_) { /* ignore */ }
 
-  // 3) JWT decode safety net (covers rotated keys / "bad_jwt")
+  // 3) JWT decode safety net (covers rotated keys / "bad_jwt").
+  // CRITICAL: only use the JWT sub/email if it RECONCILES to a real Cloud
+  // user via email lookup. Otherwise we can resolve a stale ghost-account
+  // token (e.g. Pauline's old paulinet77@gmail.com) to its claimed user and
+  // silently return that user's empty book list, blanking the dashboard for
+  // the actual signed-in account.
   let jwtEmail: string | null = null;
   let jwtSub: string | null = null;
   try {
@@ -58,9 +63,11 @@ async function resolveIdentity(
   } catch (_) { /* ignore */ }
 
   const email = sharedEmail || jwtEmail;
-  let userId = sharedSub || jwtSub;
+  let userId = sharedSub || null; // do NOT default to jwtSub
 
-  // Try to map the shared/JWT user to the local Cloud user record by email.
+  // Map the shared/JWT user to the local Cloud user record by email.
+  // This is the only path that promotes a JWT-decoded identity to a usable
+  // userId — and only if it matches a real auth.users row.
   if (email) {
     try {
       const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
@@ -71,10 +78,18 @@ async function resolveIdentity(
     } catch (_) { /* ignore */ }
   }
 
+  // Last resort: only honour the raw JWT sub if it matches a real auth user.
+  if (!userId && jwtSub) {
+    try {
+      const { data } = await cloudAdmin.auth.admin.getUserById(jwtSub);
+      if (data?.user?.id) userId = data.user.id;
+    } catch (_) { /* ignore */ }
+  }
+
   return {
     userId,
     userEmail: email,
-    source: sharedSub ? "shared" : jwtSub ? "jwt" : "none",
+    source: sharedSub ? "shared" : userId ? "jwt+reconciled" : "none",
   };
 }
 
