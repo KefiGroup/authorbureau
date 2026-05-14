@@ -58,6 +58,7 @@ export default function AuthorBrandedNav({
   const [booksOpen, setBooksOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
 
   useEffect(() => {
     if (!booksOpen) return;
@@ -70,14 +71,21 @@ export default function AuthorBrandedNav({
     return () => document.removeEventListener("mousedown", handler);
   }, [booksOpen]);
 
+  // Sprint 66: Context-aware anchors. On a book/microsite route, link to in-page
+  // sections (#work-with-me, #quiz-section). On the author page, link to the
+  // author profile sections (/{slug}#services, /{slug}#quiz-section).
+  const onAuthorPage = location.pathname === `/${authorSlug}` || location.pathname === `/${authorSlug}/`;
+  const workWithHref = onAuthorPage ? `/${authorSlug}#services` : "#work-with-me";
+  const quizHref = onAuthorPage ? `/${authorSlug}#quiz-section` : "#quiz-section";
+
   const navLinks = [
     ...(books.length === 1
       ? [{ label: "Books", to: `/${authorSlug}/${books[0].slug}`, type: "link" as const }]
       : books.length > 1
         ? [{ label: "Books", to: "#", type: "dropdown" as const }]
         : []),
-    ...(hasQuizSection ? [{ label: "Free Quiz", to: `/${authorSlug}#quiz-section`, type: "link" as const }] : []),
-    ...(hasWorkWithMe || hasServices ? [{ label: "Work With Me", to: `/${authorSlug}#services`, type: "link" as const }] : []),
+    ...(hasQuizSection ? [{ label: "Free Quiz", to: quizHref, type: "link" as const }] : []),
+    ...(hasWorkWithMe || hasServices ? [{ label: "Work With Me", to: workWithHref, type: "link" as const }] : []),
     { label: "Contact", to: "#", type: "action" as const },
   ];
   // Note: Learn + Events are intentionally pruned from the primary nav (Sprint 4).
