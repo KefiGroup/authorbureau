@@ -1,48 +1,42 @@
-# Fix all admin tabs failing with "Admin access required"
+# Fix: Ghost-author false positives for shared-backend users
 
-## Root cause
+## Problem
 
-Two edge functions still verify the caller with the **project-local** Supabase client:
+`admin_list_ghost_authors()` flags an author profile as "ghost" whenever its `user_id` is missing from the **Cloud** `auth.users` table. But authors who signed up via PublishNow.io live in the **shared backend** — their `user_id` is the shared id, never present in Cloud's `auth.users`. So every shared-backend author currently appears as a ghost (e.g. Veronica Tan, who has a real PublishNow login + 1 book).
 
-- `supabase/functions/admin-data/index.ts` → `verifyAdmin()` calls `client.auth.getUser(token)` on the Cloud project client
-- `supabase/functions/daily-audit/index.ts` → `authorize()` calls `admin.auth.getUser(token)` on the Cloud project client
-
-Pauline (and every shared-backend admin) signs in via the **shared** Supabase project. Her JWT is signed by a key the local Cloud project does not recognise (`unrecognized JWT kid`). So:
-
-1. `auth.getUser(token)` returns no user.
-2. `admin-data`'s shared fallback then queries `user_roles` against the **shared** user id (`50a60e39…`), but her admin role row is bound to the **Cloud** user id (`5fd84779…`). No role row → 403.
-3. `daily-audit` has no fallback at all → 403.
-
-This is exactly the same bug already fixed in `admin-books` last loop (replaced with `_shared/resolve-user.ts`). Every admin tab that calls these two functions is affected: Errors, CRM, Messages, Reading Club, Authors, Support, Payouts, Audit Log, System Health, Broadcast, Daily Ops report, and Daily Audit.
+This mirrors the same root cause we already patched in `admin-books`, `admin-data`, and `daily-audit`: identity must be reconciled by **email**, not by raw `user_id` matching.
 
 ## Fix
 
-Apply the same canonical pattern used by `admin-books` and `list-my-books`.
+Replace the SQL-only check with an edge function that uses the canonical reconciliation pattern (same approach as `_shared/resolve-user.ts`).
 
-### 1. `supabase/functions/admin-data/index.ts`
-- Import `resolveUser` from `../_shared/resolve-user.ts`.
-- Replace `verifyAdmin(token)` body with:
-  - `const resolved = await resolveUser(authHeader)`
-  - If `!resolved.id` → return `{ userId: null, client: null }`
-  - Look up `user_roles` for `resolved.id` (the reconciled Cloud user id) with role = `admin`
-  - On match return `{ userId: resolved.id, client }` (service-role client unchanged)
-- Keep the existing `client` (service-role) for the rest of the action handlers — only the identity resolution changes.
+### 1. New edge function: `admin-list-ghost-authors`
 
-### 2. `supabase/functions/daily-audit/index.ts`
-- Import `resolveUser`.
-- In `authorize()`, keep the cron-secret and raw service-role short-circuits, then replace the `admin.auth.getUser(token)` block with:
-  - `const resolved = await resolveUser(authHeader)`
-  - If superadmin email match → allow.
-  - Otherwise check `user_roles` for `resolved.id` with role `admin`.
-- Return the same `{ ok, actor, reason }` shape so the rest of the function is unchanged.
+- `verify_jwt = false`; admin-gated via `resolveUser` + `user_roles` lookup (same pattern as `admin-books`).
+- Pulls every `author_profiles` row whose `user_id` is **not** in Cloud `auth.users`.
+- For each candidate, looks up the best `owner_email` from their books (existing logic).
+- Calls the **shared-backend admin API** (or queries the shared `auth.users` view if exposed) to check whether that email has a real shared account.
+- Returns only profiles where **neither** Cloud nor shared backend has a matching account → these are the true ghosts.
+- Response shape unchanged so `GhostAuthorsCard.tsx` keeps working: `{ author_profile_id, pen_name, author_slug, ghost_user_id, best_email, book_count, created_at }`.
 
-### 3. Deploy + verify
-- Deploy `admin-data` and `daily-audit`.
-- Curl `admin-data` with action `daily-audit-history` and `daily-audit` POST to confirm 200 with Pauline's session.
-- Reload `/admin?tab=errors` and `/admin?tab=daily-audit` to confirm both tabs render and "Run audit now" succeeds, which will also populate the Daily Ops report (cron will then keep emailing it).
+### 2. Client change
+
+`src/components/admin/GhostAuthorsCard.tsx`:
+- Replace `supabase.rpc("admin_list_ghost_authors")` with `supabase.functions.invoke("admin-list-ghost-authors")`.
+- Use `getActiveToken()` + `fetchWithTimeout()` per shared-backend token standard.
+
+### 3. Keep the SQL RPC as a deprecated fallback
+
+Leave `admin_list_ghost_authors()` in the DB for now (other tooling may reference it) but add a comment noting it's superseded. No migration needed beyond the new function.
+
+## Verification
+
+1. Reload `/admin?tab=authors` — Veronica Tan should **disappear** from the Ghost card (she has a real PublishNow account at `veronicagogetter320@gmail.com`).
+2. Spot-check 1-2 other previously-listed "ghosts" — confirm they really are unclaimed (no PublishNow account at that email).
+3. Confirm the count badge updates and `Send claim invite` still works for genuine ghosts.
 
 ## Out of scope
 
-- No client-side changes — `useAuthReady` gating in `AdminDashboard` already shipped last loop.
-- No schema or RLS changes.
-- `admin-books` is already correct; not retouched.
+- No schema changes.
+- No change to `admin-invite-ghost-author` (the invite flow itself is correct — it just needs accurate input).
+- Backfill Stripe → CRM unchanged.
