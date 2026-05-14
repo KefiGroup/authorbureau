@@ -334,7 +334,15 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
 
   // Bug 1 fix: only show Meet Abby onboarding to true first-time authors (zero books).
   // Returning authors fall through to the normal multi-book dashboard immediately.
-  if (!hasPlan && bookCount === 0 && myBooks.length === 0) {
+  // Trust author-stats.bookCount as a third signal — it queries via service role
+  // and survives transient list-my-books / dashboard-state failures or token
+  // races (e.g. Safari restoring a stale shared-backend session).
+  const trustedBookCount = Math.max(
+    bookCount,
+    myBooks.length,
+    stats?.bookCount ?? 0,
+  );
+  if (!hasPlan && trustedBookCount === 0) {
     return (
       <div className="max-w-6xl space-y-8">
         {/* Multi-book picker — shown when author has >1 book */}
