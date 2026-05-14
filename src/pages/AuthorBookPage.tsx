@@ -184,7 +184,14 @@ const NODE_TO_PRODUCT: Record<string, { type: string; label: string; route: stri
 };
 
 /** Buckets the "Go Deeper" grid into the two reader-facing sections. */
-const FORMATS_TYPES = new Set(["audiobook", "workbook", "homestudy", "bundles"]);
+/** Reader-facing node buckets (Sprint 66 redesign). Author-facing nodes BA-15/16/17/18, YR-25/28 are hidden entirely. */
+const FORMATS_NODE_IDS = ["BA-11", "BP-06", "BP-07"] as const;
+const COURSES_MEMBERSHIP_NODE_IDS = ["BA-10", "BA-12"] as const;
+const WORK_WITH_NODE_IDS = ["YR-19", "BA-13", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26", "YR-27"] as const;
+const HIDDEN_NODE_IDS = new Set(["BA-15", "BA-16", "BA-17", "BA-18", "YR-25", "YR-28"]);
+
+// Legacy bucket sets retained only for the fallback "products" grid (kept off by default in Sprint 66).
+const FORMATS_TYPES = new Set(["audiobook", "workbook", "homestudy"]);
 const SERVICES_TYPES = new Set([
   "onlinecourse", "membership", "groupcoaching", "coaching", "group_coaching",
   "consulting", "mastermind", "big_ticket", "coaching_membership", "vip",
