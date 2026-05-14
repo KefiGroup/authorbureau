@@ -76,8 +76,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                 const SIcon = meta.icon;
                 const title = node.personalised_name || node.node_name;
                 const desc = node.content_json?.description as string | undefined;
-                const { label: priceLabel } = getNodePriceLabel(node);
-                const linkTo = node.third_party_url || node.payment_link || `/${authorSlug}#subscribe-section`;
+                const hasContent = !!(node.content_json && Object.keys(node.content_json).length > 0);
 
                 return (
                   <motion.div key={node.node_id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
@@ -87,21 +86,27 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                         <SIcon className="h-5 w-5" style={{ color: v.accent }} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-bold text-base" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{title}</h3>
                           <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
                             style={{ background: `${v.primary}20`, color: v.primary }}>{meta.label}</span>
+                          {isOwnerViewing && !hasContent && (
+                            <a href={`/dashboard?section=builders&node=${node.node_id}`}
+                              className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full inline-flex items-center gap-1"
+                              style={{ background: `${v.accent}20`, color: v.accent }}>
+                              <Sparkles className="h-3 w-3" /> Generate with Abby
+                            </a>
+                          )}
                         </div>
                         {desc && <p className="text-sm leading-relaxed line-clamp-2" style={{ color: v.bodyText }}>{desc}</p>}
-                        <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: v.mutedText }}>
-                          {priceLabel && <span className="font-bold" style={{ color: v.accent }}>{priceLabel}</span>}
-                        </div>
                       </div>
-                      <a href={linkTo} target={node.third_party_url ? "_blank" : undefined} rel={node.third_party_url ? "noopener noreferrer" : undefined}
+                      <button
+                        type="button"
+                        onClick={() => { setActiveNode(node); setActiveLabel(meta.label); }}
                         className="shrink-0 inline-flex items-center gap-1 px-5 py-2 rounded-lg text-sm font-bold transition-all hover:brightness-110"
                         style={{ background: v.accent, color: v.accentText }}>
-                        {node.payment_link ? "Book Now" : "Inquire"} <ArrowRight className="h-3.5 w-3.5" />
-                      </a>
+                        Inquire <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </motion.div>
                 );
