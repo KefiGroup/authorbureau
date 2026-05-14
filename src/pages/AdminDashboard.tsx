@@ -85,8 +85,9 @@ export default function AdminDashboard() {
 
   const fetchStats = useCallback(async () => {
     setStatsLoading(true);
+    let hadAnySuccess = false;
     try {
-      const [listData, countData, overviewRes] = await Promise.all([
+      const [listRes, countRes, overviewSettled] = await Promise.allSettled([
         adminFetch("list", { page: 1, filter: "all" }),
         adminFetch("pending-counts"),
         (async () => {
@@ -103,6 +104,13 @@ export default function AdminDashboard() {
           return res.ok ? await res.json() : null;
         })(),
       ]);
+      const listData = listRes.status === "fulfilled" ? listRes.value : null;
+      const countData = countRes.status === "fulfilled" ? countRes.value : null;
+      const overviewRes = overviewSettled.status === "fulfilled" ? overviewSettled.value : null;
+      hadAnySuccess = !!(listData || countData || overviewRes);
+      if (listRes.status === "rejected") console.error("admin list failed:", listRes.reason);
+      if (countRes.status === "rejected") console.error("pending-counts failed:", countRes.reason);
+      if (overviewSettled.status === "rejected") console.error("overview-counts failed:", overviewSettled.reason);
 
       const totalBooks = countData?.totalBooks ?? listData?.totalCount ?? 0;
       const pendingBooks = countData?.pendingBooks ?? listData?.pendingCount ?? 0;
@@ -149,6 +157,10 @@ export default function AdminDashboard() {
         recent_submissions: [],
       });
     } catch (error) {
+      console.error("fetchStats error:", error);
+      hadAnySuccess = false;
+    }
+    if (!hadAnySuccess) {
       toast({ title: "Failed to load stats", variant: "destructive" });
     }
     setStatsLoading(false);
