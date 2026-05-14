@@ -19,6 +19,7 @@ import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
+import ServiceInquiryForm from "@/components/ServiceInquiryForm";
 import { stripHtml } from "@/lib/stripHtml";
 
 /** Best-effort 1–2 sentence summary for a buyable node card. */
