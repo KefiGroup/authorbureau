@@ -20,6 +20,7 @@ import RevenueProjectionCard from "./my-books/RevenueProjectionCard";
 import BookActionMenu from "./my-books/BookActionMenu";
 import PortfolioStrategyCard from "./my-books/PortfolioStrategyCard";
 import BuildMyBusinessSection from "./my-books/BuildMyBusinessSection";
+import { bustMyBooksCache } from "@/hooks/useMyBooks";
 
 interface Book {
   id: string;
