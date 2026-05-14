@@ -6388,18 +6388,6 @@ export type Database = {
         | { Args: { p_ids: string[] }; Returns: number }
         | { Args: { p_actor?: string; p_ids: string[] }; Returns: number }
       admin_error_summary: { Args: never; Returns: Json }
-      admin_list_ghost_authors: {
-        Args: never
-        Returns: {
-          author_profile_id: string
-          author_slug: string
-          best_email: string
-          book_count: number
-          created_at: string
-          ghost_user_id: string
-          pen_name: string
-        }[]
-      }
       admin_resolve_errors:
         | { Args: { p_ids: string[] }; Returns: number }
         | { Args: { p_actor?: string; p_ids: string[] }; Returns: number }
@@ -6462,16 +6450,6 @@ export type Database = {
       increment_funnel_counter: {
         Args: { p_field: string; p_funnel_id: string }
         Returns: undefined
-      }
-      list_author_profile_orphans: {
-        Args: never
-        Returns: {
-          author_slug: string
-          created_at: string
-          id: string
-          pen_name: string
-          user_id: string
-        }[]
       }
       move_to_dlq: {
         Args: {
