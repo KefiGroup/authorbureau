@@ -23,9 +23,9 @@ export default function GhostAuthorsCard() {
 
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc("admin_list_ghost_authors");
+    const { data, error } = await supabase.functions.invoke("admin-list-ghost-authors", { body: {} });
     if (error) toast({ title: "Failed to load ghosts", description: error.message, variant: "destructive" });
-    setGhosts((data as Ghost[]) || []);
+    setGhosts(((data as { ghosts?: Ghost[] })?.ghosts) || []);
     setLoading(false);
   };
 
