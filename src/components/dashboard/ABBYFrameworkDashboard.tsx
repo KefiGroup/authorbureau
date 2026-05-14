@@ -166,54 +166,42 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       }
 
 
-        if (booksData.books.length > 0) {
-          // Check ALL books for an Abby plan, not just the first.
-          // hasPlan flips true if ANY book has been analyzed (prevents the
-          // "Analyze Your Book" CTA from showing for returning multi-book authors
-          // whose first book in the list happens to be unanalyzed).
-          Promise.all(
-            booksData.books.map((b: any) =>
-              fetchWithTimeout(
-                `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
-                { method: "POST", headers, body: JSON.stringify({ action: "status", bookId: b.id }) },
-                TIMEOUT
-              ).then(r => r.json()).then(d => ({ book: b, data: d })).catch(() => ({ book: b, data: null }))
-            )
-          ).then((results) => {
-            const analyzed = results.filter(r => r.data?.plan);
-            if (analyzed.length === 0) return;
-            // Prefer the first analyzed book for the summary card.
-            const firstBook = analyzed[0].book;
-            const planData = analyzed[0].data;
-            setHasPlan(true);
-            setPlanSummary({
-                bookTitle: firstBook.title,
-                streamsMapped: planData.plan.products?.length || ({ brand: 9, build: 18, yield: 28 } as Record<string, number>)[tier] || 28,
-                projectedRevenue: planData.plan.projectedRevenue || "$50K+",
-                // Canonical "built" count — same source as the rest of the dashboard
-                // (author-stats `products.totalBuilt`). The legacy
-                // `planData.completedAssets` array uses asset_type strings that
-                // don't reconcile to the 28-node universe and would silently
-                // disagree with MultiBookPicker / BookHubOverview / X-of-28 counters.
-                productsBuilt: stats?.products?.totalBuilt ?? 0,
-              });
-              // Do NOT overwrite builtProducts here — it's already populated from author_nodes (canonical).
-              // The plan's `completedAssets` uses asset_type strings (business_plan, lead_magnet) that
-              // don't match the Monetization Universe node-id keys.
-              const recIds = (planData.plan.products || [])
-                .map((p: any) => p.nodeId || p.node_id || p.code || p.name || p.label)
-                .filter(Boolean);
-              setRecommendedByAbby(recIds);
-              try {
-                const key = `abby_post_analysis_seen_${user.id}`;
-                if (!localStorage.getItem(key)) {
-                  setIsFirstPostAnalysis(true);
-                  localStorage.setItem(key, "true");
-                }
-              } catch (error) { console.error(error); }
-          }).catch(() => { /* non-critical */ });
-        }
+      if (booksData?.books && booksData.books.length > 0) {
+        // Check ALL books for an Abby plan, not just the first.
+        Promise.all(
+          booksData.books.map((b: any) =>
+            fetchWithTimeout(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/abby-execute`,
+              { method: "POST", headers, body: JSON.stringify({ action: "status", bookId: b.id }) },
+              TIMEOUT
+            ).then(r => r.json()).then(d => ({ book: b, data: d })).catch(() => ({ book: b, data: null }))
+          )
+        ).then((results) => {
+          const analyzed = results.filter(r => r.data?.plan);
+          if (analyzed.length === 0) return;
+          const firstBook = analyzed[0].book;
+          const planData = analyzed[0].data;
+          setHasPlan(true);
+          setPlanSummary({
+            bookTitle: firstBook.title,
+            streamsMapped: planData.plan.products?.length || ({ brand: 9, build: 18, yield: 28 } as Record<string, number>)[tier] || 28,
+            projectedRevenue: planData.plan.projectedRevenue || "$50K+",
+            productsBuilt: stats?.products?.totalBuilt ?? 0,
+          });
+          const recIds = (planData.plan.products || [])
+            .map((p: any) => p.nodeId || p.node_id || p.code || p.name || p.label)
+            .filter(Boolean);
+          setRecommendedByAbby(recIds);
+          try {
+            const key = `abby_post_analysis_seen_${user.id}`;
+            if (!localStorage.getItem(key)) {
+              setIsFirstPostAnalysis(true);
+              localStorage.setItem(key, "true");
+            }
+          } catch (error) { console.error(error); }
+        }).catch(() => { /* non-critical */ });
       }
+
 
       if (isInitialLoad) {
         setHasBootstrapped(true);
