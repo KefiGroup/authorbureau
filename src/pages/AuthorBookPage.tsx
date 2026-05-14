@@ -19,6 +19,7 @@ import AuthorContactModal from "@/components/public/AuthorContactModal";
 import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
 import NotFound from "./NotFound";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
+import ServiceInquiryForm from "@/components/ServiceInquiryForm";
 import { stripHtml } from "@/lib/stripHtml";
 
 /** Best-effort 1–2 sentence summary for a buyable node card. */
@@ -183,7 +184,14 @@ const NODE_TO_PRODUCT: Record<string, { type: string; label: string; route: stri
 };
 
 /** Buckets the "Go Deeper" grid into the two reader-facing sections. */
-const FORMATS_TYPES = new Set(["audiobook", "workbook", "homestudy", "bundles"]);
+/** Reader-facing node buckets (Sprint 66 redesign). Author-facing nodes BA-15/16/17/18, YR-25/28 are hidden entirely. */
+const FORMATS_NODE_IDS = ["BA-11", "BP-06", "BP-07"] as const;
+const COURSES_MEMBERSHIP_NODE_IDS = ["BA-10", "BA-12"] as const;
+const WORK_WITH_NODE_IDS = ["YR-19", "BA-13", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26", "YR-27"] as const;
+const HIDDEN_NODE_IDS = new Set(["BA-15", "BA-16", "BA-17", "BA-18", "YR-25", "YR-28"]);
+
+// Legacy bucket sets retained only for the fallback "products" grid (kept off by default in Sprint 66).
+const FORMATS_TYPES = new Set(["audiobook", "workbook", "homestudy"]);
 const SERVICES_TYPES = new Set([
   "onlinecourse", "membership", "groupcoaching", "coaching", "group_coaching",
   "consulting", "mastermind", "big_ticket", "coaching_membership", "vip",
@@ -220,6 +228,7 @@ export default function AuthorBookPage() {
   const [subscribed, setSubscribed] = useState(false);
   const [heroVisible, setHeroVisible] = useState(true);
   const [contactOpen, setContactOpen] = useState(false);
+  const [inquiryFor, setInquiryFor] = useState<string | null>(null);
 
   const v = theme?.vars;
 
@@ -435,16 +444,15 @@ export default function AuthorBookPage() {
       existingRoutes.add(mapping.route);
     });
 
-    // Buyable live nodes (priced) tied to this specific book — for the
-    // "Get the Full Experience" Buy-Now panel rendered on the book page.
+    // Sprint 66 — reader-facing live nodes for this book + author. Splits in render
+    // into Formats / Courses & Membership / Work With Pauline. No price filter
+    // here — free items get a "Get Free" CTA, inquiry items get "Contact" CTA.
     if (profile?.id) {
       const { data: buyable } = await supabase
         .from("author_nodes")
         .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url, content_json")
         .eq("author_id", profile.id)
-        .eq("book_id", bookId)
-        .eq("status", "live")
-        .gt("price_usd", 0);
+        .eq("status", "live");
       setBuyableNodes((buyable as any[]) || []);
     }
 
@@ -558,7 +566,7 @@ export default function AuthorBookPage() {
             authorName={authorName}
             authorPhotoUrl={authorProfile?.photo_url}
             books={allAuthorBooks}
-            hasServices={coachingServices.length > 0}
+            hasServices={coachingServices.length > 0 || buyableNodes.some(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id))}
             vars={v}
             headingFont={theme.headingFont}
             bodyFont={theme.bodyFont}
@@ -798,71 +806,142 @@ export default function AuthorBookPage() {
         </section>
       )}
 
-      {/* ===== SECTION 3: GET THE FULL EXPERIENCE — buyable live nodes (moved up per redesign brief) ===== */}
-      {buyableNodes.length > 0 && (
-        <section className="py-14 md:py-16" style={{ background: v.cardBg }}>
-          <div className="container max-w-5xl">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-5 w-5" style={{ color: v.accent }} />
-              <h2 className="text-2xl md:text-[2rem] font-bold" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                Everything in the {book.title} Ecosystem
-              </h2>
-            </div>
-            <p className="text-base mb-8" style={{ color: v.mutedText }}>
-              Workbooks, courses, coaching, and more from {authorName}, built around the ideas in this book.
-            </p>
+      {/* ===== SECTION 3: READER-FACING NODE BUCKETS (Sprint 66) ===== */}
+      {buyableNodes.length > 0 && (() => {
+        const visible = buyableNodes.filter(n => !HIDDEN_NODE_IDS.has(n.node_id));
+        const formatNodes = visible.filter(n => (FORMATS_NODE_IDS as readonly string[]).includes(n.node_id));
+        const courseNodes = visible.filter(n => (COURSES_MEMBERSHIP_NODE_IDS as readonly string[]).includes(n.node_id));
+        const workNodes  = visible.filter(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id));
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {buyableNodes.map((n) => {
-                const title = n.personalised_name || n.node_name || "Product";
-                const currency = (n.currency || "USD").toUpperCase();
-                const symbol = currency === "USD" ? "$" : "";
-                const price = `${symbol}${Number(n.price_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                const description = extractCardDescription(n);
-                const learnMorePath = toInternalPath(n.delivery_url);
-                return (
-                  <div
-                    key={n.id}
-                    className="rounded-xl p-5 flex flex-col"
-                    style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+        const renderBuyCard = (n: any, mode: "buy" | "free") => {
+          const title = n.personalised_name || n.node_name || "Product";
+          const currency = (n.currency || "USD").toUpperCase();
+          const symbol = currency === "USD" ? "$" : "";
+          const priceNum = Number(n.price_usd) || 0;
+          const price = mode === "free" ? "Free" : `${symbol}${priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const description = extractCardDescription(n);
+          const learnMorePath = toInternalPath(n.delivery_url);
+          return (
+            <div
+              key={n.id}
+              className="rounded-xl p-5 flex flex-col"
+              style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+            >
+              <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>{title}</p>
+              {description && (
+                <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
+              )}
+              <p className="font-bold text-lg mb-4" style={{ color: v.accent }}>{price}</p>
+              <div className="mt-auto space-y-2">
+                {learnMorePath && (
+                  <Link
+                    to={learnMorePath}
+                    className="w-full inline-flex items-center justify-center rounded-full text-xs h-9 font-semibold transition-opacity hover:opacity-90"
+                    style={{ background: mode === "free" ? v.accent : "transparent", color: mode === "free" ? v.accentText : v.accent, border: mode === "free" ? "none" : `1px solid ${v.accent}` }}
                   >
-                    <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>
-                      {title}
-                    </p>
-                    {description && (
-                      <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>
-                        {description}
-                      </p>
-                    )}
-                    <p className="font-bold text-lg mb-4" style={{ color: v.accent }}>
-                      {price}
-                    </p>
-                    <div className="mt-auto space-y-2">
-                      {learnMorePath ? (
-                        <Link
-                          to={learnMorePath}
-                          className="w-full inline-flex items-center justify-center rounded-full text-xs h-9 font-semibold transition-opacity hover:opacity-90"
-                          style={{ background: v.accent, color: v.accentText }}
-                        >
-                          Learn More <ArrowRight className="ml-1 h-3 w-3" />
-                        </Link>
-                      ) : null}
-                      <BuyNowButton
-                        authorNodeId={n.id}
-                        authorId={book.author_id}
-                        fallbackUrl={n.delivery_url}
-                        label="Buy Now"
-                        className="w-full rounded-full text-xs h-9 font-semibold"
-                      />
-
-                    </div>
-                  </div>
-                );
-              })}
+                    {mode === "free" ? "Get Free Access" : "Learn More"} <ArrowRight className="ml-1 h-3 w-3" />
+                  </Link>
+                )}
+                {mode === "buy" && (
+                  <BuyNowButton
+                    authorNodeId={n.id}
+                    authorId={book.author_id}
+                    fallbackUrl={n.delivery_url}
+                    label="Buy Now"
+                    className="w-full rounded-full text-xs h-9 font-semibold"
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          );
+        };
+
+        const renderInquireCard = (n: any) => {
+          const title = n.personalised_name || n.node_name || "Service";
+          const description = extractCardDescription(n);
+          return (
+            <div
+              key={n.id}
+              className="rounded-xl p-5 flex flex-col"
+              style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+            >
+              <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>{title}</p>
+              {description && (
+                <p className="text-xs leading-relaxed mb-4 line-clamp-3 flex-1" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
+              )}
+              {!description && <div className="flex-1" />}
+              <button
+                onClick={() => setInquiryFor(title)}
+                className="w-full inline-flex items-center justify-center gap-1 rounded-full text-xs h-9 font-semibold transition-opacity hover:opacity-90 mt-auto"
+                style={{ background: v.accent, color: v.accentText }}
+              >
+                <Mail className="h-3.5 w-3.5" /> Contact {authorFirstName}
+              </button>
+            </div>
+          );
+        };
+
+        return (
+          <>
+            {formatNodes.length > 0 && (
+              <section id="formats" className="py-14 md:py-16" style={{ background: v.cardBg }}>
+                <div className="container max-w-5xl">
+                  <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                    Available Formats
+                  </h2>
+                  <p className="text-base mb-8" style={{ color: v.mutedText }}>
+                    Get {book.title} in the format that fits how you learn best.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {formatNodes.map(n => renderBuyCard(n, Number(n.price_usd) > 0 ? "buy" : "free"))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {courseNodes.length > 0 && (
+              <section id="courses" className="py-14 md:py-16" style={{ background: v.secondaryBg }}>
+                <div className="container max-w-5xl">
+                  <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                    Courses & Membership
+                  </h2>
+                  <p className="text-base mb-8" style={{ color: v.mutedText }}>
+                    Go deeper with {authorFirstName}'s self-paced course and ongoing membership community.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {courseNodes.map(n => renderBuyCard(n, Number(n.price_usd) > 0 ? "buy" : "free"))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {workNodes.length > 0 && (
+              <section id="work-with-me" className="py-14 md:py-16" style={{ background: v.cardBg }}>
+                <div className="container max-w-5xl">
+                  <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                    Work With {authorFirstName}
+                  </h2>
+                  <p className="text-base mb-8" style={{ color: v.mutedText }}>
+                    Coaching, consulting, speaking, and bespoke programmes. Reach out to discuss what fits.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {workNodes.map(renderInquireCard)}
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
+        );
+      })()}
+
+      {/* Inquiry modal — opens when a Work-With card is clicked */}
+      <ServiceInquiryForm
+        open={!!inquiryFor}
+        onOpenChange={(o) => !o && setInquiryFor(null)}
+        authorName={authorName}
+        authorSlug={authorSlug!}
+        serviceType={inquiryFor || ""}
+      />
 
       {/* ===== SECTION 3.5: BESTSELLER PROOF ===== */}
       {book.bestseller_proof_url && (
@@ -903,132 +982,8 @@ export default function AuthorBookPage() {
         </section>
       )}
 
-      {/* ===== SECTION 4: AVAILABLE FORMATS + SERVICES & PROGRAMMES ===== */}
-      {products.length > 0 && (() => {
-        const formats = products.filter(p => FORMATS_TYPES.has(p.type));
-        const services = products.filter(p => SERVICES_TYPES.has(p.type));
-        const other = products.filter(p => !FORMATS_TYPES.has(p.type) && !SERVICES_TYPES.has(p.type));
-        // If buckets miss everything, fall back to one combined "Go Deeper" group so nothing disappears.
-        const groups: { key: string; heading: string; sub: string; items: ProductLink[] }[] = [];
-        if (formats.length > 0) {
-          groups.push({
-            key: "formats",
-            heading: "Available Formats",
-            sub: `Get ${book.title} in the format that fits how you learn best.`,
-            items: formats,
-          });
-        }
-        if (services.length > 0) {
-          groups.push({
-            key: "services",
-            heading: "Services & Programmes",
-            sub: `Work with ${authorFirstName} to apply the ideas in ${book.title}.`,
-            items: services,
-          });
-        }
-        if (groups.length === 0 && other.length > 0) {
-          groups.push({ key: "more", heading: goDeeperCopy.heading, sub: goDeeperCopy.subheading, items: other });
-        } else if (other.length > 0) {
-          // Append leftover items (e.g. podcast, free gift) to services so they remain reachable.
-          groups[groups.length - 1].items = [...groups[groups.length - 1].items, ...other];
-        }
-
-        return groups.map((g, gi) => (
-          <section
-            key={g.key}
-            className="py-16 md:py-20"
-            style={{ background: gi % 2 === 0 ? v.secondaryBg : v.cardBg }}
-          >
-            <div className="container max-w-5xl">
-              <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
-                <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                  {g.heading}
-                </h2>
-                <p className="text-base mb-10" style={{ color: v.mutedText }}>
-                  {g.sub}
-                </p>
-              </motion.div>
-
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {g.items.map((p, i) => {
-                  const PIcon = PRODUCT_ICONS[p.type] || BookOpen;
-                  const label = PRODUCT_LABELS[p.type] || p.type;
-                  const ctaText = getProductCardCTAText(p.type);
-                  return (
-                    <motion.div key={`${g.key}-${i}`} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={i + 1}>
-                      <Link
-                        to={p.linkTo || `/${authorSlug}/${bookSlug}/${p.route}`}
-                        className="group flex flex-col h-full overflow-hidden rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg"
-                        style={{
-                          background: v.cardBg,
-                          border: `1px solid ${v.cardBorder}`,
-                          boxShadow: "0 4px 16px rgba(0,0,0,0.06)",
-                        }}
-                      >
-                        <div className="h-48 relative overflow-hidden">
-                          {(p.coverImageUrl || book.cover_image_url) ? (
-                            <img
-                              src={p.coverImageUrl || book.cover_image_url!}
-                              alt={p.title}
-                              loading="lazy"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div
-                              className="w-full h-full"
-                              style={{ background: `linear-gradient(135deg, ${v.primary}, ${v.accent}40)` }}
-                            />
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
-                          <div
-                            className="absolute top-3 left-3 w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-                            style={{ background: v.accent, color: v.accentText }}
-                          >
-                            <PIcon className="h-5 w-5" />
-                          </div>
-                          <span
-                            className="absolute bottom-3 right-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm backdrop-blur-sm"
-                            style={{ background: `${v.accent}dd`, color: v.accentText }}
-                          >
-                            {label}
-                          </span>
-                        </div>
-
-                        <div className="p-5 flex flex-col flex-1">
-                          <h3 className="font-bold text-base mb-1.5 group-hover:underline line-clamp-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                            {p.title}
-                          </h3>
-
-                          {p.description && (
-                            <p className="text-xs leading-relaxed line-clamp-3 mb-4 flex-1" style={{ color: v.bodyText }}>
-                              {p.description}
-                            </p>
-                          )}
-                          {!p.description && <div className="flex-1" />}
-
-                          <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
-                            {p.price ? (
-                              <span className="font-bold text-lg" style={{ color: v.accent }}>{p.price}</span>
-                            ) : (
-                              <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>
-                            )}
-                            <span
-                              className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
-                              style={{ background: v.accent, color: v.accentText }}
-                            >
-                              {ctaText}
-                            </span>
-                          </div>
-                        </div>
-                      </Link>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            </div>
-          </section>
-        ));
-      })()}
+      {/* Sprint 66: Legacy "Available Formats / Services & Programmes" grid removed.
+          Replaced by node-bucketed sections above (Formats / Courses & Membership / Work With Me). */}
 
       {/* ===== SECTION 5: ABOUT THE AUTHOR ===== */}
       {(authorBio || authorPhoto) && (
