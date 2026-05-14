@@ -20,6 +20,7 @@ import RevenueProjectionCard from "./my-books/RevenueProjectionCard";
 import BookActionMenu from "./my-books/BookActionMenu";
 import PortfolioStrategyCard from "./my-books/PortfolioStrategyCard";
 import BuildMyBusinessSection from "./my-books/BuildMyBusinessSection";
+import { bustMyBooksCache } from "@/hooks/useMyBooks";
 
 interface Book {
   id: string;
@@ -221,6 +222,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
         throw new Error(result.error);
       }
       toast({ title: "Book deleted" });
+      bustMyBooksCache(user?.id);
       fetchBooks();
     } catch (err) {
       toast({ title: "Failed to delete book", variant: "destructive" });
