@@ -1,46 +1,44 @@
-# Fix "Failed to load ghosts" + Veronica still flagged
+# Remove Ghost Author Detection
 
-## Root cause
+## Why this needs to change
 
-Two separate issues are stacked:
+Authors Bureau and PublishNow share auth via the **shared backend** (`wuftdpnekscrsghqtssd`). Authors sign in on PublishNow → SSO handoff (`/sso?token=...`) → `establishSharedSession()` mints a session against the shared backend. The session JWT's `sub` is a **shared-backend `auth.users.id`**, and that's what gets written to `author_profiles.user_id`.
 
-1. **The toast you saw** (`Failed to load ghosts — Edge Function returned a non-2xx status code`) was from the *first* mount of the Authors tab right after the new edge function deployed. Subsequent calls now return HTTP 200 (verified via direct curl). So the toast itself is transient.
+The local Lovable Cloud project's `auth.users` table is essentially empty for SSO authors — they never sign up locally.
 
-2. **The real, persistent bug**: `SHARED_BACKEND_SERVICE_ROLE_KEY` is set, but the edge-function log shows:
-   ```
-   [admin-list-ghost-authors] shared listUsers error: Invalid API key
-   ```
-   Meaning the value currently stored is **not** a valid service-role JWT for the PublishNow backend (`wuftdpnekscrsghqtssd`). It's likely the anon key, an expired key, or a key from the wrong project.
+That breaks every assumption the "ghost authors" feature was built on:
 
-   Because `shared.auth.admin.listUsers()` fails, `sharedEmails` stays empty, `reconciled_out` is 0, and Veronica (a real PublishNow user) is still returned as a "ghost". This is exactly the bug we set out to fix last turn — the code is correct, the secret is wrong.
+- The SQL function `admin_list_ghost_authors()` joins `author_profiles` against the **local** `auth.users` and flags everything that doesn't match. Confirmed: it returns **all 5 author profiles** (Fasa, Felicia, Bob, Pauline, Veronica) — none of them are actually ghosts.
+- The edge function `admin-list-ghost-authors` tries to "rescue" them by calling `admin.listUsers()` against the shared backend with `SHARED_BACKEND_SERVICE_ROLE_KEY` and removing matches. That key is currently invalid for the shared project, so the rescue silently fails and every real author looks like a ghost.
+- Even if the key were valid, this is just an awkward workaround for a non-problem — the user_ids aren't supposed to live in local `auth.users`.
+
+In short: with shared OAuth, there is **no such thing** as a "ghost author" in the way this card defines it. Veronica was misclassified, and so are the other four.
 
 ## Plan
 
-### Step 1 — Rotate `SHARED_BACKEND_SERVICE_ROLE_KEY`
+### 1. Remove the ghost-authors UI
+- Delete `src/components/admin/GhostAuthorsCard.tsx`.
+- Remove its import + render in the admin dashboard (find and clean up the parent that mounts it).
 
-You need to provide the **service-role** key from the PublishNow Supabase project (project ref `wuftdpnekscrsghqtssd`). It's the key labelled `service_role` (NOT `anon`) in that project's API settings, and the JWT payload should contain `"role":"service_role"`.
+### 2. Remove the broken edge function + RPC
+- Delete `supabase/functions/admin-list-ghost-authors/`.
+- Migration: `DROP FUNCTION public.admin_list_ghost_authors();` and `DROP FUNCTION public.list_author_profile_orphans();` (same flawed local-join logic, also unused).
 
-I'll use the `update_secret` tool to take the new value from you securely — nothing gets pasted into chat or code.
+### 3. Remove the unused secret
+- Confirm `SHARED_BACKEND_SERVICE_ROLE_KEY` has no other consumers (`rg "SHARED_BACKEND_SERVICE_ROLE_KEY"`).
+- `_shared/resolve-user.ts` uses the **shared anon key** (hardcoded) and the **local** service role to call `admin.listUsers()` against the local project — it does NOT need the shared service role. So the secret really is orphaned.
+- Delete `SHARED_BACKEND_SERVICE_ROLE_KEY` via `secrets--delete_secret`.
 
-### Step 2 — Harden the edge function so this fails loudly next time
+### 4. Trust the daily audit
+The daily audit (`daily-audit-cron`) and the `warn_ghost_author_uid` trigger (which writes to `auth_uid_warnings` only when local `auth.users` is somehow expected) already cover any real reconciliation needs. No replacement card is needed.
 
-Right now if the shared key is missing or invalid, we just `console.error` and return zero shared users — meaning every PublishNow author silently re-appears as a ghost. Change `admin-list-ghost-authors` to:
+### 5. Verify Veronica end-to-end
+After cleanup, run a quick sanity check on Veronica's account:
+- `author_profiles` row exists (confirmed: `dd5e638d…`, slug `veronica-tan`).
+- Her `books` rows, `owner_email`, and any `author_nodes` look healthy.
+- Microsite URL resolves and her dashboard `X/28` count is sane.
+Report findings — no code changes expected unless data anomalies surface.
 
-- Detect "Invalid API key" / missing key explicitly
-- Return HTTP 200 with a `warning` field (e.g. `"shared_backend_unavailable"`) so the response stays parseable, but the UI can show a clear banner instead of falsely listing real authors as ghosts
-
-### Step 3 — Surface the warning in `GhostAuthorsCard.tsx`
-
-If the response includes `warning === "shared_backend_unavailable"`, render an amber inline notice ("Couldn't reach PublishNow auth — ghost list may include real authors. Check SHARED_BACKEND_SERVICE_ROLE_KEY.") instead of the normal "0 ghosts" success state. Suppress the misleading list when the reconciliation step failed.
-
-### Step 4 — Verify
-
-- Re-curl `/admin-list-ghost-authors` and confirm `shared_user_count` is in the thousands and `reconciled_out >= 1`
-- Reload the Authors tab and confirm Veronica no longer appears in the ghost list
-- Confirm the badge shows `0`
-
-## Technical notes
-
-- No DB migration needed.
-- Files touched: `supabase/functions/admin-list-ghost-authors/index.ts`, `src/components/admin/GhostAuthorsCard.tsx`.
-- Secret update is done via the secrets tool (will prompt you for the value).
+## Out of scope
+- Auth flow itself (SSO handoff is working as designed).
+- Any change to `_shared/resolve-user.ts` (it correctly uses the shared **anon** key, not service role).
