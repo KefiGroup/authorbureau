@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 const SHARED_ANON_KEY =
@@ -9,89 +10,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-/**
- * Resilient identity resolution. The caller's JWT may have been issued by:
- *   1) the project's own Cloud auth,
- *   2) the shared PublishNow backend, OR
- *   3) a shared-backend session whose signing key is no longer recognised
- *      by either gotrue (e.g. after a key rotation — produces "bad_jwt"
- *      "unrecognized JWT kid" responses).
- * In every case we still want to surface this user's books, so we fall back
- * to decoding the JWT's `sub`/`email` claims and mapping by email.
- */
-async function resolveIdentity(
-  cloudAdmin: ReturnType<typeof createClient>,
-  token: string,
-): Promise<{ userId: string | null; userEmail: string | null; source: string }> {
-  // 1) Cloud auth
-  try {
-    const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-    if (cloudUser) {
-      return { userId: cloudUser.id, userEmail: cloudUser.email ?? null, source: "cloud" };
-    }
-  } catch (_) { /* ignore */ }
-
-  // 2) Shared backend
-  let sharedEmail: string | null = null;
-  let sharedSub: string | null = null;
-  try {
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-    if (sharedUser) {
-      sharedEmail = sharedUser.email ?? null;
-      sharedSub = sharedUser.id;
-    }
-  } catch (_) { /* ignore */ }
-
-  // 3) JWT decode safety net (covers rotated keys / "bad_jwt").
-  // CRITICAL: only use the JWT sub/email if it RECONCILES to a real Cloud
-  // user via email lookup. Otherwise we can resolve a stale ghost-account
-  // token (e.g. Pauline's old paulinet77@gmail.com) to its claimed user and
-  // silently return that user's empty book list, blanking the dashboard for
-  // the actual signed-in account.
-  let jwtEmail: string | null = null;
-  let jwtSub: string | null = null;
-  try {
-    const parts = token.split(".");
-    if (parts.length === 3) {
-      const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-      const payload = JSON.parse(atob(padded + "=".repeat((4 - (padded.length % 4)) % 4)));
-      jwtEmail = payload?.email ?? null;
-      jwtSub = payload?.sub ?? null;
-    }
-  } catch (_) { /* ignore */ }
-
-  const email = sharedEmail || jwtEmail;
-  let userId = sharedSub || null; // do NOT default to jwtSub
-
-  // Map the shared/JWT user to the local Cloud user record by email.
-  // This is the only path that promotes a JWT-decoded identity to a usable
-  // userId — and only if it matches a real auth.users row.
-  if (email) {
-    try {
-      const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
-      const localMatch = users?.find(
-        (u: any) => u.email?.toLowerCase() === email.toLowerCase()
-      );
-      if (localMatch) userId = localMatch.id;
-    } catch (_) { /* ignore */ }
-  }
-
-  // Last resort: only honour the raw JWT sub if it matches a real auth user.
-  if (!userId && jwtSub) {
-    try {
-      const { data } = await cloudAdmin.auth.admin.getUserById(jwtSub);
-      if (data?.user?.id) userId = data.user.id;
-    } catch (_) { /* ignore */ }
-  }
-
-  return {
-    userId,
-    userEmail: email,
-    source: sharedSub ? "shared" : userId ? "jwt+reconciled" : "none",
-  };
-}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -113,7 +31,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { userId, userEmail, source } = await resolveIdentity(cloudAdmin, token);
+    const { id: userId, email: userEmail, source } = await resolveUser(authHeader);
 
     if (!userId && !userEmail) {
       console.warn("[list-my-books] identity resolution failed for token");
