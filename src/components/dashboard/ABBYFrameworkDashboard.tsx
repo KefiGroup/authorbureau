@@ -406,6 +406,18 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   // STATE B: Author HAS completed Abby's analysis
   return (
     <div className="max-w-6xl space-y-8">
+      {/* Portfolio summary — books, microsites, analyzed, nodes built */}
+      <PortfolioSummaryBar
+        bookCount={trustedBookCount}
+        liveMicrosites={stats?.liveMicrosites ?? 0}
+        analyzedCount={stats?.analyzedCount ?? 0}
+        productsBuilt={stats?.products?.totalBuilt ?? 0}
+        totalRecommended={recommendedByAbby.length || 28}
+        revenueThisMonth={0}
+        tier={tier}
+        onSubscribe={() => onNavigate("build-business")}
+      />
+
       {/* Multi-book picker — shown when author has >1 book */}
       {myBooks.length > 1 && (
         <MultiBookPicker
