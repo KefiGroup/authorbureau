@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,38 +21,23 @@ function json(body: unknown, status = 200) {
 // Admin authorization is now driven exclusively by the user_roles table.
 // Use the admin UI (or a SQL migration) to grant 'admin' role.
 
-async function verifyAdmin(token: string) {
+async function verifyAdmin(authHeader: string) {
   const client = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
   );
 
-  // Try Cloud auth first
-  const { data: { user: cloudUser } } = await client.auth.getUser(token);
-  if (cloudUser) {
-    const { data: roleData } = await client
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", cloudUser.id)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (roleData) return { userId: cloudUser.id, client };
-    return { userId: null, client: null };
-  }
-
-  // Fallback: shared backend token
-  const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-  const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-  if (!sharedUser) return { userId: null, client: null };
+  const resolved = await resolveUser(authHeader);
+  if (!resolved.id) return { userId: null, client: null };
 
   const { data: roleData } = await client
     .from("user_roles")
     .select("role")
-    .eq("user_id", sharedUser.id)
+    .eq("user_id", resolved.id)
     .eq("role", "admin")
     .maybeSingle();
-  if (roleData) return { userId: sharedUser.id, client };
 
+  if (roleData) return { userId: resolved.id, client };
   return { userId: null, client: null };
 }
 
@@ -62,8 +48,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader) return json({ error: "Missing authorization" }, 401);
 
-    const token = authHeader.replace("Bearer ", "");
-    const { userId, client } = await verifyAdmin(token);
+    const { userId, client } = await verifyAdmin(authHeader);
     if (!userId || !client) return json({ error: "Admin access required" }, 403);
 
     const { action, ...params } = await req.json();

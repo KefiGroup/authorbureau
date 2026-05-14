@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logError } from "../_shared/log-error.ts";
 import { hasRequiredAssets } from "../_shared/node-readiness.ts";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -63,19 +64,19 @@ async function authorize(req: Request, admin: ReturnType<typeof createClient>) {
   if (!token) return { ok: false, reason: "missing token" };
   if (token === SERVICE) return { ok: true, actor: "service-role" };
   try {
-    const { data } = await admin.auth.getUser(token);
-    const u = data?.user;
-    if (!u) return { ok: false, reason: "invalid token" };
-    if (u.email && SUPERADMIN_EMAILS.includes(u.email.toLowerCase())) {
-      return { ok: true, actor: u.email };
+    const resolved = await resolveUser(auth);
+    if (!resolved.id && !resolved.email) return { ok: false, reason: "invalid token" };
+    if (resolved.email && SUPERADMIN_EMAILS.includes(resolved.email.toLowerCase())) {
+      return { ok: true, actor: resolved.email };
     }
+    if (!resolved.id) return { ok: false, reason: "unreconciled user" };
     const { data: role } = await admin
       .from("user_roles")
       .select("role")
-      .eq("user_id", u.id)
+      .eq("user_id", resolved.id)
       .eq("role", "admin")
       .maybeSingle();
-    if (role) return { ok: true, actor: u.email || u.id };
+    if (role) return { ok: true, actor: resolved.email || resolved.id };
     return { ok: false, reason: "not admin" };
   } catch (e) {
     return { ok: false, reason: (e as Error).message };
