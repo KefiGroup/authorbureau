@@ -130,11 +130,12 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                     <div className="flex-1 min-w-0">
                       <h3 className="font-bold text-base mb-1" style={{ color: v.headingText, fontFamily: theme.headingFont }}>{svc.title}</h3>
                       {svc.description && <p className="text-sm leading-relaxed line-clamp-2" style={{ color: v.bodyText }}>{svc.description}</p>}
-                      <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: v.mutedText }}>
-                        {svc.duration_minutes && <span>{svc.duration_minutes} min</span>}
-                        {svc.sessions_count && svc.sessions_count > 1 && <span>· {svc.sessions_count} sessions</span>}
-                        {svc.price != null && svc.price > 0 && <span className="font-bold" style={{ color: v.accent }}>${svc.price}</span>}
-                      </div>
+                      {(svc.duration_minutes || (svc.sessions_count && svc.sessions_count > 1)) && (
+                        <div className="flex items-center gap-3 mt-2 text-xs" style={{ color: v.mutedText }}>
+                          {svc.duration_minutes && <span>{svc.duration_minutes} min</span>}
+                          {svc.sessions_count && svc.sessions_count > 1 && <span>· {svc.sessions_count} sessions</span>}
+                        </div>
+                      )}
                     </div>
                     <Link to={`/${authorSlug}#subscribe-section`}
                       className="shrink-0 inline-flex items-center gap-1 px-5 py-2 rounded-lg text-sm font-bold transition-all hover:brightness-110"
