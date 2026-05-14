@@ -308,7 +308,7 @@ Deno.serve(async (req) => {
       const { data: rows } = await admin
         .from(table)
         .select(selectCols)
-        .in("author_id", allUserIds);
+        .in("author_id", allAuthorRefs);
 
       const counts: StatusCounts = { draft: 0, ready_for_review: 0, published: 0, total: 0 };
       const nodeIdForTable = TABLE_TO_NODE[table];
