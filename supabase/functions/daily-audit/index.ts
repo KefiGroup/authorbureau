@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logError } from "../_shared/log-error.ts";
 import { hasRequiredAssets } from "../_shared/node-readiness.ts";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
