@@ -12,6 +12,7 @@ import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
 import CompactMicrositeCard from "./framework-dashboard/CompactMicrositeCard";
 import MultiBookPicker from "./framework-dashboard/MultiBookPicker";
 import SpecialEditionCalendarCard from "./SpecialEditionCalendarCard";
+import PortfolioSummaryBar from "./my-books/PortfolioSummaryBar";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { fetchWithTimeout, waitForActiveToken } from "@/lib/get-active-token";
