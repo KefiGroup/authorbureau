@@ -157,6 +157,10 @@ export default function AdminDashboard() {
         recent_submissions: [],
       });
     } catch (error) {
+      console.error("fetchStats error:", error);
+      hadAnySuccess = false;
+    }
+    if (!hadAnySuccess) {
       toast({ title: "Failed to load stats", variant: "destructive" });
     }
     setStatsLoading(false);
