@@ -60,6 +60,7 @@ async function adminFetch(action: string, body: Record<string, unknown> = {}, at
 
 export default function AdminDashboard() {
   const { user, loading, isAdmin, signOut } = useAuth();
+  const { isReady: isAuthReady } = useAuthReady();
   const { toast } = useToast();
 
   const [searchParams, setSearchParams] = useSearchParams();
