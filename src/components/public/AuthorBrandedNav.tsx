@@ -294,14 +294,25 @@ export default function AuthorBrandedNav({
             </Link>
           ))}
           {hasServices && (
-            <Link
-              to={workWithHref}
+            <a
+              href={workWithHref}
               className="text-sm font-medium py-1.5"
               style={{ color: `${v.primaryText}D9` }}
-              onClick={() => setMobileOpen(false)}
+              onClick={(e) => {
+                setMobileOpen(false);
+                const hash = workWithHref.includes("#") ? workWithHref.split("#")[1] : "";
+                if (hash) {
+                  const el = document.getElementById(hash);
+                  if (el) {
+                    e.preventDefault();
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    history.replaceState(null, "", `#${hash}`);
+                  }
+                }
+              }}
             >
               Work With Me
-            </Link>
+            </a>
           )}
           <button
             className="text-sm font-medium py-1.5 text-left"
