@@ -30,9 +30,15 @@ import type { AdminStats, AdminBook, AdminInfo } from "@/types/admin";
 
 type Tab = "overview" | "books" | "authors" | "admins" | "platforms" | "crm" | "messages" | "reading-club" | "support" | "payouts" | "node-gating" | "audit" | "errors" | "daily-audit";
 
-async function adminFetch(action: string, body: Record<string, unknown> = {}) {
-  const token = await getActiveToken();
-  if (!token) throw new Error("Not authenticated");
+async function adminFetch(action: string, body: Record<string, unknown> = {}, attempt = 0): Promise<any> {
+  const token = await getActiveToken({ forceRefresh: attempt > 0 });
+  if (!token) {
+    if (attempt < 2) {
+      await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+      return adminFetch(action, body, attempt + 1);
+    }
+    throw new Error("Not authenticated");
+  }
   const res = await fetchWithTimeout(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-books`,
     {
@@ -41,8 +47,14 @@ async function adminFetch(action: string, body: Record<string, unknown> = {}) {
       body: JSON.stringify({ action, ...body }),
     }
   );
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    // Auth failures: retry once with a forced token refresh before giving up.
+    if ((res.status === 401 || res.status === 403) && attempt < 1) {
+      return adminFetch(action, body, attempt + 1);
+    }
+    throw new Error(data?.error || `Request failed (${res.status})`);
+  }
   return data;
 }
 
