@@ -329,6 +329,31 @@ Deno.serve(async (req) => {
       return json({ contacts: enriched });
     }
 
+    if (action === "delete-crm-contacts") {
+      const ids = Array.isArray(params.contact_ids) ? params.contact_ids.filter((x: unknown) => typeof x === "string") : [];
+      if (ids.length === 0) return json({ error: "contact_ids required" }, 400);
+      if (ids.length > 500) return json({ error: "max 500 ids per call" }, 400);
+
+      await client.from("crm_contact_tags").delete().in("contact_id", ids);
+      await client.from("crm_activity_log").delete().in("contact_id", ids);
+      const { error: delErr, count } = await client
+        .from("crm_contacts")
+        .delete({ count: "exact" })
+        .in("id", ids);
+      if (delErr) return json({ error: delErr.message }, 500);
+
+      try {
+        await client.from("admin_audit_log").insert({
+          actor_id: userId,
+          event_key: "crm.contacts_deleted",
+          target_type: "crm_contacts",
+          payload: { count: count ?? ids.length, ids },
+        });
+      } catch (_) { /* non-fatal */ }
+
+      return json({ success: true, deleted: count ?? ids.length });
+    }
+
     // ─── Messages ───
     if (action === "list-messages") {
       const { data: msgs } = await client
