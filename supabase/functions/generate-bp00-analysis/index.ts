@@ -60,15 +60,26 @@ serve(async (req) => {
       .maybeSingle();
     if (!book) return fail("Book not found");
 
-    // Ownership check (book.author_id is auth.users.id; author_profiles.user_id matches)
+    // Ownership check — books.author_id may be either auth.users.id (legacy)
+    // or author_profiles.id (current production path). Mirror the canonical
+    // resolver in get-author-book/index.ts.
     let userEmail: string | null = null;
     if (author.user_id) {
       const { data: u } = await supabase.auth.admin.getUserById(author.user_id);
       userEmail = u?.user?.email ?? null;
     }
-    const ownsByUser = author.user_id && book.author_id === author.user_id;
-    const ownsByEmail = userEmail && book.owner_email === userEmail;
-    if (!ownsByUser && !ownsByEmail) {
+    const normEmail = (e: string | null | undefined) => (e || "").trim().toLowerCase();
+    const ownsByAuthorProfileId = book.author_id === author_id;
+    const ownsByUserId = author.user_id && book.author_id === author.user_id;
+    const ownsByEmail = userEmail && normEmail(book.owner_email) === normEmail(userEmail);
+    if (!ownsByAuthorProfileId && !ownsByUserId && !ownsByEmail) {
+      console.error("[bp00] ownership check failed", {
+        author_id,
+        author_user_id: author.user_id,
+        book_author_id: book.author_id,
+        book_owner_email: book.owner_email,
+        user_email: userEmail,
+      });
       return fail("This book does not belong to this author");
     }
 
