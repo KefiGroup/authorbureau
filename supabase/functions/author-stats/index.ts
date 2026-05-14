@@ -1,15 +1,12 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "../_shared/node-readiness.ts";
+import { resolveUser } from "../_shared/resolve-user.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
-
-const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
-const SHARED_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
 
 // Product tables and their status field conventions
 const PRODUCT_TABLES = [
@@ -38,77 +35,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve user identity using the SAME strategy as list-my-books so that
-    // both endpoints converge on the same canonical user_id even when the
-    // shared-backend auth API is slow or rotated. Strategy:
-    //   1. Cloud admin auth.getUser(token)         (local Cloud auth)
-    //   2. Shared backend auth.getUser(token)      (PublishNow auth)
-    //   3. JWT claim decode (last-resort safety)
-    //   4. Map email -> canonical Cloud user (so books linked by either
-    //      auth-system end up reachable).
-    let userId: string | null = null;
-    let userEmail = "";
-    let resolvedVia = "none";
-
     const cloudAdmin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
-
-    const withTimeout = <T,>(p: Promise<T>, ms: number): Promise<T | null> =>
-      Promise.race<T | null>([
-        p,
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
-      ]);
-
-    // 1) Cloud auth via service role
-    try {
-      const cloudRes = await withTimeout(cloudAdmin.auth.getUser(token), 3000);
-      const cloudUser = (cloudRes as any)?.data?.user;
-      if (cloudUser) {
-        userId = cloudUser.id;
-        userEmail = cloudUser.email || "";
-        resolvedVia = "cloud";
-      }
-    } catch (e) {
-      console.warn("[author-stats] cloud auth failed:", (e as Error).message);
-    }
-
-    // 2) Shared backend
-    if (!userId) {
-      try {
-        const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-        const sharedRes = await withTimeout(sharedClient.auth.getUser(token), 3000);
-        const sharedUser = (sharedRes as any)?.data?.user;
-        if (sharedUser) {
-          userId = sharedUser.id;
-          userEmail = sharedUser.email || "";
-          resolvedVia = "shared";
-        }
-      } catch (e) {
-        console.warn("[author-stats] shared auth failed:", (e as Error).message);
-      }
-    }
-
-    // 3) JWT decode safety net
-    if (!userId) {
-      try {
-        const parts = token.split(".");
-        if (parts.length === 3) {
-          const padded = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-          const payload = JSON.parse(
-            atob(padded + "=".repeat((4 - (padded.length % 4)) % 4))
-          );
-          if (payload?.sub) {
-            userId = payload.sub;
-            userEmail = payload.email || userEmail;
-            resolvedVia = "jwt-decode";
-          }
-        }
-      } catch (e) {
-        console.warn("[author-stats] jwt decode failed:", (e as Error).message);
-      }
-    }
+    const { id: userId, email: resolvedEmail, source } = await resolveUser(authHeader);
+    const userEmail = resolvedEmail || "";
 
     if (!userId) {
       return new Response(JSON.stringify({ error: "Invalid session" }), {
@@ -117,26 +49,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // 4) Map the resolved email back to the canonical Cloud user, so that
-    // sessions issued by the shared backend (different sub) still land on the
-    // local user_id that owns the books / author_profile / nodes.
-    if (userEmail) {
-      try {
-        const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
-        const localMatch = users?.find(
-          (u: any) => u.email?.toLowerCase() === userEmail.toLowerCase()
-        );
-        if (localMatch && localMatch.id !== userId) {
-          console.log(`[author-stats] mapped ${userId} -> ${localMatch.id} via email ${userEmail}`);
-          userId = localMatch.id;
-          resolvedVia += "+email-map";
-        }
-      } catch (e) {
-        console.warn("[author-stats] email->user map failed:", (e as Error).message);
-      }
-    }
-
-    console.log(`[author-stats] resolved userId=${userId} email=${userEmail} via=${resolvedVia}`);
+    console.log(`[author-stats] resolved userId=${userId} email=${userEmail} via=${source}`);
 
     const admin = cloudAdmin;
 
