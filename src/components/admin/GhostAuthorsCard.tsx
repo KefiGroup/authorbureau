@@ -19,13 +19,16 @@ export default function GhostAuthorsCard() {
   const [loading, setLoading] = useState(true);
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [backfilling, setBackfilling] = useState(false);
+  const [warning, setWarning] = useState<string | null>(null);
   const { toast } = useToast();
 
   const load = async () => {
     setLoading(true);
     const { data, error } = await supabase.functions.invoke("admin-list-ghost-authors", { body: {} });
     if (error) toast({ title: "Failed to load ghosts", description: error.message, variant: "destructive" });
-    setGhosts(((data as { ghosts?: Ghost[] })?.ghosts) || []);
+    const resp = (data as { ghosts?: Ghost[]; warning?: string }) || {};
+    setGhosts(resp.ghosts || []);
+    setWarning(resp.warning || null);
     setLoading(false);
   };
 
@@ -83,7 +86,13 @@ export default function GhostAuthorsCard() {
         </Button>
       </CardHeader>
       <CardContent className="pt-0">
-        {ghosts.length === 0 ? (
+        {warning === "shared_backend_unavailable" ? (
+          <p className="text-sm text-amber-700">
+            Couldn't reach PublishNow auth — ghost detection is paused to avoid falsely flagging real authors.
+            Check the <code className="text-xs">SHARED_BACKEND_SERVICE_ROLE_KEY</code> secret (must be the
+            service-role key for project <code className="text-xs">wuftdpnekscrsghqtssd</code>).
+          </p>
+        ) : ghosts.length === 0 ? (
           <p className="text-sm text-muted-foreground">No ghost profiles. Every author profile has a valid login.</p>
         ) : (
           <div className="space-y-2">

@@ -5,6 +5,10 @@
 // table. The legacy SQL RPC `admin_list_ghost_authors` only checked Cloud,
 // so every PublishNow-signed-up author was falsely flagged as a ghost.
 //
+// If the shared backend cannot be reached (missing or invalid service-role
+// key), we return `warning: "shared_backend_unavailable"` and an empty
+// ghost list rather than parading real authors as ghosts.
+//
 // Admin-gated via canonical resolveUser + user_roles lookup.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -67,20 +71,23 @@ Deno.serve(async (req) => {
     }>) || [];
 
     if (candidates.length === 0) {
-      return json({ ghosts: [] });
+      return json({ ghosts: [], candidate_count: 0, shared_user_count: 0, reconciled_out: 0 });
     }
 
     // 2. Build the set of emails registered on the shared backend.
     const sharedEmails = new Set<string>();
-    if (SHARED_SERVICE_ROLE) {
+    let sharedBackendError: string | null = null;
+
+    if (!SHARED_SERVICE_ROLE) {
+      sharedBackendError = "missing_key";
+    } else {
       try {
         const shared = createClient(SHARED_BACKEND_URL, SHARED_SERVICE_ROLE);
-        // Page through shared auth users (default page size 50). Cap at 20 pages
-        // to be safe; the shared backend has only a few thousand authors.
         for (let page = 1; page <= 20; page++) {
           const { data, error } = await shared.auth.admin.listUsers({ page, perPage: 1000 });
           if (error) {
             console.error("[admin-list-ghost-authors] shared listUsers error:", error.message);
+            sharedBackendError = error.message;
             break;
           }
           const users = data?.users || [];
@@ -91,9 +98,22 @@ Deno.serve(async (req) => {
         }
       } catch (e) {
         console.error("[admin-list-ghost-authors] shared backend lookup failed:", e);
+        sharedBackendError = e instanceof Error ? e.message : String(e);
       }
-    } else {
-      console.warn("[admin-list-ghost-authors] SHARED_BACKEND_SERVICE_ROLE_KEY missing — cannot reconcile shared users");
+    }
+
+    // If we couldn't reconcile against the shared backend, refuse to return
+    // candidate "ghosts" — they may be real PublishNow authors. Surface the
+    // condition to the UI instead.
+    if (sharedBackendError) {
+      return json({
+        ghosts: [],
+        candidate_count: candidates.length,
+        shared_user_count: 0,
+        reconciled_out: 0,
+        warning: "shared_backend_unavailable",
+        warning_detail: sharedBackendError,
+      });
     }
 
     // 3. Filter out candidates whose email is a real shared-backend account.
