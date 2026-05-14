@@ -48,8 +48,7 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || req.headers.get("authorization");
     if (!authHeader) return json({ error: "Missing authorization" }, 401);
 
-    const token = authHeader.replace("Bearer ", "");
-    const { userId, client } = await verifyAdmin(token);
+    const { userId, client } = await verifyAdmin(authHeader);
     if (!userId || !client) return json({ error: "Admin access required" }, 403);
 
     const { action, ...params } = await req.json();
