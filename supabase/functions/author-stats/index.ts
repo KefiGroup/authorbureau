@@ -200,11 +200,11 @@ Deno.serve(async (req) => {
     });
     const primaryBookId: string | null = sortedBooks[0]?.id ?? null;
 
-    // Check analysis status
+    // Check analysis status — generated_assets.author_id also FKs to author_profiles.id
     const { data: assets } = await admin
       .from("generated_assets")
       .select("book_id")
-      .in("author_id", allUserIds)
+      .in("author_id", allAuthorRefs)
       .eq("asset_type", "business_plan");
     const analyzedBookIds = new Set((assets || []).map((a: any) => a.book_id));
     const analyzedCount = analyzedBookIds.size;
