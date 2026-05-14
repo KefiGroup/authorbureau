@@ -278,6 +278,69 @@ export default function MicrositePage() {
   );
 }
 
+/* ═══ MICROSITE NAV (Sprint 66) ═══ */
+function MicrositeNav({
+  authorSlug, authorName, authorPhotoUrl, bookSlug, bookTitle, nodeLabel, v, hFont,
+}: {
+  authorSlug: string;
+  authorName: string;
+  authorPhotoUrl?: string | null;
+  bookSlug?: string;
+  bookTitle?: string;
+  nodeLabel?: string;
+  v: any;
+  hFont: string;
+}) {
+  return (
+    <>
+      <nav
+        className="sticky top-0 z-[100]"
+        style={{ background: v.primary, height: 56, borderBottom: `1px solid ${v.accent}33` }}
+      >
+        <div className="container max-w-7xl flex items-center justify-between h-14 px-4">
+          <Link to={`/${authorSlug}`} className="flex items-center gap-2.5 hover:opacity-90 shrink-0">
+            {authorPhotoUrl ? (
+              <img src={authorPhotoUrl} alt={authorName} className="w-8 h-8 rounded-full object-cover" style={{ border: `2px solid ${v.accent}` }} />
+            ) : (
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: v.accent, color: v.accentText }}>
+                {authorName.charAt(0)}
+              </div>
+            )}
+            <span className="font-semibold text-base" style={{ color: v.primaryText, fontFamily: hFont }}>{authorName}</span>
+          </Link>
+          {bookSlug && (
+            <Link
+              to={`/${authorSlug}/${bookSlug}`}
+              className="inline-flex items-center gap-1.5 font-bold text-[0.85rem] rounded-full px-4 py-2 transition-all hover:scale-[1.03] shrink-0"
+              style={{ background: v.accent, color: v.accentText, boxShadow: `0 4px 12px ${v.accent}55` }}
+            >
+              ← Back to {bookTitle || "Book"}
+            </Link>
+          )}
+        </div>
+      </nav>
+      {/* Breadcrumb strip */}
+      <div className="text-[0.85rem] px-4 py-2.5" style={{ background: v.primary, backgroundImage: "linear-gradient(rgba(255,255,255,0.04), rgba(255,255,255,0.04))" }}>
+        <div className="container max-w-7xl flex items-center gap-2 flex-wrap">
+          <Link to={`/${authorSlug}`} className="hover:underline" style={{ color: v.accent }}>{authorName}</Link>
+          {bookSlug && bookTitle && (
+            <>
+              <span style={{ color: v.primaryText, opacity: 0.6 }}>/</span>
+              <Link to={`/${authorSlug}/${bookSlug}`} className="hover:underline" style={{ color: v.accent }}>{bookTitle}</Link>
+            </>
+          )}
+          {nodeLabel && (
+            <>
+              <span style={{ color: v.primaryText, opacity: 0.6 }}>/</span>
+              <span style={{ color: v.primaryText }}>{nodeLabel}</span>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 /* ═══ SHARED PROPS ═══ */
 interface PageProps {
   data: MicrositeData;
