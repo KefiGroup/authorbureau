@@ -78,14 +78,16 @@ async function resolveIdentity(token: string): Promise<{ userId: string; email: 
 }
 
 async function resolveAllUserIds(cloudAdmin: any, identity: { userId: string; email: string | null }): Promise<string[]> {
-  const allUserIds: string[] = [identity.userId];
+  const allIds: string[] = [identity.userId];
+  const push = (v?: string | null) => { if (v && !allIds.includes(v)) allIds.push(v); };
 
   // Primary: look up profile by user_id
   let { data: profile } = await cloudAdmin
     .from("author_profiles")
-    .select("pen_name, user_id")
+    .select("id, pen_name, user_id")
     .eq("user_id", identity.userId)
     .maybeSingle();
+  push((profile as any)?.id);
 
   // Fallback: if no profile by user_id, try matching by email through auth.users
   // (handles shared-vs-cloud user id mismatches)
@@ -93,27 +95,29 @@ async function resolveAllUserIds(cloudAdmin: any, identity: { userId: string; em
     const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
     const match = (users || []).find((u: any) => u.email?.toLowerCase() === identity.email!.toLowerCase());
     if (match) {
-      if (!allUserIds.includes(match.id)) allUserIds.push(match.id);
+      push(match.id);
       const { data: emailProfile } = await cloudAdmin
         .from("author_profiles")
-        .select("pen_name, user_id")
+        .select("id, pen_name, user_id")
         .eq("user_id", match.id)
         .maybeSingle();
       profile = emailProfile;
+      push((emailProfile as any)?.id);
     }
   }
 
   if (profile?.pen_name) {
     const { data: siblings } = await cloudAdmin
       .from("author_profiles")
-      .select("user_id")
+      .select("id, user_id")
       .eq("pen_name", profile.pen_name);
     for (const s of siblings || []) {
-      if (!allUserIds.includes(s.user_id)) allUserIds.push(s.user_id);
+      push((s as any).user_id);
+      push((s as any).id);
     }
   }
-  console.log("[builder-draft-state] 🔑 resolveAllUserIds →", { input: identity, allUserIds, pen_name: profile?.pen_name });
-  return allUserIds;
+  console.log("[builder-draft-state] 🔑 resolveAllUserIds →", { input: identity, allIds, pen_name: profile?.pen_name });
+  return allIds;
 }
 
 function splitSalesAndContent(markdown: string): { sales: string; content: string } {
