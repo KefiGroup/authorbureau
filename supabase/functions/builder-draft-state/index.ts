@@ -810,19 +810,21 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await cloudAdmin
       .from("author_profiles")
-      .select("pen_name")
+      .select("id, pen_name")
       .eq("user_id", identity.userId)
       .maybeSingle();
 
     const allUserIds: string[] = [identity.userId];
+    if ((profile as any)?.id) allUserIds.push((profile as any).id);
     if (profile?.pen_name) {
       const { data: siblingProfiles } = await cloudAdmin
         .from("author_profiles")
-        .select("user_id")
+        .select("id, user_id")
         .eq("pen_name", profile.pen_name)
         .neq("user_id", identity.userId);
       for (const sibling of siblingProfiles || []) {
-        allUserIds.push(sibling.user_id);
+        if ((sibling as any).user_id) allUserIds.push((sibling as any).user_id);
+        if ((sibling as any).id) allUserIds.push((sibling as any).id);
       }
     }
 
