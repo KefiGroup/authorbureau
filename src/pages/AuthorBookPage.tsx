@@ -566,7 +566,7 @@ export default function AuthorBookPage() {
             authorName={authorName}
             authorPhotoUrl={authorProfile?.photo_url}
             books={allAuthorBooks}
-            hasServices={coachingServices.length > 0}
+            hasServices={coachingServices.length > 0 || buyableNodes.some(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id))}
             vars={v}
             headingFont={theme.headingFont}
             bodyFont={theme.bodyFont}
