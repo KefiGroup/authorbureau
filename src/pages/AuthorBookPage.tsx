@@ -806,71 +806,142 @@ export default function AuthorBookPage() {
         </section>
       )}
 
-      {/* ===== SECTION 3: GET THE FULL EXPERIENCE — buyable live nodes (moved up per redesign brief) ===== */}
-      {buyableNodes.length > 0 && (
-        <section className="py-14 md:py-16" style={{ background: v.cardBg }}>
-          <div className="container max-w-5xl">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-5 w-5" style={{ color: v.accent }} />
-              <h2 className="text-2xl md:text-[2rem] font-bold" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
-                Everything in the {book.title} Ecosystem
-              </h2>
-            </div>
-            <p className="text-base mb-8" style={{ color: v.mutedText }}>
-              Workbooks, courses, coaching, and more from {authorName}, built around the ideas in this book.
-            </p>
+      {/* ===== SECTION 3: READER-FACING NODE BUCKETS (Sprint 66) ===== */}
+      {buyableNodes.length > 0 && (() => {
+        const visible = buyableNodes.filter(n => !HIDDEN_NODE_IDS.has(n.node_id));
+        const formatNodes = visible.filter(n => (FORMATS_NODE_IDS as readonly string[]).includes(n.node_id));
+        const courseNodes = visible.filter(n => (COURSES_MEMBERSHIP_NODE_IDS as readonly string[]).includes(n.node_id));
+        const workNodes  = visible.filter(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id));
 
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {buyableNodes.map((n) => {
-                const title = n.personalised_name || n.node_name || "Product";
-                const currency = (n.currency || "USD").toUpperCase();
-                const symbol = currency === "USD" ? "$" : "";
-                const price = `${symbol}${Number(n.price_usd).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-                const description = extractCardDescription(n);
-                const learnMorePath = toInternalPath(n.delivery_url);
-                return (
-                  <div
-                    key={n.id}
-                    className="rounded-xl p-5 flex flex-col"
-                    style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+        const renderBuyCard = (n: any, mode: "buy" | "free") => {
+          const title = n.personalised_name || n.node_name || "Product";
+          const currency = (n.currency || "USD").toUpperCase();
+          const symbol = currency === "USD" ? "$" : "";
+          const priceNum = Number(n.price_usd) || 0;
+          const price = mode === "free" ? "Free" : `${symbol}${priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const description = extractCardDescription(n);
+          const learnMorePath = toInternalPath(n.delivery_url);
+          return (
+            <div
+              key={n.id}
+              className="rounded-xl p-5 flex flex-col"
+              style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+            >
+              <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>{title}</p>
+              {description && (
+                <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
+              )}
+              <p className="font-bold text-lg mb-4" style={{ color: v.accent }}>{price}</p>
+              <div className="mt-auto space-y-2">
+                {learnMorePath && (
+                  <Link
+                    to={learnMorePath}
+                    className="w-full inline-flex items-center justify-center rounded-full text-xs h-9 font-semibold transition-opacity hover:opacity-90"
+                    style={{ background: mode === "free" ? v.accent : "transparent", color: mode === "free" ? v.accentText : v.accent, border: mode === "free" ? "none" : `1px solid ${v.accent}` }}
                   >
-                    <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>
-                      {title}
-                    </p>
-                    {description && (
-                      <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>
-                        {description}
-                      </p>
-                    )}
-                    <p className="font-bold text-lg mb-4" style={{ color: v.accent }}>
-                      {price}
-                    </p>
-                    <div className="mt-auto space-y-2">
-                      {learnMorePath ? (
-                        <Link
-                          to={learnMorePath}
-                          className="w-full inline-flex items-center justify-center rounded-full text-xs h-9 font-semibold transition-opacity hover:opacity-90"
-                          style={{ background: v.accent, color: v.accentText }}
-                        >
-                          Learn More <ArrowRight className="ml-1 h-3 w-3" />
-                        </Link>
-                      ) : null}
-                      <BuyNowButton
-                        authorNodeId={n.id}
-                        authorId={book.author_id}
-                        fallbackUrl={n.delivery_url}
-                        label="Buy Now"
-                        className="w-full rounded-full text-xs h-9 font-semibold"
-                      />
-
-                    </div>
-                  </div>
-                );
-              })}
+                    {mode === "free" ? "Get Free Access" : "Learn More"} <ArrowRight className="ml-1 h-3 w-3" />
+                  </Link>
+                )}
+                {mode === "buy" && (
+                  <BuyNowButton
+                    authorNodeId={n.id}
+                    authorId={book.author_id}
+                    fallbackUrl={n.delivery_url}
+                    label="Buy Now"
+                    className="w-full rounded-full text-xs h-9 font-semibold"
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        </section>
-      )}
+          );
+        };
+
+        const renderInquireCard = (n: any) => {
+          const title = n.personalised_name || n.node_name || "Service";
+          const description = extractCardDescription(n);
+          return (
+            <div
+              key={n.id}
+              className="rounded-xl p-5 flex flex-col"
+              style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+            >
+              <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>{title}</p>
+              {description && (
+                <p className="text-xs leading-relaxed mb-4 line-clamp-3 flex-1" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
+              )}
+              {!description && <div className="flex-1" />}
+              <button
+                onClick={() => setInquiryFor(title)}
+                className="w-full inline-flex items-center justify-center gap-1 rounded-full text-xs h-9 font-semibold transition-opacity hover:opacity-90 mt-auto"
+                style={{ background: v.accent, color: v.accentText }}
+              >
+                <Mail className="h-3.5 w-3.5" /> Contact {authorFirstName}
+              </button>
+            </div>
+          );
+        };
+
+        return (
+          <>
+            {formatNodes.length > 0 && (
+              <section id="formats" className="py-14 md:py-16" style={{ background: v.cardBg }}>
+                <div className="container max-w-5xl">
+                  <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                    Available Formats
+                  </h2>
+                  <p className="text-base mb-8" style={{ color: v.mutedText }}>
+                    Get {book.title} in the format that fits how you learn best.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {formatNodes.map(n => renderBuyCard(n, Number(n.price_usd) > 0 ? "buy" : "free"))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {courseNodes.length > 0 && (
+              <section id="courses" className="py-14 md:py-16" style={{ background: v.secondaryBg }}>
+                <div className="container max-w-5xl">
+                  <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                    Courses & Membership
+                  </h2>
+                  <p className="text-base mb-8" style={{ color: v.mutedText }}>
+                    Go deeper with {authorFirstName}'s self-paced course and ongoing membership community.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {courseNodes.map(n => renderBuyCard(n, Number(n.price_usd) > 0 ? "buy" : "free"))}
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {workNodes.length > 0 && (
+              <section id="work-with-me" className="py-14 md:py-16" style={{ background: v.cardBg }}>
+                <div className="container max-w-5xl">
+                  <h2 className="text-2xl md:text-[2rem] font-bold mb-2" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                    Work With {authorFirstName}
+                  </h2>
+                  <p className="text-base mb-8" style={{ color: v.mutedText }}>
+                    Coaching, consulting, speaking, and bespoke programmes. Reach out to discuss what fits.
+                  </p>
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {workNodes.map(renderInquireCard)}
+                  </div>
+                </div>
+              </section>
+            )}
+          </>
+        );
+      })()}
+
+      {/* Inquiry modal — opens when a Work-With card is clicked */}
+      <ServiceInquiryForm
+        open={!!inquiryFor}
+        onOpenChange={(o) => !o && setInquiryFor(null)}
+        authorName={authorName}
+        authorSlug={authorSlug!}
+        serviceType={inquiryFor || ""}
+      />
 
       {/* ===== SECTION 3.5: BESTSELLER PROOF ===== */}
       {book.bestseller_proof_url && (
