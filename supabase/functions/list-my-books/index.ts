@@ -110,10 +110,36 @@ Deno.serve(async (req) => {
 
     console.log("[list-my-books] Resolved userId:", userId, "email:", userEmail, "via:", source);
 
-    // Build ownership filter: author_id matches OR owner_email matches.
-    // Both forms are tolerated independently so we can still load books even
-    // if userId resolution failed (email-only fallback).
+    // CRITICAL: books.author_id is a FK to author_profiles.id, NOT auth.users.id.
+    // Resolve the profile id so we don't depend solely on owner_email matching.
+    let authorProfileId: string | null = null;
+    if (userId) {
+      const { data: prof } = await cloudAdmin
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .maybeSingle();
+      authorProfileId = (prof as any)?.id ?? null;
+    }
+    if (!authorProfileId && userEmail) {
+      // Last-resort: a session whose auth uid doesn't match any profile but
+      // whose email does (e.g. cross-system migration).
+      const { data: { users } } = await cloudAdmin.auth.admin.listUsers();
+      const localMatch = users?.find((u: any) => u.email?.toLowerCase() === userEmail.toLowerCase());
+      if (localMatch) {
+        const { data: prof2 } = await cloudAdmin
+          .from("author_profiles")
+          .select("id")
+          .eq("user_id", localMatch.id)
+          .maybeSingle();
+        authorProfileId = (prof2 as any)?.id ?? null;
+      }
+    }
+    console.log("[list-my-books] authorProfileId:", authorProfileId);
+
+    // Build ownership filter: author_id (profile OR auth uid for legacy rows) OR owner_email.
     const filterParts: string[] = [];
+    if (authorProfileId) filterParts.push(`author_id.eq.${authorProfileId}`);
     if (userId) filterParts.push(`author_id.eq.${userId}`);
     if (userEmail) filterParts.push(`owner_email.eq.${userEmail}`);
     const ownershipFilter = filterParts.join(",");
