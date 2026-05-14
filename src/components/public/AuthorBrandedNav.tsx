@@ -271,12 +271,12 @@ export default function AuthorBrandedNav({
           ))}
           {hasServices && (
             <Link
-              to={`/${authorSlug}#services`}
+              to={workWithHref}
               className="text-sm font-medium py-1.5"
               style={{ color: `${v.primaryText}D9` }}
               onClick={() => setMobileOpen(false)}
             >
-              Services
+              Work With Me
             </Link>
           )}
           <button
