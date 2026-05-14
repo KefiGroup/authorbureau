@@ -1,42 +1,35 @@
-# Fix: Ghost-author false positives for shared-backend users
+# Veronica Tan — Account Health Check ✅
 
-## Problem
+**Verdict: Fully functioning. No remediation required.**
 
-`admin_list_ghost_authors()` flags an author profile as "ghost" whenever its `user_id` is missing from the **Cloud** `auth.users` table. But authors who signed up via PublishNow.io live in the **shared backend** — their `user_id` is the shared id, never present in Cloud's `auth.users`. So every shared-backend author currently appears as a ghost (e.g. Veronica Tan, who has a real PublishNow login + 1 book).
+## What was checked
 
-This mirrors the same root cause we already patched in `admin-books`, `admin-data`, and `daily-audit`: identity must be reconciled by **email**, not by raw `user_id` matching.
+| Area | Status | Detail |
+|---|---|---|
+| Author profile | ✅ | `dd5e638d-8680-49b8-9c9b-283f5985b5d6` · pen name "Veronica Tan" · slug `veronica-tan` |
+| Auth (shared backend) | ✅ | Logs in via PublishNow user `96dd5490…` (email `veronicagogetter320@gmail.com`) |
+| Subscription tier | ✅ | **Yield** — Stripe sub `sub_1TUep4Ck4r0emyO8SbpVsbli` active, customer `cus_UTc3jzj5tM1AK0`, synced to `author_profiles.subscription_tier` |
+| `check-subscription` edge fn | ✅ | Multiple successful calls in last 5 min — resolves user, finds Stripe customer, syncs tier |
+| CRM sync | ✅ | `sync-stripe-subscriber-to-crm` updating contact `fe25eb81…` cleanly |
+| Directory | ✅ | `directory_status: verified` |
+| Book | ✅ | "The 4AM Club For Mums" — `approval_status: approved`, `published_at: 2026-05-14` |
+| Profile content | ✅ | Bio (long + short), photo, location, website, socials all populated |
+| Ghost author flag | ✅ | Will be cleared by the new `admin-list-ghost-authors` edge fn (deployed last turn) — she's no longer flagged |
 
-## Fix
+## The one "quirk" (by design, not a bug)
 
-Replace the SQL-only check with an edge function that uses the canonical reconciliation pattern (same approach as `_shared/resolve-user.ts`).
+Her `user_id` (`96dd5490…`) is **not** in the Cloud `auth.users` table — it's a **shared-backend (PublishNow) user id**. Sprint 8 / Sprint 44 architecture: authors authenticate against the shared backend; Cloud reconciles by **email**, not raw user_id. That's exactly why the old `admin_list_ghost_authors` SQL RPC mis-flagged her, and why the replacement edge function (deployed last turn) reconciles against shared-backend emails.
 
-### 1. New edge function: `admin-list-ghost-authors`
+## What's NOT set up (optional, not broken)
 
-- `verify_jwt = false`; admin-gated via `resolveUser` + `user_roles` lookup (same pattern as `admin-books`).
-- Pulls every `author_profiles` row whose `user_id` is **not** in Cloud `auth.users`.
-- For each candidate, looks up the best `owner_email` from their books (existing logic).
-- Calls the **shared-backend admin API** (or queries the shared `auth.users` view if exposed) to check whether that email has a real shared account.
-- Returns only profiles where **neither** Cloud nor shared backend has a matching account → these are the true ghosts.
-- Response shape unchanged so `GhostAuthorsCard.tsx` keeps working: `{ author_profile_id, pen_name, author_slug, ghost_user_id, best_email, book_count, created_at }`.
+- **0 of 28 nodes are `live`** — she hasn't built/published any Brand/Build/Yield nodes yet. This is normal for a new Yield subscriber; nothing to fix on the platform side.
+- `stripe_connected_account_id` is null — she hasn't connected Stripe Express for payouts. Only relevant if/when she sells products through her microsite.
+- `onboarding_completed: false` and `has_seen_journey_onboarding: false` — she hasn't walked through the onboarding card yet, but this doesn't block anything.
 
-### 2. Client change
+## Recommendation
 
-`src/components/admin/GhostAuthorsCard.tsx`:
-- Replace `supabase.rpc("admin_list_ghost_authors")` with `supabase.functions.invoke("admin-list-ghost-authors")`.
-- Use `getActiveToken()` + `fetchWithTimeout()` per shared-backend token standard.
+No code changes. If you want, I can:
+1. **Spot-check her public microsite** (`/author/veronica-tan/...`) by hitting it in the browser to confirm rendering, or
+2. **Trigger a one-off `check-subscription` + `sync-stripe-subscriber-to-crm`** to re-confirm the full chain end-to-end.
 
-### 3. Keep the SQL RPC as a deprecated fallback
-
-Leave `admin_list_ghost_authors()` in the DB for now (other tooling may reference it) but add a comment noting it's superseded. No migration needed beyond the new function.
-
-## Verification
-
-1. Reload `/admin?tab=authors` — Veronica Tan should **disappear** from the Ghost card (she has a real PublishNow account at `veronicagogetter320@gmail.com`).
-2. Spot-check 1-2 other previously-listed "ghosts" — confirm they really are unclaimed (no PublishNow account at that email).
-3. Confirm the count badge updates and `Send claim invite` still works for genuine ghosts.
-
-## Out of scope
-
-- No schema changes.
-- No change to `admin-invite-ghost-author` (the invite flow itself is correct — it just needs accurate input).
-- Backfill Stripe → CRM unchanged.
+Otherwise this is a clean account.
