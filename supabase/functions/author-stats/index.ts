@@ -148,22 +148,31 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     const allUserIds: string[] = [userId];
+    const allAuthorIds: string[] = [];
+    if ((profile as any)?.id) allAuthorIds.push((profile as any).id);
     if (profile?.pen_name) {
       const { data: siblings } = await admin
         .from("author_profiles")
-        .select("user_id")
+        .select("id, user_id")
         .eq("pen_name", profile.pen_name)
         .neq("user_id", userId);
       if (siblings) {
-        for (const s of siblings) allUserIds.push(s.user_id);
+        for (const s of siblings as any[]) {
+          if (s.user_id) allUserIds.push(s.user_id);
+          if (s.id) allAuthorIds.push(s.id);
+        }
       }
     }
+    // CRITICAL: books.author_id FKs to author_profiles.id (NOT auth.users.id).
+    // Query against the union so legacy rows stamped with auth uids and modern
+    // rows stamped with profile ids both resolve.
+    const allAuthorRefs = Array.from(new Set([...allUserIds, ...allAuthorIds]));
 
     // Count books (also fetch created_at to attribute author_nodes to the oldest book)
     const { data: booksByAuthor } = await admin
       .from("books")
       .select("id, published_at, created_at")
-      .in("author_id", allUserIds);
+      .in("author_id", allAuthorRefs);
 
     const { data: booksByEmail } = userEmail
       ? await admin.from("books").select("id, published_at, created_at").eq("owner_email", userEmail)
