@@ -223,7 +223,17 @@ export default function MicrositePage() {
   // Render node-specific template
   return (
     <div className="min-h-screen" style={{ background: bgColor, color: v.bodyText }}>
-      {/* Public microsites: no nav header per brand rules */}
+      {/* Sprint 66: microsite nav + breadcrumb so readers can return to book/author. */}
+      <MicrositeNav
+        authorSlug={authorSlug!}
+        authorName={authorName}
+        authorPhotoUrl={data.author?.photo_url}
+        bookSlug={data.book?.slug || bookSlug}
+        bookTitle={bookTitle}
+        nodeLabel={pageTitle}
+        v={v}
+        hFont={hFont}
+      />
 
       {/* Node-specific content */}
       {resolvedNodeId === "BP-02" && <LeadMagnetPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} setQuizData={setQuizData} />}
