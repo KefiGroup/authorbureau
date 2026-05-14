@@ -109,7 +109,7 @@ export default function LiveMicrositesGrid() {
               Your Live Microsites
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {liveNodes.length} of 28 nodes published. Copy any link to share or promote.
+              {liveNodes.length} of {nodes.length} live nodes have a public link. Copy any link to share or promote.
             </p>
           </div>
           <Badge className="bg-emerald-600 text-white">{liveNodes.length} LIVE</Badge>

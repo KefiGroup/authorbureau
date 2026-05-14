@@ -9,6 +9,8 @@ import { ABBY_CATEGORIES, ABBY_CATEGORY_LIST, getEffectiveCategory, type AbbyCat
 import { useAuth } from "@/hooks/useAuth";
 import { isSuperAdmin } from "@/lib/superadmin";
 import { useNodeGating } from "@/hooks/useNodeGating";
+import { useAuthorStats } from "@/hooks/useAuthorStats";
+import { NODE_CODE_MAP } from "@/hooks/useBookNodeProgress";
 
 // Alias for backward compat in this file
 type Node = AbbyNode;
@@ -29,11 +31,27 @@ const statusStyles = {
 export default function BusinessFramework({ onNavigate, isPremium, focusStep }: Props) {
   const { isAdmin, user } = useAuth();
   const { gating } = useNodeGating();
+  const { stats } = useAuthorStats(user?.id);
   const openNodeIds = new Set(gating.filter(r => r.is_open).map(r => r.node_id));
   const categories = (Object.keys(ABBY_CATEGORIES) as AbbyCategory[]).map(k => getEffectiveCategory(k, isAdmin, isSuperAdmin(user?.email), openNodeIds));
   const [activeCategory, setActiveCategory] = useState<string | null>(focusStep || null);
   useEffect(() => { if (focusStep) setActiveCategory(focusStep); }, [focusStep]);
   const activeCatData = categories.find((c) => c.id === activeCategory);
+
+  // Canonical built set — same source as MultiBookPicker / BookHubOverview.
+  // ABBYFrameworkVisual keys nodes by slug ids ("microsite", "lead-magnet", …),
+  // so invert NODE_CODE_MAP to translate author-stats `BP-04` → `microsite`.
+  const completedAssets = (() => {
+    const codeToSlug: Record<string, string> = {};
+    for (const [slug, code] of Object.entries(NODE_CODE_MAP)) {
+      if (!codeToSlug[code]) codeToSlug[code] = slug;
+    }
+    const builtCodes = new Set<string>();
+    for (const b of Object.values(stats?.products?.perBook ?? {})) {
+      for (const id of b?.nodeIds ?? []) builtCodes.add(id);
+    }
+    return Array.from(builtCodes).map(code => codeToSlug[code]).filter(Boolean);
+  })();
 
   return (
     <div className="max-w-6xl space-y-6">
@@ -119,7 +137,7 @@ export default function BusinessFramework({ onNavigate, isPremium, focusStep }: 
         <ABBYFrameworkVisual
           hasConsultation={true}
           tier="free"
-          completedAssets={[]}
+          completedAssets={completedAssets}
           recommendedNodes={[]}
           onConsultAbby={() => onNavigate("build-business")}
           onNavigateTab={(tab) => {

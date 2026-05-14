@@ -46,6 +46,8 @@ Every consumer of "X / 28 Live" MUST import `hasRequiredAssets` from the **singl
 
 Forking this rule into a second file is what caused the historical 22 → 26 → 24 counter bug (Sprint 33). Never duplicate.
 
+> **Not an X/28 counter:** `LiveMicrositesGrid` denominates against rows with a public branded URL (audiobooks, lead magnets, etc. don't have one), so its number is intentionally written as "{n} of {liveRows.length} live nodes have a public link" — never "of 28". Don't relabel it back; the X/28 universe lives in `useBookNodeProgress` / `author-stats.perBook`.
+
 ## 5. Per-node Readiness Gates
 
 Full table in `02-node-readiness-gates-full-spec.md`. Special-gate nodes (richer rules):

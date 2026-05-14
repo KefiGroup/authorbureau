@@ -172,7 +172,12 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
                 bookTitle: firstBook.title,
                 streamsMapped: planData.plan.products?.length || ({ brand: 9, build: 18, yield: 28 } as Record<string, number>)[tier] || 28,
                 projectedRevenue: planData.plan.projectedRevenue || "$50K+",
-                productsBuilt: planData.completedAssets?.length || 0,
+                // Canonical "built" count — same source as the rest of the dashboard
+                // (author-stats `products.totalBuilt`). The legacy
+                // `planData.completedAssets` array uses asset_type strings that
+                // don't reconcile to the 28-node universe and would silently
+                // disagree with MultiBookPicker / BookHubOverview / X-of-28 counters.
+                productsBuilt: stats?.products?.totalBuilt ?? 0,
               });
               // Do NOT overwrite builtProducts here — it's already populated from author_nodes (canonical).
               // The plan's `completedAssets` uses asset_type strings (business_plan, lead_magnet) that
