@@ -140,13 +140,31 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       // returned a non-empty list — prevents flashing the "Meet Abby / no
       // book" empty state when only the dashboard-state call failed.
       const booksLen = Array.isArray(booksData?.books) ? booksData.books.length : 0;
+      // Mismatch detector: dashboard-state says we have books but list-my-books
+      // returned an empty/failed payload. Bust the books cache and re-fetch
+      // once so a stale module cache (e.g., after an admin delete) can't
+      // strand the user on the empty-state CTA.
+      if (booksLen === 0 && (state?.bookCount ?? 0) > 0 && !hasBootstrapped) {
+        try {
+          const { bustMyBooksCache } = await import("@/hooks/useMyBooks");
+          bustMyBooksCache(user?.id);
+        } catch {}
+      }
       setBookCount(booksLen > 0 ? booksLen : (state?.bookCount || myBooks.length || 0));
       if (slugRes?.data?.author_slug) setAuthorSlug(slugRes.data.author_slug);
 
-      if (booksData?.books) {
-        setBookCovers(booksData.books.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
-        const anyApproved = booksData.books.some((b: any) => !!b.published_at);
+      // Source of truth for covers/approval: prefer fresh booksData, fall back
+      // to cached myBooks so a transient list-my-books failure doesn't blank
+      // the dashboard for users who actually have books.
+      const sourceBooks: any[] = booksData?.books?.length
+        ? booksData.books
+        : (myBooks.length ? myBooks : []);
+      if (sourceBooks.length > 0) {
+        setBookCovers(sourceBooks.filter((b: any) => b.cover_image_url).map((b: any) => b.cover_image_url).slice(0, 3));
+        const anyApproved = sourceBooks.some((b: any) => !!b.published_at);
         setBookApproved(anyApproved);
+      }
+
 
         if (booksData.books.length > 0) {
           // Check ALL books for an Abby plan, not just the first.
