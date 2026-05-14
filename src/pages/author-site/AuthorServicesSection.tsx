@@ -1,12 +1,13 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen, GraduationCap, Users, Headphones, Mic, ArrowRight, User, Crown, Building2, Presentation } from "lucide-react";
+import { BookOpen, GraduationCap, Users, Headphones, Mic, ArrowRight, User, Crown, Building2, Presentation, Sparkles } from "lucide-react";
 import { getProductCardCTAText } from "@/lib/product-copy";
 import type { ProductLink, CoachingService, ThemeVars } from "./types";
 import { PRODUCT_LABELS, PRODUCT_ROUTES, fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
-import { getNodePriceLabel } from "./node-price";
+import ServiceDetailDialog from "@/components/public/ServiceDetailDialog";
 
 const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
   home_study: BookOpen,
