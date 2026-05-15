@@ -10,6 +10,7 @@ interface PortfolioSummaryBarProps {
   revenueThisMonth: number;
   tier: SubscriptionTier;
   onSubscribe?: () => void;
+  compact?: boolean;
 }
 
 const stats = [
