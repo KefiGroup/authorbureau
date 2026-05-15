@@ -423,7 +423,19 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
                 <FileText className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="font-heading text-xl font-bold tracking-tight">ABBY Business Plan</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-heading text-xl font-bold tracking-tight">ABBY Business Plan</h2>
+                  {isFullPlan && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-200 text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
+                      ✓ Full 28-Node Plan
+                    </span>
+                  )}
+                  {isSummaryPlan && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-200 text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
+                      Summary Preview
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-white/60 mt-0.5">{bookTitle}</p>
               </div>
             </div>
