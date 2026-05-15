@@ -130,8 +130,13 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
   useEffect(() => { fetchBooks(); }, [user, fetchBooks]);
 
-  // Deep-link support: ?bookId=&focus=
+  // Deep-link support: ?bookId=&focus= and ?action=add
   const [searchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("action") === "add") {
+      setShowForm(true);
+    }
+  }, [searchParams]);
   useEffect(() => {
     const focusBookId = searchParams.get("bookId");
     const focusField = searchParams.get("focus");
