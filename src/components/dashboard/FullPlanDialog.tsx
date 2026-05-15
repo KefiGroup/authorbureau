@@ -395,7 +395,13 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
     setGenerating(false);
   };
 
-  const isFullPlan = plan ? (plan.match(/^-\s/gm)?.length || 0) >= 10 : false;
+  // Heuristic: the full 28-node plan lists every node code (BP-/BA-/YR-).
+  // The consultation summary only lists 2-4 examples per Build/Yield section
+  // and includes 🔒 lock markers. Use node-code count as the reliable signal.
+  const nodeCodeCount = plan ? (plan.match(/\b(BP|BA|YR)-\d{2}\b/g)?.length || 0) : 0;
+  const hasLockMarkers = plan ? /🔒|unlocked with the (Build|Yield) Package/i.test(plan) : false;
+  const isFullPlan = !!plan && nodeCodeCount >= 20 && !hasLockMarkers;
+  const isSummaryPlan = !!plan && !isFullPlan;
 
   const scrollToSection = (key: string) => {
     setActiveSection(key);
