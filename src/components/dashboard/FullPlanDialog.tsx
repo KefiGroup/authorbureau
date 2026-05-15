@@ -395,7 +395,13 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
     setGenerating(false);
   };
 
-  const isFullPlan = plan ? (plan.match(/^-\s/gm)?.length || 0) >= 10 : false;
+  // Heuristic: the full 28-node plan lists every node code (BP-/BA-/YR-).
+  // The consultation summary only lists 2-4 examples per Build/Yield section
+  // and includes 🔒 lock markers. Use node-code count as the reliable signal.
+  const nodeCodeCount = plan ? (plan.match(/\b(BP|BA|YR)-\d{2}\b/g)?.length || 0) : 0;
+  const hasLockMarkers = plan ? /🔒|unlocked with the (Build|Yield) Package/i.test(plan) : false;
+  const isFullPlan = !!plan && nodeCodeCount >= 20 && !hasLockMarkers;
+  const isSummaryPlan = !!plan && !isFullPlan;
 
   const scrollToSection = (key: string) => {
     setActiveSection(key);
@@ -417,7 +423,19 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
                 <FileText className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h2 className="font-heading text-xl font-bold tracking-tight">ABBY Business Plan</h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-heading text-xl font-bold tracking-tight">ABBY Business Plan</h2>
+                  {isFullPlan && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-400/30 text-emerald-200 text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
+                      ✓ Full 28-Node Plan
+                    </span>
+                  )}
+                  {isSummaryPlan && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-200 text-[10px] font-semibold px-2 py-0.5 uppercase tracking-wider">
+                      Summary Preview
+                    </span>
+                  )}
+                </div>
                 <p className="text-sm text-white/60 mt-0.5">{bookTitle}</p>
               </div>
             </div>
@@ -454,6 +472,26 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
             </div>
           </div>
         </div>
+
+        {/* Summary-vs-full plan banner */}
+        {isSummaryPlan && !loading && !generating && (
+          <div className="shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent px-8 py-3">
+            <div className="flex items-start gap-3">
+              <div className="h-7 w-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  You're viewing the consultation summary
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-200/70 mt-0.5">
+                  Build Authority and Yield Revenue are locked previews. Click{" "}
+                  <span className="font-semibold">Generate Full 28-Node Plan</span> above ↑ to expand every node with pricing and revenue estimates.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Body */}
         <div className="flex-1 flex overflow-hidden bg-muted/30">
