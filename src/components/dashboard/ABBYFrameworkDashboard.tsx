@@ -379,7 +379,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
         books={myBooks}
         perBook={perBook}
         hasPlan={hasPlan}
-        onAddBook={() => onNavigate("my-books")}
+        onAddBook={() => onNavigate("my-books?action=add")}
       />
 
       {/* 4. Seasonal — Special Edition Calendar */}
