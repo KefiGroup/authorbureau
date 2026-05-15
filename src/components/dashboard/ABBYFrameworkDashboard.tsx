@@ -4,13 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
-import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
-
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
-import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
-import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
 import CompactMicrositeCard from "./framework-dashboard/CompactMicrositeCard";
-import MultiBookPicker from "./framework-dashboard/MultiBookPicker";
+import NextStepHero from "./framework-dashboard/NextStepHero";
+import BooksGrid from "./framework-dashboard/BooksGrid";
+import FrameworkLearnMore from "./framework-dashboard/FrameworkLearnMore";
+import PortfolioSummaryBar from "./my-books/PortfolioSummaryBar";
 import SpecialEditionCalendarCard from "./SpecialEditionCalendarCard";
 
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
@@ -18,8 +17,6 @@ import { Button } from "@/components/ui/button";
 import { fetchWithTimeout, waitForActiveToken } from "@/lib/get-active-token";
 import { useMyBooks } from "@/hooks/useMyBooks";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
@@ -341,54 +338,62 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
     );
   }
 
-  // Bug 1 fix: only show Meet Abby onboarding to true first-time authors (zero books).
-  // Returning authors fall through to the normal multi-book dashboard immediately.
-  // Trust author-stats.bookCount as a third signal — it queries via service role
-  // and survives transient list-my-books / dashboard-state failures or token
-  // races (e.g. Safari restoring a stale shared-backend session).
-  const trustedBookCount = Math.max(
-    bookCount,
-    myBooks.length,
-    stats?.bookCount ?? 0,
-  );
-  if (!hasPlan && trustedBookCount === 0) {
-    return (
-      <div className="max-w-6xl space-y-8">
-        {/* Multi-book picker — shown when author has >1 book */}
-        {myBooks.length > 1 && (
-          <MultiBookPicker
-            books={myBooks}
-            perBook={stats.products?.perBook}
-            onAddBook={() => onNavigate("my-books")}
-          />
-        )}
+  // Trust author-stats.bookCount as a third signal — it queries via service
+  // role and survives transient list-my-books / dashboard-state failures.
+  const trustedBookCount = Math.max(bookCount, myBooks.length, stats?.bookCount ?? 0);
 
-        {/* Section 1: Meet Abby (top) */}
-        <MeetAbbySection
-          hasPlan={false}
-          planSummary={undefined}
-          hasBook={bookCount > 0}
-          bookApproved={bookApproved}
-          profileComplete={profileState === "live" || profileState === "incomplete"}
-          onStartConsultation={() => onNavigate("build-business")}
-          onViewPlan={() => onNavigate("build-business")}
-          onChatAbby={() => onNavigate("build-business")}
-          onSetupProfile={() => onNavigate("profile")}
-          onAddBook={() => onNavigate("my-books")}
+  // Aggregate portfolio totals from per-book stats (single source of truth).
+  const perBook = stats?.products?.perBook ?? {};
+  const totalStreamsBuilt = Object.values(perBook).reduce((sum, b) => sum + (b?.total ?? 0), 0);
+  const totalRecommended = Math.max(28, trustedBookCount * 28);
+  const liveMicrosites = profileState === "live" ? 1 : 0;
+  const analyzedCount = hasPlan ? 1 : 0;
+
+  // Unified dashboard for all states — the hero adapts via currentJourneyStep.
+  return (
+    <div className="max-w-6xl space-y-6">
+      {/* 1. Welcome + Next-step hero */}
+      <NextStepHero
+        authorName={authorName}
+        tier={tier}
+        currentJourneyStep={currentJourneyStep}
+        bookApproved={bookApproved}
+        onAction={handleJourneyAction}
+        onAskAbby={() => onNavigate("abby-coach")}
+      />
+
+      {/* 2. Portfolio snapshot — slim 4-tile strip */}
+      <PortfolioSummaryBar
+        compact
+        bookCount={trustedBookCount}
+        liveMicrosites={liveMicrosites}
+        analyzedCount={analyzedCount}
+        productsBuilt={totalStreamsBuilt}
+        totalRecommended={totalRecommended}
+        revenueThisMonth={0}
+        tier={tier}
+      />
+
+      {/* 3. My Books — always visible, multi-book aware */}
+      <BooksGrid
+        books={myBooks}
+        perBook={perBook}
+        hasPlan={hasPlan}
+        onAddBook={() => onNavigate("my-books")}
+      />
+
+      {/* 4. Seasonal — Special Edition Calendar */}
+      <SpecialEditionCalendarCard />
+
+      {/* 5. Plan & Profile — two-column on desktop */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <SubscriptionPricing
+          currentTier={tier}
+          onSubscribe={handleSubscribe}
+          onManage={handleManage}
+          loading={checkoutLoading || portalLoading}
+          abbyRecommendedTier={planSummary?.streamsMapped > 19 ? "yield" : planSummary?.streamsMapped > 11 ? "build" : "brand"}
         />
-
-        {/* Section 2: 4-Step Journey (middle) */}
-        <JourneyMapCTA
-          micrositeState={micrositeStep}
-          planState={planStep}
-          buildState={buildStep}
-          sellState={sellStep}
-          currentJourneyStep={currentJourneyStep}
-          bookApproved={bookApproved}
-          onAction={handleJourneyAction}
-        />
-
-        {/* Section 3: Compact Microsite Card (bottom) */}
         <CompactMicrositeCard
           profileState={profileState}
           authorSlug={authorSlug}
@@ -400,54 +405,9 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
           }}
         />
       </div>
-    );
-  }
 
-  // STATE B: Author HAS completed Abby's analysis
-  return (
-    <div className="max-w-6xl space-y-8">
-      {/* Multi-book picker — shown when author has >1 book */}
-      {myBooks.length > 1 && (
-        <MultiBookPicker
-          books={myBooks}
-          perBook={stats.products?.perBook}
-          onAddBook={() => onNavigate("my-books")}
-        />
-      )}
-
-      {/* Section 1: 4-Step Journey (top, step 3 highlighted) */}
-      <JourneyMapCTA
-        micrositeState={micrositeStep}
-        planState={planStep}
-        buildState={buildStep}
-        sellState={sellStep}
-        currentJourneyStep={currentJourneyStep}
-        onAction={handleJourneyAction}
-      />
-
-      {/* Special Edition Calendar — proactive seasonal prompts (BP-08) */}
-      <SpecialEditionCalendarCard />
-
-      {/* Section 4: Choose Your Path / Subscription */}
-      <SubscriptionPricing
-        currentTier={tier}
-        onSubscribe={handleSubscribe}
-        onManage={handleManage}
-        loading={checkoutLoading || portalLoading}
-        abbyRecommendedTier={planSummary?.streamsMapped > 19 ? "yield" : planSummary?.streamsMapped > 11 ? "build" : "brand"}
-      />
-
-      {/* Section 5: Compact Microsite Card */}
-      <CompactMicrositeCard
-        profileState={profileState}
-        authorSlug={authorSlug}
-        authorName={authorName}
-        onSetupProfile={() => onNavigate("profile")}
-        onViewMicrosite={() => {
-          if (authorSlug) window.open(`/${authorSlug}`, "_blank");
-          else onNavigate("profile");
-        }}
-      />
+      {/* 6. About the framework — collapsed by default */}
+      <FrameworkLearnMore />
     </div>
   );
 }

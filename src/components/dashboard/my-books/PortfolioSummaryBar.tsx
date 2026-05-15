@@ -10,6 +10,7 @@ interface PortfolioSummaryBarProps {
   revenueThisMonth: number;
   tier: SubscriptionTier;
   onSubscribe?: () => void;
+  compact?: boolean;
 }
 
 const stats = [
@@ -22,15 +23,23 @@ const stats = [
 
 export default function PortfolioSummaryBar({
   bookCount, liveMicrosites, analyzedCount, productsBuilt, totalRecommended,
-  revenueThisMonth, tier, onSubscribe,
+  revenueThisMonth, tier, onSubscribe, compact = false,
 }: PortfolioSummaryBarProps) {
-  const values = [
+  const fullValues = [
     { value: String(bookCount), label: "Books Listed" },
     { value: String(liveMicrosites), label: "Live Microsites" },
     { value: String(analyzedCount), label: "Analyzed by Abby" },
     { value: `${productsBuilt} of ${totalRecommended}`, label: "Products Built" },
     { value: `$${revenueThisMonth}`, label: "Revenue This Month" },
   ];
+
+  // Compact variant: drop "Analyzed by Abby" and the plan-pill on the right.
+  const values = compact
+    ? [fullValues[0], fullValues[1], fullValues[3], fullValues[4]]
+    : fullValues;
+  const compactStats = compact
+    ? [stats[0], stats[1], stats[3], stats[4]]
+    : stats;
 
   const tierLabel = tier !== "free"
     ? `${TIERS[tier as keyof typeof TIERS]?.label} — $${TIERS[tier as keyof typeof TIERS]?.monthlyPrice}/mo`
@@ -40,7 +49,7 @@ export default function PortfolioSummaryBar({
     <div className="rounded-xl border border-border bg-card p-4">
       <div className="flex flex-wrap items-center gap-4 lg:gap-6">
         {values.map((v, i) => {
-          const s = stats[i];
+          const s = compactStats[i];
           const Icon = s.icon;
           return (
             <div key={s.key} className="flex items-center gap-2.5 min-w-[120px]">
@@ -58,20 +67,22 @@ export default function PortfolioSummaryBar({
           );
         })}
 
-        <div className="ml-auto">
-          {tierLabel ? (
-            <span className="inline-flex items-center rounded-full bg-[#EEF2FF] px-3 py-1.5 text-xs font-semibold text-[#4F46E5]">
-              Your Plan: {tierLabel}
-            </span>
-          ) : (
-            <button
-              onClick={onSubscribe}
-              className="inline-flex items-center rounded-full bg-[#FDF6E9] px-3 py-1.5 text-xs font-semibold text-[#C4973B] hover:bg-[#FEF3C7] transition-colors cursor-pointer"
-            >
-              No Plan — Subscribe →
-            </button>
-          )}
-        </div>
+        {!compact && (
+          <div className="ml-auto">
+            {tierLabel ? (
+              <span className="inline-flex items-center rounded-full bg-[#EEF2FF] px-3 py-1.5 text-xs font-semibold text-[#4F46E5]">
+                Your Plan: {tierLabel}
+              </span>
+            ) : (
+              <button
+                onClick={onSubscribe}
+                className="inline-flex items-center rounded-full bg-[#FDF6E9] px-3 py-1.5 text-xs font-semibold text-[#C4973B] hover:bg-[#FEF3C7] transition-colors cursor-pointer"
+              >
+                No Plan — Subscribe →
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
