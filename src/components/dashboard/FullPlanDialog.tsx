@@ -473,6 +473,26 @@ export default function FullPlanDialog({ open, onOpenChange, bookId, bookTitle, 
           </div>
         </div>
 
+        {/* Summary-vs-full plan banner */}
+        {isSummaryPlan && !loading && !generating && (
+          <div className="shrink-0 border-b border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent px-8 py-3">
+            <div className="flex items-start gap-3">
+              <div className="h-7 w-7 rounded-lg bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <Sparkles className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+                  You're viewing the consultation summary
+                </p>
+                <p className="text-xs text-amber-800/80 dark:text-amber-200/70 mt-0.5">
+                  Build Authority and Yield Revenue are locked previews. Click{" "}
+                  <span className="font-semibold">Generate Full 28-Node Plan</span> above ↑ to expand every node with pricing and revenue estimates.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Body */}
         <div className="flex-1 flex overflow-hidden bg-muted/30">
           {(loading || generating) ? (
