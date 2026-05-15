@@ -4,13 +4,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import type { DashboardSection } from "@/pages/AuthorDashboard";
 
-import MeetAbbySection from "./framework-dashboard/MeetAbbySection";
-
 import SubscriptionPricing from "./framework-dashboard/SubscriptionPricing";
-import JourneyMapCTA from "./framework-dashboard/JourneyMapCTA";
-import JourneyCardsStrip from "./framework-dashboard/JourneyCardsStrip";
 import CompactMicrositeCard from "./framework-dashboard/CompactMicrositeCard";
-import MultiBookPicker from "./framework-dashboard/MultiBookPicker";
+import NextStepHero from "./framework-dashboard/NextStepHero";
+import BooksGrid from "./framework-dashboard/BooksGrid";
+import FrameworkLearnMore from "./framework-dashboard/FrameworkLearnMore";
+import PortfolioSummaryBar from "./my-books/PortfolioSummaryBar";
 import SpecialEditionCalendarCard from "./SpecialEditionCalendarCard";
 
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
@@ -18,8 +17,6 @@ import { Button } from "@/components/ui/button";
 import { fetchWithTimeout, waitForActiveToken } from "@/lib/get-active-token";
 import { useMyBooks } from "@/hooks/useMyBooks";
 import { useAuthorStats } from "@/hooks/useAuthorStats";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
 
 interface Props {
   onNavigate: (section: DashboardSection | string) => void;
