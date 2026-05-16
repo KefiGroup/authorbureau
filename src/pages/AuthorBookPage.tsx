@@ -444,16 +444,24 @@ export default function AuthorBookPage() {
       existingRoutes.add(mapping.route);
     });
 
-    // Sprint 66 — reader-facing live nodes for this book + author. Splits in render
-    // into Formats / Courses & Membership / Work With Pauline. No price filter
-    // here — free items get a "Get Free" CTA, inquiry items get "Contact" CTA.
-    if (profile?.id) {
-      const { data: buyable } = await supabase
-        .from("author_nodes")
-        .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url, content_json")
-        .eq("author_id", profile.id)
-        .eq("status", "live");
-      setBuyableNodes((buyable as any[]) || []);
+    // Sprint 66 — reader-facing live nodes for this book. Splits in render
+    // into Formats / Courses & Membership / Work With. No price filter here —
+    // free items get a "Get Free" CTA, inquiry items get "Contact" CTA.
+    // Per Sprint 8 per-book-node-scoping: filter by book_id so multi-book authors
+    // don't bleed nodes across their books. Falls back to bookData.author_id
+    // when the author_profile lookup couldn't be resolved (e.g. anonymous viewer
+    // landed via slug fallback) so the section never silently disappears.
+    {
+      const ownerProfileId = profile?.id || bookData.author_id;
+      if (ownerProfileId) {
+        const { data: buyable } = await supabase
+          .from("author_nodes")
+          .select("id, node_id, node_name, personalised_name, price_usd, currency, delivery_url, content_json")
+          .eq("author_id", ownerProfileId)
+          .eq("book_id", bookId)
+          .eq("status", "live");
+        setBuyableNodes((buyable as any[]) || []);
+      }
     }
 
     setProducts(prods);
