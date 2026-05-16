@@ -85,7 +85,11 @@ function getHub(nodeId: string): string {
 }
 
 export default function RevenueFullDashboard() {
-  const { user } = useAuth();
+  const { user: legacyUser } = useAuth();
+  const { user: readyUser, isReady: authReady } = useAuthReady();
+  // Prefer the auth-ready user (waits for INITIAL_SESSION restore) and fall back
+  // to legacy useAuth so admin paths that already had a user don't regress.
+  const user = readyUser || legacyUser;
   const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [penName, setPenName] = useState("");
