@@ -144,35 +144,48 @@ export default function RevenueFullDashboard() {
       setStripeConnectId(profile.stripe_account_id || null);
       setStripeOnboardingComplete(!!profile.stripe_onboarding_complete);
 
-      // 2. Parallel direct DB queries — fast, no edge functions
-      const [contactsRes, hotRes, nodesRes, snapsRes, purchasesRes] = await Promise.all([
-        // Total leads (crm_contacts is keyed by user.id per current resolver)
-        supabase
-          .from("crm_contacts")
-          .select("id", { count: "exact", head: true })
-          .eq("author_id", user.id),
-        // Hot leads (abby_score >= 60)
-        supabase
-          .from("crm_contacts")
-          .select("id, full_name, email, abby_score, last_activity_at")
-          .eq("author_id", user.id)
-          .gte("abby_score", 60)
-          .order("abby_score", { ascending: false })
-          .limit(10),
-        // Active nodes
+      // 2. Parallel queries. CRM contacts go via the author-crm-data edge fn
+      // because crm_contacts RLS keys off the shared-backend auth.uid(), which
+      // the project-local supabase client does not carry. Other tables (nodes,
+      // snapshots, purchases) are keyed by author_profiles.id and work with
+      // the project-local client.
+      const crmPromise = (async () => {
+        try {
+          const token = await getActiveToken();
+          if (!token) return { totalCount: 0, contacts: [] as any[] };
+          const res = await fetchWithTimeout(`${SUPABASE_URL}/functions/v1/author-crm-data`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+              apikey: SUPABASE_ANON_KEY,
+            },
+            body: JSON.stringify({ action: "list", page: 1, pageSize: 100 }),
+          });
+          const json = await res.json().catch(() => ({}));
+          if (!res.ok) return { totalCount: 0, contacts: [] as any[] };
+          return {
+            totalCount: Number(json.effectiveTotal ?? json.totalCount ?? 0),
+            contacts: Array.isArray(json.contacts) ? json.contacts : [],
+          };
+        } catch {
+          return { totalCount: 0, contacts: [] as any[] };
+        }
+      })();
+
+      const [crmRes, nodesRes, snapsRes, purchasesRes] = await Promise.all([
+        crmPromise,
         supabase
           .from("author_nodes")
           .select("node_id, node_name, personalised_name, status, content_json")
           .eq("author_id", profile.id)
           .eq("status", "live"),
-        // Historical snapshots
         supabase
           .from("author_revenue_snapshots")
           .select("*")
           .eq("author_id", profile.id)
           .order("snapshot_date", { ascending: true })
           .limit(180),
-        // Revenue this month from purchases
         supabase
           .from("purchases")
           .select("amount")
@@ -182,7 +195,18 @@ export default function RevenueFullDashboard() {
 
       if (cancelled) return;
 
-      const contactsCount = contactsRes.count || 0;
+      const contactsCount = crmRes.totalCount;
+      const hotLeadsData = (crmRes.contacts || [])
+        .filter((c: any) => Number(c.abby_score || 0) >= 60)
+        .sort((a: any, b: any) => Number(b.abby_score || 0) - Number(a.abby_score || 0))
+        .slice(0, 10)
+        .map((c: any) => ({
+          id: c.id,
+          full_name: c.full_name,
+          email: c.email,
+          abby_score: Number(c.abby_score || 0),
+          last_activity_at: c.last_activity_at,
+        }));
       const liveNodesData = (nodesRes.data as LiveNode[]) || [];
       const monthRevenue = (purchasesRes.data || []).reduce(
         (sum: number, p: any) => sum + Number(p.amount || 0),
@@ -191,7 +215,7 @@ export default function RevenueFullDashboard() {
 
       setLiveNodes(liveNodesData);
       setNodesLive(liveNodesData.length);
-      setHotLeads((hotRes.data as any) || []);
+      setHotLeads(hotLeadsData);
       setSnapshots((snapsRes.data as Snapshot[]) || []);
       setMetrics({
         contacts: contactsCount,
@@ -218,12 +242,18 @@ export default function RevenueFullDashboard() {
 
       const stripe = (stripeRes as any)?.data;
 
-      // Stripe revenue only overrides if higher (purchases table may be empty)
-      if (stripe?.success && stripe.data?.stripe_revenue_mtd_usd) {
+      // Only adopt Stripe-reported revenue when it is REAL (not projected). The
+      // edge fn returns `projected: true` with a synthetic liveCount*200 figure
+      // when no Stripe key is connected — that fake number must never reach
+      // `metrics.revenueMtd`, or it will trip the $1,000 milestone at $0.
+      if (stripe?.success && stripe.projected === false && stripe.data?.stripe_revenue_mtd_usd) {
         setMetrics((m) => ({
           ...m,
-          revenueMtd: Math.max(m.revenueMtd, stripe.data.stripe_revenue_mtd_usd),
+          revenueMtd: Math.max(m.revenueMtd, Number(stripe.data.stripe_revenue_mtd_usd) || 0),
         }));
+      }
+      // Always update the projected flag so the UI can label values correctly.
+      if (typeof stripe?.projected === "boolean") {
         setProjected((p) => ({ ...p, stripe: stripe.projected }));
       }
     } catch (e) {
@@ -652,10 +682,15 @@ export default function RevenueFullDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {MILESTONES.map((ms) => {
                 const current = milestoneValues[ms.metric];
-                // Defensive: only treat as achieved when there is real positive
-                // progress at or above the target. Prevents "Achieved ✓" from
-                // ever showing at $0 if a stale/NaN metric slips through.
-                const achieved = Number.isFinite(current) && current > 0 && current >= ms.target;
+                const isRevenueMetric = ms.metric === "revenue_mtd" || ms.metric === "revenue_ytd";
+                // Defensive: real positive progress at/above target. Revenue
+                // milestones additionally require non-projected Stripe data so
+                // synthetic liveCount*200 numbers can never trip "Achieved ✓".
+                const achieved =
+                  Number.isFinite(current) &&
+                  current > 0 &&
+                  current >= ms.target &&
+                  (!isRevenueMetric || !projected.stripe);
                 const pct = Math.min(100, Math.max(0, (Number.isFinite(current) ? current : 0) / ms.target) * 100);
                 return (
                   <div key={ms.name} className={`p-3 rounded-lg border ${achieved ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-border"}`}>
