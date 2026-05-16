@@ -169,7 +169,17 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
                 return null;
               })()}
               <button
-                onClick={() => document.getElementById("subscribe-section")?.scrollIntoView({ behavior: "smooth" })}
+                onClick={() => {
+                  const el = document.getElementById("subscribe-section");
+                  if (!el) return;
+                  el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  // Focus first input after the smooth scroll settles so it's obvious
+                  // the click did something — fixes "button does nothing" complaints.
+                  window.setTimeout(() => {
+                    const input = el.querySelector<HTMLInputElement>('input[type="email"], input');
+                    input?.focus({ preventScroll: true });
+                  }, 600);
+                }}
                 className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:brightness-110 min-h-[48px]"
                 style={{ background: "transparent", border: `2px solid ${v.accent}`, color: v.accent, padding: "12px 32px", borderRadius: "8px" }}>
                 <Sparkles className="h-4 w-4" /> Get the Free Starter Kit
