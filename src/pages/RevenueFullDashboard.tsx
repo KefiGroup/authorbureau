@@ -117,7 +117,11 @@ export default function RevenueFullDashboard() {
 
   // Fetch author profile + initial direct-DB data (fast, no edge functions)
   useEffect(() => {
-    if (!user) return;
+    if (!authReady) return; // Wait for session restore before querying RLS-gated tables.
+    if (!user) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
 
     (async () => {
