@@ -94,7 +94,7 @@ export default function PayoutsSettings() {
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to start Stripe onboarding");
+      toast.error(e instanceof Error ? e.message : "Couldn't open the bank disbursement setup");
     } finally {
       setConnectingStripe(false);
     }
