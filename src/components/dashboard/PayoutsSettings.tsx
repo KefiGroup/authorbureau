@@ -103,7 +103,7 @@ export default function PayoutsSettings() {
   const save = async () => {
     if (!authorId) return;
     if (!stripe_onboarding_complete) {
-      toast.error("Click 'Connect Stripe Express' above first to finish your account onboarding.");
+      toast.error("Set up your bank disbursement above first so we know where to send your payouts.");
       return;
     }
     if (!agreementAck) {
