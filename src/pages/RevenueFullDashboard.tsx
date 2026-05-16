@@ -205,7 +205,7 @@ export default function RevenueFullDashboard() {
     })();
 
     return () => { cancelled = true; };
-  }, [user]);
+  }, [user, authReady]);
 
   // Background sync — enriches with Stripe revenue if connected.
   // Does NOT block initial render. Direct DB counts already shown.
