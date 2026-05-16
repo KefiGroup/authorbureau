@@ -754,7 +754,15 @@ export default function AuthorBookPage() {
                   </a>
                 )}
                 <button
-                  onClick={() => document.getElementById("book-subscribe")?.scrollIntoView({ behavior: "smooth" })}
+                  onClick={() => {
+                    const el = document.getElementById("book-subscribe");
+                    if (!el) return;
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    window.setTimeout(() => {
+                      const input = el.querySelector<HTMLInputElement>('input[type="email"], input');
+                      input?.focus({ preventScroll: true });
+                    }, 600);
+                  }}
                   className="inline-flex items-center gap-2 font-bold rounded-lg transition-all"
                   style={{
                     background: "transparent",
