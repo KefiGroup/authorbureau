@@ -144,14 +144,14 @@ export default function PayoutsSettings() {
             <Wallet className="h-6 w-6 text-secondary" /> Payouts
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Authors Bureau collects all reader payments and pays you 92% on the 1st of each month (minimum US$50). Connect Stripe Express below — fully automated, no manual steps.
+            Authors Bureau collects every reader payment for you — you don't need your own payment account to publish or sell. This page is just where you tell us <em>how</em> to send your monthly 92% disbursement (paid on the 1st of each month, minimum US$50).
           </p>
         </div>
         <div className="flex flex-col gap-1.5 items-end">
           {ready ? (
-            <Badge className="bg-accent/15 text-accent border-accent/30"><CheckCircle2 className="h-3 w-3 mr-1" />Payouts ready</Badge>
+            <Badge className="bg-accent/15 text-accent border-accent/30"><CheckCircle2 className="h-3 w-3 mr-1" />Payout method ready</Badge>
           ) : (
-            <Badge variant="outline" className="border-orange-300 text-orange-700"><AlertCircle className="h-3 w-3 mr-1" />Setup incomplete</Badge>
+            <Badge variant="outline" className="border-orange-300 text-orange-700"><AlertCircle className="h-3 w-3 mr-1" />Payout method not set</Badge>
           )}
         </div>
       </div>
