@@ -94,7 +94,7 @@ export default function PayoutsSettings() {
       if (error) throw error;
       if (data?.url) window.location.href = data.url;
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to start Stripe onboarding");
+      toast.error(e instanceof Error ? e.message : "Couldn't open the bank disbursement setup");
     } finally {
       setConnectingStripe(false);
     }
@@ -103,7 +103,7 @@ export default function PayoutsSettings() {
   const save = async () => {
     if (!authorId) return;
     if (!stripe_onboarding_complete) {
-      toast.error("Click 'Connect Stripe Express' above first to finish your account onboarding.");
+      toast.error("Set up your bank disbursement above first so we know where to send your payouts.");
       return;
     }
     if (!agreementAck) {
@@ -144,28 +144,35 @@ export default function PayoutsSettings() {
             <Wallet className="h-6 w-6 text-secondary" /> Payouts
           </h2>
           <p className="text-sm text-muted-foreground mt-1">
-            Authors Bureau collects all reader payments and pays you 92% on the 1st of each month (minimum US$50). Connect Stripe Express below — fully automated, no manual steps.
+            Authors Bureau collects every reader payment for you — you don't need your own payment account to publish or sell. This page is just where you tell us <em>how</em> to send your monthly 92% disbursement (paid on the 1st of each month, minimum US$50).
           </p>
         </div>
         <div className="flex flex-col gap-1.5 items-end">
           {ready ? (
-            <Badge className="bg-accent/15 text-accent border-accent/30"><CheckCircle2 className="h-3 w-3 mr-1" />Payouts ready</Badge>
+            <Badge className="bg-accent/15 text-accent border-accent/30"><CheckCircle2 className="h-3 w-3 mr-1" />Payout method ready</Badge>
           ) : (
-            <Badge variant="outline" className="border-orange-300 text-orange-700"><AlertCircle className="h-3 w-3 mr-1" />Setup incomplete</Badge>
+            <Badge variant="outline" className="border-orange-300 text-orange-700"><AlertCircle className="h-3 w-3 mr-1" />Payout method not set</Badge>
           )}
         </div>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Payout method</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle>How you'll receive your money</CardTitle>
+        </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start gap-3 p-3 border rounded-lg bg-muted/20">
             <CheckCircle2 className="h-5 w-5 text-secondary mt-0.5" />
             <div className="flex-1">
               <p className="font-semibold flex items-center gap-2">
-                Stripe Express <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Recommended · Auto</Badge>
+                Direct deposit to your bank <Badge variant="outline" className="text-[10px] border-secondary/40 text-secondary">Automatic</Badge>
               </p>
-              <p className="text-xs text-muted-foreground mt-0.5">Direct deposit to your bank on the 1st of each month. Available in 45+ countries (including the US, Singapore, Australia and New Zealand). Authors Bureau covers all transfer fees.</p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Authors Bureau sends your monthly 92% disbursement straight to your bank on the 1st of each month. Available in 45+ countries (including the US, Singapore, Australia and New Zealand). We cover all transfer fees.
+              </p>
+              <p className="text-[11px] text-muted-foreground/80 mt-2 italic">
+                We use Stripe Express to verify your identity and route the bank transfer securely — you don't need a Stripe account to sell, and readers never pay you directly.
+              </p>
             </div>
           </div>
 
@@ -173,15 +180,15 @@ export default function PayoutsSettings() {
             {stripe_onboarding_complete ? (
               <div className="flex items-center gap-2 text-sm p-3 rounded-lg bg-accent/10 border border-accent/30">
                 <CheckCircle2 className="h-4 w-4 text-accent" />
-                <span className="font-medium">Stripe Express connected — payouts will transfer automatically on the 1st.</span>
+                <span className="font-medium">Bank details verified — your monthly disbursement will transfer automatically on the 1st.</span>
               </div>
             ) : (
               <>
                 <p className="text-xs text-muted-foreground">
-                  You'll be redirected to Stripe to verify your identity and bank account. Takes about 3 minutes.
+                  Takes about 3 minutes. You'll verify your identity and enter the bank account where Authors Bureau should send your monthly disbursement.
                 </p>
                 <Button onClick={connectStripe} disabled={connectingStripe} className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-                  {connectingStripe ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Opening Stripe…</> : <><Zap className="h-4 w-4 mr-2" />Connect Stripe Express<ExternalLink className="h-3 w-3 ml-1.5" /></>}
+                  {connectingStripe ? <><Loader2 className="h-4 w-4 animate-spin mr-2" />Opening secure form…</> : <><Zap className="h-4 w-4 mr-2" />Set up bank disbursement<ExternalLink className="h-3 w-3 ml-1.5" /></>}
                 </Button>
               </>
             )}
