@@ -652,8 +652,11 @@ export default function RevenueFullDashboard() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {MILESTONES.map((ms) => {
                 const current = milestoneValues[ms.metric];
-                const achieved = current >= ms.target;
-                const pct = Math.min(100, (current / ms.target) * 100);
+                // Defensive: only treat as achieved when there is real positive
+                // progress at or above the target. Prevents "Achieved ✓" from
+                // ever showing at $0 if a stale/NaN metric slips through.
+                const achieved = Number.isFinite(current) && current > 0 && current >= ms.target;
+                const pct = Math.min(100, Math.max(0, (Number.isFinite(current) ? current : 0) / ms.target) * 100);
                 return (
                   <div key={ms.name} className={`p-3 rounded-lg border ${achieved ? "border-emerald-200 bg-emerald-50 dark:border-emerald-900 dark:bg-emerald-950/30" : "border-border"}`}>
                     <div className="flex items-center gap-2 mb-1">
