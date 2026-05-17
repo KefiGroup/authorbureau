@@ -8,6 +8,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { adminDataFetch } from "@/lib/admin-data-fetch";
 import DailyOpsReportCard from "./DailyOpsReportCard";
+import GhostAuthorsCard from "./GhostAuthorsCard";
 
 type Severity = "ok" | "warn" | "fail";
 interface CheckResult {
@@ -196,6 +197,8 @@ export default function DailyAuditTab() {
           })}
         </div>
       )}
+
+      <GhostAuthorsCard />
 
       {/* History */}
       {history.length > 0 && (
