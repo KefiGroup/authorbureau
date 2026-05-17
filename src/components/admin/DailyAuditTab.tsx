@@ -198,6 +198,8 @@ export default function DailyAuditTab() {
         </div>
       )}
 
+      <GhostAuthorsCard />
+
       {/* History */}
       {history.length > 0 && (
         <Card className="p-4">
