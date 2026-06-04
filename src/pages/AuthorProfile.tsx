@@ -310,7 +310,7 @@ export default function AuthorProfile() {
       </section>
 
       {/* Books */}
-      {author.books.length > 0 && (
+      {author.books.length > 0 ? (
         <section className="border-t border-border bg-muted/30 py-16">
           <div className="container">
             <h2 className="mb-8 font-heading text-2xl font-bold">
@@ -320,6 +320,20 @@ export default function AuthorProfile() {
               {author.books.map((book) => (
                 <BookCard key={book.slug} book={book} authorSlug={author.slug} />
               ))}
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="border-t border-border bg-muted/30 py-16">
+          <div className="container">
+            <div className="mx-auto max-w-xl rounded-2xl border border-dashed border-border bg-card/50 px-6 py-12 text-center">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-secondary/10">
+                <BookOpen className="h-7 w-7 text-secondary" />
+              </div>
+              <h2 className="mb-2 font-heading text-xl font-bold">Books coming soon</h2>
+              <p className="text-sm text-muted-foreground">
+                {author.name} is preparing their first release. Check back soon to explore their work.
+              </p>
             </div>
           </div>
         </section>
