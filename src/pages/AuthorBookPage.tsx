@@ -833,7 +833,20 @@ export default function AuthorBookPage() {
         const visible = buyableNodes.filter(n => !HIDDEN_NODE_IDS.has(n.node_id));
         const formatNodes = visible.filter(n => (FORMATS_NODE_IDS as readonly string[]).includes(n.node_id));
         const courseNodes = visible.filter(n => (COURSES_MEMBERSHIP_NODE_IDS as readonly string[]).includes(n.node_id));
-        const workNodes  = visible.filter(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id));
+        // B-03: a node in the Work-With bucket sometimes shares its display name
+        // with a purchasable Formats/Courses product (duplicate author data).
+        // Suppress the Work-With copy so the same product never renders twice.
+        const nodeTitle = (n: any) =>
+          formatPublicLabel(n.personalised_name || n.node_name, "").trim().toLowerCase();
+        const purchasableTitles = new Set(
+          [...formatNodes, ...courseNodes].map(nodeTitle).filter(Boolean),
+        );
+        const workNodes  = visible
+          .filter(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id))
+          .filter(n => {
+            const t = nodeTitle(n);
+            return !t || !purchasableTitles.has(t);
+          });
 
         const renderBuyCard = (n: any, mode: "buy" | "free") => {
           const title = formatPublicLabel(n.personalised_name || n.node_name, "Product");
