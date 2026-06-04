@@ -3349,7 +3349,13 @@ function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setE
 
 /* ═══ YR-21 — KEYNOTE SPEAKING ═══ */
 function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
-  const title = yrStr(content.speaker_brand, formatPublicLabel(data.node.personalised_name, NODE_NAMES["YR-21"] || "Keynote Speaking"));
+  // S-02: speaker_brand can itself carry a "Author | Book" page-title artifact,
+  // so run the resolved value through formatPublicLabel (strips pipes + Contact
+  // suffix) with a meaningful speaking-specific fallback.
+  const title = formatPublicLabel(
+    yrStr(content.speaker_brand) || data.node.personalised_name,
+    `Book ${data.author.pen_name} to Speak`,
+  );
   const tagline = yrStr(content.speaker_tagline);
   const oneSheet = yrStr(content.speaker_one_sheet);
   const talks = yrArr(content.signature_talks);
