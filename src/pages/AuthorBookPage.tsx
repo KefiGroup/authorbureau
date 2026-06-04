@@ -436,7 +436,7 @@ export default function AuthorBookPage() {
       const priceNum = n.price_usd != null ? Number(n.price_usd) : null;
       prods.push({
         type: mapping.type,
-        title: n.personalised_name || mapping.label,
+        title: formatPublicLabel(n.personalised_name, mapping.label),
         route: mapping.route,
         price: priceNum && priceNum > 0 ? `$${priceNum.toLocaleString()}` : undefined,
         // author_nodes are author-level, link to /:authorSlug/:route (not book-scoped)
