@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 import logoText from "@/assets/logo-with-text.webp";
 
 const Footer = forwardRef<HTMLElement>((_props, ref) => {
