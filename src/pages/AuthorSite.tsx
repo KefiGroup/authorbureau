@@ -298,6 +298,53 @@ export default function AuthorSite() {
 
   if (notFound || !author) return <NotFound />;
 
+  // D-04: an author profile that exists but has no published books and no live
+  // products/services should show a branded "Coming Soon" state, never an empty
+  // page with bare navigation.
+  const hasAnyContent =
+    booksWithProducts.length > 0 ||
+    liveNodes.length > 0 ||
+    coachingServices.length > 0;
+  if (!hasAnyContent) {
+    return (
+      <AuthorPageLayout
+        theme={theme}
+        breadcrumbs={[{ label: "Home", to: "/" }, { label: displayName }]}
+        footerSlot={<AuthorMicrositeFooter author={author} displayName={displayName} />}
+      >
+        <section className="py-24 md:py-32" style={{ background: v.cardBg }}>
+          <div className="container max-w-xl text-center">
+            {author.photo_url && (
+              <img
+                src={author.photo_url}
+                alt={displayName}
+                className="w-24 h-24 rounded-full object-cover object-top mx-auto mb-6 ring-2"
+                style={{ ["--tw-ring-color" as any]: v.accent }}
+              />
+            )}
+            <h1 className="text-3xl md:text-4xl font-bold mb-3" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+              {displayName}
+            </h1>
+            <span className="inline-block text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full mb-5" style={{ background: v.accent, color: v.accentText }}>
+              Coming Soon
+            </span>
+            <p className="text-base leading-relaxed mb-8" style={{ color: v.bodyText || v.mutedText }}>
+              {displayName} is setting up their author profile. Books, resources, and ways to connect will appear here soon — check back shortly.
+            </p>
+            <Link
+              to="/directory"
+              className="inline-flex items-center gap-2 rounded-full px-6 py-3 text-sm font-bold transition-opacity hover:opacity-90"
+              style={{ background: v.accent, color: v.accentText }}
+            >
+              Browse other authors
+            </Link>
+          </div>
+        </section>
+      </AuthorPageLayout>
+    );
+  }
+
+
   return (
     <AuthorPageLayout
       theme={theme}
