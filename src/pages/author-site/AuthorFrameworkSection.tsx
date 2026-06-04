@@ -85,8 +85,8 @@ export default function AuthorFrameworkSection({
               }}
             >
               <div
-                className="text-3xl font-bold mb-2 leading-none"
-                style={{ color: v.accent, fontFamily: theme.headingFont }}
+                className="inline-flex items-center justify-center mb-3 px-3 h-8 min-w-[2rem] rounded-full text-sm font-bold leading-none"
+                style={{ background: v.accent, color: v.accentText, fontFamily: theme.headingFont }}
               >
                 {stage.letter ?? String(idx + 1).padStart(2, "0")}
               </div>
