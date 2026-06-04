@@ -280,7 +280,7 @@ function CheckoutStagePanel({ authorId, nodeId }: CheckoutPanelProps) {
           nodeId
             ? supabase
                 .from("author_nodes")
-                .select("id, node_name, personalised_name, price_usd, currency, stripe_price_id")
+                .select("id, node_name, personalised_name, price_usd, currency")
                 .eq("author_id", authorId)
                 .eq("node_id", nodeId)
                 .maybeSingle()
