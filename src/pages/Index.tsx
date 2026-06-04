@@ -165,6 +165,43 @@ export default function Index() {
         </div>
       </section>
 
+      <section className="py-24 bg-muted/50 border-y border-border">
+        <div className="container">
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Your Monetization Universe
+            </motion.p>
+            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
+              One Book. 28 Revenue Streams.{" "}
+              <span className="text-gradient-gold">Your Empire.</span>
+            </motion.h2>
+            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
+              Every non-fiction book contains enough expertise to power 28 different income streams.
+              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you automatically.
+            </motion.p>
+          </motion.div>
+
+          {/* Flow Diagram Infographic */}
+          <motion.img
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            src="/images/journey-flow-diagram.webp"
+            alt="How your 28 revenue streams connect - BRAND, BUILD, YIELD ecosystem"
+            className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-2"
+            loading="lazy"
+          />
+          <CopyrightCaption className="max-w-4xl mx-auto mb-10" />
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="text-center">
+            <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
+              <Link to="/how-it-works">Explore All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+          </motion.div>
+        </div>
+      </section>
+
       {/* ===== WHY AUTHORS BUREAU - Comparison Table ===== */}
       <section className="py-24 bg-muted/50 border-y border-border">
         <div className="container">
@@ -205,43 +242,6 @@ export default function Index() {
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mt-10 text-center">
             <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
               <Link to="/how-it-works">See All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-          </motion.div>
-        </div>
-      </section>
-
-      <section className="py-24 bg-muted/50 border-y border-border">
-        <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
-              Your Monetization Universe
-            </motion.p>
-            <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
-              One Book. 28 Revenue Streams.{" "}
-              <span className="text-gradient-gold">Your Empire.</span>
-            </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
-              Every non-fiction book contains enough expertise to power 28 different income streams.
-              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you automatically.
-            </motion.p>
-          </motion.div>
-
-          {/* Flow Diagram Infographic */}
-          <motion.img
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            src="/images/journey-flow-diagram.webp"
-            alt="How your 28 revenue streams connect - BRAND, BUILD, YIELD ecosystem"
-            className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-2"
-            loading="lazy"
-          />
-          <CopyrightCaption className="max-w-4xl mx-auto mb-10" />
-
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="text-center">
-            <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
-              <Link to="/how-it-works">Explore All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </motion.div>
         </div>
