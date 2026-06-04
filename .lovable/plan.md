@@ -1,27 +1,39 @@
-# Fix CourseBuilder broken by column-level grants
+# Close Remaining Public Audit Items
 
-## Background
-The last security migration revoked table-wide `SELECT` on `author_nodes`, `courses`, and `subscriptions` and re-granted only safe columns (hiding `stripe_price_id`, `stripe_product_id`, `checkout_url`, `stripe_customer_id`, `stripe_subscription_id`). With column-level grants, any PostgREST `select('*')` fails because `*` expands to columns the role no longer has access to.
+## Re-verification result (32 findings)
+A full code re-check against the audit confirms **26 findings already fixed**. After DB inspection, two more are effectively resolved already, leaving **4 small code fixes**.
 
-A full audit of every frontend query against these three tables found **exactly one** offending query.
+### Already resolved during this review (no work needed)
+- **D-01 — "Entreprenuer" typo:** A full DB sweep (`author_profiles`, `books`) finds zero instances of the misspelling. Veronica Tan's tagline already reads "Entrepreneur". Nothing to fix.
+- **H-04 — Homepage pricing:** Per your decision, the section stays hidden (it is deliberately commented out as `{/* PRICING SECTION HIDDEN */}`). Accepted as an intentional exception.
 
-## The only break
-`src/components/dashboard/CourseBuilder.tsx` → `fetchCourses()` uses:
-```ts
-.from("courses").select("*")
-```
-This now errors with a permission denial, so the author dashboard's course list silently returns no data.
+### Remaining work (4 items)
 
-## Fix
-Replace the `*` with the explicit, granted column list that the `Course` type actually consumes. Safe granted columns on `courses`:
-`id, author_id, title, description, cover_image_url, price, currency, status, created_at, updated_at, book_id, source_asset_id, course_format, target_student, transformation_promises, workshop_schedule, subtitle, course_slug, delivery_url, tagline`
+**1. S-03 — Speaking page talk titles render as "Signature Talk"**
+The real, well-written talk titles already exist in the database (`content_json.signature_talks[].talk_title`), e.g. "Be SUCKcessful: Every Master Was Once a Disaster". The public Speaking page just reads the wrong key.
+- File: `src/pages/MicrositePage.tsx` line 3385
+- Change `const name = yrStr(t?.title || t?.name, "Signature Talk");` to also check `talk_title`: `yrStr(t?.talk_title || t?.title || t?.name, "Signature Talk")`.
+- No DB change needed — the data is already correct and richer than the audit's suggestions.
 
-Select only the fields the component renders (at minimum `id, title, description, price, currency, status, created_at`, plus any others the `Course` interface references), dropping `stripe_price_id`/`stripe_product_id` which the UI does not need.
+**2. H-03 — 28-stream diagram appears too far down the homepage**
+Currently the "One Book. 28 Revenue Streams" section is the 3rd block, after the comparison table.
+- File: `src/pages/Index.tsx`
+- Move the 28-stream diagram section (≈ lines 213–248) up so it appears right after the Hero / Reality-Check, before the "Why Authors Bureau" comparison table (≈ line 167). Pure JSX reorder, no logic change.
 
-## Verification
-- Confirm the `Course` type in CourseBuilder.tsx does not reference any hidden Stripe column; if it does, drop those fields from the type.
-- Build passes with no type errors.
-- (Optional) Re-confirm no other `select('*')` exists against `author_nodes`/`courses`/`subscriptions` — audit already shows none.
+**3. D-04 — Author with no published books shows a blank books area**
+The `ComingSoonScreen` component exists but is never used.
+- File: `src/pages/AuthorProfile.tsx` (≈ line 313, the `author.books.length > 0 &&` books section)
+- Add an `else` branch rendering a clean empty-state ("Coming Soon") block when the author has zero books, so the page never looks broken. Reuse the existing visual language (clock icon + message) consistent with `ComingSoonScreen.tsx`.
 
-## Not changing
-No other queries, edge functions, RLS policies, or the migration itself need changes. Stripe checkout/payout flows run through service-role edge functions and are unaffected.
+**4. A-03 — "18 Products & Services" hero stat is meaningless to readers**
+- File: `src/pages/author-site/AuthorHeroSection.tsx` (≈ lines 202–206)
+- Replace the raw product-count stat with a reader-meaningful label. Preferred: show the average reader rating / review count when available, otherwise fall back to "Revenue Streams Built" or simply drop the count and keep the other hero stats. Keep it within the existing stat-strip styling.
+
+## Technical notes
+- All four are frontend/content-layer changes except they touch only presentation logic; no schema, RLS, or edge-function changes.
+- S-03 fix is a one-line key addition; verify on Pauline's `/pauline-teo/be-suckcessful/speaking` page that the three real titles render.
+- After changes, the only outstanding audit item is H-04 (intentionally deferred by your decision).
+
+## Out of scope
+- H-04 homepage pricing (kept hidden by decision).
+- S-04/S-06 image-based speaker hero photo and real client logos — current text/placeholder slots satisfy the audit; uploading real assets is a separate content task.
