@@ -139,18 +139,18 @@ export default function AuthorSite() {
     // authors in this database. Query by profile.id first; fall back to user_id and
     // author_name for any legacy rows that may have been mis-linked.
     // Use isOwnerLocal (not the React state isOwner) — the state hasn't propagated yet.
-    let booksQuery = supabase.from("books").select("*").eq("author_id", profile.id).order("created_at", { ascending: false });
+    let booksQuery = supabase.from("books").select(BOOK_PUBLIC_COLUMNS).eq("author_id", profile.id).order("created_at", { ascending: false });
     if (!isOwnerLocal) booksQuery = booksQuery.not("published_at", "is", null);
 
     let booksByUserIdQuery: typeof booksQuery | null = null;
     if (profile.user_id && profile.user_id !== profile.id) {
-      booksByUserIdQuery = supabase.from("books").select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false });
+      booksByUserIdQuery = supabase.from("books").select(BOOK_PUBLIC_COLUMNS).eq("author_id", profile.user_id).order("created_at", { ascending: false });
       if (!isOwnerLocal) booksByUserIdQuery = booksByUserIdQuery.not("published_at", "is", null);
     }
 
     let booksByNameQuery: typeof booksQuery | null = null;
     if (profile.pen_name) {
-      booksByNameQuery = supabase.from("books").select("*").eq("author_name", profile.pen_name).order("created_at", { ascending: false });
+      booksByNameQuery = supabase.from("books").select(BOOK_PUBLIC_COLUMNS).eq("author_name", profile.pen_name).order("created_at", { ascending: false });
       if (!isOwnerLocal) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
