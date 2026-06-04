@@ -46,3 +46,14 @@ This guarantees `/help` always lands on the Help (FAQ) page.
 - Confirm "Be SUCKcessful Collective" appears only once on the book detail page.
 
 Note: the B-03 root cause is duplicated node data; the code guard hides the symptom, but I'd recommend removing/renaming the duplicate Work-With node so it doesn't resurface elsewhere.
+---
+
+# Sprint B / C — Finish-up (best-effort)
+
+The detailed Sprint B/C finding text lived only in the audit image, so I implemented the items whose intent was unambiguous and safe:
+
+- **D-03 (genre normalization):** Directory author-card genre chips now render through `normalizeGenre()` (title-case), matching the filter bar.
+- **D-04 (empty state):** Directory "no results" is now a proper empty state — icon, guidance copy, and a "Clear filters" action (shown when a search/genre is active).
+- **S-03 (talk title fallback):** Speaking page talks fall back to "Signature Talk" instead of "Talk 1/2/3".
+
+Still need the original audit wording to action precisely (one-liners too vague to fix without guessing): S-04–06 (missing Speaking sections), A-03 (which stat), A-04 ("Start Here" placement), A-07 (lead-magnet description copy), D-01 (which typo), H-03 (How-It-Works diagram), M-01 (which CTA), M-02 (which badges), B-02 (workbook copy), B-05 (cross-sell), D-02 (thumbnails). H-04 stays suppressed per public-site rules.

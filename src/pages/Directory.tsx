@@ -300,7 +300,7 @@ export default function Directory() {
                             }}
                             className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-secondary/20 hover:text-secondary transition-colors"
                           >
-                            {genre}
+                            {normalizeGenre(genre)}
                           </button>
                         ))}
                       </div>
@@ -313,9 +313,24 @@ export default function Directory() {
           )}
 
           {!isLoading && filtered.length === 0 && (
-            <p className="py-12 text-center text-muted-foreground">
-              No authors found matching your search.
-            </p>
+            <div className="py-16 text-center">
+              <BookOpen className="mx-auto h-10 w-10 text-muted-foreground/40" />
+              <p className="mt-4 text-base font-medium text-foreground">No authors match your search</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try a different keyword{selectedGenre ? " or genre" : ""}, or clear your filters to see everyone.
+              </p>
+              {(search || selectedGenre) && (
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    handleGenreFilter(null);
+                  }}
+                  className="mt-5 inline-flex items-center rounded-full border border-secondary/40 px-4 py-1.5 text-sm font-medium text-secondary transition-colors hover:bg-secondary/10"
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
           )}
         </div>
       </section>
