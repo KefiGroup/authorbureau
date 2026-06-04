@@ -1103,6 +1103,18 @@ export default function AuthorBookPage() {
                       </div>
                     )}
                     <p className="text-xs mt-1.5 text-center max-w-[96px] truncate" style={{ color: v.bodyText }}>{ob.title}</p>
+                    {/* B-05: cross-sell price + View Book CTA */}
+                    {(ob.kindle_price || ob.price) && (
+                      <p className="text-xs text-center font-semibold mt-0.5" style={{ color: v.accent }}>
+                        {ob.kindle_price || ob.price}
+                      </p>
+                    )}
+                    <span
+                      className="mt-1.5 mx-auto flex items-center justify-center gap-1 rounded-full text-[11px] h-7 px-3 font-semibold transition-opacity group-hover:opacity-90"
+                      style={{ background: v.accent, color: v.accentText, width: "fit-content" }}
+                    >
+                      View Book <ArrowRight className="h-3 w-3" />
+                    </span>
                   </Link>
                 ))}
               </div>
