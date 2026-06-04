@@ -1,59 +1,57 @@
-# Sprint A — Final Fixes
+# Audit Completion — Status + Plan to Finish
 
-Three remaining items from the audit. Two are clean code fixes; one is a data issue I'll guard against in code.
+I re-read the full PDF and checked every finding against the current code. **All 9 critical bugs are fixed. Several medium/low items remain.** One item I "fixed" last round was actually the wrong target (D-04), so it's reopened below.
 
-## S-02 — Speaking page H1 still shows "Pauline Teo | Be SUCKcessful"
+## ✅ Already fixed (verified in code)
 
-**Root cause:** The Speaking page (`SpeakingPage` in `src/pages/MicrositePage.tsx`, line 3352) derives its title from `content.speaker_brand` first and only falls back to `formatPublicLabel(...)`. The stored `speaker_brand` value itself contains the page-title artifact `"Pauline Teo | Be SUCKcessful"`, so the sanitizer never runs on it.
+| Ref | Item | Where |
+|---|---|---|
+| H-01 | "How It Works" blank | `/how-it-works` renders `HowItWorks` |
+| H-02 / HP-01 | "Help" 404 | `/help` → `/faq` redirect; navbar points to `/faq` |
+| A-01 | Hero price mismatch | CTA now derives from real lowest price |
+| A-02 | Terms/Privacy under every card | Removed from cards; footer-only |
+| A-06 / Q-01 | "Free Quiz" 404 | Uses `#quiz-section` anchor, conditional |
+| S-01 | Fee-schedule raw JSON | Block removed from Speaking page |
+| S-02 | Speaking H1 artifact | `formatPublicLabel` → "Book Pauline Teo to Speak" |
+| B-01 | Raw node-ID tab bar | Non-product types filtered + canonical labels |
+| B-04 | Artifact product name | `formatPublicLabel` on all product titles |
+| S-07 | No form confirmation | Success toast + `submitted` state already present |
+| A-03 | Hero "18 Products" stat | Proof bar shows Books / Rating / Reviews, not a product count |
+| M-01 | Methodology no CTA | Footer CTA "Ready to See What Abby Recommends?" exists |
 
-**Fix:** Wrap the resolved title in `formatPublicLabel`, using a meaningful speaking-specific fallback:
+## ❌ Still to do
 
-```text
-title = formatPublicLabel(
-  content.speaker_brand || data.node.personalised_name,
-  `Book ${data.author.pen_name} to Speak`
-)
-```
+### Code fixes (this is what I'll build)
+- **B-05** — Cross-sell "Also by" card: add price + "View Book" CTA (needs adding price to the `otherBooks` query/type).
+- **H-05** — Add an "↗" external indicator to PublishNow footer links.
+- **M-02** — Style framework badges as pill badges with icons.
+- **D-02** — Show the author's first book cover thumbnail on directory cards.
+- **D-04** (reopened) — Author page with no published books should render a branded "Coming Soon" state, not empty. (My earlier change improved the directory *search* empty state, which is good to keep, but is a different thing.)
+- **D-03** — Genre filter still shows internal labels ("Access Strategy", "Ai Advocacy", "Application Development"). Title-casing alone isn't enough; add a denylist/allowlist so only reader-facing genres show.
+- **B-02** — Workbook card: add "Free for all Be SUCKcessful readers. Download your companion workbook." description.
+- **B-03** — Membership ("Collective") should show a "Join for $17/month" CTA instead of "Contact" when it has a price + enrolment link.
+- **A-04** — Add a "Start Here" recommendation banner above the Work With section.
+- **A-05** — Group the Affiliate node under a labelled "Partner With Us" sub-section with a short description.
+- **A-07** — Refine subscribe copy to a concrete lead-magnet description (kit name + benefit).
+- **S-03** — Keep the "Signature Talk" fallback; real talk names are content (below).
 
-Because `formatPublicLabel` strips a `" — Contact <name>"` suffix and rejects any value containing a pipe (`|`), the artifact collapses to the fallback "Book Pauline Teo to Speak" while a legitimate brand name (e.g. "Pauline Teo Keynotes") is preserved. `data.author.pen_name` is already available on this page.
+### Data fixes (cannot be done in code — need a DB migration or content edit)
+- **D-01** — "Entreprenuer" → "Entrepreneur" typo lives in an author profile record.
+- **S-03** (content) — Give the 3 talks real titles in Pauline's `signature_talks` data.
+- **S-04 / S-05 / S-06** — Speaker photo/video, event-organiser testimonials, past-client logo bar: these are **missing content**, not code bugs. I can add render slots that display them *when the data exists* (and hide cleanly when empty), but the actual photos/quotes/logos must be supplied.
 
-## H-02 — /help returns 404
+### Intentionally NOT changing
+- **H-04** (homepage pricing section) and **H-03** (move 28-stream diagram): public-site rules in project memory suppress pricing on public pages, and the homepage layout is a deliberate design choice. I'll leave both unless you want them overridden.
 
-**Root cause:** The current Navbar already links Help → `/faq` (which exists), so the nav itself is fixed in source. But there is no `/help` route, so direct navigation / stale links / the older published build still 404.
+## Plan of work
+1. **Directory** (`Directory.tsx`): D-02 book-cover thumbnail on cards; D-03 reader-friendly genre filtering.
+2. **Author page** (`AuthorBookPage.tsx`): D-04 Coming-Soon empty state; B-02 workbook copy; B-03 membership "Join $17/mo" CTA; B-05 cross-sell price+CTA; A-04 "Start Here" banner; A-05 "Partner With Us" grouping.
+3. **Subscribe + footer + methodology**: A-07 copy refinement; H-05 external ↗ indicator; M-02 pill badges.
+4. **Speaking** (`MicrositePage.tsx`): add hidden-until-present slots for speaker photo (S-04), organiser testimonials (S-05), client logos (S-06).
+5. **Data migration**: fix the "Entreprenuer" typo (D-01); optionally seed real talk titles (S-03) if you confirm the names from the report's suggestions.
 
-**Fix:** Add a redirect route in `src/App.tsx` next to the other redirects:
-
-```text
-<Route path="/help" element={<Navigate to="/faq" replace />} />
-```
-
-This guarantees `/help` always lands on the Help (FAQ) page.
-
-## B-03 (partial) — "Be SUCKcessful Collective" appears twice
-
-**Root cause:** This is a data issue. The membership node (BA-12) correctly shows in **Courses & Membership** with a Buy Now at $17. A second, separately-created node in the **Work With** bucket (`WORK_WITH_NODE_IDS`) was given the same personalised name "Be SUCKcessful Collective", so the same title renders again with a Contact CTA. The audit classifies this as a data cleanup item — the duplicate node should be removed/renamed in the author's data, which isn't a source-code change.
-
-**Code-level guard (defensive):** In `src/pages/AuthorBookPage.tsx` (around line 836), after computing `formatNodes` / `courseNodes` / `workNodes`, drop any `workNodes` entry whose display title already appears in `courseNodes` or `formatNodes`. This prevents a duplicate-named node from showing the same product twice regardless of underlying data. The real duplicate node still needs cleaning in data, which I'll flag.
-
-## Technical details / files touched
-- `src/pages/MicrositePage.tsx` — one-line change to `SpeakingPage` title derivation.
-- `src/App.tsx` — add `/help` → `/faq` redirect route.
-- `src/pages/AuthorBookPage.tsx` — add a title-based de-dup filter so a node already shown in Formats/Courses isn't repeated in Work With.
-
-## Verification
-- Confirm Speaking page H1 reads "Book Pauline Teo to Speak" (or a clean brand if one exists).
-- Confirm `/help` loads the FAQ page instead of NotFound.
-- Confirm "Be SUCKcessful Collective" appears only once on the book detail page.
-
-Note: the B-03 root cause is duplicated node data; the code guard hides the symptom, but I'd recommend removing/renaming the duplicate Work-With node so it doesn't resurface elsewhere.
----
-
-# Sprint B / C — Finish-up (best-effort)
-
-The detailed Sprint B/C finding text lived only in the audit image, so I implemented the items whose intent was unambiguous and safe:
-
-- **D-03 (genre normalization):** Directory author-card genre chips now render through `normalizeGenre()` (title-case), matching the filter bar.
-- **D-04 (empty state):** Directory "no results" is now a proper empty state — icon, guidance copy, and a "Clear filters" action (shown when a search/genre is active).
-- **S-03 (talk title fallback):** Speaking page talks fall back to "Signature Talk" instead of "Talk 1/2/3".
-
-Still need the original audit wording to action precisely (one-liners too vague to fix without guessing): S-04–06 (missing Speaking sections), A-03 (which stat), A-04 ("Start Here" placement), A-07 (lead-magnet description copy), D-01 (which typo), H-03 (How-It-Works diagram), M-01 (which CTA), M-02 (which badges), B-02 (workbook copy), B-05 (cross-sell), D-02 (thumbnails). H-04 stays suppressed per public-site rules.
+## Technical notes
+- `otherBooks` currently selects only `id, title, slug, cover_image_url`; B-05 needs `price`/`kindle_price` added to that query and the `OtherBook` interface.
+- D-03 needs a small `READER_GENRE_DENYLIST` (or allowlist) in `Directory.tsx` applied alongside the existing `normalizeGenre`.
+- B-03 depends on whether the membership node carries `price_usd` + an enrolment/checkout link; if present, route through the existing `BuyNowButton` instead of the contact modal.
+- S-04/05/06 will read from existing content fields if available (e.g. `content.speaker_photo`, `content.event_testimonials`, `content.client_logos`) and render nothing when absent, per the "empty fields hide cleanly" rule.
