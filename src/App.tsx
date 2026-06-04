@@ -171,6 +171,8 @@ const AppRoutes = () => (
       <Route path="/subscription-success" element={<SubscriptionSuccess />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/faq" element={<FAQ />} />
+      <Route path="/help" element={<Navigate to="/faq" replace />} />
+      <Route path="/support" element={<Navigate to="/faq" replace />} />
 
       {/* Readers Bureau */}
       <Route path="/readers-bureau" element={<ReadersBureau />} />
