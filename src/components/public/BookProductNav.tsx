@@ -27,6 +27,7 @@ const PRODUCT_TYPE_META: Record<string, { icon: string; label: string }> = {
   onlinecourse: { icon: "🎓", label: "Online Course" },
   coaching: { icon: "🎯", label: "Coaching" },
   group_coaching: { icon: "👥", label: "Group Coaching" },
+  groupcoaching: { icon: "👥", label: "Group Coaching" },
   audiobook: { icon: "🎧", label: "Audiobook" },
   podcast: { icon: "🎙", label: "Podcast" },
   workbook: { icon: "📝", label: "Workbook" },
@@ -44,11 +45,40 @@ const PRODUCT_TYPE_META: Record<string, { icon: string; label: string }> = {
   special_edition: { icon: "✨", label: "Special Edition" },
   convention: { icon: "🎪", label: "Convention" },
   big_ticket: { icon: "💎", label: "Big Ticket" },
+  // Canonical labels for node-derived types (NODE_TO_PRODUCT) so the tab bar
+  // never renders a raw internal id (audit B-01).
+  leadmagnet: { icon: "🎁", label: "Free Gift" },
+  press: { icon: "📰", label: "Media & PR" },
+  affiliates: { icon: "🤝", label: "Affiliates" },
+  bundles: { icon: "📦", label: "Bundles" },
+  jv: { icon: "🤝", label: "JV Partnerships" },
+  vip: { icon: "💎", label: "Consulting" },
+  corporate: { icon: "🏢", label: "Corporate Training" },
+  conference: { icon: "🎪", label: "Conference" },
+  fundraising: { icon: "❤️", label: "Fundraising" },
+  sponsors: { icon: "🏷", label: "Sponsors" },
 };
+
+/**
+ * Outbound / B2B / partner node types that are NOT reader-purchasable book
+ * products. They have their own sections ("Work With Me", lead-magnet section,
+ * etc.) and must be filtered OUT of the public book product tab bar (audit B-01).
+ */
+export const NON_PRODUCT_TAB_TYPES = new Set<string>([
+  "leadmagnet",
+  "jv",
+  "press",
+  "fundraising",
+  "sponsors",
+  "affiliates",
+  "vip",
+  "corporate",
+]);
 
 export function getProductTabMeta(type: string): { icon: string; label: string } {
   return PRODUCT_TYPE_META[type] || { icon: "📦", label: type };
 }
+
 
 export default function BookProductNav({
   authorSlug,
