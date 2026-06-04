@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
   } catch (err) {
     const errMessage = err instanceof Error ? err.message : String(err);
     console.error("crm-auto-capture error:", errMessage);
-    return new Response(JSON.stringify({ error: errMessage }), {
+    return new Response(JSON.stringify({ error: "An internal error occurred. Please try again." }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

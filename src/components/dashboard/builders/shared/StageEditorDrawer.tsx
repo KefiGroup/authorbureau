@@ -280,7 +280,7 @@ function CheckoutStagePanel({ authorId, nodeId }: CheckoutPanelProps) {
           nodeId
             ? supabase
                 .from("author_nodes")
-                .select("id, node_name, personalised_name, price_usd, currency, stripe_price_id")
+                .select("id, node_name, personalised_name, price_usd, currency")
                 .eq("author_id", authorId)
                 .eq("node_id", nodeId)
                 .maybeSingle()
@@ -299,7 +299,7 @@ function CheckoutStagePanel({ authorId, nodeId }: CheckoutPanelProps) {
             name: row.personalised_name || row.node_name || "Your product",
             price_usd: row.price_usd ?? null,
             currency: row.currency ?? "USD",
-            stripe_price_id: row.stripe_price_id ?? null,
+            stripe_price_id: null,
           });
         } else {
           setProduct(null);

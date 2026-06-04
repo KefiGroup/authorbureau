@@ -42,12 +42,8 @@ async function resolveUserId(token: string): Promise<string> {
     if (sharedUser?.user?.id) return sharedUser.user.id;
   }
 
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload.sub) return payload.sub as string;
-  } catch {
-    /* ignore */
-  }
+  // SECURITY: do not trust an unsigned JWT body. If no auth server verifies the
+  // token, treat the request as unauthenticated rather than accepting payload.sub.
   throw new Error("Not authenticated");
 }
 

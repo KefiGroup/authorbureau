@@ -11,15 +11,11 @@ const corsHeaders = {
 const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
 
 async function resolveUser(token: string): Promise<{ id: string; email: string }> {
-  // 1) Pure JWT decode first — fast, no cross-project key dependency.
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload?.sub && payload?.email) {
-      return { id: String(payload.sub), email: String(payload.email) };
-    }
-  } catch { /* ignore */ }
+  // SECURITY: never decode the JWT body without verification. Always validate
+  // the token against a real auth server first so a forged
+  // {"sub":"<victim-uuid>"} payload cannot impersonate another user.
 
-  // 2) Try Cloud project auth.
+  // 1) Cloud project auth (verifies signature server-side).
   try {
     const localClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -32,7 +28,7 @@ async function resolveUser(token: string): Promise<{ id: string; email: string }
     }
   } catch { /* ignore */ }
 
-  // 3) Try shared backend auth.
+  // 2) Shared backend auth (verifies signature server-side).
   try {
     const sharedKey = Deno.env.get("SHARED_BACKEND_SERVICE_ROLE_KEY");
     if (sharedKey) {
@@ -41,15 +37,6 @@ async function resolveUser(token: string): Promise<{ id: string; email: string }
       if (sharedUser?.user?.id && sharedUser?.user?.email) {
         return { id: sharedUser.user.id, email: sharedUser.user.email };
       }
-    }
-  } catch { /* ignore */ }
-
-  // 4) Last-resort: decode JWT accepting sub alone (synthesise placeholder email).
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    if (payload?.sub) {
-      const email = payload.email || `${payload.sub}@unknown.local`;
-      return { id: String(payload.sub), email: String(email) };
     }
   } catch { /* ignore */ }
 

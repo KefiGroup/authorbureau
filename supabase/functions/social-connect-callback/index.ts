@@ -244,7 +244,7 @@ Deno.serve(async (req) => {
     return json({ success: true, platform: resolvedPlatform, account_name: accountName });
   } catch (e) {
     console.error("[social-connect-callback] unhandled", e);
-    return json({ error: e instanceof Error ? e.message : "Unknown" }, 500);
+    return json({ error: "An internal error occurred. Please try again." }, 500);
   }
 });
 
