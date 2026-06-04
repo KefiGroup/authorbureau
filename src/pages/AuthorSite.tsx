@@ -9,6 +9,7 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
 import NotFound from "./NotFound";
 import { hasRequiredAssets } from "@/lib/node-readiness";
+import { BOOK_PUBLIC_COLUMNS } from "@/lib/book-columns";
 
 import type { AuthorData, BookWithProducts, ProductLink, RelatedAuthor, CoachingService, ThemeVars } from "./author-site/types";
 import { getLowestPrice } from "./author-site/types";
