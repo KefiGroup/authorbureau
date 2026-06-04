@@ -37,7 +37,7 @@ export default function CourseBuilder() {
   const fetchCourses = useCallback(async () => {
     const { data } = await supabase
       .from("courses")
-      .select("*")
+      .select("id, title, description, price, status, created_at")
       .eq("author_id", user!.id)
       .order("created_at", { ascending: false });
     setCourses((data as Course[]) || []);
