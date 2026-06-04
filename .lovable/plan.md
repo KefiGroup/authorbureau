@@ -1,58 +1,74 @@
-## Why ghost authors keep coming back
+# Authors Bureau Public Audit — My Comments + Fix Plan
 
-A "ghost author" = an `author_profiles` row whose `user_id` doesn't exist in `auth.users`. There are 2 right now:
+I read the full Manus AI report and checked each claim against the live code. Below is an honest verdict on each finding, then a concrete fix plan. Short version: the report is **mostly accurate and fair**, but a few "critical" routing bugs were tested against the **older published build** and are already fixed in the current code. The genuinely damaging rendering bugs (raw JSON fee schedule, internal node-ID tab bar, database-artifact product names) are **real and confirmed in code**.
 
-- **Veronica Tan** (`veronicagogetter320@gmail.com`) — has 1 book; just needs to claim/repair to her real auth account
-- **fasahath** — 0 books, no email; clearly junk
+---
 
-They keep resurfacing because three things are working against you:
+## Verdicts (is it true?)
 
-1. **The trigger only warns; it never blocks.** `warn_ghost_author_uid` writes a row into `auth_uid_warnings` and returns success — bad data gets in anyway. The daily-audit re-reads that table every 24h, so the warning re-surfaces forever until the underlying profile is fixed.
-2. **`save-book` deliberately invents fake user IDs.** When a book is submitted for an email with no matching auth account, the function does `userId = crypto.randomUUID()` and upserts a new `author_profiles` row with that random ID. That ID will never exist in `auth.users` → instant ghost. This is the primary source of new ghosts.
-3. **There's no "claim" path for the author.** The admin invite function exists (`admin-invite-ghost-author`) but nothing surfaces it in the UI, so ghosts pile up instead of being repaired.
+### Critical
+| Ref | Finding | Verdict | Note |
+|---|---|---|---|
+| S-01 | Fee schedule renders raw JSON | **TRUE — confirmed** | `yrInline()` does `JSON.stringify()` on objects, so a `fee_schedule` of objects dumps raw JSON exactly as shown. |
+| S-02 | Speaking H1 is a DB title ("Pauline Teo \| Be SUCKcessful") | **TRUE** | Title falls back to `personalised_name`, which holds the page title artifact. |
+| B-01 | Internal node-ID tab bar (leadmagnet, jv, press…) | **TRUE — confirmed** | `BookProductNav` labels come from `getProductTabMeta(type)`, which falls back to the raw node type for unmapped types. |
+| B-04 | "Pauline Teo \| Be SUCKcessful — Contact Pauline" shown as a product | **TRUE** | Product titles use `personalised_name \|\| node_name` with no sanitization. |
+| A-01 | Hero CTA price mismatch ($4.99 vs $0.99) | **PARTLY — data** | Code computes the lowest of kindle/paperback/price; if it shows $4.99 the book record's price fields are wrong/stale. Fix is data + a guard. |
+| A-02 | Terms/Privacy repeated under every product card | **LIKELY TRUE** | Needs a one-line confirm in the product-card render; belongs in footer only. |
+| A-06 / Q-01 | "Free Quiz" nav → 404 | **ALREADY ADDRESSED** | Author nav now uses a `#quiz-section` anchor, not a dead route. The quiz only appears when the book has a quiz section. |
+| H-01 | "How It Works" → blank page | **ALREADY FIXED** | `/how-it-works` renders a full, rich page in current code. Was true on the older published build. |
+| H-02 / HP-01 | "Help" → 404 | **ALREADY FIXED** | Main nav "Help" points to `/faq`, which exists. Stale finding. |
 
-## The fix (three layers, smallest blast radius first)
+### Medium / Low
+| Ref | Finding | Verdict |
+|---|---|---|
+| S-03 | Talks named "Talk 1/2/3" | TRUE if generated content lacks titles — data/generation gap; add fallback titles. |
+| S-04/05/06 | No speaker photo / testimonials / client logos | TRUE — these sections don't exist on the speaking node yet. |
+| S-07 | No form confirmation | PARTLY — a `submitted` state exists; needs a clearer success toast/message. |
+| A-03 | Hero stat "18 Products & Services" meaningless | TRUE — cosmetic copy choice. |
+| A-04 | "Work With Me" has no "Start Here" guidance | TRUE — UX enhancement. |
+| A-05 | Affiliate link dangling with no context | TRUE — placement. |
+| A-07 | Subscribe form has no lead-magnet description | TRUE — copy. |
+| B-02 | Free Workbook has no "why free" description | TRUE — copy. |
+| B-03 | "Collective — Contact Pauline" should be "Join $17/mo" | TRUE — same artifact family as B-04. |
+| B-05 | Cross-sell card has no price/CTA | TRUE — small enhancement. |
+| D-01 | "Entreprenuer" typo | TRUE — pure data fix in DB. |
+| D-02 | No book-cover thumbnails on directory cards | TRUE — enhancement. |
+| D-03 | Internal genre labels in filter (Access Strategy, Ai Advocacy…) | TRUE — genre normalization needed. |
+| D-04 | Empty author page instead of "Coming Soon" | TRUE — empty-state. |
+| M-01 | Methodology page has no CTA | TRUE — add CTA. |
+| M-02 | Framework badges text-only | TRUE — styling. |
+| H-03 | 28-stream diagram too low | TRUE — layout opinion. |
+| H-04 | No pricing on homepage | TRUE — note: pricing is intentionally de-emphasized per our public-site rules, so this is a deliberate product decision, not a bug. |
+| H-05 | External footer links no "↗" indicator | TRUE — small UX. |
 
-### 1. Stop creating new ghosts in `save-book`
-In `supabase/functions/save-book/index.ts` (lines ~114–141), replace the "Fallback 3: Generated new local author_id" branch:
-- Do **not** mint `crypto.randomUUID()` for `user_id`.
-- Insert the `author_profiles` row with `user_id = NULL` and a new `claim_email` column instead.
-- Books still attach via `books.author_id = author_profiles.id` (unchanged), so nothing downstream breaks.
+**Bottom line:** ~3 of the 5 "critical" items are real and live (S-01, B-01, plus the artifact names S-02/B-04). Two "critical" routing bugs (H-01, H-02) are already fixed. The medium/low list is fair and worth doing.
 
-### 2. Schema: make unclaimed profiles a first-class state
-One migration:
-- `ALTER TABLE author_profiles ADD COLUMN claim_email citext` (nullable).
-- Partial unique index on `lower(claim_email)` where `user_id IS NULL` so duplicate unclaimed profiles can't pile up for the same email.
-- Update `warn_ghost_author_uid()` so it skips rows where `user_id IS NULL` (those are legitimately unclaimed, not ghosts).
-- Extend `handle_claim_author_profile()` so that on signup it ALSO attaches any unclaimed `author_profiles` row whose `claim_email` matches the new user's email (not just the explicit `claim_author_profile_id` path).
+---
 
-### 3. Repair the 2 ghosts that already exist (manual, per your choice)
-Add a small admin UI section under the Daily Audit tab → "Ghost Authors" that lists each ghost with two buttons:
-- **Invite / Send claim link** → calls existing `admin-invite-ghost-author` (Veronica's case).
-- **Mark as junk → archive** → only enabled when book_count = 0; soft-deletes the profile (fasahath's case).
+## Fix Plan
 
-No auto-cleanup runs — per your answer, you keep them visible until you click.
+### Sprint A — Critical, trust-destroying (code, ~1 day)
+1. **S-01 Fee schedule JSON.** In `MicrositePage.tsx` `SpeakingPage`, stop dumping objects. Render `fee_schedule` entries with a proper formatter: for object entries show `label` + a human price range (`$25,000–$40,000`) instead of `yrInline` JSON. Safest per the report: **hide the fee schedule on the public speaking page entirely** (corporate buyers inquire), keeping the booking form. I'll gate it behind a clean formatter and default it off.
+2. **B-01 Internal node-ID tab bar.** In `getProductTabMeta` / `BookProductNav`, map every node type to a friendly label and **filter out non-product nodes** (leadmagnet, jv, press, fundraising, sponsors, affiliates, vip, corporate, bundles, conference, groupcoaching) from the public product tab bar. No raw type should ever render as a label.
+3. **S-02 / B-04 / B-03 artifact names.** Add a sanitizer for product/title display: if `personalised_name` contains the `Author | Book` pattern or "Contact {name}", fall back to the canonical node label. Speaking H1 → "Book {Author} to Speak". Collective CTA → "Join for $17/month" with enrolment link when it's a membership node.
+4. **A-01 price guard.** Ensure the hero CTA always derives from the real lowest book price and correct the underlying book record so it reads $0.99.
+5. **A-02 inline Terms/Privacy.** Remove Terms of Sale / Privacy links from individual product cards; keep them in the footer only.
 
-### 4. Keep the daily audit honest
-Update the `ghost_uids` check in `supabase/functions/daily-audit/index.ts` to use the same definition the trigger now uses (`user_id IS NOT NULL AND auth.users row missing`). Result: once Veronica claims her account and you archive fasahath, the warning goes to zero and **stays** zero, because the only path that used to manufacture ghosts (`save-book` random UUID) is gone.
+### Sprint B — Conversion (1–2 days)
+- S-03 fallback talk titles; S-04 speaker photo block; S-05 organiser testimonials; S-06 client logo bar; S-07 explicit success toast.
+- A-03 swap stat to "28 Revenue Streams Built" / rating; A-04 "Start Here" recommendation; A-07 lead-magnet description on subscribe form.
+- D-01 typo fix (DB); D-03 reader-friendly genre normalization.
 
-## Technical summary
+### Sprint C — Polish (~1 day)
+- H-03 move 28-stream diagram up; M-01 Methodology CTA; M-02 styled framework pill badges; B-02 workbook "why free" copy; B-05 cross-sell price + CTA; D-02 directory cover thumbnails; D-04 "Coming Soon" empty state; H-05 external-link indicator.
+- H-04 (homepage pricing): flag for your decision — our public-site convention intentionally suppresses pricing, so I'd recommend a "See plans" link rather than a full pricing block.
 
-Files touched:
-- `supabase/functions/save-book/index.ts` — remove `crypto.randomUUID()` fallback; insert with `user_id: null, claim_email: body.email`
-- New migration:
-  - `ALTER TABLE author_profiles ADD COLUMN claim_email citext`
-  - `CREATE UNIQUE INDEX … ON author_profiles (lower(claim_email)) WHERE user_id IS NULL`
-  - replace `warn_ghost_author_uid()` body to early-return on `NEW.user_id IS NULL`
-  - replace `handle_claim_author_profile()` to also match by `claim_email = NEW.email` when no `claim_author_profile_id` is provided
-- `supabase/functions/daily-audit/index.ts` — switch ghost check to `user_id IS NOT NULL AND missing in auth.users` (mirrors trigger)
-- New admin UI section: `src/components/admin/GhostAuthorsCard.tsx` (loaded inside `DailyAuditTab.tsx`)
-- New edge function: `admin-archive-ghost-author` (admin-gated soft-delete for ghosts with 0 books)
+---
 
-No changes to: 28-node registry, payout flow, commerce engine, RLS on books, or `resolveAuthorId` semantics.
+## Technical notes
+- Root cause of the worst bugs is **unsanitized rendering of AI/DB content** in two spots: `yrInline()` (JSON.stringify fallback) and product title fallbacks (`personalised_name`). Centralizing a `formatPublicLabel()` + `formatFeeRange()` helper fixes S-01, S-02, B-01, B-03, B-04 together.
+- H-01/H-02 prove the live site is behind the codebase — a **publish** will clear those two "critical" findings immediately.
+- Several items (A-01 price, D-01 typo, D-03 genres, S-03 talk titles) are **data**, not code; I'll fix the rendering guard and correct the records.
 
-## What you'll see after this ships
-
-- Daily audit "Ghost author UIDs (24h)" drops to 0 within one day of you clicking Invite for Veronica and Archive for fasahath.
-- New book submissions for unknown emails no longer create ghost rows — they create *unclaimed* profiles that auto-attach when the person eventually signs up.
-- The amber warning stops coming back tomorrow.
+I'll start with Sprint A once you approve.
