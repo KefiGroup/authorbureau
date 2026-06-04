@@ -306,6 +306,15 @@ export default function Directory() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">{author.title}</p>
                         </div>
+                        {/* D-02: first book cover thumbnail */}
+                        {author.books[0]?.coverImage && (
+                          <img
+                            src={author.books[0].coverImage}
+                            alt={`${author.books[0].title} cover`}
+                            loading="lazy"
+                            className="shrink-0 w-10 h-14 rounded object-cover shadow-sm ring-1 ring-border/50"
+                          />
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border/40">
