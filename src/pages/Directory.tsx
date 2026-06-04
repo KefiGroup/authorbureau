@@ -300,7 +300,7 @@ export default function Directory() {
                             }}
                             className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted/60 text-muted-foreground hover:bg-secondary/20 hover:text-secondary transition-colors"
                           >
-                            {genre}
+                            {normalizeGenre(genre)}
                           </button>
                         ))}
                       </div>
