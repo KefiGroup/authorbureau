@@ -835,7 +835,7 @@ export default function AuthorBookPage() {
         const workNodes  = visible.filter(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id));
 
         const renderBuyCard = (n: any, mode: "buy" | "free") => {
-          const title = n.personalised_name || n.node_name || "Product";
+          const title = formatPublicLabel(n.personalised_name || n.node_name, "Product");
           const currency = (n.currency || "USD").toUpperCase();
           const symbol = currency === "USD" ? "$" : "";
           const priceNum = Number(n.price_usd) || 0;
@@ -878,7 +878,7 @@ export default function AuthorBookPage() {
         };
 
         const renderInquireCard = (n: any) => {
-          const title = n.personalised_name || n.node_name || "Service";
+          const title = formatPublicLabel(n.personalised_name || n.node_name, "Service");
           const description = extractCardDescription(n);
           return (
             <div
