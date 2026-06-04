@@ -7,6 +7,7 @@ import {
   Megaphone, Trophy, Calendar, Briefcase, Award, Globe, Heart, Handshake
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { BOOK_PUBLIC_COLUMNS } from "@/lib/book-columns";
 import BuyNowButton from "@/components/commerce/BuyNowButton";
 import { autoEnrollSubscriber } from "@/lib/email-sequence-hook";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
