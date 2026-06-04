@@ -179,9 +179,9 @@ export default function AuthorSite() {
     // Merge all three book queries by id, preferring the primary (profile.id) match.
     const booksMap = new Map<string, Record<string, unknown>>();
     for (const b of [
-      ...((booksRes.data || []) as Record<string, unknown>[]),
-      ...((booksByUserIdRes?.data || []) as Record<string, unknown>[]),
-      ...((booksByNameRes?.data || []) as Record<string, unknown>[]),
+      ...((booksRes.data || []) as unknown as Record<string, unknown>[]),
+      ...((booksByUserIdRes?.data || []) as unknown as Record<string, unknown>[]),
+      ...((booksByNameRes?.data || []) as unknown as Record<string, unknown>[]),
     ]) {
       if (b?.id && !booksMap.has(b.id as string)) booksMap.set(b.id as string, b);
     }
