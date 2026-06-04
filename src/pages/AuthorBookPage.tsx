@@ -1011,7 +1011,7 @@ export default function AuthorBookPage() {
                     Coaching, consulting, speaking, and bespoke programmes. Reach out to discuss what fits.
                   </p>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {workNodes.map(renderInquireCard)}
+                    {workNodes.map(renderWorkCard)}
                   </div>
                 </div>
               </section>
