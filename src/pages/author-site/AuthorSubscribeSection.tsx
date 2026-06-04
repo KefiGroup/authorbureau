@@ -52,8 +52,11 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
 
           {affiliateNodes.length > 0 && (
             <div className="mt-8 pt-6" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
-              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: v.mutedText }}>
-                Recommended Resources
+              <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: v.accent }}>
+                Partner With Us
+              </p>
+              <p className="text-sm mb-4" style={{ color: v.mutedText }}>
+                Tools and partners {displayName} trusts and recommends.
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 {affiliateNodes.map(node => {
