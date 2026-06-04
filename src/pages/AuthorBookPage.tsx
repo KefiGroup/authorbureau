@@ -106,6 +106,8 @@ interface OtherBook {
   title: string;
   slug: string;
   cover_image_url?: string;
+  price?: string;
+  kindle_price?: string;
 }
 
 const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
@@ -388,7 +390,7 @@ export default function AuthorBookPage() {
       supabase.from("courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
       supabase.from("podcasts").select("id, title, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
-      supabase.from("books").select("id, title, slug, cover_image_url").in("author_id", authorIds).not("published_at", "is", null).neq("id", bookId).limit(4),
+      supabase.from("books").select("id, title, slug, cover_image_url, price, kindle_price").in("author_id", authorIds).not("published_at", "is", null).neq("id", bookId).limit(4),
       supabase.from("books").select("slug, title, cover_image_url, genre").in("author_id", authorIds).not("published_at", "is", null).order("created_at", { ascending: false }),
       supabase.from("coaching_packages").select("id, title, price, currency, description, type").in("author_id", authorIds).eq("status", "active"),
       supabase.from("speaking_topics").select("id, title, fee, fee_currency, description").in("author_id", authorIds).eq("status", "active"),
