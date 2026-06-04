@@ -856,7 +856,13 @@ export default function AuthorBookPage() {
           const symbol = currency === "USD" ? "$" : "";
           const priceNum = Number(n.price_usd) || 0;
           const price = mode === "free" ? "Free" : `${symbol}${priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          const description = extractCardDescription(n);
+          // B-02: free companion products (e.g. the Workbook) often have no
+          // description. Explain why it's free so the card never looks empty.
+          const description =
+            extractCardDescription(n) ||
+            (mode === "free"
+              ? `Free for all ${book.title} readers. Download your companion ${getProductTabMeta(NODE_TO_PRODUCT[n.node_id]?.type || "").label.toLowerCase() || "resource"}.`
+              : "");
           const learnMorePath = toInternalPath(n.delivery_url);
           return (
             <div
