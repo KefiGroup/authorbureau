@@ -3382,7 +3382,7 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
           <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Signature Talks</h2>
           <div className="space-y-3">
             {talks.map((t: any, i: number) => {
-              const name = yrStr(t?.title || t?.name, `Talk ${i + 1}`);
+              const name = yrStr(t?.title || t?.name, "Signature Talk");
               const desc = yrStr(t?.description || t?.summary);
               const audience = yrStr(t?.audience || t?.ideal_for);
               const takeaways = yrLines(t?.takeaways || t?.outcomes || t?.key_points);
