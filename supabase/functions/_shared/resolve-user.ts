@@ -60,38 +60,16 @@ export async function resolveUser(authHeader: string | null): Promise<ResolvedUs
     }
   } catch (_e) { /* fall through */ }
 
-  // 3. JWT decode fallback (no signature verification — safe because we only
-  //    use it as a hint; downstream code must still gate by ownership)
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    const jwtSub = typeof payload.sub === "string" ? payload.sub : null;
-    const email =
-      payload.email ||
-      payload.user_metadata?.email ||
-      sharedEmail ||
-      null;
-
-    if (email) {
-      const { data: users } = await admin.auth.admin.listUsers();
-      const match = users?.users?.find(
-        (u) => (u.email || "").toLowerCase() === String(email).toLowerCase()
-      );
-      if (match) return { id: match.id, email, source: "jwt" };
-    }
-
-    if (jwtSub) {
-      try {
-        const { data } = await admin.auth.admin.getUserById(jwtSub);
-        if (data?.user?.id) {
-          return { id: data.user.id, email: data.user.email ?? email, source: "jwt" };
-        }
-      } catch (_e) {
-        // Ignore and fall through to email-only fallback below.
-      }
-    }
-
-    if (email) return { id: null, email, source: "jwt" };
-  } catch (_e) { /* fall through */ }
-
-  return { id: null, email: sharedEmail, source: "none" };
+  // SECURITY: We intentionally do NOT decode the JWT payload to derive a user
+  // id. A base64 JWT body is trivially forgeable and carries no signature
+  // guarantee, so returning a real auth.users.id from an unverified token would
+  // allow admin/identity impersonation (an attacker could forge
+  // {"sub":"...","email":"admin@..."} and pass downstream role checks).
+  //
+  // The only thing we may safely surface from an unverified shared-backend
+  // token is the email that the shared backend itself already verified in
+  // step 2 — and even then we return id:null so callers cannot treat it as an
+  // authenticated identity, only as an owner_email hint that must be
+  // re-validated by ownership/role checks.
+  return { id: null, email: sharedEmail, source: sharedEmail ? "shared" : "none" };
 }
