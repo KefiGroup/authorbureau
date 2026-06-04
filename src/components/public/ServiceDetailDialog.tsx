@@ -5,6 +5,7 @@ import ServiceInquiryForm from "@/components/ServiceInquiryForm";
 import type { ThemeVars } from "@/pages/author-site/types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "@/pages/author-site/AuthorLeadMagnetsSection";
+import type { Testimonial } from "@/pages/author-site/AuthorTestimonialsSection";
 
 interface Props {
   open: boolean;
@@ -15,6 +16,10 @@ interface Props {
   authorSlug: string;
   theme: AuthorTheme;
   v: ThemeVars;
+  /** S-04: speaker headshot shown in the dialog header for Speaking */
+  authorPhoto?: string | null;
+  /** S-05: social proof shown for Speaking engagements */
+  testimonials?: Testimonial[];
 }
 
 // Strip any pricing leakage from a string
