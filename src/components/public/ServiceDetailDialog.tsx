@@ -148,21 +148,34 @@ export default function ServiceDetailDialog({
         >
           {/* Header */}
           <div className="px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${v.cardBorder}` }}>
-            <span
-              className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-3"
-              style={{ background: `${v.primary}20`, color: v.primary }}
-            >
-              {serviceLabel}
-            </span>
-            <h2
-              className="text-2xl font-bold mb-2"
-              style={{ color: v.headingText, fontFamily: theme.headingFont }}
-            >
-              {view.title}
-            </h2>
-            {view.tagline && (
-              <p className="text-base leading-relaxed" style={{ color: v.mutedText }}>{view.tagline}</p>
-            )}
+            <div className="flex items-start gap-4">
+              {/* S-04: speaker headshot */}
+              {isSpeaking && authorPhoto && (
+                <img
+                  src={authorPhoto}
+                  alt={authorName}
+                  className="w-16 h-16 rounded-full object-cover shrink-0"
+                  style={{ border: `2px solid ${v.accent}` }}
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <span
+                  className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-3"
+                  style={{ background: `${v.primary}20`, color: v.primary }}
+                >
+                  {serviceLabel}
+                </span>
+                <h2
+                  className="text-2xl font-bold mb-2"
+                  style={{ color: v.headingText, fontFamily: theme.headingFont }}
+                >
+                  {view.title}
+                </h2>
+                {view.tagline && (
+                  <p className="text-base leading-relaxed" style={{ color: v.mutedText }}>{view.tagline}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Body */}
