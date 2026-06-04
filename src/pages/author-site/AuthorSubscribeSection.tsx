@@ -32,8 +32,8 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
               displayName={displayName}
               source="author_homepage"
               sourceDetail={authorSlug}
-              headline={`Get the ${displayName} Starter Kit — Free`}
-              description={`Join the readers and get ${displayName}'s framework guide, delivered instantly.`}
+              headline={`Get ${displayName}'s Free Starter Kit`}
+              description={`One short email, one practical framework. Join the readers putting ${displayName}'s ideas to work, starting today.`}
               showMessage={false}
               redirectTo={`/${authorSlug}/thank-you`}
               initialName={initialName}
