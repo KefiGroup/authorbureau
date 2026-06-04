@@ -322,7 +322,7 @@ export default function Directory() {
                       </div>
 
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {author.genres.slice(0, 3).map((genre) => (
+                        {author.genres.filter(isReaderGenre).slice(0, 3).map((genre) => (
                           <button
                             key={genre}
                             onClick={(e) => {
