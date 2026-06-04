@@ -6,6 +6,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { getAuthorBySlug } from "@/data/authors";
 import type { Book as StaticBook } from "@/data/authors";
 import { supabase } from "@/integrations/supabase/client";
+import { BOOK_PUBLIC_COLUMNS } from "@/lib/book-columns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
