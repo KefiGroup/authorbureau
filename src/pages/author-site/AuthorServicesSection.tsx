@@ -229,6 +229,8 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
           authorSlug={authorSlug}
           theme={theme}
           v={v}
+          authorPhoto={authorPhoto}
+          testimonials={testimonials}
         />
       )}
     </section>
