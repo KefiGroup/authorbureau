@@ -924,6 +924,49 @@ export default function AuthorBookPage() {
           );
         };
 
+        // B-03: a Work-With node that carries a real price (e.g. the "Collective"
+        // membership at $17/month) must offer a direct join CTA, not a generic
+        // "Contact" inquiry. Render a priced join card and fall back to the
+        // inquiry card only for true enquiry-based services.
+        const renderWorkCard = (n: any) => {
+          const priceNum = Number(n.price_usd) || 0;
+          if (priceNum <= 0) return renderInquireCard(n);
+
+          const title = formatPublicLabel(n.personalised_name || n.node_name, "Membership");
+          const currency = (n.currency || "USD").toUpperCase();
+          const symbol = currency === "USD" ? "$" : "";
+          const cj = n.content_json || {};
+          const interval = String(
+            cj.billing_interval || cj.price_interval || cj.pricing_model || cj.interval || "",
+          ).toLowerCase();
+          const isMonthly =
+            interval.includes("month") ||
+            /month/i.test(`${n.personalised_name || ""} ${n.node_name || ""}`);
+          const suffix = isMonthly ? "/month" : "";
+          const priceLabel = `${symbol}${priceNum.toLocaleString()}${suffix}`;
+          const description = extractCardDescription(n);
+          return (
+            <div
+              key={n.id}
+              className="rounded-xl p-5 flex flex-col"
+              style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+            >
+              <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>{title}</p>
+              {description && (
+                <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
+              )}
+              <p className="font-bold text-lg mb-4 mt-auto" style={{ color: v.accent }}>{priceLabel}</p>
+              <BuyNowButton
+                authorNodeId={n.id}
+                authorId={book.author_id}
+                fallbackUrl={n.delivery_url}
+                label={`Join for ${priceLabel}`}
+                className="w-full rounded-full text-xs h-9 font-semibold"
+              />
+            </div>
+          );
+        };
+
         return (
           <>
             {formatNodes.length > 0 && (
