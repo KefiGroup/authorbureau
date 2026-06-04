@@ -52,10 +52,19 @@ function pickArr(val: unknown): any[] {
 }
 
 export default function ServiceDetailDialog({
-  open, onOpenChange, node, serviceLabel, authorName, authorSlug, theme, v,
+  open, onOpenChange, node, serviceLabel, authorName, authorSlug, theme, v, authorPhoto, testimonials = [],
 }: Props) {
   const [inquireOpen, setInquireOpen] = useState(false);
   const c = (node.content_json ?? {}) as Record<string, any>;
+
+  const isSpeaking = node.node_id.startsWith("YR-21") || serviceLabel.toLowerCase().includes("speak");
+  // S-06: client-logo slots (text-based placeholders until logos are uploaded)
+  const pastClients: string[] = isSpeaking
+    ? pickArr(c.speaker_one_sheet?.past_clients_placeholder).map((x) => scrub(x)).filter(Boolean).slice(0, 6)
+    : [];
+  // S-05: testimonials shown only for speaking engagements
+  const speakerTestimonials = isSpeaking ? testimonials.slice(0, 3) : [];
+
 
   const view = useMemo(() => {
     const title = node.personalised_name || node.node_name ||
