@@ -16,7 +16,8 @@ import { getGoDeeperCopy, getProductCardCTAText } from "@/lib/product-copy";
 import AuthorPageLayout from "@/components/public/AuthorPageLayout";
 import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
-import BookProductNav, { getProductTabMeta } from "@/components/public/BookProductNav";
+import BookProductNav, { getProductTabMeta, NON_PRODUCT_TAB_TYPES } from "@/components/public/BookProductNav";
+import { formatPublicLabel } from "@/lib/public-label";
 import NotFound from "./NotFound";
 import LeadCaptureForm from "@/components/LeadCaptureForm";
 import ServiceInquiryForm from "@/components/ServiceInquiryForm";
@@ -435,7 +436,7 @@ export default function AuthorBookPage() {
       const priceNum = n.price_usd != null ? Number(n.price_usd) : null;
       prods.push({
         type: mapping.type,
-        title: n.personalised_name || mapping.label,
+        title: formatPublicLabel(n.personalised_name, mapping.label),
         route: mapping.route,
         price: priceNum && priceNum > 0 ? `$${priceNum.toLocaleString()}` : undefined,
         // author_nodes are author-level, link to /:authorSlug/:route (not book-scoped)
@@ -536,11 +537,15 @@ export default function AuthorBookPage() {
       }, priceFormats[0])
     : null;
 
-  // Build product tabs for BookProductNav
-  const productTabs = products.map((p) => {
-    const meta = getProductTabMeta(p.type);
-    return { label: meta.label, icon: meta.icon, route: p.route };
-  });
+  // Build product tabs for BookProductNav. Outbound / B2B / partner node types
+  // (lead magnet, JV, press, fundraising, sponsors, affiliates, vip, corporate)
+  // are not reader-purchasable products and must not appear as tabs (audit B-01).
+  const productTabs = products
+    .filter((p) => !NON_PRODUCT_TAB_TYPES.has(p.type))
+    .map((p) => {
+      const meta = getProductTabMeta(p.type);
+      return { label: meta.label, icon: meta.icon, route: p.route };
+    });
 
   // Go Deeper section copy
   const goDeeperCopy = getGoDeeperCopy(
@@ -830,7 +835,7 @@ export default function AuthorBookPage() {
         const workNodes  = visible.filter(n => (WORK_WITH_NODE_IDS as readonly string[]).includes(n.node_id));
 
         const renderBuyCard = (n: any, mode: "buy" | "free") => {
-          const title = n.personalised_name || n.node_name || "Product";
+          const title = formatPublicLabel(n.personalised_name || n.node_name, "Product");
           const currency = (n.currency || "USD").toUpperCase();
           const symbol = currency === "USD" ? "$" : "";
           const priceNum = Number(n.price_usd) || 0;
@@ -873,7 +878,7 @@ export default function AuthorBookPage() {
         };
 
         const renderInquireCard = (n: any) => {
-          const title = n.personalised_name || n.node_name || "Service";
+          const title = formatPublicLabel(n.personalised_name || n.node_name, "Service");
           const description = extractCardDescription(n);
           return (
             <div

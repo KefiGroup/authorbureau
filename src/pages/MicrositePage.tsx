@@ -15,6 +15,7 @@ import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlaye
 import AudiobookPage from "@/pages/microsite/AudiobookPage";
 import { normalizeOutcome } from "@/lib/workbook-pdf";
 import { stripHtml } from "@/lib/stripHtml";
+import { formatPublicLabel } from "@/lib/public-label";
 import { WorkbookCoverArt } from "@/components/microsite/WorkbookCoverArt";
 
 interface MicrositeData {
@@ -3348,11 +3349,11 @@ function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setE
 
 /* ═══ YR-21 — KEYNOTE SPEAKING ═══ */
 function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
-  const title = yrStr(content.speaker_brand, data.node.personalised_name || NODE_NAMES["YR-21"] || "Keynote Speaking");
+  const title = yrStr(content.speaker_brand, formatPublicLabel(data.node.personalised_name, NODE_NAMES["YR-21"] || "Keynote Speaking"));
   const tagline = yrStr(content.speaker_tagline);
   const oneSheet = yrStr(content.speaker_one_sheet);
   const talks = yrArr(content.signature_talks);
-  const fees = content.fee_schedule;
+  // S-01: fee_schedule intentionally not rendered on the public speaking page.
   const booking = yrStr(content.booking_process);
 
   return (
@@ -3395,18 +3396,8 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
           </div>
         </section>
       )}
-      {fees && (
-        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Fee Schedule</p>
-          {typeof fees === "string" ? (
-            <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{fees}</p>
-          ) : Array.isArray(fees) ? (
-            <ul className="space-y-1">{fees.map((f: any, i: number) => (<li key={i} className="text-sm" style={{ color: v.bodyText }}>• {yrInline(f)}</li>))}</ul>
-          ) : (
-            <ul className="space-y-1">{Object.entries(fees as Record<string, any>).map(([k, val]) => (<li key={k} className="text-sm" style={{ color: v.bodyText }}><strong style={{ color: v.headingText }}>{k.replace(/_/g, " ")}:</strong> {yrInline(val)}</li>))}</ul>
-          )}
-        </Card>
-      )}
+      {/* S-01: Public fee schedule removed entirely — corporate buyers inquire via
+          the booking form. (Previously dumped raw JSON for object-shaped fees.) */}
       {booking && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
           <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Booking Process</p>
