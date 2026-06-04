@@ -5,6 +5,7 @@ import ServiceInquiryForm from "@/components/ServiceInquiryForm";
 import type { ThemeVars } from "@/pages/author-site/types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "@/pages/author-site/AuthorLeadMagnetsSection";
+import type { Testimonial } from "@/pages/author-site/AuthorTestimonialsSection";
 
 interface Props {
   open: boolean;
@@ -15,6 +16,10 @@ interface Props {
   authorSlug: string;
   theme: AuthorTheme;
   v: ThemeVars;
+  /** S-04: speaker headshot shown in the dialog header for Speaking */
+  authorPhoto?: string | null;
+  /** S-05: social proof shown for Speaking engagements */
+  testimonials?: Testimonial[];
 }
 
 // Strip any pricing leakage from a string
@@ -47,10 +52,19 @@ function pickArr(val: unknown): any[] {
 }
 
 export default function ServiceDetailDialog({
-  open, onOpenChange, node, serviceLabel, authorName, authorSlug, theme, v,
+  open, onOpenChange, node, serviceLabel, authorName, authorSlug, theme, v, authorPhoto, testimonials = [],
 }: Props) {
   const [inquireOpen, setInquireOpen] = useState(false);
   const c = (node.content_json ?? {}) as Record<string, any>;
+
+  const isSpeaking = node.node_id.startsWith("YR-21") || serviceLabel.toLowerCase().includes("speak");
+  // S-06: client-logo slots (text-based placeholders until logos are uploaded)
+  const pastClients: string[] = isSpeaking
+    ? pickArr(c.speaker_one_sheet?.past_clients_placeholder).map((x) => scrub(x)).filter(Boolean).slice(0, 6)
+    : [];
+  // S-05: testimonials shown only for speaking engagements
+  const speakerTestimonials = isSpeaking ? testimonials.slice(0, 3) : [];
+
 
   const view = useMemo(() => {
     const title = node.personalised_name || node.node_name ||
@@ -134,21 +148,34 @@ export default function ServiceDetailDialog({
         >
           {/* Header */}
           <div className="px-6 pt-6 pb-4" style={{ borderBottom: `1px solid ${v.cardBorder}` }}>
-            <span
-              className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-3"
-              style={{ background: `${v.primary}20`, color: v.primary }}
-            >
-              {serviceLabel}
-            </span>
-            <h2
-              className="text-2xl font-bold mb-2"
-              style={{ color: v.headingText, fontFamily: theme.headingFont }}
-            >
-              {view.title}
-            </h2>
-            {view.tagline && (
-              <p className="text-base leading-relaxed" style={{ color: v.mutedText }}>{view.tagline}</p>
-            )}
+            <div className="flex items-start gap-4">
+              {/* S-04: speaker headshot */}
+              {isSpeaking && authorPhoto && (
+                <img
+                  src={authorPhoto}
+                  alt={authorName}
+                  className="w-16 h-16 rounded-full object-cover shrink-0"
+                  style={{ border: `2px solid ${v.accent}` }}
+                />
+              )}
+              <div className="flex-1 min-w-0">
+                <span
+                  className="inline-block text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full mb-3"
+                  style={{ background: `${v.primary}20`, color: v.primary }}
+                >
+                  {serviceLabel}
+                </span>
+                <h2
+                  className="text-2xl font-bold mb-2"
+                  style={{ color: v.headingText, fontFamily: theme.headingFont }}
+                >
+                  {view.title}
+                </h2>
+                {view.tagline && (
+                  <p className="text-base leading-relaxed" style={{ color: v.mutedText }}>{view.tagline}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Body */}
@@ -218,6 +245,43 @@ export default function ServiceDetailDialog({
                     <li key={i} className="text-sm" style={{ color: v.bodyText }}>{s}</li>
                   ))}
                 </ol>
+              </Section>
+            )}
+
+            {/* S-05: speaking testimonials */}
+            {speakerTestimonials.length > 0 && (
+              <Section title="What Audiences Say" theme={theme} v={v}>
+                <div className="space-y-3">
+                  {speakerTestimonials.map((t) => (
+                    <blockquote
+                      key={t.id}
+                      className="rounded-xl p-4 text-sm leading-relaxed"
+                      style={{ background: `${v.accent}10`, border: `1px solid ${v.cardBorder}`, color: v.bodyText }}
+                    >
+                      "{t.quote}"
+                      <footer className="mt-2 text-xs font-semibold" style={{ color: v.headingText }}>
+                        {t.name}{t.role ? `, ${t.role}` : ""}
+                      </footer>
+                    </blockquote>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {/* S-06: client-logo slots */}
+            {pastClients.length > 0 && (
+              <Section title="Featured Stages & Clients" theme={theme} v={v}>
+                <div className="flex flex-wrap gap-2">
+                  {pastClients.map((client, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}`, color: v.bodyText }}
+                    >
+                      {client}
+                    </span>
+                  ))}
+                </div>
               </Section>
             )}
           </div>
