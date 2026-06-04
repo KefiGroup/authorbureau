@@ -6,6 +6,7 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 import { getAuthorBySlug } from "@/data/authors";
 import type { Book as StaticBook } from "@/data/authors";
 import { supabase } from "@/integrations/supabase/client";
+import { BOOK_PUBLIC_COLUMNS } from "@/lib/book-columns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import BadgeDisplay from "@/components/BadgeDisplay";
@@ -95,13 +96,14 @@ export default function AuthorProfile() {
 
     supabase
       .from("books")
-      .select("*")
+      .select(BOOK_PUBLIC_COLUMNS)
       .in("slug", slugs)
       .not("published_at", "is", null)
       .then(({ data }) => {
-        if (!data || data.length === 0) return;
+        const rows = (data || []) as unknown as Record<string, any>[];
+        if (rows.length === 0) return;
         const merged: StaticBook[] = staticAuthor.books.map((sb) => {
-          const db = data.find((d) => d.slug === sb.slug);
+          const db = rows.find((d) => d.slug === sb.slug);
           if (!db) return sb;
           return {
             ...sb,

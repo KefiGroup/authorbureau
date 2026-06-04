@@ -1,0 +1,41 @@
+// Public-safe column list for the `books` table.
+// Excludes `owner_email`, which is restricted from the anon role at the
+// database level (column-level GRANT). Public pages must use this list
+// instead of `select("*")` so anonymous visitors can read books without
+// triggering a permission error on the protected `owner_email` column.
+export const BOOK_PUBLIC_COLUMNS = [
+  "id",
+  "author_id",
+  "title",
+  "subtitle",
+  "description",
+  "slug",
+  "pages",
+  "rating",
+  "review_count",
+  "genre",
+  "badges",
+  "price",
+  "currency",
+  "kindle_price",
+  "paperback_price",
+  "amazon_url",
+  "cover_image_url",
+  "ai_enriched",
+  "entry_mode",
+  "amazon_author_profile_url",
+  "author_name",
+  "author_bio",
+  "author_photo_url",
+  "created_at",
+  "updated_at",
+  "published_at",
+  "bestseller_proof_url",
+  "approval_status",
+  "rejection_note",
+  "amazon_kindle_url",
+  "submitted_at",
+  "review_round",
+  "last_review_action_at",
+  "review_history",
+].join(", ");

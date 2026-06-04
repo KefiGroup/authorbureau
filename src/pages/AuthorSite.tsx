@@ -9,6 +9,7 @@ import AuthorBrandedNav from "@/components/public/AuthorBrandedNav";
 import AuthorContactModal from "@/components/public/AuthorContactModal";
 import NotFound from "./NotFound";
 import { hasRequiredAssets } from "@/lib/node-readiness";
+import { BOOK_PUBLIC_COLUMNS } from "@/lib/book-columns";
 
 import type { AuthorData, BookWithProducts, ProductLink, RelatedAuthor, CoachingService, ThemeVars } from "./author-site/types";
 import { getLowestPrice } from "./author-site/types";
@@ -139,18 +140,18 @@ export default function AuthorSite() {
     // authors in this database. Query by profile.id first; fall back to user_id and
     // author_name for any legacy rows that may have been mis-linked.
     // Use isOwnerLocal (not the React state isOwner) — the state hasn't propagated yet.
-    let booksQuery = supabase.from("books").select("*").eq("author_id", profile.id).order("created_at", { ascending: false });
+    let booksQuery = supabase.from("books").select(BOOK_PUBLIC_COLUMNS).eq("author_id", profile.id).order("created_at", { ascending: false });
     if (!isOwnerLocal) booksQuery = booksQuery.not("published_at", "is", null);
 
     let booksByUserIdQuery: typeof booksQuery | null = null;
     if (profile.user_id && profile.user_id !== profile.id) {
-      booksByUserIdQuery = supabase.from("books").select("*").eq("author_id", profile.user_id).order("created_at", { ascending: false });
+      booksByUserIdQuery = supabase.from("books").select(BOOK_PUBLIC_COLUMNS).eq("author_id", profile.user_id).order("created_at", { ascending: false });
       if (!isOwnerLocal) booksByUserIdQuery = booksByUserIdQuery.not("published_at", "is", null);
     }
 
     let booksByNameQuery: typeof booksQuery | null = null;
     if (profile.pen_name) {
-      booksByNameQuery = supabase.from("books").select("*").eq("author_name", profile.pen_name).order("created_at", { ascending: false });
+      booksByNameQuery = supabase.from("books").select(BOOK_PUBLIC_COLUMNS).eq("author_name", profile.pen_name).order("created_at", { ascending: false });
       if (!isOwnerLocal) booksByNameQuery = booksByNameQuery.not("published_at", "is", null);
     }
 
@@ -178,9 +179,9 @@ export default function AuthorSite() {
     // Merge all three book queries by id, preferring the primary (profile.id) match.
     const booksMap = new Map<string, Record<string, unknown>>();
     for (const b of [
-      ...((booksRes.data || []) as Record<string, unknown>[]),
-      ...((booksByUserIdRes?.data || []) as Record<string, unknown>[]),
-      ...((booksByNameRes?.data || []) as Record<string, unknown>[]),
+      ...((booksRes.data || []) as unknown as Record<string, unknown>[]),
+      ...((booksByUserIdRes?.data || []) as unknown as Record<string, unknown>[]),
+      ...((booksByNameRes?.data || []) as unknown as Record<string, unknown>[]),
     ]) {
       if (b?.id && !booksMap.has(b.id as string)) booksMap.set(b.id as string, b);
     }
