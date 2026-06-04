@@ -69,6 +69,28 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
         {sortedServiceNodes.length > 0 && (
           <div className="mb-12">
             <h3 className="text-lg font-bold mb-6" style={{ color: v.headingText, fontFamily: theme.headingFont }}>Services & Expertise</h3>
+            {/* A-04: help first-time visitors choose where to start */}
+            {(() => {
+              const recommended =
+                sortedServiceNodes.find((n) => n.node_id.startsWith("BA-13")) ||
+                sortedServiceNodes.find((n) => n.node_id.startsWith("YR-19")) ||
+                sortedServiceNodes[0];
+              if (!recommended) return null;
+              const recTitle = recommended.personalised_name || recommended.node_name;
+              return (
+                <div
+                  className="mb-6 rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-3"
+                  style={{ background: `${v.accent}14`, border: `1px solid ${v.accent}` }}
+                >
+                  <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0" style={{ background: v.accent, color: v.accentText }}>
+                    Start Here
+                  </span>
+                  <p className="text-sm" style={{ color: v.bodyText }}>
+                    New to {displayName}? Begin with <strong style={{ color: v.headingText }}>{recTitle}</strong> — the easiest way to get started. You can always move up to deeper programmes as you grow.
+                  </p>
+                </div>
+              );
+            })()}
             <div className="space-y-4">
               {sortedServiceNodes.map((node, idx) => {
                 const prefix = node.node_id.substring(0, 5);
