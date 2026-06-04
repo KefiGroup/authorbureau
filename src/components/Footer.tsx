@@ -1,5 +1,6 @@
 import { forwardRef } from "react";
 import { Link } from "react-router-dom";
+import { ExternalLink } from "lucide-react";
 import logoText from "@/assets/logo-with-text.webp";
 
 const Footer = forwardRef<HTMLElement>((_props, ref) => {
@@ -30,9 +31,9 @@ const Footer = forwardRef<HTMLElement>((_props, ref) => {
               Writing & Publishing
             </h4>
             <ul className="space-y-2 text-sm text-primary-foreground/70">
-              <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">PublishNow.io</a></li>
-              <li><a href="https://publishnow.io/ai-writing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Writing Studio</a></li>
-              <li><a href="https://publishnow.io/ai-publishing-studio" target="_blank" rel="noopener noreferrer" className="hover:text-secondary transition-colors">AI Publishing Studio</a></li>
+              <li><a href="https://publishnow.io" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-secondary transition-colors">PublishNow.io <ExternalLink className="h-3 w-3" /></a></li>
+              <li><a href="https://publishnow.io/ai-writing-studio" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-secondary transition-colors">AI Writing Studio <ExternalLink className="h-3 w-3" /></a></li>
+              <li><a href="https://publishnow.io/ai-publishing-studio" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 hover:text-secondary transition-colors">AI Publishing Studio <ExternalLink className="h-3 w-3" /></a></li>
             </ul>
           </div>
 

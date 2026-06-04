@@ -106,6 +106,8 @@ interface OtherBook {
   title: string;
   slug: string;
   cover_image_url?: string;
+  price?: string;
+  kindle_price?: string;
 }
 
 const PRODUCT_ICONS: Record<string, typeof BookOpen> = {
@@ -388,7 +390,7 @@ export default function AuthorBookPage() {
       supabase.from("courses").select("id, title, price, currency, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
       supabase.from("audiobooks").select("id, title, price, currency, description").eq("book_id", bookId).eq("status", "published"),
       supabase.from("podcasts").select("id, title, description, cover_image_url").eq("book_id", bookId).eq("status", "published"),
-      supabase.from("books").select("id, title, slug, cover_image_url").in("author_id", authorIds).not("published_at", "is", null).neq("id", bookId).limit(4),
+      supabase.from("books").select("id, title, slug, cover_image_url, price, kindle_price").in("author_id", authorIds).not("published_at", "is", null).neq("id", bookId).limit(4),
       supabase.from("books").select("slug, title, cover_image_url, genre").in("author_id", authorIds).not("published_at", "is", null).order("created_at", { ascending: false }),
       supabase.from("coaching_packages").select("id, title, price, currency, description, type").in("author_id", authorIds).eq("status", "active"),
       supabase.from("speaking_topics").select("id, title, fee, fee_currency, description").in("author_id", authorIds).eq("status", "active"),
@@ -854,7 +856,13 @@ export default function AuthorBookPage() {
           const symbol = currency === "USD" ? "$" : "";
           const priceNum = Number(n.price_usd) || 0;
           const price = mode === "free" ? "Free" : `${symbol}${priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-          const description = extractCardDescription(n);
+          // B-02: free companion products (e.g. the Workbook) often have no
+          // description. Explain why it's free so the card never looks empty.
+          const description =
+            extractCardDescription(n) ||
+            (mode === "free"
+              ? `Free for all ${book.title} readers. Download your companion ${getProductTabMeta(NODE_TO_PRODUCT[n.node_id]?.type || "").label.toLowerCase() || "resource"}.`
+              : "");
           const learnMorePath = toInternalPath(n.delivery_url);
           return (
             <div
@@ -916,8 +924,82 @@ export default function AuthorBookPage() {
           );
         };
 
+        // B-03: a Work-With node that carries a real price (e.g. the "Collective"
+        // membership at $17/month) must offer a direct join CTA, not a generic
+        // "Contact" inquiry. Render a priced join card and fall back to the
+        // inquiry card only for true enquiry-based services.
+        const renderWorkCard = (n: any) => {
+          const priceNum = Number(n.price_usd) || 0;
+          if (priceNum <= 0) return renderInquireCard(n);
+
+          const title = formatPublicLabel(n.personalised_name || n.node_name, "Membership");
+          const currency = (n.currency || "USD").toUpperCase();
+          const symbol = currency === "USD" ? "$" : "";
+          const cj = n.content_json || {};
+          const interval = String(
+            cj.billing_interval || cj.price_interval || cj.pricing_model || cj.interval || "",
+          ).toLowerCase();
+          const isMonthly =
+            interval.includes("month") ||
+            /month/i.test(`${n.personalised_name || ""} ${n.node_name || ""}`);
+          const suffix = isMonthly ? "/month" : "";
+          const priceLabel = `${symbol}${priceNum.toLocaleString()}${suffix}`;
+          const description = extractCardDescription(n);
+          return (
+            <div
+              key={n.id}
+              className="rounded-xl p-5 flex flex-col"
+              style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
+            >
+              <p className="font-semibold text-sm mb-2 line-clamp-2" style={{ color: v.headingText }}>{title}</p>
+              {description && (
+                <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
+              )}
+              <p className="font-bold text-lg mb-4 mt-auto" style={{ color: v.accent }}>{priceLabel}</p>
+              <BuyNowButton
+                authorNodeId={n.id}
+                authorId={book.author_id}
+                fallbackUrl={n.delivery_url}
+                label={`Join for ${priceLabel}`}
+                className="w-full rounded-full text-xs h-9 font-semibold"
+              />
+            </div>
+          );
+        };
+
+        // A-04: give first-time visitors a clear "Start Here" recommendation —
+        // the lowest-priced entry point across courses/membership/work options.
+        const entryCandidates = [...courseNodes, ...workNodes]
+          .filter((n) => Number(n.price_usd) > 0)
+          .sort((a, b) => Number(a.price_usd) - Number(b.price_usd));
+        const entryNode = entryCandidates[0];
+        const entryTitle = entryNode
+          ? formatPublicLabel(entryNode.personalised_name || entryNode.node_name, "this option")
+          : "";
+        const entryPrice = entryNode
+          ? `$${Number(entryNode.price_usd).toLocaleString()}`
+          : "";
+
         return (
           <>
+            {workNodes.length > 0 && entryNode && (
+              <section className="pt-14 md:pt-16" style={{ background: v.cardBg }}>
+                <div className="container max-w-5xl">
+                  <div
+                    className="rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-3"
+                    style={{ background: v.secondaryBg, border: `1px solid ${v.accent}` }}
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0" style={{ background: v.accent, color: v.accentText }}>
+                      Start Here
+                    </span>
+                    <p className="text-sm" style={{ color: v.bodyText }}>
+                      New to {authorFirstName}? Begin with <strong style={{ color: v.headingText }}>{entryTitle}</strong> ({entryPrice}) — the easiest way to get started and grow from there.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
+
             {formatNodes.length > 0 && (
               <section id="formats" className="py-14 md:py-16" style={{ background: v.cardBg }}>
                 <div className="container max-w-5xl">
@@ -960,7 +1042,7 @@ export default function AuthorBookPage() {
                     Coaching, consulting, speaking, and bespoke programmes. Reach out to discuss what fits.
                   </p>
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {workNodes.map(renderInquireCard)}
+                    {workNodes.map(renderWorkCard)}
                   </div>
                 </div>
               </section>
@@ -1101,6 +1183,18 @@ export default function AuthorBookPage() {
                       </div>
                     )}
                     <p className="text-xs mt-1.5 text-center max-w-[96px] truncate" style={{ color: v.bodyText }}>{ob.title}</p>
+                    {/* B-05: cross-sell price + View Book CTA */}
+                    {(ob.kindle_price || ob.price) && (
+                      <p className="text-xs text-center font-semibold mt-0.5" style={{ color: v.accent }}>
+                        {ob.kindle_price || ob.price}
+                      </p>
+                    )}
+                    <span
+                      className="mt-1.5 mx-auto flex items-center justify-center gap-1 rounded-full text-[11px] h-7 px-3 font-semibold transition-opacity group-hover:opacity-90"
+                      style={{ background: v.accent, color: v.accentText, width: "fit-content" }}
+                    >
+                      View Book <ArrowRight className="h-3 w-3" />
+                    </span>
                   </Link>
                 ))}
               </div>

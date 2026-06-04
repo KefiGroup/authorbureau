@@ -117,9 +117,41 @@ export default function Directory() {
   // Normalize genres: title-case + count frequency for Top 8 ordering
   const normalizeGenre = (g: string) =>
     g.trim().toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+
+  // D-03: internal / AI-derived labels (e.g. "Access Strategy", "AI Advocacy",
+  // "Application Development") are not reader-facing genres. Suppress any genre
+  // that is on the explicit denylist or that reads like an operational topic.
+  const NON_READER_GENRES = new Set<string>([
+    "access strategy",
+    "ai advocacy",
+    "application development",
+    "thought leadership",
+    "go to market",
+    "go-to-market",
+    "product strategy",
+    "growth strategy",
+    "content strategy",
+    "digital transformation",
+    "change management",
+    "stakeholder management",
+    "knowledge management",
+    "operational excellence",
+  ]);
+  const isReaderGenre = (g: string) => {
+    const key = g.trim().toLowerCase();
+    if (!key) return false;
+    if (NON_READER_GENRES.has(key)) return false;
+    // Filter operational suffixes that read like internal taxonomy, not a genre.
+    if (/\b(strategy|development|advocacy|management|transformation|optimization|optimisation|enablement|operations)\b/i.test(key)) {
+      return false;
+    }
+    return true;
+  };
+
   const genreCounts = new Map<string, { label: string; count: number }>();
   allAuthors.forEach((a) => {
     a.genres.forEach((g) => {
+      if (!isReaderGenre(g)) return;
       const norm = normalizeGenre(g);
       const key = norm.toLowerCase();
       const existing = genreCounts.get(key);
@@ -274,6 +306,15 @@ export default function Directory() {
                           </div>
                           <p className="text-xs text-muted-foreground mt-0.5 line-clamp-3">{author.title}</p>
                         </div>
+                        {/* D-02: first book cover thumbnail */}
+                        {author.books[0]?.coverImage && (
+                          <img
+                            src={author.books[0].coverImage}
+                            alt={`${author.books[0].title} cover`}
+                            loading="lazy"
+                            className="shrink-0 w-10 h-14 rounded object-cover shadow-sm ring-1 ring-border/50"
+                          />
+                        )}
                       </div>
 
                       <div className="flex items-center gap-3 mt-3 pt-2 border-t border-border/40">
@@ -290,7 +331,7 @@ export default function Directory() {
                       </div>
 
                       <div className="flex flex-wrap gap-1 mt-2">
-                        {author.genres.slice(0, 3).map((genre) => (
+                        {author.genres.filter(isReaderGenre).slice(0, 3).map((genre) => (
                           <button
                             key={genre}
                             onClick={(e) => {
