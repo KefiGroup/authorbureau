@@ -537,11 +537,15 @@ export default function AuthorBookPage() {
       }, priceFormats[0])
     : null;
 
-  // Build product tabs for BookProductNav
-  const productTabs = products.map((p) => {
-    const meta = getProductTabMeta(p.type);
-    return { label: meta.label, icon: meta.icon, route: p.route };
-  });
+  // Build product tabs for BookProductNav. Outbound / B2B / partner node types
+  // (lead magnet, JV, press, fundraising, sponsors, affiliates, vip, corporate)
+  // are not reader-purchasable products and must not appear as tabs (audit B-01).
+  const productTabs = products
+    .filter((p) => !NON_PRODUCT_TAB_TYPES.has(p.type))
+    .map((p) => {
+      const meta = getProductTabMeta(p.type);
+      return { label: meta.label, icon: meta.icon, route: p.route };
+    });
 
   // Go Deeper section copy
   const goDeeperCopy = getGoDeeperCopy(
