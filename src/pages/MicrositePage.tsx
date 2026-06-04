@@ -3396,18 +3396,8 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
           </div>
         </section>
       )}
-      {fees && (
-        <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-          <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Fee Schedule</p>
-          {typeof fees === "string" ? (
-            <p className="text-sm whitespace-pre-line" style={{ color: v.bodyText }}>{fees}</p>
-          ) : Array.isArray(fees) ? (
-            <ul className="space-y-1">{fees.map((f: any, i: number) => (<li key={i} className="text-sm" style={{ color: v.bodyText }}>• {yrInline(f)}</li>))}</ul>
-          ) : (
-            <ul className="space-y-1">{Object.entries(fees as Record<string, any>).map(([k, val]) => (<li key={k} className="text-sm" style={{ color: v.bodyText }}><strong style={{ color: v.headingText }}>{k.replace(/_/g, " ")}:</strong> {yrInline(val)}</li>))}</ul>
-          )}
-        </Card>
-      )}
+      {/* S-01: Public fee schedule removed entirely — corporate buyers inquire via
+          the booking form. (Previously dumped raw JSON for object-shaped fees.) */}
       {booking && (
         <Card className="p-5" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
           <p className="text-xs uppercase tracking-wider mb-2" style={{ color: v.mutedText }}>Booking Process</p>
