@@ -247,6 +247,43 @@ export default function ServiceDetailDialog({
                 </ol>
               </Section>
             )}
+
+            {/* S-05: speaking testimonials */}
+            {speakerTestimonials.length > 0 && (
+              <Section title="What Audiences Say" theme={theme} v={v}>
+                <div className="space-y-3">
+                  {speakerTestimonials.map((t) => (
+                    <blockquote
+                      key={t.id}
+                      className="rounded-xl p-4 text-sm leading-relaxed"
+                      style={{ background: `${v.accent}10`, border: `1px solid ${v.cardBorder}`, color: v.bodyText }}
+                    >
+                      "{t.quote}"
+                      <footer className="mt-2 text-xs font-semibold" style={{ color: v.headingText }}>
+                        {t.name}{t.role ? `, ${t.role}` : ""}
+                      </footer>
+                    </blockquote>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {/* S-06: client-logo slots */}
+            {pastClients.length > 0 && (
+              <Section title="Featured Stages & Clients" theme={theme} v={v}>
+                <div className="flex flex-wrap gap-2">
+                  {pastClients.map((client, i) => (
+                    <span
+                      key={i}
+                      className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-semibold"
+                      style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}`, color: v.bodyText }}
+                    >
+                      {client}
+                    </span>
+                  ))}
+                </div>
+              </Section>
+            )}
           </div>
 
           {/* CTA */}
