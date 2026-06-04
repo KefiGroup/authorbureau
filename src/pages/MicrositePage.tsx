@@ -3353,7 +3353,7 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
   const tagline = yrStr(content.speaker_tagline);
   const oneSheet = yrStr(content.speaker_one_sheet);
   const talks = yrArr(content.signature_talks);
-  const fees = content.fee_schedule;
+  // S-01: fee_schedule intentionally not rendered on the public speaking page.
   const booking = yrStr(content.booking_process);
 
   return (
