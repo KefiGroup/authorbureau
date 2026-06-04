@@ -15,6 +15,7 @@ import AudiobookPreviewPlayer from "@/components/microsite/AudiobookPreviewPlaye
 import AudiobookPage from "@/pages/microsite/AudiobookPage";
 import { normalizeOutcome } from "@/lib/workbook-pdf";
 import { stripHtml } from "@/lib/stripHtml";
+import { formatPublicLabel } from "@/lib/public-label";
 import { WorkbookCoverArt } from "@/components/microsite/WorkbookCoverArt";
 
 interface MicrositeData {
