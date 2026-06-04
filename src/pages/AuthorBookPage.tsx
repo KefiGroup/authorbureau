@@ -353,7 +353,7 @@ export default function AuthorBookPage() {
 
     let primaryBookQuery = supabase
       .from("books")
-      .select("*")
+      .select(BOOK_PUBLIC_COLUMNS)
       .eq("author_id", profile.user_id)
       .eq("slug", bookSlug);
     if (!isOwner) {
@@ -362,18 +362,18 @@ export default function AuthorBookPage() {
 
     const { data: primaryBook } = await primaryBookQuery.maybeSingle();
 
-    let bookData = primaryBook;
+    let bookData = primaryBook as Record<string, any> | null;
     if (!bookData && profile.pen_name) {
       let fallbackBookQuery = supabase
         .from("books")
-        .select("*")
+        .select(BOOK_PUBLIC_COLUMNS)
         .eq("author_name", profile.pen_name)
         .eq("slug", bookSlug);
       if (!isOwner) {
         fallbackBookQuery = fallbackBookQuery.not("published_at", "is", null);
       }
       const { data: fallbackBook } = await fallbackBookQuery.maybeSingle();
-      bookData = fallbackBook;
+      bookData = fallbackBook as Record<string, any> | null;
     }
 
     if (!bookData) { setNotFound(true); setLoading(false); return; }
