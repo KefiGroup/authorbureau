@@ -967,8 +967,39 @@ export default function AuthorBookPage() {
           );
         };
 
+        // A-04: give first-time visitors a clear "Start Here" recommendation —
+        // the lowest-priced entry point across courses/membership/work options.
+        const entryCandidates = [...courseNodes, ...workNodes]
+          .filter((n) => Number(n.price_usd) > 0)
+          .sort((a, b) => Number(a.price_usd) - Number(b.price_usd));
+        const entryNode = entryCandidates[0];
+        const entryTitle = entryNode
+          ? formatPublicLabel(entryNode.personalised_name || entryNode.node_name, "this option")
+          : "";
+        const entryPrice = entryNode
+          ? `$${Number(entryNode.price_usd).toLocaleString()}`
+          : "";
+
         return (
           <>
+            {workNodes.length > 0 && entryNode && (
+              <section className="pt-14 md:pt-16" style={{ background: v.cardBg }}>
+                <div className="container max-w-5xl">
+                  <div
+                    className="rounded-xl p-5 flex flex-col sm:flex-row sm:items-center gap-3"
+                    style={{ background: v.secondaryBg, border: `1px solid ${v.accent}` }}
+                  >
+                    <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full shrink-0" style={{ background: v.accent, color: v.accentText }}>
+                      Start Here
+                    </span>
+                    <p className="text-sm" style={{ color: v.bodyText }}>
+                      New to {authorFirstName}? Begin with <strong style={{ color: v.headingText }}>{entryTitle}</strong> ({entryPrice}) — the easiest way to get started and grow from there.
+                    </p>
+                  </div>
+                </div>
+              </section>
+            )}
+
             {formatNodes.length > 0 && (
               <section id="formats" className="py-14 md:py-16" style={{ background: v.cardBg }}>
                 <div className="container max-w-5xl">
