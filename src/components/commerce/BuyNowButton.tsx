@@ -123,16 +123,8 @@ export default function BuyNowButton({
             <>{label} <ArrowRight className="ml-2 h-4 w-4" /></>
           )}
         </Button>
-        <p className="text-[11px] leading-snug text-muted-foreground text-center px-1">
-          By clicking {label.toLowerCase()} you agree to our{" "}
-          <a href="/terms-of-sale" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-            Terms of Sale
-          </a>{" "}
-          and{" "}
-          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-foreground">
-            Privacy Policy
-          </a>.
-        </p>
+        {/* A-02: Terms of Sale / Privacy disclaimer lives in the microsite footer
+            only (implicit-consent model) — not repeated under every product card. */}
       </div>
 
       <Dialog open={paymentsModal} onOpenChange={setPaymentsModal}>
