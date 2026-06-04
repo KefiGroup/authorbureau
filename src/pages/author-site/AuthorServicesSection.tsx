@@ -35,9 +35,11 @@ interface Props {
   theme: AuthorTheme;
   v: ThemeVars;
   isOwnerViewing?: boolean;
+  authorPhoto?: string | null;
+  testimonials?: import("./AuthorTestimonialsSection").Testimonial[];
 }
 
-export default function AuthorServicesSection({ authorSlug, displayName, coachingServices, allProducts, serviceNodes = [], theme, v, isOwnerViewing = false }: Props) {
+export default function AuthorServicesSection({ authorSlug, displayName, coachingServices, allProducts, serviceNodes = [], theme, v, isOwnerViewing = false, authorPhoto, testimonials = [] }: Props) {
   const [activeNode, setActiveNode] = useState<LiveNode | null>(null);
   const [activeLabel, setActiveLabel] = useState<string>("");
 
