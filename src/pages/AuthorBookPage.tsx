@@ -934,7 +934,13 @@ export default function AuthorBookPage() {
           const priceNum = Number(n.price_usd) || 0;
           if (priceNum <= 0) return renderInquireCard(n);
 
-          const title = formatPublicLabel(n.personalised_name || n.node_name, "Membership");
+          // B-06: never fall back to the generic word "Membership" for an unnamed
+          // work node. Use the node's canonical product label so a high-ticket
+          // YR card always reads meaningfully (e.g. "Big Ticket Consulting").
+          const title = formatPublicLabel(
+            n.personalised_name || n.node_name,
+            NODE_TO_PRODUCT[n.node_id]?.label || "Programme",
+          );
           const currency = (n.currency || "USD").toUpperCase();
           const symbol = currency === "USD" ? "$" : "";
           const cj = n.content_json || {};
