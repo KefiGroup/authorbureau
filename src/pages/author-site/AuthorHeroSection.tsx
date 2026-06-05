@@ -20,6 +20,9 @@ interface Props {
   author: AuthorData;
   displayName: string;
   booksWithProducts: BookWithProducts[];
+  /** Book to feature in the hero CTA. Must match the nav's buy CTA book so the
+   *  displayed price never diverges (audit B-05). Falls back to first book. */
+  heroBook?: BookWithProducts | null;
   allProducts: { type: string }[];
   testimonialsCount?: number;
   liveProductsCount?: number;
@@ -27,7 +30,7 @@ interface Props {
   v: ThemeVars;
 }
 
-export default function AuthorHeroSection({ author, displayName, booksWithProducts, allProducts, testimonialsCount = 0, liveProductsCount = 0, theme, v }: Props) {
+export default function AuthorHeroSection({ author, displayName, booksWithProducts, heroBook: heroBookProp, allProducts, testimonialsCount = 0, liveProductsCount = 0, theme, v }: Props) {
   const totalBooks = booksWithProducts.length;
   const totalProducts = Math.max(allProducts.length, liveProductsCount);
 
