@@ -935,6 +935,9 @@ export default function AuthorBookPage() {
         // "Contact" inquiry. Render a priced join card and fall back to the
         // inquiry card only for true enquiry-based services.
         const renderWorkCard = (n: any) => {
+          // High-touch negotiated engagements (Speaking, Consulting, etc.) are
+          // always enquiry-only — no price shown, no Stripe checkout.
+          if (ENQUIRY_NODE_IDS.has(n.node_id.substring(0, 5))) return renderInquireCard(n);
           const priceNum = Number(n.price_usd) || 0;
           if (priceNum <= 0) return renderInquireCard(n);
 
