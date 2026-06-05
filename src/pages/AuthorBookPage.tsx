@@ -191,8 +191,10 @@ const NODE_TO_PRODUCT: Record<string, { type: string; label: string; route: stri
 /** Reader-facing node buckets (Sprint 66 redesign). Author-facing nodes BA-15/16/17/18, YR-25/28 are hidden entirely. */
 const FORMATS_NODE_IDS = ["BA-11", "BP-06", "BP-07"] as const;
 const COURSES_MEMBERSHIP_NODE_IDS = ["BA-10", "BA-12"] as const;
-const WORK_WITH_NODE_IDS = ["YR-19", "BA-13", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26", "YR-27"] as const;
-const HIDDEN_NODE_IDS = new Set(["BA-15", "BA-16", "BA-17", "BA-18", "YR-25", "YR-28"]);
+// YR-27 (Fundraising) removed (audit B-07): a donation surface must never render
+// as a purchasable "Join for $X" product on the reader book page.
+const WORK_WITH_NODE_IDS = ["YR-19", "BA-13", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26"] as const;
+const HIDDEN_NODE_IDS = new Set(["BA-15", "BA-16", "BA-17", "BA-18", "YR-25", "YR-27", "YR-28"]);
 
 // Legacy bucket sets retained only for the fallback "products" grid (kept off by default in Sprint 66).
 const FORMATS_TYPES = new Set(["audiobook", "workbook", "homestudy"]);
@@ -932,7 +934,13 @@ export default function AuthorBookPage() {
           const priceNum = Number(n.price_usd) || 0;
           if (priceNum <= 0) return renderInquireCard(n);
 
-          const title = formatPublicLabel(n.personalised_name || n.node_name, "Membership");
+          // B-06: never fall back to the generic word "Membership" for an unnamed
+          // work node. Use the node's canonical product label so a high-ticket
+          // YR card always reads meaningfully (e.g. "Big Ticket Consulting").
+          const title = formatPublicLabel(
+            n.personalised_name || n.node_name,
+            NODE_TO_PRODUCT[n.node_id]?.label || "Programme",
+          );
           const currency = (n.currency || "USD").toUpperCase();
           const symbol = currency === "USD" ? "$" : "";
           const cj = n.content_json || {};

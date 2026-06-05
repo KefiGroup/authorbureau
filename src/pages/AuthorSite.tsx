@@ -345,40 +345,39 @@ export default function AuthorSite() {
   }
 
 
+  // Resolve the hero book once so the nav buy CTA and the hero CTA always
+  // feature the same book + price (audit B-05: they previously diverged).
+  const heroBook =
+    booksWithProducts.find(b => b.id === whatsInsideSourceBookId) ||
+    booksWithProducts[0] ||
+    null;
+  const heroPrice = heroBook ? getLowestPrice(heroBook) : null;
+  const buyCta = heroBook && heroPrice
+    ? { label: `Get the Book — ${heroPrice}`, to: `/${authorSlug}/${heroBook.slug}` }
+    : null;
+
   return (
     <AuthorPageLayout
       theme={theme}
       breadcrumbs={[{ label: "Home", to: "/" }, { label: displayName }]}
       footerSlot={<AuthorMicrositeFooter author={author} displayName={displayName} />}
     >
-      {(() => {
-        const heroBook =
-          booksWithProducts.find(b => b.id === whatsInsideSourceBookId) ||
-          booksWithProducts[0] ||
-          null;
-        const heroPrice = heroBook ? getLowestPrice(heroBook) : null;
-        const buyCta = heroBook && heroPrice
-          ? { label: `Get the Book — ${heroPrice}`, to: `/${authorSlug}/${heroBook.slug}` }
-          : null;
-        return (
-          <AuthorBrandedNav
-            authorSlug={authorSlug!}
-            authorName={displayName}
-            authorPhotoUrl={author.photo_url}
-            books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
-            hasServices={coachingServices.length > 0}
-            hasLearnSection={learnNodes.length > 0}
-            hasQuizSection={leadMagnets.length > 0}
-            hasEvents={eventNodes.length > 0}
-            hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
-            vars={v}
-            headingFont={theme.headingFont}
-            bodyFont={theme.bodyFont}
-            onContactClick={() => setContactOpen(true)}
-            buyCta={buyCta}
-          />
-        );
-      })()}
+      <AuthorBrandedNav
+        authorSlug={authorSlug!}
+        authorName={displayName}
+        authorPhotoUrl={author.photo_url}
+        books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
+        hasServices={coachingServices.length > 0}
+        hasLearnSection={learnNodes.length > 0}
+        hasQuizSection={leadMagnets.length > 0}
+        hasEvents={eventNodes.length > 0}
+        hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
+        vars={v}
+        headingFont={theme.headingFont}
+        bodyFont={theme.bodyFont}
+        onContactClick={() => setContactOpen(true)}
+        buyCta={buyCta}
+      />
 
       <AuthorContactModal
         open={contactOpen}
@@ -390,7 +389,7 @@ export default function AuthorSite() {
         bodyFont={theme.bodyFont}
       />
 
-      <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p)) && hasRequiredAssets(n.node_id, n.content_json)).length} theme={theme} v={v} />
+      <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} heroBook={heroBook} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p)) && hasRequiredAssets(n.node_id, n.content_json)).length} theme={theme} v={v} />
       <AuthorSocialProofBar booksWithProducts={booksWithProducts} testimonialsCount={testimonials.length} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorFrameworkSection
