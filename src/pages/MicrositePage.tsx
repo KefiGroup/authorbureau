@@ -99,7 +99,9 @@ export default function MicrositePage() {
   const nodeName = nodeId ? NODE_NAMES[nodeId] || "" : "";
   const authorName = data?.author?.pen_name || authorSlug || "";
   const bookTitle = data?.book?.title || "";
-  const pageTitle = data?.node?.personalised_name || nodeName;
+  // B-08: personalised_name sometimes carries a stale "Author | Book" page-title
+  // artifact. Sanitize it so the breadcrumb and meta fall back to the node name.
+  const pageTitle = formatPublicLabel(data?.node?.personalised_name, nodeName);
 
   useDocumentMeta({
     title: data ? `${pageTitle} by ${authorName} | Authors Bureau` : comingSoon ? "Coming Soon | Authors Bureau" : "Loading...",
