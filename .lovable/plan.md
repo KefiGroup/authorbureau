@@ -1,30 +1,47 @@
-# Sprint B Queue — fix B-05 through B-08
+## Goal
 
-All four are frontend/presentation issues. Root causes confirmed in code.
+On the reader book page "Work With" section, high-touch service cards currently show a hardcoded **"Join for $10,000"** button wired to one-click Stripe checkout. For engagements like Speaking, that is wrong — these are negotiated bookings. These cards should become **enquiry-only with no price shown**, opening a booking/enquiry form so the author can follow up.
 
-## B-05 — Author hero "Get the Book" price wrong ($4.99 vs nav $0.99)
-**Cause:** In `src/pages/AuthorSite.tsx` the sticky nav CTA is built from a resolved `heroBook` (`booksWithProducts.find(b => b.id === whatsInsideSourceBookId) || booksWithProducts[0]`), but `AuthorHeroSection` independently uses `booksWithProducts[0]`. When those differ, the two prices diverge.
+## Affected nodes
 
-**Fix:**
-- In `AuthorSite.tsx`, compute `heroBook` once and pass it to `AuthorHeroSection` (new `heroBook` prop).
-- In `src/pages/author-site/AuthorHeroSection.tsx`, use the passed `heroBook` for the CTA instead of `booksWithProducts[0]`, so the hero and nav always show the same book + price.
+The six high-touch, enquiry-led service nodes:
 
-## B-06 — $10,000 work card reads generic "Membership" with no real title
-**Cause:** In `AuthorBookPage.tsx` `renderWorkCard` falls back to the hardcoded label `"Membership"` when a work node has no `personalised_name`/`node_name`. A generic high-ticket YR node then shows "Membership" with a `$10,000 / Join for $10,000` button.
+- `YR-20` Big Ticket Consulting
+- `YR-21` Speaking
+- `YR-22` Corporate Training
+- `YR-23` Mastermind
+- `YR-24` Retreat
+- `YR-26` Conference
 
-**Fix:** Replace the hardcoded `"Membership"` fallback with a node-type-aware label from `NODE_TO_PRODUCT[n.node_id]?.label` (e.g. "Big Ticket Consulting", "Mastermind"), falling back to a neutral "Programme" — so the card is always named meaningfully.
+`YR-19` (1-on-1 Coaching) and `BA-13` (Group Coaching) keep their existing priced "Join for $X" checkout behaviour.
 
-## B-07 — Fundraising node shown as a purchasable "$100 Join" product
-**Cause:** `YR-27` (Fundraising) is in `WORK_WITH_NODE_IDS`, so a priced fundraising node renders through `renderWorkCard` with a `Join for $100` BuyNowButton — a donation surface presented as a checkout product with no context.
+## What changes
 
-**Fix:** Remove `YR-27` from `WORK_WITH_NODE_IDS` and add it to `HIDDEN_NODE_IDS`, consistent with the other outbound/B2B nodes already hidden on the reader book page (sponsors YR-28, certification YR-25, etc.). Fundraising is not a reader "Work With Me" product.
+All edits are in `src/pages/AuthorBookPage.tsx` only (presentation logic).
 
-## B-08 — Speaking page breadcrumb last crumb is the stale "Author | Book" artifact
-**Cause:** In `src/pages/MicrositePage.tsx`, `pageTitle = data?.node?.personalised_name || nodeName` passes the raw `personalised_name` ("Pauline Teo | Be SUCKcessful", a page-title artifact) straight into the breadcrumb.
+1. Add a set near the other node groupings:
+   ```text
+   ENQUIRY_NODE_IDS = { YR-20, YR-21, YR-22, YR-23, YR-24, YR-26 }
+   ```
 
-**Fix:** Wrap it with the existing `formatPublicLabel(data?.node?.personalised_name, nodeName)` helper (already used elsewhere for exactly this), which strips the `Author | Book` pipe artifact and falls back to the canonical node name ("Speaking"). This also cleans the document/meta title.
+2. In `renderWorkCard(n)` (currently builds the priced "Join for $X" card via `BuyNowButton`):
+   - If the node's `node_id` prefix is in `ENQUIRY_NODE_IDS`, route it to the existing **enquiry card** (`renderInquireCard`) regardless of whether a price is set — so it never renders the checkout/`BuyNowButton` path.
+
+3. The enquiry card (`renderInquireCard`) already:
+   - Shows the canonical title and description.
+   - Shows **no price**.
+   - Has a CTA that opens the booking/enquiry form via `setInquiryFor(title)` so the author receives the enquiry and can get back to the buyer.
+   - Optional polish: confirm the CTA label reads naturally for these (e.g. "Book Now" / "Enquire"); keep the current "Contact {author}" wording unless a change is wanted.
+
+No price display, no Stripe checkout, no new components or backend changes — it reuses the existing enquiry flow.
+
+## Result
+
+- Speaking and the other five high-touch nodes show an enquiry/booking CTA with **no price**, opening the existing enquiry form.
+- Priced coaching / group-coaching and all other product cards keep their current behaviour.
 
 ## Verification
-- Confirm hero CTA price equals nav CTA price on an author page.
-- Confirm no work card renders the literal fallback "Membership"; confirm no fundraising card appears on the book page.
-- Confirm the Speaking microsite breadcrumb ends in "Speaking" (no pipe artifact).
+
+- Open a reader book page where a Speaking node has a price: confirm the card shows **no price** and a button that opens the enquiry/booking form (no Stripe redirect, no "Join for $X").
+- Confirm Corporate Training, Big Ticket Consulting, Mastermind, Retreat, Conference behave the same.
+- Confirm 1-on-1 Coaching / Group Coaching priced cards still show "Join for $X" checkout.

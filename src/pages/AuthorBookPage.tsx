@@ -195,6 +195,10 @@ const COURSES_MEMBERSHIP_NODE_IDS = ["BA-10", "BA-12"] as const;
 // as a purchasable "Join for $X" product on the reader book page.
 const WORK_WITH_NODE_IDS = ["YR-19", "BA-13", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26"] as const;
 const HIDDEN_NODE_IDS = new Set(["BA-15", "BA-16", "BA-17", "BA-18", "YR-25", "YR-27", "YR-28"]);
+// High-touch, negotiated engagements: always render as an enquiry/booking card
+// (no price, no Stripe checkout) so the author can follow up directly. A bare
+// "Join for $X" checkout reads wrong for Speaking, Consulting, etc.
+const ENQUIRY_NODE_IDS = new Set(["YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26"]);
 
 // Legacy bucket sets retained only for the fallback "products" grid (kept off by default in Sprint 66).
 const FORMATS_TYPES = new Set(["audiobook", "workbook", "homestudy"]);
