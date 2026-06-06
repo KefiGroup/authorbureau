@@ -138,8 +138,9 @@ export default function BP05Builder({ authorId, bookId }: Props) {
     setError(null);
     setContextBlocked(false);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp05-webinars", {
-        body: { author_id: authorId, book_id: activeBookId },
+      const { data, error: fnErr } = await invokeGenerator("generate-bp05-webinars", {
+        author_id: authorId,
+        book_id: activeBookId,
       });
       if (data?.status === "context_blocked") {
         setContextBlocked(true);
