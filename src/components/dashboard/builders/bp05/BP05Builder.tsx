@@ -23,6 +23,7 @@ import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
 import { buildBp05Txt } from "@/lib/build-library-txt";
 import { publishNodeToSite } from "@/lib/publish-node";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
+import { invokeGenerator } from "@/lib/invoke-generator";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
