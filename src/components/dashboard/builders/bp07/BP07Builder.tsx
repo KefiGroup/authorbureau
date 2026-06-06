@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
-import { fetchWithTimeout, getActiveToken } from "@/lib/get-active-token";
+import { getActiveToken } from "@/lib/get-active-token";
 import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader";
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
@@ -143,29 +143,9 @@ export default function BP07Builder({ authorId, bookId }: Props) {
   }, [step]);
 
   const runGeneration = async () => {
-    let token = await getActiveToken();
-    if (!token) {
-      await supabase.auth.refreshSession().catch(() => null);
-      token = await getActiveToken();
-    }
-    console.info("[BP-07] token resolved", { hasToken: !!token });
-    if (!token) throw new Error("We couldn't verify your sign-in. Please refresh the page and try again.");
-    const res = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp07-home-study`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-        body: JSON.stringify({ author_id: authorId, book_id: activeBookId }),
-      },
-      180_000,
-    );
-    console.info("[BP-07] http status", res.status);
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
+    const { invokeGenerator } = await import("@/lib/invoke-generator");
+    const { data, error: fnErr } = await invokeGenerator<any>("generate-bp07-home-study", { author_id: authorId, book_id: activeBookId });
+    if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
     const newContent = { ...(data.content || {}), _currentStep: 2 };
     if (authorId) {
       await autosaveBuilderDraft({

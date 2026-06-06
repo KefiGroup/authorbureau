@@ -109,8 +109,8 @@ export default function BA14Builder({ authorId, bookId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
-      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba14-podcast", { author_id: authorId, book_id: activeBookId }, 90000);
+      const { invokeGenerator } = await import("@/lib/invoke-generator");
+      const { data, error: fnErr } = await invokeGenerator<any>("generate-ba14-podcast", { author_id: authorId, book_id: activeBookId });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normalisePodcast(data.content || {});
       setContent(normalised); setStep(2);

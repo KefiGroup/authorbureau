@@ -99,16 +99,9 @@ export default function BP09Builder({ authorId, bookId }: Props) {
   }, [step, content?.activated]);
 
   const runGeneration = async () => {
-    let token = await getActiveToken();
-    if (!token) { await supabase.auth.refreshSession().catch(() => null); token = await getActiveToken(); }
-    if (!token) throw new Error("We couldn't verify your sign-in. Please refresh and try again.");
-    const res = await fetchWithTimeout(
-      `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-bp09-book-sales`,
-      { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId, book_id: activeBookId }) },
-      180_000,
-    );
-    const data = await res.json().catch(() => null);
-    if (!res.ok || !data?.success) throw new Error(data?.error || `Request failed (${res.status})`);
+    const { invokeGenerator } = await import("@/lib/invoke-generator");
+    const { data, error: fnErr } = await invokeGenerator<any>("generate-bp09-book-sales", { author_id: authorId, book_id: activeBookId });
+    if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
     const newContent = { ...(data.content || {}), _currentStep: 2 };
     if (authorId) await autosaveBuilderDraft({ authorId, nodeId: "BP-09", nodeName: "Live Audience Toolkit", content: { ...(newContent), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
     return newContent;
