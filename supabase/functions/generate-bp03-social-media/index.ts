@@ -36,7 +36,7 @@ async function callAI(userPrompt: string, maxTokens: number) {
     method: "POST",
     headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "openai/gpt-5.2",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
