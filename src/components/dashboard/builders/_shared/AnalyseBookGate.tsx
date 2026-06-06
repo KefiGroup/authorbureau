@@ -32,8 +32,9 @@ export default function AnalyseBookGate({ authorId, bookId, bookTitle, onAnalyse
     setRunning(true);
     setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp00-analysis", {
-        body: { author_id: authorId, book_id: bookId },
+      const { data, error: fnErr } = await invokeGenerator("generate-bp00-analysis", {
+        author_id: authorId,
+        book_id: bookId,
       });
       if (fnErr || !data?.success) {
         throw new Error(data?.error || fnErr?.message || "Analysis failed");
