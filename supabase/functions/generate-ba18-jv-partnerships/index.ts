@@ -51,7 +51,7 @@ serve(async (req) => {
       method: "POST",
       headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "openai/gpt-5-mini",
+        model: "google/gemini-2.5-flash",
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: "You are ABBY for Authors Bureau. Personalise everything to the author's book. Respond with ONLY valid JSON (no markdown, no code fences). pitch_template MUST be a plain string.\n\nHARD CONTENT RULES (output that violates these will fail QA):\n- NEVER use the emdash character (\u2014) or endash (\u2013). Use commas, periods, or \" - \" for ranges only.\n- NEVER include dollar amounts, prices, currency symbols, or pricing tier labels (Associate, Pro, Premium) in titles, taglines, headlines, body copy, descriptions, or CTA labels. Pricing belongs only in the dedicated price_usd field.\n- Every list item (offer, package, module, episode, lesson, bundle) MUST include a concrete, descriptive title or name. NEVER output placeholders like 'Offer 1', 'Module 1: TBD', '[AUTHOR NAME]', 'Lorem ipsum'.\n- Use the author's brand vocabulary verbatim (frameworks, signature phrases, proper nouns)." },
