@@ -23,6 +23,7 @@ import { uploadAndRegisterLibraryAsset } from "@/lib/publish-library-asset";
 import { buildBp05Txt } from "@/lib/build-library-txt";
 import { publishNodeToSite } from "@/lib/publish-node";
 import BookProfileQuickForm from "@/components/dashboard/builders/shared/BookProfileQuickForm";
+import { invokeGenerator } from "@/lib/invoke-generator";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 
@@ -138,8 +139,9 @@ export default function BP05Builder({ authorId, bookId }: Props) {
     setError(null);
     setContextBlocked(false);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp05-webinars", {
-        body: { author_id: authorId, book_id: activeBookId },
+      const { data, error: fnErr } = await invokeGenerator("generate-bp05-webinars", {
+        author_id: authorId,
+        book_id: activeBookId,
       });
       if (data?.status === "context_blocked") {
         setContextBlocked(true);

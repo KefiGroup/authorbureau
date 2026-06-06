@@ -27,6 +27,7 @@ import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader"
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
+import { invokeGenerator } from "@/lib/invoke-generator";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
@@ -212,8 +213,9 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     setError(null);
     setContextBlocked(false);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp02-lead-magnets", {
-        body: { author_id: authorId, book_id: activeBookId },
+      const { data, error: fnErr } = await invokeGenerator("generate-bp02-lead-magnets", {
+        author_id: authorId,
+        book_id: activeBookId,
       });
       if (data?.status === "context_blocked") {
         setContextBlocked(true);
@@ -496,7 +498,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
               <>
                 <p className="text-muted-foreground mb-4">
                   Hi {authorName}! A lead magnet is a free resource you give readers in exchange for their email address — it's how you build your list.
-                  I'm going to create 2 lead magnet concepts — a Quiz and a Checklist — perfectly matched to '{detectedBookTitle || bookTitle || "your book"}', plus a complete opt-in page that captures subscribers automatically. Ready?
+                  I'm going to create 2 lead magnet concepts — a Quiz and a Checklist — perfectly matched to '{bookTitle || detectedBookTitle || "your book"}', plus a complete opt-in page that captures subscribers automatically. Ready?
                 </p>
                 <div className="mb-4">
                   <BuilderIntroBlock spec={BP_INTRO_SPECS["BP-02"]} />

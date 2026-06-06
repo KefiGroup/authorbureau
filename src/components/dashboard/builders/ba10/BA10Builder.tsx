@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeGenerator } from "@/lib/invoke-generator";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,7 +79,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
     console.log("[BA-10] Build My Course clicked", { authorId });
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba10-online-course", { body: { author_id: authorId, book_id: bookId ?? null } });
+      const { data, error: fnErr } = await invokeGenerator("generate-ba10-online-course", { author_id: authorId, book_id: bookId ?? null });
       console.log("[BA-10] generate response", { data, fnErr });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);

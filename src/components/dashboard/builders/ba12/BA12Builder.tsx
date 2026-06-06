@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeGenerator } from "@/lib/invoke-generator";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -75,7 +76,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba12-membership", { body: { author_id: authorId, book_id: bookId ?? null } });
+      const { data, error: fnErr } = await invokeGenerator("generate-ba12-membership", { author_id: authorId, book_id: bookId ?? null });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       const normalised = normaliseMembership(data.content || {});
       setContent(normalised); setPriceOverride(Number(normalised.tiers?.[0]?.price ?? 27)); setStep(2);

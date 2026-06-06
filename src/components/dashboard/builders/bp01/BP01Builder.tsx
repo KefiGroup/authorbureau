@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { supabase } from "@/integrations/supabase/client";
+import { invokeGenerator } from "@/lib/invoke-generator";
 import { useAuthorBook } from "@/hooks/useAuthorBook";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -168,8 +169,9 @@ export default function BP01Builder({ authorId, bookId }: Props) {
     setError(null);
     setContextBlocked(false);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp01-email-marketing", {
-        body: { author_id: authorId, book_id: activeBookId },
+      const { data, error: fnErr } = await invokeGenerator("generate-bp01-email-marketing", {
+        author_id: authorId,
+        book_id: activeBookId,
       });
       if (data?.status === "context_blocked") {
         setContextBlocked(true);
