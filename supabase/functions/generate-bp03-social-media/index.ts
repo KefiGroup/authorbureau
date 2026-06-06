@@ -36,7 +36,7 @@ async function callAI(userPrompt: string, maxTokens: number) {
     method: "POST",
     headers: { "Authorization": `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "openai/gpt-5.2",
+      model: "google/gemini-2.5-flash",
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "user", content: userPrompt },
@@ -137,10 +137,18 @@ Each post MUST honour its assigned archetype (one short word):
       }, resolvedBookId);
     };
 
-    // STEP 1 — LinkedIn (20)
-    await setProgress(1, "Writing 20 LinkedIn posts...");
-    const step1 = await callAI(
-      `${baseContext}
+    // Run all three generation calls in PARALLEL. The three prompts are
+    // independent, so chaining them sequentially only multiplied latency and
+    // pushed total runtime past the client timeout (the "infinite loop" bug).
+    // A single progress update covers the whole parallel batch.
+    await setProgress(1, "Writing your 60-post calendar across LinkedIn, Instagram, Facebook and X...");
+
+    const carouselDaysList = Array.from(CAROUSEL_IG_DAYS).sort((a, b) => a - b).join(", ");
+
+    const [step1, step2, step3] = await Promise.all([
+      // LinkedIn (20)
+      callAI(
+        `${baseContext}
 
 Generate exactly 20 LinkedIn posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
 Voice: professional thought leadership. Long-form narrative with line breaks, insight-driven, 150–200 words. Each post ends with a CTA pointing to the book.
@@ -152,14 +160,11 @@ Respond with JSON only:
   ]
 }
 The array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
-      12000,
-    );
-
-    // STEP 2 — Instagram (20, with 6 carousels) + Facebook (20)
-    await setProgress(2, "Writing 20 Instagram + 20 Facebook posts...", step1);
-    const carouselDaysList = Array.from(CAROUSEL_IG_DAYS).sort((a, b) => a - b).join(", ");
-    const step2 = await callAI(
-      `${baseContext}
+        12000,
+      ),
+      // Instagram (20, with 6 carousels) + Facebook (20)
+      callAI(
+        `${baseContext}
 
 Generate exactly 20 Instagram posts AND 20 Facebook posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
 
@@ -181,13 +186,11 @@ Respond with JSON only:
   ]
 }
 Each array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
-      20000,
-    );
-
-    // STEP 3 — Twitter/X (20) + outreach
-    await setProgress(3, "Writing 20 X posts and outreach templates...", { ...step1, ...step2 });
-    const step3 = await callAI(
-      `${baseContext}
+        20000,
+      ),
+      // Twitter/X (20) + outreach
+      callAI(
+        `${baseContext}
 
 Generate exactly 20 Twitter/X posts (Day 1..Day 20) AND 3 outreach email templates.
 
@@ -214,8 +217,11 @@ Respond with JSON only:
   }
 }
 twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have exactly 3. anchors MUST have 5. rotating MUST have 20.`,
-      12000,
-    );
+        12000,
+      ),
+    ]);
+
+    await setProgress(3, "Packaging your starter kit...", { ...step1, ...step2 });
 
     const merged = { ...step1, ...step2, ...step3 } as Record<string, any>;
     const linkedin = merged.linkedin_posts || [];
