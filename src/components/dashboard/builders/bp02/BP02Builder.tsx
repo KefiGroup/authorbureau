@@ -27,6 +27,7 @@ import BuilderHeader from "@/components/dashboard/builders/shared/BuilderHeader"
 import UnifiedStepper from "@/components/dashboard/builders/shared/UnifiedStepper";
 import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWorks";
 import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBookGate";
+import { invokeGenerator } from "@/lib/invoke-generator";
 
 const STEPS = ["Introduction", "Generating", "Review", "Publish", "Live"];
 
