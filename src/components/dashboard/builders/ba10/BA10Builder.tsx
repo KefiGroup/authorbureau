@@ -78,7 +78,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
     console.log("[BA-10] Build My Course clicked", { authorId });
     setStep(1); setError(null);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-ba10-online-course", { body: { author_id: authorId, book_id: bookId ?? null } });
+      const { data, error: fnErr } = await invokeGenerator("generate-ba10-online-course", { author_id: authorId, book_id: bookId ?? null });
       console.log("[BA-10] generate response", { data, fnErr });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content);
