@@ -213,8 +213,9 @@ export default function BP02Builder({ authorId, bookId }: Props) {
     setError(null);
     setContextBlocked(false);
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp02-lead-magnets", {
-        body: { author_id: authorId, book_id: activeBookId },
+      const { data, error: fnErr } = await invokeGenerator("generate-bp02-lead-magnets", {
+        author_id: authorId,
+        book_id: activeBookId,
       });
       if (data?.status === "context_blocked") {
         setContextBlocked(true);
