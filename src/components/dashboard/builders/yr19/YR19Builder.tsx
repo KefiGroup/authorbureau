@@ -100,8 +100,8 @@ export default function YR19Builder({ authorId, bookId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
-      const { data, error: e } = await invokeWithTimeout<any>("generate-yr19-coaching", { author_id: authorId, book_id: activeBookId }, 90000);
+      const { invokeGenerator } = await import("@/lib/invoke-generator");
+      const { data, error: e } = await invokeGenerator<any>("generate-yr19-coaching", { author_id: authorId, book_id: activeBookId });
       if (e || !data?.success) throw new Error(data?.error || e?.message || "Generation failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "YR-19", nodeName: "Coaching", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });

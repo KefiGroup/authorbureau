@@ -89,8 +89,8 @@ export default function BA17Builder({ authorId, bookId }: Props) {
   const handleGenerate = async () => {
     setStep(1); setError(null);
     try {
-      const { invokeWithTimeout } = await import("@/lib/invoke-with-timeout");
-      const { data, error: fnErr } = await invokeWithTimeout<any>("generate-ba17-bundles", { author_id: authorId, book_id: activeBookId }, 90000);
+      const { invokeGenerator } = await import("@/lib/invoke-generator");
+      const { data, error: fnErr } = await invokeGenerator<any>("generate-ba17-bundles", { author_id: authorId, book_id: activeBookId });
       if (fnErr || !data?.success) throw new Error(data?.error || fnErr?.message || "Generation failed");
       setContent(data.content); setStep(2);
       void autosaveBuilderDraft({ authorId: authorId!, nodeId: "BA-17", nodeName: "Bundles", content: { ...(data.content), _currentStep: 2 }, currentStep: 2, bookId: activeBookId });
