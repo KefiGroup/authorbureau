@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Sparkles, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { invokeGenerator } from "@/lib/invoke-generator";
 import { toast } from "sonner";
 import { toAbbyError } from "@/lib/abby-error";
