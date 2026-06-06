@@ -321,8 +321,9 @@ export default function BP03Builder({ authorId, bookId }: Props) {
     }, 2000);
 
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("generate-bp03-social-media", {
-        body: { author_id: authorId, book_id: activeBookId },
+      const { data, error: fnErr } = await invokeGenerator("generate-bp03-social-media", {
+        author_id: authorId,
+        book_id: activeBookId,
       });
       if (data?.status === "context_blocked") {
         setContextBlocked(true);
