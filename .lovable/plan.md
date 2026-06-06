@@ -1,47 +1,36 @@
-## Goal
+## What the audit got wrong vs. what's real
 
-On the reader book page "Work With" section, high-touch service cards currently show a hardcoded **"Join for $10,000"** button wired to one-click Stripe checkout. For engagements like Speaking, that is wrong — these are negotiated bookings. These cards should become **enquiry-only with no price shown**, opening a booking/enquiry form so the author can follow up.
+The report came from an external agent using a **different (incorrect) 28-node map**. Verified against this project's canonical config (`builderNodeConfig.ts`):
 
-## Affected nodes
+- **BUG-BUILD-03 (node ID mismatch) — NOT A BUG.** In this project BP-05 *is* Webinars and BP-06 *is* Workbook by design. `NodeBuilder.tsx` routes every node to the correct builder. Nothing to fix; the auditor expected a different architecture.
 
-The six high-touch, enquiry-led service nodes:
+Confirmed in the database for the tested book (`dee3e31e…`, "Invest Like Buffett", author Pauline Teo):
+- The book **already has** an `author_context` analysis row, so `context_blocked` should not fire for it.
+- **No server-side errors logged** (`system_error_log`) in 10 days, and no 5xx in edge logs. The generators are **not crashing** — they hang or run long, and the UI has no timeout.
 
-- `YR-20` Big Ticket Consulting
-- `YR-21` Speaking
-- `YR-22` Corporate Training
-- `YR-23` Mastermind
-- `YR-24` Retreat
-- `YR-26` Conference
+## Real root cause of the "infinite loop"
 
-`YR-19` (1-on-1 Coaching) and `BA-13` (Group Coaching) keep their existing priced "Join for $X" checkout behaviour.
+Each builder's "Generating" step shows a `setInterval` animation that rotates messages every 3s (BP-02: 5 messages; BP-03: "Step 1/2/3 of 3"). This rotation is **cosmetic**. The actual AI call uses `supabase.functions.invoke(...)` with **no client-side timeout and no abort**. If the function is slow or the connection stalls, the promise never settles, so the animation rotates forever with no error and no retry. That is exactly the "loops forever / never reaches Review" symptom (BUG-01, BUG-02, BUG-05).
 
-## What changes
+## Fix plan
 
-All edits are in `src/pages/AuthorBookPage.tsx` only (presentation logic).
+### 1. Add a timeout + error/retry to every AI generation call (fixes BUG-01, BUG-02, BUG-05)
+- Create a small shared helper `invokeGeneratorWithTimeout(fnName, body, { timeoutMs })` (wrapping the existing `fetchWithTimeout` + `getActiveToken` pattern already used in `funnels-api.ts`), default ~200s, that calls the edge function and rejects clearly on timeout/abort.
+- Replace the bare `supabase.functions.invoke("generate-bpXX-…")` calls in the builders with this helper so a hang becomes a visible, catchable error.
+- On error: leave the "Generating" step, show a clear message ("This took too long or failed — please try again") with a **Retry** button. BP-02 already has a Try Again affordance on step 0; apply the same pattern to BP-03 and BP-05 (and the same generator-call sites in other builders that use the identical pattern).
+- Apply the same timeout to `AnalyseBookGate` (`generate-bp00-analysis`) so the "Analyse this book" button surfaces a real error instead of silently reverting (BUG-02).
 
-1. Add a set near the other node groupings:
-   ```text
-   ENQUIRY_NODE_IDS = { YR-20, YR-21, YR-22, YR-23, YR-24, YR-26 }
-   ```
+### 2. Fix wrong book name in BP-02 intro (BUG-BUILD-04)
+- The intro line uses `detectedBookTitle || bookTitle`. `detectedBookTitle` comes from `useAuthorBook()`, which is **not book-scoped** and returns the author's default book ("Be SUCKcessful"), causing cross-book contamination when a `bookId` is in the URL.
+- Change the precedence to prefer the per-book resolved `bookTitle` (already resolved via `resolveBookTitle(authorId, activeBookId, …)`) and only fall back to `detectedBookTitle` when no `activeBookId` is present.
 
-2. In `renderWorkCard(n)` (currently builds the priced "Join for $X" card via `BuyNowButton`):
-   - If the node's `node_id` prefix is in `ENQUIRY_NODE_IDS`, route it to the existing **enquiry card** (`renderInquireCard`) regardless of whether a price is set — so it never renders the checkout/`BuyNowButton` path.
+### 3. Category badge audit (BUG-BUILD-06)
+- `BuilderHeader` renders only the node-ID chip with the correct category color (no "Yield" text), so the green "Yield" badge the auditor saw is the **global dashboard/account tier badge**, not a per-node bug. Confirm by reading the dashboard header; if it's showing the account `subscription_tier`, leave as-is (correct behavior). No node-builder change expected here — verify only.
 
-3. The enquiry card (`renderInquireCard`) already:
-   - Shows the canonical title and description.
-   - Shows **no price**.
-   - Has a CTA that opens the booking/enquiry form via `setInquiryFor(title)` so the author receives the enquiry and can get back to the buyer.
-   - Optional polish: confirm the CTA label reads naturally for these (e.g. "Book Now" / "Enquire"); keep the current "Contact {author}" wording unless a change is wanted.
-
-No price display, no Stripe checkout, no new components or backend changes — it reuses the existing enquiry flow.
-
-## Result
-
-- Speaking and the other five high-touch nodes show an enquiry/booking CTA with **no price**, opening the existing enquiry form.
-- Priced coaching / group-coaching and all other product cards keep their current behaviour.
+### Scope note
+Fixes 1–2 are the substantive work and unblock all 28 nodes since they share the same generation pattern. I'll apply the timeout/retry to the shared call sites rather than rewriting each builder.
 
 ## Verification
-
-- Open a reader book page where a Speaking node has a price: confirm the card shows **no price** and a button that opens the enquiry/booking form (no Stripe redirect, no "Join for $X").
-- Confirm Corporate Training, Big Ticket Consulting, Mastermind, Retreat, Conference behave the same.
-- Confirm 1-on-1 Coaching / Group Coaching priced cards still show "Join for $X" checkout.
+- Trigger BP-02 / BP-03 / BP-05 generation; confirm it either completes to Review or, on a forced failure/timeout, shows an error + Retry (no endless rotation).
+- Open BP-02 for the "Invest Like Buffett" book via Book Hub; confirm the intro names that book, not "Be SUCKcessful".
+- Confirm BP-05/BP-06 still load Webinars/Workbook respectively (unchanged, correct).
