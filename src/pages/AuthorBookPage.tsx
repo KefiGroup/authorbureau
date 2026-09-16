@@ -71,6 +71,7 @@ interface Book {
   author_bio?: string;
   author_photo_url?: string;
   bestseller_proof_url?: string;
+  bestseller_proof_url_2?: string;
 }
 
 interface ProductLink {
