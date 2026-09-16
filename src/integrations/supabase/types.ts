@@ -1291,6 +1291,7 @@ export type Database = {
           author_photo_url: string | null
           badges: string[] | null
           bestseller_proof_url: string | null
+          bestseller_proof_url_2: string | null
           cover_image_url: string | null
           created_at: string
           currency: string | null
@@ -1328,6 +1329,7 @@ export type Database = {
           author_photo_url?: string | null
           badges?: string[] | null
           bestseller_proof_url?: string | null
+          bestseller_proof_url_2?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
@@ -1365,6 +1367,7 @@ export type Database = {
           author_photo_url?: string | null
           badges?: string[] | null
           bestseller_proof_url?: string | null
+          bestseller_proof_url_2?: string | null
           cover_image_url?: string | null
           created_at?: string
           currency?: string | null
