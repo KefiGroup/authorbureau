@@ -1077,7 +1077,7 @@ export default function AuthorBookPage() {
       />
 
       {/* ===== SECTION 3.5: BESTSELLER PROOF ===== */}
-      {book.bestseller_proof_url && (
+      {(book.bestseller_proof_url || book.bestseller_proof_url_2) && (
         <section className="py-14 md:py-20" style={{ background: v.secondaryBg }}>
           <div className="container max-w-3xl">
             <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={0}>
@@ -1085,27 +1085,32 @@ export default function AuthorBookPage() {
                 <Star className="inline h-5 w-5 mr-2" style={{ color: v.accent }} />
                 Amazon Bestseller Proof
               </h2>
-              <div
-                className="rounded-xl overflow-hidden shadow-lg"
-                style={{ background: "#1E293B", borderRadius: "12px" }}
-              >
-                <div className="flex items-center gap-1.5 px-4 py-3">
-                  <div className="w-3 h-3 rounded-full" style={{ background: "#ef4444" }} />
-                  <div className="w-3 h-3 rounded-full" style={{ background: "#eab308" }} />
-                  <div className="w-3 h-3 rounded-full" style={{ background: "#22c55e" }} />
-                  <div className="ml-3 flex-1 flex justify-center">
-                    <span className="text-xs px-4 py-1 rounded-md" style={{ background: "#F1F1F1", color: "#666666" }}>
-                      amazon.com
-                    </span>
+              <div className={`grid gap-4 ${book.bestseller_proof_url && book.bestseller_proof_url_2 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
+                {[book.bestseller_proof_url, book.bestseller_proof_url_2].filter(Boolean).map((url) => (
+                  <div
+                    key={url}
+                    className="rounded-xl overflow-hidden shadow-lg"
+                    style={{ background: "#1E293B", borderRadius: "12px" }}
+                  >
+                    <div className="flex items-center gap-1.5 px-4 py-3">
+                      <div className="w-3 h-3 rounded-full" style={{ background: "#ef4444" }} />
+                      <div className="w-3 h-3 rounded-full" style={{ background: "#eab308" }} />
+                      <div className="w-3 h-3 rounded-full" style={{ background: "#22c55e" }} />
+                      <div className="ml-3 flex-1 flex justify-center">
+                        <span className="text-xs px-4 py-1 rounded-md" style={{ background: "#F1F1F1", color: "#666666" }}>
+                          amazon.com
+                        </span>
+                      </div>
+                    </div>
+                    <img
+                      src={url}
+                      alt={`${book.title} bestseller proof`}
+                      loading="lazy"
+                      className="w-full"
+                      style={{ maxHeight: "400px", objectFit: "contain" }}
+                    />
                   </div>
-                </div>
-                <img
-                  src={book.bestseller_proof_url}
-                  alt={`${book.title} bestseller proof`}
-                  loading="lazy"
-                  className="w-full"
-                  style={{ maxHeight: "400px", objectFit: "contain" }}
-                />
+                ))}
               </div>
               <p className="text-sm text-center mt-4 italic" style={{ color: v.bodyText }}>
                 {book.title} reached #1 on Amazon Best Sellers
