@@ -31,6 +31,7 @@ export const BOOK_PUBLIC_COLUMNS = [
   "updated_at",
   "published_at",
   "bestseller_proof_url",
+  "bestseller_proof_url_2",
   "approval_status",
   "rejection_note",
   "amazon_kindle_url",
