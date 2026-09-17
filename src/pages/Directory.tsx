@@ -19,6 +19,12 @@ const staticPhotoMap: Record<string, string> = {
   "felicia-tan": feliciaPhoto,
 };
 
+const staticCoverMap: Record<string, string> = {
+  "to-baby-with-love": toBabyWithLoveCover,
+  "lost-and-found": lostAndFoundCover,
+  "a-gift-from-heaven": giftFromHeavenCover,
+};
+
 interface DirectoryAuthor {
   slug: string;
   name: string;
