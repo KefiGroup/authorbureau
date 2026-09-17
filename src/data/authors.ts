@@ -53,7 +53,7 @@ export const authors: Author[] = [
         title: "To Baby With Love",
         subtitle: "A Mother's Journey Through Hope, Loss & Renewal",
         description: "A heartfelt journey through IUI and IVF, coping with premature birth loss, and finding the courage to not give up on the dream of motherhood.",
-        coverImage: "/src/assets/to-baby-with-love-cover.jpg",
+        coverImage: toBabyWithLoveCover,
         amazonUrl: "https://www.amazon.com/dp/B0DKWG8Y85",
         badges: ["#1 Best Seller"],
         genre: "Memoir",
