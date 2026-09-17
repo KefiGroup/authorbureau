@@ -42,7 +42,7 @@ export const authors: Author[] = [
   {
     slug: "felicia-tan",
     name: "Felicia Tan",
-    photo: "/src/assets/felicia-tan.png",
+    photo: feliciaTanPhoto,
     title: "International Bestselling Author & Life Designer",
     bio: "Felicia Tan is an inspiring author who turned her decade-long journey to motherhood into a powerful trilogy that has touched thousands of hearts. Through her raw, honest storytelling about IVF, pregnancy loss, and ultimate triumph, she offers hope to women facing similar challenges. She miscarried twice — first a baby boy at the 23rd gestational week, then twin boys at the 21st gestational week. They were all born alive but didn't make it. After 10 years of marriage, she welcomed her rainbow baby, Titus, conceived naturally — a miracle she never thought possible. Felicia is the Founder and President of Art of Life, a platform dedicated to embracing life, envisioning dreams, and empowering communities. She is also a certified Health & MAP Coach, keynote speaker on fertility and faith, and a passionate advocate for women navigating pregnancy loss.",
     shortBio: "3x published author whose motherhood trilogy hit #1 on Amazon in India and #2 in UK. Founder of Art of Life, keynote speaker on fertility and faith.",
