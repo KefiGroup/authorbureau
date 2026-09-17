@@ -80,7 +80,7 @@ export const authors: Author[] = [
         title: "A Gift From Heaven",
         subtitle: "A Mother's Search for Her Rainbow Baby After the Storms",
         description: "A miracle pregnancy after 10 years of marriage — conceived naturally after multiple losses. A mother's tale of faith, perseverance, and being rewarded with a rainbow baby.",
-        coverImage: "/src/assets/a-gift-from-heaven-cover.jpg",
+        coverImage: giftFromHeavenCover,
         amazonUrl: "https://artoflife.sg/product/a-gift-from-heaven-book/?v=1fdc0f893412",
         badges: [],
         genre: "Memoir",
