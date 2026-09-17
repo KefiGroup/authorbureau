@@ -108,7 +108,7 @@ export default function Directory() {
     books: a.books.map((b) => ({
       slug: b.slug,
       title: b.title,
-      coverImage: b.coverImage,
+      coverImage: staticCoverMap[b.slug] || b.coverImage,
       badges: b.badges,
       rating: b.rating,
     })),
