@@ -67,7 +67,7 @@ export const authors: Author[] = [
         title: "Lost And Found",
         subtitle: "A Mother's Memoir on Finding Faith Through Loss",
         description: "The story of twin sons, Cervical Incompetence, and finding faith, peace, and hope through unimaginable loss. Features expert contributions and real stories from other mothers.",
-        coverImage: "/src/assets/lost-and-found-cover.jpg",
+        coverImage: lostAndFoundCover,
         amazonUrl: "https://artoflife.sg/product/lost-and-found-book/?v=1fdc0f893412",
         badges: [],
         genre: "Memoir",
