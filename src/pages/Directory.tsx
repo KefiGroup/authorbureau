@@ -13,6 +13,9 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.webp";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
+import toBabyWithLoveCover from "@/assets/to-baby-with-love-cover.png";
+import lostAndFoundCover from "@/assets/lost-and-found-cover.png";
+import giftFromHeavenCover from "@/assets/gift-from-heaven-cover.png";
 
 const staticPhotoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
