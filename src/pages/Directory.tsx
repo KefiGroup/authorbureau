@@ -13,10 +13,19 @@ import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 import paulinePhoto from "@/assets/pauline-teo-headshot.webp";
 import feliciaPhoto from "@/assets/felicia-tan-headshot.png";
+import toBabyWithLoveCover from "@/assets/to-baby-with-love-cover.png";
+import lostAndFoundCover from "@/assets/lost-and-found-cover.png";
+import giftFromHeavenCover from "@/assets/gift-from-heaven-cover.png";
 
 const staticPhotoMap: Record<string, string> = {
   "pauline-teo": paulinePhoto,
   "felicia-tan": feliciaPhoto,
+};
+
+const staticCoverMap: Record<string, string> = {
+  "to-baby-with-love": toBabyWithLoveCover,
+  "lost-and-found": lostAndFoundCover,
+  "a-gift-from-heaven": giftFromHeavenCover,
 };
 
 interface DirectoryAuthor {
@@ -99,7 +108,7 @@ export default function Directory() {
     books: a.books.map((b) => ({
       slug: b.slug,
       title: b.title,
-      coverImage: b.coverImage,
+      coverImage: staticCoverMap[b.slug] || b.coverImage,
       badges: b.badges,
       rating: b.rating,
     })),
