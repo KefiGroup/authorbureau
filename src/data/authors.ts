@@ -1,3 +1,8 @@
+import feliciaTanPhoto from "@/assets/felicia-tan.png";
+import toBabyWithLoveCover from "@/assets/to-baby-with-love-cover.png";
+import lostAndFoundCover from "@/assets/lost-and-found-cover.png";
+import giftFromHeavenCover from "@/assets/gift-from-heaven-cover.png";
+
 export interface Book {
   slug: string;
   title: string;
