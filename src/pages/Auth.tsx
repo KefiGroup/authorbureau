@@ -9,34 +9,21 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { establishSharedSession, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 // ─── Error mapping ───
-function friendlyError(status: number, serverMsg?: string): string {
-  if (status === 429) return "Too many attempts. Please wait a moment and try again.";
-  if (status === 401) return serverMsg?.toLowerCase().includes("credential") ? "Invalid credentials." : "Invalid or expired code.";
-  if (status === 400 && serverMsg) return serverMsg;
-  if (status >= 500) return "Something went wrong on our end. Please try again.";
-  return serverMsg || "Something went wrong.";
-}
-
-async function authFetch(body: Record<string, unknown>) {
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (data?.authUrl) {
-      window.location.href = data.authUrl;
-      return data;
-    }
-    throw new Error(friendlyError(res.status, data?.error || data?.message));
+function friendlyError(message?: string): string {
+  const msg = (message || "").toLowerCase();
+  if (msg.includes("rate limit") || msg.includes("too many")) {
+    return "Too many attempts. Please wait a moment and try again.";
   }
-  return data;
+  if (msg.includes("invalid login credentials")) return "Invalid email or password.";
+  if (msg.includes("token has expired") || msg.includes("invalid token") || msg.includes("otp")) {
+    return "Invalid or expired code. Please request a new one.";
+  }
+  return message || "Something went wrong.";
 }
 
 type SignInMode = "code" | "password";
