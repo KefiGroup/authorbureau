@@ -53,31 +53,28 @@ export default function Auth() {
     return () => clearInterval(id);
   }, [resendCooldown]);
 
-  // ─── Magic link handling ───
+  // ─── Magic link handling (tokens arrive in the URL hash) ───
   useEffect(() => {
     const hash = location.hash;
     if (!hash) return;
     const cleanHash = hash.replace(/^#\/?/, "");
     const params = new URLSearchParams(cleanHash);
-    const authToken = params.get("auth_token");
-    if (!authToken) return;
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    if (!accessToken || !refreshToken) return;
 
     setMagicLinkProcessing(true);
     (async () => {
       try {
-        const data = await authFetch({ action: "verify_token", token: authToken });
-        if (data?.session_data) {
-          await establishSharedSession(data.session_data);
-        } else if (data?.authUrl) {
-          window.location.href = data.authUrl;
-          return;
-        } else {
-          throw new Error("No session returned from magic link.");
-        }
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error) throw error;
         window.history.replaceState(null, "", location.pathname);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Magic link sign-in failed";
-        toast({ title: message, variant: "destructive" });
+        toast({ title: friendlyError(message), variant: "destructive" });
       } finally {
         setMagicLinkProcessing(false);
       }
