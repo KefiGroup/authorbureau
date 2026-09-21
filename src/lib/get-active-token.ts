@@ -54,6 +54,17 @@ function readCachedAccessToken(): string | null {
   } catch {
     /* ignore */
   }
+  // Cloud auth client storage key: sb-<project-ref>-auth-token
+  try {
+    for (let i = 0; i < window.localStorage.length; i += 1) {
+      const key = window.localStorage.key(i);
+      if (!key || !/^sb-.*-auth-token$/.test(key)) continue;
+      const token = tryParse(window.localStorage.getItem(key));
+      if (token) return token;
+    }
+  } catch {
+    /* ignore */
+  }
   try {
     return tryParse(window.sessionStorage.getItem(SHARED_AUTH_MEMORY_KEY));
   } catch {

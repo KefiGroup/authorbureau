@@ -9,34 +9,21 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { establishSharedSession, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
 // ─── Error mapping ───
-function friendlyError(status: number, serverMsg?: string): string {
-  if (status === 429) return "Too many attempts. Please wait a moment and try again.";
-  if (status === 401) return serverMsg?.toLowerCase().includes("credential") ? "Invalid credentials." : "Invalid or expired code.";
-  if (status === 400 && serverMsg) return serverMsg;
-  if (status >= 500) return "Something went wrong on our end. Please try again.";
-  return serverMsg || "Something went wrong.";
-}
-
-async function authFetch(body: Record<string, unknown>) {
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (data?.authUrl) {
-      window.location.href = data.authUrl;
-      return data;
-    }
-    throw new Error(friendlyError(res.status, data?.error || data?.message));
+function friendlyError(message?: string): string {
+  const msg = (message || "").toLowerCase();
+  if (msg.includes("rate limit") || msg.includes("too many")) {
+    return "Too many attempts. Please wait a moment and try again.";
   }
-  return data;
+  if (msg.includes("invalid login credentials")) return "Invalid email or password.";
+  if (msg.includes("token has expired") || msg.includes("invalid token") || msg.includes("otp")) {
+    return "Invalid or expired code. Please request a new one.";
+  }
+  return message || "Something went wrong.";
 }
 
 type SignInMode = "code" | "password";
@@ -66,31 +53,28 @@ export default function Auth() {
     return () => clearInterval(id);
   }, [resendCooldown]);
 
-  // ─── Magic link handling ───
+  // ─── Magic link handling (tokens arrive in the URL hash) ───
   useEffect(() => {
     const hash = location.hash;
     if (!hash) return;
     const cleanHash = hash.replace(/^#\/?/, "");
     const params = new URLSearchParams(cleanHash);
-    const authToken = params.get("auth_token");
-    if (!authToken) return;
+    const accessToken = params.get("access_token");
+    const refreshToken = params.get("refresh_token");
+    if (!accessToken || !refreshToken) return;
 
     setMagicLinkProcessing(true);
     (async () => {
       try {
-        const data = await authFetch({ action: "verify_token", token: authToken });
-        if (data?.session_data) {
-          await establishSharedSession(data.session_data);
-        } else if (data?.authUrl) {
-          window.location.href = data.authUrl;
-          return;
-        } else {
-          throw new Error("No session returned from magic link.");
-        }
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (error) throw error;
         window.history.replaceState(null, "", location.pathname);
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : "Magic link sign-in failed";
-        toast({ title: message, variant: "destructive" });
+        toast({ title: friendlyError(message), variant: "destructive" });
       } finally {
         setMagicLinkProcessing(false);
       }
@@ -120,6 +104,17 @@ export default function Auth() {
   }
   if (user) return <Navigate to={redirectTo} replace />;
 
+  const sendEmailCode = async (shouldCreateUser: boolean) => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser,
+        emailRedirectTo: `${window.location.origin}/auth`,
+      },
+    });
+    if (error) throw new Error(friendlyError(error.message));
+  };
+
   // ─── Continue: step 1 → step 2 based on mode ───
   const handleContinue = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -134,7 +129,7 @@ export default function Auth() {
     // Email Code mode: send OTP
     setSubmitting(true);
     try {
-      await authFetch({ action: "request_code", email: email.trim() });
+      await sendEmailCode(true);
       setFlow("otp");
       setResendCooldown(60);
     } catch (err: unknown) {
@@ -148,7 +143,7 @@ export default function Auth() {
     if (resendCooldown > 0) return;
     setSubmitting(true);
     try {
-      await authFetch({ action: "request_code", email: email.trim() });
+      await sendEmailCode(true);
       setResendCooldown(60);
       toast({ title: "New code sent to your email." });
     } catch (err: unknown) {
@@ -163,16 +158,16 @@ export default function Auth() {
     if (code.length !== 6) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "verify", email: email.trim(), code });
-      if (data && data.success === false) {
-        throw new Error(data.error || "Verification failed. Please try again.");
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: code,
+        type: "email",
+      });
+      if (error) {
+        setOtp("");
+        throw new Error(friendlyError(error.message));
       }
-      if (data?.session_data?.access_token) {
-        await establishSharedSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
+      if (!data.session) {
         setOtp("");
         throw new Error("Invalid or expired code. Please request a new one.");
       }
@@ -188,18 +183,12 @@ export default function Auth() {
     if (!email.trim() || !password) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "password_login", email: email.trim(), password });
-      if (data && data.success === false) {
-        throw new Error(data.error || "Sign-in failed. Please try again.");
-      }
-      if (data?.session_data?.access_token) {
-        await establishSharedSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
-        throw new Error("Sign-in verified but no session was returned.");
-      }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw new Error(friendlyError(error.message));
+      if (!data.session) throw new Error("Sign-in verified but no session was returned.");
     } catch (err: unknown) {
       toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {
@@ -212,7 +201,11 @@ export default function Auth() {
     if (!email.trim()) return;
     setSubmitting(true);
     try {
-      await authFetch({ action: "forgot_password", email: email.trim() });
+      // Send a one-time code; once verified the user can set a new password.
+      await sendEmailCode(false);
+      setOtp("");
+      setPassword("");
+      setConfirmPassword("");
       setFlow("forgot-reset");
     } catch (err: unknown) {
       toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
@@ -230,24 +223,22 @@ export default function Auth() {
     }
     setSubmitting(true);
     try {
-      const data = await authFetch({
-        action: "reset_password",
+      const { data, error } = await supabase.auth.verifyOtp({
         email: email.trim(),
-        code: otp,
-        password,
+        token: otp,
+        type: "email",
       });
-      if (data && data.success === false) {
-        throw new Error(data.error || "Password reset failed. Please try again.");
+      if (error) {
+        setOtp("");
+        throw new Error(friendlyError(error.message));
       }
-      if (data?.session_data?.access_token) {
-        await establishSharedSession(data.session_data);
-        toast({ title: "Password reset successfully!" });
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
-        throw new Error("Password reset succeeded but no session was returned.");
+      if (!data.session) {
+        setOtp("");
+        throw new Error("Invalid or expired code. Please request a new one.");
       }
+      const { error: updateError } = await supabase.auth.updateUser({ password });
+      if (updateError) throw new Error(friendlyError(updateError.message));
+      toast({ title: "Password reset successfully!" });
     } catch (err: unknown) {
       toast({ title: err instanceof Error ? err.message : "Something went wrong.", variant: "destructive" });
     } finally {

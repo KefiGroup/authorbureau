@@ -8,33 +8,20 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { establishSharedSession, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-function friendlyError(status: number, serverMsg?: string): string {
-  if (status === 429) return "Too many attempts. Please wait a moment and try again.";
-  if (status === 401) return serverMsg?.toLowerCase().includes("credential") ? "Invalid credentials." : "Invalid or expired code.";
-  if (status === 400 && serverMsg) return serverMsg;
-  if (status >= 500) return "Something went wrong on our end. Please try again.";
-  return serverMsg || "Something went wrong.";
-}
-
-async function authFetch(body: Record<string, unknown>) {
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/user-auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, source_platform: "authorsbureau" }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (data?.authUrl) {
-      window.location.href = data.authUrl;
-      return data;
-    }
-    throw new Error(friendlyError(res.status, data?.error || data?.message));
+function friendlyError(message?: string): string {
+  const msg = (message || "").toLowerCase();
+  if (msg.includes("rate limit") || msg.includes("too many")) {
+    return "Too many attempts. Please wait a moment and try again.";
   }
-  return data;
+  if (msg.includes("invalid login credentials")) return "Invalid email or password.";
+  if (msg.includes("token has expired") || msg.includes("invalid token") || msg.includes("otp")) {
+    return "Invalid or expired code. Please request a new one.";
+  }
+  return message || "Something went wrong.";
 }
 
 type SignInMode = "code" | "password";
@@ -86,12 +73,23 @@ export default function ReaderAuth() {
   }
   if (user) return <Navigate to={redirectTo} replace />;
 
+  const sendEmailCode = async () => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/reader-auth`,
+      },
+    });
+    if (error) throw new Error(friendlyError(error.message));
+  };
+
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setSubmitting(true);
     try {
-      await authFetch({ action: "request_code", email: email.trim() });
+      await sendEmailCode();
       setFlow("otp");
       setResendCooldown(60);
     } catch (err) {
@@ -105,7 +103,7 @@ export default function ReaderAuth() {
     if (resendCooldown > 0) return;
     setSubmitting(true);
     try {
-      await authFetch({ action: "request_code", email: email.trim() });
+      await sendEmailCode();
       setResendCooldown(60);
       toast({ title: "New code sent to your email." });
     } catch (err) {
@@ -120,14 +118,16 @@ export default function ReaderAuth() {
     if (code.length !== 6) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "verify", email: email.trim(), code });
-      if (data && data.success === false) throw new Error(data.error || "Verification failed.");
-      if (data?.session_data?.access_token) {
-        await establishSharedSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: code,
+        type: "email",
+      });
+      if (error) {
+        setOtp("");
+        throw new Error(friendlyError(error.message));
+      }
+      if (!data.session) {
         setOtp("");
         throw new Error("Invalid or expired code. Please request a new one.");
       }
@@ -143,16 +143,12 @@ export default function ReaderAuth() {
     if (!email.trim() || !password) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "password_login", email: email.trim(), password });
-      if (data && data.success === false) throw new Error(data.error || "Sign-in failed.");
-      if (data?.session_data?.access_token) {
-        await establishSharedSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
-        throw new Error("Sign-in verified but no session was returned.");
-      }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw new Error(friendlyError(error.message));
+      if (!data.session) throw new Error("Sign-in verified but no session was returned.");
     } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
