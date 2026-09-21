@@ -12,6 +12,16 @@
 import type { Session } from "@supabase/supabase-js";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 
+/**
+ * @deprecated The external PublishNow project is offline. These constants only
+ * remain so legacy admin/SSO fetches keep compiling; they must not be used for
+ * new work.
+ */
+export const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
+/** @deprecated see SHARED_BACKEND_URL */
+export const SHARED_ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
+
 export const sharedSupabase = cloudSupabase;
 export const supabase = cloudSupabase;
 
