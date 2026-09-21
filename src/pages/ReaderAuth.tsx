@@ -73,12 +73,23 @@ export default function ReaderAuth() {
   }
   if (user) return <Navigate to={redirectTo} replace />;
 
+  const sendEmailCode = async () => {
+    const { error } = await supabase.auth.signInWithOtp({
+      email: email.trim(),
+      options: {
+        shouldCreateUser: true,
+        emailRedirectTo: `${window.location.origin}/reader-auth`,
+      },
+    });
+    if (error) throw new Error(friendlyError(error.message));
+  };
+
   const handleRequestCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim()) return;
     setSubmitting(true);
     try {
-      await authFetch({ action: "request_code", email: email.trim() });
+      await sendEmailCode();
       setFlow("otp");
       setResendCooldown(60);
     } catch (err) {
@@ -92,7 +103,7 @@ export default function ReaderAuth() {
     if (resendCooldown > 0) return;
     setSubmitting(true);
     try {
-      await authFetch({ action: "request_code", email: email.trim() });
+      await sendEmailCode();
       setResendCooldown(60);
       toast({ title: "New code sent to your email." });
     } catch (err) {
@@ -107,14 +118,16 @@ export default function ReaderAuth() {
     if (code.length !== 6) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "verify", email: email.trim(), code });
-      if (data && data.success === false) throw new Error(data.error || "Verification failed.");
-      if (data?.session_data?.access_token) {
-        await establishSharedSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: code,
+        type: "email",
+      });
+      if (error) {
+        setOtp("");
+        throw new Error(friendlyError(error.message));
+      }
+      if (!data.session) {
         setOtp("");
         throw new Error("Invalid or expired code. Please request a new one.");
       }
@@ -130,16 +143,12 @@ export default function ReaderAuth() {
     if (!email.trim() || !password) return;
     setSubmitting(true);
     try {
-      const data = await authFetch({ action: "password_login", email: email.trim(), password });
-      if (data && data.success === false) throw new Error(data.error || "Sign-in failed.");
-      if (data?.session_data?.access_token) {
-        await establishSharedSession(data.session_data);
-      } else if (data?.authUrl) {
-        window.location.href = data.authUrl;
-        return;
-      } else {
-        throw new Error("Sign-in verified but no session was returned.");
-      }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+      if (error) throw new Error(friendlyError(error.message));
+      if (!data.session) throw new Error("Sign-in verified but no session was returned.");
     } catch (err) {
       toast({ title: err.message, variant: "destructive" });
     } finally {
