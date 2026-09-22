@@ -149,12 +149,9 @@ export default function Directory() {
   const isReaderGenre = (g: string) => {
     const key = g.trim().toLowerCase();
     if (!key) return false;
-    if (NON_READER_GENRES.has(key)) return false;
-    // Filter operational suffixes that read like internal taxonomy, not a genre.
-    if (/\b(strategy|development|advocacy|management|transformation|optimization|optimisation|enablement|operations)\b/i.test(key)) {
-      return false;
-    }
-    return true;
+    // Curated exclusion list only — a broad keyword match used to hide valid
+    // reader categories such as "Leadership Development" or "Operations Management".
+    return !NON_READER_GENRES.has(key);
   };
 
   const genreCounts = new Map<string, { label: string; count: number }>();
@@ -225,7 +222,9 @@ export default function Directory() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                type="text"
+                id="directory-search"
+                type="search"
+                aria-label="Search authors by name, title, or bio"
                 placeholder="Search by name, title, or bio..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -233,6 +232,8 @@ export default function Directory() {
               />
             </div>
             <select
+              id="directory-sort"
+              aria-label="Sort authors"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50 appearance-none cursor-pointer"

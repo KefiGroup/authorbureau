@@ -80,7 +80,10 @@ export default function DashboardLayout({ children, activeSection, bare = false 
   const { books } = useMyBooks(user?.id);
   const { gating, isCategoryFullyClosed } = useNodeGating();
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // On phones/tablets the sidebar is an overlay drawer, so it must start closed.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 1024
+  );
 
   const userIsSuperAdmin = isSuperAdmin(user?.email);
 
@@ -193,7 +196,7 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleHeaderNavigate}
         />
-        <main
+        <div
           className={
             bare
               ? "flex-1 min-h-0 overflow-hidden"
@@ -201,7 +204,7 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           }
         >
           {children}
-        </main>
+        </div>
       </div>
     </div>
   );

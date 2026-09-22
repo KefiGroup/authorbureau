@@ -401,6 +401,7 @@ function AbbyHelpChatbotImpl() {
           )}
           <button
             data-abby-trigger
+            aria-label="Open Abby help and support chat"
             onClick={(e) => { e.stopPropagation(); openChat(); }}
             className="relative rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
             style={{
@@ -440,15 +441,15 @@ function AbbyHelpChatbotImpl() {
               <span className="text-white text-sm font-semibold">Abby — Help & Support</span>
             </div>
             <div className="flex items-center gap-1">
-              <button onClick={startNewConversation} className="p-1.5 hover:bg-white/10 rounded text-white" title="New conversation">
+              <button onClick={startNewConversation} aria-label="Start a new conversation" className="p-1.5 hover:bg-white/10 rounded text-white" title="New conversation">
                 <RotateCcw size={16} />
               </button>
               {!isMobile && (
-                <button onClick={closeChat} className="p-1.5 hover:bg-white/10 rounded text-white" title="Minimize">
+                <button onClick={closeChat} aria-label="Minimize chat" className="p-1.5 hover:bg-white/10 rounded text-white" title="Minimize">
                   <ChevronDown size={18} />
                 </button>
               )}
-              <button onClick={closeChat} className="p-1.5 hover:bg-white/10 rounded text-white" title="Close">
+              <button onClick={closeChat} aria-label="Close chat" className="p-1.5 hover:bg-white/10 rounded text-white" title="Close">
                 <X size={18} />
               </button>
             </div>

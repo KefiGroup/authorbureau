@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
+import { supabase } from "@/integrations/supabase/client";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -22,6 +23,8 @@ const fadeUp = {
 export default function Contact() {
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [sent, setSent] = useState(false);
 
   useDocumentMeta({
     title: "Contact — Authors Bureau | Get in Touch",
@@ -34,19 +37,45 @@ export default function Contact() {
     twitterCard: "summary_large_image",
   });
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const values = new FormData(form);
     setSending(true);
+    setSendError(null);
 
-    // Simulate send
-    setTimeout(() => {
-      setSending(false);
-      toast({
-        title: "Message sent!",
-        description: "We'll get back to you within 1–2 business days.",
+    try {
+      const { data, error } = await supabase.functions.invoke("submit-contact-form", {
+        body: {
+          name: String(values.get("name") || ""),
+          email: String(values.get("email") || ""),
+          subject: String(values.get("subject") || ""),
+          message: String(values.get("message") || ""),
+        },
       });
-      (e.target as HTMLFormElement).reset();
-    }, 1000);
+
+      if (error || !data?.success) {
+        // Keep everything the visitor typed so they can retry.
+        setSendError(
+          data?.message ||
+            "We couldn't send your message just now. Please try again, or email support@authorsbureau.com.",
+        );
+        return;
+      }
+
+      setSent(true);
+      toast({
+        title: "Message sent",
+        description: data.message || "We'll get back to you within 1-2 business days.",
+      });
+      form.reset();
+    } catch {
+      setSendError(
+        "We couldn't reach our servers. Please try again, or email support@authorsbureau.com.",
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   return (

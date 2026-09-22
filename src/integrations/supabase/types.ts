@@ -3884,6 +3884,45 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_contact_messages: {
+        Row: {
+          created_at: string
+          email_sent: boolean
+          id: string
+          message: string
+          sender_email: string
+          sender_name: string
+          status: string
+          subject: string
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email_sent?: boolean
+          id?: string
+          message: string
+          sender_email: string
+          sender_name: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email_sent?: boolean
+          id?: string
+          message?: string
+          sender_email?: string
+          sender_name?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       podcast_episodes: {
         Row: {
           ad_markers: Json | null

@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useBookContext } from "@/hooks/useBookContext";
 
 type HubKind = "brand" | "build" | "yield";
@@ -32,6 +33,7 @@ export default function HubRedirect({ kind }: { kind: HubKind }) {
   const hintedBookId = searchParams.get("bookId");
   const { bookId: contextBookId, isLoading } = useBookContext();
   const bookId = hintedBookId || contextBookId;
+  const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
     // If we have an explicit hint, redirect immediately without waiting for
@@ -47,6 +49,35 @@ export default function HubRedirect({ kind }: { kind: HubKind }) {
       navigate("/dashboard?section=my-books", { replace: true });
     }
   }, [kind, bookId, hintedBookId, isLoading, navigate]);
+
+  // Bound the wait: if the book context never resolves, show a recoverable state
+  // instead of an endless spinner.
+  useEffect(() => {
+    if (hintedBookId || !isLoading) return;
+    const timer = setTimeout(() => setTimedOut(true), 12000);
+    return () => clearTimeout(timer);
+  }, [hintedBookId, isLoading]);
+
+  if (timedOut) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 px-6 text-center">
+        <AlertCircle className="h-7 w-7 text-muted-foreground" />
+        <div>
+          <p className="font-medium">We couldn't open your {LABEL_BY_KIND[kind]} hub</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            Your book details are taking longer than expected to load. Check your connection and try again,
+            or pick a book to continue.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2 justify-center">
+          <Button onClick={() => window.location.reload()}>Try again</Button>
+          <Button variant="outline" onClick={() => navigate("/dashboard?section=my-books")}>
+            Choose a book
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center gap-3 text-muted-foreground">

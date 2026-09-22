@@ -65,6 +65,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   const [statsData, setStatsData] = useState<{ total: number; effectiveTotal: number; activeThisWeek: number; conversionRate: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -89,10 +90,12 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       setStatsData({ total, effectiveTotal, activeThisWeek: 0, conversionRate: 0 });
       setRecentLeads(recent);
       if (data.authorProfileId) setAuthorProfileId(data.authorProfileId);
+      setLoadError(null);
     } catch (e) {
       console.warn("[CRM] initial load failed:", e);
-      setStatsData({ total: 0, effectiveTotal: 0, activeThisWeek: 0, conversionRate: 0 });
+      setStatsData(null);
       setRecentLeads([]);
+      setLoadError("We couldn't load your contacts just now. Your data is safe, this is a connection problem.");
     }
     setLoading(false);
   }, [user]);
@@ -243,6 +246,16 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     return (
       <div className="flex items-center justify-center py-20">
         <Loader2 className="h-6 w-6 animate-spin text-secondary" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <p className="font-medium">Contacts didn't load</p>
+        <p className="text-sm text-muted-foreground max-w-md">{loadError}</p>
+        <Button onClick={fetchInitial}>Try again</Button>
       </div>
     );
   }

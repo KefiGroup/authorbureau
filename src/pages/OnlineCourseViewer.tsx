@@ -486,7 +486,7 @@ export default function OnlineCourseViewer() {
           )}
 
           {/* ─── Main Lesson Content ─── */}
-          <main className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto">
             {currentLesson ? (
               <div className="max-w-3xl mx-auto py-8 px-4 sm:px-6 space-y-6">
                 {/* Lesson header */}
@@ -791,7 +791,7 @@ export default function OnlineCourseViewer() {
                 </div>
               </div>
             )}
-          </main>
+          </div>
         </div>
       )}
     </div>

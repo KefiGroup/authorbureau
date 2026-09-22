@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Loader2, DollarSign, Calendar, TrendingUp, Wallet, FileText, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,31 +33,45 @@ export default function EarningsDashboard() {
   const [earnings, setEarnings] = useState<EarningRow[]>([]);
   const [payouts, setPayouts] = useState<PayoutRow[]>([]);
   const [statements, setStatements] = useState<Statement[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    (async () => {
-      if (!user) return;
-      const { data: profile } = await supabase.from("author_profiles").select("id").eq("user_id", user.id).maybeSingle();
+  const loadEarnings = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from("author_profiles").select("id").eq("user_id", user.id).maybeSingle();
+      if (profileError) throw profileError;
       if (!profile) { setLoading(false); return; }
 
-      const [{ data: erns }, { data: pays }, { data: stmts }] = await Promise.all([
+      const [ernsRes, paysRes, stmtsRes] = await Promise.all([
         supabase.from("author_earnings").select("*").eq("author_id", profile.id).order("earned_at", { ascending: false }).limit(100),
         supabase.from("author_payouts_v2").select("*").eq("author_id", profile.id).order("queued_at", { ascending: false }),
         supabase.from("author_annual_statements").select("*").eq("author_id", profile.id).order("tax_year", { ascending: false }),
       ]);
+      if (ernsRes.error) throw ernsRes.error;
+      if (paysRes.error) throw paysRes.error;
+      if (stmtsRes.error) throw stmtsRes.error;
 
-      const ernsArr = (erns || []) as EarningRow[];
+      const ernsArr = (ernsRes.data || []) as EarningRow[];
       setEarnings(ernsArr);
-      setPayouts((pays || []) as PayoutRow[]);
-      setStatements((stmts || []) as Statement[]);
+      setPayouts((paysRes.data || []) as PayoutRow[]);
+      setStatements((stmtsRes.data || []) as Statement[]);
 
       const pending = ernsArr.filter((e) => !e.paid_out && !e.refunded);
       setPendingNet(pending.reduce((s, e) => s + Number(e.net_usd), 0));
       setPendingGross(pending.reduce((s, e) => s + Number(e.gross_usd), 0));
-      setLifetimeNet(((pays || []) as PayoutRow[]).filter((p) => p.status === "paid").reduce((s, p) => s + Number(p.net_usd), 0));
+      setLifetimeNet(((paysRes.data || []) as PayoutRow[]).filter((p) => p.status === "paid").reduce((s, p) => s + Number(p.net_usd), 0));
+    } catch (e) {
+      console.error("[EarningsDashboard] load failed", e);
+      setLoadError("We couldn't load your earnings just now. This is a connection problem, not a change to your balance.");
+    } finally {
       setLoading(false);
-    })();
+    }
   }, [user]);
+
+  useEffect(() => { loadEarnings(); }, [loadEarnings]);
 
   const next = nextPayoutDate();
   const progress = Math.min(100, (pendingNet / MIN_PAYOUT) * 100);
@@ -81,6 +95,14 @@ export default function EarningsDashboard() {
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        ) : loadError ? (
+          <Card>
+            <CardContent className="py-10 text-center space-y-4">
+              <p className="font-medium">Earnings didn't load</p>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">{loadError}</p>
+              <Button onClick={loadEarnings}>Try again</Button>
+            </CardContent>
+          </Card>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

@@ -232,7 +232,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     }
     setSearchParams(next, { replace: true });
   };
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // On phones/tablets the sidebar is an overlay drawer, so it must start closed.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 1024
+  );
 
   // Centralized stats from author-stats edge function
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
@@ -690,7 +693,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleNavigate}
         />
-        <main className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "overflow-y-auto" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
+        <div className={`flex-1 min-h-0 touch-pan-y ${isBuilderActive ? "overflow-y-auto" : "overflow-y-auto overscroll-y-contain [webkit-overflow-scrolling:touch] p-6 pb-20 lg:p-8 lg:pb-24 space-y-4"}`}>
           {/* Onboarding banners — only for genuinely new authors. Wait for
               the books query to resolve so we don't briefly flash these
               banners to existing authors during auth bootstrap. */}
@@ -713,7 +716,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
           )}
           {!isBuilderActive && <BroadcastBanner />}
           {renderSection()}
-        </main>
+        </div>
       </div>
 
       {/* ABBY Journey Onboarding Modal */}

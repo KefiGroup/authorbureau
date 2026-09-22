@@ -134,6 +134,13 @@ function ReaderPortalIdRedirect() {
 const AppRoutes = () => (
   <>
     <AuthTokenRedirect />
+    <a
+      href="#main-content"
+      className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[10000] focus:rounded-md focus:bg-secondary focus:px-4 focus:py-2 focus:text-secondary-foreground focus:shadow-lg"
+    >
+      Skip to main content
+    </a>
+    <main id="main-content" tabIndex={-1}>
     <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/directory" element={<Directory />} />
@@ -177,6 +184,8 @@ const AppRoutes = () => (
       {/* Readers Bureau */}
       <Route path="/readers-bureau" element={<ReadersBureau />} />
       <Route path="/readers-bureau/auth" element={<ReaderAuth />} />
+      {/* Legacy path used by older sign-in emails — keep working (hash tokens included) */}
+      <Route path="/reader-auth" element={<ReaderAuth />} />
       <Route path="/readers-bureau/learn/:purchaseId" element={<ReaderContentViewer />} />
       <Route path="/readers-bureau/course/:purchaseId" element={<OnlineCourseViewer />} />
 
@@ -210,6 +219,7 @@ const AppRoutes = () => (
       <Route path="/:authorSlug" element={<AuthorSite />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </main>
   </>
 );
 
