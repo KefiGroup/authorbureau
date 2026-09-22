@@ -77,8 +77,8 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://authorbureau.lovable.app";
 
     const { data: profile } = await supabaseAdmin
-      .from("author_profiles")
-      .select("stripe_account_id, stripe_onboarding_complete, pen_name")
+      .from("author_profiles_admin")
+      .select("id, stripe_account_id, stripe_onboarding_complete, pen_name")
       .eq("user_id", user.id)
       .maybeSingle();
 
@@ -141,9 +141,11 @@ serve(async (req) => {
         accountId = account.id;
 
         await supabaseAdmin
-          .from("author_profiles")
-          .update({ stripe_account_id: accountId })
-          .eq("user_id", user.id);
+          .from("author_payout_accounts")
+          .upsert(
+            { author_id: profile?.id, user_id: user.id, stripe_account_id: accountId },
+            { onConflict: "author_id" }
+          );
       }
 
       // Audit #3: callers (Dashboard › Payout Settings AND Account Settings ›

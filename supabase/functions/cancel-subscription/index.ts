@@ -53,7 +53,7 @@ serve(async (req) => {
 
     // Find the connected account for the author so we can call Stripe with the right header
     const { data: author } = await admin
-      .from("author_profiles")
+      .from("author_profiles_admin")
       .select("stripe_connected_account_id, stripe_account_id")
       .eq("id", sub.author_id)
       .maybeSingle();

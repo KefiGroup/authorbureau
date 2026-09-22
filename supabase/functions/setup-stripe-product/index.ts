@@ -87,7 +87,7 @@ serve(async (req) => {
 
     // 1. Resolve author profile + connected Stripe account
     const { data: profile, error: profileErr } = await admin
-      .from("author_profiles")
+      .from("author_profiles_admin")
       .select("id, user_id, stripe_account_id, stripe_onboarding_complete, author_slug")
       .eq("user_id", userId)
       .maybeSingle();

@@ -89,7 +89,7 @@ serve(async (req) => {
     (settings || []).forEach((s: any) => settingsByAuthor.set(s.author_id, s));
 
     const { data: profiles } = await admin
-      .from("author_profiles")
+      .from("author_profiles_admin")
       .select("id, pen_name, user_id, stripe_account_id, stripe_onboarding_complete")
       .in("id", safeIds);
     const profileByAuthor = new Map<string, any>();
