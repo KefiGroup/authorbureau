@@ -940,9 +940,44 @@ function WebinarPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
         {content.webinar_date ? (
           <p className="mt-4 text-sm font-medium" style={{ color: v.headingText }}>📅 {content.webinar_date}</p>
         ) : (
-          <p className="mt-4 text-sm" style={{ color: v.mutedText }}>Date to be announced</p>
+          <p className="mt-4 text-sm" style={{ color: v.mutedText }}>
+            Reserve your seat now and we will email you the date and joining link as soon as the next session opens.
+          </p>
         )}
       </div>
+
+      {/* What you will learn */}
+      {(() => {
+        const raw =
+          (content.agenda as unknown) ??
+          (content.what_youll_learn as unknown) ??
+          (content.key_takeaways as unknown) ??
+          (content.bullets as unknown) ??
+          (content.learning_points as unknown);
+        const items = Array.isArray(raw)
+          ? raw
+              .map((i) => (typeof i === "string" ? i : (i as { title?: string; point?: string })?.title || (i as { point?: string })?.point || ""))
+              .filter((s) => typeof s === "string" && s.trim().length > 0)
+              .slice(0, 6)
+          : [];
+        if (items.length === 0) return null;
+        return (
+          <div className="max-w-2xl mx-auto mb-10">
+            <h2 className="text-xl font-semibold mb-4 text-center" style={{ color: v.headingText, fontFamily: hFont }}>
+              What you will learn
+            </h2>
+            <ul className="space-y-3">
+              {items.map((item, i) => (
+                <li key={i} className="flex gap-3 items-start">
+                  <CheckCircle2 className="h-5 w-5 shrink-0 mt-0.5" style={{ color: v.accent }} />
+                  <span className="text-sm" style={{ color: v.mutedText }}>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      })()}
+
 
       <div className="max-w-md mx-auto">
         {!submitted ? (
