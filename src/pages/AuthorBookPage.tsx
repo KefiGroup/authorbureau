@@ -974,14 +974,33 @@ export default function AuthorBookPage() {
               {description && (
                 <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
               )}
-              <p className="font-bold text-lg mb-4 mt-auto" style={{ color: v.accent }}>{priceLabel}</p>
-              <BuyNowButton
-                authorNodeId={n.id}
-                authorId={book.author_id}
-                fallbackUrl={n.delivery_url}
-                label={`Join for ${priceLabel}`}
-                className="w-full rounded-full text-xs h-9 font-semibold"
-              />
+              <p className="font-bold text-lg mb-4 mt-auto" style={{ color: isEnquiry ? v.mutedText : v.accent }}>
+                {isEnquiry ? "By application" : priceLabel}
+              </p>
+              {isEnquiry ? (
+                <a
+                  href={`/${authorSlug}#contact`}
+                  onClick={(e) => {
+                    if (typeof window === "undefined") return;
+                    e.preventDefault();
+                    window.dispatchEvent(
+                      new CustomEvent("author-site:enquire", { detail: { subject: title } }),
+                    );
+                  }}
+                  className="w-full rounded-full text-xs h-9 font-semibold inline-flex items-center justify-center"
+                  style={{ border: `1px solid ${v.cardBorder}`, color: v.headingText }}
+                >
+                  Enquire
+                </a>
+              ) : (
+                <BuyNowButton
+                  authorNodeId={n.id}
+                  authorId={book.author_id}
+                  fallbackUrl={n.delivery_url}
+                  label={`Join for ${priceLabel}`}
+                  className="w-full rounded-full text-xs h-9 font-semibold"
+                />
+              )}
             </div>
           );
         };
