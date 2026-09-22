@@ -366,7 +366,18 @@ export default function WorkbooksManager({ onNavigate }: { onNavigate?: (section
         {workbooks.map(wb => (
           <Card key={wb.id} className="hover:shadow-md hover:border-primary/20 transition-all">
             <CardContent className="p-4 flex items-center justify-between">
-              <div className="flex items-center gap-4 cursor-pointer flex-1 min-w-0" onClick={() => setSelectedId(wb.id)}>
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => setSelectedId(wb.id)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setSelectedId(wb.id);
+                  }
+                }}
+                className="flex items-center gap-4 cursor-pointer flex-1 min-w-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              >
                 <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center shrink-0">
                   <FileText className="h-5 w-5 text-secondary" />
                 </div>

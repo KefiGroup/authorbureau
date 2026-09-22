@@ -1032,7 +1032,18 @@ function PostCard({
               </button>
             ))}
           </div>
-          <div className="cursor-pointer" onClick={onClick}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={onClick}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onClick?.();
+              }
+            }}
+            className="cursor-pointer rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+          >
             <SocialGraphicCard
               platform={platform}
               authorName={authorName}
