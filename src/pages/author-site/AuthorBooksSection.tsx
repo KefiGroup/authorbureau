@@ -43,9 +43,12 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
     const prefix = node.node_id.substring(0, 5);
     const badge = FORMAT_BADGES[prefix];
     if (!badge) return;
-    // Try to match node to a book via content_json.book_id or content_json.book_slug
-    const bookId = node.content_json?.book_id as string | undefined;
+    // A format belongs to the book it was built for. Never fan a node out
+    // across every book — that is what made the page look duplicated.
+    const bookId = ((node as unknown as { book_id?: string }).book_id
+      || (node.content_json?.book_id as string | undefined)) as string | undefined;
     const bookSlug = node.content_json?.book_slug as string | undefined;
+    if (!bookId && !bookSlug) return;
     booksWithProducts.forEach(book => {
       if ((bookId && book.id === bookId) || (bookSlug && book.slug === bookSlug)) {
         const existing = bookFormatBadges.get(book.id) || [];
@@ -55,16 +58,6 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
         }
       }
     });
-    // If no book match, apply to all books (author-level node)
-    if (!bookId && !bookSlug) {
-      booksWithProducts.forEach(book => {
-        const existing = bookFormatBadges.get(book.id) || [];
-        if (!existing.find(b => b.label === badge.label)) {
-          existing.push(badge);
-          bookFormatBadges.set(book.id, existing);
-        }
-      });
-    }
   });
 
   return (
