@@ -251,11 +251,15 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
     const isAnalyzed = analyzedBooks.has(book.id);
     const isApproved = !!book.published_at;
 
-    // Book not yet approved by admin — no actions available
+    // Awaiting review: explain what is happening and give a way to ask,
+    // instead of a disabled button with no explanation.
     if (!isApproved) return {
-      label: "Pending Approval", icon: Sparkles, bg: "bg-muted text-muted-foreground cursor-not-allowed",
-      action: () => {},
-      disabled: true,
+      label: "Awaiting Review — Contact Us", icon: Sparkles, bg: "bg-[#C4973B]/80 hover:bg-[#C4973B]",
+      action: () => {
+        window.location.href = `mailto:support@authorsbureau.com?subject=${encodeURIComponent(
+          `Book awaiting review: ${book.title}`,
+        )}`;
+      },
     };
 
     if (!isAnalyzed) return {
