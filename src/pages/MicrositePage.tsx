@@ -16,6 +16,7 @@ import AudiobookPage from "@/pages/microsite/AudiobookPage";
 import { normalizeOutcome } from "@/lib/workbook-pdf";
 import { stripHtml } from "@/lib/stripHtml";
 import { formatPublicLabel } from "@/lib/public-label";
+import { PERSONAL_SELLING_THRESHOLD } from "@/pages/author-site/node-price";
 import { WorkbookCoverArt } from "@/components/microsite/WorkbookCoverArt";
 
 interface MicrositeData {
