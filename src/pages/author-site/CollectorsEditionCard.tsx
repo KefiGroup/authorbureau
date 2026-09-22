@@ -27,15 +27,32 @@ export default function CollectorsEditionCard({ node, authorSlug, theme, v }: Pr
   const printRun = cj.print_run_size as number | undefined;
   const title = node.personalised_name || node.node_name || "Collector's Edition";
   const price = node.price_usd != null ? `$${node.price_usd.toFixed(2)}` : null;
-  const href = node.microsite_url || `/${authorSlug}`;
+  // No edition page yet? Open the enquiry form rather than bouncing the
+  // visitor back to the author's homepage.
+  const dest = resolvePublicDestination(node as never, { enquireLabel: "Enquire" });
   const urgency = template ? getOccasionUrgency(template) : null;
 
   const accentColor = template ? `hsl(${template.accent})` : v.accent;
   const accentBg = template ? `hsl(${template.accent} / 0.10)` : `${v.accent}1A`;
   const accentBorder = template ? `hsl(${template.accent} / 0.35)` : `${v.accent}55`;
 
+  const Wrapper = ({ children }: { children: React.ReactNode }) =>
+    dest.kind === "enquire" ? (
+      <button type="button" onClick={() => openEnquiry(dest.subject)} className="block group h-full w-full text-left">
+        {children}
+      </button>
+    ) : dest.kind === "external" ? (
+      <a href={dest.href} target="_blank" rel="noopener noreferrer" className="block group h-full">
+        {children}
+      </a>
+    ) : (
+      <Link to={dest.href} className="block group h-full">
+        {children}
+      </Link>
+    );
+
   return (
-    <Link to={href} className="block group h-full">
+    <Wrapper>
       <div
         className="relative h-full overflow-hidden rounded-xl p-5 transition-all hover:-translate-y-1 hover:shadow-xl"
         style={{
