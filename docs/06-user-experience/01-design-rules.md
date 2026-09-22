@@ -49,7 +49,7 @@ Set in `tailwind.config.ts` — do not change without approval.
 - Dark navy cards across the dashboard. **No light backgrounds.**
 - Builder category colours fixed: Brand=Teal, Build=Indigo, Yield=Amber. Do not introduce other category colours.
 - WebP images optimised to **< 150 KB**.
-- Featured-author portrait cards use one fixed-height frame and one consistent `cover` scale. The entire crown of the head must remain visible with comfortable space above it. Use a centred horizontal focal point and a vertical focal point between 0% and 20%; never apply extra zoom or a hover enlargement to the portrait itself.
+- Featured-author portrait cards use one fixed-height frame and consistent **head-and-shoulders composition**, not merely equal image dimensions. Faces must appear at a comparable visual size, eyes should sit near the upper third, and the entire crown must remain visible with comfortable space above it. Use a centred horizontal focal point, a vertical focal point between 0% and 20%, and only the per-photo scale needed to normalise differently composed source images. Never enlarge portraits on hover.
 - Book thumbnails inside featured-author cards use one fixed 44 × 64 px frame with `object-cover` so every row aligns.
 - Single step-circle stepper for builders (no progress bars or breadcrumbs).
 - LIVE lead-magnet uses `text-red-600` for the live indicator (per `mem://style/lead-magnet-success-theme`).

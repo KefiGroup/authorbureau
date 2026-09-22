@@ -49,6 +49,7 @@ export default function DynamicMeetOurAuthors() {
   const { isAdmin } = useAuth();
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [cropDraft, setCropDraft] = useState<number>(0);
+  const [zoomDraft, setZoomDraft] = useState<number>(1);
   const [savingCrop, setSavingCrop] = useState(false);
 
   const onSelect = useCallback(() => {
@@ -130,9 +131,10 @@ export default function DynamicMeetOurAuthors() {
     fetchAuthorsWithBooks();
   }, []);
 
-  const startCropEdit = (authorId: string, currentCropY: string | undefined) => {
+  const startCropEdit = (authorId: string, currentCropY: string | undefined, currentZoom: number | undefined) => {
     setEditingCrop(authorId);
     setCropDraft(Math.min(20, Math.max(0, parseInt(currentCropY || "12", 10))));
+    setZoomDraft(Math.min(2, Math.max(0.7, currentZoom || 1)));
   };
 
   const saveCropEdit = async () => {
@@ -141,10 +143,10 @@ export default function DynamicMeetOurAuthors() {
     try {
       await cloudSupabase
         .from("author_profiles")
-        .update({ photo_crop_y: `${cropDraft}%`, photo_zoom: 1 } as any)
+        .update({ photo_crop_y: `${cropDraft}%`, photo_zoom: zoomDraft } as any)
         .eq("user_id", editingCrop);
       setAuthors((prev) =>
-        prev.map((a) => (a.id === editingCrop ? { ...a, photo_crop_y: `${cropDraft}%`, photo_zoom: 1 } : a))
+        prev.map((a) => (a.id === editingCrop ? { ...a, photo_crop_y: `${cropDraft}%`, photo_zoom: zoomDraft } : a))
       );
     } catch (err) {
       console.error("Failed to save crop:", err);
@@ -224,18 +226,30 @@ export default function DynamicMeetOurAuthors() {
                         <div
                           role="img"
                           aria-label={author.name}
-                          className="w-full h-full group-hover:scale-105 transition-transform duration-500 bg-muted/50"
+                           className="relative w-full h-full overflow-hidden bg-muted/50"
                           style={{
                             backgroundImage: `url(${author.photo_url})`,
                             backgroundRepeat: 'no-repeat',
-                            // Head-safe portrait standard: keep the crown inside the frame,
-                            // use one consistent cover scale, and only permit a small vertical adjustment.
-                            backgroundPosition: `50% ${editingCrop === author.id
-                              ? cropDraft
-                              : Math.min(20, Math.max(0, parseInt(author.photo_crop_y || '12', 10)))}%`,
-                            backgroundSize: 'cover',
+                             backgroundPosition: 'center',
+                             backgroundSize: 'cover',
                           }}
-                        />
+                        >
+                          <div className="absolute inset-0 bg-card/20 backdrop-blur-xl" />
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              backgroundImage: `url(${author.photo_url})`,
+                              backgroundRepeat: 'no-repeat',
+                              // Head-safe portrait standard: match face scale across unlike source photos.
+                              backgroundPosition: `50% ${editingCrop === author.id
+                                ? cropDraft
+                                : Math.min(20, Math.max(0, parseInt(author.photo_crop_y || '12', 10)))}%`,
+                              backgroundSize: 'cover',
+                              transform: `scale(${editingCrop === author.id ? zoomDraft : Math.min(2, Math.max(0.7, author.photo_zoom || 1))})`,
+                              transformOrigin: '50% 0%',
+                            }}
+                          />
+                        </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted/50">
                           <BookOpen className="h-12 w-12 text-muted-foreground/30" />
@@ -246,7 +260,7 @@ export default function DynamicMeetOurAuthors() {
                       {/* Admin crop controls */}
                       {isAdmin && author.photo_url && editingCrop !== author.id && (
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y, author.photo_zoom); }}
                           className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
                           title="Adjust photo position"
                         >
@@ -266,6 +280,11 @@ export default function DynamicMeetOurAuthors() {
                            <button onClick={() => setCropDraft((v) => Math.min(20, v + 2))} className="text-white hover:text-secondary">
                             <ChevronDown className="h-5 w-5" />
                           </button>
+                           <div className="w-full h-px bg-white/20 my-1" />
+                           <span className="text-secondary text-[10px] font-bold uppercase tracking-wider">Scale</span>
+                           <button onClick={() => setZoomDraft((v) => Math.min(2, +(v + 0.1).toFixed(2)))} className="text-white hover:text-secondary" aria-label="Increase portrait scale">+</button>
+                           <span className="text-white text-xs font-mono">{Math.round(zoomDraft * 100)}%</span>
+                           <button onClick={() => setZoomDraft((v) => Math.max(0.7, +(v - 0.1).toFixed(2)))} className="text-white hover:text-secondary" aria-label="Decrease portrait scale">−</button>
                           <div className="flex gap-1 mt-1">
                             <button onClick={() => setEditingCrop(null)} className="text-red-400 hover:text-red-300">
                               <X className="h-4 w-4" />
