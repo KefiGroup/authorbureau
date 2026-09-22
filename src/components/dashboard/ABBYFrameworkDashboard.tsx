@@ -378,6 +378,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       <BooksGrid
         books={myBooks}
         perBook={perBook}
+        statsLoading={statsLoading}
         hasPlan={hasPlan}
         onAddBook={() => onNavigate("my-books?action=add")}
       />
