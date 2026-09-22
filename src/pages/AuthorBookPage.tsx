@@ -611,10 +611,12 @@ export default function AuthorBookPage() {
       })()}
 
       <AuthorContactModal
+        key={inquiryFor || "general"}
         open={contactOpen}
-        onClose={() => setContactOpen(false)}
+        onClose={() => { setContactOpen(false); setInquiryFor(null); }}
         authorName={authorName}
         authorId={book.author_id}
+        prefillMessage={inquiryFor ? `I would like to enquire about ${inquiryFor}.` : undefined}
         vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
