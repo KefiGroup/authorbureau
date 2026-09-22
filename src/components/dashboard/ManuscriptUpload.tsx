@@ -251,7 +251,8 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
         toast.error(err instanceof Error ? err.message : "Upload failed. Please try again.");
       }
     } finally {
-      clearTimeout(timeout);
+      if (timeout) clearTimeout(timeout);
+      setStatusOverride(null);
       setUploading(false);
     }
   };
@@ -282,7 +283,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     <div className="space-y-2 w-full">
       <div className="flex items-center gap-2">
         <Loader2 className="h-4 w-4 animate-spin text-secondary flex-shrink-0" />
-        <p className="text-xs text-foreground font-medium">{currentStage.label}</p>
+        <p className="text-xs text-foreground font-medium">{stageLabel}</p>
       </div>
       <Progress value={fakeProgress} className="h-1.5" />
       <p className="text-[10px] text-muted-foreground">
