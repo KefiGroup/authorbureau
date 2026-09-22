@@ -3479,7 +3479,7 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 function CorporateTrainingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
   const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-22"] || "Corporate Training");
   const tagline = yrStr(content.tagline);
-  const summary = yrStr(content.abby_summary);
+  const summary = publicSummary(yrStr(content.abby_summary));
   const formats = yrArr(content.training_formats);
   const outcomes = yrLines(content.learning_outcomes);
   const outline = yrArr(content.programme_outline);
@@ -4045,7 +4045,7 @@ function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
 function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
   const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-28"] || "Sponsors");
   const tagline = yrStr(content.tagline);
-  const summary = yrStr(content.abby_summary);
+  const summary = publicSummary(yrStr(content.abby_summary));
   const audience = yrSmartText(content.audience_profile);
   const outreach = yrStr(content.outreach_strategy);
   const packages = yrArr(content.sponsorship_packages);
