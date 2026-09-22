@@ -11,6 +11,7 @@ const STREAMS_BUILT_HELP =
 interface Props {
   books: MyBook[];
   perBook?: Record<string, PerBookStats>;
+  statsLoading?: boolean;
   hasPlan: boolean;
   onAddBook: () => void;
 }
@@ -25,7 +26,7 @@ function getNextStepForBook(book: MyBook, total: number, hasPlan: boolean): stri
   return "All 28 streams live";
 }
 
-export default function BooksGrid({ books, perBook, hasPlan, onAddBook }: Props) {
+export default function BooksGrid({ books, perBook, statsLoading, hasPlan, onAddBook }: Props) {
   const navigate = useNavigate();
   const isMulti = books.length > 1;
 
@@ -61,9 +62,10 @@ export default function BooksGrid({ books, perBook, hasPlan, onAddBook }: Props)
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {books.map((b) => {
             const s = perBook?.[b.id];
+            const pending = statsLoading && !s;
             const total = s?.total ?? 0;
             const pct = Math.min(100, Math.round((total / 28) * 100));
-            const nextStep = getNextStepForBook(b, total, hasPlan);
+            const nextStep = pending ? "Loading" : getNextStepForBook(b, total, hasPlan);
             return (
               <button
                 key={b.id}
@@ -86,7 +88,7 @@ export default function BooksGrid({ books, perBook, hasPlan, onAddBook }: Props)
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold text-sm text-foreground line-clamp-2">{b.title}</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5 inline-flex items-center gap-1">
-                      {total}/28 streams built
+                      {pending ? "Counting streams…" : `${total}/28 streams built`}
                       <TooltipProvider delayDuration={150}>
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -107,14 +109,14 @@ export default function BooksGrid({ books, perBook, hasPlan, onAddBook }: Props)
                       </TooltipProvider>
                     </p>
                     <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                      <div className="h-full bg-amber-500 transition-all" style={{ width: `${pct}%` }} />
+                      <div className="h-full bg-amber-500 transition-all" style={{ width: pending ? "0%" : `${pct}%` }} />
                     </div>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-3 gap-1.5 text-center text-[10px]">
-                  <span className="rounded bg-emerald-50 text-emerald-700 py-0.5 font-semibold">Brand {s?.brand ?? 0}/9</span>
-                  <span className="rounded bg-violet-50 text-violet-700 py-0.5 font-semibold">Build {s?.build ?? 0}/9</span>
-                  <span className="rounded bg-amber-50 text-amber-700 py-0.5 font-semibold">Yield {s?.yield ?? 0}/10</span>
+                  <span className="rounded bg-emerald-50 text-emerald-700 py-0.5 font-semibold">Brand {pending ? "–" : s?.brand ?? 0}/9</span>
+                  <span className="rounded bg-violet-50 text-violet-700 py-0.5 font-semibold">Build {pending ? "–" : s?.build ?? 0}/9</span>
+                  <span className="rounded bg-amber-50 text-amber-700 py-0.5 font-semibold">Yield {pending ? "–" : s?.yield ?? 0}/10</span>
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-700">

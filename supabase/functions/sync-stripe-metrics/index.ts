@@ -18,25 +18,46 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: author } = await supabase
-      .from("author_profiles_admin")
-      .select("id, stripe_connected_account_id")
+    // Accept either an author_profiles.id or an auth user id.
+    let { data: author } = await supabase
+      .from("author_profiles")
+      .select("id")
       .eq("id", author_id)
-      .single();
+      .maybeSingle();
+
+    if (!author) {
+      const { data: byUser } = await supabase
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", author_id)
+        .maybeSingle();
+      author = byUser;
+    }
 
     if (!author) throw new Error("Author not found");
+
+    const authorProfileId = author.id as string;
+
+    // Payout identifiers live in a private, owner-only table.
+    const { data: payout } = await supabase
+      .from("author_payout_accounts")
+      .select("stripe_connected_account_id")
+      .eq("author_id", authorProfileId)
+      .maybeSingle();
+
+    const connectedAccountId = payout?.stripe_connected_account_id || null;
 
     const { count: nodesLive } = await supabase
       .from("author_nodes")
       .select("id", { count: "exact", head: true })
-      .eq("author_id", author_id)
+      .eq("author_id", authorProfileId)
       .eq("status", "live");
 
     const liveCount = nodesLive || 0;
     const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 
     // If no Stripe connection, return projected
-    if (!STRIPE_KEY || !author.stripe_connected_account_id) {
+    if (!STRIPE_KEY || !connectedAccountId) {
       const projected = {
         stripe_revenue_mtd_usd: liveCount * 200,
         stripe_revenue_ytd_usd: liveCount * 1200,
@@ -45,7 +66,7 @@ serve(async (req) => {
       const today = new Date().toISOString().split("T")[0];
       await supabase.from("author_revenue_snapshots").upsert(
         {
-          author_id,
+          author_id: authorProfileId,
           snapshot_date: today,
           stripe_revenue_mtd_usd: projected.stripe_revenue_mtd_usd,
           stripe_revenue_ytd_usd: projected.stripe_revenue_ytd_usd,
@@ -77,7 +98,7 @@ serve(async (req) => {
         {
           headers: {
             Authorization: `Bearer ${STRIPE_KEY}`,
-            "Stripe-Account": author.stripe_connected_account_id,
+            "Stripe-Account": connectedAccountId,
           },
         }
       );
@@ -94,7 +115,7 @@ serve(async (req) => {
         {
           headers: {
             Authorization: `Bearer ${STRIPE_KEY}`,
-            "Stripe-Account": author.stripe_connected_account_id,
+            "Stripe-Account": connectedAccountId,
           },
         }
       );
@@ -113,7 +134,7 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     await supabase.from("author_revenue_snapshots").upsert(
       {
-        author_id,
+        author_id: authorProfileId,
         snapshot_date: today,
         stripe_revenue_mtd_usd: mtdRevenue,
         stripe_revenue_ytd_usd: ytdRevenue,

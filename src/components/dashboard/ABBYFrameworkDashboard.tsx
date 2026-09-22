@@ -27,7 +27,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
   const { user, tier, subscription, checkSubscription } = useAuth();
   const { toast } = useToast();
   const { books: myBooks } = useMyBooks(user?.id);
-  const { stats } = useAuthorStats(user?.id);
+  const { stats, loading: statsLoading } = useAuthorStats(user?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
@@ -378,6 +378,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
       <BooksGrid
         books={myBooks}
         perBook={perBook}
+        statsLoading={statsLoading}
         hasPlan={hasPlan}
         onAddBook={() => onNavigate("my-books?action=add")}
       />
