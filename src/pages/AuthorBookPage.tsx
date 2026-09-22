@@ -1260,6 +1260,31 @@ export default function AuthorBookPage() {
         </section>
       )}
 
+      {/* ===== SECTION 6b: FREE COMPANION (lead magnet for THIS book) ===== */}
+      {(() => {
+        const freeGift = products.find(p => p.type === "leadmagnet");
+        if (!freeGift) return null;
+        return (
+          <section className="py-12 md:py-16" style={{ background: v.cardBg }}>
+            <div className="container max-w-3xl text-center">
+              <p className="text-xs font-bold tracking-widest mb-3" style={{ color: v.accent }}>FREE COMPANION</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                {freeGift.title}
+              </h2>
+              <p className="text-sm mb-6" style={{ color: v.mutedText }}>
+                A free companion to {book.title}. No cost, no card needed.
+              </p>
+              <Link to={freeGift.linkTo || `/${authorSlug}/${book.slug}/${freeGift.route}`}>
+                <button className="inline-flex items-center gap-2 font-bold rounded-lg px-7 py-3"
+                  style={{ background: v.primary, color: v.primaryText }}>
+                  Get it free <ArrowRight className="h-4 w-4" />
+                </button>
+              </Link>
+            </div>
+          </section>
+        );
+      })()}
+
       {/* ===== SECTION 7: LEAD CAPTURE ===== */}
       <section id="book-subscribe" className="relative py-14 md:py-20" style={{ background: v.primary }}>
         <div className="container max-w-xl text-center">
