@@ -29,9 +29,11 @@ interface Props {
   stripeReady?: boolean;
   /** Whether the viewer is the owning author. */
   isOwnerViewing?: boolean;
+  /** book.id -> number of live reader-facing offers on that book's page. */
+  offerCounts?: Record<string, number>;
 }
 
-export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v, authorId, stripeReady = true, isOwnerViewing = false }: Props) {
+export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v, authorId, stripeReady = true, isOwnerViewing = false, offerCounts = {} }: Props) {
   if (booksWithProducts.length === 0) return null;
   const totalBooks = booksWithProducts.length;
 
