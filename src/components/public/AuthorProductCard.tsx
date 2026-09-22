@@ -198,12 +198,16 @@ export default function AuthorProductCard({
       )}
       {!tagline && <div className="mb-4" />}
 
-      {/* Prominent price (always shown) */}
+      {/* Price — hidden entirely for enquiry-only engagements */}
       <div
         className="flex items-baseline gap-2 mb-4 pb-4"
         style={{ borderBottom: `1px solid ${v.cardBorder}` }}
       >
-        {priceDisplay ? (
+        {isEnquiryOnly ? (
+          <span className="text-base font-semibold" style={{ color: v.mutedText }}>
+            Tailored to your team
+          </span>
+        ) : priceDisplay ? (
           <>
             <span
               className="text-2xl font-extrabold tabular-nums"
