@@ -267,7 +267,18 @@ export default function AuthorProductCard({
             className="w-full"
             style={{ borderColor: v.cardBorder, color: v.bodyText }}
           >
-            <a href={contactHref}>
+            <a
+              href={contactHref}
+              onClick={(e) => {
+                // Prefer the on-page enquiry form (routed through Authors Bureau)
+                // over dumping the reader into their mail client.
+                if (typeof window === "undefined") return;
+                e.preventDefault();
+                window.dispatchEvent(
+                  new CustomEvent("author-site:enquire", { detail: { subject: title } }),
+                );
+              }}
+            >
               {isEnquiryOnly ? "Enquire / Book a Call" : "Contact"}
               <ArrowRight className="ml-2 h-3.5 w-3.5" />
             </a>
