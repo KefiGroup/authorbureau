@@ -130,7 +130,7 @@ export default function WebinarIndexPage() {
         </div>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-12">
+      <div className="max-w-5xl mx-auto px-6 py-12">
         {webinars.length === 0 ? (
           <Card className="border-dashed">
             <CardContent className="py-16 text-center">
@@ -212,7 +212,7 @@ export default function WebinarIndexPage() {
             })}
           </div>
         )}
-      </main>
+      </div>
       <MicrositePoweredByFooter displayName={displayName} />
     </div>
   );

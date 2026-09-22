@@ -107,7 +107,7 @@ export default function ThankYouPage() {
         <nav className="border-b border-gray-100 px-4 py-3">
           <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
         </nav>
-        <main className="flex-1 flex items-center justify-center px-4 py-16">
+        <div className="flex-1 flex items-center justify-center px-4 py-16">
           <div className="max-w-xl w-full text-center space-y-8">
             <div className="w-20 h-20 rounded-full mx-auto bg-amber-100 animate-pulse" />
             <div className="space-y-3">
@@ -117,7 +117,7 @@ export default function ThankYouPage() {
             </div>
             <div className="h-12 w-56 mx-auto bg-amber-200/60 rounded-full animate-pulse" />
           </div>
-        </main>
+        </div>
       </div>
     );
   }
@@ -153,7 +153,7 @@ export default function ThankYouPage() {
       </nav>
 
       {/* Hero */}
-      <main className="flex-1 flex items-center justify-center px-4 py-16">
+      <div className="flex-1 flex items-center justify-center px-4 py-16">
         <div className="max-w-xl w-full text-center space-y-8">
           <div className="w-20 h-20 rounded-full mx-auto flex items-center justify-center bg-amber-100 text-4xl">
             📬
@@ -254,7 +254,7 @@ export default function ThankYouPage() {
             <span>Tip: check your spam folder if you don't see the email in 5 minutes.</span>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-gray-100 px-4 py-6 text-center">

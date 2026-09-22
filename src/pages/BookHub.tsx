@@ -171,7 +171,7 @@ export default function BookHub() {
           onSignOut={signOut}
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
+        <div className="flex-1 overflow-y-auto p-6 lg:p-8 space-y-6">
           {showSkeleton ? (
             <BookHubSkeleton />
           ) : fetchError ? (
@@ -222,7 +222,7 @@ export default function BookHub() {
               </div>
             </div>
           )}
-        </main>
+        </div>
       </div>
     </div>
   );

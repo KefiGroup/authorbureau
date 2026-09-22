@@ -115,7 +115,7 @@ export default function FunnelPage({ funnel }: FunnelPageProps) {
           </div>
         </header>
 
-        <main className="flex-1 px-6 py-12 md:py-20">
+        <div className="flex-1 px-6 py-12 md:py-20">
           <div className="max-w-2xl mx-auto text-center">
             {funnel.hero_image_url && (
               <img
@@ -190,7 +190,7 @@ export default function FunnelPage({ funnel }: FunnelPageProps) {
               </form>
             )}
           </div>
-        </main>
+        </div>
 
         <footer className="px-6 py-6 border-t border-white/10 text-center text-xs opacity-60">
           Powered by <span style={{ color: accent }}>Authors Bureau</span>

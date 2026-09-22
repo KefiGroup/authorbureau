@@ -201,7 +201,7 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           }
         >
           {children}
-        </main>
+        </div>
       </div>
     </div>
   );

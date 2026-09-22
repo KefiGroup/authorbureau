@@ -351,7 +351,7 @@ export default function ReaderContentViewer() {
         </div>
       </header>
 
-      <main className="container max-w-4xl py-6 px-4">
+      <div className="container max-w-4xl py-6 px-4">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -715,7 +715,7 @@ export default function ReaderContentViewer() {
             )}
           </div>
         )}
-      </main>
+      </div>
     </div>
   );
 }

@@ -11,7 +11,7 @@ export default function PrivacyPolicy() {
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <Navbar />
-      <main className="flex-1 container max-w-3xl py-16 space-y-8">
+      <div className="flex-1 container max-w-3xl py-16 space-y-8">
         <h1 className="font-heading text-3xl md:text-4xl font-bold">Privacy Policy</h1>
         <p className="text-sm text-muted-foreground">Last updated: March 21, 2026</p>
 
@@ -138,7 +138,7 @@ export default function PrivacyPolicy() {
             </a>.
           </p>
         </section>
-      </main>
+      </div>
       <Footer />
     </div>
   );
