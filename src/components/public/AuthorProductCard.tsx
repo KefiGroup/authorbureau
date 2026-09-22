@@ -139,7 +139,15 @@ export default function AuthorProductCard({
   // masterminds, VIP days) are sold by conversation, never by a scary number on
   // a card. They always hide price and route to an enquiry.
   const ENQUIRY_ONLY = ["YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26"];
-  const isEnquiryOnly = ENQUIRY_ONLY.some((id) => node.node_id.startsWith(id));
+
+  // Nobody clicks "Enroll Now" on a four-figure number they have never discussed
+  // with a human. Anything at or above this amount is sold in conversation: the
+  // price comes off the card and the button becomes an enquiry.
+  const PERSONAL_SELLING_THRESHOLD = 100;
+  const isHighTicket = effectivePrice != null && effectivePrice >= PERSONAL_SELLING_THRESHOLD;
+
+  const isEnquiryOnly =
+    ENQUIRY_ONLY.some((id) => node.node_id.startsWith(id)) || isHighTicket;
 
   // For other high-touch service nodes where there's a contact email and no price
   // set, prefer "Contact" over "Notify me". Everything else routes through
