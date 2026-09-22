@@ -74,17 +74,17 @@ export function getNodePriceLabel(node: {
     const isMonthly = Array.isArray(c.tiers) && (c.tiers as unknown[]).some(
       (t) => t && typeof t === "object" && "price_monthly" in (t as Record<string, unknown>)
     );
-    return { label: isMonthly ? `From ${fmt(tiersMin)}/mo` : `From ${fmt(tiersMin)}`, isKnownFree };
+    return { label: isMonthly ? `${fmt(tiersMin)}/mo` : fmt(tiersMin), isKnownFree };
   }
 
   const packagesMin = pickMin(c.packages, ["price", "price_usd", "investment"]);
   if (packagesMin != null) {
-    return { label: `From ${fmt(packagesMin)}`, isKnownFree };
+    return { label: fmt(packagesMin), isKnownFree };
   }
 
   const certMin = pickMin(c.certification_levels, ["price", "price_usd", "investment"]);
   if (certMin != null) {
-    return { label: `From ${fmt(certMin)}`, isKnownFree };
+    return { label: fmt(certMin), isKnownFree };
   }
 
   return { label: null, isKnownFree };

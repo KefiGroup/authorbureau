@@ -1,16 +1,16 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { MapPin, Calendar, Heart, Handshake, ArrowRight } from "lucide-react";
+import { MapPin, Calendar, ArrowRight } from "lucide-react";
 import type { ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
 
+/** Reader-facing events only. Fundraising (YR-27) and sponsorship (YR-28) are
+ *  partner-facing and never appear on the public page. */
 const EVENT_META: Record<string, { icon: typeof MapPin; label: string; order: number }> = {
   "YR-24": { icon: MapPin, label: "Retreat", order: 1 },
   "YR-26": { icon: Calendar, label: "Conference", order: 2 },
-  "YR-27": { icon: Heart, label: "Fundraising", order: 3 },
-  "YR-28": { icon: Handshake, label: "Sponsorship", order: 4 },
 };
 
 interface Props {
