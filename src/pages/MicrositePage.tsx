@@ -2116,7 +2116,7 @@ function AffiliatesPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const payoutSchedule = content.payout_schedule;
   const programmeTitle = content.programme_title || data.node.personalised_name || "Affiliate Programme";
   const tagline = content.tagline;
-  const summary = content.abby_summary || content.overview;
+  const summary = publicSummary(content.abby_summary) || publicSummary(content.overview);
   const headlineRates = tiers.slice(0, 2).map((t: any) => t?.commission_rate).filter(Boolean);
   const coreThesis = data.context?.core_thesis || "";
   const firstThesisSentence = coreThesis ? (coreThesis.split(/(?<=[.!?])\s+/)[0] || coreThesis) : "";
@@ -2247,7 +2247,7 @@ function AffiliatesPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 function BundlesPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
   const bundles: any[] = Array.isArray(content.bundles) ? content.bundles : [];
   const ladderTitle = content.product_ladder_title || data.node.personalised_name || "Bundles & Offers";
-  const summary = content.abby_summary;
+  const summary = publicSummary(content.abby_summary);
   const paymentUrl = data.node.payment_link || content.stripe_checkout_url;
 
   const asNumber = (x: unknown): number | null => {
@@ -3350,7 +3350,7 @@ function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 /* ═══ YR-20 — BIG TICKET OFFERS ═══ */
 function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
   const title = yrStr(data.node.personalised_name, NODE_NAMES["YR-20"] || "VIP Offers");
-  const summary = yrStr(content.abby_summary);
+  const summary = publicSummary(yrStr(content.abby_summary));
   const guide = yrStr(content.sales_conversation_guide);
   const offers = yrArr(content.offers);
 
