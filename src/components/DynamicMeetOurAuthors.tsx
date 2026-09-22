@@ -231,7 +231,11 @@ export default function DynamicMeetOurAuthors() {
                             backgroundImage: `url(${author.photo_url})`,
                             backgroundRepeat: 'no-repeat',
                             backgroundPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '30%')}`,
-                            backgroundSize: `${(editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1)) * 100}%`,
+                            // Always fill the frame so every card shows the same photo size;
+                            // the per-author zoom is applied on top of that fill.
+                            backgroundSize: 'cover',
+                            transform: `scale(${Math.max(1, editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1))})`,
+                            transformOrigin: 'center',
                           }}
                         />
                       ) : (
@@ -290,9 +294,10 @@ export default function DynamicMeetOurAuthors() {
                       <h3 className="font-heading text-lg font-bold group-hover:text-secondary transition-colors mb-1">
                         {author.name}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-4 flex-1 leading-relaxed line-clamp-2">
+                      <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3 min-h-[3.9rem] overflow-hidden">
                         {author.bio_short || "Published author"}
                       </p>
+                      <div className="flex-1" />
 
                       {/* Books */}
                       <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
@@ -305,10 +310,10 @@ export default function DynamicMeetOurAuthors() {
                               <img
                                 src={book.cover_image_url}
                                 alt={book.title}
-                                className="h-16 rounded shadow-md object-contain hover:scale-110 transition-transform"
+                                className="h-16 w-11 rounded shadow-md object-cover hover:scale-110 transition-transform"
                               />
                             ) : (
-                              <div className="flex h-16 w-12 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50">
+                              <div className="flex h-16 w-11 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50">
                                 <BookOpen className="h-4 w-4 text-muted-foreground/50" />
                               </div>
                             )}
