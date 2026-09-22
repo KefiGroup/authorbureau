@@ -309,10 +309,10 @@ export default function DynamicMeetOurAuthors() {
                               <img
                                 src={book.cover_image_url}
                                 alt={book.title}
-                                className="h-16 rounded shadow-md object-contain hover:scale-110 transition-transform"
+                                className="h-16 w-11 rounded shadow-md object-cover hover:scale-110 transition-transform"
                               />
                             ) : (
-                              <div className="flex h-16 w-12 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50">
+                              <div className="flex h-16 w-11 items-center justify-center rounded bg-muted/80 shadow-md border border-border/50">
                                 <BookOpen className="h-4 w-4 text-muted-foreground/50" />
                               </div>
                             )}
