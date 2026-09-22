@@ -37,7 +37,7 @@ export default function CourseLearnPage() {
         .from("author_profiles").select("id").eq("author_slug", authorSlug).maybeSingle();
       if (!author) { setResolved({ kind: "noaccess", salesUrl: `/${authorSlug}` }); return; }
       const { data: course } = await supabase
-        .from("courses").select("id").eq("author_id", author.id).eq("course_slug", courseSlug).maybeSingle();
+        .from("courses_public").select("id").eq("author_id", author.id).eq("course_slug", courseSlug).maybeSingle();
       if (!course) { setResolved({ kind: "noaccess", salesUrl: `/${authorSlug}` }); return; }
 
       // Find matching enrollment

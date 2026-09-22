@@ -805,7 +805,7 @@ export default function AuthorProductPage() {
 function CourseModules({ courseId, theme }: { courseId: string; theme: AuthorTheme }) {
   const [modules, setModules] = useState<any[]>([]);
   useEffect(() => {
-    supabase.from("course_modules").select("*, course_lessons(*)").eq("course_id", courseId).order("position").then(({ data }) => setModules(data || []));
+    supabase.from("course_modules_public").select("*, course_lessons_public(*)").eq("course_id", courseId).order("position").then(({ data }) => setModules(data || []));
   }, [courseId]);
   if (modules.length === 0) return null;
   const v = theme.vars;
