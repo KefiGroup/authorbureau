@@ -129,6 +129,23 @@ export default function BuyNowButton({
             only (implicit-consent model) — not repeated under every product card. */}
       </div>
 
+      <Dialog open={errorModal} onOpenChange={setErrorModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Checkout could not open</DialogTitle>
+            <DialogDescription>
+              Something went wrong on our side while opening the payment page. This item is still
+              available. Please try again in a moment, or email support@authorsbureau.com and we'll
+              help you complete the purchase.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setErrorModal(false)}>Close</Button>
+            <Button onClick={() => { setErrorModal(false); handleClick(); }}>Try again</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={paymentsModal} onOpenChange={setPaymentsModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
