@@ -960,6 +960,9 @@ export default function AuthorBookPage() {
             /month/i.test(`${n.personalised_name || ""} ${n.node_name || ""}`);
           const suffix = isMonthly ? "/month" : "";
           const priceLabel = `${symbol}${priceNum.toLocaleString()}${suffix}`;
+          // Three figures and up is sold in conversation. No reader types their
+          // card details for a $3,500 programme they have never discussed.
+          const isEnquiry = priceNum >= 100;
           const description = extractCardDescription(n);
           return (
             <div
