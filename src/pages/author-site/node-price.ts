@@ -37,10 +37,23 @@ function pickMin(arr: unknown, keys: string[]): number | null {
 }
 
 export interface NodePriceResult {
-  /** Pre-formatted label, or null if no price found */
+  /** Pre-formatted label, or null if no price found (or the offer is enquiry-only) */
   label: string | null;
   /** True when this node type is known to be free when no price is set */
   isKnownFree: boolean;
+  /** True when the amount is high enough that it must be sold in conversation */
+  isEnquiry: boolean;
+}
+
+/** Three figures and up is a conversation, not an impulse click. */
+export const PERSONAL_SELLING_THRESHOLD = 100;
+
+/** Hides the number once it crosses the personal-selling threshold. */
+function result(amount: number, label: string, isKnownFree: boolean): NodePriceResult {
+  if (amount >= PERSONAL_SELLING_THRESHOLD) {
+    return { label: null, isKnownFree: false, isEnquiry: true };
+  }
+  return { label, isKnownFree, isEnquiry: false };
 }
 
 export function getNodePriceLabel(node: {
@@ -53,19 +66,19 @@ export function getNodePriceLabel(node: {
   // 1) Direct price keys (one-time)
   const direct = c.price ?? c.price_usd ?? c.suggested_price_usd;
   if (typeof direct === "number" && direct > 0) {
-    return { label: fmt(direct), isKnownFree };
+    return result(direct, fmt(direct), isKnownFree);
   }
   if (typeof direct === "string") {
     const parsed = parseFloat(String(direct).replace(/[^0-9.]/g, ""));
     if (!Number.isNaN(parsed) && parsed > 0) {
-      return { label: fmt(parsed), isKnownFree };
+      return result(parsed, fmt(parsed), isKnownFree);
     }
   }
 
   // 2) Monthly recurring
   const monthly = c.monthly_price_usd ?? c.price_monthly;
   if (typeof monthly === "number" && monthly > 0) {
-    return { label: `${fmt(monthly)}/mo`, isKnownFree };
+    return result(monthly, `${fmt(monthly)}/mo`, isKnownFree);
   }
 
   // 3) Min-of-tiers / packages / certification levels
@@ -74,18 +87,18 @@ export function getNodePriceLabel(node: {
     const isMonthly = Array.isArray(c.tiers) && (c.tiers as unknown[]).some(
       (t) => t && typeof t === "object" && "price_monthly" in (t as Record<string, unknown>)
     );
-    return { label: isMonthly ? `${fmt(tiersMin)}/mo` : fmt(tiersMin), isKnownFree };
+    return result(tiersMin, isMonthly ? `${fmt(tiersMin)}/mo` : fmt(tiersMin), isKnownFree);
   }
 
   const packagesMin = pickMin(c.packages, ["price", "price_usd", "investment"]);
   if (packagesMin != null) {
-    return { label: fmt(packagesMin), isKnownFree };
+    return result(packagesMin, fmt(packagesMin), isKnownFree);
   }
 
   const certMin = pickMin(c.certification_levels, ["price", "price_usd", "investment"]);
   if (certMin != null) {
-    return { label: fmt(certMin), isKnownFree };
+    return result(certMin, fmt(certMin), isKnownFree);
   }
 
-  return { label: null, isKnownFree };
+  return { label: null, isKnownFree, isEnquiry: false };
 }

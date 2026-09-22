@@ -139,7 +139,15 @@ export default function AuthorProductCard({
   // masterminds, VIP days) are sold by conversation, never by a scary number on
   // a card. They always hide price and route to an enquiry.
   const ENQUIRY_ONLY = ["YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26"];
-  const isEnquiryOnly = ENQUIRY_ONLY.some((id) => node.node_id.startsWith(id));
+
+  // Nobody clicks "Enroll Now" on a four-figure number they have never discussed
+  // with a human. Anything at or above this amount is sold in conversation: the
+  // price comes off the card and the button becomes an enquiry.
+  const PERSONAL_SELLING_THRESHOLD = 100;
+  const isHighTicket = effectivePrice != null && effectivePrice >= PERSONAL_SELLING_THRESHOLD;
+
+  const isEnquiryOnly =
+    ENQUIRY_ONLY.some((id) => node.node_id.startsWith(id)) || isHighTicket;
 
   // For other high-touch service nodes where there's a contact email and no price
   // set, prefer "Contact" over "Notify me". Everything else routes through
@@ -207,7 +215,7 @@ export default function AuthorProductCard({
       >
         {isEnquiryOnly ? (
           <span className="text-base font-semibold" style={{ color: v.mutedText }}>
-            Tailored to your team
+            {isHighTicket ? "By application" : "Tailored to your team"}
           </span>
         ) : priceDisplay ? (
           <>
@@ -259,7 +267,18 @@ export default function AuthorProductCard({
             className="w-full"
             style={{ borderColor: v.cardBorder, color: v.bodyText }}
           >
-            <a href={contactHref}>
+            <a
+              href={contactHref}
+              onClick={(e) => {
+                // Prefer the on-page enquiry form (routed through Authors Bureau)
+                // over dumping the reader into their mail client.
+                if (typeof window === "undefined") return;
+                e.preventDefault();
+                window.dispatchEvent(
+                  new CustomEvent("author-site:enquire", { detail: { subject: title } }),
+                );
+              }}
+            >
               {isEnquiryOnly ? "Enquire / Book a Call" : "Contact"}
               <ArrowRight className="ml-2 h-3.5 w-3.5" />
             </a>

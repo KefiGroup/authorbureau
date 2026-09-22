@@ -22,6 +22,8 @@ interface AuthorContactModalProps {
   };
   headingFont: string;
   bodyFont: string;
+  /** Seeds the message box when the reader arrived from an "Enquire" button. */
+  prefillMessage?: string;
 }
 
 export default function AuthorContactModal({
@@ -32,8 +34,9 @@ export default function AuthorContactModal({
   vars: v,
   headingFont,
   bodyFont,
+  prefillMessage,
 }: AuthorContactModalProps) {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", message: prefillMessage || "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   

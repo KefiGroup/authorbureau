@@ -241,6 +241,17 @@ export default function AuthorBookPage() {
   const [contactOpen, setContactOpen] = useState(false);
   const [inquiryFor, setInquiryFor] = useState<string | null>(null);
 
+  // "Enquire" on a high-touch offer opens the enquiry form instead of checkout.
+  useEffect(() => {
+    const onEnquire = (e: Event) => {
+      setInquiryFor((e as CustomEvent<{ subject?: string }>).detail?.subject || null);
+      setContactOpen(true);
+    };
+    window.addEventListener("author-site:enquire", onEnquire);
+    return () => window.removeEventListener("author-site:enquire", onEnquire);
+  }, []);
+
+
   const v = theme?.vars;
 
   const authorName = book?.author_name || authorProfile?.pen_name || "Author";
@@ -600,10 +611,12 @@ export default function AuthorBookPage() {
       })()}
 
       <AuthorContactModal
+        key={inquiryFor || "general"}
         open={contactOpen}
-        onClose={() => setContactOpen(false)}
+        onClose={() => { setContactOpen(false); setInquiryFor(null); }}
         authorName={authorName}
         authorId={book.author_id}
+        prefillMessage={inquiryFor ? `I would like to enquire about ${inquiryFor}.` : undefined}
         vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
@@ -960,6 +973,9 @@ export default function AuthorBookPage() {
             /month/i.test(`${n.personalised_name || ""} ${n.node_name || ""}`);
           const suffix = isMonthly ? "/month" : "";
           const priceLabel = `${symbol}${priceNum.toLocaleString()}${suffix}`;
+          // Three figures and up is sold in conversation. No reader types their
+          // card details for a $3,500 programme they have never discussed.
+          const isEnquiry = priceNum >= 100;
           const description = extractCardDescription(n);
           return (
             <div
@@ -971,14 +987,33 @@ export default function AuthorBookPage() {
               {description && (
                 <p className="text-xs leading-relaxed mb-3 line-clamp-3" style={{ color: v.bodyText || v.mutedText }}>{description}</p>
               )}
-              <p className="font-bold text-lg mb-4 mt-auto" style={{ color: v.accent }}>{priceLabel}</p>
-              <BuyNowButton
-                authorNodeId={n.id}
-                authorId={book.author_id}
-                fallbackUrl={n.delivery_url}
-                label={`Join for ${priceLabel}`}
-                className="w-full rounded-full text-xs h-9 font-semibold"
-              />
+              <p className="font-bold text-lg mb-4 mt-auto" style={{ color: isEnquiry ? v.mutedText : v.accent }}>
+                {isEnquiry ? "By application" : priceLabel}
+              </p>
+              {isEnquiry ? (
+                <a
+                  href={`/${authorSlug}#contact`}
+                  onClick={(e) => {
+                    if (typeof window === "undefined") return;
+                    e.preventDefault();
+                    window.dispatchEvent(
+                      new CustomEvent("author-site:enquire", { detail: { subject: title } }),
+                    );
+                  }}
+                  className="w-full rounded-full text-xs h-9 font-semibold inline-flex items-center justify-center"
+                  style={{ border: `1px solid ${v.cardBorder}`, color: v.headingText }}
+                >
+                  Enquire
+                </a>
+              ) : (
+                <BuyNowButton
+                  authorNodeId={n.id}
+                  authorId={book.author_id}
+                  fallbackUrl={n.delivery_url}
+                  label={`Join for ${priceLabel}`}
+                  className="w-full rounded-full text-xs h-9 font-semibold"
+                />
+              )}
             </div>
           );
         };
