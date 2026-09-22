@@ -99,17 +99,17 @@ export default function AuthorEventsSection({ authorSlug, displayName, eventNode
                   {!desc && <div className="flex-1" />}
 
                   <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
-                    {price != null && price > 0
+                    {price != null && price > 0 && price < PERSONAL_SELLING_THRESHOLD
                       ? <span className="font-bold text-sm" style={{ color: v.accent }}>${price}</span>
-                      : <span className="font-bold text-sm" style={{ color: v.accent }}>Inquire</span>}
+                      : <span className="font-bold text-sm" style={{ color: v.accent }}>By application</span>}
                     <span
                       className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
                       style={{ background: v.primary, color: v.primaryText }}
                     >
-                      Learn More <ArrowRight className="h-3 w-3" />
+                      {dest.label} <ArrowRight className="h-3 w-3" />
                     </span>
                   </div>
-                </a>
+                </Card>
               </motion.div>
             );
           })}
