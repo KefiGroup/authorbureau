@@ -6539,6 +6539,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      reset_stuck_generating_nodes: { Args: never; Returns: number }
       scrub_microsite_jsonb: { Args: { v: Json }; Returns: Json }
       viewer_is_member: { Args: { p_author_id: string }; Returns: boolean }
     }

@@ -78,7 +78,8 @@ export default function AuthorSite() {
   // "Work With Me" is the single offer ladder on the page. Books, formats,
   // lead magnets and in-person events live in their own sections, so they are
   // excluded here; everything else is sold exactly once, right there.
-  const WORK_WITH_ME_EXCLUDED = ["BP-01", "BP-02", "BP-08", "BA-11", "BP-06", "BA-17", "YR-24", "YR-26"];
+  // BP-03 (social media) is a marketing engine, never something a reader buys.
+  const WORK_WITH_ME_EXCLUDED = ["BP-01", "BP-02", "BP-03", "BP-08", "BA-11", "BP-06", "BA-17", "YR-24", "YR-26"];
   const workWithMeNodes = useMemo(
     () => selectCustomerNodes(liveNodes.filter(n => !WORK_WITH_ME_EXCLUDED.some(p => n.node_id.startsWith(p)))),
     // eslint-disable-next-line react-hooks/exhaustive-deps

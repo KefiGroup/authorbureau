@@ -64,6 +64,18 @@ const REQUIRED_KIND: Record<string, string> = {
   "YR-28": "docx",
 };
 
+// Plain-language reasons shown on the Publish button when nothing can be attached.
+const MISSING_DELIVERABLE_MESSAGE: Record<string, string> = {
+  "BP-01": "Generate the welcome email sequence before publishing this module.",
+  "BP-03": "Generate your social posts or content calendar before publishing this module.",
+  "BP-04": "Save your website address before publishing this module.",
+  "BP-06": "Generate and save the workbook before publishing this module.",
+  "BP-08": "Add at least one special edition or bundle before publishing this module.",
+  "BP-09": "Add your Amazon link or sales page address before publishing this module.",
+  "BA-11": "Finish generating the audiobook files before publishing this module.",
+  "BA-14": "Add your podcast feed address or generate episodes before publishing this module.",
+};
+
 function nonEmptyStr(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
 }
@@ -139,13 +151,21 @@ function deriveLibraryAsset(
     }
     case "docx":
     default: {
-      // Any saved document, PDF, course id, or substantive built sections.
+      // Any saved document, PDF, course id, or substantive built content.
+      // The array keys below cover every builder's "the author actually built
+      // something" shape, so a real deliverable is never rejected as missing.
+      const BUILT_KEYS = [
+        "sections", "modules", "posts", "editions", "bundles", "emails",
+        "episodes", "lessons", "tiers", "packages", "topics", "chapters",
+        "steps", "sequence_steps", "offers", "sponsors", "partners", "items",
+      ];
+      const built = BUILT_KEYS.some((k) => nonEmptyArr(c[k]));
       url =
         (nonEmptyStr(c.docx_url) && c.docx_url) ||
         pdf_url ||
         (nonEmptyStr(c.course_id) && `course://${c.course_id}`) ||
-        (nonEmptyArr(c.sections) && `built://${nodeId}`) ||
-        (nonEmptyArr(c.modules) && `built://${nodeId}`) ||
+        (nonEmptyStr(c.content_calendar_id) && `built://${nodeId}`) ||
+        (built && `built://${nodeId}`) ||
         null;
       break;
     }
@@ -219,6 +239,14 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
+
+  // Self-heal: a crashed generation can leave a row stuck on 'generating',
+  // which makes the builder spin forever. Clear anything stale on every touch.
+  try {
+    await admin.rpc("reset_stuck_generating_nodes");
+  } catch (e) {
+    console.warn("[save-author-node] stuck-node sweep skipped:", (e as Error).message);
+  }
 
   // Server-side ownership check — confirm the JWT sub owns this author profile.
   // Tolerant match: project-local auth.uid() may differ from shared-backend
@@ -395,19 +423,27 @@ Deno.serve(async (req: Request) => {
     const callerAsset = libraryAsset && typeof libraryAsset === "object" && (libraryAsset as Record<string, unknown>).url
       ? (libraryAsset as Record<string, unknown>)
       : null;
-    // Sprint 55 adopter contract: these builders MUST upload a real library_asset.
-    // Refuse to publish them as `live` without one — prevents the silent-publish
-    // bug where a transient upload failure leaves a node live with no deliverable.
+    // Adopter contract: these builders must end up with a real deliverable.
+    // Order matters: build/derive the asset FIRST, and only refuse if there is
+    // genuinely nothing to attach. (Refusing before derivation made BP-03,
+    // BP-08 and BP-09 impossible to publish at all.)
     const ADOPTER_NODES = new Set(["BP-01", "BP-03", "BP-04", "BP-06", "BP-08", "BP-09", "BA-11", "BA-14"]);
     const previousAssetCheck = (existingContent.library_asset as Record<string, unknown> | undefined);
-    if (ADOPTER_NODES.has(nodeId!) && !callerAsset && !(previousAssetCheck && previousAssetCheck.url)) {
-      console.warn("[save-author-node:publish] adopter node missing library_asset", { nodeId, authorId });
+    const derivedAsset = callerAsset
+      ?? (previousAssetCheck && previousAssetCheck.url ? previousAssetCheck : null)
+      ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
+    if (ADOPTER_NODES.has(nodeId!) && !derivedAsset) {
+      console.warn("[save-author-node:publish] adopter node has no deliverable", { nodeId, authorId });
       return new Response(
-        JSON.stringify({ success: false, status: 422, message: `library_asset required for ${nodeId}` }),
+        JSON.stringify({
+          success: false,
+          status: 422,
+          message: MISSING_DELIVERABLE_MESSAGE[nodeId!]
+            ?? "Generate and save this module's content before publishing it.",
+        }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    const derivedAsset = callerAsset ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
     const previousAsset = existingContent.library_asset as Record<string, unknown> | undefined;
     const previousHistory = Array.isArray(existingContent.library_asset_history)
       ? (existingContent.library_asset_history as unknown[])

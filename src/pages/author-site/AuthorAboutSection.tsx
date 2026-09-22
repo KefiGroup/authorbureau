@@ -6,6 +6,7 @@ import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import { stripHtml } from "@/lib/stripHtml";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import { openEnquiry } from "./public-destination";
 
 interface Props {
   author: AuthorData;
@@ -115,6 +116,13 @@ export default function AuthorAboutSection({ author, displayName, podcastNodes =
                           className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: v.accent }}>
                           Listen Now →
                         </a>
+                      )}
+                      {/* No player and no feed link: let visitors ask where to listen. */}
+                      {!embedUrl && !linkUrl && (
+                        <button type="button" onClick={() => openEnquiry(title)}
+                          className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: v.accent }}>
+                          Ask where to listen →
+                        </button>
                       )}
                     </div>
                   );

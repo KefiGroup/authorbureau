@@ -6,6 +6,7 @@ import type { AuthorData, ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import { resolvePublicDestination, openEnquiry } from "./public-destination";
 
 interface Props {
   author: AuthorData;
@@ -61,11 +62,21 @@ export default function AuthorSubscribeSection({ author, authorSlug, displayName
               <div className="flex flex-wrap justify-center gap-3">
                 {affiliateNodes.map(node => {
                   const title = node.personalised_name || node.node_name;
-                  const linkUrl = node.third_party_url || node.payment_link || "#";
+                  const dest = resolvePublicDestination(node, { enquireLabel: "Enquire" });
+                  const chipClass = "inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all hover:brightness-110";
+                  const chipStyle = { background: `${v.accent}15`, color: v.accent, border: `1px solid ${v.accent}30` };
+                  // No partner link saved? Ask instead of linking to nowhere.
+                  if (dest.kind === "enquire") {
+                    return (
+                      <button key={node.node_id} type="button" onClick={() => openEnquiry(dest.subject)}
+                        className={chipClass} style={chipStyle}>
+                        {title}
+                      </button>
+                    );
+                  }
                   return (
-                    <a key={node.node_id} href={linkUrl} target="_blank" rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all hover:brightness-110"
-                      style={{ background: `${v.accent}15`, color: v.accent, border: `1px solid ${v.accent}30` }}>
+                    <a key={node.node_id} href={dest.href} target="_blank" rel="noopener noreferrer"
+                      className={chipClass} style={chipStyle}>
                       {title} <ExternalLink className="h-3 w-3" />
                     </a>
                   );
