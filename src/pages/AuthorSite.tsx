@@ -24,7 +24,7 @@ import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
 import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
-import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
+import AuthorWorkWithMe, { selectCustomerNodes, offerTitleKey } from "@/components/public/AuthorWorkWithMe";
 import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
 import AuthorFrameworkSection, { type FrameworkStage } from "./author-site/AuthorFrameworkSection";
 import AuthorSocialProofBar from "./author-site/AuthorSocialProofBar";
@@ -60,14 +60,37 @@ export default function AuthorSite() {
   }, [booksWithProducts]);
 
   const leadMagnets = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BP-02")), [liveNodes]);
+
+  // "Work With Me" is the single offer ladder on the page. Books, formats,
+  // lead magnets and in-person events live in their own sections, so they are
+  // excluded here; everything else is sold exactly once, right there.
+  const WORK_WITH_ME_EXCLUDED = ["BP-01", "BP-02", "BP-08", "BA-11", "BP-06", "BA-17", "YR-24", "YR-26"];
+  const workWithMeNodes = useMemo(
+    () => selectCustomerNodes(liveNodes.filter(n => !WORK_WITH_ME_EXCLUDED.some(p => n.node_id.startsWith(p)))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [liveNodes]
+  );
+  // Any offer already listed above never appears again further down the page.
+  const listedOfferKeys = useMemo(
+    () => new Set(workWithMeNodes.map(n => offerTitleKey(n))),
+    [workWithMeNodes]
+  );
+  const notAlreadyListed = (n: LiveNode) => !listedOfferKeys.has(offerTitleKey(n));
+
   const learnNodes = useMemo(() => liveNodes.filter(n =>
     ["BP-05", "BP-07", "BA-10", "BA-12", "YR-25"].some(p => n.node_id.startsWith(p))
-  ), [liveNodes]);
+  ).filter(notAlreadyListed),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [liveNodes, listedOfferKeys]);
   const serviceNodes = useMemo(() => liveNodes.filter(n =>
     ["YR-19", "BA-13", "YR-23", "YR-20", "YR-22", "YR-21"].some(p => n.node_id.startsWith(p))
-  ), [liveNodes]);
+  ).filter(notAlreadyListed),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [liveNodes, listedOfferKeys]);
+  // Reader-facing events only: retreats and conferences. Fundraising (YR-27)
+  // and sponsorship (YR-28) are partner-facing and stay off the public page.
   const eventNodes = useMemo(() => liveNodes.filter(n =>
-    ["YR-24", "YR-26", "YR-27", "YR-28"].some(p => n.node_id.startsWith(p))
+    ["YR-24", "YR-26"].some(p => n.node_id.startsWith(p))
   ), [liveNodes]);
   const podcastNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-14")), [liveNodes]);
   const affiliateNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-16")), [liveNodes]);
@@ -351,15 +374,35 @@ export default function AuthorSite() {
   }
 
 
-  // Resolve the hero book once so the nav buy CTA and the hero CTA always
-  // feature the same book + price (audit B-05: they previously diverged).
+  // Lead with the author's strongest book, not whichever row sorted first.
+  // Score: bestseller badges/proof beats a buyable book, which beats the newest.
+  const bookScore = (b: BookWithProducts) => {
+    let s = 0;
+    const badges = (b as unknown as { badges?: string[] | null }).badges;
+    if (Array.isArray(badges) && badges.length > 0) s += 4;
+    if (b.bestseller_proof_url || b.bestseller_proof_url_2) s += 3;
+    if ((b as unknown as { amazon_url?: string | null }).amazon_url) s += 2;
+    if (getLowestPrice(b)) s += 1;
+    return s;
+  };
+  const curatedHeroBook = whatsInsideSourceBookId
+    ? booksWithProducts.find(b => b.id === whatsInsideSourceBookId)
+    : undefined;
+  const bestBook = [...booksWithProducts].sort((a, b) => {
+    const diff = bookScore(b) - bookScore(a);
+    if (diff !== 0) return diff;
+    const ad = (a as unknown as { published_at?: string | null }).published_at || "";
+    const bd = (b as unknown as { published_at?: string | null }).published_at || "";
+    return bd.localeCompare(ad);
+  })[0];
   const heroBook =
-    booksWithProducts.find(b => b.id === whatsInsideSourceBookId) ||
+    (curatedHeroBook && bookScore(curatedHeroBook) >= bookScore(bestBook ?? curatedHeroBook) ? curatedHeroBook : bestBook) ||
     booksWithProducts[0] ||
     null;
-  const heroPrice = heroBook ? getLowestPrice(heroBook) : null;
-  const buyCta = heroBook && heroPrice
-    ? { label: `Get the Book — ${heroPrice}`, to: `/${authorSlug}/${heroBook.slug}` }
+  // One price story: the sticky nav never quotes a price, so it can never
+  // contradict the book page it links to.
+  const buyCta = heroBook
+    ? { label: "Get the Book", to: `/${authorSlug}/${heroBook.slug}` }
     : null;
 
   return (
@@ -395,8 +438,11 @@ export default function AuthorSite() {
         bodyFont={theme.bodyFont}
       />
 
+      {/* One story, told once: book -> proof -> who she is -> free start -> one offer ladder -> proof -> events -> email. */}
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} heroBook={heroBook} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p)) && hasRequiredAssets(n.node_id, n.content_json)).length} theme={theme} v={v} />
       <AuthorSocialProofBar booksWithProducts={booksWithProducts} testimonialsCount={testimonials.length} theme={theme} v={v} />
+      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
+      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorFrameworkSection
         frameworkName={frameworkName}
@@ -407,8 +453,6 @@ export default function AuthorSite() {
         v={v}
       />
       <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
-      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
-      <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorWorkWithMe
         authorId={author.id}
         authorSlug={authorSlug!}
@@ -416,13 +460,13 @@ export default function AuthorSite() {
         authorContactEmail={null}
         isOwnerViewing={isOwner}
         stripeReady={true /* Authors Bureau is Merchant of Record — platform Stripe always ready */}
-        liveNodes={liveNodes.filter(n => !["BP-01","BP-02","BP-08","BA-11","BP-06","BA-17"].some(p => n.node_id.startsWith(p))) as unknown as StorefrontNode[]}
+        liveNodes={workWithMeNodes as unknown as StorefrontNode[]}
         theme={theme}
         v={v}
       />
-      <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} isOwner={isOwner} />
       <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
       <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} isOwnerViewing={isOwner} authorPhoto={author.photo_url} testimonials={testimonials} />
+      <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} isOwner={isOwner} />
       <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
       <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} affiliateNodes={affiliateNodes} theme={theme} v={v} />
       <AuthorPodcastMediaSection author={author} displayName={displayName} theme={theme} v={v} />

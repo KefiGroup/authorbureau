@@ -9,7 +9,30 @@ import type { AuthorTheme } from "@/lib/author-themes";
 /** Back-office and partner-facing nodes that no book buyer should ever see
  *  on the public storefront (author website, affiliate, product ladder,
  *  media/PR, JV partnerships, fundraising, sponsorship). */
-const NON_CUSTOMER_NODE_IDS = ["BP-04", "BA-15", "BA-16", "BA-17", "BA-18", "YR-27", "YR-28"];
+export const NON_CUSTOMER_NODE_IDS = ["BP-04", "BA-15", "BA-16", "BA-17", "BA-18", "YR-27", "YR-28"];
+
+/** Normalised title key used to guarantee an offer is listed exactly once
+ *  across the whole page. */
+export function offerTitleKey(node: { personalised_name?: string | null; node_name?: string | null }): string {
+  return (node.personalised_name || node.node_name || "").trim().toLowerCase();
+}
+
+/** The single source of truth for which offers the page sells, in which order.
+ *  Every other section filters against the result so nothing is sold twice. */
+export function selectCustomerNodes<T extends { node_id: string; personalised_name?: string | null; node_name?: string | null }>(
+  nodes: T[]
+): T[] {
+  const seen = new Set<string>();
+  return nodes
+    .filter((n) => !NON_CUSTOMER_NODE_IDS.some((p) => n.node_id.startsWith(p)))
+    .filter((n) => {
+      const key = offerTitleKey(n);
+      if (!key) return true;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
 
 /** How many cards stay visible per tier before the rest collapse. */
 const VISIBLE_PER_TIER = 3;
@@ -95,16 +118,7 @@ export default function AuthorWorkWithMe({
 
   // Drop back-office nodes, then collapse duplicate offers that share a title
   // (e.g. two "Collective" entries) so visitors never see the same thing twice.
-  const seenNames = new Set<string>();
-  const customerNodes = liveNodes
-    .filter((n) => !NON_CUSTOMER_NODE_IDS.some((p) => n.node_id.startsWith(p)))
-    .filter((n) => {
-      const key = (n.personalised_name || n.node_name || "").trim().toLowerCase();
-      if (!key) return true;
-      if (seenNames.has(key)) return false;
-      seenNames.add(key);
-      return true;
-    });
+  const customerNodes = selectCustomerNodes(liveNodes);
 
   if (customerNodes.length === 0) return null;
 
@@ -137,7 +151,7 @@ export default function AuthorWorkWithMe({
             Work With Me
           </h2>
           <p className="text-base" style={{ color: v.mutedText }}>
-            Programmes and resources from {authorName} — pick where you are right now.
+            Everything {authorName} offers, in one place. Start at Tier 1 and move up when you are ready.
           </p>
         </motion.div>
 

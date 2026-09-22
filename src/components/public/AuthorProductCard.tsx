@@ -81,11 +81,13 @@ function getTagline(node: StorefrontNode): string | null {
   );
 }
 
+/** Single price format for the whole public site: "$497", "$2,000".
+ *  No "From", no "USD" suffix, so two sections can never disagree. */
 function formatPrice(price: number | null | undefined, currency?: string | null): string | null {
   if (price == null || price <= 0) return null;
   const code = (currency || "USD").toUpperCase();
-  const formatted = Number.isInteger(price) ? `${price}` : price.toFixed(2);
-  if (code === "USD") return `$${formatted} USD`;
+  const formatted = Number.isInteger(price) ? price.toLocaleString() : price.toFixed(2);
+  if (code === "USD") return `$${formatted}`;
   return `${code} ${formatted}`;
 }
 
