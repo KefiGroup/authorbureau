@@ -5,7 +5,9 @@
 I opened the live page as a visitor and checked the data behind it.
 
 **1. The books are invisible to visitors — a permissions bug, not missing data.**
-Pauline has two published books in the system (Be SUCKcessful, Invest Like Buffett: Value Investing for Parents), both with covers. But when a visitor's browser asks for them it gets a "permission denied" error, because one recently added field (the second bestseller-proof image) was never opened up for public reading. One bad field makes the whole request fail, so the page silently shows zero books.
+The system holds exactly two published books for Pauline (Be SUCKcessful, and Invest Like Buffett: Value Investing for Parents), both with covers. But when a visitor's browser asks for them it gets a "permission denied" error, because one recently added field (the second bestseller-proof image) was never opened up for public reading. One bad field makes the whole request fail, so the page silently shows zero books.
+
+If Pauline actually has a third book, it is simply not in the system yet and I will add it once you tell me the title. Nothing else on the page counts books; the "18" you saw is the offer count, which point 4 below replaces.
 
 That single bug explains most of what you saw: no book section, no book heading, no covers, no bestseller screenshots, no "Get the Book" button, and a stats strip that has lost its "Books Published" number. **This affects every author page and the directory, not just Pauline's.**
 
