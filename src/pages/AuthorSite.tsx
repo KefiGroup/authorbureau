@@ -441,7 +441,7 @@ export default function AuthorSite() {
       {/* One story, told once: book -> proof -> who she is -> free start -> one offer ladder -> proof -> events -> email. */}
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} heroBook={heroBook} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p)) && hasRequiredAssets(n.node_id, n.content_json)).length} theme={theme} v={v} />
       <AuthorSocialProofBar booksWithProducts={booksWithProducts} testimonialsCount={testimonials.length} theme={theme} v={v} />
-      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
+      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
       <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorFrameworkSection
