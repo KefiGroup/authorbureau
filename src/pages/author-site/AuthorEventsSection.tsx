@@ -52,17 +52,31 @@ export default function AuthorEventsSection({ authorSlug, displayName, eventNode
             const price = node.content_json?.price as number | undefined;
             const date = node.content_json?.date as string | undefined;
             const location = node.content_json?.location as string | undefined;
-            const linkTo = node.third_party_url || node.payment_link || `/${authorSlug}#subscribe-section`;
+            // No booking link on the event? Send the visitor to the enquiry
+            // form instead of the newsletter box, which was a dead end.
+            const dest = resolvePublicDestination(node, { label: "Learn More", enquireLabel: "Enquire" });
+            const cardClass = "group flex flex-col h-full w-full text-left p-6 rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg";
+            const cardStyle = { background: v.cardBg, border: `1px solid ${v.cardBorder}`, boxShadow: "0 4px 16px rgba(0,0,0,0.06)" };
+            const Card = ({ children }: { children: React.ReactNode }) =>
+              dest.kind === "enquire" ? (
+                <button type="button" onClick={() => openEnquiry(dest.subject)} className={cardClass} style={cardStyle}>
+                  {children}
+                </button>
+              ) : (
+                <a
+                  href={dest.href}
+                  target={dest.kind === "external" ? "_blank" : undefined}
+                  rel={dest.kind === "external" ? "noopener noreferrer" : undefined}
+                  className={cardClass}
+                  style={cardStyle}
+                >
+                  {children}
+                </a>
+              );
 
             return (
               <motion.div key={node.node_id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
-                <a
-                  href={linkTo}
-                  target={node.third_party_url ? "_blank" : undefined}
-                  rel={node.third_party_url ? "noopener noreferrer" : undefined}
-                  className="group flex flex-col h-full p-6 rounded-xl transition-all hover:-translate-y-1 hover:shadow-lg"
-                  style={{ background: v.cardBg, border: `1px solid ${v.cardBorder}`, boxShadow: "0 4px 16px rgba(0,0,0,0.06)" }}
-                >
+                <Card>
                   <span
                     className="inline-flex items-center gap-1.5 self-start rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-wide mb-4"
                     style={{ background: v.accent, color: v.accentText }}
