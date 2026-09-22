@@ -145,6 +145,9 @@ export default function AuthorWorkWithMe({
           const nodes = grouped[tier];
           if (nodes.length === 0) return null;
           const meta = TIER_META[tier];
+          const isExpanded = expanded[tier];
+          const visibleNodes = isExpanded ? nodes : nodes.slice(0, VISIBLE_PER_TIER);
+          const hiddenCount = nodes.length - visibleNodes.length;
 
           return (
             <div key={tier} className={tIdx > 0 ? "mt-12" : ""}>
@@ -181,7 +184,7 @@ export default function AuthorWorkWithMe({
                     : undefined
                 }
               >
-                {nodes.map((node, idx) => (
+                {visibleNodes.map((node, idx) => (
                   <motion.div
                     key={node.id}
                     initial="hidden"
@@ -203,6 +206,24 @@ export default function AuthorWorkWithMe({
                   </motion.div>
                 ))}
               </div>
+
+              {(hiddenCount > 0 || isExpanded) && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((prev) => ({ ...prev, [tier]: !prev[tier] }))}
+                  aria-expanded={isExpanded}
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold rounded-lg px-4 py-2 min-h-[44px] transition-all hover:brightness-110"
+                  style={{ border: `1px solid ${v.accent}66`, color: v.accent }}
+                >
+                  {isExpanded
+                    ? "Show fewer options"
+                    : `More ways to work with ${authorName} (${hiddenCount})`}
+                  <ChevronDown
+                    className="h-4 w-4 transition-transform"
+                    style={{ transform: isExpanded ? "rotate(180deg)" : undefined }}
+                  />
+                </button>
+              )}
             </div>
           );
         })}
