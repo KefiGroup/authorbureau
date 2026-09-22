@@ -48,6 +48,20 @@ export default function AuthorSite() {
   const [notFound, setNotFound] = useState(false);
   const [isOwner, setIsOwner] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
+  const [enquirySubject, setEnquirySubject] = useState<string | null>(null);
+
+  // "Enquire" buttons on high-touch offers open the on-page enquiry form,
+  // pre-filled with what the reader was looking at.
+  useEffect(() => {
+    const onEnquire = (e: Event) => {
+      const subject = (e as CustomEvent<{ subject?: string }>).detail?.subject || null;
+      setEnquirySubject(subject);
+      setContactOpen(true);
+    };
+    window.addEventListener("author-site:enquire", onEnquire);
+    return () => window.removeEventListener("author-site:enquire", onEnquire);
+  }, []);
+
 
   const theme = useMemo(() => getThemeById(author?.site_theme || "classic-elegant"), [author?.site_theme]);
   const displayName = author?.pen_name || "Author";
