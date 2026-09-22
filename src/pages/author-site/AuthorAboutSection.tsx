@@ -6,6 +6,7 @@ import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import { stripHtml } from "@/lib/stripHtml";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import { openEnquiry } from "./public-destination";
 
 interface Props {
   author: AuthorData;
