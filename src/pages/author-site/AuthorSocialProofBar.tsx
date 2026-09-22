@@ -28,7 +28,13 @@ export default function AuthorSocialProofBar({ booksWithProducts, testimonialsCo
     testimonialsCount >= 3 ? { icon: Users, label: `${testimonialsCount}+ Reader Reviews` } : null,
   ].filter(Boolean) as { icon: typeof Star; label: string }[];
 
-  if (items.length < 2) return null;
+  // Amazon bestseller screenshots — strongest proof, shown right under the hero.
+  const proofShots = booksWithProducts
+    .flatMap(b => [b.bestseller_proof_url, b.bestseller_proof_url_2])
+    .filter((u): u is string => typeof u === "string" && u.length > 0)
+    .slice(0, 2);
+
+  if (items.length < 2 && proofShots.length === 0) return null;
   void totalReviews;
 
   return (

@@ -46,6 +46,8 @@ export interface BookWithProducts {
   slug: string;
   badges: string[] | null;
   rating: number | null;
+  bestseller_proof_url?: string | null;
+  bestseller_proof_url_2?: string | null;
   products: ProductLink[];
 }
 
