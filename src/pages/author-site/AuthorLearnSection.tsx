@@ -53,7 +53,7 @@ export default function AuthorLearnSection({ authorSlug, displayName, learnNodes
             const Icon = meta.icon;
             const title = node.personalised_name || node.node_name;
             const desc = node.content_json?.description as string | undefined;
-            const { label: priceLabel, isKnownFree } = getNodePriceLabel(node);
+            const { label: priceLabel, isKnownFree, isEnquiry } = getNodePriceLabel(node);
             const slug = node.microsite_url?.replace(/^\//, "").split("/").pop();
             const linkTo = slug ? `/${authorSlug}/${slug}` : (node.third_party_url || "#");
 
