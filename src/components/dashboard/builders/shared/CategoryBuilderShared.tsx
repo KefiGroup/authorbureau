@@ -18,11 +18,13 @@ export function StepHeader({
   nodeId,
   nodeName,
   step,
+  bookTitle,
   category,
 }: {
   nodeId: string;
   nodeName: string;
   step: number;
+  bookTitle?: string;
   /** @deprecated retained for backwards compatibility — back navigation lives in NodeBuilder */
   backTo?: string;
   category?: BuilderCategory;
@@ -35,7 +37,7 @@ export function StepHeader({
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <div className="flex-1">
             <h1 className="text-lg font-semibold">{nodeName}</h1>
-            <p className="text-xs text-muted-foreground">{nodeId}</p>
+            <p className="text-xs text-muted-foreground">{nodeId}{bookTitle ? ` · ${bookTitle}` : ""}</p>
           </div>
         </div>
       </div>

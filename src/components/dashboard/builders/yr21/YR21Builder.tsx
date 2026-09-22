@@ -149,12 +149,20 @@ export default function YR21Builder({ authorId, bookId }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      <StepHeader nodeId="YR-21" nodeName="Keynote Speaking" step={step} />
+      <StepHeader
+        nodeId="YR-21"
+        nodeName="Speaking"
+        step={step}
+        bookTitle={bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : "Selected book")}
+      />
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
         {step === 0 && (
           <AbbyCard>
-            <h2 className="text-xl font-bold mb-3">Let's build your Speaking Business</h2>
-            <p className="text-muted-foreground mb-4">Hi {authorName}! Keynote speaking is one of the most prestigious and lucrative ways to share your expertise. I'm going to build your complete speaking business — with 3 signature talks, a speaker one-sheet, and a fee schedule. Ready to take the stage?</p>
+            <h2 className="text-xl font-bold mb-1">Let's build your Speaking Business</h2>
+            <p className="text-sm font-medium text-primary mb-3">
+              For {bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : "your selected book")}
+            </p>
+            <p className="text-muted-foreground mb-4">Hi {authorName}! Keynote speaking is one of the most prestigious and lucrative ways to share your expertise. I'm going to build your complete speaking business from this book, with 3 signature talks, a speaker one-sheet, and a fee schedule. Ready to take the stage?</p>
             <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Speaking Business</Button>
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
