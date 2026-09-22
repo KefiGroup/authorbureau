@@ -250,6 +250,16 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-4 py-20 text-center">
+        <p className="font-medium">Contacts didn't load</p>
+        <p className="text-sm text-muted-foreground max-w-md">{loadError}</p>
+        <Button onClick={fetchInitial}>Try again</Button>
+      </div>
+    );
+  }
+
   if ((statsData?.effectiveTotal || 0) === 0 && !showForm) {
     return (
       <div className="space-y-6">
