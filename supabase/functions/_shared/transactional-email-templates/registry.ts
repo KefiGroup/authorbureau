@@ -23,6 +23,8 @@ import { template as abbyDailyReport } from './abby-daily-report.tsx'
 import { template as annualEarningsStatement } from './annual-earnings-statement.tsx'
 import { template as dailyAuditReport } from './daily-audit-report.tsx'
 import { template as crmDailyDigest } from './crm-daily-digest.tsx'
+import { template as contactMessage } from './contact-message.tsx'
+import { template as contactConfirmation } from './contact-confirmation.tsx'
 
 export const TEMPLATES: Record<string, TemplateEntry> = {
   'profile-synced': profileSynced,
@@ -39,4 +41,6 @@ export const TEMPLATES: Record<string, TemplateEntry> = {
   'annual-earnings-statement': annualEarningsStatement,
   'daily-audit-report': dailyAuditReport,
   'crm-daily-digest': crmDailyDigest,
+  'contact-message': contactMessage,
+  'contact-confirmation': contactConfirmation,
 }
