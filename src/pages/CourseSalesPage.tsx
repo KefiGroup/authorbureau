@@ -48,7 +48,7 @@ export default function CourseSalesPage() {
 
       // courses.author_id references auth.users.id (the user_id), not author_profiles.id.
       const { data: c } = await supabase
-        .from("courses")
+        .from("courses_public")
         .select("id, author_id, title, subtitle, tagline, description, cover_image_url, price, currency, target_student, transformation_promises, status")
         .eq("author_id", author.user_id)
         .eq("course_slug", courseSlug)
@@ -57,7 +57,7 @@ export default function CourseSalesPage() {
       setCourse(c as CourseData);
 
       const { data: mods } = await supabase
-        .from("course_modules").select("id, title, description").eq("course_id", c.id).order("position");
+        .from("course_modules_public").select("id, title, description").eq("course_id", c.id).order("position");
       setModules(mods ?? []);
       setLoading(false);
     })();

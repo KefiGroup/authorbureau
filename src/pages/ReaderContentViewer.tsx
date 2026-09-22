@@ -95,7 +95,7 @@ export default function ReaderContentViewer() {
     const bookSlug = bookInfo?.slug;
 
     const { data: courses } = await supabase
-      .from("courses")
+      .from("courses_public")
       .select("id, title, price, status, description")
       .eq("book_id", forBookId)
       .eq("status", "published")
@@ -114,7 +114,7 @@ export default function ReaderContentViewer() {
     }
 
     const { data: audiobooks } = await supabase
-      .from("audiobooks")
+      .from("audiobooks_public")
       .select("id, title, price, status, description")
       .eq("book_id", forBookId)
       .eq("status", "published")
