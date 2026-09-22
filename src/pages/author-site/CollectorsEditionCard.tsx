@@ -3,6 +3,7 @@ import { Sparkles, Gift, Award } from "lucide-react";
 import type { ThemeVars, BookFormatNode, OccasionTemplate } from "./types";
 import { OCCASION_TEMPLATES, getOccasionUrgency } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import { resolvePublicDestination, openEnquiry } from "./public-destination";
 
 interface Props {
   node: BookFormatNode;
