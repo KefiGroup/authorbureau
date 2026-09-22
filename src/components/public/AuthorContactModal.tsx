@@ -22,6 +22,8 @@ interface AuthorContactModalProps {
   };
   headingFont: string;
   bodyFont: string;
+  /** Seeds the message box when the reader arrived from an "Enquire" button. */
+  prefillMessage?: string;
 }
 
 export default function AuthorContactModal({
