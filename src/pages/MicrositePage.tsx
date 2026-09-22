@@ -1043,7 +1043,10 @@ function WorkbookSalesPage({
   const youGetRaw: any[] = Array.isArray(content.what_youll_get) ? content.what_youll_get : [];
   const youGet: string[] = youGetRaw.map((it) => (typeof it === "string" ? it : (it && (it.name || it.title)) || "")).filter(Boolean);
   const sections: any[] = Array.isArray(content.sections) ? content.sections : [];
-  const format = content.format || '8.5 × 11" PDF + Word';
+  const format = String(content.format || '8.5 × 11" PDF + Word')
+    .replace(/\s*[—–-]?\s*\(do not change this value\)/gi, "")
+    .replace(/\s*[—–]\s*/g, ", ")
+    .trim();
 
   const isFree = content.pricing_recommendation === "free" || Number(content.suggested_price_usd) === 0;
   const priceNum = Number(content.suggested_price_usd) || 0;
