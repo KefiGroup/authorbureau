@@ -215,7 +215,7 @@ export default function AuthorProductCard({
       >
         {isEnquiryOnly ? (
           <span className="text-base font-semibold" style={{ color: v.mutedText }}>
-            Tailored to your team
+            {isHighTicket ? "By application" : "Tailored to your team"}
           </span>
         ) : priceDisplay ? (
           <>
