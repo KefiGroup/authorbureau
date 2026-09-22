@@ -232,7 +232,10 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
     }
     setSearchParams(next, { replace: true });
   };
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  // On phones/tablets the sidebar is an overlay drawer, so it must start closed.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 1024
+  );
 
   // Centralized stats from author-stats edge function
   const { stats, refetch: refetchStats } = useAuthorStats(user?.id);
