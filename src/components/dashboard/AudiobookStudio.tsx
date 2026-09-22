@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { resolveMediaUrl } from "@/lib/media-url";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -325,7 +326,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || `preview failed (${res.status})`);
       const audioUrl = `data:audio/mpeg;base64,${data.audioBase64}`;
-      const audio = new Audio(audioUrl);
+      const audio = new Audio(await resolveMediaUrl(audioUrl));
       audio.onended = () => { setIsPreviewPlaying(false); setPreviewAudio(null); };
       audio.play();
       setPreviewAudio(audio);
@@ -455,7 +456,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
       return;
     }
     if (playerRef.current) playerRef.current.pause();
-    const audio = new Audio(ch.audioUrl);
+    const audio = new Audio(await resolveMediaUrl(ch.audioUrl));
     audio.onended = () => setPlayingIndex(-1);
     audio.play();
     playerRef.current = audio;
