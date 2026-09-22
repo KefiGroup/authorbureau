@@ -193,7 +193,7 @@ export default function DashboardLayout({ children, activeSection, bare = false 
           onToggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
           onNavigate={handleHeaderNavigate}
         />
-        <main
+        <div
           className={
             bare
               ? "flex-1 min-h-0 overflow-hidden"
