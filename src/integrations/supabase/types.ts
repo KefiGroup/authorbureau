@@ -6998,6 +6998,7 @@ export type Database = {
         Returns: Json
       }
       can_access_course: { Args: { _course_id: string }; Returns: boolean }
+      can_access_course_folder: { Args: { _folder: string }; Returns: boolean }
       check_rate_limit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
@@ -7076,6 +7077,11 @@ export type Database = {
           p_user_ids: string[]
         }
         Returns: number
+      }
+      owns_author_folder: { Args: { _folder: string }; Returns: boolean }
+      purchased_audiobook_for_book: {
+        Args: { _book_folder: string }
+        Returns: boolean
       }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Play, Pause, Headphones, Lock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { resolveMediaUrl } from "@/lib/media-url";
 
 interface Chapter {
   index: number;
@@ -55,14 +56,16 @@ export default function AudiobookPreviewPlayer({
 
   if (list.length === 0 && !previewUrl) return null;
 
-  const playChapter = (index: number, url: string) => {
+  const playChapter = async (index: number, url: string) => {
     if (!audioRef.current) return;
     if (activeIndex === index && isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
       return;
     }
-    audioRef.current.src = url;
+    const playable = await resolveMediaUrl(url);
+    if (!audioRef.current) return;
+    audioRef.current.src = playable;
     audioRef.current.play().catch(() => {});
     setActiveIndex(index);
     setIsPlaying(true);
@@ -92,7 +95,7 @@ export default function AudiobookPreviewPlayer({
             size="sm"
             className="shrink-0 rounded-full"
             style={{ background: accent, color: "white" }}
-            onClick={() => playChapter(0, samplePreviewUrl)}
+            onClick={() => { void playChapter(0, samplePreviewUrl); }}
           >
             {isPlaying && activeIndex === 0 ? (
               <>
@@ -116,7 +119,7 @@ export default function AudiobookPreviewPlayer({
               <button
                 key={ch.index}
                 disabled={isLocked}
-                onClick={() => !isLocked && playChapter(ch.index, ch.audio_url)}
+                onClick={() => { if (!isLocked) void playChapter(ch.index, ch.audio_url); }}
                 className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-left text-sm transition-colors ${
                   isLocked ? "opacity-60 cursor-not-allowed" : "hover:bg-black/5"
                 }`}
