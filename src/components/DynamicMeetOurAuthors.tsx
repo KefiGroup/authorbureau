@@ -234,7 +234,7 @@ export default function DynamicMeetOurAuthors() {
                             // Always fill the frame so every card shows the same photo size;
                             // the per-author zoom is applied on top of that fill.
                             backgroundSize: 'cover',
-                            transform: `scale(${editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1)})`,
+                            transform: `scale(${Math.max(1, editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1))})`,
                             transformOrigin: 'center',
                           }}
                         />
@@ -294,9 +294,10 @@ export default function DynamicMeetOurAuthors() {
                       <h3 className="font-heading text-lg font-bold group-hover:text-secondary transition-colors mb-1">
                         {author.name}
                       </h3>
-                      <p className="text-sm text-muted-foreground mb-4 flex-1 leading-relaxed line-clamp-2">
+                      <p className="text-sm text-muted-foreground mb-4 leading-relaxed line-clamp-3 min-h-[3.9rem] overflow-hidden">
                         {author.bio_short || "Published author"}
                       </p>
+                      <div className="flex-1" />
 
                       {/* Books */}
                       <div className="mt-4 flex items-center gap-3 pb-4 border-b border-border/50">
