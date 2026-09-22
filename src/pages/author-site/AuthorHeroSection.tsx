@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { BookOpen, Sparkles, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
 import type { AuthorData, BookWithProducts, ThemeVars } from "./types";
-import { getLowestPrice } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import { stripHtml } from "@/lib/stripHtml";
 
@@ -30,9 +29,8 @@ interface Props {
   v: ThemeVars;
 }
 
-export default function AuthorHeroSection({ author, displayName, booksWithProducts, heroBook: heroBookProp, allProducts, testimonialsCount = 0, liveProductsCount = 0, theme, v }: Props) {
+export default function AuthorHeroSection({ author, displayName, booksWithProducts, heroBook: heroBookProp, testimonialsCount = 0, theme, v }: Props) {
   const totalBooks = booksWithProducts.length;
-  const totalProducts = Math.max(allProducts.length, liveProductsCount);
 
   const socialLinks = SOCIAL_LINKS.filter(
     (s) => (author as unknown as Record<string, unknown>)[s.key]
@@ -48,20 +46,20 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
     >
       <div className="relative container max-w-5xl py-16 md:py-24">
         <div className="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-12">
-          {/* Author Photo */}
+          {/* Author Photo — taller frame, top-anchored so heads are never cropped */}
           {author.photo_url ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
               <img
                 src={author.photo_url}
                 alt={displayName}
-                className="w-40 h-48 md:w-52 md:h-64 object-cover"
+                className="w-44 h-60 md:w-56 md:h-[21rem] object-cover object-top"
                 style={{ border: `3px solid ${v.accent}`, borderRadius: "16px", boxShadow: "0 12px 30px rgba(0, 0, 0, 0.3)" }}
               />
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
               <div
-                className="w-40 h-48 md:w-52 md:h-64 flex items-center justify-center"
+                className="w-44 h-60 md:w-56 md:h-[21rem] flex items-center justify-center"
                 style={{ background: v.accent, borderRadius: "16px", boxShadow: "0 12px 30px rgba(0, 0, 0, 0.3)" }}
               >
                 <span className="text-[3rem] font-bold" style={{ color: v.accentText }}>{displayName.charAt(0)}</span>
@@ -143,75 +141,99 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
               </motion.div>
             )}
 
-            {/* CTAs */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-              className="flex flex-wrap gap-3 justify-center md:justify-start">
-              {(() => {
-                const heroBook = heroBookProp || booksWithProducts[0];
-                const lowest = heroBook ? getLowestPrice(heroBook) : null;
-                if (heroBook && lowest) {
-                  return (
-                    <Link
-                      to={`/${(author.author_slug || "")}/${heroBook.slug}`}
-                      className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
-                      style={{ background: v.accent, color: v.accentText, padding: "14px 32px", borderRadius: "8px", boxShadow: `0 4px 16px ${v.accent}66` }}>
-                      <BookOpen className="h-4 w-4" /> Get the Book — {lowest}
-                    </Link>
-                  );
-                }
-                if (heroBook) {
-                  return (
-                    <Link
-                      to={`/${(author.author_slug || "")}/${heroBook.slug}`}
-                      className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
-                      style={{ background: v.accent, color: v.accentText, padding: "14px 32px", borderRadius: "8px", boxShadow: `0 4px 16px ${v.accent}66` }}>
-                      <BookOpen className="h-4 w-4" /> Read the Book
-                    </Link>
-                  );
-                }
-                return null;
-              })()}
-              <button
-                onClick={() => {
-                  const el = document.getElementById("subscribe-section");
-                  if (!el) return;
-                  el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  // Focus first input after the smooth scroll settles so it's obvious
-                  // the click did something — fixes "button does nothing" complaints.
-                  window.setTimeout(() => {
-                    const input = el.querySelector<HTMLInputElement>('input[type="email"], input');
-                    input?.focus({ preventScroll: true });
-                  }, 600);
-                }}
-                className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:brightness-110 min-h-[48px]"
-                style={{ background: "transparent", border: `2px solid ${v.accent}`, color: v.accent, padding: "12px 32px", borderRadius: "8px" }}>
-                <Sparkles className="h-4 w-4" /> Get the Free Starter Kit
-              </button>
-            </motion.div>
+            {/* Featured book + CTAs */}
+            {(() => {
+              const heroBook = heroBookProp || booksWithProducts[0];
+              return (
+                <>
+                  {heroBook && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+                      className="flex items-center gap-4 mb-6 justify-center md:justify-start"
+                    >
+                      {heroBook.cover_image_url && (
+                        <Link to={`/${(author.author_slug || "")}/${heroBook.slug}`} className="shrink-0">
+                          <img
+                            src={heroBook.cover_image_url}
+                            alt={heroBook.title}
+                            loading="eager"
+                            className="w-20 md:w-24 rounded-md"
+                            style={{ boxShadow: "0 10px 24px rgba(0,0,0,0.35)" }}
+                          />
+                        </Link>
+                      )}
+                      <div className="text-left">
+                        <span className="block text-[0.65rem] font-bold uppercase tracking-[0.14em] mb-1" style={{ color: v.accent }}>
+                          The Book
+                        </span>
+                        <Link
+                          to={`/${(author.author_slug || "")}/${heroBook.slug}`}
+                          className="block text-base md:text-lg font-bold leading-snug hover:underline"
+                          style={{ color: v.primaryText, fontFamily: theme.headingFont }}
+                        >
+                          {heroBook.title}
+                        </Link>
+                        {heroBook.subtitle && (
+                          <span className="block text-sm mt-1" style={{ color: `${v.primaryText}B3` }}>
+                            {stripHtml(heroBook.subtitle).slice(0, 110)}
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                    className="flex flex-wrap gap-3 justify-center md:justify-start">
+                    {heroBook && (
+                      <Link
+                        to={`/${(author.author_slug || "")}/${heroBook.slug}`}
+                        className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:scale-105"
+                        style={{ background: v.accent, color: v.accentText, padding: "14px 32px", borderRadius: "8px", boxShadow: `0 4px 16px ${v.accent}66` }}>
+                        <BookOpen className="h-4 w-4" /> Get the Book
+                      </Link>
+                    )}
+                    <button
+                      onClick={() => {
+                        const el = document.getElementById("subscribe-section");
+                        if (!el) return;
+                        el.scrollIntoView({ behavior: "smooth", block: "start" });
+                        window.setTimeout(() => {
+                          const input = el.querySelector<HTMLInputElement>('input[type="email"], input');
+                          input?.focus({ preventScroll: true });
+                        }, 600);
+                      }}
+                      className="inline-flex items-center gap-2 font-bold rounded-lg transition-all hover:brightness-110 min-h-[48px]"
+                      style={{ background: "transparent", border: `2px solid ${v.accent}`, color: v.accent, padding: "12px 32px", borderRadius: "8px" }}>
+                      <Sparkles className="h-4 w-4" /> Get the Free Starter Kit
+                    </button>
+                  </motion.div>
+                </>
+              );
+            })()}
           </div>
         </div>
 
-        {/* Stats Strip */}
-        {(totalBooks > 0 || totalProducts > 0 || testimonialsCount > 0) && (
+        {/* Stats Strip — reader-facing proof only */}
+        {(totalBooks > 0 || testimonialsCount > 0) && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
             className="mt-12 flex flex-wrap justify-center md:justify-start gap-6 md:gap-10 pt-8"
             style={{ borderTop: `1px solid rgba(255,255,255,0.1)` }}>
             {totalBooks > 0 && (
               <div className="text-center md:text-left">
                 <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{totalBooks}</span>
-                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Books Published</span>
-              </div>
-            )}
-            {totalProducts > 0 && (
-              <div className="text-center md:text-left">
-                <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{totalProducts}</span>
-                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Revenue Streams Built</span>
+                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>{totalBooks === 1 ? "Book Published" : "Books Published"}</span>
               </div>
             )}
             {testimonialsCount > 0 && (
-              <div className="hidden sm:block text-center md:text-left">
+              <div className="text-center md:text-left">
                 <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{testimonialsCount}</span>
                 <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Reader Testimonials</span>
+              </div>
+            )}
+            {booksWithProducts.some(b => b.badges && b.badges.length > 0) && (
+              <div className="text-center md:text-left">
+                <span className="text-2xl md:text-3xl font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>#1</span>
+                <span className="block text-xs mt-1" style={{ color: `${v.primaryText}D9` }}>Amazon Bestseller</span>
               </div>
             )}
           </motion.div>

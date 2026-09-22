@@ -186,6 +186,12 @@ export default function AuthorSite() {
       if (b?.id && !booksMap.has(b.id as string)) booksMap.set(b.id as string, b);
     }
     const books = Array.from(booksMap.values());
+    // Never let a failed books read look like "this author has no books".
+    // A permission/column error here previously wiped the whole book section
+    // silently, which is exactly how the public pages lost their covers.
+    if (books.length === 0 && (booksRes as { error?: unknown })?.error) {
+      console.error("[AuthorSite] books query failed", (booksRes as { error?: unknown }).error);
+    }
     const homeStudy = (homeStudyRes.data || []) as Record<string, unknown>[];
     const courses = (coursesRes.data || []) as Record<string, unknown>[];
     const coaching = (coachingRes.data || []) as CoachingService[];

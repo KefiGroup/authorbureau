@@ -133,11 +133,17 @@ export default function AuthorProductCard({
     ? `mailto:${authorContactEmail}?subject=${encodeURIComponent(`Enquiry: ${title}`)}`
     : `/${authorSlug}#contact`;
 
-  // For high-touch service nodes (coaching, retreats, etc.) where there's a contact email
-  // and no price set, prefer "Contact" over "Notify me". Everything else routes through
+  // High-touch engagements (speaking, consulting, corporate training, retreats,
+  // masterminds, VIP days) are sold by conversation, never by a scary number on
+  // a card. They always hide price and route to an enquiry.
+  const ENQUIRY_ONLY = ["YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-26"];
+  const isEnquiryOnly = ENQUIRY_ONLY.some((id) => node.node_id.startsWith(id));
+
+  // For other high-touch service nodes where there's a contact email and no price
+  // set, prefer "Contact" over "Notify me". Everything else routes through
   // ProductCTA's 4-state matrix (live / coming-soon / owner-no-price / owner-no-stripe).
   const isHighTouchInquiry =
-    !hasPrice && !!authorContactEmail && /^(YR-|BA-13|BA-12)/.test(node.node_id);
+    isEnquiryOnly || (!hasPrice && !!authorContactEmail && /^(YR-|BA-13|BA-12)/.test(node.node_id));
 
   // INFORMATIONAL nodes — non-transactional revenue surfaces (Podcast,
   // Media Kit, Affiliate Programme, JV/Revenue Share). They are LIVE products,
@@ -192,12 +198,16 @@ export default function AuthorProductCard({
       )}
       {!tagline && <div className="mb-4" />}
 
-      {/* Prominent price (always shown) */}
+      {/* Price — hidden entirely for enquiry-only engagements */}
       <div
         className="flex items-baseline gap-2 mb-4 pb-4"
         style={{ borderBottom: `1px solid ${v.cardBorder}` }}
       >
-        {priceDisplay ? (
+        {isEnquiryOnly ? (
+          <span className="text-base font-semibold" style={{ color: v.mutedText }}>
+            Tailored to your team
+          </span>
+        ) : priceDisplay ? (
           <>
             <span
               className="text-2xl font-extrabold tabular-nums"
@@ -248,7 +258,8 @@ export default function AuthorProductCard({
             style={{ borderColor: v.cardBorder, color: v.bodyText }}
           >
             <a href={contactHref}>
-              Contact <ArrowRight className="ml-2 h-3.5 w-3.5" />
+              {isEnquiryOnly ? "Enquire / Book a Call" : "Contact"}
+              <ArrowRight className="ml-2 h-3.5 w-3.5" />
             </a>
           </Button>
         ) : (

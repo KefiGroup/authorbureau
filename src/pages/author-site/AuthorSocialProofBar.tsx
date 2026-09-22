@@ -28,7 +28,13 @@ export default function AuthorSocialProofBar({ booksWithProducts, testimonialsCo
     testimonialsCount >= 3 ? { icon: Users, label: `${testimonialsCount}+ Reader Reviews` } : null,
   ].filter(Boolean) as { icon: typeof Star; label: string }[];
 
-  if (items.length < 2) return null;
+  // Amazon bestseller screenshots — strongest proof, shown right under the hero.
+  const proofShots = booksWithProducts
+    .flatMap(b => [b.bestseller_proof_url, b.bestseller_proof_url_2])
+    .filter((u): u is string => typeof u === "string" && u.length > 0)
+    .slice(0, 2);
+
+  if (items.length < 2 && proofShots.length === 0) return null;
   void totalReviews;
 
   return (
@@ -56,6 +62,29 @@ export default function AuthorSocialProofBar({ booksWithProducts, testimonialsCo
             );
           })}
         </div>
+
+        {proofShots.length > 0 && (
+          <div className="mt-6">
+            <p
+              className="text-center text-xs font-semibold uppercase tracking-wider mb-3"
+              style={{ color: v.mutedText, fontFamily: theme.bodyFont }}
+            >
+              As seen on Amazon
+            </p>
+            <div className={`grid gap-4 ${proofShots.length > 1 ? "sm:grid-cols-2" : "grid-cols-1 max-w-md mx-auto"}`}>
+              {proofShots.map((url) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt="Amazon bestseller ranking screenshot"
+                  loading="lazy"
+                  className="w-full max-h-64 object-cover object-top rounded-lg bg-white"
+                  style={{ border: `1px solid ${v.cardBorder}` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </motion.section>
   );

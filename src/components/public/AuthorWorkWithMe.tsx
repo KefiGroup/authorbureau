@@ -1,8 +1,18 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import AuthorProductCard, { type StorefrontNode } from "./AuthorProductCard";
 import { fadeUp } from "@/pages/author-site/types";
 import type { ThemeVars } from "@/pages/author-site/types";
 import type { AuthorTheme } from "@/lib/author-themes";
+
+/** Back-office and partner-facing nodes that no book buyer should ever see
+ *  on the public storefront (author website, affiliate, product ladder,
+ *  media/PR, JV partnerships, fundraising, sponsorship). */
+const NON_CUSTOMER_NODE_IDS = ["BP-04", "BA-15", "BA-16", "BA-17", "BA-18", "YR-27", "YR-28"];
+
+/** How many cards stay visible per tier before the rest collapse. */
+const VISIBLE_PER_TIER = 3;
 
 interface Props {
   authorId: string;
@@ -79,10 +89,27 @@ export default function AuthorWorkWithMe({
   theme,
   v,
 }: Props) {
+  const [expanded, setExpanded] = useState<Record<Tier, boolean>>({ start: false, deeper: false, enterprise: false });
+
   if (!liveNodes || liveNodes.length === 0) return null;
 
+  // Drop back-office nodes, then collapse duplicate offers that share a title
+  // (e.g. two "Collective" entries) so visitors never see the same thing twice.
+  const seenNames = new Set<string>();
+  const customerNodes = liveNodes
+    .filter((n) => !NON_CUSTOMER_NODE_IDS.some((p) => n.node_id.startsWith(p)))
+    .filter((n) => {
+      const key = (n.personalised_name || n.node_name || "").trim().toLowerCase();
+      if (!key) return true;
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+
+  if (customerNodes.length === 0) return null;
+
   const grouped: Record<Tier, StorefrontNode[]> = { start: [], deeper: [], enterprise: [] };
-  for (const node of liveNodes) {
+  for (const node of customerNodes) {
     grouped[nodeTier(node.node_id)].push(node);
   }
   // Stable internal sort by node_id
@@ -118,6 +145,9 @@ export default function AuthorWorkWithMe({
           const nodes = grouped[tier];
           if (nodes.length === 0) return null;
           const meta = TIER_META[tier];
+          const isExpanded = expanded[tier];
+          const visibleNodes = isExpanded ? nodes : nodes.slice(0, VISIBLE_PER_TIER);
+          const hiddenCount = nodes.length - visibleNodes.length;
 
           return (
             <div key={tier} className={tIdx > 0 ? "mt-12" : ""}>
@@ -154,7 +184,7 @@ export default function AuthorWorkWithMe({
                     : undefined
                 }
               >
-                {nodes.map((node, idx) => (
+                {visibleNodes.map((node, idx) => (
                   <motion.div
                     key={node.id}
                     initial="hidden"
@@ -176,6 +206,24 @@ export default function AuthorWorkWithMe({
                   </motion.div>
                 ))}
               </div>
+
+              {(hiddenCount > 0 || isExpanded) && (
+                <button
+                  type="button"
+                  onClick={() => setExpanded((prev) => ({ ...prev, [tier]: !prev[tier] }))}
+                  aria-expanded={isExpanded}
+                  className="mt-5 inline-flex items-center gap-2 text-sm font-semibold rounded-lg px-4 py-2 min-h-[44px] transition-all hover:brightness-110"
+                  style={{ border: `1px solid ${v.accent}66`, color: v.accent }}
+                >
+                  {isExpanded
+                    ? "Show fewer options"
+                    : `More ways to work with ${authorName} (${hiddenCount})`}
+                  <ChevronDown
+                    className="h-4 w-4 transition-transform"
+                    style={{ transform: isExpanded ? "rotate(180deg)" : undefined }}
+                  />
+                </button>
+              )}
             </div>
           );
         })}
