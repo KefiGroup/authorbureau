@@ -78,7 +78,7 @@ export default function ReaderAuth() {
       email: email.trim(),
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: `${window.location.origin}/reader-auth`,
+        emailRedirectTo: `${window.location.origin}/readers-bureau/auth`,
       },
     });
     if (error) throw new Error(friendlyError(error.message));
