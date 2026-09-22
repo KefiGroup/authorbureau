@@ -50,6 +50,7 @@ export default function BuyNowButton({
 
       if (error) throw error;
 
+      // Only this explicit result means the author hasn't switched on checkout.
       if (data?.error === "AUTHOR_PAYMENTS_NOT_SET_UP") {
         setPaymentsModal(true);
         return;
@@ -66,16 +67,16 @@ export default function BuyNowButton({
         window.location.href = fallbackUrl as string;
         return;
       }
-      // Graceful waitlist instead of a technical error
-      setPaymentsModal(true);
+      // Anything else is a technical failure — say so honestly.
+      console.error("[BuyNowButton] checkout returned no URL", data);
+      setErrorModal(true);
     } catch (err) {
       console.error("[BuyNowButton]", err);
       if (isLikelyCheckoutUrl(fallbackUrl)) {
         window.location.href = fallbackUrl as string;
         return;
       }
-      // Show friendly modal — never leave the reader with a dead-end error toast
-      setPaymentsModal(true);
+      setErrorModal(true);
     } finally {
       setLoading(false);
     }
