@@ -2116,7 +2116,7 @@ function AffiliatesPage({ data, content, v, hFont, bgColor, onSubmit, email, set
   const payoutSchedule = content.payout_schedule;
   const programmeTitle = content.programme_title || data.node.personalised_name || "Affiliate Programme";
   const tagline = content.tagline;
-  const summary = content.abby_summary || content.overview;
+  const summary = publicSummary(content.abby_summary) || publicSummary(content.overview);
   const headlineRates = tiers.slice(0, 2).map((t: any) => t?.commission_rate).filter(Boolean);
   const coreThesis = data.context?.core_thesis || "";
   const firstThesisSentence = coreThesis ? (coreThesis.split(/(?<=[.!?])\s+/)[0] || coreThesis) : "";
@@ -2247,7 +2247,7 @@ function AffiliatesPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 function BundlesPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
   const bundles: any[] = Array.isArray(content.bundles) ? content.bundles : [];
   const ladderTitle = content.product_ladder_title || data.node.personalised_name || "Bundles & Offers";
-  const summary = content.abby_summary;
+  const summary = publicSummary(content.abby_summary);
   const paymentUrl = data.node.payment_link || content.stripe_checkout_url;
 
   const asNumber = (x: unknown): number | null => {
@@ -3071,6 +3071,22 @@ function MembershipPage({ data, content, v, hFont, bgColor }: PageProps) {
 type YRPageProps = FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void };
 
 const yrStr = (v: any, fallback = ""): string => (typeof v === "string" && v.trim()) ? v : fallback;
+
+/**
+ * Public pages must never speak in the assistant's first-person voice
+ * ("I built this programme around Pauline's..."). Strip any sentence that
+ * does, and drop the text entirely if nothing reader-facing remains.
+ */
+function publicSummary(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const firstPerson = /\b(I|I've|I'm|I'll)\b|\bmy (?:goal|aim|approach|take)\b|\bshe (?:created|built|designed|framed)\b/;
+  const kept = value
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => s.trim() && !firstPerson.test(s))
+    .join(" ")
+    .trim();
+  return kept;
+}
 const yrArr = (v: any): any[] => Array.isArray(v) ? v : [];
 const yrLines = (val: any): string[] => {
   if (Array.isArray(val)) return val.map(x => typeof x === "string" ? x : (x?.title || x?.label || x?.text || x?.name || "")).filter(Boolean);
@@ -3334,7 +3350,7 @@ function CoachingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 /* ═══ YR-20 — BIG TICKET OFFERS ═══ */
 function BigTicketPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
   const title = yrStr(data.node.personalised_name, NODE_NAMES["YR-20"] || "VIP Offers");
-  const summary = yrStr(content.abby_summary);
+  const summary = publicSummary(yrStr(content.abby_summary));
   const guide = yrStr(content.sales_conversation_guide);
   const offers = yrArr(content.offers);
 
@@ -3463,7 +3479,7 @@ function SpeakingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEm
 function CorporateTrainingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
   const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-22"] || "Corporate Training");
   const tagline = yrStr(content.tagline);
-  const summary = yrStr(content.abby_summary);
+  const summary = publicSummary(yrStr(content.abby_summary));
   const formats = yrArr(content.training_formats);
   const outcomes = yrLines(content.learning_outcomes);
   const outline = yrArr(content.programme_outline);
@@ -4029,7 +4045,7 @@ function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
 function SponsorsPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
   const title = yrStr(content.programme_title, data.node.personalised_name || NODE_NAMES["YR-28"] || "Sponsors");
   const tagline = yrStr(content.tagline);
-  const summary = yrStr(content.abby_summary);
+  const summary = publicSummary(yrStr(content.abby_summary));
   const audience = yrSmartText(content.audience_profile);
   const outreach = yrStr(content.outreach_strategy);
   const packages = yrArr(content.sponsorship_packages);
