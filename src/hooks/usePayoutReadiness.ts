@@ -38,7 +38,7 @@ export function usePayoutReadiness() {
     try {
       const { data: profile } = await supabase
         .from("author_profiles")
-        .select("id, stripe_account_id, stripe_onboarding_complete")
+        .select("id, stripe_onboarding_complete")
         .eq("user_id", user.id)
         .maybeSingle();
       if (!profile) {

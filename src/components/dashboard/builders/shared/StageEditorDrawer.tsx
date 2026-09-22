@@ -286,9 +286,9 @@ function CheckoutStagePanel({ authorId, nodeId }: CheckoutPanelProps) {
                 .maybeSingle()
             : Promise.resolve({ data: null, error: null } as any),
           supabase
-            .from("author_profiles")
-            .select("stripe_connected_account_id, stripe_onboarding_complete")
-            .eq("id", authorId)
+            .from("author_payout_accounts")
+            .select("stripe_connected_account_id")
+            .eq("author_id", authorId)
             .maybeSingle(),
         ]);
         if (cancelled) return;
