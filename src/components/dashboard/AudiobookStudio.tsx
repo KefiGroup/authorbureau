@@ -447,7 +447,7 @@ export default function AudiobookStudio({ bookId, bookTitle, userId }: Props) {
   };
 
   // Play a chapter
-  const handlePlayChapter = (index: number) => {
+  const handlePlayChapter = async (index: number) => {
     const ch = chapters[index];
     if (!ch?.audioUrl) return;
     if (playingIndex === index && playerRef.current) {
