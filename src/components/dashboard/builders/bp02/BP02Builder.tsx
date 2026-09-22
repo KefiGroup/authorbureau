@@ -453,7 +453,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
         <BuilderHeader
           nodeId="BP-02"
           title="Lead Magnets"
-          subtitle="A complete lead magnet + opt-in microsite + nurture sequence"
+          subtitle={`${bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : "Selected book")} · A complete lead magnet + opt-in microsite + nurture sequence`}
           icon={Gift}
         />
         {/* Back navigation handled by NodeBuilder page wrapper — preserves bookId/bookTitle. */}
@@ -486,7 +486,10 @@ export default function BP02Builder({ authorId, bookId }: Props) {
         )}
         {step === 0 && (
           <AbbyCard>
-            <h2 className="text-xl font-bold mb-3">Let's build your Lead Magnets</h2>
+            <h2 className="text-xl font-bold mb-1">Let's build your Lead Magnets</h2>
+            <p className="text-sm font-medium text-primary mb-3">
+              For {bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : "your selected book")}
+            </p>
             {!isBookLoading && !hasBook && hasContext === false ? (
               <>
                 <p className="text-muted-foreground mb-4">

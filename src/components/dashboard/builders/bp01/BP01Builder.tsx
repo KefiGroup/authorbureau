@@ -286,7 +286,7 @@ export default function BP01Builder({ authorId, bookId }: Props) {
         <BuilderHeader
           nodeId="BP-01"
           title="Email Marketing"
-          subtitle="Welcome sequence + lead magnet offer + first broadcast"
+          subtitle={`${bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : "Selected book")} · Welcome sequence + lead magnet offer + first broadcast`}
           icon={Mail}
         />
         {/* Back navigation handled by NodeBuilder page wrapper — preserves bookId/bookTitle. */}
@@ -317,7 +317,10 @@ export default function BP01Builder({ authorId, bookId }: Props) {
         {step === 0 && (
           <>
             <AbbyCard>
-              <h2 className="text-xl font-bold mb-3">Let's build your Email Marketing</h2>
+              <h2 className="text-xl font-bold mb-1">Let's build your Email Marketing</h2>
+              <p className="text-sm font-medium text-primary mb-3">
+                For {bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : "your selected book")}
+              </p>
               {!isBookLoading && hasContext !== null && !hasBook && !hasContext ? (
                 <>
                   <p className="text-muted-foreground mb-4">

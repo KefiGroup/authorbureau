@@ -104,10 +104,16 @@ export const NODE_NAMES: Record<string, string> = {
  * Builds the full microsite URL for a given node.
  * Returns null for nodes without public pages.
  */
-export function getMicrositeUrl(penNameSlug: string, nodeId: string): string | null {
+export function getMicrositeUrl(
+  penNameSlug: string,
+  nodeId: string,
+  bookSlug?: string | null,
+): string | null {
   if (NO_MICROSITE_NODES.has(nodeId)) return null;
   const slug = NODE_SLUG_MAP[nodeId];
   if (slug === undefined) return null;
-  const base = typeof window !== 'undefined' ? window.location.origin : 'https://authorbureau.lovable.app';
-  return `${base}/${penNameSlug}/${slug}`;
+  const path = bookSlug
+    ? `/${penNameSlug}/${bookSlug}/${slug}`
+    : `/${penNameSlug}/${slug}`;
+  return `https://authorsbureau.com${path}`;
 }

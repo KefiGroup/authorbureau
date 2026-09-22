@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
     // Query: author_id IN (idList) OR owner_email = userEmail
     let query = db
       .from("books")
-      .select("id, title, author_name, genre, description, cover_image_url, owner_email, author_id")
+      .select("id, title, slug, author_name, genre, description, cover_image_url, owner_email, author_id")
       .order("created_at", { ascending: false });
 
     if (requestedBookId) {
@@ -186,6 +186,7 @@ Deno.serve(async (req) => {
         book: {
           id: row.id,
           title: curatedTitle ?? row.title,
+           slug: row.slug || undefined,
           author: row.author_name || undefined,
           genre: row.genre || undefined,
           description: row.description || undefined,

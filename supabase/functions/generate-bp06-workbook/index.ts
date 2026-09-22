@@ -78,7 +78,7 @@ Generate the following as a JSON object with these EXACT keys and EXACT shapes:
   "workbook_subtitle": "One-line subtitle",
   "tagline": "Punchy tagline — MAX 8 WORDS, no period",
   "page_count": "e.g., 45 pages",
-  "format": "8.5 × 11\\" PDF + Word — Amazon KDP-ready (do not change this value)",
+  "format": "8.5 × 11\\" PDF + Word, Amazon KDP-ready",
   "transformation_promise": "ONE sentence, second person ('you'), present-tense action verb, MAX 30 words.",
   "sections": [
     {
