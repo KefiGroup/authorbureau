@@ -29,9 +29,11 @@ interface Props {
   stripeReady?: boolean;
   /** Whether the viewer is the owning author. */
   isOwnerViewing?: boolean;
+  /** book.id -> number of live reader-facing offers on that book's page. */
+  offerCounts?: Record<string, number>;
 }
 
-export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v, authorId, stripeReady = true, isOwnerViewing = false }: Props) {
+export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v, authorId, stripeReady = true, isOwnerViewing = false, offerCounts = {} }: Props) {
   if (booksWithProducts.length === 0) return null;
   const totalBooks = booksWithProducts.length;
 
@@ -41,9 +43,12 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
     const prefix = node.node_id.substring(0, 5);
     const badge = FORMAT_BADGES[prefix];
     if (!badge) return;
-    // Try to match node to a book via content_json.book_id or content_json.book_slug
-    const bookId = node.content_json?.book_id as string | undefined;
+    // A format belongs to the book it was built for. Never fan a node out
+    // across every book — that is what made the page look duplicated.
+    const bookId = ((node as unknown as { book_id?: string }).book_id
+      || (node.content_json?.book_id as string | undefined)) as string | undefined;
     const bookSlug = node.content_json?.book_slug as string | undefined;
+    if (!bookId && !bookSlug) return;
     booksWithProducts.forEach(book => {
       if ((bookId && book.id === bookId) || (bookSlug && book.slug === bookSlug)) {
         const existing = bookFormatBadges.get(book.id) || [];
@@ -53,16 +58,6 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
         }
       }
     });
-    // If no book match, apply to all books (author-level node)
-    if (!bookId && !bookSlug) {
-      booksWithProducts.forEach(book => {
-        const existing = bookFormatBadges.get(book.id) || [];
-        if (!existing.find(b => b.label === badge.label)) {
-          existing.push(badge);
-          bookFormatBadges.set(book.id, existing);
-        }
-      });
-    }
   });
 
   return (
@@ -78,6 +73,7 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
             const lowestPrice = getLowestPrice(book);
             const desc = book.description || "";
             const shortDesc = desc.split(/\.\s+/).slice(0, 2).join(". ") + (desc.includes(".") ? "." : "");
+            const offerCount = offerCounts[book.id] || 0;
             return (
               <motion.div key={book.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
                 <div
@@ -130,9 +126,14 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                       <Link to={`/${authorSlug}/${book.slug}`}>
                         <button className="w-full inline-flex items-center justify-center gap-1.5 font-bold text-sm rounded-lg transition-all px-5 py-2.5"
                           style={{ background: v.primary, color: v.primaryText }}>
-                          View Book <ArrowRight className="h-3.5 w-3.5" />
+                          {offerCount > 0 ? "Explore this book" : "View Book"} <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                       </Link>
+                      {offerCount > 0 && (
+                        <span className="text-[11px] text-center md:text-right" style={{ color: v.mutedText }}>
+                          {offerCount} way{offerCount === 1 ? "" : "s"} to go deeper inside
+                        </span>
+                      )}
                       {(bookFormatBadges.get(book.id) || []).some(fb => fb.label === "Audiobook") && (
                         <Link to={`/${authorSlug}/${book.slug}/audiobook`}>
                           <button className="w-full inline-flex items-center justify-center gap-1.5 font-semibold text-xs rounded-lg transition-all px-4 py-2 border"

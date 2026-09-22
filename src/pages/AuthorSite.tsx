@@ -16,20 +16,14 @@ import { getLowestPrice } from "./author-site/types";
 import AuthorHeroSection from "./author-site/AuthorHeroSection";
 import AuthorAboutSection from "./author-site/AuthorAboutSection";
 import AuthorBooksSection from "./author-site/AuthorBooksSection";
-import AuthorLeadMagnetsSection from "./author-site/AuthorLeadMagnetsSection";
-import AuthorLearnSection from "./author-site/AuthorLearnSection";
-import AuthorServicesSection from "./author-site/AuthorServicesSection";
-import AuthorEventsSection from "./author-site/AuthorEventsSection";
 import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
 import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
-import AuthorWorkWithMe, { selectCustomerNodes, offerTitleKey } from "@/components/public/AuthorWorkWithMe";
 import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
 import AuthorFrameworkSection, { type FrameworkStage } from "./author-site/AuthorFrameworkSection";
 import AuthorSocialProofBar from "./author-site/AuthorSocialProofBar";
 import AuthorPodcastMediaSection from "./author-site/AuthorPodcastMediaSection";
-import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
 export default function AuthorSite() {
@@ -73,40 +67,22 @@ export default function AuthorSite() {
     );
   }, [booksWithProducts]);
 
-  const leadMagnets = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BP-02")), [liveNodes]);
-
-  // "Work With Me" is the single offer ladder on the page. Books, formats,
-  // lead magnets and in-person events live in their own sections, so they are
-  // excluded here; everything else is sold exactly once, right there.
-  // BP-03 (social media) is a marketing engine, never something a reader buys.
-  const WORK_WITH_ME_EXCLUDED = ["BP-01", "BP-02", "BP-03", "BP-08", "BA-11", "BP-06", "BA-17", "YR-24", "YR-26"];
-  const workWithMeNodes = useMemo(
-    () => selectCustomerNodes(liveNodes.filter(n => !WORK_WITH_ME_EXCLUDED.some(p => n.node_id.startsWith(p)))),
+  // Reader-facing nodes that count as "ways to go deeper" for a given book.
+  // Back-office and marketing nodes never count: BP-01 email, BP-03 social,
+  // BP-04 website, BA-15/16/18 media & partners, YR-27/28 funding.
+  const NON_READER_NODES = ["BP-01", "BP-03", "BP-04", "BA-15", "BA-16", "BA-18", "YR-27", "YR-28"];
+  const offerCountsByBook = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const n of liveNodes) {
+      if (!n.book_id) continue;
+      if (NON_READER_NODES.some(p => n.node_id.startsWith(p))) continue;
+      if (!hasRequiredAssets(n.node_id, n.content_json)) continue;
+      counts[n.book_id] = (counts[n.book_id] || 0) + 1;
+    }
+    return counts;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [liveNodes]
-  );
-  // Any offer already listed above never appears again further down the page.
-  const listedOfferKeys = useMemo(
-    () => new Set(workWithMeNodes.map(n => offerTitleKey(n))),
-    [workWithMeNodes]
-  );
-  const notAlreadyListed = (n: LiveNode) => !listedOfferKeys.has(offerTitleKey(n));
+  }, [liveNodes]);
 
-  const learnNodes = useMemo(() => liveNodes.filter(n =>
-    ["BP-05", "BP-07", "BA-10", "BA-12", "YR-25"].some(p => n.node_id.startsWith(p))
-  ).filter(notAlreadyListed),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [liveNodes, listedOfferKeys]);
-  const serviceNodes = useMemo(() => liveNodes.filter(n =>
-    ["YR-19", "BA-13", "YR-23", "YR-20", "YR-22", "YR-21"].some(p => n.node_id.startsWith(p))
-  ).filter(notAlreadyListed),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  [liveNodes, listedOfferKeys]);
-  // Reader-facing events only: retreats and conferences. Fundraising (YR-27)
-  // and sponsorship (YR-28) are partner-facing and stay off the public page.
-  const eventNodes = useMemo(() => liveNodes.filter(n =>
-    ["YR-24", "YR-26"].some(p => n.node_id.startsWith(p))
-  ), [liveNodes]);
   const podcastNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-14")), [liveNodes]);
   const affiliateNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-16")), [liveNodes]);
   const formatNodes = useMemo(() => liveNodes.filter(n =>
@@ -431,11 +407,11 @@ export default function AuthorSite() {
         authorName={displayName}
         authorPhotoUrl={author.photo_url}
         books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
-        hasServices={coachingServices.length > 0}
-        hasLearnSection={learnNodes.length > 0}
-        hasQuizSection={leadMagnets.length > 0}
-        hasEvents={eventNodes.length > 0}
-        hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
+        hasServices={false}
+        hasLearnSection={false}
+        hasQuizSection={false}
+        hasEvents={false}
+        hasWorkWithMe={false}
         vars={v}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
@@ -458,33 +434,20 @@ export default function AuthorSite() {
       {/* One story, told once: book -> proof -> who she is -> free start -> one offer ladder -> proof -> events -> email. */}
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} heroBook={heroBook} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p)) && hasRequiredAssets(n.node_id, n.content_json)).length} theme={theme} v={v} />
       <AuthorSocialProofBar booksWithProducts={booksWithProducts} testimonialsCount={testimonials.length} theme={theme} v={v} />
-      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
+      {/* Every revenue stream lives on the book it belongs to. This page lists the
+          books and how much each one opens up; the book page is the storefront. */}
+      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} offerCounts={offerCountsByBook} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
       <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorFrameworkSection
         frameworkName={frameworkName}
         stages={frameworkStages}
-        ctaHref={leadMagnets.length > 0 ? "#quiz-section" : null}
-        ctaLabel="Take the Free Quiz"
+        ctaHref={heroBook ? `/${authorSlug}/${heroBook.slug}` : null}
+        ctaLabel="Explore the book"
         theme={theme}
         v={v}
       />
-      <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
-      <AuthorWorkWithMe
-        authorId={author.id}
-        authorSlug={authorSlug!}
-        authorName={displayName}
-        authorContactEmail={null}
-        isOwnerViewing={isOwner}
-        stripeReady={true /* Authors Bureau is Merchant of Record — platform Stripe always ready */}
-        liveNodes={workWithMeNodes as unknown as StorefrontNode[]}
-        theme={theme}
-        v={v}
-      />
-      <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
-      <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} isOwnerViewing={isOwner} authorPhoto={author.photo_url} testimonials={testimonials} />
       <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} isOwner={isOwner} />
-      <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
       <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} affiliateNodes={affiliateNodes} theme={theme} v={v} />
       <AuthorPodcastMediaSection author={author} displayName={displayName} theme={theme} v={v} />
       <AuthorRelatedSection relatedAuthors={relatedAuthors} theme={theme} v={v} />

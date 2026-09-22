@@ -415,7 +415,7 @@ export default function AuthorBookPage() {
       profile?.id
         ? supabase
             .from("author_nodes")
-            .select("node_id, node_name, personalised_name, status, price_usd, currency")
+            .select("node_id, node_name, personalised_name, status, price_usd, currency, book_id")
             .eq("author_id", profile.id)
             .eq("status", "live")
         : Promise.resolve({ data: [] as any[] }),
@@ -447,10 +447,12 @@ export default function AuthorBookPage() {
     });
     (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: parseProductDescription(p.description) }));
 
-    // Merge author_nodes (Option B: every author-level live node appears on every book page).
-    // Dedup by route — product-table rows already pushed above win because they have richer metadata.
+    // Each book owns its own revenue streams. Only nodes built for THIS book
+    // appear here, so a three-book author never sees the same offer repeated
+    // on every page. Nodes with no book are legacy rows and stay hidden.
     const existingRoutes = new Set(prods.map(p => p.route));
     (nodesRes.data || []).forEach((n: any) => {
+      if (n.book_id !== bookId) return;
       const mapping = NODE_TO_PRODUCT[n.node_id];
       if (!mapping) return;
       if (existingRoutes.has(mapping.route)) return;
@@ -460,8 +462,7 @@ export default function AuthorBookPage() {
         title: formatPublicLabel(n.personalised_name, mapping.label),
         route: mapping.route,
         price: priceNum && priceNum > 0 ? `$${priceNum.toLocaleString()}` : undefined,
-        // author_nodes are author-level, link to /:authorSlug/:route (not book-scoped)
-        linkTo: `/${authorSlug}/${mapping.route}`,
+        linkTo: `/${authorSlug}/${bookSlug}/${mapping.route}`,
       });
       existingRoutes.add(mapping.route);
     });
@@ -1258,6 +1259,31 @@ export default function AuthorBookPage() {
           </div>
         </section>
       )}
+
+      {/* ===== SECTION 6b: FREE COMPANION (lead magnet for THIS book) ===== */}
+      {(() => {
+        const freeGift = products.find(p => p.type === "leadmagnet");
+        if (!freeGift) return null;
+        return (
+          <section className="py-12 md:py-16" style={{ background: v.cardBg }}>
+            <div className="container max-w-3xl text-center">
+              <p className="text-xs font-bold tracking-widest mb-3" style={{ color: v.accent }}>FREE COMPANION</p>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: v.headingText, fontFamily: theme.headingFont }}>
+                {freeGift.title}
+              </h2>
+              <p className="text-sm mb-6" style={{ color: v.mutedText }}>
+                A free companion to {book.title}. No cost, no card needed.
+              </p>
+              <Link to={freeGift.linkTo || `/${authorSlug}/${book.slug}/${freeGift.route}`}>
+                <button className="inline-flex items-center gap-2 font-bold rounded-lg px-7 py-3"
+                  style={{ background: v.primary, color: v.primaryText }}>
+                  Get it free <ArrowRight className="h-4 w-4" />
+                </button>
+              </Link>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ===== SECTION 7: LEAD CAPTURE ===== */}
       <section id="book-subscribe" className="relative py-14 md:py-20" style={{ background: v.primary }}>
