@@ -80,6 +80,7 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
             const lowestPrice = getLowestPrice(book);
             const desc = book.description || "";
             const shortDesc = desc.split(/\.\s+/).slice(0, 2).join(". ") + (desc.includes(".") ? "." : "");
+            const offerCount = offerCounts[book.id] || 0;
             return (
               <motion.div key={book.id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>
                 <div
