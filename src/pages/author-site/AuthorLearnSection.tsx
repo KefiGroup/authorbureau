@@ -85,14 +85,16 @@ export default function AuthorLearnSection({ authorSlug, displayName, learnNodes
                   <div className="flex items-center justify-between mt-auto pt-3" style={{ borderTop: `1px solid ${v.cardBorder}` }}>
                     {priceLabel
                       ? <span className="font-bold text-sm" style={{ color: v.accent }}>{priceLabel}</span>
-                      : isKnownFree
-                        ? <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>
-                        : <span />}
+                      : isEnquiry
+                        ? <span className="font-semibold text-xs" style={{ color: v.mutedText }}>By application</span>
+                        : isKnownFree
+                          ? <span className="font-bold text-sm" style={{ color: v.accent }}>Free</span>
+                          : <span />}
                     <span
                       className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-md transition-all group-hover:brightness-110"
                       style={{ background: v.primary, color: v.primaryText }}
                     >
-                      Learn More <ArrowRight className="h-3 w-3" />
+                      {isEnquiry ? "Enquire" : "Learn More"} <ArrowRight className="h-3 w-3" />
                     </span>
                   </div>
                 </Link>
