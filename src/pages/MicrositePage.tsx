@@ -16,6 +16,7 @@ import AudiobookPage from "@/pages/microsite/AudiobookPage";
 import { normalizeOutcome } from "@/lib/workbook-pdf";
 import { stripHtml } from "@/lib/stripHtml";
 import { formatPublicLabel } from "@/lib/public-label";
+import { PERSONAL_SELLING_THRESHOLD } from "@/pages/author-site/node-price";
 import { WorkbookCoverArt } from "@/components/microsite/WorkbookCoverArt";
 
 interface MicrositeData {
@@ -248,7 +249,7 @@ export default function MicrositePage() {
       {/* BP-09 is now a private author toolkit, no public microsite. */}
       {resolvedNodeId === "BA-15" && <PressKitPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-16" && <AffiliatesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
-      {resolvedNodeId === "BA-17" && <BundlesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
+      {resolvedNodeId === "BA-17" && <BundlesPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-18" && <JVPartnersPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-13" && <GroupCoachingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "BA-14" && <PodcastPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} submitting={submitting} submitted={submitted} />}
@@ -2205,14 +2206,22 @@ function AffiliatesPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 }
 
 /* ═══ BUNDLES PAGE (BA-17) ═══ */
-function BundlesPage({ data, content, v, hFont, bgColor }: PageProps) {
+function BundlesPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
   const bundles: any[] = Array.isArray(content.bundles) ? content.bundles : [];
-  const upsells: any[] = Array.isArray(content.upsell_sequences) ? content.upsell_sequences : [];
-  const downsell = content.downsell;
   const ladderTitle = content.product_ladder_title || data.node.personalised_name || "Bundles & Offers";
   const summary = content.abby_summary;
   const paymentUrl = data.node.payment_link || content.stripe_checkout_url;
-  const contactEmail = data.author?.contact_email || content.media_contact_email;
+
+  const asNumber = (x: unknown): number | null => {
+    if (typeof x === "number" && x > 0) return x;
+    if (typeof x === "string") {
+      const n = parseFloat(x.replace(/[^0-9.]/g, ""));
+      if (!Number.isNaN(n) && n > 0) return n;
+    }
+    return null;
+  };
+  const money = (n: number) => `$${Number.isInteger(n) ? n.toLocaleString() : n.toFixed(2)}`;
+
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12 sm:py-20 space-y-12">
@@ -2242,81 +2251,77 @@ function BundlesPage({ data, content, v, hFont, bgColor }: PageProps) {
                   ))}
                 </ul>
               )}
-              <div className="space-y-2 pt-2 border-t" style={{ borderColor: v.cardBorder }}>
-                {b.individual_value_usd != null && (
-                  <p className="text-sm line-through" style={{ color: v.mutedText }}>${b.individual_value_usd}</p>
-                )}
-                <div className="flex items-baseline gap-2">
-                  {b.bundle_price_usd != null && (
-                    <span className="text-3xl font-bold" style={{ color: v.headingText }}>${b.bundle_price_usd}</span>
-                  )}
-                  {b.savings_usd != null && (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: v.accent, color: v.accentText }}>
-                      Save ${b.savings_usd}
-                    </span>
-                  )}
-                </div>
-              </div>
-              {paymentUrl ? (
-                <Button asChild className="w-full rounded-full" style={{ background: v.accent, color: v.accentText }}>
-                  <a href={paymentUrl} target="_blank" rel="noopener noreferrer">Get Bundle <ArrowRight className="ml-2 h-4 w-4" /></a>
-                </Button>
-              ) : contactEmail ? (
-                <Button asChild variant="outline" className="w-full rounded-full">
-                  <a href={`mailto:${contactEmail}?subject=${encodeURIComponent("Notify me: " + (b.bundle_name || "Bundle"))}`}>Notify Me</a>
-                </Button>
-              ) : (
-                <Button asChild variant="outline" className="w-full rounded-full">
-                  <Link to={`/${data.author.author_slug || ""}`}>Contact Author</Link>
-                </Button>
-              )}
+              {(() => {
+                const price = asNumber(b.bundle_price_usd);
+                const value = asNumber(b.individual_value_usd);
+                const savings = asNumber(b.savings_usd);
+                const enquiry = price != null && price >= PERSONAL_SELLING_THRESHOLD;
+                return (
+                  <>
+                    <div className="space-y-2 pt-2 border-t" style={{ borderColor: v.cardBorder }}>
+                      {!enquiry && value != null && (
+                        <p className="text-sm line-through" style={{ color: v.mutedText }}>{money(value)}</p>
+                      )}
+                      <div className="flex items-baseline gap-2">
+                        {enquiry ? (
+                          <span className="text-2xl font-semibold" style={{ color: v.headingText }}>By application</span>
+                        ) : price != null ? (
+                          <span className="text-3xl font-bold" style={{ color: v.headingText }}>{money(price)}</span>
+                        ) : null}
+                        {!enquiry && savings != null && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{ background: v.accent, color: v.accentText }}>
+                            Save {money(savings)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {!enquiry && paymentUrl ? (
+                      <Button asChild className="w-full rounded-full" style={{ background: v.accent, color: v.accentText }}>
+                        <a href={paymentUrl} target="_blank" rel="noopener noreferrer">Get Bundle <ArrowRight className="ml-2 h-4 w-4" /></a>
+                      </Button>
+                    ) : (
+                      <Button
+                        className="w-full rounded-full"
+                        style={{ background: v.accent, color: v.accentText }}
+                        onClick={() => {
+                          setMessage(`I would like to enquire about ${b.bundle_name || "this bundle"}.`);
+                          document.getElementById("bundle-enquiry")?.scrollIntoView({ behavior: "smooth" });
+                        }}
+                      >
+                        {enquiry ? "Enquire" : "Get Bundle"} <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    )}
+                  </>
+                );
+              })()}
             </Card>
           ))}
         </section>
       )}
 
-      {upsells.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>Upsell Sequences</h2>
-          <div className="space-y-3">
-            {upsells.map((u: any, i: number) => (
-              <details key={i} className="group rounded-lg border p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-                <summary className="cursor-pointer flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold" style={{ color: v.headingText }}>{u.upsell_product || u.upsell_headline}</p>
-                    {u.trigger && <p className="text-xs" style={{ color: v.mutedText }}>After: {u.trigger}</p>}
-                  </div>
-                  {u.upsell_price_usd != null && (
-                    <span className="text-lg font-bold shrink-0" style={{ color: v.accent }}>${u.upsell_price_usd}</span>
-                  )}
-                </summary>
-                <div className="mt-3 pt-3 border-t space-y-2" style={{ borderColor: v.cardBorder }}>
-                  {u.upsell_headline && <p className="text-sm font-semibold" style={{ color: v.headingText }}>{u.upsell_headline}</p>}
-                  {u.upsell_copy && <p className="text-sm" style={{ color: v.bodyText }}>{u.upsell_copy}</p>}
-                </div>
-              </details>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {downsell && typeof downsell === "object" && (
-        <section>
-          <Card className="p-6 space-y-2" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-            <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Alternative Offer</p>
-            <h3 className="text-lg font-semibold" style={{ color: v.headingText, fontFamily: hFont }}>
-              {downsell.downsell_product || downsell.downsell_headline}
-            </h3>
-            {downsell.trigger && <p className="text-xs" style={{ color: v.mutedText }}>Trigger: {downsell.trigger}</p>}
-            {downsell.downsell_headline && downsell.downsell_product && (
-              <p className="text-sm" style={{ color: v.bodyText }}>{downsell.downsell_headline}</p>
-            )}
-            {downsell.downsell_price_usd != null && (
-              <p className="text-2xl font-bold" style={{ color: v.headingText }}>${downsell.downsell_price_usd}</p>
-            )}
+      <section id="bundle-enquiry" className="max-w-xl mx-auto w-full">
+        {!submitted ? (
+          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <h2 className="text-xl font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Ask about these bundles</h2>
+            <p className="text-sm mb-4" style={{ color: v.mutedText }}>Tell us what you are after and we will come back to you personally.</p>
+            <form onSubmit={onSubmit} className="space-y-3">
+              <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+              <Input placeholder="Last name" value={lastName} onChange={e => setLastName(e.target.value)} />
+              <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+              <textarea className="w-full border rounded-md p-2 text-sm min-h-[100px]" placeholder="Which bundle interests you?" value={message} onChange={e => setMessage(e.target.value)} style={{ borderColor: v.cardBorder }} />
+              <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                {submitting ? "Sending..." : "Send Enquiry"} <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </form>
           </Card>
-        </section>
-      )}
+        ) : (
+          <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+            <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+            <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>Enquiry received</h3>
+            <p className="text-sm" style={{ color: v.mutedText }}>We will be in touch shortly.</p>
+          </Card>
+        )}
+      </section>
     </div>
   );
 }
