@@ -25,7 +25,8 @@ export default function AnalyseBookGate({ authorId, bookId, bookTitle, onAnalyse
 
   const handleAnalyse = async () => {
     if (!authorId || !bookId) {
-      setError("Missing author or book reference. Please reload the page.");
+      // Dead end otherwise: reloading never fixes a missing book selection.
+      setError("No book is selected for this module. Go to My Books and open the book you want to work on.");
       return;
     }
     setRunning(true);
