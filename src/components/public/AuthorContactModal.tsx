@@ -34,8 +34,9 @@ export default function AuthorContactModal({
   vars: v,
   headingFont,
   bodyFont,
+  prefillMessage,
 }: AuthorContactModalProps) {
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", email: "", message: prefillMessage || "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   
