@@ -222,7 +222,9 @@ export default function Directory() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <input
-                type="text"
+                id="directory-search"
+                type="search"
+                aria-label="Search authors by name, title, or bio"
                 placeholder="Search by name, title, or bio..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -230,6 +232,8 @@ export default function Directory() {
               />
             </div>
             <select
+              id="directory-sort"
+              aria-label="Sort authors"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
               className="rounded-full border border-border bg-card px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-secondary/50 appearance-none cursor-pointer"
