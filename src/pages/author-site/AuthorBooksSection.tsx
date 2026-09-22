@@ -133,9 +133,14 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                       <Link to={`/${authorSlug}/${book.slug}`}>
                         <button className="w-full inline-flex items-center justify-center gap-1.5 font-bold text-sm rounded-lg transition-all px-5 py-2.5"
                           style={{ background: v.primary, color: v.primaryText }}>
-                          View Book <ArrowRight className="h-3.5 w-3.5" />
+                          {offerCount > 0 ? "Explore this book" : "View Book"} <ArrowRight className="h-3.5 w-3.5" />
                         </button>
                       </Link>
+                      {offerCount > 0 && (
+                        <span className="text-[11px] text-center md:text-right" style={{ color: v.mutedText }}>
+                          {offerCount} way{offerCount === 1 ? "" : "s"} to go deeper inside
+                        </span>
+                      )}
                       {(bookFormatBadges.get(book.id) || []).some(fb => fb.label === "Audiobook") && (
                         <Link to={`/${authorSlug}/${book.slug}/audiobook`}>
                           <button className="w-full inline-flex items-center justify-center gap-1.5 font-semibold text-xs rounded-lg transition-all px-4 py-2 border"
