@@ -54,7 +54,8 @@ export async function publishNodeToSite(
     if (res.status === 409 && parsed?.error === "stripe_required") {
       throw new StripeRequiredError(parsed?.message || "Connect Stripe before publishing paid products.");
     }
-    const msg = parsed?.error || `Publish failed (HTTP ${res.status})`;
+    // 422 carries a plain-language reason in `message` (missing deliverable).
+    const msg = parsed?.message || parsed?.error || `Publish failed (HTTP ${res.status})`;
     console.error("[publishNodeToSite] failed:", msg, parsed);
     throw new Error(msg);
   }
