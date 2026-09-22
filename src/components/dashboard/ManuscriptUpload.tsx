@@ -22,8 +22,15 @@ interface ManuscriptUploadProps {
   onContinue?: () => void;
 }
 
-/** Extract text from PDF using pdfjs-dist */
-async function extractPdfText(file: File): Promise<string> {
+/**
+ * Extract text from PDF using pdfjs-dist.
+ * If the PDF is a scan (pages are images, little or no selectable text),
+ * fall back to on-device character recognition so scanned books still work.
+ */
+async function extractPdfText(
+  file: File,
+  onStatus?: (msg: string) => void,
+): Promise<string> {
   const pdfjsLib = await import("pdfjs-dist");
   pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
@@ -40,7 +47,45 @@ async function extractPdfText(file: File): Promise<string> {
     pages.push(text);
   }
 
-  return pages.join("\n\n");
+  const joined = pages.join("\n\n");
+  const avgPerPage = joined.replace(/\s+/g, " ").trim().length / Math.max(1, pdf.numPages);
+
+  // Typed pages carry hundreds of characters each. Anything thinner is a scan.
+  if (avgPerPage >= 120) return joined;
+
+  onStatus?.("This book is a scan — reading the pages as images. This takes a few minutes.");
+  return await ocrPdf(pdf, onStatus);
+}
+
+/** Read a scanned PDF page-by-page with on-device OCR. */
+async function ocrPdf(pdf: any, onStatus?: (msg: string) => void): Promise<string> {
+  const { createWorker } = await import("tesseract.js");
+  const worker = await createWorker("eng");
+  const out: string[] = [];
+
+  try {
+    for (let i = 1; i <= pdf.numPages; i++) {
+      onStatus?.(`Reading page ${i} of ${pdf.numPages} — please keep this page open.`);
+      const page = await pdf.getPage(i);
+      const viewport = page.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) break;
+      await page.render({ canvasContext: ctx, viewport, canvas } as any).promise;
+
+      const { data } = await worker.recognize(canvas);
+      out.push((data.text || "").trim());
+      canvas.width = 0;
+      canvas.height = 0;
+      page.cleanup?.();
+    }
+  } finally {
+    await worker.terminate();
+  }
+
+  return out.filter(Boolean).join("\n\n");
 }
 
 /** Extract text from DOCX using mammoth */
