@@ -443,10 +443,12 @@ export default function AuthorSite() {
       />
 
       <AuthorContactModal
+        key={enquirySubject || "general"}
         open={contactOpen}
-        onClose={() => setContactOpen(false)}
+        onClose={() => { setContactOpen(false); setEnquirySubject(null); }}
         authorName={displayName}
         authorId={author.user_id}
+        prefillMessage={enquirySubject ? `I would like to enquire about ${enquirySubject}.` : undefined}
         vars={{ ...v, bodyText: v.bodyText || "#4A4A4A" }}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
