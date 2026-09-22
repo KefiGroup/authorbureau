@@ -78,7 +78,7 @@ export default function AuthorSocialProofBar({ booksWithProducts, testimonialsCo
                   src={url}
                   alt="Amazon bestseller ranking screenshot"
                   loading="lazy"
-                  className="w-full rounded-lg"
+                  className="w-full max-h-64 object-cover object-top rounded-lg bg-white"
                   style={{ border: `1px solid ${v.cardBorder}` }}
                 />
               ))}
