@@ -43,10 +43,12 @@ interface Props {
   isOwnerViewing: boolean;
 }
 
+/** Same single price format as the rest of the public site: "$14.99".
+ *  A zero price is not a price, so it is hidden rather than shown as $0.00. */
 function formatPrice(value: number | null | undefined, currency: string | null | undefined): string | null {
-  if (value == null || isNaN(value)) return null;
+  if (value == null || isNaN(value) || value <= 0) return null;
   const code = (currency || "USD").toUpperCase();
-  if (code === "USD") return `$${value.toFixed(2)} USD`;
+  if (code === "USD") return `$${value.toFixed(2)}`;
   return `${code} ${value.toFixed(2)}`;
 }
 
