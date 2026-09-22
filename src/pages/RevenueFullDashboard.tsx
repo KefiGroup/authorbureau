@@ -231,7 +231,7 @@ export default function RevenueFullDashboard() {
         revenueMtd: monthRevenue,
       });
       // Real data — not projected
-      setProjected({ ghl: false, stripe: !(profile.stripe_onboarding_complete || profile.stripe_connected_account_id) });
+      setProjected({ ghl: false, stripe: !(profile.stripe_onboarding_complete || payout?.stripe_connected_account_id) });
       setLoading(false);
     })();
 
@@ -313,9 +313,11 @@ export default function RevenueFullDashboard() {
     if (!stripeInput.trim() || !authorId) return;
     setSaving(true);
     const { error } = await supabase
-      .from("author_profiles")
-      .update({ stripe_connected_account_id: stripeInput.trim() })
-      .eq("id", authorId);
+      .from("author_payout_accounts")
+      .upsert(
+        { author_id: authorId, user_id: user!.id, stripe_connected_account_id: stripeInput.trim() },
+        { onConflict: "author_id" }
+      );
     setSaving(false);
     if (error) {
       toast.error("Failed to save. Please try again.");
@@ -367,17 +369,22 @@ export default function RevenueFullDashboard() {
       const connected = !!data?.connected;
       const complete = !!data?.onboarding_complete;
       setStripeOnboardingComplete(complete);
-      // Re-pull the row to get the canonical stripe_account_id we just synced.
+      // Re-pull the rows to get the canonical stripe account id we just synced.
       if (authorId) {
-        const { data: profile } = await supabase
-          .from("author_profiles")
-          .select("stripe_account_id, stripe_onboarding_complete")
-          .eq("id", authorId)
-          .maybeSingle();
-        if (profile) {
-          setStripeConnectId(profile.stripe_account_id || null);
-          setStripeOnboardingComplete(!!profile.stripe_onboarding_complete);
-        }
+        const [{ data: profile }, { data: payout }] = await Promise.all([
+          supabase
+            .from("author_profiles")
+            .select("stripe_onboarding_complete")
+            .eq("id", authorId)
+            .maybeSingle(),
+          supabase
+            .from("author_payout_accounts")
+            .select("stripe_account_id")
+            .eq("author_id", authorId)
+            .maybeSingle(),
+        ]);
+        setStripeConnectId(payout?.stripe_account_id || null);
+        if (profile) setStripeOnboardingComplete(!!profile.stripe_onboarding_complete);
       }
       if (complete) {
         toast.success("Stripe connected — your revenue is now tracked.");
