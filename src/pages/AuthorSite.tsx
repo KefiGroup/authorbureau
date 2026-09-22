@@ -24,7 +24,6 @@ import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
 import AuthorFrameworkSection, { type FrameworkStage } from "./author-site/AuthorFrameworkSection";
 import AuthorSocialProofBar from "./author-site/AuthorSocialProofBar";
 import AuthorPodcastMediaSection from "./author-site/AuthorPodcastMediaSection";
-import type { StorefrontNode } from "@/components/public/AuthorProductCard";
 import type { LiveNode } from "./author-site/AuthorLeadMagnetsSection";
 
 export default function AuthorSite() {
