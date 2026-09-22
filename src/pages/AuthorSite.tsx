@@ -60,14 +60,37 @@ export default function AuthorSite() {
   }, [booksWithProducts]);
 
   const leadMagnets = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BP-02")), [liveNodes]);
+
+  // "Work With Me" is the single offer ladder on the page. Books, formats,
+  // lead magnets and in-person events live in their own sections, so they are
+  // excluded here; everything else is sold exactly once, right there.
+  const WORK_WITH_ME_EXCLUDED = ["BP-01", "BP-02", "BP-08", "BA-11", "BP-06", "BA-17", "YR-24", "YR-26"];
+  const workWithMeNodes = useMemo(
+    () => selectCustomerNodes(liveNodes.filter(n => !WORK_WITH_ME_EXCLUDED.some(p => n.node_id.startsWith(p)))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [liveNodes]
+  );
+  // Any offer already listed above never appears again further down the page.
+  const listedOfferKeys = useMemo(
+    () => new Set(workWithMeNodes.map(n => offerTitleKey(n))),
+    [workWithMeNodes]
+  );
+  const notAlreadyListed = (n: LiveNode) => !listedOfferKeys.has(offerTitleKey(n));
+
   const learnNodes = useMemo(() => liveNodes.filter(n =>
     ["BP-05", "BP-07", "BA-10", "BA-12", "YR-25"].some(p => n.node_id.startsWith(p))
-  ), [liveNodes]);
+  ).filter(notAlreadyListed),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [liveNodes, listedOfferKeys]);
   const serviceNodes = useMemo(() => liveNodes.filter(n =>
     ["YR-19", "BA-13", "YR-23", "YR-20", "YR-22", "YR-21"].some(p => n.node_id.startsWith(p))
-  ), [liveNodes]);
+  ).filter(notAlreadyListed),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [liveNodes, listedOfferKeys]);
+  // Reader-facing events only: retreats and conferences. Fundraising (YR-27)
+  // and sponsorship (YR-28) are partner-facing and stay off the public page.
   const eventNodes = useMemo(() => liveNodes.filter(n =>
-    ["YR-24", "YR-26", "YR-27", "YR-28"].some(p => n.node_id.startsWith(p))
+    ["YR-24", "YR-26"].some(p => n.node_id.startsWith(p))
   ), [liveNodes]);
   const podcastNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-14")), [liveNodes]);
   const affiliateNodes = useMemo(() => liveNodes.filter(n => n.node_id.startsWith("BA-16")), [liveNodes]);

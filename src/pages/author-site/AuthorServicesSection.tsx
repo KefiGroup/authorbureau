@@ -88,7 +88,7 @@ export default function AuthorServicesSection({ authorSlug, displayName, coachin
                     Start Here
                   </span>
                   <p className="text-sm" style={{ color: v.bodyText }}>
-                    New to {displayName}? Begin with <strong style={{ color: v.headingText }}>{recTitle}</strong> — the easiest way to get started. You can always move up to deeper programmes as you grow.
+                    New to {displayName}? Begin with <strong style={{ color: v.headingText }}>{recTitle}</strong>, the easiest way to get started. You can always move up to deeper programmes as you grow.
                   </p>
                 </div>
               );

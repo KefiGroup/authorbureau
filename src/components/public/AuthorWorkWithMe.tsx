@@ -151,7 +151,7 @@ export default function AuthorWorkWithMe({
             Work With Me
           </h2>
           <p className="text-base" style={{ color: v.mutedText }}>
-            Programmes and resources from {authorName} — pick where you are right now.
+            Everything {authorName} offers, in one place. Start at Tier 1 and move up when you are ready.
           </p>
         </motion.div>
 
