@@ -177,6 +177,8 @@ const AppRoutes = () => (
       {/* Readers Bureau */}
       <Route path="/readers-bureau" element={<ReadersBureau />} />
       <Route path="/readers-bureau/auth" element={<ReaderAuth />} />
+      {/* Legacy path used by older sign-in emails — keep working (hash tokens included) */}
+      <Route path="/reader-auth" element={<ReaderAuth />} />
       <Route path="/readers-bureau/learn/:purchaseId" element={<ReaderContentViewer />} />
       <Route path="/readers-bureau/course/:purchaseId" element={<OnlineCourseViewer />} />
 

@@ -32,6 +32,7 @@ export default function BuyNowButton({
 }: BuyNowButtonProps) {
   const [loading, setLoading] = useState(false);
   const [paymentsModal, setPaymentsModal] = useState(false);
+  const [errorModal, setErrorModal] = useState(false);
   const [leadEmail, setLeadEmail] = useState("");
   const [leadCaptured, setLeadCaptured] = useState(false);
 
