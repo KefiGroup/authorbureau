@@ -149,12 +149,9 @@ export default function Directory() {
   const isReaderGenre = (g: string) => {
     const key = g.trim().toLowerCase();
     if (!key) return false;
-    if (NON_READER_GENRES.has(key)) return false;
-    // Filter operational suffixes that read like internal taxonomy, not a genre.
-    if (/\b(strategy|development|advocacy|management|transformation|optimization|optimisation|enablement|operations)\b/i.test(key)) {
-      return false;
-    }
-    return true;
+    // Curated exclusion list only — a broad keyword match used to hide valid
+    // reader categories such as "Leadership Development" or "Operations Management".
+    return !NON_READER_GENRES.has(key);
   };
 
   const genreCounts = new Map<string, { label: string; count: number }>();

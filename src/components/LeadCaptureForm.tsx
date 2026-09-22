@@ -90,11 +90,10 @@ export default function LeadCaptureForm({
         padding: "12px 14px",
         background: cardBg ?? "rgba(255,255,255,0.08)",
         color: primaryText ?? "#fff",
-        outline: "none",
       };
   const inputClass = useTokens
     ? "h-12 sm:h-11 rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    : "h-12 sm:h-11 text-sm w-full";
+    : "h-12 sm:h-11 text-sm w-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-current";
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -198,6 +197,7 @@ export default function LeadCaptureForm({
       >
         <input
           type="text"
+          aria-label="Your name"
           placeholder="Your name *"
           value={name}
           onChange={(e) => setName(e.target.value)}
@@ -207,6 +207,7 @@ export default function LeadCaptureForm({
         />
         <input
           type="email"
+          aria-label="Your email address"
           placeholder="your@email.com *"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -216,6 +217,7 @@ export default function LeadCaptureForm({
         />
         {showMessage && layout === "stacked" && (
           <textarea
+            aria-label="Message (optional)"
             placeholder="Message (optional)"
             value={message}
             onChange={(e) => setMessage(e.target.value)}
