@@ -89,10 +89,27 @@ export default function AuthorWorkWithMe({
   theme,
   v,
 }: Props) {
+  const [expanded, setExpanded] = useState<Record<Tier, boolean>>({ start: false, deeper: false, enterprise: false });
+
   if (!liveNodes || liveNodes.length === 0) return null;
 
+  // Drop back-office nodes, then collapse duplicate offers that share a title
+  // (e.g. two "Collective" entries) so visitors never see the same thing twice.
+  const seenNames = new Set<string>();
+  const customerNodes = liveNodes
+    .filter((n) => !NON_CUSTOMER_NODE_IDS.some((p) => n.node_id.startsWith(p)))
+    .filter((n) => {
+      const key = (n.personalised_name || n.node_name || "").trim().toLowerCase();
+      if (!key) return true;
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    });
+
+  if (customerNodes.length === 0) return null;
+
   const grouped: Record<Tier, StorefrontNode[]> = { start: [], deeper: [], enterprise: [] };
-  for (const node of liveNodes) {
+  for (const node of customerNodes) {
     grouped[nodeTier(node.node_id)].push(node);
   }
   // Stable internal sort by node_id
