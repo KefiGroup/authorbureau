@@ -1809,6 +1809,13 @@ export type Database = {
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "course_deliverables_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       course_enrollments: {
@@ -1850,6 +1857,13 @@ export type Database = {
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "course_enrollments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       course_lessons: {
@@ -1889,6 +1903,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules_public"
             referencedColumns: ["id"]
           },
         ]
@@ -1953,6 +1974,13 @@ export type Database = {
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "course_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses_public"
+            referencedColumns: ["id"]
+          },
         ]
       }
       course_quizzes: {
@@ -1992,6 +2020,13 @@ export type Database = {
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "course_lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_quizzes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "course_lessons_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3820,6 +3855,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_progress_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules_public"
             referencedColumns: ["id"]
           },
         ]
@@ -6164,6 +6206,75 @@ export type Database = {
       }
     }
     Views: {
+      audiobooks_public: {
+        Row: {
+          author_id: string | null
+          book_id: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          distribution_status: string | null
+          duration_minutes: number | null
+          id: string | null
+          narrator_credit: string | null
+          narrator_type: string | null
+          preview_chapter_index: number | null
+          price: number | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          book_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          distribution_status?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          narrator_credit?: string | null
+          narrator_type?: string | null
+          preview_chapter_index?: number | null
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          book_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          distribution_status?: string | null
+          duration_minutes?: number | null
+          id?: string | null
+          narrator_credit?: string | null
+          narrator_type?: string | null
+          preview_chapter_index?: number | null
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audiobooks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audiobooks_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       author_profiles_admin: {
         Row: {
           account_id: string | null
@@ -6548,6 +6659,195 @@ export type Database = {
           },
         ]
       }
+      course_lessons_public: {
+        Row: {
+          id: string | null
+          module_id: string | null
+          position: number | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_modules_public: {
+        Row: {
+          course_id: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string | null
+          module_number: number | null
+          position: number | null
+          title: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_modules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      courses_public: {
+        Row: {
+          author_id: string | null
+          book_id: string | null
+          course_format: string | null
+          course_slug: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          id: string | null
+          price: number | null
+          status: string | null
+          subtitle: string | null
+          tagline: string | null
+          target_student: string | null
+          title: string | null
+          transformation_promises: Json | null
+          updated_at: string | null
+          workshop_schedule: Json | null
+        }
+        Insert: {
+          author_id?: string | null
+          book_id?: string | null
+          course_format?: string | null
+          course_slug?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          price?: number | null
+          status?: string | null
+          subtitle?: string | null
+          tagline?: string | null
+          target_student?: string | null
+          title?: string | null
+          transformation_promises?: Json | null
+          updated_at?: string | null
+          workshop_schedule?: Json | null
+        }
+        Update: {
+          author_id?: string | null
+          book_id?: string | null
+          course_format?: string | null
+          course_slug?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          id?: string | null
+          price?: number | null
+          status?: string | null
+          subtitle?: string | null
+          tagline?: string | null
+          target_student?: string | null
+          title?: string | null
+          transformation_promises?: Json | null
+          updated_at?: string | null
+          workshop_schedule?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      home_study_courses_public: {
+        Row: {
+          author_id: string | null
+          book_id: string | null
+          cover_image_url: string | null
+          created_at: string | null
+          currency: string | null
+          description: string | null
+          duration_days: number | null
+          id: string | null
+          price: number | null
+          status: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          author_id?: string | null
+          book_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          duration_days?: number | null
+          id?: string | null
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          author_id?: string | null
+          book_id?: string | null
+          cover_image_url?: string | null
+          created_at?: string | null
+          currency?: string | null
+          description?: string | null
+          duration_days?: number | null
+          id?: string | null
+          price?: number | null
+          status?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_study_courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_study_courses_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       link_audit_v: {
         Row: {
           archetype: Database["public"]["Enums"]["node_archetype"] | null
@@ -6697,6 +6997,7 @@ export type Database = {
         Args: { p_author_id: string; p_expires_at?: string; p_tier: string }
         Returns: Json
       }
+      can_access_course: { Args: { _course_id: string }; Returns: boolean }
       check_rate_limit: {
         Args: { p_key: string; p_limit: number; p_window_seconds: number }
         Returns: boolean
@@ -6730,6 +7031,7 @@ export type Database = {
           days_logged: number
         }[]
       }
+      has_purchased: { Args: { _product_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
