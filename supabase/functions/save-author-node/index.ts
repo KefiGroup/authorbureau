@@ -64,6 +64,18 @@ const REQUIRED_KIND: Record<string, string> = {
   "YR-28": "docx",
 };
 
+// Plain-language reasons shown on the Publish button when nothing can be attached.
+const MISSING_DELIVERABLE_MESSAGE: Record<string, string> = {
+  "BP-01": "Generate the welcome email sequence before publishing this module.",
+  "BP-03": "Generate your social posts or content calendar before publishing this module.",
+  "BP-04": "Save your website address before publishing this module.",
+  "BP-06": "Generate and save the workbook before publishing this module.",
+  "BP-08": "Add at least one special edition or bundle before publishing this module.",
+  "BP-09": "Add your Amazon link or sales page address before publishing this module.",
+  "BA-11": "Finish generating the audiobook files before publishing this module.",
+  "BA-14": "Add your podcast feed address or generate episodes before publishing this module.",
+};
+
 function nonEmptyStr(v: unknown): v is string {
   return typeof v === "string" && v.trim().length > 0;
 }
