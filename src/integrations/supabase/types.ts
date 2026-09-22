@@ -48,6 +48,13 @@ export type Database = {
             foreignKeyName: "abby_conversations_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abby_conversations_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -100,6 +107,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abby_nudges_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -363,6 +377,13 @@ export type Database = {
             foreignKeyName: "author_annual_statements_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_annual_statements_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -472,6 +493,13 @@ export type Database = {
             foreignKeyName: "author_context_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_context_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -547,6 +575,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_earnings_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -744,6 +779,13 @@ export type Database = {
             foreignKeyName: "author_nodes_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -811,6 +853,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: true
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_payout_accounts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -986,6 +1035,13 @@ export type Database = {
             foreignKeyName: "author_payouts_v2_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_payouts_v2_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -1013,7 +1069,6 @@ export type Database = {
           availability_notes: string | null
           bio_long: string | null
           bio_short: string | null
-          business_plan_json: Json | null
           claim_email: string | null
           consultation_promo_codes: Json | null
           consultation_promo_expires_at: string | null
@@ -1049,9 +1104,6 @@ export type Database = {
           sign_off_phrase: string | null
           site_theme: string
           speaker_fee_range: string | null
-          stripe_account_id: string | null
-          stripe_connected_account_id: string | null
-          stripe_customer_id: string | null
           stripe_onboarding_complete: boolean | null
           subscription_tier: string
           suspended_at: string | null
@@ -1075,7 +1127,6 @@ export type Database = {
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null
-          business_plan_json?: Json | null
           claim_email?: string | null
           consultation_promo_codes?: Json | null
           consultation_promo_expires_at?: string | null
@@ -1111,9 +1162,6 @@ export type Database = {
           sign_off_phrase?: string | null
           site_theme?: string
           speaker_fee_range?: string | null
-          stripe_account_id?: string | null
-          stripe_connected_account_id?: string | null
-          stripe_customer_id?: string | null
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
           suspended_at?: string | null
@@ -1137,7 +1185,6 @@ export type Database = {
           availability_notes?: string | null
           bio_long?: string | null
           bio_short?: string | null
-          business_plan_json?: Json | null
           claim_email?: string | null
           consultation_promo_codes?: Json | null
           consultation_promo_expires_at?: string | null
@@ -1173,9 +1220,6 @@ export type Database = {
           sign_off_phrase?: string | null
           site_theme?: string
           speaker_fee_range?: string | null
-          stripe_account_id?: string | null
-          stripe_connected_account_id?: string | null
-          stripe_customer_id?: string | null
           stripe_onboarding_complete?: boolean | null
           subscription_tier?: string
           suspended_at?: string | null
@@ -1237,6 +1281,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_revenue_snapshots_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -1451,6 +1502,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -2224,6 +2282,13 @@ export type Database = {
             foreignKeyName: "crm_daily_digests_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_daily_digests_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -2668,6 +2733,13 @@ export type Database = {
             foreignKeyName: "email_lists_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_lists_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -3103,6 +3175,13 @@ export type Database = {
             foreignKeyName: "funnel_submissions_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnel_submissions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -3195,6 +3274,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnels_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -3459,6 +3545,13 @@ export type Database = {
             foreignKeyName: "lead_activities_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_activities_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -3655,6 +3748,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: true
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -5482,6 +5582,13 @@ export type Database = {
             foreignKeyName: "subscriptions_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -6057,6 +6164,70 @@ export type Database = {
       }
     }
     Views: {
+      author_profiles_admin: {
+        Row: {
+          account_id: string | null
+          amazon_author_profile_url: string | null
+          author_slug: string | null
+          availability_notes: string | null
+          bio_long: string | null
+          bio_short: string | null
+          claim_email: string | null
+          consultation_promo_codes: Json | null
+          consultation_promo_expires_at: string | null
+          cover_photo_url: string | null
+          created_at: string | null
+          credentials: Json | null
+          directory_status: string | null
+          facebook_url: string | null
+          frameworks: Json | null
+          genres: string[] | null
+          has_seen_journey_onboarding: boolean | null
+          id: string | null
+          instagram_url: string | null
+          is_speaker: boolean | null
+          last_report_sent_at: string | null
+          last_synced_at: string | null
+          linkedin_url: string | null
+          location_city: string | null
+          location_country: string | null
+          methodology_name: string | null
+          onboarding_completed: boolean | null
+          pen_name: string | null
+          photo_crop_y: string | null
+          photo_url: string | null
+          photo_zoom: number | null
+          podcast_apple_url: string | null
+          podcast_rss_url: string | null
+          podcast_spotify_url: string | null
+          quiz_name: string | null
+          report_frequency: string | null
+          report_monthly_day: number | null
+          report_weekly_day: number | null
+          sign_off_phrase: string | null
+          site_theme: string | null
+          speaker_fee_range: string | null
+          stripe_account_id: string | null
+          stripe_connected_account_id: string | null
+          stripe_customer_id: string | null
+          stripe_onboarding_complete: boolean | null
+          subscription_tier: string | null
+          suspended_at: string | null
+          suspended_by: string | null
+          suspended_reason: string | null
+          tagline: string | null
+          tier_expires_at: string | null
+          tier_override_at: string | null
+          tier_override_by: string | null
+          timezone: string | null
+          twitter_url: string | null
+          updated_at: string | null
+          user_id: string | null
+          website_url: string | null
+          youtube_url: string | null
+        }
+        Relationships: []
+      }
       author_profiles_public: {
         Row: {
           amazon_author_profile_url: string | null
@@ -6358,6 +6529,13 @@ export type Database = {
             foreignKeyName: "books_author_id_fkey"
             columns: ["author_id"]
             isOneToOne: false
+            referencedRelation: "author_profiles_admin"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "books_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
             referencedRelation: "author_profiles_public"
             referencedColumns: ["id"]
           },
@@ -6393,6 +6571,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_nodes_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
@@ -6461,6 +6646,13 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: true
             referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "membership_content_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_admin"
             referencedColumns: ["id"]
           },
           {
