@@ -173,13 +173,13 @@ export default function ProductCTA({
           onClick={() => setWaitlistOpen(true)}
         >
           <Clock className="mr-2 h-4 w-4" />
-          Coming Soon — Notify Me
+          Coming Soon: Notify Me
         </Button>
         <p
           className="text-[11px] leading-snug text-center px-1"
           style={{ color: theme.mutedText || "inherit" }}
         >
-          Payment setup in progress — be the first to know when it's live.
+          Payment setup in progress. Be the first to know when it's live.
         </p>
       </div>
 
