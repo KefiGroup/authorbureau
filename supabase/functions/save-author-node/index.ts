@@ -403,19 +403,27 @@ Deno.serve(async (req: Request) => {
     const callerAsset = libraryAsset && typeof libraryAsset === "object" && (libraryAsset as Record<string, unknown>).url
       ? (libraryAsset as Record<string, unknown>)
       : null;
-    // Sprint 55 adopter contract: these builders MUST upload a real library_asset.
-    // Refuse to publish them as `live` without one — prevents the silent-publish
-    // bug where a transient upload failure leaves a node live with no deliverable.
+    // Adopter contract: these builders must end up with a real deliverable.
+    // Order matters: build/derive the asset FIRST, and only refuse if there is
+    // genuinely nothing to attach. (Refusing before derivation made BP-03,
+    // BP-08 and BP-09 impossible to publish at all.)
     const ADOPTER_NODES = new Set(["BP-01", "BP-03", "BP-04", "BP-06", "BP-08", "BP-09", "BA-11", "BA-14"]);
     const previousAssetCheck = (existingContent.library_asset as Record<string, unknown> | undefined);
-    if (ADOPTER_NODES.has(nodeId!) && !callerAsset && !(previousAssetCheck && previousAssetCheck.url)) {
-      console.warn("[save-author-node:publish] adopter node missing library_asset", { nodeId, authorId });
+    const derivedAsset = callerAsset
+      ?? (previousAssetCheck && previousAssetCheck.url ? previousAssetCheck : null)
+      ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
+    if (ADOPTER_NODES.has(nodeId!) && !derivedAsset) {
+      console.warn("[save-author-node:publish] adopter node has no deliverable", { nodeId, authorId });
       return new Response(
-        JSON.stringify({ success: false, status: 422, message: `library_asset required for ${nodeId}` }),
+        JSON.stringify({
+          success: false,
+          status: 422,
+          message: MISSING_DELIVERABLE_MESSAGE[nodeId!]
+            ?? "Generate and save this module's content before publishing it.",
+        }),
         { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    const derivedAsset = callerAsset ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
     const previousAsset = existingContent.library_asset as Record<string, unknown> | undefined;
     const previousHistory = Array.isArray(existingContent.library_asset_history)
       ? (existingContent.library_asset_history as unknown[])
