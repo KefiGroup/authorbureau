@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { BookOpen, Sparkles, Globe, Linkedin, Twitter, Instagram, Youtube, Facebook } from "lucide-react";
 import type { AuthorData, BookWithProducts, ThemeVars } from "./types";
-import { getLowestPrice } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import { stripHtml } from "@/lib/stripHtml";
 
@@ -30,9 +29,8 @@ interface Props {
   v: ThemeVars;
 }
 
-export default function AuthorHeroSection({ author, displayName, booksWithProducts, heroBook: heroBookProp, allProducts, testimonialsCount = 0, liveProductsCount = 0, theme, v }: Props) {
+export default function AuthorHeroSection({ author, displayName, booksWithProducts, heroBook: heroBookProp, testimonialsCount = 0, theme, v }: Props) {
   const totalBooks = booksWithProducts.length;
-  const totalProducts = Math.max(allProducts.length, liveProductsCount);
 
   const socialLinks = SOCIAL_LINKS.filter(
     (s) => (author as unknown as Record<string, unknown>)[s.key]
