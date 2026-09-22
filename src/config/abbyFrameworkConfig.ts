@@ -61,8 +61,8 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     headerIcon: DollarSign,
     nodes: [
       // Branding & Marketing (5)
-      { id: "microsite", label: "Website", icon: BookOpen, section: "microsite-manager", navigateTo: "microsite-manager", description: "Your digital home base. Every other product points back here. Without a website, your book sales, lead magnets, and email list have nowhere to live. Build this first.", status: "available", subCategory: "Branding & Marketing", sequence: 1 },
-      { id: "lead-magnet", label: "Lead Magnets", icon: FileText, navigateTo: "lead-magnet", description: "Free resources (checklists, guides, sample chapters) that turn casual readers into subscribers. You need these before you can build an email list or run webinars.", status: "coming-soon", subCategory: "Branding & Marketing", sequence: 2 },
+      { id: "microsite", label: "Author Website", icon: BookOpen, section: "microsite-manager", navigateTo: "microsite-manager", description: "Your digital home base. Every other product points back here. Without a website, your book sales, lead magnets, and email list have nowhere to live. Build this first.", status: "available", subCategory: "Branding & Marketing", sequence: 1 },
+      { id: "lead-magnet", label: "Lead Magnet", icon: FileText, navigateTo: "lead-magnet", description: "Free resources (checklists, guides, sample chapters) that turn casual readers into subscribers. You need these before you can build an email list or run webinars.", status: "coming-soon", subCategory: "Branding & Marketing", sequence: 2 },
       { id: "email-marketing", label: "Email Marketing", icon: Megaphone, section: "email-marketing", navigateTo: "email-marketing", description: "Your most valuable asset. Social media gets attention; email keeps it. Once people opt in through your lead magnets, nurture them with automated sequences that build trust and drive sales.", status: "available", subCategory: "Branding & Marketing", sequence: 3 },
       { id: "social-media", label: "Social Media", icon: Share2, section: "social-media", navigateTo: "social-media", description: "Consistent content that drives traffic to your website and lead magnets. Now that you have something to offer visitors, it's time to attract them.", status: "available", subCategory: "Branding & Marketing", sequence: 4 },
       { id: "webinars", label: "Webinars", icon: Video, section: "webinars", navigateTo: "webinars", description: "Live or recorded presentations that showcase your expertise. By this point, you have a website, a book, lead magnets feeding your email list, and social media driving traffic. Webinars convert that warm audience into buyers.", status: "coming-soon", subCategory: "Branding & Marketing", sequence: 5 },
@@ -92,7 +92,7 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
       // Group 1: Scale Your Content (3)
       { id: "courses", label: "Online Course", icon: GraduationCap, section: "courses", navigateTo: "courses", description: "Your book content restructured into a teachable format with modules, lessons, and assignments. This is the natural first step because your manuscript already contains the material. Typically priced at $297–$997.", status: "available", subCategory: "Scale Your Content", sequence: 1, tierRequired: "Build" },
       { id: "audiobook", label: "Audiobook", icon: Headphones, section: "audiobook-studio", navigateTo: "audiobook-studio", description: "Your manuscript converted to professional audio. Opens your content to commuters, gym-goers, and audiobook listeners who won't buy the print version.", status: "coming-soon", subCategory: "Scale Your Content", sequence: 2, tierRequired: "Build" },
-      { id: "memberships", label: "Memberships", icon: CreditCard, section: "memberships", navigateTo: "memberships", description: "Recurring monthly or annual access to your content library (courses, audiobooks, exclusive resources, community). Once you have courses and audiobooks, bundle them into a membership that generates predictable recurring revenue.", status: "coming-soon", subCategory: "Scale Your Content", sequence: 3, tierRequired: "Build" },
+      { id: "memberships", label: "Membership", icon: CreditCard, section: "memberships", navigateTo: "memberships", description: "Recurring monthly or annual access to your content library (courses, audiobooks, exclusive resources, community). Once you have courses and audiobooks, bundle them into a membership that generates predictable recurring revenue.", status: "coming-soon", subCategory: "Scale Your Content", sequence: 3, tierRequired: "Build" },
       // Group 2: Grow Your Reach (3)
       { id: "group-coaching", label: "Group Coaching", icon: Users, section: "group-coaching", navigateTo: "group-coaching", description: "Small group coaching programs (8–20 people) teaching your methodology live. This builds on your course material but adds personal interaction, accountability, and higher price points ($1,500–$5,000 per person).", status: "coming-soon", subCategory: "Grow Your Reach", sequence: 4, tierRequired: "Build" },
       { id: "podcast-guest", label: "Podcast", icon: Podcast, section: "podcast", navigateTo: "podcast", description: "Get interviewed on podcasts in your niche. You provide the expertise; podcast hosts provide the audience. Low effort, high visibility.", status: "coming-soon", subCategory: "Grow Your Reach", sequence: 5, tierRequired: "Build" },
@@ -100,7 +100,7 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
       // Group 3: Monetize Your Network (3)
       { id: "affiliates", label: "Affiliates", icon: Link2, description: "Recommend products and services aligned with your audience's needs and earn commissions. Once you have an established audience from Groups 1–2, you can monetize through partnerships without creating new products.", status: "planned", subCategory: "Monetize Your Network", sequence: 7, tierRequired: "Build" },
       { id: "upsells", label: "Bundles", icon: TrendingUp, description: "Conversion sequences and funnel optimization. Maximize revenue from your existing audience by offering the right product at the right price point at the right time.", status: "planned", subCategory: "Monetize Your Network", sequence: 8, tierRequired: "Build" },
-      { id: "revenue-sharing", label: "Revenue Sharing", icon: Handshake, description: "Partnership matching and revenue-sharing contracts with complementary businesses. The most advanced monetization, requiring proven audience reach and authority to attract partners willing to share revenue.", status: "planned", subCategory: "Monetize Your Network", sequence: 9, tierRequired: "Build" },
+      { id: "revenue-sharing", label: "JV Partnerships", icon: Handshake, description: "Partnership matching and revenue-sharing contracts with complementary businesses. The most advanced monetization, requiring proven audience reach and authority to attract partners willing to share revenue.", status: "planned", subCategory: "Monetize Your Network", sequence: 9, tierRequired: "Build" },
     ],
   },
 
@@ -120,15 +120,15 @@ export const ABBY_CATEGORIES: Record<AbbyCategory, AbbyCategoryConfig> = {
     headerIcon: Award,
     nodes: [
       // High-Ticket Services (10)
-      { id: "coaching-1on1", label: "Coaching", icon: UserCheck, section: "coaching", navigateTo: "coaching", description: "One-on-one coaching for high-net-worth clients. Typically $500–$2,000 per session or $5,000–$25,000 per engagement. Requires direct client access and proven results.", status: "coming-soon", subCategory: "High-Ticket Services", sequence: 1, tierRequired: "Yield" },
-      { id: "big-ticket", label: "Consulting", icon: Trophy, navigateTo: "big-ticket", description: "Strategic advisory for businesses, organizations, or individuals. Similar to coaching but often focused on solving specific business problems. $10,000–$50,000+ per project.", status: "planned", subCategory: "High-Ticket Services", sequence: 2, tierRequired: "Yield" },
-      { id: "keynotes", label: "Keynotes", icon: Mic, section: "speaking", navigateTo: "speaking", description: "Speaking fees for conferences, corporate events, and summits. $2,500–$25,000+ per appearance depending on your fame and the event size. Requires a strong speaker reel and media presence.", status: "coming-soon", subCategory: "High-Ticket Services", sequence: 3, tierRequired: "Yield" },
-      { id: "training", label: "Training Programs", icon: Building2, description: "Corporate or organizational training programs. Teach your methodology to teams, departments, or entire companies. $5,000–$50,000+ per program depending on scope and audience size.", status: "planned", subCategory: "High-Ticket Services", sequence: 4, tierRequired: "Yield" },
-      { id: "masterminds", label: "Masterminds", icon: BarChart3, description: "Exclusive peer-to-peer groups where members pay $5,000–$25,000/year to mastermind with you and other high-achievers. Requires a strong network and proven results.", status: "planned", subCategory: "High-Ticket Services", sequence: 5, tierRequired: "Yield" },
-      { id: "retreats", label: "Retreats & Bootcamps", icon: Bookmark, description: "Multi-day immersive experiences (in-person or virtual). $2,500–$15,000+ per person depending on location, duration, and exclusivity. Combines teaching, networking, and transformation.", status: "planned", subCategory: "High-Ticket Services", sequence: 6, tierRequired: "Yield" },
+      { id: "coaching-1on1", label: "1-on-1 Coaching", icon: UserCheck, section: "coaching", navigateTo: "coaching", description: "One-on-one coaching for high-net-worth clients. Typically $500–$2,000 per session or $5,000–$25,000 per engagement. Requires direct client access and proven results.", status: "coming-soon", subCategory: "High-Ticket Services", sequence: 1, tierRequired: "Yield" },
+      { id: "big-ticket", label: "Big Ticket Consulting", icon: Trophy, navigateTo: "big-ticket", description: "Strategic advisory for businesses, organizations, or individuals. Similar to coaching but often focused on solving specific business problems. $10,000–$50,000+ per project.", status: "planned", subCategory: "High-Ticket Services", sequence: 2, tierRequired: "Yield" },
+      { id: "keynotes", label: "Speaking", icon: Mic, section: "speaking", navigateTo: "speaking", description: "Speaking fees for conferences, corporate events, and summits. $2,500–$25,000+ per appearance depending on your fame and the event size. Requires a strong speaker reel and media presence.", status: "coming-soon", subCategory: "High-Ticket Services", sequence: 3, tierRequired: "Yield" },
+      { id: "training", label: "Corporate Training", icon: Building2, description: "Corporate or organizational training programs. Teach your methodology to teams, departments, or entire companies. $5,000–$50,000+ per program depending on scope and audience size.", status: "planned", subCategory: "High-Ticket Services", sequence: 4, tierRequired: "Yield" },
+      { id: "masterminds", label: "Mastermind", icon: BarChart3, description: "Exclusive peer-to-peer groups where members pay $5,000–$25,000/year to mastermind with you and other high-achievers. Requires a strong network and proven results.", status: "planned", subCategory: "High-Ticket Services", sequence: 5, tierRequired: "Yield" },
+      { id: "retreats", label: "Retreats", icon: Bookmark, description: "Multi-day immersive experiences (in-person or virtual). $2,500–$15,000+ per person depending on location, duration, and exclusivity. Combines teaching, networking, and transformation.", status: "planned", subCategory: "High-Ticket Services", sequence: 6, tierRequired: "Yield" },
       { id: "certification", label: "Certification", icon: ShieldCheck, description: "Certify others to teach or implement your methodology. Create a certification program and earn revenue from certification fees, ongoing licensing, or partner revenue sharing. $5,000–$50,000+ per certification depending on rigor.", status: "planned", subCategory: "High-Ticket Services", sequence: 7, tierRequired: "Yield" },
-      { id: "conventions", label: "Conventions / Conferences", icon: Calendar, description: "Host or co-host industry conferences, summits, or conventions. Monetize through speaker fees, vendor booths, sponsorships, and ticket sales. $50,000–$500,000+ depending on scale.", status: "planned", subCategory: "High-Ticket Services", sequence: 8, tierRequired: "Yield" },
-      { id: "fundraising", label: "Fund Raising", icon: HandCoins, description: "Help organizations, nonprofits, or causes raise capital. Charge a percentage of funds raised or a flat advisory fee. $10,000–$100,000+ depending on the fundraising goal.", status: "planned", subCategory: "High-Ticket Services", sequence: 9, tierRequired: "Yield" },
+      { id: "conventions", label: "Conference", icon: Calendar, description: "Host or co-host industry conferences, summits, or conventions. Monetize through speaker fees, vendor booths, sponsorships, and ticket sales. $50,000–$500,000+ depending on scale.", status: "planned", subCategory: "High-Ticket Services", sequence: 8, tierRequired: "Yield" },
+      { id: "fundraising", label: "Fundraising", icon: HandCoins, description: "Help organizations, nonprofits, or causes raise capital. Charge a percentage of funds raised or a flat advisory fee. $10,000–$100,000+ depending on the fundraising goal.", status: "planned", subCategory: "High-Ticket Services", sequence: 9, tierRequired: "Yield" },
       { id: "exhibitors", label: "Sponsors", icon: Megaphone, description: "Create a marketplace or platform where vendors pay to exhibit or sell to your audience. Monetize through booth fees, commission on sales, or sponsorships. $5,000–$100,000+ depending on audience size and vendor demand.", status: "planned", subCategory: "High-Ticket Services", sequence: 10, tierRequired: "Yield" },
     ],
   },
@@ -257,22 +257,21 @@ export function getNodeSection(nodeId: string): { section: string; extraParams?:
  * on those cards was a no-op. Each builder file already exists under
  * src/components/dashboard/builders/ba14..ba18, so we route straight there.
  */
-const NODE_TO_NODE_BUILDER: Record<string, string> = {
-  // Brand Products — all have dedicated /node-builder/<ID> builders.
-  // Routing through the direct URL means refresh stays on the builder
-  // instead of bouncing to Book Hub.
+export const NODE_CODE_MAP: Record<string, string> = {
+  // Brand Products
   "email-marketing": "BP-01",
   "lead-magnet": "BP-02",
   "lead-magnets": "BP-02",
   "social-media": "BP-03",
   microsite: "BP-04",
   website: "BP-04",
-  "book-sales-events": "BP-09",
+  webinars: "BP-05",
   workbooks: "BP-06",
   "home-study": "BP-07",
-  courses: "BA-10",
-  webinars: "BP-05",
+  "special-editions": "BP-08",
+  "book-sales-events": "BP-09",
   // Build Authority
+  courses: "BA-10",
   audiobook: "BA-11",
   memberships: "BA-12",
   "group-coaching": "BA-13",
@@ -283,14 +282,18 @@ const NODE_TO_NODE_BUILDER: Record<string, string> = {
   "revenue-sharing": "BA-18",
   // Yield Revenue
   "coaching-1on1": "YR-19",
-  keynotes: "YR-20",
-  "big-ticket": "YR-21",
+  "big-ticket": "YR-20",
+  keynotes: "YR-21",
   training: "YR-22",
   masterminds: "YR-23",
   retreats: "YR-24",
   certification: "YR-25",
-  "special-editions": "BP-08",
+  conventions: "YR-26",
+  fundraising: "YR-27",
+  exhibitors: "YR-28",
 };
+
+const NODE_TO_NODE_BUILDER: Record<string, string> = NODE_CODE_MAP;
 
 /**
  * Map from nodeId to its dashboard studio path.

@@ -19,37 +19,10 @@ import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 export type NodeStatus = "completed" | "in-progress" | "available" | "locked" | "coming-soon";
 
 // Maps node config id -> author_nodes.node_id (BP-XX / BA-XX / YR-XX)
-export const NODE_CODE_MAP: Record<string, string> = {
-  microsite: "BP-04",
-  "lead-magnet": "BP-02",
-  "lead-magnets": "BP-02",
-  "email-marketing": "BP-01",
-  "social-media": "BP-03",
-  webinars: "BP-05",
-  workbooks: "BP-06",
-  "home-study": "BP-07",
-  "special-editions": "BP-08",
-  "book-sales-events": "BP-09",
-  courses: "BA-10",
-  audiobook: "BA-11",
-  memberships: "BA-12",
-  "group-coaching": "BA-13",
-  "podcast-guest": "BA-14",
-  "in-house-speaker": "BA-15",
-  affiliates: "BA-16",
-  upsells: "BA-17",
-  "revenue-sharing": "BA-18",
-  "coaching-1on1": "YR-19",
-  "big-ticket": "YR-20",
-  keynotes: "YR-21",
-  training: "YR-22",
-  masterminds: "YR-23",
-  retreats: "YR-24",
-  certification: "YR-25",
-  conventions: "YR-26",
-  fundraising: "YR-27",
-  exhibitors: "YR-28",
-};
+// Single source of truth lives in abbyFrameworkConfig so routing and
+// progress counting can never drift apart.
+export { NODE_CODE_MAP } from "@/config/abbyFrameworkConfig";
+import { NODE_CODE_MAP } from "@/config/abbyFrameworkConfig";
 
 const TIER_ORDER = ["free", "brand", "build", "yield"];
 
