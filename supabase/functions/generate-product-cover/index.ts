@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
     if (!bookCoverUrl) {
       return new Response(
         JSON.stringify({ success: false, status: 422, message: "Parent book has no cover image; cannot derive product cover" }),
-        { status: 422, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
