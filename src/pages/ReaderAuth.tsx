@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { safeInternalPath } from "@/lib/safe-redirect";
 
 function friendlyError(message?: string): string {
   const msg = (message || "").toLowerCase();
@@ -31,7 +32,10 @@ export default function ReaderAuth() {
   const { user, loading } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
-  const redirectTo = new URLSearchParams(location.search).get("redirect") || "/readers-bureau";
+  const redirectTo = safeInternalPath(
+    new URLSearchParams(location.search).get("redirect"),
+    "/readers-bureau",
+  );
 
   const [mode, setMode] = useState<SignInMode>("password");
   const [flow, setFlow] = useState<FlowState>("password-login");

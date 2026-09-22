@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { safeInternalPath } from "@/lib/safe-redirect";
 
 // ─── Error mapping ───
 function friendlyError(message?: string): string {
@@ -33,7 +34,10 @@ export default function Auth() {
   const { user, loading } = useAuth();
   const location = useLocation();
   const { toast } = useToast();
-  const redirectTo = new URLSearchParams(location.search).get("redirect") || "/dashboard";
+  const redirectTo = safeInternalPath(
+    new URLSearchParams(location.search).get("redirect"),
+    "/dashboard",
+  );
 
   const [mode, setMode] = useState<SignInMode>("code");
   const [flow, setFlow] = useState<FlowState>("email");
