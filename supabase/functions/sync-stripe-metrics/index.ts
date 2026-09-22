@@ -134,7 +134,7 @@ serve(async (req) => {
     const today = new Date().toISOString().split("T")[0];
     await supabase.from("author_revenue_snapshots").upsert(
       {
-        author_id,
+        author_id: authorProfileId,
         snapshot_date: today,
         stripe_revenue_mtd_usd: mtdRevenue,
         stripe_revenue_ytd_usd: ytdRevenue,
