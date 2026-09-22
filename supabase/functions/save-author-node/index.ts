@@ -240,6 +240,14 @@ Deno.serve(async (req: Request) => {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 
+  // Self-heal: a crashed generation can leave a row stuck on 'generating',
+  // which makes the builder spin forever. Clear anything stale on every touch.
+  try {
+    await admin.rpc("reset_stuck_generating_nodes");
+  } catch (e) {
+    console.warn("[save-author-node] stuck-node sweep skipped:", (e as Error).message);
+  }
+
   // Server-side ownership check — confirm the JWT sub owns this author profile.
   // Tolerant match: project-local auth.uid() may differ from shared-backend
   // user_id. Accept either: matching user_id OR matching JWT email vs the
