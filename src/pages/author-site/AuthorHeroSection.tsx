@@ -48,20 +48,20 @@ export default function AuthorHeroSection({ author, displayName, booksWithProduc
     >
       <div className="relative container max-w-5xl py-16 md:py-24">
         <div className="flex flex-col-reverse md:flex-row items-center gap-8 md:gap-12">
-          {/* Author Photo */}
+          {/* Author Photo — taller frame, top-anchored so heads are never cropped */}
           {author.photo_url ? (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
               <img
                 src={author.photo_url}
                 alt={displayName}
-                className="w-40 h-48 md:w-52 md:h-64 object-cover"
+                className="w-44 h-60 md:w-56 md:h-[21rem] object-cover object-top"
                 style={{ border: `3px solid ${v.accent}`, borderRadius: "16px", boxShadow: "0 12px 30px rgba(0, 0, 0, 0.3)" }}
               />
             </motion.div>
           ) : (
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.5 }}>
               <div
-                className="w-40 h-48 md:w-52 md:h-64 flex items-center justify-center"
+                className="w-44 h-60 md:w-56 md:h-[21rem] flex items-center justify-center"
                 style={{ background: v.accent, borderRadius: "16px", boxShadow: "0 12px 30px rgba(0, 0, 0, 0.3)" }}
               >
                 <span className="text-[3rem] font-bold" style={{ color: v.accentText }}>{displayName.charAt(0)}</span>
