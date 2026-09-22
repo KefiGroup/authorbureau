@@ -219,6 +219,7 @@ const AppRoutes = () => (
       <Route path="/:authorSlug" element={<AuthorSite />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </main>
   </>
 );
 
