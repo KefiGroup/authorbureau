@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
     // ─── Authors ───
     if (action === "list-authors") {
       const { data: profiles } = await client
-        .from("author_profiles")
+        .from("author_profiles_admin")
         .select("id, user_id, pen_name, photo_url, photo_crop_y, bio_short, bio_long, genres, directory_status, author_slug, created_at, tagline, website_url, instagram_url, twitter_url, linkedin_url, youtube_url, amazon_author_profile_url, location_city, location_country, is_speaker, speaker_fee_range, availability_notes, photo_zoom, subscription_tier, suspended_at, suspended_reason, tier_expires_at, stripe_connected_account_id, stripe_onboarding_complete")
         .order("created_at", { ascending: false });
 

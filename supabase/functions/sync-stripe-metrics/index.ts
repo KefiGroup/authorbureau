@@ -19,7 +19,7 @@ serve(async (req) => {
     );
 
     const { data: author } = await supabase
-      .from("author_profiles")
+      .from("author_profiles_admin")
       .select("id, stripe_connected_account_id")
       .eq("id", author_id)
       .single();
