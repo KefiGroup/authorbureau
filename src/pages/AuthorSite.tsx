@@ -24,7 +24,7 @@ import AuthorSubscribeSection from "./author-site/AuthorSubscribeSection";
 import AuthorRelatedSection from "./author-site/AuthorRelatedSection";
 import AuthorTestimonialsSection, { type Testimonial } from "./author-site/AuthorTestimonialsSection";
 import AuthorWhatsInsideSection from "./author-site/AuthorWhatsInsideSection";
-import AuthorWorkWithMe from "@/components/public/AuthorWorkWithMe";
+import AuthorWorkWithMe, { selectCustomerNodes, offerTitleKey } from "@/components/public/AuthorWorkWithMe";
 import AuthorMicrositeFooter from "@/components/public/AuthorMicrositeFooter";
 import AuthorFrameworkSection, { type FrameworkStage } from "./author-site/AuthorFrameworkSection";
 import AuthorSocialProofBar from "./author-site/AuthorSocialProofBar";
