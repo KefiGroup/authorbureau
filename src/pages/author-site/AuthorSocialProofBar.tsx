@@ -62,6 +62,29 @@ export default function AuthorSocialProofBar({ booksWithProducts, testimonialsCo
             );
           })}
         </div>
+
+        {proofShots.length > 0 && (
+          <div className="mt-6">
+            <p
+              className="text-center text-xs font-semibold uppercase tracking-wider mb-3"
+              style={{ color: v.mutedText, fontFamily: theme.bodyFont }}
+            >
+              As seen on Amazon
+            </p>
+            <div className={`grid gap-4 ${proofShots.length > 1 ? "sm:grid-cols-2" : "grid-cols-1 max-w-md mx-auto"}`}>
+              {proofShots.map((url) => (
+                <img
+                  key={url}
+                  src={url}
+                  alt="Amazon bestseller ranking screenshot"
+                  loading="lazy"
+                  className="w-full rounded-lg"
+                  style={{ border: `1px solid ${v.cardBorder}` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </motion.section>
   );
