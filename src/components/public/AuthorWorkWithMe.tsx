@@ -1,8 +1,18 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
+import { ChevronDown } from "lucide-react";
 import AuthorProductCard, { type StorefrontNode } from "./AuthorProductCard";
 import { fadeUp } from "@/pages/author-site/types";
 import type { ThemeVars } from "@/pages/author-site/types";
 import type { AuthorTheme } from "@/lib/author-themes";
+
+/** Back-office and partner-facing nodes that no book buyer should ever see
+ *  on the public storefront (author website, affiliate, product ladder,
+ *  media/PR, JV partnerships, fundraising, sponsorship). */
+const NON_CUSTOMER_NODE_IDS = ["BP-04", "BA-15", "BA-16", "BA-17", "BA-18", "YR-27", "YR-28"];
+
+/** How many cards stay visible per tier before the rest collapse. */
+const VISIBLE_PER_TIER = 3;
 
 interface Props {
   authorId: string;
