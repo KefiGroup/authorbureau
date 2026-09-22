@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, BookOpen, Settings2, ChevronUp, ChevronDown, Check, X, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, BookOpen, Settings2, ChevronUp, ChevronDown, Check, X } from "lucide-react";
 import { Link } from "react-router-dom";
 import useEmblaCarousel from "embla-carousel-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -49,7 +49,6 @@ export default function DynamicMeetOurAuthors() {
   const { isAdmin } = useAuth();
   const [editingCrop, setEditingCrop] = useState<string | null>(null);
   const [cropDraft, setCropDraft] = useState<number>(0);
-  const [zoomDraft, setZoomDraft] = useState<number>(1);
   const [savingCrop, setSavingCrop] = useState(false);
 
   const onSelect = useCallback(() => {
@@ -131,10 +130,9 @@ export default function DynamicMeetOurAuthors() {
     fetchAuthorsWithBooks();
   }, []);
 
-  const startCropEdit = (authorId: string, currentCropY: string | undefined, currentZoom: number | undefined) => {
+  const startCropEdit = (authorId: string, currentCropY: string | undefined) => {
     setEditingCrop(authorId);
-    setCropDraft(parseInt(currentCropY || "0", 10));
-    setZoomDraft(currentZoom || 1);
+    setCropDraft(Math.min(20, Math.max(0, parseInt(currentCropY || "12", 10))));
   };
 
   const saveCropEdit = async () => {
@@ -143,10 +141,10 @@ export default function DynamicMeetOurAuthors() {
     try {
       await cloudSupabase
         .from("author_profiles")
-        .update({ photo_crop_y: `${cropDraft}%`, photo_zoom: zoomDraft } as any)
+        .update({ photo_crop_y: `${cropDraft}%`, photo_zoom: 1 } as any)
         .eq("user_id", editingCrop);
       setAuthors((prev) =>
-        prev.map((a) => (a.id === editingCrop ? { ...a, photo_crop_y: `${cropDraft}%`, photo_zoom: zoomDraft } : a))
+        prev.map((a) => (a.id === editingCrop ? { ...a, photo_crop_y: `${cropDraft}%`, photo_zoom: 1 } : a))
       );
     } catch (err) {
       console.error("Failed to save crop:", err);
@@ -230,12 +228,12 @@ export default function DynamicMeetOurAuthors() {
                           style={{
                             backgroundImage: `url(${author.photo_url})`,
                             backgroundRepeat: 'no-repeat',
-                            backgroundPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '30%')}`,
-                            // Always fill the frame so every card shows the same photo size;
-                            // the per-author zoom is applied on top of that fill.
+                            // Head-safe portrait standard: keep the crown inside the frame,
+                            // use one consistent cover scale, and only permit a small vertical adjustment.
+                            backgroundPosition: `50% ${editingCrop === author.id
+                              ? cropDraft
+                              : Math.min(20, Math.max(0, parseInt(author.photo_crop_y || '12', 10)))}%`,
                             backgroundSize: 'cover',
-                            transform: `scale(${Math.max(1, editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1))})`,
-                            transformOrigin: 'center',
                           }}
                         />
                       ) : (
@@ -248,7 +246,7 @@ export default function DynamicMeetOurAuthors() {
                       {/* Admin crop controls */}
                       {isAdmin && author.photo_url && editingCrop !== author.id && (
                         <button
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y, author.photo_zoom); }}
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y); }}
                           className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
                           title="Adjust photo position"
                         >
@@ -265,17 +263,8 @@ export default function DynamicMeetOurAuthors() {
                             <ChevronUp className="h-5 w-5" />
                           </button>
                           <span className="text-white text-xs font-mono">{cropDraft}%</span>
-                          <button onClick={() => setCropDraft((v) => Math.min(50, v + 2))} className="text-white hover:text-secondary">
+                           <button onClick={() => setCropDraft((v) => Math.min(20, v + 2))} className="text-white hover:text-secondary">
                             <ChevronDown className="h-5 w-5" />
-                          </button>
-                          <div className="w-full h-px bg-white/20 my-1" />
-                          <span className="text-secondary text-[10px] font-bold uppercase tracking-wider">Zoom</span>
-                          <button onClick={() => setZoomDraft((v) => Math.min(3, +(v + 0.1).toFixed(2)))} className="text-white hover:text-secondary">
-                            <ZoomIn className="h-5 w-5" />
-                          </button>
-                          <span className="text-white text-xs font-mono">{Math.round(zoomDraft * 100)}%</span>
-                          <button onClick={() => setZoomDraft((v) => Math.max(0.5, +(v - 0.1).toFixed(2)))} className="text-white hover:text-secondary">
-                            <ZoomOut className="h-5 w-5" />
                           </button>
                           <div className="flex gap-1 mt-1">
                             <button onClick={() => setEditingCrop(null)} className="text-red-400 hover:text-red-300">
