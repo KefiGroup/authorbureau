@@ -413,11 +413,11 @@ export default function AuthorSite() {
         authorName={displayName}
         authorPhotoUrl={author.photo_url}
         books={booksWithProducts.map(b => ({ slug: b.slug, title: b.title, cover_image_url: b.cover_image_url, genre: b.genre }))}
-        hasServices={coachingServices.length > 0}
-        hasLearnSection={learnNodes.length > 0}
-        hasQuizSection={leadMagnets.length > 0}
-        hasEvents={eventNodes.length > 0}
-        hasWorkWithMe={serviceNodes.length > 0 || coachingServices.length > 0}
+        hasServices={false}
+        hasLearnSection={false}
+        hasQuizSection={false}
+        hasEvents={false}
+        hasWorkWithMe={false}
         vars={v}
         headingFont={theme.headingFont}
         bodyFont={theme.bodyFont}
