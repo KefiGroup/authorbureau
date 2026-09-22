@@ -140,10 +140,10 @@ export default function CollectorsEditionCard({ node, authorSlug, theme, v }: Pr
             className="text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-lg group-hover:gap-2 transition-all"
             style={{ background: accentColor, color: "white" }}
           >
-            View →
+            {dest.kind === "enquire" ? "Enquire →" : "View →"}
           </span>
         </div>
       </div>
-    </Link>
+    </Wrapper>
   );
 }
