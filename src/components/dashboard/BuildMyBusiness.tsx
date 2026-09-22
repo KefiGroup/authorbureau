@@ -117,7 +117,14 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
             }
           } catch (err) { console.error("Failed to fetch asset status:", err); }
         }
-      } catch (err) { console.error("Failed to fetch books:", err); }
+      } catch (err) {
+        // Silent failure left an empty screen with no explanation.
+        console.error("Failed to fetch books:", err);
+        toast.error("We could not load your books", {
+          description: "Check your connection and try again.",
+          action: { label: "Retry", onClick: () => window.location.reload() },
+        });
+      }
       setLoadingBooks(false);
     })();
   }, [user]);
