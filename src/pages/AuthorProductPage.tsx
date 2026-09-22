@@ -805,7 +805,33 @@ export default function AuthorProductPage() {
 function CourseModules({ courseId, theme }: { courseId: string; theme: AuthorTheme }) {
   const [modules, setModules] = useState<any[]>([]);
   useEffect(() => {
-    supabase.from("course_modules_public").select("*, course_lessons_public(*)").eq("course_id", courseId).order("position").then(({ data }) => setModules(data || []));
+    let cancelled = false;
+    (async () => {
+      const { data: mods } = await supabase
+        .from("course_modules_public")
+        .select("*")
+        .eq("course_id", courseId)
+        .order("position");
+      const modList = mods || [];
+      const moduleIds = modList.map((m: any) => m.id);
+      let lessons: any[] = [];
+      if (moduleIds.length > 0) {
+        const { data } = await supabase
+          .from("course_lessons_public")
+          .select("id, module_id, title, position")
+          .in("module_id", moduleIds)
+          .order("position");
+        lessons = data || [];
+      }
+      if (cancelled) return;
+      setModules(
+        modList.map((m: any) => ({
+          ...m,
+          course_lessons: lessons.filter((l: any) => l.module_id === m.id),
+        }))
+      );
+    })();
+    return () => { cancelled = true; };
   }, [courseId]);
   if (modules.length === 0) return null;
   const v = theme.vars;
