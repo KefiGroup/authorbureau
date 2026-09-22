@@ -777,6 +777,58 @@ export type Database = {
           },
         ]
       }
+      author_payout_accounts: {
+        Row: {
+          author_id: string
+          created_at: string
+          stripe_account_id: string | null
+          stripe_connected_account_id: string | null
+          stripe_customer_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          author_id: string
+          created_at?: string
+          stripe_account_id?: string | null
+          stripe_connected_account_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          author_id?: string
+          created_at?: string
+          stripe_account_id?: string | null
+          stripe_connected_account_id?: string | null
+          stripe_customer_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "author_payout_accounts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_payout_accounts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "author_payout_accounts_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: true
+            referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       author_payout_settings: {
         Row: {
           author_id: string
