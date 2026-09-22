@@ -29,7 +29,7 @@ export default function AuthorRelatedSection({ relatedAuthors, theme, v }: Props
                 onMouseLeave={(e) => { e.currentTarget.style.borderColor = `${v.accent}33`; }}>
                 {ra.photo_url ? (
                   <img src={ra.photo_url} alt={ra.pen_name} loading="lazy"
-                    className="w-16 h-16 rounded-full object-cover mb-3" style={{ border: `2px solid ${v.accent}` }} />
+                    className="w-16 h-16 rounded-full object-cover object-top mb-3" style={{ border: `2px solid ${v.accent}` }} />
                 ) : (
                   <div className="w-16 h-16 rounded-full mb-3 flex items-center justify-center"
                     style={{ background: v.primary, border: `2px solid ${v.accent}` }}>
