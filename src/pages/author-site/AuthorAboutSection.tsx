@@ -116,6 +116,13 @@ export default function AuthorAboutSection({ author, displayName, podcastNodes =
                           Listen Now →
                         </a>
                       )}
+                      {/* No player and no feed link: let visitors ask where to listen. */}
+                      {!embedUrl && !linkUrl && (
+                        <button type="button" onClick={() => openEnquiry(title)}
+                          className="inline-flex items-center gap-1.5 text-sm font-bold" style={{ color: v.accent }}>
+                          Ask where to listen →
+                        </button>
+                      )}
                     </div>
                   );
                 })}

@@ -6,6 +6,7 @@ import type { AuthorData, ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import { resolvePublicDestination, openEnquiry } from "./public-destination";
 
 interface Props {
   author: AuthorData;
