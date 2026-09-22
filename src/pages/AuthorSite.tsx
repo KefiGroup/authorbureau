@@ -458,33 +458,20 @@ export default function AuthorSite() {
       {/* One story, told once: book -> proof -> who she is -> free start -> one offer ladder -> proof -> events -> email. */}
       <AuthorHeroSection author={author} displayName={displayName} booksWithProducts={booksWithProducts} heroBook={heroBook} allProducts={allProducts} testimonialsCount={testimonials.length} liveProductsCount={liveNodes.filter(n => !["BP-01","BP-02"].some(p => n.node_id.startsWith(p)) && hasRequiredAssets(n.node_id, n.content_json)).length} theme={theme} v={v} />
       <AuthorSocialProofBar booksWithProducts={booksWithProducts} testimonialsCount={testimonials.length} theme={theme} v={v} />
-      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
+      {/* Every revenue stream lives on the book it belongs to. This page lists the
+          books and how much each one opens up; the book page is the storefront. */}
+      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} offerCounts={offerCountsByBook} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
       <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorFrameworkSection
         frameworkName={frameworkName}
         stages={frameworkStages}
-        ctaHref={leadMagnets.length > 0 ? "#quiz-section" : null}
-        ctaLabel="Take the Free Quiz"
+        ctaHref={heroBook ? `/${authorSlug}/${heroBook.slug}` : null}
+        ctaLabel="Explore the book"
         theme={theme}
         v={v}
       />
-      <AuthorLeadMagnetsSection authorSlug={authorSlug!} leadMagnets={leadMagnets} theme={theme} v={v} />
-      <AuthorWorkWithMe
-        authorId={author.id}
-        authorSlug={authorSlug!}
-        authorName={displayName}
-        authorContactEmail={null}
-        isOwnerViewing={isOwner}
-        stripeReady={true /* Authors Bureau is Merchant of Record — platform Stripe always ready */}
-        liveNodes={workWithMeNodes as unknown as StorefrontNode[]}
-        theme={theme}
-        v={v}
-      />
-      <AuthorLearnSection authorSlug={authorSlug!} displayName={displayName} learnNodes={learnNodes} theme={theme} v={v} />
-      <AuthorServicesSection authorSlug={authorSlug!} displayName={displayName} coachingServices={coachingServices} allProducts={allProducts} serviceNodes={serviceNodes} theme={theme} v={v} isOwnerViewing={isOwner} authorPhoto={author.photo_url} testimonials={testimonials} />
       <AuthorTestimonialsSection testimonials={testimonials} theme={theme} v={v} isOwner={isOwner} />
-      <AuthorEventsSection authorSlug={authorSlug!} displayName={displayName} eventNodes={eventNodes} theme={theme} v={v} />
       <AuthorSubscribeSection author={author} authorSlug={authorSlug!} displayName={displayName} affiliateNodes={affiliateNodes} theme={theme} v={v} />
       <AuthorPodcastMediaSection author={author} displayName={displayName} theme={theme} v={v} />
       <AuthorRelatedSection relatedAuthors={relatedAuthors} theme={theme} v={v} />
