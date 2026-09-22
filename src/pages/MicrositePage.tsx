@@ -2205,14 +2205,22 @@ function AffiliatesPage({ data, content, v, hFont, bgColor, onSubmit, email, set
 }
 
 /* ═══ BUNDLES PAGE (BA-17) ═══ */
-function BundlesPage({ data, content, v, hFont, bgColor }: PageProps) {
+function BundlesPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void }) {
   const bundles: any[] = Array.isArray(content.bundles) ? content.bundles : [];
-  const upsells: any[] = Array.isArray(content.upsell_sequences) ? content.upsell_sequences : [];
-  const downsell = content.downsell;
   const ladderTitle = content.product_ladder_title || data.node.personalised_name || "Bundles & Offers";
   const summary = content.abby_summary;
   const paymentUrl = data.node.payment_link || content.stripe_checkout_url;
-  const contactEmail = data.author?.contact_email || content.media_contact_email;
+
+  const asNumber = (x: unknown): number | null => {
+    if (typeof x === "number" && x > 0) return x;
+    if (typeof x === "string") {
+      const n = parseFloat(x.replace(/[^0-9.]/g, ""));
+      if (!Number.isNaN(n) && n > 0) return n;
+    }
+    return null;
+  };
+  const money = (n: number) => `$${Number.isInteger(n) ? n.toLocaleString() : n.toFixed(2)}`;
+
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12 sm:py-20 space-y-12">
