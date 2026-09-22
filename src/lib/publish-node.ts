@@ -20,13 +20,34 @@ export async function publishNodeToSite(
   libraryAsset?: Record<string, unknown> | unknown | null,
 ): Promise<{ micrositeUrl: string | null }> {
   const hasPublicPage = !NO_MICROSITE_NODES.has(nodeId);
-  const micrositeUrl = hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId) : null;
 
   const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
   const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   if (!projectId || !anonKey) throw new Error("Backend not configured");
 
   const token = (await getActiveToken()) ?? anonKey;
+  let bookSlug: string | null = null;
+  if (hasPublicPage && bookId) {
+    try {
+      const bookRes = await fetchWithTimeout(
+        `https://${projectId}.supabase.co/functions/v1/get-author-book?bookId=${encodeURIComponent(bookId)}`,
+        {
+          headers: {
+            apikey: anonKey,
+            Authorization: `Bearer ${token}`,
+          },
+        },
+        25000,
+      );
+      const bookData = await bookRes.json().catch(() => null);
+      if (bookRes.ok && typeof bookData?.book?.slug === "string") {
+        bookSlug = bookData.book.slug;
+      }
+    } catch (error) {
+      console.warn("[publishNodeToSite] book slug lookup failed", error);
+    }
+  }
+  const micrositeUrl = hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId, bookSlug) : null;
   const res = await fetchWithTimeout(
     `https://${projectId}.supabase.co/functions/v1/save-author-node`,
     {
