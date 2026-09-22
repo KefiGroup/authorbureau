@@ -26,6 +26,28 @@ export type PublicDestination =
 const str = (v: unknown): string | null =>
   typeof v === "string" && v.trim().length > 0 && v.trim() !== "#" ? v.trim() : null;
 
+/**
+ * Stored microsite URLs can carry a stale host (localhost, a preview domain, or
+ * an older production host). Any URL that points at one of our own hosts is
+ * reduced to a same-site path so visitors never land on a dead link.
+ */
+export function normaliseMicrositeUrl(url: string | null): string | null {
+  if (!url) return null;
+  if (!/^https?:\/\//i.test(url)) return url.startsWith("/") ? url : `/${url}`;
+  try {
+    const u = new URL(url);
+    const ownHost =
+      u.hostname === "localhost" ||
+      u.hostname === "127.0.0.1" ||
+      /(^|\.)authorsbureau\.com$/i.test(u.hostname) ||
+      /\.lovable\.app$/i.test(u.hostname) ||
+      (typeof window !== "undefined" && u.hostname === window.location.hostname);
+    return ownHost ? `${u.pathname}${u.search}${u.hash}` : url;
+  } catch {
+    return url;
+  }
+}
+
 export function nodeTitle(node: PublicNodeLike): string {
   return node.personalised_name || node.node_name || "This offer";
 }
@@ -59,7 +81,7 @@ export function resolvePublicDestination(
   if (external) return { kind: "external", href: external, label };
 
   if (opts?.allowMicrosite !== false) {
-    const micro = str(node.microsite_url);
+    const micro = normaliseMicrositeUrl(str(node.microsite_url));
     if (micro) {
       return micro.startsWith("http")
         ? { kind: "external", href: micro, label }
