@@ -65,6 +65,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   const [statsData, setStatsData] = useState<{ total: number; effectiveTotal: number; activeThisWeek: number; conversionRate: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -89,10 +90,12 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       setStatsData({ total, effectiveTotal, activeThisWeek: 0, conversionRate: 0 });
       setRecentLeads(recent);
       if (data.authorProfileId) setAuthorProfileId(data.authorProfileId);
+      setLoadError(null);
     } catch (e) {
       console.warn("[CRM] initial load failed:", e);
-      setStatsData({ total: 0, effectiveTotal: 0, activeThisWeek: 0, conversionRate: 0 });
+      setStatsData(null);
       setRecentLeads([]);
+      setLoadError("We couldn't load your contacts just now. Your data is safe, this is a connection problem.");
     }
     setLoading(false);
   }, [user]);
