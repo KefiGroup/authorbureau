@@ -415,7 +415,7 @@ export default function AuthorBookPage() {
       profile?.id
         ? supabase
             .from("author_nodes")
-            .select("node_id, node_name, personalised_name, status, price_usd, currency")
+            .select("node_id, node_name, personalised_name, status, price_usd, currency, book_id")
             .eq("author_id", profile.id)
             .eq("status", "live")
         : Promise.resolve({ data: [] as any[] }),
