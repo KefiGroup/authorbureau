@@ -374,15 +374,35 @@ export default function AuthorSite() {
   }
 
 
-  // Resolve the hero book once so the nav buy CTA and the hero CTA always
-  // feature the same book + price (audit B-05: they previously diverged).
+  // Lead with the author's strongest book, not whichever row sorted first.
+  // Score: bestseller badges/proof beats a buyable book, which beats the newest.
+  const bookScore = (b: BookWithProducts) => {
+    let s = 0;
+    const badges = (b as unknown as { badges?: string[] | null }).badges;
+    if (Array.isArray(badges) && badges.length > 0) s += 4;
+    if (b.bestseller_proof_url || b.bestseller_proof_url_2) s += 3;
+    if ((b as unknown as { amazon_url?: string | null }).amazon_url) s += 2;
+    if (getLowestPrice(b)) s += 1;
+    return s;
+  };
+  const curatedHeroBook = whatsInsideSourceBookId
+    ? booksWithProducts.find(b => b.id === whatsInsideSourceBookId)
+    : undefined;
+  const bestBook = [...booksWithProducts].sort((a, b) => {
+    const diff = bookScore(b) - bookScore(a);
+    if (diff !== 0) return diff;
+    const ad = (a as unknown as { published_at?: string | null }).published_at || "";
+    const bd = (b as unknown as { published_at?: string | null }).published_at || "";
+    return bd.localeCompare(ad);
+  })[0];
   const heroBook =
-    booksWithProducts.find(b => b.id === whatsInsideSourceBookId) ||
+    (curatedHeroBook && bookScore(curatedHeroBook) >= bookScore(bestBook ?? curatedHeroBook) ? curatedHeroBook : bestBook) ||
     booksWithProducts[0] ||
     null;
-  const heroPrice = heroBook ? getLowestPrice(heroBook) : null;
-  const buyCta = heroBook && heroPrice
-    ? { label: `Get the Book — ${heroPrice}`, to: `/${authorSlug}/${heroBook.slug}` }
+  // One price story: the sticky nav never quotes a price, so it can never
+  // contradict the book page it links to.
+  const buyCta = heroBook
+    ? { label: "Get the Book", to: `/${authorSlug}/${heroBook.slug}` }
     : null;
 
   return (
