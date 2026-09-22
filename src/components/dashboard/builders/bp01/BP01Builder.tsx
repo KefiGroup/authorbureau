@@ -120,6 +120,7 @@ export default function BP01Builder({ authorId, bookId }: Props) {
           setContent(savedContent);
           setStep(savedStep !== null ? savedStep : Math.max(draft.currentStep, 2));
         }
+        setHydrated(true);
         return;
       }
       const { data: node } = await supabase
