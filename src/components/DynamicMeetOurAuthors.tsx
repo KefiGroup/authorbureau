@@ -231,7 +231,11 @@ export default function DynamicMeetOurAuthors() {
                             backgroundImage: `url(${author.photo_url})`,
                             backgroundRepeat: 'no-repeat',
                             backgroundPosition: `50% ${editingCrop === author.id ? `${cropDraft}%` : (author.photo_crop_y || '30%')}`,
-                            backgroundSize: `${(editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1)) * 100}%`,
+                            // Always fill the frame so every card shows the same photo size;
+                            // the per-author zoom is applied on top of that fill.
+                            backgroundSize: 'cover',
+                            transform: `scale(${editingCrop === author.id ? zoomDraft : (author.photo_zoom || 1)})`,
+                            transformOrigin: 'center',
                           }}
                         />
                       ) : (
