@@ -103,6 +103,7 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
   const [hasManuscript, setHasManuscript] = useState(false);
   const [charCount, setCharCount] = useState<number | null>(null);
   const [checking, setChecking] = useState(true);
+  const [statusOverride, setStatusOverride] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -115,7 +116,8 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [uploading]);
 
-  const currentStage = UPLOAD_STAGES.filter(s => elapsedSeconds >= s.threshold).pop() || UPLOAD_STAGES[0];
+  const stageLabel = statusOverride
+    ?? (UPLOAD_STAGES.filter(s => elapsedSeconds >= s.threshold).pop() || UPLOAD_STAGES[0]).label;
   const fakeProgress = uploading ? Math.min(95, (elapsedSeconds / (elapsedSeconds + 30)) * 100) : 0;
 
   const getToken = async () => {
@@ -165,8 +167,9 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
     if (!allowedTypes.includes(ext)) { toast.error("Unsupported format. Please upload PDF, DOCX, TXT, or EPUB."); return; }
 
     setUploading(true);
+    setStatusOverride(null);
     const abortController = new AbortController();
-    const timeout = setTimeout(() => abortController.abort(), 180_000); // 3 min
+    let timeout: ReturnType<typeof setTimeout> | undefined;
 
     try {
       const token = await getToken();
@@ -178,16 +181,19 @@ export default function ManuscriptUpload({ bookId, bookTitle, compact = false, o
         if (ext === ".txt") {
           extractedText = await file.text();
         } else if (ext === ".pdf") {
-          extractedText = await extractPdfText(file);
+          extractedText = await extractPdfText(file, setStatusOverride);
         } else {
           // .docx or .doc
           extractedText = await extractDocxText(file);
         }
 
         if (!extractedText || extractedText.trim().length < 50) {
-          toast.error("Could not extract enough text from this file. Please try a different format.");
+          toast.error("We could not read any text from this file. If it is a scan, try a clearer copy, or upload a Word or text version.");
           return;
         }
+
+        setStatusOverride("Saving your book text…");
+        timeout = setTimeout(() => abortController.abort(), 180_000); // 3 min
 
         // Send extracted text directly
         const resp = await fetch(EDGE_FN_URL, {
