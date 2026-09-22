@@ -5,6 +5,8 @@ import type { ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
+import { resolvePublicDestination, openEnquiry } from "./public-destination";
+import { PERSONAL_SELLING_THRESHOLD } from "./node-price";
 
 /** Reader-facing events only. Fundraising (YR-27) and sponsorship (YR-28) are
  *  partner-facing and never appear on the public page. */
