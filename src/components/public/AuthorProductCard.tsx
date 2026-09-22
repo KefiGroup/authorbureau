@@ -258,7 +258,8 @@ export default function AuthorProductCard({
             style={{ borderColor: v.cardBorder, color: v.bodyText }}
           >
             <a href={contactHref}>
-              Contact <ArrowRight className="ml-2 h-3.5 w-3.5" />
+              {isEnquiryOnly ? "Enquire / Book a Call" : "Contact"}
+              <ArrowRight className="ml-2 h-3.5 w-3.5" />
             </a>
           </Button>
         ) : (
