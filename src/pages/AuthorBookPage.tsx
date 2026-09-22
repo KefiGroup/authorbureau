@@ -447,10 +447,12 @@ export default function AuthorBookPage() {
     });
     (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: parseProductDescription(p.description) }));
 
-    // Merge author_nodes (Option B: every author-level live node appears on every book page).
-    // Dedup by route — product-table rows already pushed above win because they have richer metadata.
+    // Each book owns its own revenue streams. Only nodes built for THIS book
+    // appear here, so a three-book author never sees the same offer repeated
+    // on every page. Nodes with no book are legacy rows and stay hidden.
     const existingRoutes = new Set(prods.map(p => p.route));
     (nodesRes.data || []).forEach((n: any) => {
+      if (n.book_id !== bookId) return;
       const mapping = NODE_TO_PRODUCT[n.node_id];
       if (!mapping) return;
       if (existingRoutes.has(mapping.route)) return;
@@ -460,8 +462,7 @@ export default function AuthorBookPage() {
         title: formatPublicLabel(n.personalised_name, mapping.label),
         route: mapping.route,
         price: priceNum && priceNum > 0 ? `$${priceNum.toLocaleString()}` : undefined,
-        // author_nodes are author-level, link to /:authorSlug/:route (not book-scoped)
-        linkTo: `/${authorSlug}/${mapping.route}`,
+        linkTo: `/${authorSlug}/${bookSlug}/${mapping.route}`,
       });
       existingRoutes.add(mapping.route);
     });
