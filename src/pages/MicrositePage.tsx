@@ -3071,6 +3071,22 @@ function MembershipPage({ data, content, v, hFont, bgColor }: PageProps) {
 type YRPageProps = FormPageProps & { lastName: string; setLastName: (v: string) => void; message: string; setMessage: (v: string) => void };
 
 const yrStr = (v: any, fallback = ""): string => (typeof v === "string" && v.trim()) ? v : fallback;
+
+/**
+ * Public pages must never speak in the assistant's first-person voice
+ * ("I built this programme around Pauline's..."). Strip any sentence that
+ * does, and drop the text entirely if nothing reader-facing remains.
+ */
+function publicSummary(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const firstPerson = /\b(I|I've|I'm|I'll)\b|\bmy (?:goal|aim|approach|take)\b|\bshe (?:created|built|designed|framed)\b/;
+  const kept = value
+    .split(/(?<=[.!?])\s+/)
+    .filter((s) => s.trim() && !firstPerson.test(s))
+    .join(" ")
+    .trim();
+  return kept;
+}
 const yrArr = (v: any): any[] => Array.isArray(v) ? v : [];
 const yrLines = (val: any): string[] => {
   if (Array.isArray(val)) return val.map(x => typeof x === "string" ? x : (x?.title || x?.label || x?.text || x?.name || "")).filter(Boolean);
