@@ -18,18 +18,39 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { data: author } = await supabase
-      .from("author_profiles_admin")
-      .select("id, stripe_connected_account_id")
+    // Accept either an author_profiles.id or an auth user id.
+    let { data: author } = await supabase
+      .from("author_profiles")
+      .select("id")
       .eq("id", author_id)
-      .single();
+      .maybeSingle();
+
+    if (!author) {
+      const { data: byUser } = await supabase
+        .from("author_profiles")
+        .select("id")
+        .eq("user_id", author_id)
+        .maybeSingle();
+      author = byUser;
+    }
 
     if (!author) throw new Error("Author not found");
+
+    const authorProfileId = author.id as string;
+
+    // Payout identifiers live in a private, owner-only table.
+    const { data: payout } = await supabase
+      .from("author_payout_accounts")
+      .select("stripe_connected_account_id")
+      .eq("author_id", authorProfileId)
+      .maybeSingle();
+
+    const connectedAccountId = payout?.stripe_connected_account_id || null;
 
     const { count: nodesLive } = await supabase
       .from("author_nodes")
       .select("id", { count: "exact", head: true })
-      .eq("author_id", author_id)
+      .eq("author_id", authorProfileId)
       .eq("status", "live");
 
     const liveCount = nodesLive || 0;
