@@ -95,6 +95,14 @@ export default function EarningsDashboard() {
 
         {loading ? (
           <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
+        ) : loadError ? (
+          <Card>
+            <CardContent className="py-10 text-center space-y-4">
+              <p className="font-medium">Earnings didn't load</p>
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">{loadError}</p>
+              <Button onClick={loadEarnings}>Try again</Button>
+            </CardContent>
+          </Card>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
