@@ -241,6 +241,17 @@ export default function AuthorBookPage() {
   const [contactOpen, setContactOpen] = useState(false);
   const [inquiryFor, setInquiryFor] = useState<string | null>(null);
 
+  // "Enquire" on a high-touch offer opens the enquiry form instead of checkout.
+  useEffect(() => {
+    const onEnquire = (e: Event) => {
+      setInquiryFor((e as CustomEvent<{ subject?: string }>).detail?.subject || null);
+      setContactOpen(true);
+    };
+    window.addEventListener("author-site:enquire", onEnquire);
+    return () => window.removeEventListener("author-site:enquire", onEnquire);
+  }, []);
+
+
   const v = theme?.vars;
 
   const authorName = book?.author_name || authorProfile?.pen_name || "Author";
