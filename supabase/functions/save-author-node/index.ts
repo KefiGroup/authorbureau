@@ -139,13 +139,21 @@ function deriveLibraryAsset(
     }
     case "docx":
     default: {
-      // Any saved document, PDF, course id, or substantive built sections.
+      // Any saved document, PDF, course id, or substantive built content.
+      // The array keys below cover every builder's "the author actually built
+      // something" shape, so a real deliverable is never rejected as missing.
+      const BUILT_KEYS = [
+        "sections", "modules", "posts", "editions", "bundles", "emails",
+        "episodes", "lessons", "tiers", "packages", "topics", "chapters",
+        "steps", "sequence_steps", "offers", "sponsors", "partners", "items",
+      ];
+      const built = BUILT_KEYS.some((k) => nonEmptyArr(c[k]));
       url =
         (nonEmptyStr(c.docx_url) && c.docx_url) ||
         pdf_url ||
         (nonEmptyStr(c.course_id) && `course://${c.course_id}`) ||
-        (nonEmptyArr(c.sections) && `built://${nodeId}`) ||
-        (nonEmptyArr(c.modules) && `built://${nodeId}`) ||
+        (nonEmptyStr(c.content_calendar_id) && `built://${nodeId}`) ||
+        (built && `built://${nodeId}`) ||
         null;
       break;
     }
