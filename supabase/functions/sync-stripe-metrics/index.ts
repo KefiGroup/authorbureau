@@ -57,7 +57,7 @@ serve(async (req) => {
     const STRIPE_KEY = Deno.env.get("STRIPE_SECRET_KEY");
 
     // If no Stripe connection, return projected
-    if (!STRIPE_KEY || !author.stripe_connected_account_id) {
+    if (!STRIPE_KEY || !connectedAccountId) {
       const projected = {
         stripe_revenue_mtd_usd: liveCount * 200,
         stripe_revenue_ytd_usd: liveCount * 1200,
@@ -66,7 +66,7 @@ serve(async (req) => {
       const today = new Date().toISOString().split("T")[0];
       await supabase.from("author_revenue_snapshots").upsert(
         {
-          author_id,
+          author_id: authorProfileId,
           snapshot_date: today,
           stripe_revenue_mtd_usd: projected.stripe_revenue_mtd_usd,
           stripe_revenue_ytd_usd: projected.stripe_revenue_ytd_usd,
@@ -98,7 +98,7 @@ serve(async (req) => {
         {
           headers: {
             Authorization: `Bearer ${STRIPE_KEY}`,
-            "Stripe-Account": author.stripe_connected_account_id,
+            "Stripe-Account": connectedAccountId,
           },
         }
       );
@@ -115,7 +115,7 @@ serve(async (req) => {
         {
           headers: {
             Authorization: `Bearer ${STRIPE_KEY}`,
-            "Stripe-Account": author.stripe_connected_account_id,
+            "Stripe-Account": connectedAccountId,
           },
         }
       );
