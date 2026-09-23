@@ -175,22 +175,42 @@ Deno.serve(async (req) => {
       ]);
     }
 
-    // Update author_node row to reflect activation
-    await supabase.from('author_nodes').upsert({
-      author_id: author.id,
-      node_id,
+    // Update the author_node row to reflect activation. Module rows are unique
+    // per (author, node, book), so the update must be scoped to this book —
+    // otherwise activating one book's lead magnet rewrote the others.
+    const nodeQuery = supabase
+      .from('author_nodes')
+      .select('id')
+      .eq('author_id', author.id)
+      .eq('node_id', node_id);
+    const { data: existingNode } = book_id
+      ? await nodeQuery.eq('book_id', book_id).maybeSingle()
+      : await nodeQuery.order('created_at', { ascending: true }).limit(1).maybeSingle();
+
+    const nodePatch = {
       node_name: 'Lead Magnet',
       status: 'live',
       activated_at: new Date().toISOString(),
-      microsite_url: `/${author.author_slug || ''}/${funnel.slug}`,
-    }, { onConflict: 'author_id,node_id' });
+      microsite_url: publicFunnelUrl,
+    };
+
+    if (existingNode) {
+      await supabase.from('author_nodes').update(nodePatch).eq('id', existingNode.id);
+    } else {
+      await supabase.from('author_nodes').insert({
+        author_id: author.id,
+        node_id,
+        book_id,
+        ...nodePatch,
+      });
+    }
 
     return new Response(JSON.stringify({
       success: true,
       funnel_id: funnel.id,
       funnel_slug: funnel.slug,
       flow_id: flowId,
-      public_url: `/${author.author_slug || ''}/${funnel.slug}`,
+      public_url: publicFunnelUrl,
     }), {
       status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
