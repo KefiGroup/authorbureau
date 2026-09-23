@@ -21,6 +21,7 @@ interface SignupEmailProps {
   siteUrl: string
   recipient: string
   confirmationUrl: string
+  token?: string
 }
 
 export const SignupEmail = ({
@@ -28,6 +29,7 @@ export const SignupEmail = ({
   siteUrl,
   recipient,
   confirmationUrl,
+  token,
 }: SignupEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
@@ -60,6 +62,12 @@ export const SignupEmail = ({
             Confirm My Email
           </Button>
         </Section>
+        {token ? (
+          <Section style={codeSection}>
+            <Text style={codeLabel}>Or enter this code on the sign-in page:</Text>
+            <Text style={codeValue}>{token}</Text>
+          </Section>
+        ) : null}
         <Text style={footer}>
           If you didn't create an account with Authors Bureau, you can safely
           ignore this email.
@@ -99,5 +107,14 @@ const button = {
   borderRadius: '12px',
   padding: '14px 28px',
   textDecoration: 'none',
+}
+const codeSection = { textAlign: 'center' as const, margin: '0 0 28px' }
+const codeLabel = { fontSize: '14px', color: '#6b7280', margin: '0 0 8px' }
+const codeValue = {
+  fontSize: '30px',
+  fontWeight: 'bold' as const,
+  letterSpacing: '8px',
+  color: '#1e2d4a',
+  margin: '0',
 }
 const footer = { fontSize: '12px', color: '#9ca3af', margin: '24px 0 0', textAlign: 'center' as const }
