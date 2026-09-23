@@ -38,7 +38,7 @@ Deno.serve(async (req) => {
     }
 
     const body = await req.json().catch(() => ({}));
-    const { node_id = 'BP-02', lead_magnet_title, headline, subheadline } = body;
+    const { node_id = 'BP-02', lead_magnet_title, headline, subheadline, book_id = null } = body;
 
     // Resolve author_profile for this user
     const { data: author, error: authorErr } = await supabase
@@ -55,8 +55,24 @@ Deno.serve(async (req) => {
     const title = lead_magnet_title || 'Free Lead Magnet';
     // Idempotent: BP-02 always uses the canonical 'free-gift' slug so MicrositePage routes correctly.
     const slug = 'free-gift';
-    const publicFunnelUrl = author.author_slug ? `/${author.author_slug}/${slug}` : `/${slug}`;
-    const thankYouUrl = author.author_slug ? `/${author.author_slug}/thank-you` : `/thank-you`;
+
+    // Public links must carry the book segment. Authors have many books and each
+    // book has its own lead magnet; a 2-segment link resolves to whichever book
+    // matched first, which showed readers the wrong book's page.
+    let bookSlug: string | null = null;
+    if (book_id) {
+      const { data: bookRow } = await supabase
+        .from('books')
+        .select('slug')
+        .eq('id', book_id)
+        .maybeSingle();
+      bookSlug = (bookRow?.slug as string) || null;
+    }
+    const authorPrefix = author.author_slug ? `/${author.author_slug}` : '';
+    const publicFunnelUrl = bookSlug
+      ? `${authorPrefix}/${bookSlug}/${slug}`
+      : `${authorPrefix}/${slug}`;
+    const thankYouUrl = `${authorPrefix}/thank-you`;
 
     // Idempotent upsert — if a funnel for (author_id, node_id) exists, update it; else insert.
     const { data: existingFunnel } = await supabase
