@@ -228,6 +228,7 @@ serve(async (req) => {
           status: node.status,
           content_json: contentWithCta,
           microsite_url: node.microsite_url,
+          book_id: node.book_id ?? null,
           payment_link: node.payment_link,
           third_party_url: node.third_party_url,
           price_usd: node.price_usd,
