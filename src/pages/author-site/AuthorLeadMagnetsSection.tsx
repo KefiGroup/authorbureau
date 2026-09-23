@@ -4,6 +4,7 @@ import { Sparkles, ArrowRight } from "lucide-react";
 import type { ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import { normaliseMicrositeUrl } from "./public-destination";
 
 export interface LiveNode {
   id: string;
