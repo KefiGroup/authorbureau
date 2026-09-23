@@ -137,8 +137,11 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
 
           (nodes || []).forEach((n: any) => {
             const isAuthorLevel = AUTHOR_LEVEL_NODES.has(n.node_id);
-            const matchesBook = !bookId || !n.book_id || n.book_id === bookId;
+            // COUNTER RULE: a row belongs to exactly one book. Rows with no
+            // book stamp must never be counted toward a specific book.
+            const matchesBook = !bookId || n.book_id === bookId;
             if (!isAuthorLevel && !matchesBook) return;
+
 
             const passesGate = hasRequiredAssets(n.node_id, n.content_json);
             const isLiveStatus = n.status === "live";

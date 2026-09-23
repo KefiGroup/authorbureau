@@ -105,8 +105,11 @@ export function useNodeLiveStats(bookId?: string | null): {
           const code = r.node_id;
           // Per-row scope check.
           const isAuthorLevel = AUTHOR_LEVEL_NODES.has(code);
-          const matchesBook = !bookId || !r.book_id || r.book_id === bookId;
+          // COUNTER RULE: a row belongs to exactly one book. Unstamped rows
+          // must never be attributed to a specific book.
+          const matchesBook = !bookId || r.book_id === bookId;
           if (!isAuthorLevel && !matchesBook) return;
+
 
           const rawStatus: string | null = r.status ?? null;
           // Downgrade Live → content_ready if the node lacks required assets.

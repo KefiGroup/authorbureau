@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "../_shared/node-readiness.ts";
 import { resolveUser } from "../_shared/resolve-user.ts";
+import { isBuiltProductStatus, bookForCountedRow } from "../_shared/node-counting.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -233,13 +234,14 @@ Deno.serve(async (req) => {
         else if (row.status === "published" || row.status === "active") counts.published++;
 
         // Per-book counting — attach this row's node to its specific book.
-        // Author-level nodes (e.g. BP-01 email, BP-03 social, YR-* services)
-        // fan out to every book; book-specific products scope to their own book.
-        if (nodeIdForTable) {
+        // COUNTER RULE: only *finished* rows count toward X / 28. A draft or
+        // in-review product is work in progress, never a built module.
+        const isBuiltRow = isBuiltProductStatus(row.status);
+        if (nodeIdForTable && isBuiltRow) {
           if (AUTHOR_LEVEL_NODES.has(nodeIdForTable)) {
             fanOutToAllBooks(nodeIdForTable);
           } else {
-            const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
+            const bookId = bookForCountedRow(isAuthorScoped ? primaryBookId : (row as any).book_id);
             if (bookId) ensureBookSet(bookId).add(nodeIdForTable);
           }
         }
@@ -251,20 +253,23 @@ Deno.serve(async (req) => {
       totalPublished += counts.published;
     }
 
-    // Attribute each *gated-built* author_node row. Author-level nodes count
-    // toward every book; book-specific rows scope to their own book_id with a
-    // fallback to the primary (oldest) book for legacy un-stamped rows.
+    // Attribute each *gated-built* author_node row to its own book only.
+    // COUNTER RULE: no primary-book fallback — an un-stamped legacy row must
+    // never inflate another book's X / 28 count.
     for (const n of builtRows) {
       if (AUTHOR_LEVEL_NODES.has(n.node_id)) {
         fanOutToAllBooks(n.node_id);
       } else {
-        const bid = n.book_id || primaryBookId;
+        const bid = bookForCountedRow(n.book_id);
         if (bid) ensureBookSet(bid).add(n.node_id);
       }
     }
-    if (profile?.author_slug && primaryBookId) {
-      ensureBookSet(primaryBookId).add("BP-04");
+    // The author website is one site covering every book, so it counts for all
+    // of them — matching what the dashboard shows per book.
+    if (profile?.author_slug) {
+      fanOutToAllBooks("BP-04");
     }
+
 
     // Materialise structured perBook output with brand/build/yield bucket counts
     const perBook: Record<string, PerBookEntry> = {};
