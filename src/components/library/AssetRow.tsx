@@ -90,9 +90,11 @@ export default function AssetRow({
   const subContent = pluckByKey(node.content_json, asset.key) ?? node.content_json;
   const opts = { content: subContent, nodeName: asset.label, bookTitle, authorName: penName ?? undefined };
 
-  const publicUrl = !NO_MICROSITE_NODES.has(node.node_id) && authorSlug
-    ? getMicrositeUrl(authorSlug, node.node_id)
-    : null;
+  // Prefer the link stored when the module was published — it already carries
+  // the book segment. Only fall back to the generated author-level shape.
+  const publicUrl = NO_MICROSITE_NODES.has(node.node_id)
+    ? null
+    : node.microsite_url || (authorSlug ? getMicrositeUrl(authorSlug, node.node_id) : null);
 
   const hasScript = !!node.content_json?.speaker_script?.slides?.length;
 
