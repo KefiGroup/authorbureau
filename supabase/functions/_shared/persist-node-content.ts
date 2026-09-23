@@ -101,9 +101,13 @@ export async function saveNodeContent(
     ...extra,
   };
 
+  // Module rows are unique per (author, node, book). Conflict on the book key
+  // too, otherwise saving one book's module can overwrite another book's row.
   const { error } = await supabase
     .from("author_nodes")
-    .upsert(upsertPayload, { onConflict: "author_id,node_id" });
+    .upsert(upsertPayload, {
+      onConflict: upsertPayload.book_id ? "author_id,node_id,book_id" : "author_id,node_id",
+    });
 
   if (error) {
     return { ok: false, violations_logged: logged, cta_injected: ctaInjected, error: error.message };
