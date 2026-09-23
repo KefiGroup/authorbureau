@@ -6,6 +6,7 @@ import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
 import { getNodePriceLabel } from "./node-price";
+import { normaliseMicrositeUrl } from "./public-destination";
 
 const NODE_META: Record<string, { icon: typeof BookOpen; label: string; order: number }> = {
   "BP-05": { icon: Video, label: "Webinar", order: 1 },
