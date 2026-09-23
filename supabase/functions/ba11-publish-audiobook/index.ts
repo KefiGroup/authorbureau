@@ -167,7 +167,7 @@ Deno.serve(async (req: Request) => {
   // Fetch book (best-effort, only used for metadata)
   const { data: book } = await admin
     .from("books")
-    .select("id, title, author_name, description, cover_image_url")
+    .select("id, title, slug, author_name, description, cover_image_url")
     .eq("id", bookId)
     .maybeSingle();
 
@@ -180,6 +180,7 @@ Deno.serve(async (req: Request) => {
       .select("id, content_json")
       .eq("author_id", authorProfileId)
       .eq("node_id", "BA-11")
+      .eq("book_id", bookId)
       .maybeSingle();
     if (!nodeRow) {
       return json(404, { error: "Audiobook node not found. Publish first." });
@@ -537,7 +538,11 @@ Deno.serve(async (req: Request) => {
   // Upsert author_nodes row — preserve existing draft fields (e.g. studio) so
   // refresh / later autosaves don't lose the builder state, and stamp the
   // canonical library_asset (kind=audio_zip) so My Library + readiness count it.
-  const micrositeUrl = authorSlug ? `/${authorSlug}/audiobook` : null;
+  // Book-scoped public link. Authors have many books, so a 2-segment link can
+  // resolve to another book's audiobook page.
+  const micrositeUrl = authorSlug
+    ? (book?.slug ? `/${authorSlug}/${book.slug}/audiobook` : `/${authorSlug}/audiobook`)
+    : null;
   const publicAuthorPageUrl = authorSlug ? `/${authorSlug}` : null;
 
   const { data: existingNode } = await admin
@@ -545,6 +550,7 @@ Deno.serve(async (req: Request) => {
     .select("id, content_json, book_id")
     .eq("author_id", authorProfileId)
     .eq("node_id", "BA-11")
+    .eq("book_id", bookId)
     .maybeSingle();
   const existingContent = (existingNode?.content_json ?? {}) as Record<string, unknown>;
 
@@ -606,7 +612,7 @@ Deno.serve(async (req: Request) => {
 
   const { error: nodeUpsertErr } = await admin
     .from("author_nodes")
-    .upsert(upsertPayload as never, { onConflict: "author_id,node_id" });
+    .upsert(upsertPayload as never, { onConflict: "author_id,node_id,book_id" });
   if (nodeUpsertErr) {
     console.error("[ba11-publish-audiobook] author_nodes upsert failed:", nodeUpsertErr.message);
     return json(500, {
