@@ -97,6 +97,16 @@ export default function MicrositePage() {
     fetchPage();
   }, [authorSlug, nodeId, nodeSlug, isDynamicSlug, bookSlug]);
 
+  // A legacy 2-segment link (/author/workbook) is ambiguous for an author with
+  // several books. Once the page resolves, rewrite the address to the canonical
+  // book-scoped URL so what the reader sees always matches the address bar.
+  useEffect(() => {
+    if (!data || bookSlug) return;
+    const resolvedBookSlug = data.book?.slug;
+    if (!resolvedBookSlug || !data.node?.book_id) return;
+    navigate(`/${authorSlug}/${resolvedBookSlug}/${nodeSlug}`, { replace: true });
+  }, [data, bookSlug, authorSlug, nodeSlug, navigate]);
+
   const nodeName = nodeId ? NODE_NAMES[nodeId] || "" : "";
   const authorName = data?.author?.pen_name || authorSlug || "";
   const bookTitle = data?.book?.title || "";
