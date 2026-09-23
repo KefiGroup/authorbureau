@@ -32,6 +32,7 @@ export default function MicrositePage() {
   //   /:authorSlug/:bookSlug/:nodeSlug        → 3-seg book-scoped: nodeSlug is the node slug
   const params = useParams<{ authorSlug: string; bookSlug?: string; nodeSlug?: string }>();
   const authorSlug = params.authorSlug;
+  const navigate = useNavigate();
   const nodeSlug = params.nodeSlug ?? params.bookSlug;
   const bookSlug = params.nodeSlug ? params.bookSlug : undefined;
   const [data, setData] = useState<MicrositeData | null>(null);
