@@ -6,6 +6,7 @@ import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
 import { getNodePriceLabel } from "./node-price";
+import { normaliseMicrositeUrl } from "./public-destination";
 
 const NODE_META: Record<string, { icon: typeof BookOpen; label: string; order: number }> = {
   "BP-05": { icon: Video, label: "Webinar", order: 1 },
@@ -54,8 +55,11 @@ export default function AuthorLearnSection({ authorSlug, displayName, learnNodes
             const title = node.personalised_name || node.node_name;
             const desc = node.content_json?.description as string | undefined;
             const { label: priceLabel, isKnownFree, isEnquiry } = getNodePriceLabel(node);
-            const slug = node.microsite_url?.replace(/^\//, "").split("/").pop();
-            const linkTo = slug ? `/${authorSlug}/${slug}` : (node.third_party_url || "#");
+            // Keep the full stored path (it carries the book segment). Taking
+            // only the last segment dropped the book and sent readers to
+            // another book's page with the same node.
+            const storedPath = normaliseMicrositeUrl(node.microsite_url ?? null);
+            const linkTo = storedPath || node.third_party_url || "#";
 
             return (
               <motion.div key={node.node_id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx + 1}>

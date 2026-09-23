@@ -4,6 +4,7 @@ import { Sparkles, ArrowRight } from "lucide-react";
 import type { ThemeVars } from "./types";
 import { fadeUp } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
+import { normaliseMicrositeUrl } from "./public-destination";
 
 export interface LiveNode {
   id: string;
@@ -40,11 +41,9 @@ export default function AuthorLeadMagnetsSection({ authorSlug, leadMagnets, them
               ? `Discover your strengths with this quick assessment on ${lm.content_json.quiz_topic}.`
               : "Take this free assessment and get personalised insights.";
             
-            // Build the link: use microsite_url slug or fallback
-            const slug = lm.microsite_url
-              ? lm.microsite_url.replace(/^\//, "").split("/").pop()
-              : null;
-            const linkTo = slug ? `/${authorSlug}/${slug}` : "#";
+            // Keep the full stored path so the book segment survives; taking
+            // only the last segment sent readers to another book's page.
+            const linkTo = normaliseMicrositeUrl(lm.microsite_url ?? null) || "#";
 
             return (
               <motion.div key={lm.node_id} initial="hidden" whileInView="visible" viewport={{ once: true }} variants={fadeUp} custom={idx}>

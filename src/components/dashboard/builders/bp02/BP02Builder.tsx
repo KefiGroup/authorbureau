@@ -407,6 +407,7 @@ export default function BP02Builder({ authorId, bookId }: Props) {
         supabase.functions.invoke("bp02-activate-funnel", {
           body: {
             node_id: "BP-02",
+            book_id: activeBookId,
             lead_magnet_title: lmTitle,
             headline: lmTitle,
             subheadline: lmSubheadline,

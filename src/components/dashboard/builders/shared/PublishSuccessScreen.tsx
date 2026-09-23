@@ -8,6 +8,7 @@ import { NODE_NAMES, getMicrositeUrl, NO_MICROSITE_NODES } from "@/lib/node-slug
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import NodeFunnelFlow from "./NodeFunnelFlow";
+import { useBookSlug } from "@/hooks/useBookSlug";
 
 /** Per-node override for the success-screen headline (avoids "Your Email Marketing are saved..."). */
 const NODE_SAVED_HEADLINE: Record<string, string> = {
@@ -77,7 +78,9 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
   const [copied, setCopied] = useState(false);
   const nodeName = NODE_NAMES[nodeId] || nodeId;
   const hasPublicPage = !NO_MICROSITE_NODES.has(nodeId);
-  const micrositeUrl = hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId) : null;
+  // Book-scoped link: without the book segment this opens another book's page.
+  const publishedBookSlug = useBookSlug();
+  const micrositeUrl = hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId, publishedBookSlug) : null;
   const campaignId = NODE_TO_CAMPAIGN[nodeId] || "email-marketing";
   const prefix = nodeId.substring(0, 2);
   const hub = NODE_TO_HUB[prefix] || NODE_TO_HUB.BP;

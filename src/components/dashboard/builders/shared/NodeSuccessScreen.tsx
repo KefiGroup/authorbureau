@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { NODE_NAMES, getMicrositeUrl, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
+import { useBookSlug } from "@/hooks/useBookSlug";
 
 export interface SuccessAction {
   label: string;
@@ -66,7 +67,10 @@ export default function NodeSuccessScreen({
 }: Props) {
   const nodeName = NODE_NAMES[nodeId] || nodeId;
   const hasPublicPage = !NO_MICROSITE_NODES.has(nodeId);
-  const micrositeUrl = customMicrositeUrl ?? (hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId) : null);
+  // The live link must carry the book segment, otherwise it opens whichever
+  // book happens to match the module first.
+  const bookSlug = useBookSlug();
+  const micrositeUrl = customMicrositeUrl ?? (hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId, bookSlug) : null);
 
   const defaultSocialText = socialShareText ||
     `I just launched my ${nodeName.toLowerCase()} with @AuthorsBureau! Check it out: ${micrositeUrl || ""}`;

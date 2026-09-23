@@ -115,8 +115,11 @@ serve(async (req) => {
       console.warn("get-microsite-page: legacy 2-segment call (no book param)", { authorSlug, nodeId });
     }
 
-    // Get node data — when book context is known, filter by it; otherwise fall
-    // back to "best row first" for backward compatibility.
+    // Get node data — when book context is known, filter by it. Without a book
+    // slug the URL is ambiguous for a multi-book author, so we must pick
+    // deterministically: the FIRST (oldest) row that is actually live, never
+    // whichever row happens to sort first by URL. The old alphabetical ordering
+    // made /author/workbook resolve to a different book than the author expected.
     let nodeQuery = supabase
       .from("author_nodes")
       .select("*")
@@ -125,11 +128,16 @@ serve(async (req) => {
     if (bookIdForLookup) {
       nodeQuery = nodeQuery.eq("book_id", bookIdForLookup);
     }
-    const { data: nodeRows } = await nodeQuery
-      .order("microsite_url", { ascending: false, nullsFirst: false })
-      .order("updated_at", { ascending: false })
-      .limit(1);
-    const node = (nodeRows && nodeRows[0]) || null;
+    const { data: nodeRows } = await nodeQuery.order("created_at", { ascending: true });
+
+    const rowIsLive = (r: Record<string, unknown> | null) => {
+      if (!r) return false;
+      const c = (r.content_json ?? {}) as Record<string, unknown>;
+      return r.status === "live" || (r.status === "content_ready" && c.activated === true);
+    };
+
+    const allRows = (nodeRows ?? []) as Record<string, unknown>[];
+    const node = (allRows.find(rowIsLive) ?? allRows[0] ?? null) as any;
 
     // Treat as live if explicitly live OR if the row is content_ready but the
     // content_json carries `activated: true` (forward-compat self-heal for cases
@@ -220,6 +228,7 @@ serve(async (req) => {
           status: node.status,
           content_json: contentWithCta,
           microsite_url: node.microsite_url,
+          book_id: node.book_id ?? null,
           payment_link: node.payment_link,
           third_party_url: node.third_party_url,
           price_usd: node.price_usd,

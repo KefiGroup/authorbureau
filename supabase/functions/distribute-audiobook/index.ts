@@ -106,7 +106,7 @@ serve(async (req) => {
     // Fetch book
     const { data: book, error: bookErr } = await supabase
       .from("books")
-      .select("id, title, author_name, description, cover_image_url, author_id")
+      .select("id, title, slug, author_name, description, cover_image_url, author_id")
       .eq("id", bookId)
       .single();
     if (bookErr || !book) {
@@ -231,7 +231,10 @@ serve(async (req) => {
     // IMPORTANT: merge with existing content_json so we never wipe the BA-11 builder's
     // `studio` payload — that's what powers refresh-to-Review instead of refresh-to-Intro.
     if (authorProfileId) {
-      const micrositeUrl = authorSlug ? `/${authorSlug}/audiobook` : null;
+      // Book-scoped public link — one author has many books.
+      const micrositeUrl = authorSlug
+        ? (book.slug ? `/${authorSlug}/${book.slug}/audiobook` : `/${authorSlug}/audiobook`)
+        : null;
       const samplePreviewUrl = chapters[baseManifest.preview_chapter_index]?.audio_url || chapters[0]?.audio_url || null;
 
       const { data: existing } = await supabase
@@ -239,12 +242,14 @@ serve(async (req) => {
         .select("content_json")
         .eq("author_id", authorProfileId)
         .eq("node_id", "BA-11")
+        .eq("book_id", bookId)
         .maybeSingle();
       const existingContent = (existing?.content_json ?? {}) as Record<string, any>;
 
       await supabase.from("author_nodes").upsert({
         author_id: authorProfileId,
         node_id: "BA-11",
+        book_id: bookId,
         node_name: "Audiobook",
         status: "live",
         delivery_type: "digital_audio",
@@ -269,7 +274,7 @@ serve(async (req) => {
           published_at: new Date().toISOString(),
           _currentStep: 4,
         } as any,
-      } as any, { onConflict: "author_id,node_id" });
+      } as any, { onConflict: "author_id,node_id,book_id" });
       logStep("author_nodes row upserted (studio preserved)");
     }
 
