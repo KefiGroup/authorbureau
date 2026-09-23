@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "../_shared/node-readiness.ts";
 import { resolveUser } from "../_shared/resolve-user.ts";
+import { isBuiltProductStatus, bookForCountedRow } from "../_shared/node-counting.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -235,12 +236,12 @@ Deno.serve(async (req) => {
         // Per-book counting — attach this row's node to its specific book.
         // COUNTER RULE: only *finished* rows count toward X / 28. A draft or
         // in-review product is work in progress, never a built module.
-        const isBuiltRow = row.status === "published" || row.status === "active" || row.status === "live";
+        const isBuiltRow = isBuiltProductStatus(row.status);
         if (nodeIdForTable && isBuiltRow) {
           if (AUTHOR_LEVEL_NODES.has(nodeIdForTable)) {
             fanOutToAllBooks(nodeIdForTable);
           } else {
-            const bookId = isAuthorScoped ? primaryBookId : (row as any).book_id;
+            const bookId = bookForCountedRow(isAuthorScoped ? primaryBookId : (row as any).book_id);
             if (bookId) ensureBookSet(bookId).add(nodeIdForTable);
           }
         }
@@ -258,8 +259,9 @@ Deno.serve(async (req) => {
     for (const n of builtRows) {
       if (AUTHOR_LEVEL_NODES.has(n.node_id)) {
         fanOutToAllBooks(n.node_id);
-      } else if (n.book_id) {
-        ensureBookSet(n.book_id).add(n.node_id);
+      } else {
+        const bid = bookForCountedRow(n.book_id);
+        if (bid) ensureBookSet(bid).add(n.node_id);
       }
     }
     // The author website is one site covering every book, so it counts for all
