@@ -1027,7 +1027,7 @@ export default function AuthorBookPage() {
         // A-04: give first-time visitors a clear "Start Here" recommendation —
         // the lowest-priced entry point across courses/membership/work options.
         const entryCandidates = [...courseNodes, ...workNodes]
-          .filter((n) => Number(n.price_usd) > 0)
+          .filter((n) => Number(n.price_usd) > 0 && Number(n.price_usd) < 100)
           .sort((a, b) => Number(a.price_usd) - Number(b.price_usd));
         const entryNode = entryCandidates[0];
         const entryTitle = entryNode

@@ -1271,7 +1271,8 @@ function WorkbookSalesPage({
         >
           <div className="text-center mb-5 pb-5" style={{ borderBottom: `1px solid ${v.cardBorder}` }}>
             <p className="text-4xl sm:text-5xl font-bold mb-2" style={{ color: v.headingText, fontFamily: hFont }}>{priceDisplay}</p>
-            {!isFree && priceLabel && <p className="text-xs" style={{ color: v.mutedText }}>One-time payment · Instant access</p>}
+            {!isFree && !isEnquiry && priceLabel && <p className="text-xs" style={{ color: v.mutedText }}>One-time payment · Instant access</p>}
+            {isEnquiry && <p className="text-xs" style={{ color: v.mutedText }}>Contact the author to discuss your options</p>}
             {isFree && <p className="text-xs" style={{ color: v.mutedText }}>No payment required</p>}
           </div>
           {renderCta()}
@@ -1286,7 +1287,7 @@ function WorkbookSalesPage({
               <span className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 mt-0.5" style={{ background: v.accent + "20" }}>
                 <CheckCircle2 className="h-3.5 w-3.5" style={{ color: v.accent }} />
               </span>
-              {isFree ? "Instant download, no purchase required" : "Instant download after purchase"}
+              {isFree ? "Instant download, no purchase required" : isEnquiry ? "Access details discussed with the author" : "Instant download after purchase"}
             </li>
             <li className="flex items-start gap-3">
               <span className="flex h-6 w-6 items-center justify-center rounded-full shrink-0 mt-0.5" style={{ background: v.accent + "20" }}>
