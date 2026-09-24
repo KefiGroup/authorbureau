@@ -93,7 +93,7 @@ export default function AuthorBookFormatsList({
       rows.push({
         kind: "link",
         key: n.id,
-        label: n.personalised_name || "Bundle",
+        label: "Bundles",
         Icon: Package,
         price: null,
         href: `/${authorSlug}/${book.slug}/${NODE_SLUG_MAP["BA-17"]}`,
