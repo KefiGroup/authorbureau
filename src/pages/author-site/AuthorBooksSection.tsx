@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Headphones, BookOpen, Package, Star } from "lucide-react";
 import type { BookWithProducts, ThemeVars, BookFormatNode } from "./types";
-import { fadeUp, getLowestPrice } from "./types";
+import { fadeUp, getLowestPrice, nodeBelongsToBook } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
 import AuthorBookFormatsList from "./AuthorBookFormatsList";
@@ -45,12 +45,8 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
     if (!badge) return;
     // A format belongs to the book it was built for. Never fan a node out
     // across every book — that is what made the page look duplicated.
-    const bookId = ((node as unknown as { book_id?: string }).book_id
-      || (node.content_json?.book_id as string | undefined)) as string | undefined;
-    const bookSlug = node.content_json?.book_slug as string | undefined;
-    if (!bookId && !bookSlug) return;
     booksWithProducts.forEach(book => {
-      if ((bookId && book.id === bookId) || (bookSlug && book.slug === bookSlug)) {
+      if (nodeBelongsToBook(node, book)) {
         const existing = bookFormatBadges.get(book.id) || [];
         if (!existing.find(b => b.label === badge.label)) {
           existing.push(badge);
