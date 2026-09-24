@@ -15,8 +15,6 @@ interface SimpleFormatRow {
   external?: boolean;
 }
 
-type FormatRow = SimpleFormatRow;
-
 interface Props {
   book: BookWithProducts;
   authorSlug: string;
@@ -41,7 +39,7 @@ export default function AuthorBookFormatsList({
   theme,
   v,
 }: Props) {
-  const rows: FormatRow[] = [];
+  const rows: SimpleFormatRow[] = [];
 
   // Built-in formats from the books table — Amazon links only, no Stripe.
   if (book.kindle_price) {
