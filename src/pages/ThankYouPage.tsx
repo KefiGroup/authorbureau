@@ -47,10 +47,14 @@ export default function ThankYouPage() {
 
         if (!author) { setLoading(false); return; }
 
-        const { data: book } = await supabase
+        // The quiz passes ?book=<slug> so the page stays on the reader's book.
+        const bookParam = new URLSearchParams(window.location.search).get("book");
+        let bookQuery = supabase
           .from("books")
-          .select("title, amazon_url, cover_image_url, slug")
-          .eq("author_id", author.id)
+          .select("id, title, amazon_url, cover_image_url, slug")
+          .eq("author_id", author.id);
+        if (bookParam) bookQuery = bookQuery.eq("slug", bookParam);
+        const { data: book } = await bookQuery
           .order("created_at", { ascending: false })
           .limit(1)
           .maybeSingle();
@@ -78,7 +82,8 @@ export default function ThankYouPage() {
             .select("id, node_id, personalised_name, price_usd, currency, delivery_url, payment_link, third_party_url")
             .eq("author_id", author.id)
             .eq("status", "live")
-            .in("node_id", ["BP-06", "BP-07", "BA-17"]);
+            .in("node_id", ["BP-06", "BP-07", "BA-17"])
+            .eq("book_id", (book as any)?.id ?? "00000000-0000-0000-0000-000000000000");
           const priced = (nodes || [])
             .filter((n: any) => typeof n.price_usd === "number" && n.price_usd > 0)
             .sort((a: any, b: any) => (a.price_usd ?? 0) - (b.price_usd ?? 0));
