@@ -11,6 +11,7 @@
 // for the requested authorId.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { workbookPrice } from "../_shared/workbook-price.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -214,6 +215,7 @@ Deno.serve(async (req: Request) => {
     currentStep?: number;
     micrositeUrl?: string | null;
     libraryAsset?: Record<string, unknown> | null;
+    workbookPricing?: { recommendation: "free" | "paid"; price: number };
   };
   try {
     body = await req.json();
@@ -222,7 +224,7 @@ Deno.serve(async (req: Request) => {
   }
 
   const action = body.action ?? "save";
-  const { authorId, nodeId, nodeName, content, currentStep, bookId, micrositeUrl, libraryAsset } = body;
+  const { authorId, nodeId, nodeName, content, currentStep, bookId, micrositeUrl, libraryAsset, workbookPricing } = body;
 
   // list-audio uses authorId + bookId only — nodeId is not required.
   if (action === "list-audio") {
@@ -453,12 +455,21 @@ Deno.serve(async (req: Request) => {
       ? [previousAsset, ...previousHistory].slice(0, 5)
       : previousHistory;
 
+    const selectedPricing = nodeId === "BP-06" && workbookPricing
+      ? { pricing_recommendation: workbookPricing.recommendation, suggested_price_usd: workbookPricing.price }
+      : {};
     const mergedContent: Record<string, unknown> = {
       ...existingContent,
+       ...selectedPricing,
       activated: true,
       _currentStep: 3,
       ...(derivedAsset ? { library_asset: derivedAsset, library_asset_history: nextHistory } : {}),
     };
+    if (nodeId === "BP-06") {
+      const price = workbookPrice(mergedContent);
+      if (price === null) return json(422, { error: "Choose a valid free or paid workbook price before publishing." });
+      updatePayload.price_usd = price;
+    }
     const updatePayload: Record<string, unknown> = {
       status: "live",
       activated_at: new Date().toISOString(),
@@ -572,6 +583,10 @@ Deno.serve(async (req: Request) => {
     current_step: currentStep ?? 0,
     status,
   };
+  if (nodeId === "BP-06") {
+    const price = workbookPrice(nextContent);
+    if (price !== null) payload.price_usd = price;
+  }
 
   if (existing) {
     // Pin to this book if it was a legacy author-only row
