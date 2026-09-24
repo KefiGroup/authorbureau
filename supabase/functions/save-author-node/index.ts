@@ -460,16 +460,11 @@ Deno.serve(async (req: Request) => {
       : {};
     const mergedContent: Record<string, unknown> = {
       ...existingContent,
-       ...selectedPricing,
+      ...selectedPricing,
       activated: true,
       _currentStep: 3,
       ...(derivedAsset ? { library_asset: derivedAsset, library_asset_history: nextHistory } : {}),
     };
-    if (nodeId === "BP-06") {
-      const price = workbookPrice(mergedContent);
-      if (price === null) return json(422, { error: "Choose a valid free or paid workbook price before publishing." });
-      updatePayload.price_usd = price;
-    }
     const updatePayload: Record<string, unknown> = {
       status: "live",
       activated_at: new Date().toISOString(),
@@ -477,6 +472,11 @@ Deno.serve(async (req: Request) => {
       current_step: 3,
       content_json: mergedContent,
     };
+    if (nodeId === "BP-06") {
+      const price = workbookPrice(mergedContent);
+      if (price === null) return json(422, { error: "Choose a valid free or paid workbook price before publishing." });
+      updatePayload.price_usd = price;
+    }
     // Pin the row to this book if it was a legacy author-only row
     if (bookId && !node.book_id) updatePayload.book_id = bookId;
     const { error: updErr } = await admin

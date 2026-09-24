@@ -48,7 +48,7 @@ export default function AuthorBookFormatsList({
       key: "kindle",
       label: "Kindle",
       Icon: BookOpen,
-      price: book.kindle_price.startsWith("$") ? book.kindle_price : `$${book.kindle_price}`,
+      price: Number.parseFloat(book.kindle_price.replace(/[^\d.]/g, "")) >= 100 ? null : book.kindle_price.startsWith("$") ? book.kindle_price : `$${book.kindle_price}`,
       href: book.amazon_url || `/${authorSlug}/${book.slug}`,
       external: !!book.amazon_url,
     });
@@ -59,7 +59,7 @@ export default function AuthorBookFormatsList({
       key: "paperback",
       label: "Paperback",
       Icon: BookOpen,
-      price: book.paperback_price.startsWith("$") ? book.paperback_price : `$${book.paperback_price}`,
+      price: Number.parseFloat(book.paperback_price.replace(/[^\d.]/g, "")) >= 100 ? null : book.paperback_price.startsWith("$") ? book.paperback_price : `$${book.paperback_price}`,
       href: book.amazon_url || `/${authorSlug}/${book.slug}`,
       external: !!book.amazon_url,
     });
