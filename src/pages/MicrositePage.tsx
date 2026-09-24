@@ -120,8 +120,8 @@ export default function MicrositePage() {
     description: data ? `${pageTitle} by ${authorName}. ${data.context?.core_thesis || bookTitle}` : "",
     ogTitle: data ? `${pageTitle} by ${authorName}` : undefined,
     ogImage: data?.book?.cover_image_url || data?.author?.photo_url || undefined,
-    ogUrl: `https://authorsbureau.com/${authorSlug}/${nodeSlug}`,
-    canonical: `https://authorsbureau.com/${authorSlug}/${nodeSlug}`,
+    ogUrl: `https://authorsbureau.com/${authorSlug}${bookSlug ? `/${bookSlug}` : ""}/${nodeSlug}`,
+    canonical: `https://authorsbureau.com/${authorSlug}${bookSlug ? `/${bookSlug}` : ""}/${nodeSlug}`,
   });
 
   // Loading
@@ -1059,9 +1059,11 @@ function WorkbookSalesPage({
     .replace(/\s*[—–]\s*/g, ", ")
     .trim();
 
-  const isFree = content.pricing_recommendation === "free" || Number(content.suggested_price_usd) === 0;
-  const priceNum = Number(content.suggested_price_usd) || 0;
-  const priceLabel = isFree ? "Free" : (priceNum > 0 ? `$${priceNum.toFixed(2)}` : null);
+  // The live node's price is the checkout price; generated suggestions are not.
+  const priceNum = Number(data.node.price_usd) || 0;
+  const isFree = content.pricing_recommendation === "free" && priceNum === 0;
+  const isEnquiry = priceNum >= 100;
+  const priceLabel = isFree ? "Free" : (isEnquiry ? "By application" : priceNum > 0 ? `$${priceNum.toFixed(2)}` : null);
 
   // Resolve a real downloadable file URL for the free workbook.
   // Priority: branded library_asset PDF → library_asset primary url (.pdf/.docx)
@@ -1106,7 +1108,7 @@ function WorkbookSalesPage({
         </div>
       );
     }
-    const directButton = priceNum > 0 && data.node.id ? (
+    const directButton = !isEnquiry && priceNum > 0 && data.node.id ? (
       <BuyNowButton
         authorNodeId={data.node.id}
         authorId={data.author?.id}
@@ -1115,11 +1117,16 @@ function WorkbookSalesPage({
         className="w-full rounded-full text-base py-3"
         style={{ background: v.accent, color: v.accentText }}
       />
-    ) : hasStripeUrl ? (
+    ) : !isEnquiry && priceNum > 0 && hasStripeUrl ? (
       <Button className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }} asChild>
         <a href={buyUrl!} target="_blank" rel="noopener noreferrer">{normalizePriceInText(cfg.cta)} <ArrowRight className="ml-2 h-4 w-4" /></a>
       </Button>
     ) : null;
+    if (isEnquiry) return (
+      <Button className="w-full rounded-full" style={{ background: v.accent, color: v.accentText }} asChild>
+        <a href={`/${authorSlug}#contact`}>Enquire about this workbook <ArrowRight className="ml-2 h-4 w-4" /></a>
+      </Button>
+    );
     return (
       <div className="space-y-2">
         {directButton}
@@ -1146,7 +1153,7 @@ function WorkbookSalesPage({
         {amazonKindleUrl && (
           <p className="text-[11px] text-center" style={{ color: v.mutedText }}>Read instantly on Kindle</p>
         )}
-        {!directButton && !amazonPaperbackUrl && !amazonKindleUrl && (
+        {!directButton && priceNum === 0 && !amazonPaperbackUrl && !amazonKindleUrl && (
           <Button className="w-full rounded-full" variant="outline" asChild>
             <a href={`mailto:?subject=Notify me when ${encodeURIComponent(title)} is available`}>Notify me</a>
           </Button>
