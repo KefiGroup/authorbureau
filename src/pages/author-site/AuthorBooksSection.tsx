@@ -111,7 +111,7 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                     </div>
                   </div>
                   <div className="shrink-0 p-6 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 md:border-l" style={{ borderColor: v.cardBorder }}>
-                    {lowestPrice && <span className="text-lg font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{lowestPrice}</span>}
+                    {lowestPrice && parseFloat(lowestPrice.replace(/[^0-9.]/g, "")) < 100 && <span className="text-lg font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{lowestPrice}</span>}
                     <div className="flex flex-col gap-2 items-stretch w-full md:w-auto">
                       <Link to={`/${authorSlug}/${book.slug}`}>
                         <button className="w-full inline-flex items-center justify-center gap-1.5 font-bold text-sm rounded-lg transition-all px-5 py-2.5"

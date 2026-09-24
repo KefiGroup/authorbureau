@@ -75,7 +75,7 @@ export default function AuthorBookFormatsList({
         key: n.id,
         label: "Audiobook",
         Icon: Headphones,
-        price: formatPrice(n.price_usd, n.currency),
+        price: n.price_usd != null && n.price_usd >= 100 ? null : formatPrice(n.price_usd, n.currency),
         href: `/${authorSlug}/${book.slug}/${NODE_SLUG_MAP["BA-11"]}`,
       });
     } else if (n.node_id.startsWith("BP-06")) {
