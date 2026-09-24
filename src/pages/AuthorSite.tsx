@@ -436,7 +436,7 @@ export default function AuthorSite() {
       <AuthorSocialProofBar booksWithProducts={booksWithProducts} testimonialsCount={testimonials.length} theme={theme} v={v} />
       {/* Every revenue stream lives on the book it belongs to. This page lists the
           books and how much each one opens up; the book page is the storefront. */}
-      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} offerCounts={offerCountsByBook} theme={theme} v={v} authorId={author.id} stripeReady={true} isOwnerViewing={isOwner} />
+      <AuthorBooksSection authorSlug={authorSlug!} displayName={displayName} booksWithProducts={heroBook ? [heroBook, ...booksWithProducts.filter(b => b.id !== heroBook.id)] : booksWithProducts} liveNodes={formatNodes} offerCounts={offerCountsByBook} theme={theme} v={v} />
       <AuthorWhatsInsideSection highlights={whatsInsideHighlights} primaryBook={booksWithProducts.find(b => b.id === whatsInsideSourceBookId)} theme={theme} v={v} />
       <AuthorAboutSection author={author} displayName={displayName} podcastNodes={podcastNodes} theme={theme} v={v} />
       <AuthorFrameworkSection

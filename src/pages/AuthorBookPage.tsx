@@ -461,7 +461,7 @@ export default function AuthorBookPage() {
         type: mapping.type,
         title: formatPublicLabel(n.personalised_name, mapping.label),
         route: mapping.route,
-        price: priceNum && priceNum > 0 ? `$${priceNum.toLocaleString()}` : undefined,
+        price: priceNum && priceNum > 0 && priceNum < 100 ? `$${priceNum.toLocaleString()}` : undefined,
         linkTo: `/${authorSlug}/${bookSlug}/${mapping.route}`,
       });
       existingRoutes.add(mapping.route);
@@ -876,7 +876,8 @@ export default function AuthorBookPage() {
           const currency = (n.currency || "USD").toUpperCase();
           const symbol = currency === "USD" ? "$" : "";
           const priceNum = Number(n.price_usd) || 0;
-          const price = mode === "free" ? "Free" : `${symbol}${priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          const needsEnquiry = priceNum >= 100;
+          const price = needsEnquiry ? "By application" : mode === "free" ? "Free" : `${symbol}${priceNum.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
           // B-02: free companion products (e.g. the Workbook) often have no
           // description. Explain why it's free so the card never looks empty.
           const description =
@@ -906,7 +907,11 @@ export default function AuthorBookPage() {
                     {mode === "free" ? "Get Free Access" : "Learn More"} <ArrowRight className="ml-1 h-3 w-3" />
                   </Link>
                 )}
-                {mode === "buy" && (
+                {needsEnquiry ? (
+                  <button onClick={() => setInquiryFor(title)} className="w-full rounded-full text-xs h-9 font-semibold" style={{ background: v.accent, color: v.accentText }}>
+                    Enquire
+                  </button>
+                ) : mode === "buy" && (
                   <BuyNowButton
                     authorNodeId={n.id}
                     authorId={book.author_id}
@@ -1022,7 +1027,7 @@ export default function AuthorBookPage() {
         // A-04: give first-time visitors a clear "Start Here" recommendation —
         // the lowest-priced entry point across courses/membership/work options.
         const entryCandidates = [...courseNodes, ...workNodes]
-          .filter((n) => Number(n.price_usd) > 0)
+          .filter((n) => Number(n.price_usd) > 0 && Number(n.price_usd) < 100)
           .sort((a, b) => Number(a.price_usd) - Number(b.price_usd));
         const entryNode = entryCandidates[0];
         const entryTitle = entryNode

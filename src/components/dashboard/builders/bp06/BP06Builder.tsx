@@ -303,7 +303,10 @@ export default function BP06Builder({ authorId, bookId }: Props) {
         setStep(2);
         return;
       }
-      await publishNodeToSite(authorId!, "BP-06", authorSlug, activeBookId, libraryAsset);
+      await publishNodeToSite(authorId!, "BP-06", authorSlug, activeBookId, libraryAsset, {
+        recommendation: isPaidNode(content) ? "paid" : "free",
+        price: isPaidNode(content) ? Number(content.suggested_price_usd) : 0,
+      });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
       // Fire-and-forget: AI-generate a workbook cover that emulates the book cover.
@@ -353,7 +356,7 @@ export default function BP06Builder({ authorId, bookId }: Props) {
         setStep(2);
         return;
       }
-      await publishNodeToSite(authorId, "BP-06", authorSlug, activeBookId, libraryAsset);
+      await publishNodeToSite(authorId, "BP-06", authorSlug, activeBookId, libraryAsset, { recommendation: "free", price: 0 });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setContent((prev: any) => ({ ...prev, activated: true, ...(libraryAsset ? { library_asset: libraryAsset } : {}) }));
       void generateProductCover({

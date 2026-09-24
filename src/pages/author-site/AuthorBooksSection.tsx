@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Headphones, BookOpen, Package, Star } from "lucide-react";
 import type { BookWithProducts, ThemeVars, BookFormatNode } from "./types";
-import { fadeUp, getLowestPrice } from "./types";
+import { fadeUp, getLowestPrice, nodeBelongsToBook } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
 import type { LiveNode } from "./AuthorLeadMagnetsSection";
 import AuthorBookFormatsList from "./AuthorBookFormatsList";
@@ -23,17 +23,11 @@ interface Props {
   liveNodes?: LiveNode[];
   theme: AuthorTheme;
   v: ThemeVars;
-  /** Author profile id — required for ProductCTA in the formats list. */
-  authorId: string;
-  /** Whether Stripe is connected (Authors Bureau platform default: true). */
-  stripeReady?: boolean;
-  /** Whether the viewer is the owning author. */
-  isOwnerViewing?: boolean;
   /** book.id -> number of live reader-facing offers on that book's page. */
   offerCounts?: Record<string, number>;
 }
 
-export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v, authorId, stripeReady = true, isOwnerViewing = false, offerCounts = {} }: Props) {
+export default function AuthorBooksSection({ authorSlug, displayName, booksWithProducts, liveNodes = [], theme, v, offerCounts = {} }: Props) {
   if (booksWithProducts.length === 0) return null;
   const totalBooks = booksWithProducts.length;
 
@@ -45,12 +39,8 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
     if (!badge) return;
     // A format belongs to the book it was built for. Never fan a node out
     // across every book — that is what made the page look duplicated.
-    const bookId = ((node as unknown as { book_id?: string }).book_id
-      || (node.content_json?.book_id as string | undefined)) as string | undefined;
-    const bookSlug = node.content_json?.book_slug as string | undefined;
-    if (!bookId && !bookSlug) return;
     booksWithProducts.forEach(book => {
-      if ((bookId && book.id === bookId) || (bookSlug && book.slug === bookSlug)) {
+      if (nodeBelongsToBook(node, book)) {
         const existing = bookFormatBadges.get(book.id) || [];
         if (!existing.find(b => b.label === badge.label)) {
           existing.push(badge);
@@ -121,7 +111,7 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                     </div>
                   </div>
                   <div className="shrink-0 p-6 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center gap-3 md:border-l" style={{ borderColor: v.cardBorder }}>
-                    {lowestPrice && <span className="text-lg font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{lowestPrice}</span>}
+                    {lowestPrice && parseFloat(lowestPrice.replace(/[^0-9.]/g, "")) < 100 && <span className="text-lg font-bold" style={{ color: v.accent, fontFamily: theme.headingFont }}>{lowestPrice}</span>}
                     <div className="flex flex-col gap-2 items-stretch w-full md:w-auto">
                       <Link to={`/${authorSlug}/${book.slug}`}>
                         <button className="w-full inline-flex items-center justify-center gap-1.5 font-bold text-sm rounded-lg transition-all px-5 py-2.5"
@@ -152,9 +142,6 @@ export default function AuthorBooksSection({ authorSlug, displayName, booksWithP
                     liveNodes={liveNodes as unknown as BookFormatNode[]}
                     theme={theme}
                     v={v}
-                    authorId={authorId}
-                    stripeReady={stripeReady}
-                    isOwnerViewing={isOwnerViewing}
                   />
                   {/* Collector's editions for this book */}
                   <AuthorBookCollectorsStrip

@@ -44,7 +44,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const [books, setBooks] = useState<BookSummary[]>([]);
-  const [bookLoading, setBookLoading] = useState(true);
+  const [bookLoading, setBookLoading] = useState(!analyzedBooks?.length);
   const [showWhy, setShowWhy] = useState(false);
   const { gating } = useNodeGating();
 
@@ -72,6 +72,12 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
   }, [progress, refreshLiveStats]);
 
   useEffect(() => {
+    // The Book Hub already supplies the selected book. Refetching the entire
+    // bookshelf here delayed every tab, sometimes leaving Build blank for ages.
+    if (analyzedBooks?.length) {
+      setBookLoading(false);
+      return;
+    }
     async function fetchBooks() {
       if (!user) { setBookLoading(false); return; }
       try {
@@ -87,7 +93,7 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
       setBookLoading(false);
     }
     fetchBooks();
-  }, [user]);
+  }, [user, analyzedBooks]);
 
   const cat = ABBY_CATEGORIES[categoryId as AbbyCategory];
   if (!cat) return null;
@@ -116,10 +122,14 @@ export default function PortfolioStepView({ categoryId, tier = "free", onNavigat
 
   if (progress.loading || bookLoading) {
     return (
-      <div className="space-y-4 animate-pulse">
-        <div className="h-24 rounded-2xl bg-muted/40" />
-        <div className="h-32 rounded-2xl bg-muted/40" />
-        <div className="h-64 rounded-2xl bg-muted/40" />
+      <div className="max-w-5xl space-y-4" role="status" aria-live="polite">
+        <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground">{headline?.title || cat.label}</h1>
+        <p className="text-sm text-muted-foreground">Loading your book's modules…</p>
+        <div className="space-y-4 animate-pulse" aria-hidden="true">
+          <div className="h-24 rounded-lg bg-muted/40" />
+          <div className="h-32 rounded-lg bg-muted/40" />
+          <div className="h-64 rounded-lg bg-muted/40" />
+        </div>
       </div>
     );
   }

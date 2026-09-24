@@ -160,12 +160,14 @@ export function nodeBelongsToBook(
   node: { content_json: Record<string, unknown> | null; book_id?: string | null },
   book: { id: string; slug: string }
 ): boolean {
-  if (node.book_id && node.book_id === book.id) return true;
+  // The canonical book_id wins even when old generated content still names a
+  // different book. A stale content_json value must never duplicate an offer.
+  if (node.book_id) return node.book_id === book.id;
   const cj = node.content_json || {};
   const bookId = cj.book_id as string | undefined;
   const bookSlug = cj.book_slug as string | undefined;
-  if (bookId && book.id === bookId) return true;
-  if (bookSlug && book.slug === bookSlug) return true;
+  if (bookId) return book.id === bookId;
+  if (bookSlug) return book.slug === bookSlug;
   return false;
 }
 

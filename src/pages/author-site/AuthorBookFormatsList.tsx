@@ -1,9 +1,9 @@
 import { Link } from "react-router-dom";
-import { Headphones, BookOpen, Package, ShoppingBag, ExternalLink } from "lucide-react";
+import { Headphones, BookOpen, Package, ShoppingBag, ExternalLink, ArrowRight } from "lucide-react";
 import type { BookWithProducts, ThemeVars, BookFormatNode } from "./types";
 import { getFormatsForBook } from "./types";
 import type { AuthorTheme } from "@/lib/author-themes";
-import ProductCTA from "@/components/commerce/ProductCTA";
+import { NODE_SLUG_MAP } from "@/lib/node-slug-map";
 
 interface SimpleFormatRow {
   kind: "link";
@@ -15,32 +15,12 @@ interface SimpleFormatRow {
   external?: boolean;
 }
 
-interface CheckoutFormatRow {
-  kind: "checkout";
-  key: string;
-  label: string;
-  Icon: typeof BookOpen;
-  price: string | null;
-  effectivePrice: number | null;
-  authorNodeId: string;
-  fallbackUrl: string | null;
-  productTitle: string;
-}
-
-type FormatRow = SimpleFormatRow | CheckoutFormatRow;
-
 interface Props {
   book: BookWithProducts;
   authorSlug: string;
   liveNodes: BookFormatNode[];
   theme: AuthorTheme;
   v: ThemeVars;
-  /** Author profile id — required for waitlist / nudges in ProductCTA. */
-  authorId: string;
-  /** Whether Stripe is connected for this author (Authors Bureau platform default: true). */
-  stripeReady: boolean;
-  /** Whether the viewer is the owning author. */
-  isOwnerViewing: boolean;
 }
 
 /** Same single price format as the rest of the public site: "$14.99".
@@ -58,11 +38,8 @@ export default function AuthorBookFormatsList({
   liveNodes,
   theme,
   v,
-  authorId,
-  stripeReady,
-  isOwnerViewing,
 }: Props) {
-  const rows: FormatRow[] = [];
+  const rows: SimpleFormatRow[] = [];
 
   // Built-in formats from the books table — Amazon links only, no Stripe.
   if (book.kindle_price) {
@@ -71,7 +48,7 @@ export default function AuthorBookFormatsList({
       key: "kindle",
       label: "Kindle",
       Icon: BookOpen,
-      price: book.kindle_price.startsWith("$") ? book.kindle_price : `$${book.kindle_price}`,
+      price: Number.parseFloat(book.kindle_price.replace(/[^\d.]/g, "")) >= 100 ? null : book.kindle_price.startsWith("$") ? book.kindle_price : `$${book.kindle_price}`,
       href: book.amazon_url || `/${authorSlug}/${book.slug}`,
       external: !!book.amazon_url,
     });
@@ -82,7 +59,7 @@ export default function AuthorBookFormatsList({
       key: "paperback",
       label: "Paperback",
       Icon: BookOpen,
-      price: book.paperback_price.startsWith("$") ? book.paperback_price : `$${book.paperback_price}`,
+      price: Number.parseFloat(book.paperback_price.replace(/[^\d.]/g, "")) >= 100 ? null : book.paperback_price.startsWith("$") ? book.paperback_price : `$${book.paperback_price}`,
       href: book.amazon_url || `/${authorSlug}/${book.slug}`,
       external: !!book.amazon_url,
     });
@@ -98,34 +75,28 @@ export default function AuthorBookFormatsList({
         key: n.id,
         label: "Audiobook",
         Icon: Headphones,
-        price: formatPrice(n.price_usd, n.currency),
-        href: `/${authorSlug}/audiobook`,
+        price: n.price_usd != null && n.price_usd >= 100 ? null : formatPrice(n.price_usd, n.currency),
+        href: `/${authorSlug}/${book.slug}/${NODE_SLUG_MAP["BA-11"]}`,
       });
     } else if (n.node_id.startsWith("BP-06")) {
-      // Workbook → checkout via ProductCTA (BUG-21 fix).
+      // Public book lists lead to this book's own offer page. That page owns
+      // pricing and checkout; author-only price prompts never belong here.
       rows.push({
-        kind: "checkout",
+        kind: "link",
         key: n.id,
         label: "Workbook",
         Icon: BookOpen,
-        price: formatPrice(n.price_usd, n.currency),
-        effectivePrice: n.price_usd ?? null,
-        authorNodeId: n.id,
-        fallbackUrl: n.payment_link || n.third_party_url || n.microsite_url || null,
-        productTitle: n.personalised_name || "Workbook",
+        price: null,
+        href: `/${authorSlug}/${book.slug}/${NODE_SLUG_MAP["BP-06"]}`,
       });
     } else if (n.node_id.startsWith("BA-17")) {
-      // Bundle → checkout via ProductCTA.
       rows.push({
-        kind: "checkout",
+        kind: "link",
         key: n.id,
         label: n.personalised_name || "Bundle",
         Icon: Package,
-        price: formatPrice(n.price_usd, n.currency),
-        effectivePrice: n.price_usd ?? null,
-        authorNodeId: n.id,
-        fallbackUrl: n.payment_link || n.third_party_url || n.microsite_url || null,
-        productTitle: n.personalised_name || "Bundle",
+        price: null,
+        href: `/${authorSlug}/${book.slug}/${NODE_SLUG_MAP["BA-17"]}`,
       });
     }
   }
@@ -157,48 +128,6 @@ export default function AuthorBookFormatsList({
             </div>
           );
 
-          if (row.kind === "checkout") {
-            return (
-              <li key={row.key}>
-                <div
-                  className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg"
-                  style={{ background: v.secondaryBg, border: `1px solid ${v.cardBorder}` }}
-                >
-                  {labelBlock}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {row.price && (
-                      <span className="text-sm font-bold" style={{ color: v.accent }}>
-                        {row.price}
-                      </span>
-                    )}
-                    <div className="min-w-[120px]">
-                      <ProductCTA
-                        authorNodeId={row.authorNodeId}
-                        authorId={authorId}
-                        effectivePrice={row.effectivePrice}
-                        stripeReady={stripeReady}
-                        isOwnerViewing={isOwnerViewing}
-                        label="Buy"
-                        productTitle={row.productTitle}
-                        fallbackUrl={row.fallbackUrl}
-                        className="h-8 px-3 text-xs font-semibold"
-                        style={{ background: v.accent, color: v.accentText }}
-                        theme={{
-                          cardBg: v.cardBg,
-                          cardBorder: v.cardBorder,
-                          mutedText: v.mutedText,
-                          accent: v.accent,
-                          bodyText: v.bodyText,
-                          secondaryBg: v.secondaryBg,
-                        }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </li>
-            );
-          }
-
           const inner = (
             <div
               className="flex items-center justify-between gap-3 px-3 py-2 rounded-lg transition-colors group/row"
@@ -212,6 +141,7 @@ export default function AuthorBookFormatsList({
                   </span>
                 )}
                 {row.external && <ExternalLink className="h-3 w-3" style={{ color: v.mutedText }} />}
+                {!row.external && !row.price && <ArrowRight className="h-3 w-3" style={{ color: v.mutedText }} />}
               </div>
             </div>
           );
