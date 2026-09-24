@@ -24,7 +24,6 @@ interface Props {
   authorSlug: string;
   authorContactEmail?: string | null;
   stripeReady: boolean;
-  isOwnerViewing: boolean;
   v: ThemeVars;
   headingFont?: string;
 }
@@ -120,7 +119,6 @@ export default function AuthorProductCard({
   authorSlug,
   authorContactEmail,
   stripeReady,
-  isOwnerViewing,
   v,
   headingFont,
 }: Props) {
@@ -151,7 +149,7 @@ export default function AuthorProductCard({
 
   // For other high-touch service nodes where there's a contact email and no price
   // set, prefer "Contact" over "Notify me". Everything else routes through
-  // ProductCTA's 4-state matrix (live / coming-soon / owner-no-price / owner-no-stripe).
+  // the same reader-facing purchase or notification choice for all visitors.
   const isHighTouchInquiry =
     isEnquiryOnly || (!hasPrice && !!authorContactEmail && /^(YR-|BA-13|BA-12)/.test(node.node_id));
 
@@ -238,9 +236,9 @@ export default function AuthorProductCard({
 
       {/* CTA — informational nodes (Podcast, Media Kit, Affiliate, JV) get a
           direct link; high-touch services get Contact; everything else routes
-          through ProductCTA's 4-state matrix. */}
+          through ProductCTA's reader-facing states. */}
       <div className="mt-auto">
-        {informational && !isOwnerViewing ? (
+        {informational ? (
           <Button
             asChild
             className="w-full"
@@ -260,7 +258,7 @@ export default function AuthorProductCard({
               )}
             </a>
           </Button>
-        ) : isHighTouchInquiry && !isOwnerViewing ? (
+        ) : isHighTouchInquiry ? (
           <Button
             asChild
             variant="outline"
@@ -289,7 +287,6 @@ export default function AuthorProductCard({
             authorId={authorId}
             effectivePrice={effectivePrice}
             stripeReady={stripeReady}
-            isOwnerViewing={isOwnerViewing}
             label="Enroll Now"
             productTitle={title}
             fallbackUrl={node.delivery_url || node.payment_link || node.third_party_url || null}
