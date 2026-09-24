@@ -6,7 +6,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import fasaCardPhoto from "@/assets/fasa-husain-card.webp.asset.json";
+import fasaCardPhoto from "@/assets/fasa-husain-card.webp";
 
 interface BookWithAuthor {
   id: string;
@@ -229,7 +229,7 @@ export default function DynamicMeetOurAuthors() {
                           aria-label={author.name}
                            className="relative w-full h-full overflow-hidden bg-muted/50"
                           style={{
-                             backgroundImage: `url(${author.slug === "fasa-husain" ? fasaCardPhoto.url : author.photo_url})`,
+                             backgroundImage: `url(${author.slug === "fasa-husain" ? fasaCardPhoto : author.photo_url})`,
                             backgroundRepeat: 'no-repeat',
                              backgroundPosition: 'center',
                              backgroundSize: 'cover',
