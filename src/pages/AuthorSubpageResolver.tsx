@@ -69,7 +69,24 @@ export default function AuthorSubpageResolver() {
         } catch { /* fall through to normal resolution */ }
       }
 
-      // 1. Probe dynamic microsite node
+      // 1. Book slug wins. Checking this first means a real book page never
+      //    fires a failing node probe (previously every book page logged a
+      //    404 from get-microsite-page before falling through to the book).
+      try {
+        const { data: bookRow } = await supabase
+          .from("books")
+          .select("id")
+          .eq("slug", bookSlug)
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        if (bookRow) {
+          setResolution({ kind: "book" });
+          return;
+        }
+      } catch { /* fall through to node probe */ }
+
+      // 2. Probe dynamic microsite node
       try {
         const nodeRes = await fetch(
           `https://${projectId}.supabase.co/functions/v1/get-microsite-page?author=${authorSlug}&slug=${encodeURIComponent(bookSlug)}`,

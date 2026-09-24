@@ -275,7 +275,7 @@ export default function MicrositePage() {
       {resolvedNodeId === "YR-24" && <RetreatPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "YR-25" && <CertificationPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "YR-26" && <ConferencePage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
-      {resolvedNodeId === "YR-27" && <FundraisingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} />}
+      {resolvedNodeId === "YR-27" && <FundraisingPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {resolvedNodeId === "YR-28" && <SponsorsPage data={data} content={content} v={v} hFont={hFont} bgColor={bgColor} onSubmit={handleSubmit} email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage} submitting={submitting} submitted={submitted} />}
       {/* Generic fallback for other nodes */}
       {!["BP-02", "BP-04", "BP-05", "BP-06", "BP-07", "BP-08", "BP-09", "BA-10", "BA-11", "BA-12", "BA-13", "BA-14", "BA-15", "BA-16", "BA-17", "BA-18", "YR-19", "YR-20", "YR-21", "YR-22", "YR-23", "YR-24", "YR-25", "YR-26", "YR-27", "YR-28"].includes(resolvedNodeId!) && (
@@ -2975,35 +2975,63 @@ function OnlineCoursePage({ data, content, v, hFont, bgColor, onSubmit, email, s
         </div>
 
         <div className="md:sticky md:top-6">
-          {/* BA-10 always sells via BuyNowButton (Authors Bureau is Merchant
-              of Record; 8% platform fee covers all payment-processing costs).
-              path produced a "Notify Me" form whenever Stripe wasn't pre-wired,
-              which made every published course look pre-launch to readers.
-              BuyNowButton handles the no-Stripe case gracefully (waitlist
-              modal) so we no longer need a separate Notify form. */}
-          <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
-            <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enrol Now</h3>
-            {/* Headline price intentionally hidden on public microsite chrome (rule). */}
-            <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
-            {paymentLink ? (
-              <a href={paymentLink} target="_blank" rel="noopener noreferrer">
-                <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
-                  Enrol Now <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </a>
-            ) : (
-              <BuyNowButton
-                authorNodeId={data.node.id}
-                authorId={data.author?.id}
-                label="Enrol Now"
-                className="w-full rounded-full"
-                style={{ background: v.accent, color: bgColor }}
-              />
-            )}
-          </Card>
+          {/* BA-10 sells via BuyNowButton (Authors Bureau is Merchant of Record;
+              8% platform fee covers all payment-processing costs). Courses at or
+              above the personal-selling threshold never show an instant checkout,
+              they route to an enquiry conversation instead. */}
+          {(() => {
+            const coursePrice = typeof data.node.price_usd === "number" ? data.node.price_usd : null;
+            const personalSelling = coursePrice != null && coursePrice >= PERSONAL_SELLING_THRESHOLD;
+
+            if (personalSelling) {
+              if (submitted) {
+                return (
+                  <Card className="p-6 text-center" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                    <CheckCircle2 className="h-12 w-12 mx-auto mb-3" style={{ color: v.accent }} />
+                    <h3 className="text-lg font-semibold mb-2" style={{ color: v.headingText }}>Thank you!</h3>
+                    <p className="text-sm" style={{ color: v.mutedText }}>We'll be in touch about joining the programme.</p>
+                  </Card>
+                );
+              }
+              return (
+                <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                  <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enquire, by application</h3>
+                  <p className="text-xs mb-4" style={{ color: v.mutedText }}>Tell us a little about you and we'll confirm fit and enrolment options.</p>
+                  <form onSubmit={onSubmit} className="space-y-3">
+                    <Input placeholder="First name" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                    <Input type="email" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} required />
+                    <Button type="submit" className="w-full rounded-full" style={{ background: v.accent, color: bgColor }} disabled={submitting}>
+                      {submitting ? "Submitting..." : "Send Enquiry"} <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </form>
+                </Card>
+              );
+            }
+
+            return (
+              <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
+                <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>Enrol Now</h3>
+                {/* Headline price intentionally hidden on public microsite chrome (rule). */}
+                <p className="text-xs mb-4" style={{ color: v.mutedText }}>Lifetime access. Start immediately.</p>
+                {paymentLink ? (
+                  <a href={paymentLink} target="_blank" rel="noopener noreferrer">
+                    <Button className="w-full rounded-full" style={{ background: v.accent, color: bgColor }}>
+                      Enrol Now <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </a>
+                ) : (
+                  <BuyNowButton
+                    authorNodeId={data.node.id}
+                    authorId={data.author?.id}
+                    label="Enrol Now"
+                    className="w-full rounded-full"
+                    style={{ background: v.accent, color: bgColor }}
+                  />
+                )}
+              </Card>
+            );
+          })()}
         </div>
-        {/* Keep unused FormPageProps fields referenced for lint hygiene. */}
-        {(() => { void onSubmit; void email; void setEmail; void firstName; void setFirstName; void submitting; void submitted; return null; })()}
       </div>
     </div>
   );
@@ -3177,9 +3205,15 @@ function YRRightCard({
     );
   }
 
+  // Personal-selling rule: anything at or above the threshold is never sold
+  // with an instant checkout button. It always routes to an enquiry /
+  // application conversation instead, regardless of the caller's actionType.
+  const numericPrice = typeof price === "number" ? price : null;
+  const personalSelling = numericPrice != null && numericPrice >= PERSONAL_SELLING_THRESHOLD;
+
   // Stripe checkout via BuyNowButton when a price is registered on author_nodes.
   // Public microsite chrome MUST NOT show the dollar amount; price is revealed at Stripe checkout.
-  if ((actionType === "purchase" || actionType === "donate") && commerceNodeRowId && (typeof price === "number" && price > 0)) {
+  if (!personalSelling && (actionType === "purchase" || actionType === "donate") && commerceNodeRowId && (typeof price === "number" && price > 0)) {
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
         <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{commerceLabel || ctaLabel || "Get Started"}</h3>
@@ -3198,7 +3232,7 @@ function YRRightCard({
   }
 
   // Static payment link fallback (legacy)
-  if (actionType === "purchase" && paymentLink) {
+  if (!personalSelling && actionType === "purchase" && paymentLink) {
     return (
       <Card className="p-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
         <h3 className="text-lg font-semibold mb-1" style={{ color: v.headingText, fontFamily: hFont }}>{ctaLabel || "Get Started"}</h3>
@@ -3212,11 +3246,13 @@ function YRRightCard({
     );
   }
 
-  const isApp = actionType === "application";
+  const isApp = actionType === "application" || (personalSelling && actionType === "purchase");
   const isDonate = actionType === "donate";
   const isEnq = actionType === "enquiry" || isDonate;
-  const heading = inquiryHeading || (isApp ? "Apply Now" : isDonate ? "Make a Donation" : isEnq ? "Get in Touch" : notifyHeading);
-  const submitLabel = ctaLabel || (isApp ? "Submit Application" : isDonate ? "Pledge Support" : isEnq ? "Send Enquiry" : "Notify Me");
+  const appHeading = personalSelling && actionType === "purchase" ? "Enquire, by application" : "Apply Now";
+  const appSubmit = personalSelling && actionType === "purchase" ? "Send Enquiry" : "Submit Application";
+  const heading = inquiryHeading || (isApp ? appHeading : isDonate ? "Make a Donation" : isEnq ? "Get in Touch" : notifyHeading);
+  const submitLabel = (personalSelling && actionType === "purchase" ? appSubmit : ctaLabel) || (isApp ? appSubmit : isDonate ? "Pledge Support" : isEnq ? "Send Enquiry" : "Notify Me");
   const placeholder = messagePlaceholder || (isApp ? "Why are you a fit? Tell us about you..." : isDonate ? "Share why you'd like to support…" : "Tell us what you're looking for...");
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -3951,7 +3987,7 @@ function ConferencePage({ data, content, v, hFont, bgColor, onSubmit, email, set
 }
 
 /* ═══ YR-27 — FUNDRAISING ═══ */
-function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
+function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, setEmail, firstName, setFirstName, lastName, setLastName, message, setMessage, submitting, submitted }: YRPageProps) {
   const title = yrStr(content.campaign_title, data.node.personalised_name || NODE_NAMES["YR-27"] || "Fundraising Campaign");
   const tagline = yrStr(content.tagline);
   const impact = yrStr(content.impact_statement);
@@ -3964,7 +4000,10 @@ function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
   const externalUrl = yrStr(content.external_donation_url) || yrStr(data.node.payment_link);
   const ctaLabel = charityName ? `Donate to ${charityName}` : "Donate Now";
 
-  const RightCard = (
+  // A live campaign must never dead-end. With a donation link we send donors
+  // straight there; without one we collect pledges so the author still captures
+  // interest instead of showing a disabled button.
+  const RightCard = externalUrl ? (
     <Card className="p-6 space-y-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
       <div className="text-center space-y-2">
         <p className="text-xs uppercase tracking-widest" style={{ color: v.accent }}>Support the Cause</p>
@@ -3972,21 +4011,29 @@ function FundraisingPage({ data, content, v, hFont, bgColor }: PageProps) {
           {charityName ? `100% to ${charityName}` : "Help us reach our goal"}
         </h3>
       </div>
-      {externalUrl ? (
-        <Button asChild className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }}>
-          <a href={externalUrl} target="_blank" rel="noopener noreferrer">
-            {ctaLabel} <ExternalLink className="ml-2 h-4 w-4" />
-          </a>
-        </Button>
-      ) : (
-        <Button className="w-full rounded-full" disabled>Campaign coming soon</Button>
-      )}
+      <Button asChild className="w-full rounded-full text-base py-3" style={{ background: v.accent, color: v.accentText }}>
+        <a href={externalUrl} target="_blank" rel="noopener noreferrer">
+          {ctaLabel} <ExternalLink className="ml-2 h-4 w-4" />
+        </a>
+      </Button>
       <p className="text-[11px] text-center leading-relaxed" style={{ color: v.mutedText }}>
-        {externalUrl
-          ? `Donations go directly to ${charityName || "the charity"}. Authors Bureau does not process or hold donation funds.`
-          : "Campaign coming soon, donation link will be added shortly."}
+        {`Donations go directly to ${charityName || "the charity"}. Authors Bureau does not process or hold donation funds.`}
       </p>
     </Card>
+  ) : (
+    <YRRightCard
+      actionType="donate"
+      price={null}
+      v={v} hFont={hFont} bgColor={bgColor}
+      inquiryHeading="Pledge Your Support"
+      inquiryIntro={`Tell us how you'd like to help${charityName ? ` ${charityName}` : ""} and we'll send you the donation details as soon as the campaign opens.`}
+      messagePlaceholder="How would you like to support this campaign?"
+      thankYou="Thank you. We'll send you the donation details shortly."
+      onSubmit={onSubmit}
+      email={email} setEmail={setEmail} firstName={firstName} setFirstName={setFirstName}
+      lastName={lastName} setLastName={setLastName} message={message} setMessage={setMessage}
+      submitting={submitting} submitted={submitted}
+    />
   );
 
   return (

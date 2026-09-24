@@ -151,8 +151,7 @@ describe("hasRequiredAssets — BA-15 Press / Media", () => {
   });
 });
 
-describe("hasRequiredAssets — generic / default gate (non-gated nodes)", () => {
-  // Use BP-02 (lead magnets) — still on the generic gate.
+describe("hasRequiredAssets — BP-02 Lead Magnets", () => {
   it("rejects null/undefined/non-object", () => {
     expect(hasRequiredAssets("BP-02", null)).toBe(false);
     expect(hasRequiredAssets("BP-02", undefined)).toBe(false);
@@ -161,8 +160,30 @@ describe("hasRequiredAssets — generic / default gate (non-gated nodes)", () =>
   it("rejects empty object", () => {
     expect(hasRequiredAssets("BP-02", {})).toBe(false);
   });
-  it("accepts any single key for non-gated nodes", () => {
-    expect(hasRequiredAssets("BP-02", { magnet_url: "x" })).toBe(true);
+  it("rejects an arbitrary single key (Sprint 56 strict default)", () => {
+    expect(hasRequiredAssets("BP-02", { magnet_url: "x" })).toBe(false);
+  });
+  it("rejects a built lead magnet that was never activated", () => {
+    expect(
+      hasRequiredAssets("BP-02", { lead_magnets: [{ title: "Quiz" }] }),
+    ).toBe(false);
+  });
+  it("accepts activated + at least one built lead magnet", () => {
+    expect(
+      hasRequiredAssets("BP-02", {
+        activated: true,
+        lead_magnets: [{ title: "Quiz" }],
+      }),
+    ).toBe(true);
+  });
+  it("accepts activated + recommended magnet with a built quiz structure", () => {
+    expect(
+      hasRequiredAssets("BP-02", {
+        activated: true,
+        recommended_lead_magnet: "quiz",
+        quiz_structure: { questions: [{ q: "1" }] },
+      }),
+    ).toBe(true);
   });
 });
 
