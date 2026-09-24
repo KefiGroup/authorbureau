@@ -2,12 +2,10 @@
  * ProductCTA — Unified reader-facing call-to-action for any author_node.
  *
  * Single source of truth for commerce link state. Reads from author_nodes
- * and renders one of four states:
+ * and renders one of two reader-facing states:
  *
  *  1. live           — Stripe ready + price set → BuyNowButton (Stripe checkout)
  *  2. coming-soon    — Reader sees graceful "Notify me" instead of dead button
- *  3. owner-no-price — Owner-only: prompt to set a price
- *  4. owner-no-stripe— Owner-only: prompt to connect payments
  *
  * NEVER renders a clickable Buy button that would 404 or throw a Stripe error.
  *
@@ -16,8 +14,7 @@
  *   2. fallbackUrl prop            (legacy payment_link / third_party_url, transitional)
  */
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, Lock, AlertCircle, Mail, Loader2, Clock } from "lucide-react";
+import { ArrowRight, Mail, Loader2, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,8 +37,6 @@ export interface ProductCTAProps {
   effectivePrice: number | null;
   /** Whether author has connected Stripe (charges_enabled) */
   stripeReady: boolean;
-  /** Whether the viewer is the owning author (controls owner-only prompts) */
-  isOwnerViewing: boolean;
   /** Reader-facing CTA label (e.g. "Enroll Now", "Buy Now", "Reserve") */
   label?: string;
   /** Optional product title — used in waitlist messages */
@@ -55,7 +50,7 @@ export interface ProductCTAProps {
   className?: string;
   /** Inline style for the primary button (for theme accents) */
   style?: React.CSSProperties;
-  /** Theme tokens for owner-only states */
+  /** Theme tokens for reader-facing states */
   theme?: {
     cardBg?: string;
     cardBorder?: string;
@@ -71,7 +66,6 @@ export default function ProductCTA({
   authorId,
   effectivePrice,
   stripeReady,
-  isOwnerViewing,
   label = "Buy Now",
   productTitle,
   fallbackUrl,
@@ -101,48 +95,7 @@ export default function ProductCTA({
     );
   }
 
-  // STATE 3 & 4: Owner is viewing their own page — show actionable prompt
-  if (isOwnerViewing) {
-    const needsPrice = !hasPrice;
-    const needsStripe = hasPrice && !stripeReady;
-    return (
-      <div className="space-y-2">
-        <div
-          className="inline-flex w-full items-center justify-center gap-2 px-4 py-2.5 rounded-md text-sm font-semibold cursor-not-allowed"
-          style={{
-            background: theme.secondaryBg || theme.cardBg,
-            color: theme.mutedText,
-            border: `1px dashed ${theme.cardBorder || "currentColor"}`,
-          }}
-          role="status"
-          aria-label={needsStripe ? "Payments not set up" : "Price not set"}
-        >
-          {needsStripe ? (
-            <>
-              <Lock className="h-3.5 w-3.5" /> Payments not set up
-            </>
-          ) : (
-            <>
-              <AlertCircle className="h-3.5 w-3.5" /> Price not set
-            </>
-          )}
-        </div>
-        <Link
-          to={
-            needsStripe
-              ? "/account-settings?tab=connections"
-              : "/build-authority"
-          }
-          className="block text-xs text-center underline hover:no-underline"
-          style={{ color: theme.accent }}
-        >
-          {needsStripe ? "Set up payments →" : "Set a price →"}
-        </Link>
-      </div>
-    );
-  }
-
-  // STATE 2: Public reader, not yet for sale — graceful "Coming Soon" + waitlist
+  // STATE 2: Not yet for sale — the public page is the same for authors and readers.
   // NEVER renders a dead Buy button.
   const handleWaitlistSubmit = async () => {
     if (!waitlistEmail) return;
@@ -179,7 +132,7 @@ export default function ProductCTA({
           className="text-[11px] leading-snug text-center px-1"
           style={{ color: theme.mutedText || "inherit" }}
         >
-          Payment setup in progress. Be the first to know when it's live.
+          Be the first to know when it's available.
         </p>
       </div>
 

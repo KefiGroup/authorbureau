@@ -190,7 +190,6 @@ export default function ThankYouPage() {
                   authorId={data.author.id}
                   effectivePrice={upsell.price_usd ?? null}
                   stripeReady={true}
-                  isOwnerViewing={false}
                   label="Get it now"
                   productTitle={upsellTitle}
                   fallbackUrl={upsell.delivery_url || upsell.payment_link || upsell.third_party_url || null}

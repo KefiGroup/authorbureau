@@ -42,7 +42,6 @@ interface Props {
   authorSlug: string;
   authorName: string;
   authorContactEmail?: string | null;
-  isOwnerViewing: boolean;
   stripeReady: boolean;
   liveNodes: StorefrontNode[];
   theme: AuthorTheme;
@@ -106,7 +105,6 @@ export default function AuthorWorkWithMe({
   authorSlug,
   authorName,
   authorContactEmail,
-  isOwnerViewing,
   stripeReady,
   liveNodes,
   theme,
@@ -213,7 +211,6 @@ export default function AuthorWorkWithMe({
                       authorSlug={authorSlug}
                       authorContactEmail={authorContactEmail}
                       stripeReady={stripeReady}
-                      isOwnerViewing={isOwnerViewing}
                       v={v}
                       headingFont={theme.headingFont}
                     />
