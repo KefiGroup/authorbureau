@@ -104,9 +104,9 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (!node) throw new Error("Product not found");
       if (node.status !== "live") throw new Error("Product is not currently available");
-      // Fall back to content_json.suggested_price_usd (Abby-generated workbooks store price there)
-      const cj = (node.content_json ?? {}) as Record<string, unknown>;
-      const price = Number(node.price_usd ?? cj.suggested_price_usd ?? cj.price ?? 0);
+      // Checkout and the reader page must use the same author-selected live price.
+      // Generated content suggestions are never a fallback for a $0 live offer.
+      const price = Number(node.price_usd ?? 0);
       if (!price || price <= 0) throw new Error("Product price not set");
       authorId = node.author_id;
       productTitle = node.personalised_name || node.node_name || "Product";
@@ -121,6 +121,13 @@ Deno.serve(async (req) => {
     }
 
     if (!amountCents || amountCents <= 0) throw new Error("Product price not set");
+    // Three-figure offers require a conversation, regardless of which public
+    // route or checkout API caller initiated the purchase.
+    if (amountCents >= 10000) {
+      return new Response(JSON.stringify({ error: "This offer is available by application. Please contact the author." }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 400,
+      });
+    }
 
     // ============ Resolve author (Authors Bureau is MoR — no Connect) ============
     const { data: author } = await admin
