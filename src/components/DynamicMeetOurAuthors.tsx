@@ -6,6 +6,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import fasaCardPhoto from "@/assets/fasa-husain-card.webp.asset.json";
 
 interface BookWithAuthor {
   id: string;
@@ -228,27 +229,31 @@ export default function DynamicMeetOurAuthors() {
                           aria-label={author.name}
                            className="relative w-full h-full overflow-hidden bg-muted/50"
                           style={{
-                            backgroundImage: `url(${author.photo_url})`,
+                             backgroundImage: `url(${author.slug === "fasa-husain" ? fasaCardPhoto.url : author.photo_url})`,
                             backgroundRepeat: 'no-repeat',
                              backgroundPosition: 'center',
                              backgroundSize: 'cover',
                           }}
                         >
-                          <div className="absolute inset-0 bg-card/20 backdrop-blur-xl" />
-                          <div
-                            className="absolute inset-0"
-                            style={{
-                              backgroundImage: `url(${author.photo_url})`,
-                              backgroundRepeat: 'no-repeat',
-                              // Head-safe portrait standard: match face scale across unlike source photos.
-                              backgroundPosition: `50% ${editingCrop === author.id
-                                ? cropDraft
-                                : Math.min(20, Math.max(0, parseInt(author.photo_crop_y || '12', 10)))}%`,
-                              backgroundSize: 'cover',
-                              transform: `scale(${editingCrop === author.id ? zoomDraft : Math.min(2, Math.max(0.7, author.photo_zoom || 1))})`,
-                              transformOrigin: '50% 0%',
-                            }}
-                          />
+                           {author.slug !== "fasa-husain" && (
+                             <>
+                               <div className="absolute inset-0 bg-card/20 backdrop-blur-xl" />
+                               <div
+                                 className="absolute inset-0"
+                                 style={{
+                                   backgroundImage: `url(${author.photo_url})`,
+                                   backgroundRepeat: 'no-repeat',
+                                   // Head-safe portrait standard: match face scale across unlike source photos.
+                                   backgroundPosition: `50% ${editingCrop === author.id
+                                     ? cropDraft
+                                     : Math.min(20, Math.max(0, parseInt(author.photo_crop_y || '12', 10)))}%`,
+                                   backgroundSize: 'cover',
+                                   transform: `scale(${editingCrop === author.id ? zoomDraft : Math.min(2, Math.max(0.7, author.photo_zoom || 1))})`,
+                                   transformOrigin: '50% 0%',
+                                 }}
+                               />
+                             </>
+                           )}
                         </div>
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-muted/50">
@@ -258,7 +263,7 @@ export default function DynamicMeetOurAuthors() {
                       <div className="absolute inset-0 bg-gradient-to-t from-card/40 to-transparent" />
 
                       {/* Admin crop controls */}
-                      {isAdmin && author.photo_url && editingCrop !== author.id && (
+                      {isAdmin && author.photo_url && author.slug !== "fasa-husain" && editingCrop !== author.id && (
                         <button
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); startCropEdit(author.id, author.photo_crop_y, author.photo_zoom); }}
                           className="absolute top-2 right-2 z-10 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors"
