@@ -1124,7 +1124,7 @@ function WorkbookSalesPage({
     ) : null;
     if (isEnquiry) return (
       <Button className="w-full rounded-full" style={{ background: v.accent, color: v.accentText }} asChild>
-        <a href={`/${authorSlug}#contact`}>Enquire about this workbook <ArrowRight className="ml-2 h-4 w-4" /></a>
+        <a href={`/${data.author?.pen_name_slug || data.author?.slug || "pauline-teo"}#contact`}>Enquire about this workbook <ArrowRight className="ml-2 h-4 w-4" /></a>
       </Button>
     );
     return (
