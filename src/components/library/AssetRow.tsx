@@ -92,9 +92,14 @@ export default function AssetRow({
 
   // Prefer the link stored when the module was published — it already carries
   // the book segment. Only fall back to the generated author-level shape.
-  const publicUrl = NO_MICROSITE_NODES.has(node.node_id)
+  const rawUrl = NO_MICROSITE_NODES.has(node.node_id)
     ? null
     : node.microsite_url || (authorSlug ? getMicrositeUrl(authorSlug, node.node_id) : null);
+  // Stored microsite_url values are site-relative ("/slug/book/page") — make
+  // them absolute so copied links work in emails and social posts.
+  const publicUrl = rawUrl?.startsWith("/")
+    ? `${window.location.origin}${rawUrl}`
+    : rawUrl;
 
   const hasScript = !!node.content_json?.speaker_script?.slides?.length;
 
