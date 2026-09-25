@@ -1,3 +1,4 @@
+import { verifyEmailCode } from "@/lib/verify-email-code";
 import { useState, useEffect, useCallback } from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
