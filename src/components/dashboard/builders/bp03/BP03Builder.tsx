@@ -239,7 +239,13 @@ export default function BP03Builder({ authorId, bookId }: Props) {
         const cj: any = node?.content_json || null;
         const savedStep = Number((cj as any)?._currentStep ?? node?.current_step ?? 0);
         const hasSavedKit = hasUsableSocialKit(cj);
-        const hasReviewableState = hasSavedKit || status === "content_ready" || status === "live" || savedStep >= 2;
+        // Only show the review screen when real posts exist. A half-finished or
+        // failed run (no posts[]) sends the author back to Generate instead of
+        // a blank kit.
+        const hasReviewableState = hasSavedKit;
+        if (!hasSavedKit && (status === "failed" || cj?.progress)) {
+          toast.error("Your last social media generation didn't finish. Please generate again.");
+        }
 
         const storedTitle = cj?.book_title;
         if (storedTitle) {

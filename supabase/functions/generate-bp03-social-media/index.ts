@@ -145,9 +145,20 @@ Each post MUST honour its assigned archetype (one short word):
 
     const carouselDaysList = Array.from(CAROUSEL_IG_DAYS).sort((a, b) => a - b).join(", ");
 
-    const [step1, step2, step3] = await Promise.all([
+    // Each stage retries once and failures are isolated (allSettled), so one
+    // bad AI response no longer wipes out the whole kit.
+    const withRetry = async (fn: () => Promise<any>) => {
+      try { return await fn(); } catch (e) {
+        const msg = errorMessage(e);
+        if (/credits exhausted|Payment required/i.test(msg)) throw e;
+        console.warn("[BP-03] stage failed, retrying once:", msg);
+        await new Promise((r) => setTimeout(r, 1500));
+        return await fn();
+      }
+    };
+    const stagePrompts: Array<[string, number]> = [
       // LinkedIn (20)
-      callAI(
+      [
         `${baseContext}
 
 Generate exactly 20 LinkedIn posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
@@ -161,12 +172,12 @@ Respond with JSON only:
 }
 The array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
         12000,
-      ),
-      // Instagram (20, with 6 carousels) + Facebook (20)
-      callAI(
+      ],
+      // Instagram (20, with 6 carousels)
+      [
         `${baseContext}
 
-Generate exactly 20 Instagram posts AND 20 Facebook posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
+Generate exactly 20 Instagram posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
 
 INSTAGRAM voice: visual-first caption, hook in line 1, conversational and aspirational, 80–120 words. Each post ends with a CTA pointing to the book. Add alt_text describing the suggested image (1 short sentence).
 
@@ -174,22 +185,33 @@ CAROUSEL RULE: These exact days MUST be format="carousel" with 5 slides each: ${
 All other Instagram days MUST be format="single" with carousel_slides: null.
 Carousel slides structure: slide 1 = cover hook, slides 2-4 = three insights from the book, slide 5 = CTA. Each slide = { headline (≤8 words), body (≤25 words) }.
 
-FACEBOOK voice: warm story-format, community-focused, 100–150 words, ends with a question and a CTA pointing to the book.
-
 Respond with JSON only:
 {
   "instagram_posts": [
     { "day": 1, "post_type": "Quote", "theme": "...", "format": "single", "caption": "...", "hashtags": ["..."], "alt_text": "...", "cta": "...", "carousel_slides": null }
-  ],
+  ]
+}
+The array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
+        12000,
+      ],
+      // Facebook (20)
+      [
+        `${baseContext}
+
+Generate exactly 20 Facebook posts (Day 1..Day 20), one per day, each matching the archetype mapped to that day above.
+FACEBOOK voice: warm story-format, community-focused, 100–150 words, ends with a question and a CTA pointing to the book.
+
+Respond with JSON only:
+{
   "facebook_posts": [
     { "day": 1, "post_type": "Quote", "theme": "...", "caption": "...", "hashtags": ["..."], "cta": "..." }
   ]
 }
-Each array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
-        20000,
-      ),
+The array MUST have exactly 20 items in day order. post_type MUST match the archetype map.`,
+        12000,
+      ],
       // Twitter/X (20) + outreach
-      callAI(
+      [
         `${baseContext}
 
 Generate exactly 20 Twitter/X posts (Day 1..Day 20) AND 3 outreach email templates.
@@ -218,16 +240,29 @@ Respond with JSON only:
 }
 twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have exactly 3. anchors MUST have 5. rotating MUST have 20.`,
         12000,
-      ),
-    ]);
+      ],
+    ];
 
-    await setProgress(3, "Packaging your starter kit...", { ...step1, ...step2 });
+    const settled = await Promise.allSettled(
+      stagePrompts.map(([p, t]) => withRetry(() => callAI(p, t))),
+    );
+    const stageErrors = settled
+      .filter((s): s is PromiseRejectedResult => s.status === "rejected")
+      .map((s) => errorMessage(s.reason));
+    if (stageErrors.length) console.warn("[BP-03] stages failed:", stageErrors);
+    const creditErr = stageErrors.find((m) => /credits exhausted|Payment required/i.test(m));
+    if (creditErr) throw new Error(creditErr);
 
-    const merged = { ...step1, ...step2, ...step3 } as Record<string, any>;
-    const linkedin = merged.linkedin_posts || [];
-    const instagram = merged.instagram_posts || [];
-    const facebook = merged.facebook_posts || [];
-    const twitter = merged.twitter_posts || [];
+    const merged = Object.assign({}, ...settled.map((s) => s.status === "fulfilled" ? s.value : {})) as Record<string, any>;
+    await setProgress(3, "Packaging your starter kit...");
+    const arr = (v: any) => Array.isArray(v) ? v : [];
+    const linkedin = arr(merged.linkedin_posts);
+    const instagram = arr(merged.instagram_posts);
+    const facebook = arr(merged.facebook_posts);
+    const twitter = arr(merged.twitter_posts);
+    if (!linkedin.length && !instagram.length && !facebook.length && !twitter.length) {
+      throw new Error(`ABBY couldn't write your posts this time. Please try again. (${stageErrors[0] || "empty response"})`);
+    }
 
     // Hashtag pool
     const rawPool = merged.hashtag_pool || {};
@@ -340,6 +375,13 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
         const restored = { ...priorState };
         delete (restored.content_json as any)?.progress;
         await upsertAuthorNode(sb, parsedAuthorId, "BP-03", "Social Media", restored, parsedBookId);
+      } else if (parsedAuthorId) {
+        // Never leave an empty kit in "generating" — cleanup would promote it
+        // to content_ready and the author would see a blank module.
+        await upsertAuthorNode(sb, parsedAuthorId, "BP-03", "Social Media", {
+          status: "failed",
+          content_json: { error: errorMessage(err), failed_at: new Date().toISOString() },
+        }, parsedBookId);
       }
     } catch (e) {
       console.error("[BP-03] restore failed:", errorMessage(e));
