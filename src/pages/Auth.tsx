@@ -333,7 +333,7 @@ export default function Auth() {
                     value={otp}
                     onChange={(value) => {
                       setOtp(value);
-                      if (value.length >= 6 && !submitting) void handleVerifyOtp(value);
+                      if (value.length === 8 && !submitting) void handleVerifyOtp(value);
                     }}
                   >
                     <InputOTPGroup>
