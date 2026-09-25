@@ -255,7 +255,7 @@ export default function ReaderAuth() {
                 </div>
                 <Button
                   onClick={() => void handleVerifyOtp()}
-                  disabled={otp.length !== 6 || submitting}
+                  disabled={otp.length < 6 || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >

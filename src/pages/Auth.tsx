@@ -217,7 +217,7 @@ export default function Auth() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length !== 6 || !password || password !== confirmPassword) return;
+    if (otp.length < 6 || !password || password !== confirmPassword) return;
     if (password.length < 8) {
       toast({ title: "Password must be at least 8 characters.", variant: "destructive" });
       return;
@@ -346,7 +346,7 @@ export default function Auth() {
 
                 <Button
                   onClick={() => void handleVerifyOtp()}
-                  disabled={otp.length !== 6 || submitting}
+                  disabled={otp.length < 6 || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >
@@ -501,7 +501,7 @@ export default function Auth() {
 
                 <Button
                   type="submit"
-                  disabled={otp.length !== 6 || !password || password !== confirmPassword || submitting}
+                  disabled={otp.length < 6 || !password || password !== confirmPassword || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >
