@@ -122,11 +122,7 @@ export default function ReaderAuth() {
     if (code.length !== 6) return;
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: code,
-        type: "email",
-      });
+      const { data, error } = await verifyEmailCode(email, code);
       if (error) {
         setOtp("");
         throw new Error(friendlyError(error.message));
