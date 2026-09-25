@@ -375,6 +375,13 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
         const restored = { ...priorState };
         delete (restored.content_json as any)?.progress;
         await upsertAuthorNode(sb, parsedAuthorId, "BP-03", "Social Media", restored, parsedBookId);
+      } else if (parsedAuthorId) {
+        // Never leave an empty kit in "generating" — cleanup would promote it
+        // to content_ready and the author would see a blank module.
+        await upsertAuthorNode(sb, parsedAuthorId, "BP-03", "Social Media", {
+          status: "failed",
+          content_json: { error: errorMessage(err), failed_at: new Date().toISOString() },
+        }, parsedBookId);
       }
     } catch (e) {
       console.error("[BP-03] restore failed:", errorMessage(e));
