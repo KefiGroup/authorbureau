@@ -13,7 +13,7 @@ import {
   Twitter, Instagram, Youtube, BookOpen, RefreshCw, KeyRound,
   PlusCircle, Pencil, Trash2, Briefcase, Save, Camera, X, Download,
 } from "lucide-react";
-import { supabase as sharedSupabase } from "@/lib/shared-backend";
+import { getActiveToken } from "@/lib/get-active-token";
 import { redirectToPublishNow } from "@/lib/publishnow-redirect";
 
 // ── Genre options ──
@@ -183,12 +183,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     }
   }, [searchParams, loading]);
 
-  const getAuthToken = async (): Promise<string | null> => {
-    const { data: sharedSession } = await sharedSupabase.auth.getSession();
-    if (sharedSession?.session?.access_token) return sharedSession.session.access_token;
-    const { data: cloudSession } = await supabase.auth.getSession();
-    return cloudSession?.session?.access_token || null;
-  };
+  const getAuthToken = async (): Promise<string | null> => getActiveToken();
 
   const fetchProfile = useCallback(async () => {
     setLoading(true);
@@ -301,18 +296,11 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
     }
   };
 
-  // ── Sync from PublishNow (legacy, with feedback) ──
+  // ── Refresh the canonical Cloud profile ──
   const handleSync = async () => {
     setSyncing(true);
     try {
-      let token: string | null = null;
-      const { data: sharedSession } = await sharedSupabase.auth.getSession();
-      if (sharedSession?.session?.access_token) {
-        token = sharedSession.session.access_token;
-      } else {
-        const { data: cloudSession } = await supabase.auth.getSession();
-        token = cloudSession?.session?.access_token || null;
-      }
+      const token = await getAuthToken();
       if (!token) throw new Error("Not authenticated");
 
       const res = await fetch(
@@ -322,7 +310,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       const result = await res.json();
       if (!res.ok) throw new Error(result.error || "Sync failed");
 
-      toast({ title: "Profile synced successfully! ✅", description: "Your PublishNow data has been imported." });
+      toast({ title: "Profile refreshed successfully", description: "Your latest author details are showing." });
       await fetchProfile();
     } catch (err) {
       toast({ title: "Sync failed", description: err.message || "Please try again.", variant: "destructive" });
