@@ -232,30 +232,30 @@ export default function ReaderAuth() {
               <div className="space-y-5">
                 <div>
                   <h2 className="font-heading text-lg font-bold">Enter Verification Code</h2>
-                  <p className="text-sm text-muted-foreground mt-1">We sent a 6-character code to <strong>{email}</strong></p>
+                  <p className="text-sm text-muted-foreground mt-1">We sent a sign-in code to <strong>{email}</strong></p>
                 </div>
                 <button onClick={resetFlow} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
                   <ArrowLeft className="h-4 w-4" /> Back
                 </button>
                 <div className="flex justify-center">
                   <InputOTP
-                    maxLength={6}
+                    maxLength={8}
                     value={otp}
                     onChange={(value) => {
                       setOtp(value);
-                      if (value.length === 6 && !submitting) void handleVerifyOtp(value);
+                      if (value.length === 8 && !submitting) void handleVerifyOtp(value);
                     }}
                   >
                     <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5].map((i) => (
-                        <InputOTPSlot key={i} index={i} className="h-12 w-12 text-lg border-secondary/50" />
+                      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                        <InputOTPSlot key={i} index={i} className="h-12 w-10 text-lg border-secondary/50" />
                       ))}
                     </InputOTPGroup>
                   </InputOTP>
                 </div>
                 <Button
                   onClick={() => void handleVerifyOtp()}
-                  disabled={otp.length !== 6 || submitting}
+                  disabled={otp.length < 6 || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >
