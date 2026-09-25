@@ -52,7 +52,7 @@ export const MagicLinkEmail = ({
         </Section>
         {token ? (
           <Section style={codeSection}>
-            <Text style={codeLabel}>Enter this 6-digit code on the sign-in page:</Text>
+            <Text style={codeLabel}>Enter this code on the sign-in page:</Text>
             <Text style={codeValue}>{token}</Text>
           </Section>
         ) : null}
