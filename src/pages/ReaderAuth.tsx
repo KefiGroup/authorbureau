@@ -1,3 +1,4 @@
+import { verifyEmailCode } from "@/lib/verify-email-code";
 import { useState, useEffect, useCallback } from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -122,11 +123,7 @@ export default function ReaderAuth() {
     if (code.length !== 6) return;
     setSubmitting(true);
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email: email.trim(),
-        token: code,
-        type: "email",
-      });
+      const { data, error } = await verifyEmailCode(email, code);
       if (error) {
         setOtp("");
         throw new Error(friendlyError(error.message));
