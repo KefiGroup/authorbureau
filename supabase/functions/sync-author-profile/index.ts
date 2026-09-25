@@ -1,4 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveUser } from "../_shared/resolve-user.ts";
+import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -6,38 +8,11 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SHARED_BACKEND_URL = "https://wuftdpnekscrsghqtssd.supabase.co";
-const SHARED_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind1ZnRkcG5la3NjcnNnaHF0c3NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg5MDYzODksImV4cCI6MjA4NDQ4MjM4OX0.o2qA4tLao4UtxPGxSnavXIYKUmVZvS99pHtnL220L-s";
-
 // Fields that are Authors Bureau-specific and should never be overwritten by sync
 const LOCAL_ONLY_BOOK_FIELDS = new Set([
   "ai_enriched", "badges", "rating", "review_count",
   "kindle_price", "paperback_price", "published_at",
 ]);
-
-/** Call PublishNow's pull-shared-profile endpoint */
-async function fetchFromPublishNow(email: string) {
-  const secret = Deno.env.get("CROSS_PLATFORM_SECRET");
-  if (!secret) {
-    console.error("CROSS_PLATFORM_SECRET not set");
-    return null;
-  }
-
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/pull-shared-profile`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, platform_secret: secret }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text();
-    console.error(`pull-shared-profile failed: ${res.status} ${body.slice(0, 500)}`);
-    return null;
-  }
-
-  return await res.json();
-}
 
 /** Map a PublishNow profile to local author_profiles fields */
 function mapProfileToLocal(p: any): Record<string, any> {
@@ -165,30 +140,17 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Resolve user from shared backend or Cloud
-    const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
-    const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
-
-    let userId: string;
-    let userEmail: string | undefined;
-    let userMeta: Record<string, any> = {};
-
-    if (sharedUser) {
-      userId = sharedUser.id;
-      userEmail = sharedUser.email;
-      userMeta = sharedUser.user_metadata || {};
-    } else {
-      const { data: { user: cloudUser } } = await cloudAdmin.auth.getUser(token);
-      if (!cloudUser) {
-        return new Response(JSON.stringify({ error: "Invalid session" }), {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      userId = cloudUser.id;
-      userEmail = cloudUser.email;
-      userMeta = cloudUser.user_metadata || {};
+    const resolved = await resolveUser(authHeader);
+    if (!resolved.id) {
+      return new Response(JSON.stringify({ error: "Invalid session" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+    const { data: { user: cloudUser } } = await cloudAdmin.auth.admin.getUserById(resolved.id);
+    const userId = resolved.id;
+    const userEmail = resolved.email || cloudUser?.email;
+    const userMeta: Record<string, any> = cloudUser?.user_metadata || {};
 
     console.log("Syncing for user:", userId, "email:", userEmail);
 
@@ -206,23 +168,10 @@ Deno.serve(async (req) => {
       .eq("user_id", userId)
       .maybeSingle();
 
-    // Pull data from PublishNow
-    const pulled = await fetchFromPublishNow(userEmail);
-    console.log("Pulled from PublishNow:", pulled ? `${pulled.profiles?.length} profiles, ${pulled.book_projects?.length || pulled.books?.length || 0} books` : "null");
-
-    // Use primary_profile directly (guaranteed single correct identity), fallback to profiles[0]
-    const sharedProfile = pulled?.primary_profile ?? pulled?.profiles?.[0] ?? null;
-
-    if (sharedProfile) {
-      console.log("Using primary profile:", sharedProfile.pen_name || sharedProfile.profile_name);
-      console.log("Raw profile keys:", Object.keys(sharedProfile).join(", "));
-      console.log("Raw bio:", JSON.stringify(sharedProfile.bio?.slice(0, 80)));
-      console.log("Raw social_links:", JSON.stringify(sharedProfile.social_links));
-      console.log("Raw profile_photo_url:", JSON.stringify(sharedProfile.profile_photo_url));
-    }
-
-    const mapped = sharedProfile ? mapProfileToLocal(sharedProfile) : {};
-    console.log("Mapped output:", JSON.stringify(mapped));
+    // The former shared profile service has been retired. Author details are
+    // canonical in this Lovable Cloud project, so refresh locally only.
+    const sharedProfile = null;
+    const mapped: Record<string, any> = {};
 
     // Fallback pen_name
     const penName = mapped.pen_name
@@ -243,7 +192,7 @@ Deno.serve(async (req) => {
 
     // Upsert with only changed fields + metadata
     // Generate author_slug from pen_name
-    let authorSlug = slugify(penName);
+    let authorSlug = localProfile?.author_slug || slugify(penName);
 
     // Handle slug conflicts: check if another user already holds this slug
     const { data: conflicting } = await cloudAdmin
@@ -305,7 +254,7 @@ Deno.serve(async (req) => {
     // Sync books from PublishNow with smart merge
     let booksImported = 0;
     let booksUpdated = 0;
-    const remoteBooks = pulled?.book_projects || pulled?.books || [];
+    const remoteBooks: any[] = [];
 
     if (Array.isArray(remoteBooks)) {
       for (const book of remoteBooks) {
@@ -382,6 +331,14 @@ Deno.serve(async (req) => {
     }
 
     // Backfill existing books with updated author info
+    const canonicalAuthorId = await resolveAuthorId(cloudAdmin, userId, userEmail);
+    if (!canonicalAuthorId) {
+      return new Response(JSON.stringify({ error: "Author profile could not be resolved" }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     await cloudAdmin
       .from("books")
       .update({
@@ -389,7 +346,7 @@ Deno.serve(async (req) => {
         author_bio: mapped.bio_short || mapped.bio_long || null,
         author_photo_url: mapped.photo_url || null,
       })
-      .eq("author_id", userId);
+      .eq("author_id", canonicalAuthorId);
 
     // Permanently fix ID mismatches: reassign any books whose author_name
     // matches this author's pen_name but have a different author_id
@@ -398,15 +355,15 @@ Deno.serve(async (req) => {
         .from("books")
         .select("id, author_id")
         .eq("author_name", penName)
-        .neq("author_id", userId);
+        .neq("author_id", canonicalAuthorId);
 
       if (mismatchedBooks && mismatchedBooks.length > 0) {
-        console.log(`Reassigning ${mismatchedBooks.length} mismatched book(s) to user ${userId}`);
+        console.log(`Reassigning ${mismatchedBooks.length} mismatched book(s) to profile ${canonicalAuthorId}`);
         await cloudAdmin
           .from("books")
-          .update({ author_id: userId })
+          .update({ author_id: canonicalAuthorId })
           .eq("author_name", penName)
-          .neq("author_id", userId);
+          .neq("author_id", canonicalAuthorId);
       }
     }
 
@@ -437,7 +394,7 @@ Deno.serve(async (req) => {
         fieldsUpdated,
         booksImported,
         booksUpdated,
-        source: sharedProfile ? "publishnow" : "metadata",
+        source: "local",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
