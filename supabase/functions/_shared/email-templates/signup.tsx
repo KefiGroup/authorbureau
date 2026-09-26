@@ -64,7 +64,7 @@ export const SignupEmail = ({
         </Section>
         {token ? (
           <Section style={codeSection}>
-            <Text style={codeLabel}>Or enter this code on the sign-in page:</Text>
+            <Text style={codeLabel}>Or enter this 8-digit code on the sign-in page:</Text>
             <Text style={codeValue}>{token}</Text>
           </Section>
         ) : null}

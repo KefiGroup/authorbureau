@@ -1,4 +1,4 @@
-import { verifyEmailCode } from "@/lib/verify-email-code";
+import { verifyEmailCode, OTP_CODE_LENGTH, OTP_SLOTS } from "@/lib/verify-email-code";
 import { useState, useEffect } from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -160,7 +160,7 @@ export default function Auth() {
 
   const handleVerifyOtp = async (codeOverride?: string) => {
     const code = codeOverride ?? otp;
-    if (code.length < 6) return;
+    if (code.length !== OTP_CODE_LENGTH) return;
     setSubmitting(true);
     try {
       const { data, error } = await verifyEmailCode(email, code);
@@ -217,7 +217,7 @@ export default function Auth() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (otp.length < 6 || !password || password !== confirmPassword) return;
+    if (otp.length !== OTP_CODE_LENGTH || !password || password !== confirmPassword) return;
     if (password.length < 8) {
       toast({ title: "Password must be at least 8 characters.", variant: "destructive" });
       return;
@@ -329,15 +329,15 @@ export default function Auth() {
 
                 <div className="flex justify-center">
                   <InputOTP
-                    maxLength={8}
+                    maxLength={OTP_CODE_LENGTH}
                     value={otp}
                     onChange={(value) => {
                       setOtp(value);
-                      if (value.length === 8 && !submitting) void handleVerifyOtp(value);
+                      if (value.length === OTP_CODE_LENGTH && !submitting) void handleVerifyOtp(value);
                     }}
                   >
                     <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                      {OTP_SLOTS.map((i) => (
                         <InputOTPSlot key={i} index={i} className="h-12 w-10 text-lg border-secondary/50" />
                       ))}
                     </InputOTPGroup>
@@ -346,7 +346,7 @@ export default function Auth() {
 
                 <Button
                   onClick={() => void handleVerifyOtp()}
-                  disabled={otp.length < 6 || submitting}
+                  disabled={otp.length !== OTP_CODE_LENGTH || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >
@@ -460,9 +460,9 @@ export default function Auth() {
                 </button>
 
                 <div className="flex justify-center">
-                  <InputOTP maxLength={8} value={otp} onChange={setOtp}>
+                  <InputOTP maxLength={OTP_CODE_LENGTH} value={otp} onChange={setOtp}>
                     <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                      {OTP_SLOTS.map((i) => (
                         <InputOTPSlot key={i} index={i} className="h-12 w-10 text-lg border-secondary/50" />
                       ))}
                     </InputOTPGroup>
@@ -501,7 +501,7 @@ export default function Auth() {
 
                 <Button
                   type="submit"
-                  disabled={otp.length < 6 || !password || password !== confirmPassword || submitting}
+                  disabled={otp.length !== OTP_CODE_LENGTH || !password || password !== confirmPassword || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >
