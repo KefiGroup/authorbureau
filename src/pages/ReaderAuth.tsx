@@ -120,7 +120,7 @@ export default function ReaderAuth() {
 
   const handleVerifyOtp = async (codeOverride?: string) => {
     const code = codeOverride ?? otp;
-    if (code.length !== 6) return;
+    if (code.length < 6) return;
     setSubmitting(true);
     try {
       const { data, error } = await verifyEmailCode(email, code);

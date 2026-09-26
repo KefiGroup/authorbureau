@@ -339,13 +339,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Backfill with the author's current profile values — never write nulls,
+    // which would wipe bio/photo from every book on a plain refresh.
+    const backfillBio = mapped.bio_short || mapped.bio_long
+      || localProfile?.bio_short || localProfile?.bio_long || null;
+    const backfillPhoto = mapped.photo_url || localProfile?.photo_url || null;
+
+    const backfill: Record<string, any> = { author_name: penName };
+    if (backfillBio) backfill.author_bio = backfillBio;
+    if (backfillPhoto) backfill.author_photo_url = backfillPhoto;
+
     await cloudAdmin
       .from("books")
-      .update({
-        author_name: penName,
-        author_bio: mapped.bio_short || mapped.bio_long || null,
-        author_photo_url: mapped.photo_url || null,
-      })
+      .update(backfill)
       .eq("author_id", canonicalAuthorId);
 
     // Permanently fix ID mismatches: reassign any books whose author_name
