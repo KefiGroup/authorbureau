@@ -1,4 +1,4 @@
-import { verifyEmailCode } from "@/lib/verify-email-code";
+import { verifyEmailCode, OTP_CODE_LENGTH, OTP_SLOTS } from "@/lib/verify-email-code";
 import { useState, useEffect, useCallback } from "react";
 import { Navigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -120,7 +120,7 @@ export default function ReaderAuth() {
 
   const handleVerifyOtp = async (codeOverride?: string) => {
     const code = codeOverride ?? otp;
-    if (code.length < 6) return;
+    if (code.length !== OTP_CODE_LENGTH) return;
     setSubmitting(true);
     try {
       const { data, error } = await verifyEmailCode(email, code);
@@ -239,15 +239,15 @@ export default function ReaderAuth() {
                 </button>
                 <div className="flex justify-center">
                   <InputOTP
-                    maxLength={8}
+                    maxLength={OTP_CODE_LENGTH}
                     value={otp}
                     onChange={(value) => {
                       setOtp(value);
-                      if (value.length === 8 && !submitting) void handleVerifyOtp(value);
+                      if (value.length === OTP_CODE_LENGTH && !submitting) void handleVerifyOtp(value);
                     }}
                   >
                     <InputOTPGroup>
-                      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+                      {OTP_SLOTS.map((i) => (
                         <InputOTPSlot key={i} index={i} className="h-12 w-10 text-lg border-secondary/50" />
                       ))}
                     </InputOTPGroup>
@@ -255,7 +255,7 @@ export default function ReaderAuth() {
                 </div>
                 <Button
                   onClick={() => void handleVerifyOtp()}
-                  disabled={otp.length < 6 || submitting}
+                  disabled={otp.length !== OTP_CODE_LENGTH || submitting}
                   className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
                   size="lg"
                 >
