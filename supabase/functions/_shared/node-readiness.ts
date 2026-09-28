@@ -112,6 +112,9 @@ const ANY_TITLE_KEYS = [
   "kit_title",
   "media_kit_title",
   "product_ladder_title",
+  "certification_title",
+  "speaker_tagline",
+  "speaker_brand",
   "jv_strategy_title",
   "practice_title",
   "conference_title",
@@ -149,6 +152,7 @@ const SUBSTANCE_ARRAYS = [
   "affiliate_resources", "upsell_sequences", "welcome_emails",
   "follow_up_emails", "sequence_steps", "steps", "posts",
   "donation_tiers", "shared_assets", "campaign_milestones",
+  "signature_talks", "certification_levels",
 ];
 
 function hasSubstantiveBuild(c: any): boolean {
