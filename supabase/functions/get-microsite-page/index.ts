@@ -67,6 +67,9 @@ serve(async (req) => {
         "media-kit": "BA-15",
         "upsells": "BA-17",
         "partnerships": "BA-18",
+        "vip": "YR-20",
+        "big-ticket": "YR-20",
+        "consulting": "YR-20",
       };
 
       const aliasHit = SLUG_ALIASES[micrositeSlug];
@@ -110,6 +113,10 @@ serve(async (req) => {
         bookRow = b;
       } else {
         console.warn("get-microsite-page: book param did not resolve", { authorSlug, bookSlugParam });
+        return new Response(
+          JSON.stringify({ error: "Book not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
       }
     } else {
       console.warn("get-microsite-page: legacy 2-segment call (no book param)", { authorSlug, nodeId });
@@ -137,7 +144,14 @@ serve(async (req) => {
     };
 
     const allRows = (nodeRows ?? []) as Record<string, unknown>[];
-    const node = (allRows.find(rowIsLive) ?? allRows[0] ?? null) as any;
+    const liveRows = allRows.filter(rowIsLive);
+    if (!bookSlugParam && liveRows.length > 1) {
+      return new Response(
+        JSON.stringify({ error: "Book is required for this module" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    const node = (liveRows[0] ?? allRows[0] ?? null) as any;
 
     // Treat as live if explicitly live OR if the row is content_ready but the
     // content_json carries `activated: true` (forward-compat self-heal for cases

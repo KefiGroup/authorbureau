@@ -62,7 +62,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
       }
           setHydrated(true);
 })();
-  }, [authorId, isAuthReady]);
+  }, [authorId, isAuthReady, bookId]);
 
   useEffect(() => {
     if (step === 1 || (step === 3 && !content?.activated)) {
@@ -87,7 +87,7 @@ export default function BA12Builder({ authorId, bookId }: Props) {
   const handlePublish = async () => {
     setError(null);
     try {
-      await publishNodeToSite(authorId!, "BA-12", authorSlug);
+      await publishNodeToSite(authorId!, "BA-12", authorSlug, bookId ?? null);
       setContent((prev: any) => ({ ...prev, activated: true }));
       setStep(3);
       toast.success("Your Membership is live on your site.");

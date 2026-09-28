@@ -32,3 +32,31 @@ export function bookForCountedRow(
   if (selectedBookId && rowBookId !== selectedBookId) return null;
   return rowBookId;
 }
+
+export interface CountableNodeRow {
+  node_id: string | null | undefined;
+  status: string | null | undefined;
+  book_id: string | null | undefined;
+  ready: boolean;
+}
+
+/**
+ * Build the authoritative per-book completion ledger from author_nodes only.
+ * Duplicate rows for the same (book, node) count once. Legacy product tables,
+ * author slugs, drafts, and unstamped rows are deliberately excluded.
+ */
+export function countBuiltNodesByBook(
+  bookIds: string[],
+  rows: CountableNodeRow[],
+): Record<string, string[]> {
+  const knownBooks = new Set(bookIds);
+  const sets = Object.fromEntries(bookIds.map((id) => [id, new Set<string>()])) as Record<string, Set<string>>;
+  for (const row of rows) {
+    if (!row.node_id || !row.book_id || !knownBooks.has(row.book_id)) continue;
+    if (row.status !== "live" || !row.ready) continue;
+    sets[row.book_id].add(row.node_id);
+  }
+  return Object.fromEntries(
+    Object.entries(sets).map(([bookId, nodeIds]) => [bookId, Array.from(nodeIds).sort()]),
+  );
+}

@@ -27,8 +27,8 @@ Authors Bureau (AB) is an **AI-driven platform that turns a single published boo
 |---|---|
 | **Total nodes** | **28** (BP-01 → BP-09, BA-10 → BA-18, YR-19 → YR-28) |
 | **Counted toward "X / 28 Live"** | **28** (every node) |
-| Author-level | 16 |
-| Book-level | 12 |
+| Author-level | 0 |
+| Book-level | 28 |
 
 There are exactly **28 revenue nodes**, as defined by `src/components/dashboard/builders/builderNodeConfig.ts`. The "A" phase of ABBY is a one-time book-analysis pre-step (`generate-bp00-analysis`), not a node — it has no builder UI, no `author_nodes` row, no readiness gate, and no Live status. It is documented in §3a below.
 
@@ -96,8 +96,8 @@ Generator-internal `NODE_NAME` constants are centrally enforced via `supabase/fu
 
 ### Author-level vs Book-level (authoritative)
 
-- **Author-level (16)** — set in `node-readiness.ts → AUTHOR_LEVEL_NODES`: BP-01, BP-03, BA-14, BA-15, BA-16, BA-18, YR-19 through YR-28.
-- **Book-level (12)** — every other node (BP-02, BP-04, BP-05, BP-06, BP-07, BP-08, BP-09, BA-10, BA-11, BA-12, BA-13, BA-17).
+- **Author-level (0)** — `node-readiness.ts → AUTHOR_LEVEL_NODES` is intentionally empty.
+- **Book-level (28)** — every module belongs to one book. Shared delivery infrastructure does not make its generated content author-level.
 
 ### Commerce nodes (informational only — does NOT gate Live)
 

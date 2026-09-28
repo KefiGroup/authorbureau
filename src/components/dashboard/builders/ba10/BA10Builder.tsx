@@ -104,7 +104,7 @@ export default function BA10Builder({ authorId, bookId }: Props) {
     setStep(3);
     setError(null);
     try {
-      await publishNodeToSite(authorId!, "BA-10", authorSlug);
+      await publishNodeToSite(authorId!, "BA-10", authorSlug, bookId ?? null);
       setContent((prev: any) => ({ ...prev, activated: true }));
     } catch (e: any) {
       setError(e.message);
