@@ -69,7 +69,7 @@ export default function AuthorTestimonialsSection({ testimonials, theme, v, isOw
                 className="text-base mb-5 flex-1"
                 style={{ color: v.bodyText, lineHeight: 1.6, fontFamily: theme.bodyFont }}
               >
-                "{t.quote}"
+                "{t.quote.replace(/\s*[—–]\s*/g, ", ")}"
               </p>
               <div className="flex items-center gap-3">
                 {t.avatar_url ? (
