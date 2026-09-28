@@ -226,7 +226,7 @@ export default function ReadersBureau() {
             Readers <span className="text-gradient-gold">Bureau</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Your reading hub — take on challenges, access your library, and continue your learning journey.
+            Your reading hub: take on challenges, access your library, and continue your learning journey.
           </p>
         </div>
       </section>

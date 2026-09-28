@@ -22,7 +22,7 @@ export default function ReadingClubHero({ user, activeCount }: Props) {
         </h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-4">
           Pick any book. Commit to <strong>2 minutes of reading a day</strong> for 100 days.
-          We'll be your accountability partner — it's a trust system.
+          We'll be your accountability partner. It's a trust system.
         </p>
         <p className="text-sm text-muted-foreground/70 max-w-xl mx-auto mb-8">
           Browse the catalog below, start a challenge, and log your daily reads. No pressure, just consistency.
