@@ -17,7 +17,7 @@ import {
   buildExportText, copyToClipboard, downloadAsTxt, downloadAsDocx, downloadAsPdf,
 } from "@/lib/builder-export";
 import { invokeWithTimeout } from "@/lib/invoke-with-timeout";
-import { getMicrositeUrl, NO_MICROSITE_NODES, NODE_NAMES } from "@/lib/node-slug-map";
+import { NO_MICROSITE_NODES, NODE_NAMES } from "@/lib/node-slug-map";
 import type { NodeAsset, ExportFormat } from "@/lib/nodeAssetRegistry";
 
 interface NodeRow {
@@ -90,11 +90,11 @@ export default function AssetRow({
   const subContent = pluckByKey(node.content_json, asset.key) ?? node.content_json;
   const opts = { content: subContent, nodeName: asset.label, bookTitle, authorName: penName ?? undefined };
 
-  // Prefer the link stored when the module was published — it already carries
-  // the book segment. Only fall back to the generated author-level shape.
+  // A shareable module URL must have a stored, book-scoped path. Never invent
+  // an ambiguous /author/module fallback for a multi-book author.
   const rawUrl = NO_MICROSITE_NODES.has(node.node_id)
     ? null
-    : node.microsite_url || (authorSlug ? getMicrositeUrl(authorSlug, node.node_id) : null);
+    : node.microsite_url;
   // Stored microsite_url values are site-relative ("/slug/book/page") — make
   // them absolute so copied links work in emails and social posts.
   const publicUrl = rawUrl?.startsWith("/")

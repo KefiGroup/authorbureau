@@ -1,6 +1,6 @@
 # Audit roadmap
-- [ ] Make `author_nodes` the only source for each book's X/28 total; remove legacy product-table and website shortcuts
-- [ ] Reconcile Pauline's three books against the corrected counting rule and repair only genuinely finished module records
+- [x] Make `author_nodes` the only source for each book's X/28 total; remove legacy product-table and website shortcuts
+- [x] Reconcile Pauline's three books against the corrected counting rule and repair only genuinely finished module records
 - [ ] Walk Value Investing for Women through all 28 builders: open, generate, save, publish, and verify intended end state
 - [ ] Crawl every resulting public/external destination for correct book context, working actions, and no 404s
 - [ ] Add regression coverage for all 28 canonical module IDs, per-book isolation, readiness, and count refresh

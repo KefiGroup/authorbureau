@@ -1,7 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { hasRequiredAssets, AUTHOR_LEVEL_NODES } from "../_shared/node-readiness.ts";
+import { hasRequiredAssets } from "../_shared/node-readiness.ts";
 import { resolveUser } from "../_shared/resolve-user.ts";
-import { isBuiltProductStatus, bookForCountedRow } from "../_shared/node-counting.ts";
+import { countBuiltNodesByBook } from "../_shared/node-counting.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -105,15 +105,6 @@ Deno.serve(async (req) => {
     const liveMicrosites = allBooks.filter(b => !!b.published_at).length;
     console.log(`[author-stats] userId=${userId} email=${userEmail} bookCount=${bookCount} (byAuthor=${booksByAuthor?.length ?? 0} byEmail=${booksByEmail?.length ?? 0} byName=${booksByName?.length ?? 0})`);
 
-    // Determine the "primary" book to attribute author-level nodes to (oldest book by created_at).
-    // author_nodes has no book_id column, so we attribute the author's nodes to their first/original book.
-    const sortedBooks = [...allBooks].sort((a, b) => {
-      const ta = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const tb = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return ta - tb;
-    });
-    const primaryBookId: string | null = sortedBooks[0]?.id ?? null;
-
     // Check analysis status — generated_assets.author_id also FKs to author_profiles.id
     const { data: assets } = await admin
       .from("generated_assets")
@@ -155,17 +146,12 @@ Deno.serve(async (req) => {
     // Bureau is Merchant of Record — payout setup is admin-side only and
     // never gates Live status.
     const builtNodeIds = new Set<string>();
-    const builtRows: Array<{ node_id: string; book_id: string | null }> = [];
+    const countedRows: Array<{ node_id: string; status: string; book_id: string | null; ready: boolean }> = [];
     for (const n of (authorNodes || []) as any[]) {
       const isLiveStatus = n.status === "live";
-      if (!isLiveStatus) continue;
-      if (!hasRequiredAssets(n.node_id, n.content_json)) continue;
-      builtNodeIds.add(n.node_id);
-      builtRows.push({ node_id: n.node_id, book_id: n.book_id });
-    }
-    // Also count website as built if author_slug is set
-    if (profile?.author_slug) {
-      builtNodeIds.add("BP-04");
+      const ready = hasRequiredAssets(n.node_id, n.content_json);
+      countedRows.push({ node_id: n.node_id, status: n.status, book_id: n.book_id, ready });
+      if (isLiveStatus && ready) builtNodeIds.add(n.node_id);
     }
 
     // Map node_ids to categories
@@ -193,28 +179,11 @@ Deno.serve(async (req) => {
     // Initialise an empty set for every known book so each book appears in perBook
     for (const b of allBooks) ensureBookSet(b.id);
 
-    // Map product table → its corresponding node_id
-    const TABLE_TO_NODE: Record<string, string> = {
-      courses: "YR-21",
-      home_study_courses: "BP-07",
-      audiobooks: "BP-09",
-      podcasts: "BA-12",
-      workbooks: "BP-06",
-      coaching_packages: "YR-19",
-      email_flows: "BP-01",
-      social_media_content: "BP-03",
-    };
-
     // Tables that are author-scoped (no book_id column) — must NOT select book_id
     // or the entire query silently returns null and that table's rows are lost.
     const AUTHOR_SCOPED_TABLES = new Set<string>(["coaching_packages"]);
 
-    // AUTHOR_LEVEL_NODES is imported from ../_shared/node-readiness.ts
-    // — the SAME set used by the frontend hooks. Do not inline a copy here.
     const allBookIds = allBooks.map((b: any) => b.id);
-    const fanOutToAllBooks = (nodeId: string) => {
-      for (const bid of allBookIds) ensureBookSet(bid).add(nodeId);
-    };
 
     for (const table of PRODUCT_TABLES) {
       const isAuthorScoped = AUTHOR_SCOPED_TABLES.has(table);
@@ -225,26 +194,14 @@ Deno.serve(async (req) => {
         .in("author_id", allAuthorRefs);
 
       const counts: StatusCounts = { draft: 0, ready_for_review: 0, published: 0, total: 0 };
-      const nodeIdForTable = TABLE_TO_NODE[table];
-
       for (const row of rows || []) {
         counts.total++;
         if (row.status === "draft") counts.draft++;
         else if (row.status === "ready_for_review") counts.ready_for_review++;
-        else if (row.status === "published" || row.status === "active") counts.published++;
+        else if (row.status === "published" || row.status === "active" || row.status === "live") counts.published++;
 
-        // Per-book counting — attach this row's node to its specific book.
-        // COUNTER RULE: only *finished* rows count toward X / 28. A draft or
-        // in-review product is work in progress, never a built module.
-        const isBuiltRow = isBuiltProductStatus(row.status);
-        if (nodeIdForTable && isBuiltRow) {
-          if (AUTHOR_LEVEL_NODES.has(nodeIdForTable)) {
-            fanOutToAllBooks(nodeIdForTable);
-          } else {
-            const bookId = bookForCountedRow(isAuthorScoped ? primaryBookId : (row as any).book_id);
-            if (bookId) ensureBookSet(bookId).add(nodeIdForTable);
-          }
-        }
+        // Product tables remain operational/reporting mirrors. They never
+        // contribute to X/28; author_nodes is the sole completion ledger.
       }
 
       perTable[table] = counts;
@@ -253,21 +210,10 @@ Deno.serve(async (req) => {
       totalPublished += counts.published;
     }
 
-    // Attribute each *gated-built* author_node row to its own book only.
-    // COUNTER RULE: no primary-book fallback — an un-stamped legacy row must
-    // never inflate another book's X / 28 count.
-    for (const n of builtRows) {
-      if (AUTHOR_LEVEL_NODES.has(n.node_id)) {
-        fanOutToAllBooks(n.node_id);
-      } else {
-        const bid = bookForCountedRow(n.book_id);
-        if (bid) ensureBookSet(bid).add(n.node_id);
-      }
-    }
-    // The author website is one site covering every book, so it counts for all
-    // of them — matching what the dashboard shows per book.
-    if (profile?.author_slug) {
-      fanOutToAllBooks("BP-04");
+    const authoritativeCounts = countBuiltNodesByBook(allBookIds, countedRows);
+    for (const [bookId, nodeIds] of Object.entries(authoritativeCounts)) {
+      const set = ensureBookSet(bookId);
+      for (const nodeId of nodeIds) set.add(nodeId);
     }
 
 
@@ -289,17 +235,10 @@ Deno.serve(async (req) => {
       };
     }
 
-    // Aggregate totalBuilt from the union of all per-book node sets so it
-    // reflects distinct author-wide built nodes (author-level nodes appear in
-    // every book's set, so summing would double-count). Falls back to the
-    // product-table sum for safety if perBookNodeSets is empty.
-    const distinctBuiltNodes = new Set<string>();
-    for (const set of Object.values(perBookNodeSets)) {
-      for (const nid of set) distinctBuiltNodes.add(nid);
-    }
-    if (distinctBuiltNodes.size > 0) {
-      totalBuilt = distinctBuiltNodes.size;
-    }
+    // Portfolio total is the sum of independently built modules per book.
+    // Do not de-duplicate node IDs across books: BP-06 for two books is two
+    // genuinely separate products and must count twice in portfolio totals.
+    totalBuilt = Object.values(perBook).reduce((sum, entry) => sum + entry.total, 0);
 
     const result = {
       bookCount,

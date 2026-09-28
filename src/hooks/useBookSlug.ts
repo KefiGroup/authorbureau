@@ -42,7 +42,7 @@ export function useBookSlug(explicitBookId?: string | null): string | null {
           setSlug(json.book.slug);
         }
       } catch {
-        /* link falls back to the author-level shape */
+        /* no link is shown until the exact book slug is known */
       }
     })();
 

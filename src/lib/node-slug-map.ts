@@ -112,8 +112,7 @@ export function getMicrositeUrl(
   if (NO_MICROSITE_NODES.has(nodeId)) return null;
   const slug = NODE_SLUG_MAP[nodeId];
   if (slug === undefined) return null;
-  const path = bookSlug
-    ? `/${penNameSlug}/${bookSlug}/${slug}`
-    : `/${penNameSlug}/${slug}`;
+  if (!bookSlug) return null;
+  const path = `/${penNameSlug}/${bookSlug}/${slug}`;
   return `https://authorsbureau.com${path}`;
 }

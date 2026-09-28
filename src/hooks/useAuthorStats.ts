@@ -48,6 +48,16 @@ let cachedStatsByUser: Record<string, AuthorStats | undefined> = {};
 let cacheTimestampByUser: Record<string, number | undefined> = {};
 const CACHE_TTL = 30_000; // 30 seconds
 
+export function invalidateAuthorStats(userId?: string): void {
+  if (userId) {
+    delete cachedStatsByUser[userId];
+    delete cacheTimestampByUser[userId];
+    return;
+  }
+  cachedStatsByUser = {};
+  cacheTimestampByUser = {};
+}
+
 export function useAuthorStats(userId: string | undefined) {
   const cachedStats = userId ? cachedStatsByUser[userId] ?? null : null;
   const [stats, setStats] = useState<AuthorStats>(cachedStats || DEFAULT_STATS);
@@ -106,6 +116,16 @@ export function useAuthorStats(userId: string | undefined) {
     setStats(userCachedStats || DEFAULT_STATS);
     setLoading(!userCachedStats);
     refetch();
+  }, [refetch, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const onPublished = () => {
+      invalidateAuthorStats(userId);
+      void refetch(true);
+    };
+    window.addEventListener("author-node:published", onPublished);
+    return () => window.removeEventListener("author-node:published", onPublished);
   }, [refetch, userId]);
 
   return { stats, loading, refetch: () => refetch(true) };

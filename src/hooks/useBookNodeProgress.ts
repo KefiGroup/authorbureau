@@ -60,7 +60,6 @@ export interface BookNodeProgress {
 export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<string>, bookId?: string | null): BookNodeProgress {
   const { user } = useAuth();
   const [statusByCode, setStatusByCode] = useState<Record<string, "completed" | "in-progress">>({});
-  const [hasAuthorSlug, setHasAuthorSlug] = useState(false);
   const [loading, setLoading] = useState(true);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [tick, setTick] = useState(0);
@@ -160,7 +159,6 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
         }
         if (!cancelled) {
           setStatusByCode(map);
-          setHasAuthorSlug(!!profile?.author_slug);
           setHasLoadedOnce(true);
           setLoading(false);
         }
@@ -192,7 +190,6 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
           let state: NodeStatus;
           const dbStatus = statusByCode[code];
           if (dbStatus === "completed") state = "completed";
-          else if (n.id === "microsite" && hasAuthorSlug) state = "completed";
           else if (dbStatus === "in-progress") state = "in-progress";
           else if (effectiveStatus === "coming-soon" || effectiveStatus === "planned") state = "coming-soon";
           else if (!tierMet(tier, n.tierRequired)) state = "locked";
@@ -251,7 +248,7 @@ export function useBookNodeProgress(tier: string = "free", openNodeIds?: Set<str
       continueWhereYouLeftOff,
       refresh: () => setTick((t) => t + 1),
     };
-  }, [statusByCode, hasAuthorSlug, tier, openNodeIds, loading]);
+  }, [statusByCode, tier, openNodeIds, loading]);
 
   return result;
 }

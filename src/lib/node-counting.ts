@@ -7,4 +7,6 @@ export {
   BUILT_PRODUCT_STATUSES,
   isBuiltProductStatus,
   bookForCountedRow,
+  countBuiltNodesByBook,
 } from "../../supabase/functions/_shared/node-counting";
+export type { CountableNodeRow } from "../../supabase/functions/_shared/node-counting";

@@ -1,5 +1,6 @@
 import { getMicrositeUrl, NO_MICROSITE_NODES } from "@/lib/node-slug-map";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { invalidateAuthorStats } from "@/hooks/useAuthorStats";
 
 /**
  * Publishes a node's content to the author's microsite via the
@@ -83,6 +84,8 @@ export async function publishNodeToSite(
     throw new Error(msg);
   }
 
+  invalidateAuthorStats();
+  window.dispatchEvent(new CustomEvent("author-node:published", { detail: { nodeId, bookId } }));
   return { micrositeUrl: parsed?.micrositeUrl ?? micrositeUrl };
 }
 

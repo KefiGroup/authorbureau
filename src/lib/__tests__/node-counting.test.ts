@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { isBuiltProductStatus, bookForCountedRow } from "@/lib/node-counting";
+import { isBuiltProductStatus, bookForCountedRow, countBuiltNodesByBook } from "@/lib/node-counting";
+import { getMicrositeUrl } from "@/lib/node-slug-map";
 
 /**
  * Regression guard for the "X / 28" counters.
@@ -34,5 +35,39 @@ describe("bookForCountedRow", () => {
   it("never falls back to another book when the row has no book", () => {
     expect(bookForCountedRow(null, "book-a")).toBeNull();
     expect(bookForCountedRow(undefined)).toBeNull();
+  });
+});
+
+describe("countBuiltNodesByBook", () => {
+  it("counts only ready live author_nodes for their exact book", () => {
+    const result = countBuiltNodesByBook(["book-a", "book-b"], [
+      { node_id: "BP-02", status: "live", book_id: "book-a", ready: true },
+      { node_id: "BP-02", status: "live", book_id: "book-a", ready: true },
+      { node_id: "BP-06", status: "content_ready", book_id: "book-a", ready: true },
+      { node_id: "BA-10", status: "live", book_id: "book-a", ready: false },
+      { node_id: "BP-02", status: "live", book_id: "book-b", ready: true },
+      { node_id: "YR-19", status: "live", book_id: null, ready: true },
+      { node_id: "YR-20", status: "live", book_id: "unknown", ready: true },
+    ]);
+    expect(result).toEqual({ "book-a": ["BP-02"], "book-b": ["BP-02"] });
+  });
+
+  it("keeps the same node built for two books as two portfolio modules", () => {
+    const result = countBuiltNodesByBook(["book-a", "book-b"], [
+      { node_id: "BP-06", status: "live", book_id: "book-a", ready: true },
+      { node_id: "BP-06", status: "live", book_id: "book-b", ready: true },
+    ]);
+    expect(Object.values(result).reduce((sum, ids) => sum + ids.length, 0)).toBe(2);
+  });
+});
+
+describe("book-scoped public module links", () => {
+  it("refuses to generate an ambiguous two-segment module URL", () => {
+    expect(getMicrositeUrl("pauline-teo", "BP-06")).toBeNull();
+  });
+
+  it("generates the canonical author/book/module URL", () => {
+    expect(getMicrositeUrl("pauline-teo", "BP-06", "value-investing-for-women"))
+      .toBe("https://authorsbureau.com/pauline-teo/value-investing-for-women/workbook");
   });
 });
