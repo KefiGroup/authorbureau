@@ -1,4 +1,4 @@
-import { useParams, useSearchParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useMyBooks } from "@/hooks/useMyBooks";
 import { BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
