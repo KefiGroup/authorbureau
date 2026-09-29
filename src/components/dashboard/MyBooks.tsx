@@ -264,11 +264,11 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
 
     if (!isAnalyzed) return {
       label: "Analyze with Abby — Free", icon: Sparkles, bg: "bg-[#C4973B] hover:bg-[#D4A843]",
-      action: () => onNavigate?.("build-business"),
+      action: () => onNavigate?.(`build-business?bookId=${book.id}`),
     };
     if (!isSubscribed) return {
       label: "Subscribe to Start Building", icon: CreditCard, bg: "bg-[#6366F1] hover:bg-[#6366F1]/90",
-      action: () => onNavigate?.("build-business"),
+      action: () => onNavigate?.(`build-business?bookId=${book.id}`),
     };
     if (getBookProductCount(book.id) === 0) return {
       label: "Start Building", icon: Rocket, bg: "bg-[#0D9488] hover:bg-[#0D9488]/90",
