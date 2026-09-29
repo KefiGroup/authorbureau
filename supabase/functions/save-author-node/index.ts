@@ -12,6 +12,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { workbookPrice } from "../_shared/workbook-price.ts";
+import { syncBp01Flow } from "../_shared/bp01-flow-sync.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
