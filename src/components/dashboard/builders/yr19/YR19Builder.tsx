@@ -28,6 +28,9 @@ export default function YR19Builder({ authorId, bookId }: Props) {
   const devUnlock = searchParams.get("unlock") === "true";
   const [step, setStep] = useState(0);
   const [hydrated, setHydrated] = useState(false);
+  // HYDRATION_FAILSAFE: never leave the author on an endless "Loading…" if a
+  // draft/profile lookup stalls — show the builder after 10s regardless.
+  useEffect(() => { const t = setTimeout(() => setHydrated(true), 10000); return () => clearTimeout(t); }, []);
   const { isReady: isAuthReady } = useAuthReady();
   const [authorName, setAuthorName] = useState("");
   const [authorSlug, setAuthorSlug] = useState("");

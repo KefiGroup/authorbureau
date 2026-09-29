@@ -1,4 +1,6 @@
 import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useMyBooks } from "@/hooks/useMyBooks";
+import { BookOpen } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect, useState } from "react";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -65,12 +67,23 @@ function getHubLabel(nodeId: string, bookId: string | null, from: string | null)
 
 export default function NodeBuilder() {
   const { nodeId } = useParams<{ nodeId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const bookId = searchParams.get("bookId");
   const from = searchParams.get("from");
   const { user, loading: authLoading } = useAuth();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Root-cause guard: a builder must never silently fall back to the
+  // author's "default" (oldest) book. Many entry points (sidebar, onboarding,
+  // legacy redirects, Abby links) arrive without ?bookId. With one book we
+  // pin it into the URL; with several we make the author choose.
+  const { books, loading: booksLoading } = useMyBooks(user?.id);
+  useEffect(() => {
+    if (bookId || booksLoading || books.length !== 1) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("bookId", books[0].id);
+    setSearchParams(next, { replace: true });
+  }, [bookId, booksLoading, books, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -174,6 +187,46 @@ export default function NodeBuilder() {
   }
 
   if (!user) return null;
+
+  if (!bookId && (booksLoading || books.length === 1)) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto px-4 py-8"><Skeleton className="h-48 rounded-xl" /></div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!bookId && books.length > 1 && nodeId && BUILDER_NODE_MAP[nodeId]) {
+    const pick = (id: string) => {
+      const next = new URLSearchParams(searchParams);
+      next.set("bookId", id);
+      setSearchParams(next, { replace: true });
+    };
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto px-4 py-8 space-y-4">
+          <h1 className="text-2xl font-bold">Which book is this {BUILDER_NODE_MAP[nodeId].label} for?</h1>
+          <p className="text-muted-foreground">Each book has its own set of 28 modules. Choose the book you want to build this for.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {books.map((b) => (
+              <button
+                key={b.id}
+                onClick={() => pick(b.id)}
+                className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 text-left hover:border-primary transition-colors"
+              >
+                {b.cover_image_url ? (
+                  <img src={b.cover_image_url} alt="" className="w-10 h-14 rounded object-cover" />
+                ) : (
+                  <div className="w-10 h-14 rounded bg-muted flex items-center justify-center"><BookOpen className="h-4 w-4 text-muted-foreground" /></div>
+                )}
+                <span className="font-medium">{b.title}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const builders: Record<string, React.ComponentType<{ authorId: string | null; bookId?: string | null }>> = {
     "BP-01": BP01Builder, "BP-02": BP02Builder, "BP-03": BP03Builder,

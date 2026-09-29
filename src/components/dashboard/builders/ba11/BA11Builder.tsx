@@ -117,6 +117,9 @@ export default function BA11Builder({ authorId, bookId }: Props) {
   const [intro, setIntro] = useState(true);
   const [stepIdx, setStepIdx] = useState(0);
   const [hydrated, setHydrated] = useState(false);
+  // HYDRATION_FAILSAFE: never leave the author on an endless "Loading…" if a
+  // draft/profile lookup stalls — show the builder after 10s regardless.
+  useEffect(() => { const t = setTimeout(() => setHydrated(true), 10000); return () => clearTimeout(t); }, []);
   const [stepData, setStepData] = useState<Record<string, any>>({});
   const [generationState, setGenerationState] = useState<"idle" | "queued" | "analyzing" | "generating" | "complete" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
