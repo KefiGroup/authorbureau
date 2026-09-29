@@ -585,10 +585,10 @@ Deno.serve(async (req) => {
       return json({
         secrets,
         crons: {
-          last_payout_at: lastPayout?.data?.created_at ?? null,
+          last_payout_at: lastPayout?.data?.queued_at ?? null,
           last_statement_at: lastStatement?.data?.generated_at ?? null,
           last_statement_year: lastStatement?.data?.tax_year ?? null,
-          last_email_sync_at: lastEmailSync?.data?.created_at ?? null,
+          last_email_sync_at: lastEmailSync?.data?.synced_at ?? null,
         },
         error_count_24h: errorCount24h ?? 0,
         unresolved_critical: unresolvedCritical ?? 0,
