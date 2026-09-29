@@ -238,7 +238,8 @@ export default function BP01Builder({ authorId, bookId }: Props) {
         return;
       }
 
-      const mergedContent = libraryAsset ? { ...content, library_asset: libraryAsset } : content;
+      const baseContent = { ...content, set_as_master_welcome: setAsMaster };
+      const mergedContent = libraryAsset ? { ...baseContent, library_asset: libraryAsset } : baseContent;
       // Sprint 9 fix: publish via edge function (service role) instead of a
       // direct PostgREST update — the latter silently fails for shared-backend
       // sessions where auth.uid() doesn't match author_profiles.user_id, which
