@@ -417,7 +417,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId);
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId ?? existingNode?.book_id ?? null);
 
       // Promote node to live if it's not already, so Marketing Hub treats it as active
       if (existingNode && existingNode.status !== "live") {
@@ -471,7 +471,7 @@ Deno.serve(async (req) => {
       if (!hasUsableSocialKit(cj)) {
         return respond({ success: true, repaired: false, count: 0 });
       }
-      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId);
+      const saved = await rebuildSocialPosts(cloudAdmin, authorProfile.id, cj, requestedBookId ?? existingNode?.book_id ?? null);
       return respond({ success: true, repaired: true, count: saved });
     }
 
