@@ -17,7 +17,7 @@ import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 // getPublishNowAuthUrl no longer used - CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
-import DemoVideoModal from "@/components/home/DemoVideoModal";
+import HeroVideo from "@/components/home/HeroVideo";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const SIGNUP_URL = "/auth";
@@ -85,57 +85,66 @@ export default function Index() {
 
       {/* ===== SECTION 1: HERO ===== */}
       <section
-        className="relative flex min-h-[90vh] items-center justify-center overflow-hidden"
+        className="relative flex min-h-[90vh] items-center overflow-hidden"
         style={{ backgroundImage: `url(${heroBg})`, backgroundSize: "cover", backgroundPosition: "center" }}
       >
         <div className="absolute inset-0 bg-primary/80" />
-        <div className="container relative z-10 py-20 text-center">
-          <motion.div initial="hidden" animate="visible" className="mx-auto max-w-4xl">
-            <motion.div variants={fadeUp} custom={0} className="mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">
-              <Sparkles className="h-4 w-4" />
-              🚀 The #1 AI-Powered Author Monetization Platform
+        <div className="container relative z-10 py-16">
+          <div className="grid items-center gap-12 lg:grid-cols-2">
+            <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
+              <motion.div variants={fadeUp} custom={0} className="mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">
+                <Sparkles className="h-4 w-4" />
+                🚀 The #1 AI-Powered Author Monetization Platform
+              </motion.div>
+
+              <motion.h1
+                variants={fadeUp}
+                custom={1}
+                className="mb-6 font-heading text-4xl font-bold leading-tight text-primary-foreground md:text-5xl lg:text-6xl"
+              >
+                Turn Your Book Into{" "}
+                <span className="text-gradient-gold">28 Revenue Streams</span>
+              </motion.h1>
+
+              <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
+                Your book is more than a product. It's the foundation of a business empire.
+              </motion.p>
+
+              <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70 lg:mx-0">
+                Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking topics, memberships, and 24 more income streams, automatically. No business experience needed.
+              </motion.p>
+
+              <motion.p variants={fadeUp} custom={3} className="mb-8 text-sm text-secondary font-semibold">
+                Abby, your AI Business Consultant, builds everything for you.
+              </motion.p>
+
+              <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4 lg:justify-start">
+                <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
+                  <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                </Button>
+              </motion.div>
+
+              <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/60 lg:justify-start">
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> 28 Revenue Streams</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> AI-Powered</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free to Start</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Built by a Bestselling Author</span>
+              </motion.div>
+              <motion.div variants={fadeUp} custom={4.5} className="mt-4">
+                <Link to="/auth" className="text-sm text-primary-foreground/50 hover:text-secondary transition-colors underline">
+                  Already have an account? Sign in →
+                </Link>
+              </motion.div>
             </motion.div>
 
-            <motion.h1
-              variants={fadeUp}
-              custom={1}
-              className="mb-6 font-heading text-4xl font-bold leading-tight text-primary-foreground md:text-6xl lg:text-7xl"
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
             >
-              Turn Your Book Into{" "}
-              <span className="text-gradient-gold">28 Revenue Streams</span>
-            </motion.h1>
-
-            <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
-              Your book is more than a product. It's the foundation of a business empire.
-            </motion.p>
-
-            <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70">
-              Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking topics, memberships, and 24 more income streams, automatically. No business experience needed.
-            </motion.p>
-
-            <motion.p variants={fadeUp} custom={3} className="mb-8 text-sm text-secondary font-semibold">
-              Abby, your AI Business Consultant, builds everything for you.
-            </motion.p>
-
-            <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4">
-              <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
-              </Button>
-              <DemoVideoModal />
+              <HeroVideo />
             </motion.div>
-
-            <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/60">
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> 28 Revenue Streams</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> AI-Powered</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free to Start</span>
-              <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Built by a Bestselling Author</span>
-            </motion.div>
-            <motion.div variants={fadeUp} custom={4.5} className="mt-4">
-              <Link to="/auth" className="text-sm text-primary-foreground/50 hover:text-secondary transition-colors underline">
-                Already have an account? Sign in →
-              </Link>
-            </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
