@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Play, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import videoAsset from "@/assets/video/ab-demo.mp4.asset.json";
-import posterAsset from "@/assets/video/ab-demo-poster.webp.asset.json";
 
 export default function DemoVideoSection() {
   const [playing, setPlaying] = useState(false);
@@ -25,8 +23,8 @@ export default function DemoVideoSection() {
             {playing ? (
               <video
                 className="h-full w-full"
-                src={videoAsset.url}
-                poster={posterAsset.url}
+                src="/video/authors-bureau-demo.mp4"
+                poster="/video/authors-bureau-demo-poster.webp"
                 controls
                 autoPlay
                 playsInline
@@ -40,7 +38,7 @@ export default function DemoVideoSection() {
                 aria-label="Play the Authors Bureau demo video"
               >
                 <img
-                  src={posterAsset.url}
+                  src="/video/authors-bureau-demo-poster.webp"
                   alt="Authors Bureau — Your Story is Your LIFE"
                   className="h-full w-full object-cover"
                   loading="lazy"
