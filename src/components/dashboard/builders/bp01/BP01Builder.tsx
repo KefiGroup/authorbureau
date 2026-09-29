@@ -71,6 +71,9 @@ export default function BP01Builder({ authorId, bookId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
+  // Author-level unified welcome: this kit can also become the author's main
+  // welcome sequence used across every book.
+  const [setAsMaster, setSetAsMaster] = useState(false);
 
   // Load author info
   useEffect(() => {
