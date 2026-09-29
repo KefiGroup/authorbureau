@@ -135,8 +135,11 @@ export async function syncBp01Flow(
 export async function ensureBp01FlowActive(admin: Admin, authorId: string, bookId?: string | null): Promise<void> {
   const mode = await getWelcomeFlowMode(admin, authorId);
 
-  // Which flow must exist for this enrollment?
-  const wantBookFlow = mode === "book_specific" && !!bookId;
+  // Always keep this book's own flow warm (if the book has a Live BP-01), so
+  // switching to book-specific mode later never silently falls back to another
+  // book's emails. `mode` still decides which flow the reader is enrolled in.
+  void mode;
+  const wantBookFlow = !!bookId;
 
   const check = async (bid: string | null) => {
     let q = admin.from("email_flows").select("id, status").eq("author_id", authorId).eq("node_id", "BP-01");
