@@ -90,7 +90,7 @@ export default function Index() {
       >
         <div className="absolute inset-0 bg-primary/80" />
         <div className="container relative z-10 py-16">
-          <div className="grid items-center gap-12 lg:grid-cols-2">
+          <div className="grid items-center gap-x-12 gap-y-7 lg:grid-cols-2">
             <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
               <motion.div variants={fadeUp} custom={0} className="mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">
                 <Sparkles className="h-4 w-4" />
@@ -105,7 +105,18 @@ export default function Index() {
                 Turn Your Book Into{" "}
                 <span className="text-gradient-gold">28 Revenue Streams</span>
               </motion.h1>
+            </motion.div>
 
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
+              className="lg:col-start-2 lg:row-span-2 lg:row-start-1"
+            >
+              <HeroVideo />
+            </motion.div>
+
+            <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
               <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
                 Your book is more than a product. It's the foundation of a business empire.
               </motion.p>
@@ -135,14 +146,6 @@ export default function Index() {
                   Already have an account? Sign in →
                 </Link>
               </motion.div>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] }}
-            >
-              <HeroVideo />
             </motion.div>
           </div>
         </div>
