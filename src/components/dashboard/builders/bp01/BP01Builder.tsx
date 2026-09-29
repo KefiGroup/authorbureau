@@ -542,6 +542,8 @@ function ReviewStep({
   leadMagnetUrl,
   leadMagnetTitle,
   onActivate,
+  setAsMaster,
+  onSetAsMasterChange,
 }: {
   content: any;
   setContent: (c: any) => void;
@@ -550,6 +552,8 @@ function ReviewStep({
   leadMagnetUrl: string | null;
   leadMagnetTitle: string | null;
   onActivate: () => void;
+  setAsMaster: boolean;
+  onSetAsMasterChange: (v: boolean) => void;
 }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [readerPreviewOpen, setReaderPreviewOpen] = useState(false);
