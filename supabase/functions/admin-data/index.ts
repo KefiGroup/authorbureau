@@ -481,15 +481,15 @@ Deno.serve(async (req) => {
       const stripeReady = !!Deno.env.get("STRIPE_SECRET_KEY");
       const { data: lastPayout } = await client
         .from("author_payouts_v2")
-        .select("created_at, status")
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        .select("queued_at, status")
+        .order("queued_at", { ascending: false }).limit(1).maybeSingle();
       const { data: lastStatement } = await client
         .from("author_annual_statements")
         .select("generated_at, tax_year")
         .order("generated_at", { ascending: false }).limit(1).maybeSingle();
       return json({
         stripe_ready: stripeReady,
-        last_payout_at: lastPayout?.created_at ?? null,
+        last_payout_at: lastPayout?.queued_at ?? null,
         last_statement_at: lastStatement?.generated_at ?? null,
         last_statement_year: lastStatement?.tax_year ?? null,
       });
