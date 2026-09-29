@@ -6,6 +6,7 @@
 // Idempotent: safe to call multiple times for the same email+flow.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { ensureBp01FlowActive } from '../_shared/bp01-flow-sync.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -122,6 +123,9 @@ Deno.serve(async (req) => {
     //   - BP-01 (always — the always-on welcome/nurture engine; Sprint 57)
     //   - node-specific match when body.node_id provided (e.g. BP-02, BP-05)
     // De-duped by flow.id so a BP-01 master flow isn't enrolled twice.
+    // Self-heal: a Live Email Marketing module must always have an active sending flow.
+    try { await ensureBp01FlowActive(supabase, authorProfileId); } catch (e) { console.warn('[enroll-subscriber] BP-01 self-heal failed', e); }
+
     const { data: flows } = await supabase
       .from('email_flows')
       .select('id, flow_type, node_id, status')
