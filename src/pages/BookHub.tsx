@@ -127,7 +127,7 @@ export default function BookHub() {
           <BookHubOverview
             book={{ id: book.id, title: book.title, genre: book.genre }}
             tier={effectiveTier}
-            onConsultAbby={() => navigate("/dashboard?section=build-business")}
+            onConsultAbby={() => navigate(`/dashboard?section=build-business&bookId=${book.id}`)}
             onNavigateTab={(tab) => setActiveTab(tab as BookHubTab)}
           />
         );
