@@ -599,6 +599,31 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     if (pendingBookSelection) { startWithReadingAnimation(pendingBookSelection); setPendingBookSelection(null); }
   };
 
+  // ─── Auto-pin the book from the URL (or the only book the author owns) ───
+  // ROOT CAUSE FIX: without this the consultation always started on a blank
+  // book picker, so a plan generated from a book's own hub could be saved
+  // against a different book and the per-book counters drifted.
+  useEffect(() => {
+    if (loadingBooks || selectedBook || autoPinnedRef.current) return;
+    const target = urlBookId
+      ? books.find((b) => b.id === urlBookId)
+      : books.length === 1
+        ? books[0]
+        : null;
+    if (!target) return;
+    autoPinnedRef.current = true;
+    void handleBookSelect(target);
+  }, [loadingBooks, books, urlBookId, selectedBook]);
+
+  // Keep ?bookId in the URL in step with the book actually being worked on, so
+  // a refresh, a back-navigation or a shared link resumes the same plan.
+  useEffect(() => {
+    if (!selectedBook || selectedBook.id === urlBookId) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("bookId", selectedBook.id);
+    setSearchParams(next, { replace: true });
+  }, [selectedBook, urlBookId, searchParams, setSearchParams]);
+
   // ─── Render ───
   if (!selectedBook) {
     return (
