@@ -17,7 +17,7 @@ import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 // getPublishNowAuthUrl no longer used - CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
-import DemoVideoSection from "@/components/home/DemoVideoSection";
+import DemoVideoModal from "@/components/home/DemoVideoModal";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const SIGNUP_URL = "/auth";
@@ -121,9 +121,7 @@ export default function Index() {
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
                 <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
-              <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
-                <a href="#how-it-works">See How It Works ↓</a>
-              </Button>
+              <DemoVideoModal />
             </motion.div>
 
             <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/60">
