@@ -564,9 +564,9 @@ Deno.serve(async (req) => {
       };
 
       const [lastPayout, lastStatement, lastEmailSync, recentAudit] = await Promise.all([
-        client.from("author_payouts_v2").select("created_at, status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        client.from("author_payouts_v2").select("queued_at, status").order("queued_at", { ascending: false }).limit(1).maybeSingle(),
         client.from("author_annual_statements").select("generated_at, tax_year").order("generated_at", { ascending: false }).limit(1).maybeSingle(),
-        client.from("email_sync_log").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        client.from("email_sync_log").select("synced_at").order("synced_at", { ascending: false }).limit(1).maybeSingle(),
         client.from("admin_audit_log").select("event_key, created_at, target_type, payload").order("created_at", { ascending: false }).limit(20),
       ]);
 

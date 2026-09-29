@@ -192,7 +192,7 @@ export default function ABBYFrameworkDashboard({ onNavigate, isPremium }: Props)
             bookTitle: firstBook.title,
             streamsMapped: planData.plan.products?.length || ({ brand: 9, build: 18, yield: 28 } as Record<string, number>)[tier] || 28,
             projectedRevenue: planData.plan.projectedRevenue || "$50K+",
-            productsBuilt: stats?.products?.totalBuilt ?? 0,
+            productsBuilt: Math.min(stats?.products?.perBook?.[firstBook.id]?.total ?? 0, 28),
           });
           const recIds = (planData.plan.products || [])
             .map((p: any) => p.nodeId || p.node_id || p.code || p.name || p.label)
