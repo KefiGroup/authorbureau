@@ -207,7 +207,7 @@ Deno.serve(async (req) => {
           recipientEmail: sub.email,
           recipientName: sub.name || null,
           senderName,
-          subject: substitutePlaceholders(step.subject, { first_name: (sub.name || '').split(' ')[0] || 'there', name: sub.name || 'there', author_name: senderName }).replace(/\{\{\s*\w+\s*\}\}/g, '').replace(/\s+([,?!.])/g, '$1').replace(/,\s*([?!.])/g, '$1'),
+          subject: substitutePlaceholders(step.subject, { first_name: (sub.name || '').split(' ')[0] || '', name: sub.name || '', author_name: senderName }).replace(/\{\{\s*\w+\s*\}\}/g, '').replace(/\s+([,?!.])/g, '$1').replace(/,\s*([?!.])/g, '$1'),
           bodyMarkdown: renderedBody,
           idempotencyKey: `flow-${enr.id}-step-${step.step_number}`,
           authorId: flow.author_id,

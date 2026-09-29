@@ -545,8 +545,8 @@ Deno.serve(async (req: Request) => {
             flowId = nf?.id;
           }
           // Older generations greeted the READER with the AUTHOR's first name.
-          const { data: apName } = await admin.from("author_profiles").select("pen_name, full_name").eq("id", authorId).maybeSingle();
-          const authorFirst = String(apName?.pen_name ?? apName?.full_name ?? "").trim().split(/\s+/)[0];
+          const { data: apName } = await admin.from("author_profiles").select("pen_name").eq("id", authorId).maybeSingle();
+          const authorFirst = String(apName?.pen_name ?? "").trim().split(/\s+/)[0];
           const fixGreeting = (t: string) => {
             if (!authorFirst) return t;
             const n = authorFirst.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
