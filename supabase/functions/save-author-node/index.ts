@@ -552,7 +552,8 @@ Deno.serve(async (req: Request) => {
             const n = authorFirst.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
             return t
               .replace(new RegExp(`\\b(Dearest|Dear|Hi|Hello|Hey|Welcome)\\s+${n}\\b`, "g"), "$1 {{first_name}}")
-              .replace(new RegExp(`,\\s*${n}(?=[?!.,])`, "g"), ", {{first_name}}");
+              .replace(new RegExp(`,\\s*${n}(?=[?!.,])`, "g"), ", {{first_name}}")
+              .replace(new RegExp(`(^|\\n)\\s*${n},`, "g"), "$1{{first_name}},");
           };
           if (flowId) {
             await admin.from("email_flow_steps").delete().eq("flow_id", flowId);
