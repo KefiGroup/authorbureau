@@ -520,6 +520,46 @@ Deno.serve(async (req: Request) => {
           .eq("author_id", authorId);
         if (mErr) console.error("[save-author-node:publish] BA-12 membership cascade:", mErr.message);
         else console.log("[save-author-node:publish] BA-12 membership cascade OK", { authorId });
+      } else if (nodeId === "BP-01") {
+        // Root-cause fix: publishing BP-01 must switch on the real sending engine.
+        // enroll-subscriber + process-email-flows read email_flows/email_flow_steps,
+        // not content_json, so mirror the generated sequence there and activate it.
+        const seq = (mergedContent.welcome_sequence ?? mergedContent.steps ?? mergedContent.sequence_steps) as
+          Array<Record<string, unknown>> | undefined;
+        if (Array.isArray(seq) && seq.length > 0) {
+          const { data: existingFlow } = await admin
+            .from("email_flows").select("id").eq("author_id", authorId).eq("node_id", "BP-01").maybeSingle();
+          let flowId = existingFlow?.id as string | undefined;
+          const flowFields = {
+            book_id: bookId ?? node.book_id ?? null,
+            title: String(mergedContent.campaign_name ?? "Welcome Sequence"),
+            status: "active",
+          };
+          if (flowId) {
+            await admin.from("email_flows").update(flowFields).eq("id", flowId);
+          } else {
+            const { data: nf, error: nfErr } = await admin.from("email_flows").insert({
+              author_id: authorId, node_id: "BP-01", flow_type: "BP-01", ai_generated: true, ...flowFields,
+            }).select("id").single();
+            if (nfErr) console.error("[save-author-node:publish] BP-01 flow insert:", nfErr.message);
+            flowId = nf?.id;
+          }
+          if (flowId) {
+            await admin.from("email_flow_steps").delete().eq("flow_id", flowId);
+            const rows = seq.map((s, i) => ({
+              flow_id: flowId,
+              step_number: i + 1,
+              subject: String(s.subject ?? `Email ${i + 1}`),
+              preview_text: (s.preview_text as string) ?? null,
+              body_markdown: String(s.body ?? s.body_markdown ?? s.body_html ?? ""),
+              trigger_delay_days: Number(s.send_delay_days ?? s.trigger_delay_days ?? (s.delay_hours ? Math.round(Number(s.delay_hours) / 24) : i)),
+              status: "active",
+            }));
+            const { error: sErr } = await admin.from("email_flow_steps").insert(rows);
+            if (sErr) console.error("[save-author-node:publish] BP-01 steps insert:", sErr.message);
+            else console.log("[save-author-node:publish] BP-01 flow activated", { flowId, steps: rows.length });
+          }
+        }
       }
     } catch (cascadeErr) {
       console.error("[save-author-node:publish] cascade exception:", cascadeErr);
