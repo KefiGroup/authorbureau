@@ -624,7 +624,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
                         onEdit={() => handleEdit(book)}
                         onUploadManuscript={() => setShowManuscriptUpload(book.id)}
                         onViewBusinessPlan={() => navigate(`/dashboard/book/${book.id}`)}
-                        onReAnalyze={() => onNavigate?.("build-business")}
+                        onReAnalyze={() => onNavigate?.(`build-business?bookId=${book.id}`)}
                         onViewBookPage={() => window.open(`/books/${book.slug}`, "_blank")}
                         onDelete={() => handleDeleteBook(book.id)}
                       />
