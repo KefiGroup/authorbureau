@@ -391,6 +391,8 @@ export default function BP01Builder({ authorId, bookId }: Props) {
             leadMagnetUrl={leadMagnetUrl}
             leadMagnetTitle={leadMagnetTitle}
             onActivate={handlePublish}
+            setAsMaster={setAsMaster}
+            onSetAsMasterChange={setSetAsMaster}
           />
         )}
 
