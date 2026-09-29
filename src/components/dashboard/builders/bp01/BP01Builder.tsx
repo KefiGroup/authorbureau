@@ -76,6 +76,7 @@ export default function BP01Builder({ authorId, bookId }: Props) {
   useEffect(() => {
     if (!isAuthReady || !authorId) return;
     (async () => {
+      try {
       const { data: profile } = await supabase
         .from("author_profiles")
         .select("pen_name, author_slug, user_id")
@@ -144,8 +145,12 @@ export default function BP01Builder({ authorId, bookId }: Props) {
           setStep(savedStep !== null ? savedStep : 2);
         }
       }
-          setHydrated(true);
-})();
+      } catch (err) {
+        console.error("[BP-01] hydrate failed", err);
+      } finally {
+        setHydrated(true);
+      }
+    })();
   }, [authorId, isAuthReady]);
 
   // Cycling messages for generating / activating
