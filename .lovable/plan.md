@@ -4,13 +4,15 @@ A 45-second animated walkthrough (16:9, 1920x1080) with a narrated voiceover, de
 
 ## Story (about 45s)
 
-1. **Hook (0-5s):** "Your book is not the business. Your book is the HOOK."
+1. **Hook (0-5s):** The tagline "Your Story is Your LIFE" appears in large type. Then: "Your book is not the business. Your book is the HOOK."
 2. **Upload (5-12s):** An author uploads a manuscript, and ABBY analyses it.
 3. **ABBY plan (12-20s):** The AI Business Advisor turns the book into a business plan.
 4. **28 revenue streams (20-30s):** A grid of the Brand, Build and Yield modules lights up to show "28/28 Live".
 5. **Book website (30-38s):** Each book gets its own page, plus email marketing and a social calendar.
 6. **Earnings (38-42s):** "You keep 92% of every sale."
-7. **Close (42-45s):** The Authors Bureau logo and authorsbureau.com.
+7. **Close (42-45s):** The Authors Bureau logo, the tagline "Your Story is Your LIFE", and authorsbureau.com. The voiceover ends on the tagline.
+
+The PublishNow.io tagline, "Your LIFE is Your STORY", stays off this video so the two brands remain distinct. I will save both taglines so future copy uses them.
 
 ## Look
 
