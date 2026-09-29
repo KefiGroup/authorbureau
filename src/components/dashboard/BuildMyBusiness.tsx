@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
@@ -41,6 +42,12 @@ async function getActiveToken(): Promise<string | null> {
 export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section: string) => void }) {
   const { user, isPremium, isAdmin, tier } = useAuth();
   const { toast } = useToast();
+  // BOOK CONTEXT: the business plan is per-book. Every entry point (Book Hub,
+  // My Books, onboarding) must be able to hand us a ?bookId so the plan is
+  // never written against whichever book happens to be first in the list.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlBookId = searchParams.get("bookId") || "";
+  const autoPinnedRef = useRef(false);
 
   // Book state
   const [books, setBooks] = useState<Book[]>([]);
@@ -557,7 +564,13 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       } catch (err) { console.error("Failed to clear promo codes:", err); }
     }
     setMessages([]); updateSessionId(null); setInput(""); setAbbyReading(false); setReadingProgress(0);
-    if (goBackToBookSelect) setSelectedBook(null);
+    if (goBackToBookSelect) {
+      // Drop the pinned book so the picker is genuinely empty again.
+      autoPinnedRef.current = true;
+      setSelectedBook(null);
+      const next = new URLSearchParams(searchParams);
+      if (next.has("bookId")) { next.delete("bookId"); setSearchParams(next, { replace: true }); }
+    }
     else if (selectedBook) { skipLoadRef.current = true; setShouldAutoStart(true); }
   };
 
@@ -591,6 +604,31 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
     setShowManuscriptGate(false);
     if (pendingBookSelection) { startWithReadingAnimation(pendingBookSelection); setPendingBookSelection(null); }
   };
+
+  // ─── Auto-pin the book from the URL (or the only book the author owns) ───
+  // ROOT CAUSE FIX: without this the consultation always started on a blank
+  // book picker, so a plan generated from a book's own hub could be saved
+  // against a different book and the per-book counters drifted.
+  useEffect(() => {
+    if (loadingBooks || selectedBook || autoPinnedRef.current) return;
+    const target = urlBookId
+      ? books.find((b) => b.id === urlBookId)
+      : books.length === 1
+        ? books[0]
+        : null;
+    if (!target) return;
+    autoPinnedRef.current = true;
+    void handleBookSelect(target);
+  }, [loadingBooks, books, urlBookId, selectedBook]);
+
+  // Keep ?bookId in the URL in step with the book actually being worked on, so
+  // a refresh, a back-navigation or a shared link resumes the same plan.
+  useEffect(() => {
+    if (!selectedBook || selectedBook.id === urlBookId) return;
+    const next = new URLSearchParams(searchParams);
+    next.set("bookId", selectedBook.id);
+    setSearchParams(next, { replace: true });
+  }, [selectedBook, urlBookId, searchParams, setSearchParams]);
 
   // ─── Render ───
   if (!selectedBook) {
