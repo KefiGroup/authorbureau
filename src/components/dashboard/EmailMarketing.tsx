@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import MarkdownRenderer from "@/components/dashboard/MarkdownRenderer";
+import WelcomeFlowModeCard from "@/components/dashboard/WelcomeFlowModeCard";
 import {
   Mail, Send, Eye, Loader2, Trash2, Edit3, Users,
   FileText, Clock, CheckCircle2, Search, Zap,
@@ -82,6 +83,10 @@ export default function EmailMarketing({ activeTab, onTabChange }: Props) {
           </p>
         </div>
       </div>
+
+      <WelcomeFlowModeCard />
+
+
 
       <Tabs value={currentTab} onValueChange={(v) => {
         if (v === "flows") onTabChange("email-marketing");
