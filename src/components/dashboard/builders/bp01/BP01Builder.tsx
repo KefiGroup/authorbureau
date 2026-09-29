@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Sparkles, ArrowLeft, ArrowRight, Check, Mail, Eye, Zap, Pencil, Save, X } from "lucide-react";
@@ -71,6 +72,9 @@ export default function BP01Builder({ authorId, bookId }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
+  // Author-level unified welcome: this kit can also become the author's main
+  // welcome sequence used across every book.
+  const [setAsMaster, setSetAsMaster] = useState(false);
 
   // Load author info
   useEffect(() => {
@@ -238,7 +242,8 @@ export default function BP01Builder({ authorId, bookId }: Props) {
         return;
       }
 
-      const mergedContent = libraryAsset ? { ...content, library_asset: libraryAsset } : content;
+      const baseContent = { ...content, set_as_master_welcome: setAsMaster };
+      const mergedContent = libraryAsset ? { ...baseContent, library_asset: libraryAsset } : baseContent;
       // Sprint 9 fix: publish via edge function (service role) instead of a
       // direct PostgREST update — the latter silently fails for shared-backend
       // sessions where auth.uid() doesn't match author_profiles.user_id, which
@@ -387,6 +392,8 @@ export default function BP01Builder({ authorId, bookId }: Props) {
             leadMagnetUrl={leadMagnetUrl}
             leadMagnetTitle={leadMagnetTitle}
             onActivate={handlePublish}
+            setAsMaster={setAsMaster}
+            onSetAsMasterChange={setSetAsMaster}
           />
         )}
 
@@ -536,6 +543,8 @@ function ReviewStep({
   leadMagnetUrl,
   leadMagnetTitle,
   onActivate,
+  setAsMaster,
+  onSetAsMasterChange,
 }: {
   content: any;
   setContent: (c: any) => void;
@@ -544,6 +553,8 @@ function ReviewStep({
   leadMagnetUrl: string | null;
   leadMagnetTitle: string | null;
   onActivate: () => void;
+  setAsMaster: boolean;
+  onSetAsMasterChange: (v: boolean) => void;
 }) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [readerPreviewOpen, setReaderPreviewOpen] = useState(false);
@@ -721,6 +732,16 @@ function ReviewStep({
               <span className="font-medium">{content.list_name}</span>
             </div>
           </div>
+          <label className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer">
+            <Switch checked={setAsMaster} onCheckedChange={onSetAsMasterChange} className="mt-0.5" />
+            <span className="text-sm">
+              <span className="font-medium">Make this my main welcome sequence</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                Use these emails to welcome every new subscriber, whichever book they came from.
+                Leave this off to keep them for this book only.
+              </span>
+            </span>
+          </label>
           <Button
             className="w-full bg-[hsl(43,74%,49%)] hover:bg-[hsl(43,74%,42%)] text-white font-semibold"
             size="lg"

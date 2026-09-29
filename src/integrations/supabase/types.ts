@@ -621,6 +621,7 @@ export type Database = {
           verification_sent_at: string | null
           verification_token: string | null
           verified_at: string | null
+          welcome_flow_mode: string
         }
         Insert: {
           author_id: string
@@ -635,6 +636,7 @@ export type Database = {
           verification_sent_at?: string | null
           verification_token?: string | null
           verified_at?: string | null
+          welcome_flow_mode?: string
         }
         Update: {
           author_id?: string
@@ -649,6 +651,7 @@ export type Database = {
           verification_sent_at?: string | null
           verification_token?: string | null
           verified_at?: string | null
+          welcome_flow_mode?: string
         }
         Relationships: []
       }
