@@ -216,12 +216,12 @@ Deno.serve(async (req) => {
   // 5. Cron freshness
   try {
     const [payout, statement, emailSync] = await Promise.all([
-      admin.from("author_payouts_v2").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("author_payouts_v2").select("queued_at").order("queued_at", { ascending: false }).limit(1).maybeSingle(),
       admin.from("author_annual_statements").select("generated_at").order("generated_at", { ascending: false }).limit(1).maybeSingle(),
-      admin.from("email_sync_log").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+      admin.from("email_sync_log").select("synced_at").order("synced_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
-    const lastPayout = payout?.data?.created_at ?? null;
-    const lastEmailSync = emailSync?.data?.created_at ?? null;
+    const lastPayout = payout?.data?.queued_at ?? null;
+    const lastEmailSync = emailSync?.data?.synced_at ?? null;
     const stale = lastEmailSync && lastEmailSync < since25h;
     checks.push({
       key: "cron_freshness",

@@ -481,15 +481,15 @@ Deno.serve(async (req) => {
       const stripeReady = !!Deno.env.get("STRIPE_SECRET_KEY");
       const { data: lastPayout } = await client
         .from("author_payouts_v2")
-        .select("created_at, status")
-        .order("created_at", { ascending: false }).limit(1).maybeSingle();
+        .select("queued_at, status")
+        .order("queued_at", { ascending: false }).limit(1).maybeSingle();
       const { data: lastStatement } = await client
         .from("author_annual_statements")
         .select("generated_at, tax_year")
         .order("generated_at", { ascending: false }).limit(1).maybeSingle();
       return json({
         stripe_ready: stripeReady,
-        last_payout_at: lastPayout?.created_at ?? null,
+        last_payout_at: lastPayout?.queued_at ?? null,
         last_statement_at: lastStatement?.generated_at ?? null,
         last_statement_year: lastStatement?.tax_year ?? null,
       });
@@ -564,9 +564,9 @@ Deno.serve(async (req) => {
       };
 
       const [lastPayout, lastStatement, lastEmailSync, recentAudit] = await Promise.all([
-        client.from("author_payouts_v2").select("created_at, status").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        client.from("author_payouts_v2").select("queued_at, status").order("queued_at", { ascending: false }).limit(1).maybeSingle(),
         client.from("author_annual_statements").select("generated_at, tax_year").order("generated_at", { ascending: false }).limit(1).maybeSingle(),
-        client.from("email_sync_log").select("created_at").order("created_at", { ascending: false }).limit(1).maybeSingle(),
+        client.from("email_sync_log").select("synced_at").order("synced_at", { ascending: false }).limit(1).maybeSingle(),
         client.from("admin_audit_log").select("event_key, created_at, target_type, payload").order("created_at", { ascending: false }).limit(20),
       ]);
 
@@ -585,10 +585,10 @@ Deno.serve(async (req) => {
       return json({
         secrets,
         crons: {
-          last_payout_at: lastPayout?.data?.created_at ?? null,
+          last_payout_at: lastPayout?.data?.queued_at ?? null,
           last_statement_at: lastStatement?.data?.generated_at ?? null,
           last_statement_year: lastStatement?.data?.tax_year ?? null,
-          last_email_sync_at: lastEmailSync?.data?.created_at ?? null,
+          last_email_sync_at: lastEmailSync?.data?.synced_at ?? null,
         },
         error_count_24h: errorCount24h ?? 0,
         unresolved_critical: unresolvedCritical ?? 0,
