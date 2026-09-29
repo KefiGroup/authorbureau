@@ -139,8 +139,6 @@ export default function Index() {
         </div>
       </section>
 
-      <DemoVideoSection />
-
       <section className="py-24 bg-background">
         <div className="container">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mx-auto max-w-3xl text-center">
