@@ -281,22 +281,22 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
   };
 
   // Banner priority
-  const getBannerPriority = (): { priority: 1 | 2 | 3 | 4 | 5; bookTitle?: string } | null => {
+  const getBannerPriority = (): { priority: 1 | 2 | 3 | 4 | 5; bookTitle?: string; bookId?: string } | null => {
     const hasAnalyzedNotSubscribed = books.some(b => analyzedBooks.has(b.id)) && !isSubscribed;
     if (hasAnalyzedNotSubscribed) return { priority: 1 };
     if (isSubscribed && !stripeConnected) return { priority: 2 };
     const unanalyzedBook = books.find(b => !analyzedBooks.has(b.id) && !!b.published_at);
-    if (unanalyzedBook) return { priority: 3, bookTitle: unanalyzedBook.title };
+    if (unanalyzedBook) return { priority: 3, bookTitle: unanalyzedBook.title, bookId: unanalyzedBook.id };
     // Default progress banner
     if (books.length > 0) return { priority: 5 };
     return null;
   };
 
-  const handleBannerAction = (priority: number) => {
+  const handleBannerAction = (priority: number, bookId?: string) => {
     switch (priority) {
       case 1: onNavigate?.("build-business"); break;
       case 2: onNavigate?.("connect-stripe"); break;
-      case 3: onNavigate?.("build-business"); break;
+      case 3: onNavigate?.(bookId ? `build-business?bookId=${bookId}` : "build-business"); break;
       case 4: onNavigate?.("review-products"); break;
       case 5: {
         const firstAnalyzed = books.find(b => analyzedBooks.has(b.id));
@@ -404,7 +404,7 @@ export default function MyBooks({ isPremium = false, onNavigate, stripeConnected
               revenueRange="$8,000–$30,000/month"
               productsBuilt={totalProductsBuilt}
               totalProducts={totalRecommended}
-              onAction={() => handleBannerAction(banner.priority)}
+              onAction={() => handleBannerAction(banner.priority, banner.bookId)}
             />
           )}
 
