@@ -125,14 +125,18 @@ function deriveLibraryAsset(
       break;
     }
     case "email_sequence": {
-      // BP-01: a saved sequence id or a non-empty steps array is the deliverable.
+      // BP-01: a saved sequence id or a non-empty steps array is the
+      // deliverable. `welcome_sequence` is the shape the BP-01 generator
+      // writes, so it counts too — without it a fully generated sequence
+      // was refused at publish time.
       if (nonEmptyStr(c.email_sequence_id) && nonEmptyArr(c.steps)) {
         url = `sequence://${c.email_sequence_id}`;
-      } else if (nonEmptyArr(c.sequence_steps)) {
+      } else if (nonEmptyArr(c.sequence_steps) || nonEmptyArr(c.welcome_sequence)) {
         url = `sequence://${nodeId}-${Date.now()}`;
       }
       break;
     }
+
     case "podcast_pack": {
       // BA-14: an RSS feed or a built episodes pack.
       url =

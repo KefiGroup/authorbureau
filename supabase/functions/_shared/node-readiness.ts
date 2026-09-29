@@ -291,16 +291,20 @@ function legacyHasRequiredAssets(nodeId: string, content: any): boolean {
     // ---- BRAND PRODUCTS ----------------------------------------------------
     case "BP-01": {
       // Email Marketing — Email Engine wired: a sequence exists with at
-      // least one step. Either the new model (sequence_id + steps[]) or
-      // the legacy inline shape (sequence_steps[]) counts.
+      // least one step. Accepts the new model (sequence_id + steps[]), the
+      // legacy inline shape (sequence_steps[]) and the generator's own
+      // output shape (welcome_sequence[]), which is what
+      // generate-bp01-email-marketing actually writes.
       if (nonEmptyString(content.email_sequence_id) && nonEmptyArray(content.steps)) {
         return true;
       }
       if (nonEmptyArray(content.sequence_steps)) return true;
+      if (nonEmptyArray(content.welcome_sequence)) return true;
       // Resend connection alone is not enough — the architecture requires
       // ABBY to have generated something to actually send.
       return false;
     }
+
     case "BP-03": {
       // Social Media — Buffer is permanently removed. The architecture says
       // ABBY generates a 30-day calendar; the author posts manually. So we
