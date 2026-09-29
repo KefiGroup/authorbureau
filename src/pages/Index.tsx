@@ -17,6 +17,7 @@ import paulineFullPhoto from "@/assets/pauline-teo.jpeg";
 import besuckcessfulCover from "@/assets/besuckcessful-cover.jpg";
 // getPublishNowAuthUrl no longer used - CTAs link to /auth directly
 import MethodologyTrustBadge from "@/components/MethodologyTrustBadge";
+import DemoVideoSection from "@/components/home/DemoVideoSection";
 import { useDocumentMeta } from "@/hooks/useDocumentMeta";
 
 const SIGNUP_URL = "/auth";
@@ -139,6 +140,8 @@ export default function Index() {
           </motion.div>
         </div>
       </section>
+
+      <DemoVideoSection />
 
       <section className="py-24 bg-background">
         <div className="container">
