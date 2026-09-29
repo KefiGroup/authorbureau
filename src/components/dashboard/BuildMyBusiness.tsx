@@ -42,6 +42,12 @@ async function getActiveToken(): Promise<string | null> {
 export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section: string) => void }) {
   const { user, isPremium, isAdmin, tier } = useAuth();
   const { toast } = useToast();
+  // BOOK CONTEXT: the business plan is per-book. Every entry point (Book Hub,
+  // My Books, onboarding) must be able to hand us a ?bookId so the plan is
+  // never written against whichever book happens to be first in the list.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlBookId = searchParams.get("bookId") || "";
+  const autoPinnedRef = useRef(false);
 
   // Book state
   const [books, setBooks] = useState<Book[]>([]);
