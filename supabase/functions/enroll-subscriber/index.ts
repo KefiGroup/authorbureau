@@ -120,11 +120,22 @@ Deno.serve(async (req) => {
 
     // Collect target flows:
     //   - master_nurture (always — global welcome)
-    //   - BP-01 (always — the always-on welcome/nurture engine; Sprint 57)
+    //   - BP-01: exactly ONE flow, chosen by the author's welcome mode
+    //       'master'        → the author-level unified welcome sequence
+    //       'book_specific' → this book's own sequence, falling back to master
     //   - node-specific match when body.node_id provided (e.g. BP-02, BP-05)
-    // De-duped by flow.id so a BP-01 master flow isn't enrolled twice.
+    // De-duped by flow.id.
     // Self-heal: a Live Email Marketing module must always have an active sending flow.
-    try { await ensureBp01FlowActive(supabase, authorProfileId); } catch (e) { console.warn('[enroll-subscriber] BP-01 self-heal failed', e); }
+    try {
+      await ensureBp01FlowActive(supabase, authorProfileId, body.book_id ?? null);
+    } catch (e) { console.warn('[enroll-subscriber] BP-01 self-heal failed', e); }
+
+    let bp01FlowIds: string[] = [];
+    try {
+      const resolved = await resolveWelcomeFlowIds(supabase, authorProfileId, body.book_id ?? null);
+      bp01FlowIds = resolved.flowIds;
+      console.log('[enroll-subscriber] welcome flow', { mode: resolved.mode, bookId: body.book_id ?? null, flowIds: bp01FlowIds });
+    } catch (e) { console.warn('[enroll-subscriber] welcome flow resolve failed', e); }
 
     const { data: flows } = await supabase
       .from('email_flows')
@@ -134,16 +145,16 @@ Deno.serve(async (req) => {
 
     const seen = new Set<string>();
     const targets = (flows || []).filter(f => {
-      const match =
-        f.flow_type === 'master_nurture' ||
-        f.flow_type === 'BP-01' ||
-        f.node_id === 'BP-01' ||
-        (body.node_id && f.node_id === body.node_id);
+      const isBp01 = f.flow_type === 'BP-01' || f.node_id === 'BP-01';
+      const match = isBp01
+        ? bp01FlowIds.includes(f.id)
+        : (f.flow_type === 'master_nurture' || (body.node_id && f.node_id === body.node_id));
       if (!match) return false;
       if (seen.has(f.id)) return false;
       seen.add(f.id);
       return true;
     });
+
 
     for (const flow of targets) {
       // Idempotent: skip if already enrolled
