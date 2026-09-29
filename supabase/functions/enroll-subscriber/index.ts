@@ -6,7 +6,7 @@
 // Idempotent: safe to call multiple times for the same email+flow.
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { ensureBp01FlowActive } from '../_shared/bp01-flow-sync.ts';
+import { ensureBp01FlowActive, resolveWelcomeFlowIds } from '../_shared/bp01-flow-sync.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
