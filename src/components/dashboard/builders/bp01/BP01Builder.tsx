@@ -731,6 +731,16 @@ function ReviewStep({
               <span className="font-medium">{content.list_name}</span>
             </div>
           </div>
+          <label className="flex items-start gap-3 rounded-lg border border-border p-3 cursor-pointer">
+            <Switch checked={setAsMaster} onCheckedChange={onSetAsMasterChange} className="mt-0.5" />
+            <span className="text-sm">
+              <span className="font-medium">Make this my main welcome sequence</span>
+              <span className="block text-xs text-muted-foreground mt-0.5">
+                Use these emails to welcome every new subscriber, whichever book they came from.
+                Leave this off to keep them for this book only.
+              </span>
+            </span>
+          </label>
           <Button
             className="w-full bg-[hsl(43,74%,49%)] hover:bg-[hsl(43,74%,42%)] text-white font-semibold"
             size="lg"
