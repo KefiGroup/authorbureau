@@ -147,6 +147,7 @@ Generate the following as a JSON object with these exact keys:
 }
 
 The welcome_sequence must have exactly 5 emails: Day 0, Day 2, Day 4, Day 7, Day 14.
+These emails are sent TO READERS, never to the author. Address the reader only with the placeholder {{first_name}} (e.g. "Hi {{first_name}},"), in subjects and bodies. Never greet the reader by the author's name; the author's name appears only in the sign-off.
 Make everything specific to this author's book and audience. Never use generic placeholder text.`;
 
     // Call Lovable AI gateway (uses LOVABLE_API_KEY)

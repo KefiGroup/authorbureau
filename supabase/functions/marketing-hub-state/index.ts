@@ -211,21 +211,23 @@ Deno.serve(async (req) => {
         .limit(500);
       if (bookId) postsQuery = postsQuery.eq("book_id", bookId);
 
-      const [nodeRes, postsRes] = await Promise.all([nodeQuery.maybeSingle(), postsQuery]);
+      // "All books" scope has one BP-03 row per book — never use maybeSingle here
+      // (multiple rows made it throw and the calendar showed as empty).
+      const [nodeRes, postsRes] = await Promise.all([nodeQuery, postsQuery]);
 
       if (nodeRes.error) throw nodeRes.error;
       if (postsRes.error) throw postsRes.error;
 
-      const nodeRow = nodeRes.data;
+      const nodeRows = (nodeRes.data ?? []) as Array<{ status: string; activated_at: string | null; marketing_activated_at: string | null }>;
       return respond({
         success: true,
         author_profile_id: authorProfile.id,
-        bp03_activated: !!nodeRow && (
+        bp03_activated: nodeRows.some((nodeRow) => (
           nodeRow.status === "live" ||
           nodeRow.status === "content_ready" ||
           !!nodeRow.activated_at ||
           !!nodeRow.marketing_activated_at
-        ),
+        )),
         posts: postsRes.data ?? [],
       });
     }

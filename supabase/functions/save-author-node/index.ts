@@ -544,14 +544,25 @@ Deno.serve(async (req: Request) => {
             if (nfErr) console.error("[save-author-node:publish] BP-01 flow insert:", nfErr.message);
             flowId = nf?.id;
           }
+          // Older generations greeted the READER with the AUTHOR's first name.
+          const { data: apName } = await admin.from("author_profiles").select("pen_name").eq("id", authorId).maybeSingle();
+          const authorFirst = String(apName?.pen_name ?? "").trim().split(/\s+/)[0];
+          const fixGreeting = (t: string) => {
+            if (!authorFirst) return t;
+            const n = authorFirst.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            return t
+              .replace(new RegExp(`\\b(Dearest|Dear|Hi|Hello|Hey|Welcome)\\s+${n}\\b`, "g"), "$1 {{first_name}}")
+              .replace(new RegExp(`,\\s*${n}(?=[?!.,])`, "g"), ", {{first_name}}")
+              .replace(new RegExp(`(^|\\n)\\s*${n},`, "g"), "$1{{first_name}},");
+          };
           if (flowId) {
             await admin.from("email_flow_steps").delete().eq("flow_id", flowId);
             const rows = seq.map((s, i) => ({
               flow_id: flowId,
               step_number: i + 1,
-              subject: String(s.subject ?? `Email ${i + 1}`),
+              subject: fixGreeting(String(s.subject ?? `Email ${i + 1}`)),
               preview_text: (s.preview_text as string) ?? null,
-              body_markdown: String(s.body ?? s.body_markdown ?? s.body_html ?? ""),
+              body_markdown: fixGreeting(String(s.body ?? s.body_markdown ?? s.body_html ?? "")),
               trigger_delay_days: Number(s.send_delay_days ?? s.trigger_delay_days ?? (s.delay_hours ? Math.round(Number(s.delay_hours) / 24) : i)),
               status: "active",
             }));
