@@ -564,7 +564,13 @@ export default function BuildMyBusiness({ onNavigate }: { onNavigate?: (section:
       } catch (err) { console.error("Failed to clear promo codes:", err); }
     }
     setMessages([]); updateSessionId(null); setInput(""); setAbbyReading(false); setReadingProgress(0);
-    if (goBackToBookSelect) setSelectedBook(null);
+    if (goBackToBookSelect) {
+      // Drop the pinned book so the picker is genuinely empty again.
+      autoPinnedRef.current = true;
+      setSelectedBook(null);
+      const next = new URLSearchParams(searchParams);
+      if (next.has("bookId")) { next.delete("bookId"); setSearchParams(next, { replace: true }); }
+    }
     else if (selectedBook) { skipLoadRef.current = true; setShouldAutoStart(true); }
   };
 
