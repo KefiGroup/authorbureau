@@ -348,7 +348,9 @@ export default function AuthorProductPage() {
           : (PRODUCT_ROUTE_MAP[tables[i]] || "");
         const meta = getProductTabMeta(route);
         navTabs.push({ label: meta.label, icon: meta.icon, route });
-        if (route !== pType) relProds.push({ ...p, route, type: route, price: p.price || p.fee });
+        // RULE-01: speaking stays enquiry only, so its fee is never published.
+        if (route !== pType) relProds.push({ ...p, route, type: route, price: route === "speaking" ? undefined : (p.price || p.fee) });
+
       });
     });
     setAllBookProducts(navTabs);
