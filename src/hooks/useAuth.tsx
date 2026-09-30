@@ -144,7 +144,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const resolveAdminStatus = useCallback((userId: string | null) => {
-    const isAdminSession = sessionStorage.getItem(ADMIN_AUTH_KEY) === "true";
+    // Admin status comes ONLY from the server-side user_roles check (never client storage).
+    const isAdminSession = false;
 
     if (!userId) {
       setIsAdmin(isAdminSession);

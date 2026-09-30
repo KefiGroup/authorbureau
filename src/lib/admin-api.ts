@@ -1,119 +1,26 @@
-import { supabase, SHARED_BACKEND_URL } from "@/lib/shared-backend";
+import { adminDataFetch } from "@/lib/admin-data-fetch";
 
-const SOURCE_PLATFORM = "authorsbureau";
-
-async function getToken(): Promise<string | null> {
-  const { data } = await supabase.auth.getSession();
-  return data.session?.access_token ?? null;
-}
-
-async function callAdminAuth(body: Record<string, unknown>) {
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/admin-auth`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ ...body, source_platform: SOURCE_PLATFORM }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
-  return data;
-}
-
-async function callAdminStories(body: Record<string, unknown>) {
-  const token = await getToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/admin-stories`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ ...body, source_platform: SOURCE_PLATFORM }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
-  return data;
-}
-
-async function callAdminStoriesCross(body: Record<string, unknown>) {
-  const token = await getToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/admin-stories`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
-  return data;
-}
-
-async function callPlatformAccess(body: Record<string, unknown>) {
-  const token = await getToken();
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-
-  const res = await fetch(`${SHARED_BACKEND_URL}/functions/v1/platform-access`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
-  return data;
-}
-
+/**
+ * Admin roster + role checks. All calls go to this app's own `admin-data`
+ * edge function (the old shared PublishNow admin service is retired and
+ * unreachable). Admin authority comes only from the user_roles table.
+ */
 export const adminApi = {
-  // Auth
-  requestCode: (email: string) =>
-    callAdminAuth({ email, action: "request_code" }),
+  listAdmins: () => adminDataFetch("list-admins"),
 
-  verify: (email: string, code: string) =>
-    callAdminAuth({ email, action: "verify", code }),
+  promoteAdmin: (email: string) => adminDataFetch("promote-admin", { email }),
 
-  verifyToken: (token: string) =>
-    callAdminAuth({ action: "verify_token", token }),
+  demoteAdmin: (userId: string) => adminDataFetch("demote-admin", { user_id: userId }),
 
-  passwordLogin: (email: string, password: string) =>
-    callAdminAuth({ email, password, action: "password_login" }),
+  isSuperAdmin: () => adminDataFetch("check-super-admin"),
 
-  // Data
-  stats: () => callAdminStories({ action: "stats" }),
+  // PublishNow cross-platform admin is a separate product; its service is
+  // not reachable from Authors Bureau, so the Platforms tab stays hidden.
+  checkPublishNowAdmin: async () => ({ is_super_admin: false }),
 
-  listSubmissions: (page?: number, status?: string) =>
-    callAdminStories({ action: "list", page, status }),
+  listPlatformUsers: async (): Promise<{ users: any[]; data?: any[] }> => ({ users: [], data: [] }),
 
-  updateSubmissionStatus: (id: string, status: string) =>
-    callAdminStories({ action: "update_status", id, status }),
-
-  listUsers: (page?: number) =>
-    callAdminStories({ action: "list_users", page }),
-
-  listBooks: (page?: number) =>
-    callAdminStories({ action: "list_books", page }),
-
-  listAdmins: () => callAdminStories({ action: "list_admins" }),
-
-  promoteAdmin: (email: string) =>
-    callAdminStories({ action: "promote_admin", email }),
-
-  demoteAdmin: (userId: string) =>
-    callAdminStories({ action: "demote_admin", user_id: userId }),
-
-  isSuperAdmin: () => callAdminStories({ action: "check_super_admin" }),
-
-  // Platform Access (cross-platform, requires PublishNow admin)
-  checkPublishNowAdmin: () =>
-    callAdminStoriesCross({ action: "check_super_admin", source_platform: "publishnow" }),
-
-  listPlatformUsers: () =>
-    callPlatformAccess({ action: "list", source_platform: "publishnow" }),
-
-  togglePlatformAccess: (userId: string, platform: string, enabled: boolean) =>
-    callPlatformAccess({
-      action: enabled ? "grant" : "revoke",
-      user_id: userId,
-      platform,
-      source_platform: "publishnow",
-    }),
+  togglePlatformAccess: async (_userId: string, _platform: string, _enabled: boolean) => {
+    throw new Error("Platform access is managed inside PublishNow.io.");
+  },
 };

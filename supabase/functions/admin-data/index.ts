@@ -53,6 +53,62 @@ Deno.serve(async (req) => {
 
     const { action, ...params } = await req.json();
 
+    // ─── Admin roster (replaces the retired external admin service) ───
+    if (action === "list-admins") {
+      const { data: roles, error } = await client
+        .from("user_roles").select("user_id, role").eq("role", "admin");
+      if (error) return json({ error: error.message }, 500);
+      const admins = [];
+      for (const r of roles || []) {
+        const { data: u } = await client.auth.admin.getUserById(r.user_id);
+        admins.push({
+          user_id: r.user_id,
+          id: r.user_id,
+          email: u?.user?.email ?? null,
+          created_at: u?.user?.created_at ?? null,
+          role: "admin",
+        });
+      }
+      return json({ admins });
+    }
+
+    if (action === "check-super-admin") {
+      // Every user holding the admin role in user_roles is a full admin.
+      return json({ is_super_admin: true });
+    }
+
+    if (action === "promote-admin") {
+      const email = String(params.email || "").trim().toLowerCase();
+      if (!email) return json({ error: "Email required" }, 400);
+      let found: any = null;
+      for (let page = 1; page <= 20 && !found; page++) {
+        const { data } = await client.auth.admin.listUsers({ page, perPage: 200 });
+        const users = data?.users || [];
+        found = users.find((u: any) => (u.email || "").toLowerCase() === email) || null;
+        if (users.length < 200) break;
+      }
+      if (!found) return json({ error: "No account exists with that email. Ask them to sign up first." }, 404);
+      const { error } = await client.from("user_roles")
+        .upsert({ user_id: found.id, role: "admin" }, { onConflict: "user_id,role" });
+      if (error) return json({ error: error.message }, 500);
+      await client.from("admin_audit_log").insert({
+        actor_id: userId, event_key: "admin.promoted", target_type: "user", target_id: found.id, payload: { email },
+      }).then(() => {}, () => {});
+      return json({ success: true });
+    }
+
+    if (action === "demote-admin") {
+      const target = String(params.user_id || "");
+      if (!target) return json({ error: "user_id required" }, 400);
+      if (target === userId) return json({ error: "You can't remove your own admin access." }, 400);
+      const { error } = await client.from("user_roles").delete().eq("user_id", target).eq("role", "admin");
+      if (error) return json({ error: error.message }, 500);
+      await client.from("admin_audit_log").insert({
+        actor_id: userId, event_key: "admin.demoted", target_type: "user", target_id: target, payload: {},
+      }).then(() => {}, () => {});
+      return json({ success: true });
+    }
+
     // ─── Overview Counts ───
     if (action === "overview-counts") {
       const tables = [

@@ -45,7 +45,7 @@ export default function BookSelectionView({
   const analyzedBooks = books.filter(b => analyzedBookIds.has(b.id));
   const unanalyzedBooks = books.filter(b => !analyzedBookIds.has(b.id));
   const hasAnalyzed = analyzedBooks.length > 0;
-  const totalStreams = Object.values(planSummaries).reduce((sum: number, p: any) => sum + (p?.products?.length || 0), 0);
+  const totalStreams = Object.values(planSummaries).reduce((sum: number, p: any) => sum + (p?.products?.length || 28), 0);
   // Pull live count from centralized author-stats so this matches the per-book chips.
   const totalBuilt = stats?.products?.totalBuilt ?? 0;
 
@@ -147,7 +147,8 @@ export default function BookSelectionView({
               <div className="space-y-3">
                 {analyzedBooks.map((book) => {
                   const plan = planSummaries[book.id] || {};
-                  const streamCount = plan.products?.length || 0;
+                  // Every Abby plan maps the full 28-stream framework; markdown plans don't list products individually.
+                  const streamCount = plan.products?.length || 28;
                   // Per-book live counts from author-stats (canonical author_nodes).
                   const perBook = stats?.products?.perBook?.[book.id];
                   const builtThisBook = perBook?.total ?? 0;

@@ -156,9 +156,37 @@ export function parseAiJson(raw: string): any {
  *
  * Body MUST follow the OpenAI-compatible chat-completions schema.
  */
+/**
+ * Fire-and-forget AI usage logging so the admin "AI Usage" panel reflects
+ * real generation volume. Never throws; never blocks the caller.
+ */
+export function logAiUsage(
+  feature: string,
+  model: string,
+  usage: any,
+  authorId?: string | null,
+  bookId?: string | null,
+) {
+  try {
+    const input = Number(usage?.prompt_tokens ?? usage?.input_tokens ?? 0) || 0;
+    const output = Number(usage?.completion_tokens ?? usage?.output_tokens ?? 0) || 0;
+    const total = Number(usage?.total_tokens ?? input + output) || 0;
+    const client = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    client.from("ai_usage_logs").insert({
+      author_id: authorId || "00000000-0000-0000-0000-000000000000",
+      book_id: bookId || null,
+      feature,
+      model,
+      input_tokens: input,
+      output_tokens: output,
+      total_tokens: total,
+    }).then(({ error }: any) => { if (error) console.warn("[ai_usage] log failed", error.message); });
+  } catch { /* never block generation */ }
+}
+
 export async function callAiGateway(
   body: Record<string, unknown>,
-  opts: { functionName?: string; maxRetries?: number } = {},
+  opts: { functionName?: string; maxRetries?: number; authorId?: string | null; bookId?: string | null } = {},
 ): Promise<any> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) {
@@ -175,7 +203,11 @@ export async function callAiGateway(
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const out = await res.json();
+        logAiUsage(opts.functionName || "builder", String(body?.model || "unknown"), out?.usage, opts.authorId, opts.bookId);
+        return out;
+      }
 
       const errText = await res.text().catch(() => "");
       // Hard, non-retryable client errors → fail immediately with a coded message.
