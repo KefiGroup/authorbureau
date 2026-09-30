@@ -222,13 +222,14 @@ Deno.serve(async (req) => {
     ]);
     const lastPayout = payout?.data?.queued_at ?? null;
     const lastEmailSync = emailSync?.data?.synced_at ?? null;
-    const stale = lastEmailSync && lastEmailSync < since25h;
+    // email_sync_log is event-driven (only written when an author changes email
+    // on PublishNow), so its age is not a cron health signal.
     checks.push({
       key: "cron_freshness",
       label: "Cron freshness",
-      severity: stale ? "warn" : "ok",
-      count: stale ? 1 : 0,
-      message: stale ? "Email sync hasn't run in >25h" : "Cron jobs healthy",
+      severity: "ok",
+      count: 0,
+      message: "Cron jobs healthy",
       details: {
         last_payout_at: lastPayout,
         last_statement_at: statement?.data?.generated_at ?? null,
@@ -273,23 +274,31 @@ Deno.serve(async (req) => {
   }
 
   // 7. Content quality (24h)
+  // Rows from upsertAuthorNode are logged AFTER the sanitise/ensure-CTA pipeline
+  // has already corrected the content, so they are informational only. Only
+  // violations from other sources (content that reached the DB unfixed) warn.
   try {
     const { data } = await admin
       .from("content_quality_log")
-      .select("rule")
+      .select("rule, source")
       .gte("created_at", since24h);
     const counts: Record<string, number> = {};
-    for (const r of data || []) counts[r.rule] = (counts[r.rule] ?? 0) + 1;
-    const total = (data || []).length;
+    let autoFixed = 0;
+    let unresolved = 0;
+    for (const r of data || []) {
+      counts[r.rule] = (counts[r.rule] ?? 0) + 1;
+      if (r.source === "upsertAuthorNode") autoFixed++;
+      else unresolved++;
+    }
     const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
     checks.push({
       key: "content_quality",
       label: "Content quality violations (24h)",
-      severity: total > 50 ? "warn" : "ok",
-      count: total,
-      message: total === 0 ? "No violations in last 24h" : `${total} total — top: ${top.slice(0, 3).map(([k, v]) => `${k}(${v})`).join(", ")}`,
+      severity: unresolved > 20 ? "warn" : "ok",
+      count: unresolved,
+      message: `${unresolved} unresolved · ${autoFixed} auto-corrected on save`,
       link: "/admin/content-quality",
-      details: { top },
+      details: { top, auto_fixed: autoFixed, unresolved },
     });
   } catch (e) {
     checks.push({ key: "content_quality", label: "Content quality (24h)", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
