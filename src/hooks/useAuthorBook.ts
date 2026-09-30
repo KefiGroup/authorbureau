@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuthReady } from "@/hooks/useAuthReady";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { resolveScopedBookId } from "@/lib/active-book-scope";
+
 
 export interface AuthorBook {
   id: string;
@@ -25,7 +27,7 @@ export interface AuthorBookResult {
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-async function fetchAuthorBook(): Promise<{
+async function fetchAuthorBook(scopeBookId: string | null): Promise<{
   book: AuthorBook | null;
   missingFields: BookMissingField[];
   isComplete: boolean;
@@ -35,14 +37,17 @@ async function fetchAuthorBook(): Promise<{
     return { book: null, missingFields: [], isComplete: false };
   }
 
+  const url = new URL(`${SUPABASE_URL}/functions/v1/get-author-book`);
+  if (scopeBookId) url.searchParams.set("bookId", scopeBookId);
+
   const res = await fetchWithTimeout(
-    `${SUPABASE_URL}/functions/v1/get-author-book`,
+    url.toString(),
     {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
-        "x-hook-version": "v2-2026-04-20",
+        "x-hook-version": "v3-2026-09-30-book-scoped",
       },
     },
     20000
@@ -61,12 +66,18 @@ async function fetchAuthorBook(): Promise<{
   };
 }
 
-export function useAuthorBook(): AuthorBookResult {
+/**
+ * @param overrideBookId when omitted the hook scopes itself to the book in the
+ * current route (?bookId= or /book/<id>/). It never falls back to the author's
+ * most recent book when a route book is present.
+ */
+export function useAuthorBook(overrideBookId?: string | null): AuthorBookResult {
   const { user, isReady } = useAuthReady();
+  const scopeBookId = resolveScopedBookId(overrideBookId);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["author-book", user?.id ?? "anon"],
-    queryFn: fetchAuthorBook,
+    queryKey: ["author-book", user?.id ?? "anon", scopeBookId ?? "none"],
+    queryFn: () => fetchAuthorBook(scopeBookId),
     enabled: isReady && !!user,
     staleTime: 5 * 60 * 1000, // 5 min
     gcTime: 10 * 60 * 1000,
@@ -77,7 +88,7 @@ export function useAuthorBook(): AuthorBookResult {
       hasBook: false,
       bookTitle: "your book",
       book: null,
-      bookId: null,
+      bookId: scopeBookId,
       missingFields: [],
       isComplete: false,
       isLoading: true,
@@ -91,9 +102,10 @@ export function useAuthorBook(): AuthorBookResult {
     hasBook: !!book,
     bookTitle: book?.title ?? "your book",
     book,
-    bookId: book?.id ?? null,
+    bookId: book?.id ?? scopeBookId,
     missingFields,
     isComplete: !!data?.isComplete,
     isLoading,
   };
 }
+
