@@ -14,7 +14,10 @@ interface Props {
   statsLoading?: boolean;
   hasPlan: boolean;
   onAddBook: () => void;
+  /** Known number of books from another source; prevents a false "no books" state. */
+  knownCount?: number;
 }
+
 
 function getNextStepForBook(book: MyBook, total: number, hasPlan: boolean): string {
   if (!book.published_at) return "Awaiting approval";
