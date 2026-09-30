@@ -275,15 +275,58 @@ export async function fetchAiGateway(
   let lastBody = "";
   let lastNetErr: unknown = null;
 
+  // Usage tracking: parse model/stream from the body; ask streams to emit usage.
+  let parsed: any = null;
+  let body = init.body;
+  if (typeof body === "string") {
+    try {
+      parsed = JSON.parse(body);
+      if (parsed?.stream === true && !parsed.stream_options) {
+        parsed.stream_options = { include_usage: true };
+        body = JSON.stringify(parsed);
+      }
+    } catch { parsed = null; }
+  }
+  const feature = functionName || "ai";
+  const model = String(parsed?.model || "unknown");
+
   for (let attempt = 0; attempt <= max; attempt++) {
     try {
       const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: init.method ?? "POST",
         headers: init.headers,
-        body: init.body,
+        body,
         signal: init.signal,
       });
-      if (res.ok) return res;
+      if (res.ok) {
+        try {
+          if (parsed?.stream === true && res.body) {
+            const [a, b] = res.body.tee();
+            (async () => {
+              const reader = b.getReader();
+              const dec = new TextDecoder();
+              let buf = "";
+              let usage: any = null;
+              for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buf += dec.decode(value, { stream: true });
+                const lines = buf.split("\n");
+                buf = lines.pop() || "";
+                for (const l of lines) {
+                  const s = l.trim();
+                  if (!s.startsWith("data:") || s.includes("[DONE]")) continue;
+                  try { const j = JSON.parse(s.slice(5)); if (j?.usage) usage = j.usage; } catch { /* partial */ }
+                }
+              }
+              logAiUsage(feature, model, usage);
+            })().catch(() => {});
+            return new Response(a, { status: res.status, headers: res.headers });
+          }
+          res.clone().json().then((j: any) => logAiUsage(feature, model, j?.usage)).catch(() => {});
+        } catch { /* never block */ }
+        return res;
+      }
       lastStatus = res.status;
       // Pull the body so we can re-emit it on the final synthetic Response.
       try { lastBody = await res.text(); } catch { lastBody = ""; }
