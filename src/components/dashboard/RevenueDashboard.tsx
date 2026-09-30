@@ -236,7 +236,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           <div>
             <h2 className="font-heading text-2xl font-bold">Revenue Dashboard</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {hasAccess ? "Track your earnings across all products." : "Subscribe to start tracking your revenue."}
+              {hasAccess ? "Combined totals for every one of your books." : "Subscribe to start tracking your revenue."}
             </p>
           </div>
 
@@ -247,7 +247,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
               <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
                 <Activity className="h-4 w-4 text-secondary" /> Pipeline Snapshot
               </h3>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live data</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live data, all books</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <Card className="p-3">
@@ -271,7 +271,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                 <p className="text-xl font-heading font-bold text-accent">${revenueThisMonth.toFixed(0)}</p>
               </Card>
               <Card className="p-3">
-                <div className="flex items-center gap-1.5 mb-1"><Zap className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Active Nodes</span></div>
+                <div className="flex items-center gap-1.5 mb-1"><Zap className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Streams</span></div>
                 <p className="text-xl font-heading font-bold">{activeNodesCount}</p>
               </Card>
               <Card className="p-3">
