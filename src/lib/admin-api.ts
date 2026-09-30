@@ -18,7 +18,7 @@ export const adminApi = {
   // not reachable from Authors Bureau, so the Platforms tab stays hidden.
   checkPublishNowAdmin: async () => ({ is_super_admin: false }),
 
-  listPlatformUsers: async () => ({ users: [] }),
+  listPlatformUsers: async (): Promise<{ users: any[]; data?: any[] }> => ({ users: [], data: [] }),
 
   togglePlatformAccess: async (_userId: string, _platform: string, _enabled: boolean) => {
     throw new Error("Platform access is managed inside PublishNow.io.");
