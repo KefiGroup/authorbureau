@@ -426,9 +426,10 @@ export default function ConnectSettings() {
               </div>
               <p className="text-sm text-muted-foreground mb-3">
                 {stripeConnected
-                  ? "Your Stripe account is connected. You can receive payments for your products."
-                  : "Connect Stripe to accept payments for your products and services."}
+                  ? "Your payout account is connected. Authors Bureau collects reader payments and sends your 92% share here."
+                  : "Authors Bureau collects all reader payments for you. Connect a payout account to receive your 92% share. Authors Bureau retains an 8% platform fee to cover all payment-processing costs on gross sales, so no extra processing fees are ever deducted from your share."}
               </p>
+
               <Button
                 variant={stripeConnected ? "outline" : "default"}
                 size="sm"
