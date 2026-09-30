@@ -40,8 +40,11 @@ export default function BookHubHeroStrip({ bookId, bookTitle, progress, onJumpTa
           <div className="flex items-center gap-2 mb-2">
             <Trophy className="h-4 w-4 text-secondary" />
             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-secondary">
-              {progress.overallCompleted} of {progress.overallTotal} products built · {pct}% complete
+              {progress.loading
+                ? "Counting your products…"
+                : `${progress.overallCompleted} of ${progress.overallTotal} products built · ${pct}% complete`}
             </span>
+
           </div>
           <div className="h-2 w-full rounded-full bg-muted overflow-hidden flex">
             {stages.map((s) => {
