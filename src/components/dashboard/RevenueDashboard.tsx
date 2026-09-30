@@ -15,6 +15,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
+import { hasRequiredAssets } from "@/lib/node-readiness";
+
 
 const TRAFFIC_SOURCES = [
   { source: "Direct", visits: 0, pct: 0 },
@@ -147,7 +149,12 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
       setHotLeads((hotLeadsRes.data as HotLead[]) || []);
 
       // Active nodes
-      setActiveNodesCount(nodesRes.count || 0);
+      // READY-01: two-gate count. A row flagged live only counts when the
+      // required deliverables actually exist for that node.
+      setActiveNodesCount(
+        ((nodesRes.data as any[]) || []).filter(n => hasRequiredAssets(n.node_id, n.content_json)).length
+      );
+
 
       // Revenue this month
       const monthSum = (purchasesMonthRes.data || []).reduce((s, p: any) => s + Number(p.amount || 0), 0);
