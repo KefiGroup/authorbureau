@@ -124,7 +124,8 @@ Deno.serve(async (req) => {
     const errors = rows.filter((r) => r.severity === "error");
     const warnings = rows.filter((r) => r.severity === "warning");
     const unresolvedCritical = critical.filter((r) => !r.resolved_at);
-    const sev: Severity = unresolvedCritical.length > 0 ? "fail" : errors.length > 0 ? "warn" : "ok";
+    const unresolvedErrors = errors.filter((r) => !r.resolved_at);
+    const sev: Severity = unresolvedCritical.length > 0 ? "fail" : unresolvedErrors.length > 0 ? "warn" : "ok";
     checks.push({
       key: "errors_24h",
       label: "Errors (24h)",
