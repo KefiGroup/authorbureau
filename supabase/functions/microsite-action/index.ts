@@ -1,5 +1,3 @@
-import { fetchAiGateway as __fag } from "../_shared/builder-helpers.ts";
-const __aiFetch = (init: any) => __fag(init, "microsite-action");
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
