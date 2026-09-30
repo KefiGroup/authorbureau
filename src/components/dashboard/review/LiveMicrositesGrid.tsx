@@ -68,7 +68,7 @@ export default function LiveMicrositesGrid({ bookScope = "all" }: { bookScope?: 
           .eq("author_id", prof.id)
           .eq("status", "live")
           .order("activated_at", { ascending: false });
-        setNodes((data as LiveNode[] | null) || []);
+        setAllNodes((data as LiveNode[] | null) || []);
       } catch (e) {
         console.warn("[LiveMicrositesGrid] load failed", e);
       } finally {
