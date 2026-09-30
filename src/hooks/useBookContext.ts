@@ -34,8 +34,8 @@ interface FetchedContext {
   isComplete: boolean;
 }
 
-async function fetchBookContext(): Promise<FetchedContext> {
-  console.log("[useBookContext] queryFn START");
+async function fetchBookContext(scopeBookId: string | null): Promise<FetchedContext> {
+  console.log("[useBookContext] queryFn START", { scopeBookId });
   const token = await getActiveToken();
   if (!token) {
     console.warn("[useBookContext] no active token");
@@ -49,8 +49,11 @@ async function fetchBookContext(): Promise<FetchedContext> {
     };
   }
 
+  const url = new URL(`${SUPABASE_URL}/functions/v1/get-author-book`);
+  if (scopeBookId) url.searchParams.set("bookId", scopeBookId);
+
   const res = await fetchWithTimeout(
-    `${SUPABASE_URL}/functions/v1/get-author-book`,
+    url.toString(),
     {
       method: "GET",
       headers: {
@@ -61,6 +64,7 @@ async function fetchBookContext(): Promise<FetchedContext> {
     },
     25000
   );
+
 
   if (!res.ok) {
     console.error("[useBookContext] edge function error:", res.status);
