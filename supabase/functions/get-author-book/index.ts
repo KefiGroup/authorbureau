@@ -170,14 +170,29 @@ Deno.serve(async (req) => {
     if (!row) {
       return new Response(
         JSON.stringify({
-          bookTitle: curatedTitle,
-          book: curatedTitle ? { id: "", title: curatedTitle } : null,
+          bookTitle: requestedBookId ? null : curatedTitle,
+          book: !requestedBookId && curatedTitle ? { id: "", title: curatedTitle } : null,
           missingFields: [],
-          isComplete: !!curatedTitle,
+          isComplete: requestedBookId ? false : !!curatedTitle,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Ownership guard: a requested book must belong to this user.
+    if (requestedBookId) {
+      const owns =
+        (row.author_id && idList.includes(row.author_id)) ||
+        (!!userEmail && (row.owner_email || "").toLowerCase() === userEmail.toLowerCase());
+      if (!owns) {
+        console.warn("[get-author-book] requested book not owned by caller:", requestedBookId);
+        return new Response(
+          JSON.stringify({ book: null, bookTitle: null, missingFields: [], isComplete: false }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
 
     // Self-heal owner_email if missing
     if (!row.owner_email && userEmail) {
