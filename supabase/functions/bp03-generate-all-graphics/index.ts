@@ -1,3 +1,5 @@
+import { fetchAiGateway as __fag } from "../_shared/builder-helpers.ts";
+const __aiFetch = (init: any) => __fag(init, "bp03-generate-all-graphics");
 // bp03-generate-all-graphics
 // Sprint 62 — generate THREE size variants (landscape / portrait / square) per
 // BP-03 social post and persist them on social_posts.graphics (JSONB), keeping
@@ -93,7 +95,7 @@ Look like a senior brand designer made it — no AI tells, no clip-art, no awkwa
     messageContent.push({ type: "image_url", image_url: { url: opts.bookCoverUrl } });
   }
 
-  const resp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const resp = await __aiFetch({
     method: "POST",
     headers: {
       Authorization: `Bearer ${LOVABLE_API_KEY}`,

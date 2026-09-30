@@ -1,3 +1,5 @@
+import { fetchAiGateway as __fag } from "../_shared/builder-helpers.ts";
+const __aiFetch = (init: any) => __fag(init, "generate-product-cover");
 // Generate a product cover image (workbook, home-study, etc.) that visually
 // emulates the parent book cover. Uses Lovable AI Gateway image edit
 // (google/gemini-2.5-flash-image / Nano Banana) with the book cover as the
@@ -256,7 +258,7 @@ Deno.serve(async (req) => {
     const prompt = buildPrompt({ kind: productKind, productTitle, productSubtitle, authorName, slotIndex });
 
     // Call Lovable AI Gateway image edit (Nano Banana)
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await __aiFetch({
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
@@ -294,7 +296,7 @@ Deno.serve(async (req) => {
     // reference image, retry once WITHOUT the reference (text-only generation).
     if (!dataUrl || !dataUrl.startsWith("data:image/")) {
       console.warn("Model refused with reference image; retrying text-only", JSON.stringify(aiData).slice(0, 300));
-      const retryRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      const retryRes = await __aiFetch({
         method: "POST",
         headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({

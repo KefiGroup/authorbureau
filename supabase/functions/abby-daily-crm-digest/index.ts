@@ -1,3 +1,5 @@
+import { fetchAiGateway as __fag } from "../_shared/builder-helpers.ts";
+const __aiFetch = (init: any) => __fag(init, "abby-daily-crm-digest");
 // abby-daily-crm-digest
 // Runs daily via pg_cron. For each author with at least one CRM contact,
 // computes a 24h CRM intelligence summary and:
@@ -46,7 +48,7 @@ async function generateRecommendation(supabase: any, authorName: string, payload
       clicks: payload.email_clicks_24h,
       top_mover: payload.top_mover?.full_name ?? null,
     });
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await __aiFetch({
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -1,3 +1,5 @@
+import { fetchAiGateway as __fag } from "../_shared/builder-helpers.ts";
+const __aiFetch = (init: any) => __fag(init, "daily-audit-cron");
 // daily-audit-cron — invoked by pg_cron once per day. Runs the audit, computes
 // deltas vs yesterday, gathers shipped sprint activity, generates an ABBY
 // takeaway, persists a daily_ops_reports row, and ALWAYS emails admins
@@ -20,7 +22,7 @@ async function generateTakeaway(
   if (!LOVABLE_API_KEY) return "";
   try {
     const summary = `Status: ${status}. Resolved: ${resolved.map(r=>r.label).join(', ') || 'none'}. New issues: ${opened.map(o=>`${o.label} (${o.to})`).join(', ') || 'none'}. Shipped: ${sprints.map(s=>s.title).join(', ') || 'none'}.`;
-    const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const res = await __aiFetch({
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${LOVABLE_API_KEY}` },
       body: JSON.stringify({
