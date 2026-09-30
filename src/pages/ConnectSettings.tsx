@@ -436,7 +436,7 @@ export default function ConnectSettings() {
                 size="sm"
                 onClick={() => navigate("/dashboard?section=connect-stripe")}
               >
-                {stripeConnected ? "Manage Stripe" : "Connect Stripe"}
+                {stripeConnected ? "Manage payout account" : "Set up payouts"}
               </Button>
             </div>
           </div>
