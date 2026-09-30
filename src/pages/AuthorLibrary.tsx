@@ -132,7 +132,7 @@ export default function AuthorLibrary() {
     );
   }
 
-  if (!nodes.length) {
+  if (!allNodes.length) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -157,7 +157,7 @@ export default function AuthorLibrary() {
             <h1 className="font-heading text-2xl sm:text-3xl font-bold">My Library</h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-xl">
-            Every asset you've ever generated — slide decks, workbooks, scripts, social packs.
+            Every asset you've ever generated: slide decks, workbooks, scripts, social packs.
             Re-download in any format, swap themes, or push to your channels.
           </p>
         </div>
@@ -165,6 +165,32 @@ export default function AuthorLibrary() {
           <RefreshCw className="h-4 w-4 mr-2" />Refresh
         </Button>
       </div>
+
+      {myBooks.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
+          {myBooks.map(b => (
+            <Button
+              key={b.id}
+              size="sm"
+              variant={bookScope === b.id ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => setBookScope(b.id)}
+            >
+              {b.title}
+            </Button>
+          ))}
+          <Button
+            size="sm"
+            variant={bookScope === "all" ? "default" : "outline"}
+            className="text-xs"
+            onClick={() => setBookScope("all")}
+          >
+            All books
+          </Button>
+        </div>
+      )}
+
 
       <Tabs defaultValue="marketing-packs">
         <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">
