@@ -32,7 +32,12 @@ export function readRouteBookId(search?: string, pathname?: string): string | nu
   return null;
 }
 
-export function resolveScopedBookId(override?: string | null): string | null {
+export function resolveScopedBookId(
+  override?: string | null,
+  search?: string,
+  pathname?: string,
+): string | null {
   if (override && UUID_RE.test(override)) return override;
-  return readRouteBookId();
+  return readRouteBookId(search, pathname);
 }
+
