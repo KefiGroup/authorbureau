@@ -1,7 +1,7 @@
 import { Navigate, useSearchParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { safeRedirect } from "@/lib/safe-redirect";
+import { safeInternalPath } from "@/lib/safe-redirect";
 
 /**
  * Admins sign in through the same sign-in page as everyone else. Admin
@@ -10,7 +10,7 @@ import { safeRedirect } from "@/lib/safe-redirect";
 export default function AdminAuth() {
   const { user, loading, isAdmin } = useAuth();
   const [params] = useSearchParams();
-  const redirectTo = safeRedirect(params.get("redirect"), "/admin");
+  const redirectTo = safeInternalPath(params.get("redirect"), "/admin");
 
   if (loading) {
     return (

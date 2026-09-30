@@ -3122,6 +3122,19 @@ serve(async (req) => {
 
       const adminClient = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const authorId = (await resolveAuthorId(adminClient, user.id, user.email)) || user.id;
+      // Never downgrade: a short chat turn (e.g. Abby's greeting) must not
+      // overwrite an existing full 28-stream plan.
+      const { data: existingPlan } = await adminClient
+        .from("generated_assets").select("content")
+        .eq("book_id", savePlanBookId).eq("asset_type", "business_plan")
+        .limit(1);
+      const prevLen = (existingPlan?.[0]?.content || "").length;
+      const isFullPlan = String(planContent).length >= 3000 || /PART\s*\d|28-node revenue map/i.test(String(planContent));
+      if (prevLen >= 3000 && !isFullPlan && String(planContent).length < prevLen) {
+        return new Response(JSON.stringify({ saved: false, kept_existing: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       const { error: upsertErr } = await adminClient.from("generated_assets").upsert(
         {
           book_id: savePlanBookId,
