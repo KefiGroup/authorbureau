@@ -43,13 +43,13 @@ Exit code 0 = green, 1 = amber/red. Suitable for cron / CI.
 | **red** | At least one `fail` check | Investigate same day |
 
 ## What's checked
-1. Errors (24h) — `system_error_log` (critical/error/warning + unresolved critical list)
+1. Errors (24h) — `system_error_log`; only unresolved errors/criticals raise severity
 2. Stuck-live nodes — `author_nodes` on legacy fallback (re-publish to upgrade)
 3. Node registry parity — 28 nodes with canonical labels
 4. Connector secrets — Stripe, Resend, ElevenLabs, Buffer, Lovable AI, Perplexity, Firecrawl
-5. Cron freshness — payouts / statements / email sync timestamps
+5. Cron freshness — payouts / statements timestamps (email sync is event-driven, informational only)
 6. Email queue (24h) — sent / dlq / failed / suppressed counts (deduped by message_id)
-7. Content quality (24h) — top 10 violation rules from `content_quality_log`
+7. Content quality (24h) — unresolved vs auto-corrected. DB triggers on `author_nodes`, `social_posts`, `generated_assets` strip dashes, fill "[Your Name]/[Your Website]" with real author details, swap banned phrases, and preserve the `{{first_name}}` merge tag
 8. Ghost author UIDs — `auth_uid_warnings` last 24h
 9. Book ownership orphans — `books.author_id` not in `author_profiles`
 
