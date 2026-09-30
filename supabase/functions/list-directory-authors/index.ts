@@ -21,7 +21,8 @@ Deno.serve(async (req) => {
     const { data: authors, error: authError } = await supabase
       .from("author_profiles")
       .select("user_id, pen_name, bio_short, tagline, photo_url, genres, credentials, website_url, linkedin_url, amazon_author_profile_url, is_speaker, directory_status, author_slug, location_city, location_country")
-      .in("directory_status", ["listed", "verified", "featured"]);
+      .in("directory_status", ["listed", "verified", "featured"])
+      .eq("is_test", false);
 
     if (authError) throw authError;
 
@@ -29,7 +30,8 @@ Deno.serve(async (req) => {
     const { data: books, error: booksError } = await supabase
       .from("books")
       .select("id, title, slug, cover_image_url, author_id, badges, rating, author_name")
-      .not("published_at", "is", null);
+      .not("published_at", "is", null)
+      .eq("is_test", false);
 
     if (booksError) throw booksError;
 
