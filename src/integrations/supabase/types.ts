@@ -7034,6 +7034,14 @@ export type Database = {
         Args: { payload: Json; queue_name: string }
         Returns: number
       }
+      fill_author_placeholders: {
+        Args: { p_author_id: string; t: string }
+        Returns: string
+      }
+      fill_author_placeholders_jsonb: {
+        Args: { p_author_id: string; v: Json }
+        Returns: Json
+      }
       generate_account_id: { Args: never; Returns: string }
       get_author_curated_book_id: {
         Args: { _author_id: string }
@@ -7106,6 +7114,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      replace_forbidden_words_jsonb: { Args: { v: Json }; Returns: Json }
       reset_stuck_generating_nodes: { Args: never; Returns: number }
       scrub_microsite_jsonb: { Args: { v: Json }; Returns: Json }
       viewer_is_member: { Args: { p_author_id: string }; Returns: boolean }

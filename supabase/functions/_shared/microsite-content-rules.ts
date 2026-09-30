@@ -125,7 +125,10 @@ function stripForbiddenWordsString(input: string): string {
 
 const PLACEHOLDER_PATTERNS: RegExp[] = [
   /\[insert[^\]]*\]/gi,
-  /\{\{[^}]+\}\}/g,
+  // Keep the {{first_name}} email merge tag; strip every other {{token}}.
+  // "[Your Name]"-style blanks are left for the DB trigger, which fills them
+  // with the author's real name / website (fill_author_placeholders).
+  /\{\{(?!\s*first_name\s*\}\})[^}]+\}\}/g,
   /<<[^>]+>>/g,
   /\bLorem ipsum[^.]*\.?/gi,
   /\bTBD\b/g,
@@ -253,7 +256,7 @@ export type Violation = {
 const EMDASH_RE = /[—–]/;
 const PRICE_RE = /\$\s?\d[\d,]*(?:\.\d{1,2})?/;
 const FORBIDDEN_RE = /\b(next-step|next step|try this|exercises?)\b/i;
-const PLACEHOLDER_RE = /(\[insert|\{\{|<<|Lorem ipsum|\bTBD\b|\bUntitled\b)/i;
+const PLACEHOLDER_RE = /(\[insert|\{\{(?!\s*first_name\s*\}\})|<<|Lorem ipsum|\bTBD\b|\bUntitled\b)/i;
 
 function pushViolation(out: Violation[], rule: Violation["rule"], sample: string, path: string) {
   out.push({ rule, sample: sample.slice(0, 200), field_path: path });
