@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useMyBooks } from "@/hooks/useMyBooks";
+import { resolveScopedBookId } from "@/lib/active-book-scope";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -95,7 +98,9 @@ interface Props {
 
 export default function ReviewProductsPage({ onNavigate }: Props) {
   const { user } = useAuth();
-  const [products, setProducts] = useState<DraftProduct[]>([]);
+  const { books: myBooks } = useMyBooks(user?.id);
+  const [allProducts, setAllProducts] = useState<DraftProduct[]>([]);
+  const [bookScope, setBookScope] = useState<string>(() => resolveScopedBookId() ?? "all");
   const [loading, setLoading] = useState(true);
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
@@ -108,7 +113,20 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("all");
   const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
+  // DATA-02: the list always reflects exactly one book unless "All books" is chosen.
+  const products = useMemo(
+    () => (bookScope === "all" ? allProducts : allProducts.filter((p) => p.bookId === bookScope)),
+    [allProducts, bookScope],
+  );
+  const setProducts = useCallback(
+    (updater: DraftProduct[] | ((prev: DraftProduct[]) => DraftProduct[])) => {
+      setAllProducts((prev) => (typeof updater === "function" ? (updater as any)(prev) : updater));
+    },
+    [],
+  );
+
   const [loadError, setLoadError] = useState<string | null>(null);
+
 
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
@@ -336,6 +354,33 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           Every product follows the <span className="font-semibold text-amber-600">Analyse</span> → <span className="font-semibold text-blue-600">Brand</span> → <span className="font-semibold text-green-600">Build</span> pipeline. Review each one, then publish to your microsite.
         </p>
       </div>
+
+      {/* ── Book scope (DATA-02) ─────────────────────────────── */}
+      {myBooks.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
+          {myBooks.map((b) => (
+            <Button
+              key={b.id}
+              size="sm"
+              variant={bookScope === b.id ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => setBookScope(b.id)}
+            >
+              {b.title}
+            </Button>
+          ))}
+          <Button
+            size="sm"
+            variant={bookScope === "all" ? "default" : "outline"}
+            className="text-xs"
+            onClick={() => setBookScope("all")}
+          >
+            All books
+          </Button>
+        </div>
+      )}
+
 
       {/* ── Summary Stats ────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

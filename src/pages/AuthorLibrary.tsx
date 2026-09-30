@@ -10,8 +10,12 @@ import { getAvailableAssets, describeAssetSize, type NodeAsset } from "@/lib/nod
 import AssetRow from "@/components/library/AssetRow";
 import MarketingPackCard from "@/components/library/MarketingPackCard";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useMyBooks } from "@/hooks/useMyBooks";
+import { resolveScopedBookId } from "@/lib/active-book-scope";
 import { parseAssetType } from "@/lib/assetPackRegistry";
 import { hasRequiredAssets } from "@/lib/node-readiness";
+
 
 interface NodeRow {
   id: string;
@@ -52,11 +56,19 @@ const TYPE_ICON: Record<string, typeof FileText> = {
 
 export default function AuthorLibrary() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { books: myBooks } = useMyBooks(user?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nodes, setNodes] = useState<NodeRow[]>([]);
+  const [allNodes, setAllNodes] = useState<NodeRow[]>([]);
+  const [bookScope, setBookScope] = useState<string>(() => resolveScopedBookId() ?? "all");
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
-  const [marketingAssets, setMarketingAssets] = useState<MarketingAssetRow[]>([]);
+  const [allMarketingAssets, setAllMarketingAssets] = useState<MarketingAssetRow[]>([]);
+
+  // DATA-04: the library shows one book's assets at a time unless "All books".
+  const nodes = bookScope === "all" ? allNodes : allNodes.filter(n => n.book_id === bookScope);
+  const marketingAssets =
+    bookScope === "all" ? allMarketingAssets : allMarketingAssets.filter(a => a.book_id === bookScope);
 
   const load = async () => {
     setLoading(true);
@@ -66,14 +78,15 @@ export default function AuthorLibrary() {
     );
     if (error) setError(error.message);
     else if (data) {
-      setNodes(data.nodes || []);
+      setAllNodes(data.nodes || []);
       setProfile(data.profile);
-      setMarketingAssets(data.marketing_assets || []);
+      setAllMarketingAssets(data.marketing_assets || []);
     }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
 
   // Compute flattened asset list once
   const flatAssets = nodes.flatMap(n => {
@@ -119,7 +132,7 @@ export default function AuthorLibrary() {
     );
   }
 
-  if (!nodes.length) {
+  if (!allNodes.length) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center space-y-4">
         <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
@@ -144,7 +157,7 @@ export default function AuthorLibrary() {
             <h1 className="font-heading text-2xl sm:text-3xl font-bold">My Library</h1>
           </div>
           <p className="text-sm text-muted-foreground max-w-xl">
-            Every asset you've ever generated — slide decks, workbooks, scripts, social packs.
+            Every asset you've ever generated: slide decks, workbooks, scripts, social packs.
             Re-download in any format, swap themes, or push to your channels.
           </p>
         </div>
@@ -152,6 +165,32 @@ export default function AuthorLibrary() {
           <RefreshCw className="h-4 w-4 mr-2" />Refresh
         </Button>
       </div>
+
+      {myBooks.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
+          {myBooks.map(b => (
+            <Button
+              key={b.id}
+              size="sm"
+              variant={bookScope === b.id ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => setBookScope(b.id)}
+            >
+              {b.title}
+            </Button>
+          ))}
+          <Button
+            size="sm"
+            variant={bookScope === "all" ? "default" : "outline"}
+            className="text-xs"
+            onClick={() => setBookScope("all")}
+          >
+            All books
+          </Button>
+        </div>
+      )}
+
 
       <Tabs defaultValue="marketing-packs">
         <div className="-mx-4 sm:mx-0 px-4 sm:px-0 overflow-x-auto">

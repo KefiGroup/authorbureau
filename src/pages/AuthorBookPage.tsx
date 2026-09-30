@@ -445,7 +445,9 @@ export default function AuthorBookPage() {
       const route = COACHING_TYPE_TO_ROUTE[p.type] || "coaching";
       prods.push({ type: route, title: p.title, route, price: p.price ? `$${p.price}` : undefined, description: parseProductDescription(p.description) });
     });
-    (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: p.fee ? `$${p.fee}` : undefined, description: parseProductDescription(p.description) }));
+    // RULE-01: speaking is enquiry only. Never publish a fee on a public page.
+    (speakRes.data || []).forEach((p: any) => prods.push({ type: "speaking", title: p.title, route: "speaking", price: undefined, description: parseProductDescription(p.description) }));
+
 
     // Each book owns its own revenue streams. Only nodes built for THIS book
     // appear here, so a three-book author never sees the same offer repeated

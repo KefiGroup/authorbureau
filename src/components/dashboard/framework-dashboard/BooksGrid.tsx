@@ -14,7 +14,10 @@ interface Props {
   statsLoading?: boolean;
   hasPlan: boolean;
   onAddBook: () => void;
+  /** Known number of books from another source; prevents a false "no books" state. */
+  knownCount?: number;
 }
+
 
 function getNextStepForBook(book: MyBook, total: number, hasPlan: boolean): string {
   if (!book.published_at) return "Awaiting approval";
@@ -26,16 +29,19 @@ function getNextStepForBook(book: MyBook, total: number, hasPlan: boolean): stri
   return "All 28 streams live";
 }
 
-export default function BooksGrid({ books, perBook, statsLoading, hasPlan, onAddBook }: Props) {
+export default function BooksGrid({ books, perBook, statsLoading, hasPlan, onAddBook, knownCount = 0 }: Props) {
   const navigate = useNavigate();
-  const isMulti = books.length > 1;
+  const displayCount = Math.max(books.length, knownCount);
+  const isMulti = displayCount > 1;
+  // Books are still arriving if another source already knows there are some.
+  const awaitingBooks = books.length === 0 && knownCount > 0;
 
   return (
     <section className="rounded-2xl border border-border bg-card p-6 md:p-7 space-y-5">
       <div className="flex items-end justify-between flex-wrap gap-3">
         <div>
           <h2 className="font-heading text-xl md:text-2xl font-bold">
-            {isMulti ? `Your ${books.length} books` : "Your book"}
+            {isMulti ? `Your ${displayCount} books` : "Your book"}
           </h2>
           <p className="text-sm text-muted-foreground mt-0.5">
             {isMulti
@@ -49,7 +55,22 @@ export default function BooksGrid({ books, perBook, statsLoading, hasPlan, onAdd
         </Button>
       </div>
 
-      {books.length === 0 ? (
+      {awaitingBooks ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {Array.from({ length: Math.min(knownCount, 3) }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-border bg-background p-4 animate-pulse">
+              <div className="flex gap-3">
+                <div className="h-20 w-14 rounded bg-muted shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-3/4 rounded bg-muted" />
+                  <div className="h-2 w-1/2 rounded bg-muted" />
+                  <div className="h-1.5 w-full rounded bg-muted" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : books.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center">
           <BookOpen className="h-8 w-8 text-muted-foreground/40 mx-auto mb-3" />
           <p className="text-sm text-muted-foreground mb-4">You haven't added a book yet.</p>
@@ -59,6 +80,7 @@ export default function BooksGrid({ books, perBook, statsLoading, hasPlan, onAdd
           </Button>
         </div>
       ) : (
+
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {books.map((b) => {
             const s = perBook?.[b.id];

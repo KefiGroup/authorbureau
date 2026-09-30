@@ -395,10 +395,10 @@ export default function ConnectSettings() {
               <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold">
-                  {pendingPaidCount} paid product{pendingPaidCount === 1 ? "" : "s"} waiting for Stripe to go live
+                  You have {pendingPaidCount} paid product{pendingPaidCount === 1 ? "" : "s"} and no payout account yet
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Connect Stripe below to publish your paid products. Free products are unaffected.
+                  Your products can still go live and readers can still buy them. Add a payout account so your 92% share can reach you.
                 </p>
               </div>
             </div>
@@ -413,7 +413,8 @@ export default function ConnectSettings() {
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <p className="font-semibold text-sm">Stripe Payments</p>
+                <p className="font-semibold text-sm">Payouts</p>
+
                 {stripeConnected ? (
                   <Badge variant="secondary" className="bg-green-100 text-green-700 text-[10px]">
                     <CheckCircle2 className="h-3 w-3 mr-1" /> Connected
@@ -426,15 +427,16 @@ export default function ConnectSettings() {
               </div>
               <p className="text-sm text-muted-foreground mb-3">
                 {stripeConnected
-                  ? "Your Stripe account is connected. You can receive payments for your products."
-                  : "Connect Stripe to accept payments for your products and services."}
+                  ? "Your payout account is connected. Authors Bureau collects reader payments and sends your 92% share here."
+                  : "Authors Bureau collects all reader payments for you. Connect a payout account to receive your 92% share. Authors Bureau retains an 8% platform fee to cover all payment-processing costs on gross sales, so no extra processing fees are ever deducted from your share."}
               </p>
+
               <Button
                 variant={stripeConnected ? "outline" : "default"}
                 size="sm"
                 onClick={() => navigate("/dashboard?section=connect-stripe")}
               >
-                {stripeConnected ? "Manage Stripe" : "Connect Stripe"}
+                {stripeConnected ? "Manage payout account" : "Set up payouts"}
               </Button>
             </div>
           </div>

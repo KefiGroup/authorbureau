@@ -35,14 +35,16 @@ export default function CourseBuilder() {
   const bookTitle = searchParams.get("bookTitle") || "";
 
   const fetchCourses = useCallback(async () => {
-    const { data } = await supabase
+    // DATA-01: when a book is selected, only that book's courses are listed.
+    let q = supabase
       .from("courses")
       .select("id, title, description, price, status, created_at")
-      .eq("author_id", user!.id)
-      .order("created_at", { ascending: false });
+      .eq("author_id", user!.id);
+    if (bookId) q = q.eq("book_id", bookId);
+    const { data } = await q.order("created_at", { ascending: false });
     setCourses((data as Course[]) || []);
     setLoading(false);
-  }, [user]);
+  }, [user, bookId]);
 
   useEffect(() => {
     if (user) fetchCourses();
@@ -56,10 +58,12 @@ export default function CourseBuilder() {
     setCreating(true);
     const { error } = await supabase.from("courses").insert({
       author_id: user!.id,
+      book_id: bookId || null,
       title: newCourse.title,
       description: newCourse.description || null,
       price: parseFloat(newCourse.price) || 0,
     });
+
     if (error) {
       toast({ title: "Error creating course", description: error.message, variant: "destructive" });
     } else {

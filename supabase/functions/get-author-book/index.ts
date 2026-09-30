@@ -112,26 +112,34 @@ Deno.serve(async (req) => {
     const idList = Array.from(authorIds);
     console.log("[get-author-book] candidate author_ids:", idList, "email:", userEmail);
 
-    // Resolve curated ABBY title from author_context (preferred over books.title)
+    // Resolve curated ABBY title from author_context.
+    // DATA-01: when a specific book is requested, the curated title MUST come
+    // from that exact book. Never borrow another book's title.
     let curatedTitle: string | null = null;
     if (idList.length) {
-      const { data: ctxRows, error: ctxErr } = await db
+      let ctxQuery = db
         .from("author_context")
-        .select("book_title, author_id, created_at")
-        .in("author_id", idList)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .select("book_title, author_id, book_id, created_at")
+        .in("author_id", idList);
+
+      if (requestedBookId) {
+        ctxQuery = ctxQuery.eq("book_id", requestedBookId);
+      } else {
+        ctxQuery = ctxQuery.order("created_at", { ascending: false });
+      }
+
+      const { data: ctxRows, error: ctxErr } = await ctxQuery.limit(1);
       if (ctxErr) {
         console.error("[get-author-book] author_context lookup error:", ctxErr.message);
       }
       const ctxTitle = ctxRows?.[0]?.book_title?.trim();
       if (ctxTitle) {
         curatedTitle = ctxTitle;
-        console.log("[get-author-book] author_context resolved:", curatedTitle);
+        console.log("[get-author-book] author_context resolved:", curatedTitle, "book:", requestedBookId ?? "(latest)");
       }
     }
 
-    // Query: author_id IN (idList) OR owner_email = userEmail
+    // Query: exact book when requested, otherwise author_id IN (idList) OR owner_email = userEmail
     let query = db
       .from("books")
       .select("id, title, slug, author_name, genre, description, cover_image_url, owner_email, author_id")
@@ -158,17 +166,33 @@ Deno.serve(async (req) => {
     const row = books?.[0] ?? null;
     console.log("[get-author-book] resolved book:", row?.id, row?.title);
 
+
     if (!row) {
       return new Response(
         JSON.stringify({
-          bookTitle: curatedTitle,
-          book: curatedTitle ? { id: "", title: curatedTitle } : null,
+          bookTitle: requestedBookId ? null : curatedTitle,
+          book: !requestedBookId && curatedTitle ? { id: "", title: curatedTitle } : null,
           missingFields: [],
-          isComplete: !!curatedTitle,
+          isComplete: requestedBookId ? false : !!curatedTitle,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Ownership guard: a requested book must belong to this user.
+    if (requestedBookId) {
+      const owns =
+        (row.author_id && idList.includes(row.author_id)) ||
+        (!!userEmail && (row.owner_email || "").toLowerCase() === userEmail.toLowerCase());
+      if (!owns) {
+        console.warn("[get-author-book] requested book not owned by caller:", requestedBookId);
+        return new Response(
+          JSON.stringify({ book: null, bookTitle: null, missingFields: [], isComplete: false }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
 
     // Self-heal owner_email if missing
     if (!row.owner_email && userEmail) {

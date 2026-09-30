@@ -15,6 +15,8 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from "recharts";
 import { useToast } from "@/hooks/use-toast";
+import { hasRequiredAssets } from "@/lib/node-readiness";
+
 
 const TRAFFIC_SOURCES = [
   { source: "Direct", visits: 0, pct: 0 },
@@ -117,7 +119,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("author_id", aid).gte("created_at", wkStart),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("author_id", aid).gte("created_at", lastWkStart).lt("created_at", wkStart),
         supabase.from("purchases").select("amount").eq("author_id", aid).gte("created_at", monthStart),
-        supabase.from("author_nodes").select("id", { count: "exact", head: true }).eq("author_id", aid).eq("status", "live"),
+        supabase.from("author_nodes").select("node_id, content_json").eq("author_id", aid).eq("status", "live"),
         supabase.from("email_send_log").select("opened_at").eq("author_id", aid).gte("created_at", thirtyDaysAgo).limit(2000),
         supabase.from("leads").select("id,name,email,abby_score,last_activity_at,created_at").eq("author_id", aid).gt("abby_score", 60).order("last_activity_at", { ascending: false, nullsFirst: false }).limit(10),
         supabase.from("purchases").select("amount,created_at").eq("author_id", aid).gte("created_at", sixMonthsAgo.toISOString()),
@@ -147,7 +149,12 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
       setHotLeads((hotLeadsRes.data as HotLead[]) || []);
 
       // Active nodes
-      setActiveNodesCount(nodesRes.count || 0);
+      // READY-01: two-gate count. A row flagged live only counts when the
+      // required deliverables actually exist for that node.
+      setActiveNodesCount(
+        ((nodesRes.data as any[]) || []).filter(n => hasRequiredAssets(n.node_id, n.content_json)).length
+      );
+
 
       // Revenue this month
       const monthSum = (purchasesMonthRes.data || []).reduce((s, p: any) => s + Number(p.amount || 0), 0);
@@ -229,7 +236,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
           <div>
             <h2 className="font-heading text-2xl font-bold">Revenue Dashboard</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {hasAccess ? "Track your earnings across all products." : "Subscribe to start tracking your revenue."}
+              {hasAccess ? "Combined totals for every one of your books." : "Subscribe to start tracking your revenue."}
             </p>
           </div>
 
@@ -240,7 +247,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
               <h3 className="font-heading font-semibold text-sm flex items-center gap-2">
                 <Activity className="h-4 w-4 text-secondary" /> Pipeline Snapshot
               </h3>
-              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live data</span>
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live data, all books</span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
               <Card className="p-3">
@@ -264,7 +271,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
                 <p className="text-xl font-heading font-bold text-accent">${revenueThisMonth.toFixed(0)}</p>
               </Card>
               <Card className="p-3">
-                <div className="flex items-center gap-1.5 mb-1"><Zap className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Active Nodes</span></div>
+                <div className="flex items-center gap-1.5 mb-1"><Zap className="h-3.5 w-3.5 text-secondary" /><span className="text-[10px] text-muted-foreground uppercase tracking-wider">Live Streams</span></div>
                 <p className="text-xl font-heading font-bold">{activeNodesCount}</p>
               </Card>
               <Card className="p-3">

@@ -1,10 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
+import { resolveScopedBookId } from "@/lib/active-book-scope";
 import type { AuthorBook, BookMissingField } from "@/hooks/useAuthorBook";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const HOOK_VERSION = "v3.5-2026-04-20-gate-diagnostic";
+const HOOK_VERSION = "v4-2026-09-30-book-scoped";
+
 
 export interface BookContextResult {
   bookTitle: string;
@@ -34,8 +36,8 @@ interface FetchedContext {
   isComplete: boolean;
 }
 
-async function fetchBookContext(): Promise<FetchedContext> {
-  console.log("[useBookContext] queryFn START");
+async function fetchBookContext(scopeBookId: string | null): Promise<FetchedContext> {
+  console.log("[useBookContext] queryFn START", { scopeBookId });
   const token = await getActiveToken();
   if (!token) {
     console.warn("[useBookContext] no active token");
@@ -49,8 +51,11 @@ async function fetchBookContext(): Promise<FetchedContext> {
     };
   }
 
+  const url = new URL(`${SUPABASE_URL}/functions/v1/get-author-book`);
+  if (scopeBookId) url.searchParams.set("bookId", scopeBookId);
+
   const res = await fetchWithTimeout(
-    `${SUPABASE_URL}/functions/v1/get-author-book`,
+    url.toString(),
     {
       method: "GET",
       headers: {
@@ -61,6 +66,7 @@ async function fetchBookContext(): Promise<FetchedContext> {
     },
     25000
   );
+
 
   if (!res.ok) {
     console.error("[useBookContext] edge function error:", res.status);
@@ -94,19 +100,19 @@ async function fetchBookContext(): Promise<FetchedContext> {
   };
 }
 
-export function useBookContext(): BookContextResult {
+export function useBookContext(overrideBookId?: string | null): BookContextResult {
   const { user } = useAuth();
-
-  console.log("[useBookContext] mount", { hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
+  const scopeBookId = resolveScopedBookId(overrideBookId);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context-v3.5", user?.id ?? "anon"],
-    queryFn: fetchBookContext,
+    queryKey: ["book-context-v4", user?.id ?? "anon", scopeBookId ?? "none"],
+    queryFn: () => fetchBookContext(scopeBookId),
     enabled: !!user?.id,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
   });
+
 
   console.log("[useBookContext] render", {
     userId: user?.id,
@@ -135,7 +141,7 @@ export function useBookContext(): BookContextResult {
   if (isLoading) {
     return {
       bookTitle: "your book",
-      bookId: null,
+      bookId: scopeBookId,
       book: null,
       authorId: null,
       hasSubscription: true,
@@ -156,7 +162,8 @@ export function useBookContext(): BookContextResult {
 
   return {
     bookTitle: ctx?.bookTitle ?? "your book",
-    bookId: ctx?.bookId ?? null,
+    bookId: ctx?.bookId ?? scopeBookId,
+
     book: ctx?.book ?? null,
     authorId: null,
     hasSubscription: true, // subscription gating handled elsewhere; not this hook's concern
