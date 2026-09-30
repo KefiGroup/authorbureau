@@ -141,7 +141,7 @@ export function useBookContext(overrideBookId?: string | null): BookContextResul
   if (isLoading) {
     return {
       bookTitle: "your book",
-      bookId: null,
+      bookId: scopeBookId,
       book: null,
       authorId: null,
       hasSubscription: true,
@@ -162,7 +162,8 @@ export function useBookContext(overrideBookId?: string | null): BookContextResul
 
   return {
     bookTitle: ctx?.bookTitle ?? "your book",
-    bookId: ctx?.bookId ?? null,
+    bookId: ctx?.bookId ?? scopeBookId,
+
     book: ctx?.book ?? null,
     authorId: null,
     hasSubscription: true, // subscription gating handled elsewhere; not this hook's concern
