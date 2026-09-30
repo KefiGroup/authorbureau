@@ -57,3 +57,14 @@ Exit code 0 = green, 1 = amber/red. Suitable for cron / CI.
 - **No email arrived**: check `email_send_log` for `template_name='daily-audit-report'`; verify recipient not on `suppressed_emails`.
 - **Edge fn 401**: confirm caller is admin user or using `SUPABASE_SERVICE_ROLE_KEY`.
 - **Empty history**: the panel reads `daily_audit_runs` (admin-only RLS) — ensure caller has the admin role.
+
+## Permanent synthetic test fixture
+
+A dedicated sandbox exercises the whole platform every day without touching real author data.
+
+- Test author: `audit.author@authorsbureau.com` (pen name Avery Sandhu, slug `audit-sandbox`, `directory_status = unlisted`, `is_test = true`).
+- Test reader: `audit.reader@authorsbureau.com`.
+- Pseudo book: "The Modern Thought Leader" (`modern-thought-leader`), 8-chapter manuscript stored as `generated_assets.asset_type = 'source_material'`.
+- `is_test = true` on `books`, `author_profiles`, `author_subscribers`, `crm_contacts` keeps the fixture out of the directory, Meet Our Authors, and revenue reporting.
+
+Edge function `audit-test-fixture` accepts `{"action": "ensure" | "journey" | "cleanup"}` (service role, cron secret, or admin JWT). The journey is also check #11 (`synthetic_journey`) inside `daily-audit`, so every daily run verifies: fixture intact, manuscript readable, reader signup, email-flow enrolment, welcome email dispatch, and the module ledger. Failures appear red the same day in `/admin?tab=daily-audit` and in the daily admin email.
