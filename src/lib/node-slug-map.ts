@@ -22,7 +22,7 @@ export const NODE_SLUG_MAP: Record<string, string> = {
   "BA-17": "bundles",
   "BA-18": "partners",
   "YR-19": "coaching",
-  "YR-20": "big-ticket-consulting",
+  "YR-20": "vip",
   "YR-21": "speaking",
   "YR-22": "corporate-training",
   "YR-23": "mastermind",
@@ -48,7 +48,7 @@ const SLUG_ALIASES: Record<string, string> = {
   "media-kit": "BA-15",       // alias of "press"
   "upsells": "BA-17",         // alias of "bundles"
   "partnerships": "BA-18",    // alias of "partners"
-  "vip": "YR-20",             // legacy alias of "big-ticket-consulting"
+  "big-ticket-consulting": "YR-20", // legacy alias of canonical "vip"
   "big-ticket": "YR-20",      // legacy alias
   "consulting": "YR-20",      // legacy alias
 };

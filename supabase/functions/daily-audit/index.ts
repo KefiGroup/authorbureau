@@ -372,6 +372,35 @@ Deno.serve(async (req) => {
     checks.push({ key: "multi_book_url_health", label: "Multi-book microsite URL health", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
   }
 
+  // 11. Synthetic end-to-end journey on the permanent test fixture.
+  // Proves every morning that a reader can still sign up through a book and
+  // receive the welcome email, using a dedicated test author + test reader
+  // that never touch real author data.
+  try {
+    const { runJourney } = await import("../_shared/test-fixture.ts");
+    const result = await runJourney(admin);
+    const failed = result.steps.filter((s) => !s.ok);
+    checks.push({
+      key: "synthetic_journey",
+      label: "Synthetic end-to-end journey",
+      severity: result.passed ? "ok" : "fail",
+      count: failed.length,
+      message: result.passed
+        ? `All ${result.steps.length} journey steps passed on the test book`
+        : `${failed.length} step(s) failed: ${failed.map((s) => s.step).join(", ")}`,
+      link: "/admin?tab=daily-audit",
+      details: { steps: result.steps },
+    });
+  } catch (e) {
+    checks.push({
+      key: "synthetic_journey",
+      label: "Synthetic end-to-end journey",
+      severity: "fail",
+      count: 1,
+      message: `journey could not run: ${(e as Error).message}`,
+    });
+  }
+
   // Summary
   const failCount = checks.filter((c) => c.severity === "fail").length;
   const warnCount = checks.filter((c) => c.severity === "warn").length;

@@ -81,7 +81,8 @@ export default function DynamicMeetOurAuthors() {
         const { data: booksData, error: booksError } = await cloudSupabase
           .from("books")
           .select("id, title, subtitle, slug, cover_image_url, rating, pages, badges, amazon_url, author_id, author_name")
-          .not("published_at", "is", null);
+          .not("published_at", "is", null)
+          .eq("is_test", false);
 
         if (booksError) throw booksError;
 

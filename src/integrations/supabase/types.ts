@@ -1086,6 +1086,7 @@ export type Database = {
           id: string
           instagram_url: string | null
           is_speaker: boolean | null
+          is_test: boolean
           last_report_sent_at: string | null
           last_synced_at: string | null
           linkedin_url: string | null
@@ -1144,6 +1145,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null
+          is_test?: boolean
           last_report_sent_at?: string | null
           last_synced_at?: string | null
           linkedin_url?: string | null
@@ -1202,6 +1204,7 @@ export type Database = {
           id?: string
           instagram_url?: string | null
           is_speaker?: boolean | null
+          is_test?: boolean
           last_report_sent_at?: string | null
           last_synced_at?: string | null
           linkedin_url?: string | null
@@ -1315,6 +1318,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          is_test: boolean
           name: string | null
           source: string
           source_detail: string | null
@@ -1327,6 +1331,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          is_test?: boolean
           name?: string | null
           source?: string
           source_detail?: string | null
@@ -1339,6 +1344,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          is_test?: boolean
           name?: string | null
           source?: string
           source_detail?: string | null
@@ -1405,6 +1411,7 @@ export type Database = {
           entry_mode: string | null
           genre: string | null
           id: string
+          is_test: boolean
           kindle_price: string | null
           last_review_action_at: string | null
           owner_email: string | null
@@ -1443,6 +1450,7 @@ export type Database = {
           entry_mode?: string | null
           genre?: string | null
           id?: string
+          is_test?: boolean
           kindle_price?: string | null
           last_review_action_at?: string | null
           owner_email?: string | null
@@ -1481,6 +1489,7 @@ export type Database = {
           entry_mode?: string | null
           genre?: string | null
           id?: string
+          is_test?: boolean
           kindle_price?: string | null
           last_review_action_at?: string | null
           owner_email?: string | null
@@ -2209,6 +2218,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          is_test: boolean
           last_activity_at: string | null
           last_node_id: string | null
           notes: string | null
@@ -2230,6 +2240,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          is_test?: boolean
           last_activity_at?: string | null
           last_node_id?: string | null
           notes?: string | null
@@ -2251,6 +2262,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          is_test?: boolean
           last_activity_at?: string | null
           last_node_id?: string | null
           notes?: string | null
