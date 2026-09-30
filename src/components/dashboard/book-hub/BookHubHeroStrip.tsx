@@ -66,8 +66,9 @@ export default function BookHubHeroStrip({ bookId, bookTitle, progress, onJumpTa
               >
                 <div className="flex items-center justify-between">
                   <span className={`text-[10px] font-bold uppercase tracking-wider ${s.accent.text}`}>{s.label}</span>
-                  <span className="text-[10px] font-mono text-muted-foreground">{s.c.completed}/{s.c.total}</span>
+                  <span className="text-[10px] font-mono text-muted-foreground">{progress.loading ? "…" : `${s.c.completed}/${s.c.total}`}</span>
                 </div>
+
                 <div className="text-[11px] text-foreground/70 mt-0.5 truncate">
                   {s.c.nextStep ? `Next: ${s.c.nextStep.label}` : "All done"}
                 </div>
