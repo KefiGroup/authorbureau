@@ -100,19 +100,19 @@ async function fetchBookContext(scopeBookId: string | null): Promise<FetchedCont
   };
 }
 
-export function useBookContext(): BookContextResult {
+export function useBookContext(overrideBookId?: string | null): BookContextResult {
   const { user } = useAuth();
-
-  console.log("[useBookContext] mount", { hasUser: !!user, userId: user?.id, version: HOOK_VERSION });
+  const scopeBookId = resolveScopedBookId(overrideBookId);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["book-context-v3.5", user?.id ?? "anon"],
-    queryFn: fetchBookContext,
+    queryKey: ["book-context-v4", user?.id ?? "anon", scopeBookId ?? "none"],
+    queryFn: () => fetchBookContext(scopeBookId),
     enabled: !!user?.id,
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: "always",
   });
+
 
   console.log("[useBookContext] render", {
     userId: user?.id,
