@@ -343,7 +343,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   return (
     <div className="max-w-5xl space-y-6">
       {/* ── Live Microsites Grid (Audit #6) ─────────────────── */}
-      <LiveMicrositesGrid />
+      <LiveMicrositesGrid bookScope={bookScope} />
 
       {/* ── Header ───────────────────────────────────────────── */}
       <div>
