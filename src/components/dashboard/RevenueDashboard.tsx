@@ -117,7 +117,7 @@ export default function RevenueDashboard({ onNavigate, authorSlug }: Props) {
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("author_id", aid).gte("created_at", wkStart),
         supabase.from("leads").select("id", { count: "exact", head: true }).eq("author_id", aid).gte("created_at", lastWkStart).lt("created_at", wkStart),
         supabase.from("purchases").select("amount").eq("author_id", aid).gte("created_at", monthStart),
-        supabase.from("author_nodes").select("id", { count: "exact", head: true }).eq("author_id", aid).eq("status", "live"),
+        supabase.from("author_nodes").select("node_id, content_json").eq("author_id", aid).eq("status", "live"),
         supabase.from("email_send_log").select("opened_at").eq("author_id", aid).gte("created_at", thirtyDaysAgo).limit(2000),
         supabase.from("leads").select("id,name,email,abby_score,last_activity_at,created_at").eq("author_id", aid).gt("abby_score", 60).order("last_activity_at", { ascending: false, nullsFirst: false }).limit(10),
         supabase.from("purchases").select("amount,created_at").eq("author_id", aid).gte("created_at", sixMonthsAgo.toISOString()),
