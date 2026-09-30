@@ -10,8 +10,12 @@ import { getAvailableAssets, describeAssetSize, type NodeAsset } from "@/lib/nod
 import AssetRow from "@/components/library/AssetRow";
 import MarketingPackCard from "@/components/library/MarketingPackCard";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { useMyBooks } from "@/hooks/useMyBooks";
+import { resolveScopedBookId } from "@/lib/active-book-scope";
 import { parseAssetType } from "@/lib/assetPackRegistry";
 import { hasRequiredAssets } from "@/lib/node-readiness";
+
 
 interface NodeRow {
   id: string;
@@ -52,11 +56,19 @@ const TYPE_ICON: Record<string, typeof FileText> = {
 
 export default function AuthorLibrary() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { books: myBooks } = useMyBooks(user?.id);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [nodes, setNodes] = useState<NodeRow[]>([]);
+  const [allNodes, setAllNodes] = useState<NodeRow[]>([]);
+  const [bookScope, setBookScope] = useState<string>(() => resolveScopedBookId() ?? "all");
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
-  const [marketingAssets, setMarketingAssets] = useState<MarketingAssetRow[]>([]);
+  const [allMarketingAssets, setAllMarketingAssets] = useState<MarketingAssetRow[]>([]);
+
+  // DATA-04: the library shows one book's assets at a time unless "All books".
+  const nodes = bookScope === "all" ? allNodes : allNodes.filter(n => n.book_id === bookScope);
+  const marketingAssets =
+    bookScope === "all" ? allMarketingAssets : allMarketingAssets.filter(a => a.book_id === bookScope);
 
   const load = async () => {
     setLoading(true);
@@ -66,14 +78,15 @@ export default function AuthorLibrary() {
     );
     if (error) setError(error.message);
     else if (data) {
-      setNodes(data.nodes || []);
+      setAllNodes(data.nodes || []);
       setProfile(data.profile);
-      setMarketingAssets(data.marketing_assets || []);
+      setAllMarketingAssets(data.marketing_assets || []);
     }
     setLoading(false);
   };
 
   useEffect(() => { load(); }, []);
+
 
   // Compute flattened asset list once
   const flatAssets = nodes.flatMap(n => {
