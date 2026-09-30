@@ -96,11 +96,56 @@ export function aiGatewayErrorMessage(status: number, bodyText: string): string 
   return `AI gateway error (${status}): ${bodyText.slice(0, 200)}`;
 }
 
+/**
+ * Repairs the JSON defects language models actually emit:
+ *  - invalid escape sequences (\' \$ \% ...) that JSON.parse rejects outright
+ *  - raw control characters (newlines/tabs) inside string literals
+ *  - trailing commas before } or ]
+ * Everything outside string literals is left untouched.
+ */
+function repairAiJsonText(src: string): string {
+  const VALID_ESCAPE = new Set(['"', "\\", "/", "b", "f", "n", "r", "t", "u"]);
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (!inString) {
+      if (ch === '"') { inString = true; out += ch; continue; }
+      out += ch;
+      continue;
+    }
+    if (ch === "\\") {
+      const next = src[i + 1];
+      if (next !== undefined && VALID_ESCAPE.has(next)) { out += ch + next; i++; }
+      else { out += next === undefined ? "" : next; i++; } // drop the bogus backslash
+      continue;
+    }
+    if (ch === '"') { inString = false; out += ch; continue; }
+    const code = ch.charCodeAt(0);
+    if (code < 0x20) {
+      out += ch === "\n" ? "\\n" : ch === "\r" ? "\\r" : ch === "\t" ? "\\t" : "";
+      continue;
+    }
+    out += ch;
+  }
+  return out.replace(/,(\s*[}\]])/g, "$1");
+}
+
 export function parseAiJson(raw: string): any {
   const cleaned = (raw || "").replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
   const match = cleaned.match(/\{[\s\S]*\}/);
   if (!match) throw new Error("AI response did not contain valid JSON");
-  return JSON.parse(match[0]);
+  try {
+    return JSON.parse(match[0]);
+  } catch (firstErr) {
+    // Malformed escapes / stray control characters are the single most common
+    // generator failure. Repair and retry before giving up.
+    try {
+      return JSON.parse(repairAiJsonText(match[0]));
+    } catch {
+      throw firstErr;
+    }
+  }
 }
 
 /**
