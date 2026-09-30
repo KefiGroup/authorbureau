@@ -42,12 +42,13 @@ const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {
   yield: { label: "Yield", className: "bg-amber-500/15 text-amber-700 border-amber-300" },
 };
 
-export default function LiveMicrositesGrid() {
+export default function LiveMicrositesGrid({ bookScope = "all" }: { bookScope?: string }) {
   const { user } = useAuth();
-  const [nodes, setNodes] = useState<LiveNode[]>([]);
+  const [nodes, setAllNodes] = useState<LiveNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!user) return;
