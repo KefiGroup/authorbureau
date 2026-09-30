@@ -355,6 +355,33 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
         </p>
       </div>
 
+      {/* ── Book scope (DATA-02) ─────────────────────────────── */}
+      {myBooks.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
+          {myBooks.map((b) => (
+            <Button
+              key={b.id}
+              size="sm"
+              variant={bookScope === b.id ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => setBookScope(b.id)}
+            >
+              {b.title}
+            </Button>
+          ))}
+          <Button
+            size="sm"
+            variant={bookScope === "all" ? "default" : "outline"}
+            className="text-xs"
+            onClick={() => setBookScope("all")}
+          >
+            All books
+          </Button>
+        </div>
+      )}
+
+
       {/* ── Summary Stats ────────────────────────────────────── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <SummaryCard label="Total Products" value={products.length} icon={Package} />
