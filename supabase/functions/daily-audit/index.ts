@@ -377,7 +377,7 @@ Deno.serve(async (req) => {
   // receive the welcome email, using a dedicated test author + test reader
   // that never touch real author data.
   try {
-    const { runJourney } = await import("../audit-test-fixture/index.ts");
+    const { runJourney } = await import("../_shared/test-fixture.ts");
     const result = await runJourney(admin);
     const failed = result.steps.filter((s) => !s.ok);
     checks.push({
