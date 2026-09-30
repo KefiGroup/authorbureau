@@ -96,9 +96,12 @@ export default function LiveMicrositesGrid({ bookScope = "all" }: { bookScope?: 
     );
   }
 
-  const liveNodes = nodes.map(n => ({ ...n, _publicUrl: pickPublicUrl(n) })).filter(n => n._publicUrl);
-  const allLiveNodeIds = new Set(nodes.map(n => n.node_id));
+  // DATA-02: only ever show links belonging to the selected book.
+  const scoped = bookScope === "all" ? nodes : nodes.filter(n => n.book_id === bookScope);
+  const liveNodes = scoped.map(n => ({ ...n, _publicUrl: pickPublicUrl(n) })).filter(n => n._publicUrl);
+  const allLiveNodeIds = new Set(scoped.map(n => n.node_id));
   const inactive = ALL_BUILDER_NODES.filter(n => !allLiveNodeIds.has(n.id));
+
 
   return (
     <div className="space-y-6 mb-8">
