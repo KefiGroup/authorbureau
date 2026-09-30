@@ -228,3 +228,146 @@ export async function ensureTestFixture(admin: Admin): Promise<TestFixture> {
 
   return { authorUserId, authorProfileId, bookId, readerEmail: TEST_READER_EMAIL, created };
 }
+
+// ── Synthetic end-to-end journey ────────────────────────────────────────────
+
+export interface JourneyResult {
+  passed: boolean;
+  steps: Array<{ step: string; ok: boolean; detail: string }>;
+}
+
+export async function cleanupReader(admin: Admin, authorUserId: string) {
+  // Never let a bounced synthetic send permanently suppress the test address.
+  await admin.from("suppressed_emails").delete().eq("email", TEST_READER_EMAIL);
+
+  const { data: subs } = await admin
+    .from("author_subscribers").select("id")
+    .eq("author_id", authorUserId).eq("email", TEST_READER_EMAIL);
+  const ids = (subs || []).map((s: any) => s.id);
+  if (ids.length) {
+    await admin.from("email_flow_enrollments").delete().in("subscriber_id", ids);
+    await admin.from("author_subscribers").delete().in("id", ids);
+  }
+  await admin.from("crm_contacts").delete().eq("email", TEST_READER_EMAIL);
+}
+
+export async function runJourney(admin: Admin): Promise<JourneyResult> {
+  const steps: JourneyResult["steps"] = [];
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+  // 1 — fixture exists
+  let fixture: TestFixture;
+  try {
+    fixture = await ensureTestFixture(admin);
+    steps.push({
+      step: "fixture",
+      ok: true,
+      detail: fixture.created.length
+        ? `repaired: ${fixture.created.join(", ")}`
+        : `${TEST_BOOK_TITLE} fixture intact`,
+    });
+  } catch (e) {
+    steps.push({ step: "fixture", ok: false, detail: (e as Error).message });
+    return { passed: false, steps };
+  }
+
+  // 2 — manuscript readable
+  try {
+    const { data } = await admin
+      .from("generated_assets").select("content")
+      .eq("book_id", fixture.bookId).eq("asset_type", "source_material")
+      .limit(1).maybeSingle();
+    const len = ((data?.content as string) || "").length;
+    steps.push({ step: "manuscript", ok: len > 1000, detail: `${len} characters stored` });
+  } catch (e) {
+    steps.push({ step: "manuscript", ok: false, detail: (e as Error).message });
+  }
+
+  // 3 — reset the synthetic reader so the journey genuinely re-runs
+  try {
+    await cleanupReader(admin, fixture.authorUserId);
+    steps.push({ step: "reset_reader", ok: true, detail: "previous synthetic reader cleared" });
+  } catch (e) {
+    steps.push({ step: "reset_reader", ok: false, detail: (e as Error).message });
+  }
+
+  // 4 — reader signs up through the test book
+  let enrolledCount = 0;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/enroll-subscriber`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE}` },
+      body: JSON.stringify({
+        email: TEST_READER_EMAIL,
+        name: "Audit Reader",
+        author_profile_id: fixture.authorProfileId,
+        node_id: "BP-01",
+        book_id: fixture.bookId,
+        source: "daily_audit",
+        source_detail: "synthetic journey",
+      }),
+    });
+    const data = await res.json();
+    enrolledCount = (data?.enrollments || []).filter((e: any) => e.status === "active").length;
+    steps.push({
+      step: "signup",
+      ok: res.ok && data?.ok === true,
+      detail: res.ok
+        ? `${enrolledCount} active email sequence enrolment(s)`
+        : `enroll-subscriber returned ${res.status}`,
+    });
+  } catch (e) {
+    steps.push({ step: "signup", ok: false, detail: (e as Error).message });
+  }
+
+  // 5 — flag the synthetic subscriber/contact as test data
+  try {
+    await admin.from("author_subscribers").update({ is_test: true }).eq("email", TEST_READER_EMAIL);
+    await admin.from("crm_contacts").update({ is_test: true }).eq("email", TEST_READER_EMAIL);
+    steps.push({ step: "flag_test_data", ok: true, detail: "synthetic reader excluded from real counts" });
+  } catch (e) {
+    steps.push({ step: "flag_test_data", ok: false, detail: (e as Error).message });
+  }
+
+  // 6 — welcome email actually dispatched
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/process-email-flows`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE}` },
+      body: JSON.stringify({ trigger: "daily-audit-synthetic" }),
+    }).catch(() => {});
+    await new Promise((r) => setTimeout(r, 4000));
+
+    const since = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+    const { data: sent } = await admin
+      .from("email_send_log").select("id, status")
+      .eq("recipient_email", TEST_READER_EMAIL)
+      .gte("created_at", since);
+    const n = (sent || []).length;
+    steps.push({
+      step: "welcome_email",
+      ok: n > 0 || enrolledCount === 0,
+      detail: n > 0
+        ? `${n} welcome email(s) dispatched to the test reader`
+        : enrolledCount === 0
+          ? "no sequence built on the test book yet, nothing to send"
+          : "enrolled but no email dispatched within 15 minutes",
+    });
+  } catch (e) {
+    steps.push({ step: "welcome_email", ok: false, detail: (e as Error).message });
+  }
+
+  // 7 — module ledger for the test book
+  try {
+    const { data: nodes } = await admin
+      .from("author_nodes").select("node_id, status")
+      .eq("author_id", fixture.authorProfileId).eq("book_id", fixture.bookId);
+    const live = (nodes || []).filter((n: any) => n.status === "live").length;
+    steps.push({ step: "modules", ok: true, detail: `${live} of 28 modules live on the test book` });
+  } catch (e) {
+    steps.push({ step: "modules", ok: false, detail: (e as Error).message });
+  }
+
+  return { passed: steps.every((s) => s.ok), steps };
+}
