@@ -17,11 +17,19 @@ export default function BookBuilderRoute() {
   const { bookId, node } = useParams<{ bookId: string; node: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // A node code deep link (…/build/BA-14) goes straight to that node's
+  // dedicated builder, carrying the book id so nothing resolves to another book.
+  const code = (node || "").toUpperCase();
+  if (bookId && /^(BP|BA|YR)-\d{2}$/.test(code)) {
+    return <Navigate to={`/node-builder/${code}?bookId=${bookId}`} replace />;
+  }
+
   const entry = node ? getNodeSection(node) : null;
 
   if (!bookId || !node || !entry) {
     return <Navigate to={bookId ? `/dashboard/book/${bookId}` : "/dashboard"} replace />;
   }
+
 
   // Compute whether the current search params already include everything we
   // need; if not, mirror in place during render and bail for one tick so the

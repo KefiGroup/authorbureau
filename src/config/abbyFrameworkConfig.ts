@@ -243,10 +243,23 @@ export const NODE_TO_SECTION: Record<string, { section: string; extraParams?: Re
   certification: { section: "certification" },
 };
 
-/** Lookup the dashboard section + extra params for a node, or null. */
+/**
+ * Lookup the dashboard section + extra params for a node, or null.
+ * Accepts either the slug ("podcast-guest") or the node code ("BA-14"), so
+ * deep links of the form /dashboard/book/:bookId/build/BA-14 resolve instead
+ * of bouncing back to the Book Hub.
+ */
 export function getNodeSection(nodeId: string): { section: string; extraParams?: Record<string, string> } | null {
-  return NODE_TO_SECTION[nodeId] || null;
+  const direct = NODE_TO_SECTION[nodeId];
+  if (direct) return direct;
+  const code = nodeId.toUpperCase();
+  if (/^(BP|BA|YR)-\d{2}$/.test(code)) {
+    const slug = Object.keys(NODE_CODE_MAP).find(k => NODE_CODE_MAP[k] === code);
+    if (slug && NODE_TO_SECTION[slug]) return NODE_TO_SECTION[slug];
+  }
+  return null;
 }
+
 
 /**
  * Direct-route map for nodes that have a dedicated /node-builder/<NODE_ID>

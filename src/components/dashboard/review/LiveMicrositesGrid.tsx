@@ -42,12 +42,13 @@ const CATEGORY_BADGE: Record<string, { label: string; className: string }> = {
   yield: { label: "Yield", className: "bg-amber-500/15 text-amber-700 border-amber-300" },
 };
 
-export default function LiveMicrositesGrid() {
+export default function LiveMicrositesGrid({ bookScope = "all" }: { bookScope?: string }) {
   const { user } = useAuth();
-  const [nodes, setNodes] = useState<LiveNode[]>([]);
+  const [nodes, setAllNodes] = useState<LiveNode[]>([]);
   const [loading, setLoading] = useState(true);
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
 
   useEffect(() => {
     if (!user) return;
@@ -67,7 +68,7 @@ export default function LiveMicrositesGrid() {
           .eq("author_id", prof.id)
           .eq("status", "live")
           .order("activated_at", { ascending: false });
-        setNodes((data as LiveNode[] | null) || []);
+        setAllNodes((data as LiveNode[] | null) || []);
       } catch (e) {
         console.warn("[LiveMicrositesGrid] load failed", e);
       } finally {
@@ -95,9 +96,12 @@ export default function LiveMicrositesGrid() {
     );
   }
 
-  const liveNodes = nodes.map(n => ({ ...n, _publicUrl: pickPublicUrl(n) })).filter(n => n._publicUrl);
-  const allLiveNodeIds = new Set(nodes.map(n => n.node_id));
+  // DATA-02: only ever show links belonging to the selected book.
+  const scoped = bookScope === "all" ? nodes : nodes.filter(n => n.book_id === bookScope);
+  const liveNodes = scoped.map(n => ({ ...n, _publicUrl: pickPublicUrl(n) })).filter(n => n._publicUrl);
+  const allLiveNodeIds = new Set(scoped.map(n => n.node_id));
   const inactive = ALL_BUILDER_NODES.filter(n => !allLiveNodeIds.has(n.id));
+
 
   return (
     <div className="space-y-6 mb-8">
@@ -109,7 +113,7 @@ export default function LiveMicrositesGrid() {
               Your Live Microsites
             </h2>
             <p className="text-sm text-muted-foreground mt-1">
-              {liveNodes.length} of {nodes.length} live nodes have a public link. Copy any link to share or promote.
+              {liveNodes.length} of {scoped.length} live nodes have a public link. Copy any link to share or promote.
             </p>
           </div>
           <Badge className="bg-emerald-600 text-white">{liveNodes.length} LIVE</Badge>
