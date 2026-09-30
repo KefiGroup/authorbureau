@@ -95,7 +95,9 @@ interface Props {
 
 export default function ReviewProductsPage({ onNavigate }: Props) {
   const { user } = useAuth();
-  const [products, setProducts] = useState<DraftProduct[]>([]);
+  const { books: myBooks } = useMyBooks(user?.id);
+  const [allProducts, setAllProducts] = useState<DraftProduct[]>([]);
+  const [bookScope, setBookScope] = useState<string>(() => resolveScopedBookId() ?? "all");
   const [loading, setLoading] = useState(true);
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
@@ -108,7 +110,20 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const [activeTab, setActiveTab] = useState("all");
   const [detailProduct, setDetailProduct] = useState<DraftProduct | null>(null);
 
+  // DATA-02: the list always reflects exactly one book unless "All books" is chosen.
+  const products = useMemo(
+    () => (bookScope === "all" ? allProducts : allProducts.filter((p) => p.bookId === bookScope)),
+    [allProducts, bookScope],
+  );
+  const setProducts = useCallback(
+    (updater: DraftProduct[] | ((prev: DraftProduct[]) => DraftProduct[])) => {
+      setAllProducts((prev) => (typeof updater === "function" ? (updater as any)(prev) : updater));
+    },
+    [],
+  );
+
   const [loadError, setLoadError] = useState<string | null>(null);
+
 
   const fetchDrafts = useCallback(async () => {
     if (!user) return;
