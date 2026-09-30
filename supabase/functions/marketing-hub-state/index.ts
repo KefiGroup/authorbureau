@@ -72,6 +72,8 @@ async function resolveAuthorProfile(
     .from("author_profiles")
     .select("id, pen_name, author_slug, user_id")
     .eq("user_id", identity.userId)
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
 
   if (error) throw error;
@@ -87,6 +89,8 @@ async function resolveAuthorProfile(
         .from("author_profiles")
         .select("id, pen_name, author_slug, user_id")
         .eq("user_id", match.id)
+        .order("created_at", { ascending: true })
+        .limit(1)
         .maybeSingle();
       if (emailProfile) return emailProfile;
     }
@@ -170,6 +174,7 @@ Deno.serve(async (req) => {
           .from("author_email_settings")
           .select("domain_verified")
           .eq("author_id", authorProfile.id)
+          .limit(1)
           .maybeSingle(),
       ]);
 

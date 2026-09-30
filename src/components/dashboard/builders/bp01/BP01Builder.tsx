@@ -738,7 +738,7 @@ function ReviewStep({
               <span className="font-medium">Make this my main welcome sequence</span>
               <span className="block text-xs text-muted-foreground mt-0.5">
                 Use these emails to welcome every new subscriber, whichever book they came from.
-                Leave this off to keep them for this book only.
+                Leave this off to keep them for this book: readers of this book get them when "A welcome sequence per book" is chosen in Email Marketing.
               </span>
             </span>
           </label>
