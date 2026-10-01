@@ -282,20 +282,59 @@ Deno.serve(async (req) => {
 
         // 2) Query product tables (courses, home_study_courses, etc.)
         //    Include published rows too so Review & Publish can show "Published".
+        //    Each table selects only columns that actually exist on it; failures are
+        //    reported back as warnings instead of being silently dropped.
+        const TABLE_SELECT: Record<string, string> = {
+          courses: "id, title, book_id, created_at, status, description, price",
+          home_study_courses: "id, title, book_id, created_at, status, description, price",
+          audiobooks: "id, title, book_id, created_at, status, description, price",
+          podcasts: "id, title, book_id, created_at, status, description",
+          email_flows: "id, title, book_id, created_at, status, description",
+          // social_media_content has no title/description/price columns
+          social_media_content: "id, book_id, created_at, status, platform, content_type, content_text, day_number",
+          // coaching_packages has no book_id column (author-level, unassigned)
+          coaching_packages: "id, title, created_at, status, description, price, type",
+        };
         await Promise.all(
           PRODUCT_TABLES.map(async (table) => {
-            const { data } = await cloudAdmin
+            const { data, error } = await cloudAdmin
               .from(table)
-              .select("id, title, book_id, created_at, status, description, price")
+              .select(TABLE_SELECT[table])
               .in("author_id", allUserIds)
               .in("status", ["draft", "ready_for_review", "published", "live"]);
-            for (const item of data || []) {
-              const nodeId = Object.entries(NODE_DB_TABLES).find(([, t]) => t === table)?.[0] || table;
+            if (error) {
+              console.error(`[builder-draft-state] ${table} query failed:`, error.message);
+              loadWarnings.push({ table, message: error.message });
+              return;
+            }
+            const nodeId = Object.entries(NODE_DB_TABLES).find(([, t]) => t === table)?.[0] || table;
+            let rows: any[] = (data || []).map((r: any) => ({ book_id: null, ...r }));
+            if (table === "social_media_content") {
+              // Collapse individual posts into one draft entry per book.
+              const byBook = new Map<string, any[]>();
+              for (const r of rows) {
+                const k = r.book_id || "";
+                byBook.set(k, [...(byBook.get(k) || []), r]);
+              }
+              rows = [...byBook.values()].map((posts) => {
+                const newest = posts.reduce((a, b) => (a.created_at > b.created_at ? a : b));
+                const anyLive = posts.some((p) => p.status === "published" || p.status === "live");
+                return {
+                  id: newest.id,
+                  book_id: newest.book_id || null,
+                  created_at: newest.created_at,
+                  status: anyLive ? "published" : posts.some((p) => p.status === "ready_for_review") ? "ready_for_review" : "draft",
+                  title: `Social Media Posts (${posts.length})`,
+                  description: String(newest.content_text || "").slice(0, 160),
+                };
+              });
+            }
+            for (const item of rows) {
               // Skip rows shadowed by a live author_node for the same slug+book
               if (liveSlugs.has(nodeId) && allDrafts.some(d => d.table === "author_nodes" && d.nodeId === nodeId && (d.book_id === item.book_id || !d.book_id))) {
                 continue;
               }
-              allDrafts.push({ ...item, table, nodeId });
+              allDrafts.push({ ...item, title: item.title || nodeId, table, nodeId });
             }
           })
         );
