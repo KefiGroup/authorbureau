@@ -274,6 +274,42 @@ Deno.serve(async (req) => {
     checks.push({ key: "email_queue", label: "Email queue (24h)", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
   }
 
+  // 6b. Sign-in email probe: send a code to the test author and confirm it is delivered.
+  try {
+    const probeEmail = "audit.author@authorsbureau.com";
+    const startedAt = new Date().toISOString();
+    const url = Deno.env.get("SUPABASE_URL")!;
+    const anon = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY") || "";
+    const r = await fetch(`${url}/auth/v1/otp`, {
+      method: "POST",
+      headers: { apikey: anon, "Content-Type": "application/json" },
+      body: JSON.stringify({ email: probeEmail, create_user: false }),
+    });
+    let status = "not_logged";
+    for (let i = 0; i < 6 && status !== "sent"; i++) {
+      await new Promise((res) => setTimeout(res, 5000));
+      const { data } = await admin
+        .from("email_send_log")
+        .select("status")
+        .eq("recipient_email", probeEmail)
+        .in("template_name", ["magiclink", "signup"])
+        .gte("created_at", startedAt)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      if (data && data[0]) status = data[0].status;
+    }
+    const ok = r.ok && status === "sent";
+    checks.push({
+      key: "signin_email",
+      label: "Sign-in code email",
+      severity: ok ? "ok" : "fail",
+      count: ok ? 0 : 1,
+      message: ok ? "Test sign-in code delivered" : `Sign-in code not delivered (request ${r.status}, status ${status})`,
+    });
+  } catch (e) {
+    checks.push({ key: "signin_email", label: "Sign-in code email", severity: "fail", count: 1, message: `probe failed: ${(e as Error).message}` });
+  }
+
   // 7. Content quality (24h)
   // Rows from upsertAuthorNode are logged AFTER the sanitise/ensure-CTA pipeline
   // has already corrected the content, so they are informational only. Only

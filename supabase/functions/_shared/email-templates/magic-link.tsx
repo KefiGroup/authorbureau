@@ -4,12 +4,10 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
   Html,
-  Img,
   Preview,
   Section,
   Text,
@@ -21,43 +19,24 @@ interface MagicLinkEmailProps {
   token?: string
 }
 
-export const MagicLinkEmail = ({
-  siteName,
-  confirmationUrl,
-  token,
-}: MagicLinkEmailProps) => (
+export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your login link for Authors Bureau</Preview>
+    <Preview>Your Authors Bureau sign-in code: {token ?? ''}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={logoSection}>
-          <Img
-            src="https://tubpbslfrxyfhldkcyyq.supabase.co/storage/v1/object/public/email-assets/logo-icon.png"
-            width="48"
-            height="48"
-            alt="Authors Bureau"
-            style={logoImg}
-          />
-        </Section>
-        <Heading style={h1}>Your login link</Heading>
+        <Text style={brand}>AUTHORS BUREAU</Text>
+        <Heading style={h1}>Your sign-in code</Heading>
         <Text style={text}>
-          Click the button below to sign in to Authors Bureau. This link will
-          expire shortly.
+          Enter this code on the Authors Bureau sign-in screen. It works for a
+          short time and only once.
         </Text>
-        <Section style={buttonSection}>
-          <Button style={button} href={confirmationUrl}>
-            Sign In
-          </Button>
+        <Section style={codeBox}>
+          <Text style={code}>{token}</Text>
         </Section>
-        {token ? (
-          <Section style={codeSection}>
-            <Text style={codeLabel}>Enter this 8-digit code on the sign-in page:</Text>
-            <Text style={codeValue}>{token}</Text>
-          </Section>
-        ) : null}
         <Text style={footer}>
-          If you didn't request this link, you can safely ignore this email.
+          If you didn't ask for this code, you can safely ignore this email.
+          Questions? support@authorsbureau.com
         </Text>
       </Container>
     </Body>
@@ -66,41 +45,11 @@ export const MagicLinkEmail = ({
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', Arial, sans-serif" }
-const container = { padding: '40px 32px', maxWidth: '480px', margin: '0 auto' }
-const logoSection = { textAlign: 'center' as const, marginBottom: '24px' }
-const logoImg = { display: 'inline-block' }
-const h1 = {
-  fontSize: '24px',
-  fontWeight: 'bold' as const,
-  fontFamily: "'Playfair Display', Georgia, serif",
-  color: '#1e2d4a',
-  margin: '0 0 16px',
-  textAlign: 'center' as const,
-}
-const text = {
-  fontSize: '15px',
-  color: '#6b7280',
-  lineHeight: '1.6',
-  margin: '0 0 20px',
-}
-const buttonSection = { textAlign: 'center' as const, margin: '8px 0 32px' }
-const button = {
-  backgroundColor: '#1e2d4a',
-  color: '#faf8f5',
-  fontSize: '15px',
-  fontWeight: '600' as const,
-  borderRadius: '12px',
-  padding: '14px 28px',
-  textDecoration: 'none',
-}
-const codeSection = { textAlign: 'center' as const, margin: '0 0 24px' }
-const codeLabel = { fontSize: '13px', color: '#6b7280', margin: '0 0 8px' }
-const codeValue = {
-  fontSize: '28px',
-  fontWeight: 'bold' as const,
-  letterSpacing: '6px',
-  color: '#1e2d4a',
-  margin: '0',
-}
-const footer = { fontSize: '12px', color: '#9ca3af', margin: '24px 0 0', textAlign: 'center' as const }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Georgia, Arial, sans-serif' }
+const container = { padding: '28px 25px', maxWidth: '520px' }
+const brand = { fontSize: '12px', letterSpacing: '3px', color: '#C9A227', fontWeight: 'bold' as const, margin: '0 0 16px' }
+const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#0F1B33', margin: '0 0 16px' }
+const text = { fontSize: '14px', color: '#4A5568', lineHeight: '1.5', margin: '0 0 20px' }
+const codeBox = { backgroundColor: '#0F1B33', borderRadius: '8px', padding: '18px', textAlign: 'center' as const }
+const code = { fontSize: '32px', letterSpacing: '8px', fontWeight: 'bold' as const, color: '#C9A227', margin: '0', fontFamily: 'Courier, monospace' }
+const footer = { fontSize: '12px', color: '#999999', margin: '28px 0 0' }
