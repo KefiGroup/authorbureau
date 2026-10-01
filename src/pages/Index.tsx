@@ -122,8 +122,8 @@ export default function Index() {
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4 lg:justify-start">
-                <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                  <Link to="/contact">Ask about the free monthly program <ArrowRight className="ml-2 h-4 w-4" /></Link>
+<Button asChild size="lg" className="whitespace-normal bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
+                  <Link to="/contact">Ask about the free monthly program <ArrowRight className="ml-2 h-4 w-4 shrink-0" /></Link>
                 </Button>
               </motion.div>
 
