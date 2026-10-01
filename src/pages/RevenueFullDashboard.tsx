@@ -443,7 +443,7 @@ export default function RevenueFullDashboard() {
         <div className="max-w-6xl mx-auto flex items-center gap-3">
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Revenue Dashboard</h1>
-            <p className="text-xs text-muted-foreground">Track your earnings across all 28 nodes</p>
+            <p className="text-xs text-muted-foreground">Combined totals across all your books (28 possible streams per book)</p>
           </div>
           {/* Stripe Connect — three-state header control */}
           <div className="flex items-center gap-2">
