@@ -421,7 +421,7 @@ Deno.serve(async (req) => {
     checks.push({
       key: "book_isolation",
       label: "Book isolation + public pages",
-      severity: bad > 0 ? "error" : "ok",
+      severity: bad > 0 ? "fail" : "ok",
       count: bad,
       message: bad === 0
         ? `Every live module, funnel and social post belongs to one book; ${sample.length} live pages open correctly`
