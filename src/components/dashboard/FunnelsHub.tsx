@@ -613,6 +613,11 @@ export default function FunnelsHub() {
                       <h3 className="font-semibold truncate">{f.title}</h3>
                       <div className="flex flex-wrap gap-1.5 mt-1.5">
                         {f.node_id && <Badge variant="secondary" className="text-xs">{NODE_NAMES[f.node_id] || f.node_id}</Badge>}
+                        {myBooks.length > 1 && (
+                          <Badge variant="outline" className="text-xs max-w-[200px] truncate">
+                            {f.book_id ? bookTitleById[f.book_id] || "Other book" : "Unattributed"}
+                          </Badge>
+                        )}
                         {(() => {
                           const node = liveNodes.find((n) => n.node_id === f.node_id);
                           const arch = node?.archetype;
