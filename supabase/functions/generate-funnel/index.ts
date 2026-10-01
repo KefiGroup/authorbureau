@@ -306,6 +306,7 @@ Deno.serve(async (req) => {
         .insert({
           author_id,
           node_id: node_id || null,
+          book_id: book_id || null,
           funnel_type,
           title: copy.title,
           slug,

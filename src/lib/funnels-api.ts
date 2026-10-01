@@ -41,6 +41,7 @@ export interface FunnelRow {
   id: string;
   author_id: string;
   node_id: string | null;
+  book_id?: string | null;
   funnel_type: string;
   title: string;
   slug: string;

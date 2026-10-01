@@ -85,6 +85,7 @@ Deno.serve(async (req) => {
     const funnelPayload = {
       author_id: author.id,
       node_id,
+      ...(book_id ? { book_id } : {}),
       funnel_type: 'opt_in',
       title,
       slug,

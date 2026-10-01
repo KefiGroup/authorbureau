@@ -30,7 +30,7 @@ Deno.serve(async (req) => {
 
     const { data: funnel, error: fErr } = await supabase
       .from('funnels')
-      .select('id, author_id, node_id, conversions, cta_url, title')
+      .select('id, author_id, node_id, book_id, conversions, cta_url, title')
       .eq('id', funnel_id)
       .eq('status', 'live')
       .maybeSingle();
@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
       try {
         const { data: existingContact } = await supabase
           .from('crm_contacts')
-          .select('id, abby_score')
+          .select('id, abby_score, book_id')
           .eq('author_id', authorUserId)
           .eq('email', cleanEmail)
           .maybeSingle();
@@ -170,6 +170,7 @@ Deno.serve(async (req) => {
             last_activity_at: new Date().toISOString(),
             abby_score: Math.max(existingContact.abby_score || 0, baseScore),
             ...(funnel.node_id ? { last_node_id: funnel.node_id } : {}),
+            ...((funnel as any).book_id && !(existingContact as any).book_id ? { book_id: (funnel as any).book_id } : {}),
             ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
           }).eq('id', existingContact.id);
         } else {
@@ -183,6 +184,7 @@ Deno.serve(async (req) => {
             abby_score: baseScore,
             last_activity_at: new Date().toISOString(),
             last_node_id: funnel.node_id || null,
+            book_id: (funnel as any).book_id ?? null,
             ...(quizDone ? { quiz_completed_at: new Date().toISOString(), quiz_score: quiz_responses.length } : {}),
           }).select('id').single();
           contactId = newContact?.id;

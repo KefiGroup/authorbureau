@@ -1,0 +1,2 @@
+ALTER TABLE public.funnels ADD COLUMN IF NOT EXISTS book_id uuid REFERENCES public.books(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS idx_funnels_author_book ON public.funnels(author_id, book_id);

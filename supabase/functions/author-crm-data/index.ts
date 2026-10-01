@@ -204,6 +204,13 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const { action } = body;
+    // Book scope: a book uuid, "unattributed" (no book recorded), or absent (all books).
+    const bookScope: string | null =
+      typeof body.book_id === "string" && (body.book_id === "unattributed" || /^[0-9a-f-]{36}$/i.test(body.book_id))
+        ? body.book_id
+        : null;
+    const applyBook = (q: any) =>
+      bookScope === "unattributed" ? q.is("book_id", null) : bookScope ? q.eq("book_id", bookScope) : q;
 
     // ── LIST (with server-side pagination, search, filters) ──
     if (action === "list") {
@@ -219,6 +226,7 @@ Deno.serve(async (req) => {
         .eq("author_id", authorContactKey)
         .order("created_at", { ascending: false });
 
+      query = applyBook(query);
       if (stageFilter) query = query.eq("stage", stageFilter);
       if (sourceFilter) query = query.eq("source", sourceFilter);
       if (search) query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%`);
@@ -296,6 +304,8 @@ Deno.serve(async (req) => {
         STAGES.map(async (stage) => {
           let countQ = sb.from("crm_contacts").select("id", { count: "exact", head: true }).eq("author_id", authorContactKey).eq("stage", stage);
           let top3Q = sb.from("crm_contacts").select("id, full_name, abby_score, archetype, last_node_id").eq("author_id", authorContactKey).eq("stage", stage).order("abby_score", { ascending: false }).limit(3);
+          countQ = applyBook(countQ);
+          top3Q = applyBook(top3Q);
           if (archetype && ['A','B','C','D'].includes(archetype)) {
             countQ = countQ.eq("archetype", archetype);
             top3Q = top3Q.eq("archetype", archetype);

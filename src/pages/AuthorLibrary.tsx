@@ -12,7 +12,7 @@ import MarketingPackCard from "@/components/library/MarketingPackCard";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyBooks } from "@/hooks/useMyBooks";
-import { resolveScopedBookId } from "@/lib/active-book-scope";
+import { resolveWorkspaceBookId, rememberWorkspaceBookId } from "@/lib/active-book-scope";
 import { parseAssetType } from "@/lib/assetPackRegistry";
 import { hasRequiredAssets } from "@/lib/node-readiness";
 
@@ -61,7 +61,7 @@ export default function AuthorLibrary() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [allNodes, setAllNodes] = useState<NodeRow[]>([]);
-  const [bookScope, setBookScope] = useState<string>(() => resolveScopedBookId() ?? "all");
+  const [bookScope, setBookScope] = useState<string>(() => resolveWorkspaceBookId() ?? "all");
   const [profile, setProfile] = useState<ProfileSummary | null>(null);
   const [allMarketingAssets, setAllMarketingAssets] = useState<MarketingAssetRow[]>([]);
 
@@ -175,7 +175,7 @@ export default function AuthorLibrary() {
               size="sm"
               variant={bookScope === b.id ? "default" : "outline"}
               className="text-xs"
-              onClick={() => setBookScope(b.id)}
+              onClick={() => { setBookScope(b.id); rememberWorkspaceBookId(b.id); }}
             >
               {b.title}
             </Button>
@@ -184,7 +184,7 @@ export default function AuthorLibrary() {
             size="sm"
             variant={bookScope === "all" ? "default" : "outline"}
             className="text-xs"
-            onClick={() => setBookScope("all")}
+            onClick={() => { setBookScope("all"); rememberWorkspaceBookId(null); }}
           >
             All books
           </Button>

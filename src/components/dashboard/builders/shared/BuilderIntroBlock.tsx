@@ -60,10 +60,9 @@ export const BP_INTRO_SPECS: Record<string, BuilderIntroSpec> = {
       "A 4-week content calendar with hashtag strategy",
       "3 outreach email templates (podcast, media, review)",
     ],
-    livesAt: "Auto-scheduled to your connected social accounts via Marketing Hub. Manage in Marketing Hub → Social Calendar.",
-    editLater: "Re-open Social Media anytime to edit posts, download the kit as a ZIP, or re-schedule.",
+    livesAt: "Saved to Marketing Hub → Social Calendar. Copy each post, publish it yourself on your own accounts, then mark it as posted.",
+    editLater: "Re-open Social Media anytime to edit posts, or download the kit as a ZIP.",
     estimate: "30–60 seconds",
-    prerequisites: ["Connect your Social Accounts in Account Settings → Connections before activating, or your posts will save but not schedule."],
   },
   "BP-04": {
     creates: [

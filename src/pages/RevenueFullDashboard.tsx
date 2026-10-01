@@ -443,7 +443,7 @@ export default function RevenueFullDashboard() {
         <div className="max-w-6xl mx-auto flex items-center gap-3">
           <div className="flex-1">
             <h1 className="text-lg font-semibold">Revenue Dashboard</h1>
-            <p className="text-xs text-muted-foreground">Track your earnings across all 28 nodes</p>
+            <p className="text-xs text-muted-foreground">Combined totals across all your books (28 possible streams per book)</p>
           </div>
           {/* Stripe Connect — three-state header control */}
           <div className="flex items-center gap-2">
@@ -828,8 +828,19 @@ function NudgeCards({ authorId }: { authorId: string | null }) {
         .eq("author_id", authorId)
         .eq("is_read", false)
         .order("created_at", { ascending: false })
-        .limit(3)
-        .then(({ data }) => setNudges((data as Nudge[]) || []));
+        .limit(10)
+        .then(({ data }) => {
+          // One card per message: the gate engine fires once per book, so the
+          // same alert can exist several times for multi-book authors.
+          const seen = new Set<string>();
+          const unique = ((data as Nudge[]) || []).filter((n) => {
+            const key = `${n.title}|${n.content}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setNudges(unique.slice(0, 3));
+        });
     };
     fetchNudges();
 

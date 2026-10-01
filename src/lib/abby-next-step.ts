@@ -211,6 +211,6 @@ const GATE_TITLES: Record<1 | 2 | 3 | 4, string> = {
 const GATE_MESSAGES: Record<1 | 2 | 3 | 4, string> = {
   1: "ABBY just published your lead-magnet funnel and switched on the welcome email sequence. Forecast: +30–120 new leads in the next 30 days.",
   2: "Your workbook is live and the sales funnel is on. Forecast: $400–$1,800 in the first 30 days.",
-  3: "ABBY is now scheduling 4 posts per week. Forecast: 2–4× lead-flow lift in 30 days.",
+  3: "Your posts are ready in the Social Calendar. Copy each one, post it yourself, then mark it as posted.",
   4: "ABBY just emailed your hot leads about your Yield offer. Forecast: 1–3 high-ticket conversions in the next 14 days.",
 };

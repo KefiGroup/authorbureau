@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyBooks } from "@/hooks/useMyBooks";
-import { resolveScopedBookId } from "@/lib/active-book-scope";
+import { resolveWorkspaceBookId, rememberWorkspaceBookId } from "@/lib/active-book-scope";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 
@@ -100,7 +100,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   const { user } = useAuth();
   const { books: myBooks } = useMyBooks(user?.id);
   const [allProducts, setAllProducts] = useState<DraftProduct[]>([]);
-  const [bookScope, setBookScope] = useState<string>(() => resolveScopedBookId() ?? "all");
+  const [bookScope, setBookScope] = useState<string>(() => resolveWorkspaceBookId() ?? "all");
   const [loading, setLoading] = useState(true);
   const [showSlowHint, setShowSlowHint] = useState(false);
   const [publishing, setPublishing] = useState<string | null>(null);
@@ -365,7 +365,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
               size="sm"
               variant={bookScope === b.id ? "default" : "outline"}
               className="text-xs"
-              onClick={() => setBookScope(b.id)}
+              onClick={() => { setBookScope(b.id); rememberWorkspaceBookId(b.id); }}
             >
               {b.title}
             </Button>
@@ -374,7 +374,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
             size="sm"
             variant={bookScope === "all" ? "default" : "outline"}
             className="text-xs"
-            onClick={() => setBookScope("all")}
+            onClick={() => { setBookScope("all"); rememberWorkspaceBookId(null); }}
           >
             All books
           </Button>

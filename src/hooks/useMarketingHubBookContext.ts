@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useMyBooks, type MyBook } from "@/hooks/useMyBooks";
+import { resolveWorkspaceBookId } from "@/lib/active-book-scope";
 
 const STORAGE_KEY = "marketing-hub:active-book-id";
 const ALL_BOOKS = "__all__";
@@ -41,6 +42,10 @@ export function useMarketingHubBookContext(userId: string | undefined): Marketin
     // URL takes priority.
     if (urlBook === "all") return null;
     if (urlBook && books.some((b) => b.id === urlBook)) return urlBook;
+
+    // Then the book the author last opened in this tab (Book Hub → sidebar).
+    const workspace = resolveWorkspaceBookId();
+    if (workspace && books.some((b) => b.id === workspace)) return workspace;
 
     // Fall back to localStorage.
     let stored: string | null = null;

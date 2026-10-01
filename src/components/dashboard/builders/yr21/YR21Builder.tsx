@@ -16,7 +16,7 @@ import { toAbbyError } from "@/lib/abby-error";
 import { autosaveBuilderDraft, loadBuilderDraft } from "@/lib/builder-autosave";
 import { YRSafeBoundary, SafeText } from "../shared/YRSafeBoundary";
 
-const GEN_MSGS = ["Crafting your signature talks...", "Building your speaker one-sheet...", "Designing your fee schedule...", "Finalising your speaking business..."];
+const GEN_MSGS = ["Crafting your signature talks...", "Building your speaker one-sheet...", "Preparing your booking enquiry form...", "Finalising your speaking business..."];
 const ACT_MSGS = ["Setting up your speaking enquiry pipeline...", "Creating your booking calendar...", "Almost ready..."];
 
 interface Props { authorId: string | null; bookId?: string | null; }
@@ -165,7 +165,7 @@ export default function YR21Builder({ authorId, bookId }: Props) {
             <p className="text-sm font-medium text-primary mb-3">
               For {bookTitle || (detectedBookTitle !== "your book" ? detectedBookTitle : "your selected book")}
             </p>
-            <p className="text-muted-foreground mb-4">Hi {authorName}! Keynote speaking is one of the most prestigious and lucrative ways to share your expertise. I'm going to build your complete speaking business from this book, with 3 signature talks, a speaker one-sheet, and a fee schedule. Ready to take the stage?</p>
+            <p className="text-muted-foreground mb-4">Hi {authorName}! Keynote speaking is one of the most prestigious and lucrative ways to share your expertise. I'm going to build your complete speaking business from this book, with 3 signature talks, a speaker one-sheet, and a booking enquiry page. Organisers apply to book you, and fees are agreed privately. Ready to take the stage?</p>
             <Button className="w-full sm:w-auto" size="lg" onClick={handleGenerate}>Build My Speaking Business</Button>
             {error && <div className="mt-4 p-3 rounded-md bg-destructive/10 text-destructive text-sm">{toAbbyError(error)}<Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>Try Again</Button></div>}
           </AbbyCard>
@@ -178,7 +178,7 @@ export default function YR21Builder({ authorId, bookId }: Props) {
             <Tabs defaultValue="talks" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
                 <TabsTrigger value="talks" className="text-xs py-2"><Mic className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Talks</TabsTrigger>
-                <TabsTrigger value="fees" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Fee Schedule</TabsTrigger>
+                <TabsTrigger value="fees" className="text-xs py-2"><DollarSign className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Enquiries</TabsTrigger>
                 <TabsTrigger value="onesheet" className="text-xs py-2"><FileText className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> One-Sheet</TabsTrigger>
                 <TabsTrigger value="booking" className="text-xs py-2"><ListChecks className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Booking</TabsTrigger>
               </TabsList>
@@ -209,15 +209,13 @@ export default function YR21Builder({ authorId, bookId }: Props) {
               <TabsContent value="fees" className="space-y-4 mt-4">
                 <Card><CardContent className="pt-6">
                   <div className="space-y-3">
-                    {feeRows.map((f: any, i: number) => {
-                      const isHigh = f.fee_range?.includes("10,000") || f.fee_range?.includes("15,000") || f.fee_range?.includes("25,000") || f.fee_range?.includes("50,000");
-                      return (
-                        <div key={i} className={`flex items-center justify-between p-3 rounded-lg ${isHigh ? "bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800" : "bg-muted/30"}`}>
-                          <span className="text-sm font-medium">{f.label}</span>
-                          <span className={`font-bold ${isHigh ? "text-amber-700 dark:text-amber-400 text-lg" : ""}`}>{f.fee_range}</span>
-                        </div>
-                      );
-                    })}
+                    <p className="text-sm text-muted-foreground">Speaking is by application only. Your public page shows the engagement types below with an Enquire button. Fees are never shown publicly and are agreed with each organiser.</p>
+                    {feeRows.map((f: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                        <span className="text-sm font-medium">{f.label}</span>
+                        <span className="text-xs font-semibold text-primary">By application</span>
+                      </div>
+                    ))}
                   </div>
                 </CardContent></Card>
               </TabsContent>

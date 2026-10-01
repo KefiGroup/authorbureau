@@ -12,6 +12,7 @@ import PipelineView from "@/components/crm/PipelineView";
 import HotLeadsCard from "./crm/HotLeadsCard";
 import DailyIntelligenceCard from "./crm/DailyIntelligenceCard";
 import ContactListView from "@/components/crm/ContactListView";
+import BookScopeBar, { useBookScope, ALL_BOOKS_SCOPE } from "@/components/dashboard/BookScopeBar";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,12 @@ const STAT_CARDS = [
 
 export default function AuthorCRMPage({ onNavigate }: Props) {
   const { user } = useAuth();
+  const { books: myBooks, scope: bookScope, setScope: setBookScope } = useBookScope(user?.id);
+  const scopedFetch = useCallback(
+    (action: string, extra: Record<string, any> = {}) =>
+      crmFetch(action, bookScope === ALL_BOOKS_SCOPE ? extra : { ...extra, book_id: bookScope }),
+    [bookScope],
+  );
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +89,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
     if (!user) return;
     setLoading(true);
     try {
-      const data = await crmFetch("list", { page: 1, pageSize: 1 });
+      const data = await scopedFetch("list", { page: 1, pageSize: 1 });
       const total = data.totalCount || 0;
       const recent = Array.isArray(data.recentLeads) ? data.recentLeads : [];
       const effectiveTotal = data.effectiveTotal ?? Math.max(total, recent.length);
@@ -98,9 +105,9 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       setLoadError("We couldn't load your contacts just now. Your data is safe, this is a connection problem.");
     }
     setLoading(false);
-  }, [user]);
+  }, [user, scopedFetch]);
 
-  useEffect(() => { fetchInitial(); }, [fetchInitial]);
+  useEffect(() => { fetchInitial(); setRefreshKey((k) => k + 1); }, [fetchInitial]);
 
   const triggerRefresh = () => setRefreshKey((k) => k + 1);
 
@@ -144,7 +151,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const handleAddContact = async (data: any) => {
     setFormLoading(true);
     try {
-      await crmFetch("add", {
+      await scopedFetch("add", {
         full_name: data.full_name, email: data.email || null,
         phone: data.phone || null, company: data.company || null,
         notes: data.notes || null, tags: data.tags || "",
@@ -166,7 +173,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   const handleBulkDelete = async (ids: string[]) => {
     try {
-      await crmFetch("bulk-delete", { contact_ids: ids });
+      await scopedFetch("bulk-delete", { contact_ids: ids });
       toast({ title: `Deleted ${ids.length} contacts` });
       fetchInitial();
       triggerRefresh();
@@ -177,7 +184,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   const handleBulkMoveStage = async (ids: string[], stage: string) => {
     try {
-      await crmFetch("bulk-move-stage", { contact_ids: ids, stage });
+      await scopedFetch("bulk-move-stage", { contact_ids: ids, stage });
       toast({ title: `Moved ${ids.length} contacts` });
       fetchInitial();
       triggerRefresh();
@@ -189,7 +196,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const exportCSV = async () => {
     try {
       // Fetch all contacts for export (up to 500)
-      const data = await crmFetch("list", { page: 1, pageSize: 500 });
+      const data = await scopedFetch("list", { page: 1, pageSize: 500 });
       const contacts = data.contacts || [];
       const headers = ["Name", "Email", "Phone", "Company", "Source", "Stage", "ABBY Score", "Tags"];
       const rows = contacts.map((c: any) => [
@@ -231,7 +238,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         };
       }).filter((r) => r.full_name && r.full_name !== "Unknown");
       if (rows.length === 0) { toast({ title: "No valid rows", variant: "destructive" }); setImporting(false); return; }
-      const data = await crmFetch("import-csv", { rows });
+      const data = await scopedFetch("import-csv", { rows });
       toast({ title: `Imported ${data.imported} contacts` });
       fetchInitial();
       triggerRefresh();
@@ -263,6 +270,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   if ((statsData?.effectiveTotal || 0) === 0 && !showForm) {
     return (
       <div className="space-y-6">
+        <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} extraOptions={[{ id: "unattributed", label: "Unattributed" }]} />
         <div className="rounded-xl bg-primary px-6 py-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Star className="h-6 w-6 text-secondary" />
@@ -335,6 +343,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   return (
     <div className="max-w-7xl space-y-6">
+      <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} extraOptions={[{ id: "unattributed", label: "Unattributed" }]} />
       {/* Navy Banner Header */}
       <div className="rounded-xl bg-primary px-6 py-5">
         <div className="flex items-center justify-between flex-wrap gap-3">
@@ -456,7 +465,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       {activeTab === "pipeline" && (
         <PipelineView
           key={refreshKey}
-          crmFetch={crmFetch}
+          crmFetch={scopedFetch}
           onContactClick={handleContactClick}
           onViewStage={(stage) => {
             setContactsStageFilter(stage);
@@ -467,7 +476,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
       {activeTab === "contacts" && (
         <ContactListView
           key={`contacts-${refreshKey}`}
-          crmFetch={crmFetch}
+          crmFetch={scopedFetch}
           onContactClick={handleContactClick}
           onBulkDelete={handleBulkDelete}
           onBulkMoveStage={handleBulkMoveStage}
@@ -475,7 +484,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         />
       )}
       {activeTab === "intelligence" && (
-        <AbbyIntelligenceView crmFetch={crmFetch} />
+        <AbbyIntelligenceView crmFetch={scopedFetch} />
       )}
 
       {/* Contact Detail Panel */}
@@ -483,7 +492,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
         contact={selectedContact}
         open={detailOpen}
         onClose={() => setDetailOpen(false)}
-        crmFetch={crmFetch}
+        crmFetch={scopedFetch}
         onRefresh={() => {
           fetchInitial();
           triggerRefresh();
