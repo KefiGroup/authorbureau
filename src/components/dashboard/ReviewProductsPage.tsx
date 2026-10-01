@@ -59,7 +59,7 @@ interface DraftProduct {
   nodeLabel: string;
   category: "build" | "bridge" | "yield";
   bookTitle: string;
-  bookId: string;
+  bookId: string | null;
   table: string;
   status: string;
   description?: string;
