@@ -41,3 +41,37 @@ export function resolveScopedBookId(
   return readRouteBookId(search, pathname);
 }
 
+
+/**
+ * Workspace book scope (Review & Publish, Library, Funnels, CRM, Revenue).
+ *
+ * Audit 2026-10-01 P0-01: arriving from a book's hub must open these
+ * workspaces on that book, even when the sidebar link carries no ?book=.
+ * The route still wins; otherwise we use the book the author last opened
+ * in this browser tab. Builders keep using `resolveScopedBookId` (route only).
+ */
+const WORKSPACE_KEY = "ab:workspace-book-id";
+
+export function rememberWorkspaceBookId(id: string | null): void {
+  try {
+    if (typeof window === "undefined") return;
+    if (id && UUID_RE.test(id)) window.sessionStorage.setItem(WORKSPACE_KEY, id);
+    else window.sessionStorage.removeItem(WORKSPACE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function resolveWorkspaceBookId(): string | null {
+  const fromRoute = readRouteBookId();
+  if (fromRoute) {
+    rememberWorkspaceBookId(fromRoute);
+    return fromRoute;
+  }
+  try {
+    const stored = typeof window !== "undefined" ? window.sessionStorage.getItem(WORKSPACE_KEY) : null;
+    return stored && UUID_RE.test(stored) ? stored : null;
+  } catch {
+    return null;
+  }
+}

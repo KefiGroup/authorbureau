@@ -2,21 +2,22 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useMyBooks } from "@/hooks/useMyBooks";
-import { resolveScopedBookId } from "@/lib/active-book-scope";
+import { resolveWorkspaceBookId, rememberWorkspaceBookId } from "@/lib/active-book-scope";
 
 export const ALL_BOOKS_SCOPE = "all";
 
 /**
  * Shared book scope state for author workspaces (Funnels, CRM, etc.).
- * Defaults to the book in the URL (?book= / ?bookId= / /book/<id>/), else "all".
+ * Defaults to the book in the URL, else the book last opened in this tab, else "all".
  * Choosing a book mirrors it into ?book= so links and refreshes stay on that book.
  */
 export function useBookScope(userId: string | undefined) {
   const { books } = useMyBooks(userId);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [scope, setScopeState] = useState<string>(() => resolveScopedBookId() ?? ALL_BOOKS_SCOPE);
+  const [scope, setScopeState] = useState<string>(() => resolveWorkspaceBookId() ?? ALL_BOOKS_SCOPE);
   const setScope = (id: string) => {
     setScopeState(id);
+    rememberWorkspaceBookId(id === ALL_BOOKS_SCOPE || id === "unattributed" ? null : id);
     const sp = new URLSearchParams(searchParams);
     sp.set("book", id);
     setSearchParams(sp, { replace: true });
