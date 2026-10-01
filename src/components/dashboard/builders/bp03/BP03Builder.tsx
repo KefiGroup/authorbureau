@@ -168,6 +168,19 @@ export default function BP03Builder({ authorId, bookId }: Props) {
   const { hasBook, bookTitle: detectedBookTitle, isLoading: isBookLoading, bookId: hookBookId } = useAuthorBook();
   const activeBookId = bookId ?? hookBookId ?? null;
   const [resolvedBookTitle, setResolvedBookTitle] = useState<string>("");
+  // Audit 2026-10-01 P1-03: the count shown is always the live number of
+  // Social Calendar entries for THIS book, never a stale stored total.
+  const [bookCalendarCount, setBookCalendarCount] = useState<number | null>(null);
+  useEffect(() => {
+    if (!authorId || !activeBookId) return;
+    let cancelled = false;
+    supabase
+      .from("social_posts")
+      .select("id", { count: "exact", head: true })
+      .eq("book_id", activeBookId)
+      .then(({ count }) => { if (!cancelled && typeof count === "number") setBookCalendarCount(count); });
+    return () => { cancelled = true; };
+  }, [authorId, activeBookId, savedCount]);
   const hasResolvedBook =
     hasBook ||
     Boolean(resolvedBookTitle) ||
@@ -694,7 +707,7 @@ export default function BP03Builder({ authorId, bookId }: Props) {
 
         {step === 3 && content?.activated && (
           <SuccessScreen
-            scheduledCount={savedCount || (content as any)?.scheduledCount || 0}
+            scheduledCount={bookCalendarCount ?? (savedCount || 0)}
             authorName={authorName}
             bookTitle={bookTitle || detectedBookTitle || "your book"}
             onEditKit={() => setStep(2)}
@@ -1134,7 +1147,7 @@ function SuccessScreen({
               <h2 className="text-xl font-bold mb-1">{headline}</h2>
               <p className="text-sm text-muted-foreground">
                 {scheduledCount > 0
-                  ? `I've prepared ${scheduledCount} posts for "${bookTitle}" — every post has a branded graphic for Instagram, LinkedIn, Facebook and X. Download the full kit, or open your Social Calendar to copy posts one at a time. Authors Bureau doesn't post for you — you (or your VA) post manually.`
+                  ? `Your Social Calendar holds ${scheduledCount} ready-to-copy entries for "${bookTitle}" (each post comes in a version for Instagram, LinkedIn, Facebook and X) — every post has a branded graphic for Instagram, LinkedIn, Facebook and X. Download the full kit, or open your Social Calendar to copy posts one at a time. Authors Bureau doesn't post for you — you (or your VA) post manually.`
                   : `I've prepared your kit for "${bookTitle}" — every post has a branded graphic for Instagram, LinkedIn, Facebook and X. Download the full kit, or open your Social Calendar to copy posts one at a time. You'll post manually using your kit.`}
               </p>
             </div>

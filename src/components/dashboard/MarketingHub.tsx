@@ -536,7 +536,7 @@ export default function MarketingHub({ onNavigate }: Props) {
                   className="text-left rounded-xl border border-border bg-card p-3 hover:border-primary/40 transition-colors"
                 >
                   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Social Calendar</p>
-                  <p className="text-sm font-medium mt-0.5">{crossCounts.socialQueued} post{crossCounts.socialQueued === 1 ? "" : "s"} queued</p>
+                  <p className="text-sm font-medium mt-0.5">{crossCounts.socialQueued} entr{crossCounts.socialQueued === 1 ? "y" : "ies"} waiting to be posted</p>
                   <p className="text-[11px] text-primary mt-1 inline-flex items-center">Open <ArrowRight className="h-3 w-3 ml-0.5" /></p>
                 </button>
               )}
