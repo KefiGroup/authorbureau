@@ -267,7 +267,13 @@ async function handleWebhook(req: Request): Promise<Response> {
       to: payload.data.email,
       from: `${SITE_NAME} <noreply@${FROM_DOMAIN}>`,
       sender_domain: SENDER_DOMAIN,
-      subject: EMAIL_SUBJECTS[emailType] || 'Notification',
+      // Put the code in the subject so every email is unique: inboxes no longer
+      // stack codes into one thread, and the newest code is visible at a glance.
+      subject:
+        (emailType === 'magiclink' || emailType === 'signup' || emailType === 'reauthentication') &&
+        payload.data.token
+          ? `${payload.data.token} is your Authors Bureau code`
+          : EMAIL_SUBJECTS[emailType] || 'Notification',
       html,
       text,
       purpose: 'transactional',
