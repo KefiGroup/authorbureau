@@ -32,13 +32,14 @@ serve(async (req) => {
 
     const authorName = author?.pen_name || "Author";
 
-    const { data: context } = await supabase
+    // DATA-01: use the requested book's context only.
+    let ctxQ = supabase
       .from("author_context")
       .select("book_title, target_audience_persona")
-      .eq("author_id", author_id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .eq("author_id", author_id);
+    if (bookId) ctxQ = ctxQ.eq("book_id", bookId);
+    const { data: ctxRows } = await ctxQ.order("created_at", { ascending: false }).limit(1);
+    const context = ctxRows?.[0] ?? null;
 
     const bookTitle = context?.book_title || "your book";
     const audience = context?.target_audience_persona

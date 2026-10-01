@@ -23,7 +23,7 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   try {
     const body = await req.json();
-    const { author_id, node_id, asset_key, variant = "cover", prompt: customPrompt, force } = body || {};
+    const { author_id, node_id, asset_key, variant = "cover", prompt: customPrompt, force, book_id } = body || {};
     if (!author_id || !node_id || !asset_key) {
       return new Response(JSON.stringify({ error: "author_id, node_id, asset_key required" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -53,6 +53,9 @@ serve(async (req) => {
         .from("author_context")
         .select("book_title, core_thesis")
         .eq("author_id", author_id)
+        .match(book_id ? { book_id } : {})
+        .order("created_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
       const thesis = ctx?.core_thesis || "professional non-fiction";
       const title = ctx?.book_title || "presentation";
