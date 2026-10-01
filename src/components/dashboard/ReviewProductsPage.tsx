@@ -365,7 +365,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
               size="sm"
               variant={bookScope === b.id ? "default" : "outline"}
               className="text-xs"
-              onClick={() => setBookScope(b.id)}
+              onClick={() => { setBookScope(b.id); rememberWorkspaceBookId(b.id); }}
             >
               {b.title}
             </Button>
@@ -374,7 +374,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
             size="sm"
             variant={bookScope === "all" ? "default" : "outline"}
             className="text-xs"
-            onClick={() => setBookScope("all")}
+            onClick={() => { setBookScope("all"); rememberWorkspaceBookId(null); }}
           >
             All books
           </Button>

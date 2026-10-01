@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { rememberWorkspaceBookId } from "@/lib/active-book-scope";
 import { useAuth, SubscriptionTier, hasTierAccess } from "@/hooks/useAuth";
 import { supabase as cloudSupabase } from "@/integrations/supabase/client";
 import { supabase as sharedSupabase } from "@/lib/shared-backend";
@@ -56,6 +57,7 @@ export default function BookHub() {
       navigate("/dashboard?section=my-books", { replace: true });
     }
   }, [bookId, authLoading, navigate]);
+  useEffect(() => { if (bookId) rememberWorkspaceBookId(bookId); }, [bookId]);
 
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as BookHubTab) || "overview";
