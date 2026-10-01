@@ -28,11 +28,12 @@ interface Props {
   books: { id: string; title: string }[];
   scope: string;
   onChange: (id: string) => void;
-  /** Optional label shown for rows with no book recorded. */
   className?: string;
+  /** Extra scope options, e.g. [{ id: "unattributed", label: "Unattributed" }]. */
+  extraOptions?: { id: string; label: string }[];
 }
 
-export default function BookScopeBar({ books, scope, onChange, className }: Props) {
+export default function BookScopeBar({ books, scope, onChange, className, extraOptions = [] }: Props) {
   if (books.length < 2) return null;
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
@@ -55,6 +56,11 @@ export default function BookScopeBar({ books, scope, onChange, className }: Prop
       >
         All books
       </Button>
+      {extraOptions.map((o) => (
+        <Button key={o.id} size="sm" variant={scope === o.id ? "default" : "outline"} onClick={() => onChange(o.id)}>
+          {o.label}
+        </Button>
+      ))}
     </div>
   );
 }
