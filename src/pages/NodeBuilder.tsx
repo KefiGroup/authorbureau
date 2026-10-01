@@ -255,6 +255,13 @@ export default function NodeBuilder() {
             <ArrowLeft className="h-4 w-4" />
             Back to {getHubLabel(nodeId!, bookId, from)}
           </Link>
+          {/* Audit 2026-10-01: every module names the book it is building for. */}
+          {bookId && (
+            <p className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-foreground" data-testid="builder-book-title">
+              <BookOpen className="h-4 w-4 text-secondary" />
+              Building for: {books.find((b) => b.id === bookId)?.title ?? "your selected book"}
+            </p>
+          )}
         </div>
         <Builder authorId={authorId} bookId={bookId} />
       </DashboardLayout>
