@@ -46,6 +46,7 @@ export default function Auth() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [codeSentAt, setCodeSentAt] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [magicLinkProcessing, setMagicLinkProcessing] = useState(false);
   const [authLoadingFallback, setAuthLoadingFallback] = useState(false);
@@ -118,6 +119,7 @@ export default function Auth() {
       },
     });
     if (error) throw new Error(friendlyError(error.message));
+    setCodeSentAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
   };
 
   // ─── Continue: step 1 → step 2 based on mode ───
@@ -321,6 +323,11 @@ export default function Auth() {
                 <div>
                   <h2 className="font-heading text-lg font-bold">Enter Verification Code</h2>
                   <p className="text-sm text-muted-foreground mt-1">We sent a sign-in code to <strong>{email}</strong></p>
+                  {codeSentAt && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Code sent at <strong>{codeSentAt}</strong>. If you asked more than once, use only the newest email.
+                    </p>
+                  )}
                 </div>
 
                 <button onClick={resetFlow} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -453,6 +460,11 @@ export default function Auth() {
                 <div>
                   <h2 className="font-heading text-lg font-bold">Set New Password</h2>
                   <p className="text-sm text-muted-foreground mt-1">Enter the code sent to <strong>{email}</strong> and your new password.</p>
+                  {codeSentAt && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Code sent at <strong>{codeSentAt}</strong>. The code is in the email subject line. If you asked more than once, use only the newest email.
+                    </p>
+                  )}
                 </div>
 
                 <button type="button" onClick={() => setFlow("forgot-email")} className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
