@@ -64,10 +64,10 @@ const jsonLd = {
 
 export default function Index() {
   useDocumentMeta({
-    title: "Authors Bureau — Turn Your Book Into 28 Revenue Streams",
-    description: "The #1 AI-powered platform for published authors. Turn your book into courses, coaching, memberships, speaking, and 24 more income streams — automatically.",
-    ogTitle: "Authors Bureau — Turn Your Book Into 28 Revenue Streams",
-    ogDescription: "The #1 AI-powered platform for published authors. Turn your book into courses, coaching, memberships, speaking, and 24 more income streams — automatically.",
+    title: "Authors Bureau — Free Monthly Book-Writing Program for Entrepreneurs",
+    description: "Write your book in our free monthly entrepreneur book-writing and anthology program, then turn your published book into courses, coaching, speaking and more with Authors Bureau.",
+    ogTitle: "Authors Bureau — Free Monthly Book-Writing Program for Entrepreneurs",
+    ogDescription: "Write your book in our free monthly entrepreneur book-writing and anthology program, then turn your published book into courses, coaching, speaking and more with Authors Bureau.",
     ogImage: "https://authorsbureau.com/og-image.jpg",
     ogUrl: "https://authorsbureau.com/",
     canonical: "https://authorsbureau.com/",
@@ -94,7 +94,7 @@ export default function Index() {
             <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
               <motion.div variants={fadeUp} custom={0} className="mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">
                 <Sparkles className="h-4 w-4" />
-                🚀 The #1 AI-Powered Author Monetization Platform
+                Free Monthly Book-Writing &amp; Anthology Program for Entrepreneurs
               </motion.div>
 
               <motion.h1
@@ -102,8 +102,8 @@ export default function Index() {
                 custom={1}
                 className="mb-6 font-heading text-4xl font-bold leading-tight text-primary-foreground md:text-5xl lg:text-6xl"
               >
-                Turn Your Book Into{" "}
-                <span className="text-gradient-gold">28 Revenue Streams</span>
+                Write Your Book.{" "}
+                <span className="text-gradient-gold">Build Your Business.</span>
               </motion.h1>
             </motion.div>
 
@@ -118,28 +118,23 @@ export default function Index() {
 
             <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
               <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
-                Your book is more than a product. It's the foundation of a business empire.
+                Every month, entrepreneurs write and publish their books together in our free book-writing and anthology program.
               </motion.p>
 
               <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70 lg:mx-0">
-                Stop earning just royalties. Authors Bureau uses AI to transform your manuscript into courses, coaching packages, speaking topics, memberships, and 24 more income streams, automatically. No business experience needed.
-              </motion.p>
-
-              <motion.p variants={fadeUp} custom={3} className="mb-8 text-sm text-secondary font-semibold">
-                Abby, your AI Business Consultant, builds everything for you.
+                Start with the free monthly program and get your book written. When it is ready, an optional PublishNow annual subscription helps you publish it, and Authors Bureau turns your published book into backend sales: courses, coaching, speaking, and more, built with you by Abby, your AI Business Consultant.
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4 lg:justify-start">
                 <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                  <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                  <Link to="/contact">Ask about the free monthly program <ArrowRight className="ml-2 h-4 w-4" /></Link>
                 </Button>
               </motion.div>
 
               <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/60 lg:justify-start">
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> 28 Revenue Streams</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> AI-Powered</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free to Start</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Built by a Bestselling Author</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free monthly program</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Write with other entrepreneurs</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> 28 revenue streams when you are ready</span>
               </motion.div>
               <motion.div variants={fadeUp} custom={4.5} className="mt-4">
                 <Link to="/auth" className="text-sm text-primary-foreground/50 hover:text-secondary transition-colors underline">
@@ -153,25 +148,67 @@ export default function Index() {
 
       <section className="py-24 bg-background">
         <div className="container">
-          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mx-auto max-w-3xl text-center">
-            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-destructive">
-              The Reality
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }} className="mb-16 text-center">
+            <motion.p variants={fadeUp} custom={0} className="mb-2 text-sm font-semibold uppercase tracking-wider text-secondary">
+              Your Path
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-6">
-              97% of Authors Earn Less Than{" "}
-              <span className="text-destructive">$1,000 a Year</span> From Their Book
+              From First Draft to a Business{" "}
+              <span className="text-gradient-gold">Behind Your Book</span>
             </motion.h2>
-            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed mb-6">
-              Most authors spend years writing their book, only to discover that royalties barely cover the cost of publishing.
-              The average self-published author earns just $1,000-$5,000 per year from book sales.
+            <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+              Three steps take you from writing your book to earning from it. You decide how far to go.
             </motion.p>
-            <motion.p variants={fadeUp} custom={3} className="text-lg text-muted-foreground leading-relaxed mb-8">
-              But the top 3% of authors? They don't rely on royalties. They build businesses around their books with courses, coaching, speaking, and memberships, earning{" "}
-              <strong className="text-foreground">$50,000 to $500,000+ per year</strong> from the same book.
-            </motion.p>
-            <motion.p variants={fadeUp} custom={4} className="text-xl font-heading font-bold text-secondary">
-              Authors Bureau was built to make you part of that top 3%.
-            </motion.p>
+          </motion.div>
+
+          <div className="grid gap-8 md:grid-cols-3">
+            {[
+              {
+                step: "1",
+                tag: "Free",
+                title: "Free Monthly Entrepreneur Program",
+                desc: "Write your book alongside other entrepreneurs in our free monthly book-writing and anthology program.",
+              },
+              {
+                step: "2",
+                tag: "Optional",
+                title: "PublishNow Annual Subscription",
+                desc: "When your manuscript is ready, an optional PublishNow annual subscription helps you publish your book.",
+              },
+              {
+                step: "3",
+                tag: "Grow",
+                title: "Authors Bureau Backend Sales",
+                desc: "With your book published, Abby builds the business behind it: courses, coaching, speaking, and more across 28 revenue streams.",
+              },
+            ].map((item) => (
+              <motion.div
+                key={item.step}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true }}
+                custom={Number(item.step) - 1}
+                variants={fadeUp}
+                className="rounded-2xl bg-card p-7 shadow-md border border-border/60 hover:border-secondary/30 transition-all duration-300"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-secondary/15 to-secondary/5 ring-1 ring-secondary/20 font-heading text-xl font-bold text-secondary">
+                    {item.step}
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
+                    {item.tag}
+                  </span>
+                </div>
+                <h3 className="mb-2 font-heading text-lg font-bold">{item.title}</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mt-12 text-center">
+            <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
+              <Link to="/contact">Ask about the free monthly program <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
           </motion.div>
         </div>
       </section>
@@ -550,12 +587,11 @@ export default function Index() {
               <span className="text-gradient-gold">Royalties</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-10">
-              Every day you wait is revenue you're leaving on the table. Upload your book, let Abby build your business,
-              and start earning from all 28 revenue streams, not just one.
+              Start with the free monthly book-writing and anthology program. When your book is ready, publish with an optional PublishNow subscription, and let Authors Bureau build the business behind it.
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
-                <Link to="/auth">Start for Free <ArrowRight className="ml-2 h-4 w-4" /></Link>
+                <Link to="/contact">Ask about the free monthly program <ArrowRight className="ml-2 h-4 w-4" /></Link>
               </Button>
               <Button asChild size="lg" className="border-2 border-secondary/60 bg-transparent text-secondary hover:bg-secondary hover:text-secondary-foreground text-base font-semibold rounded-full px-8">
                 <Link to="/how-it-works">See How It Works →</Link>
