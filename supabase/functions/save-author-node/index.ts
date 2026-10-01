@@ -303,7 +303,10 @@ Deno.serve(async (req: Request) => {
       .eq("author_id", authorId)
       .eq("node_id", nodeId);
     if (bookId) q = q.eq("book_id", bookId);
-    const { data: node, error } = await q.maybeSingle();
+    else q = q.order("updated_at", { ascending: false });
+    // Never maybeSingle across books: multi-book authors have one row per book.
+    const { data: rows, error } = await q.limit(1);
+    const node = rows?.[0] ?? null;
     if (error) {
       console.error("[save-author-node] load failed:", error.message);
       return json(500, { error: error.message });
