@@ -212,7 +212,7 @@ Include estimated revenue range for Sub-Phase B.
 **PART 4: 💰 Yield Revenue (10 nodes) — Premium Income**
 2–4 premium products. Mention 1-on-1 with Pauline Teo as Yield Package bonus. Include revenue estimate.
 
-End with a revenue summary: "Your total projected revenue across all 28 nodes: $X,XXX–$XX,XXX/month by Month 12."
+End with a revenue summary: "Your total projected revenue for this book across its 28 revenue streams: $X,XXX–$XX,XXX/month by Month 12."
 
 IMPORTANT: Do NOT present products as choices or selections. Present them as a done deal — what Abby will build. The author does not choose or pick.
 FORBIDDEN OUTPUT PHRASES: "CLICK TO SELECT", "PICK ONE", "CHOOSE ONE", "SELECT ONE"
