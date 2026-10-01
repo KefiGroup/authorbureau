@@ -159,10 +159,10 @@ export default function BA11Builder({ authorId, bookId }: Props) {
           setResolvedBookId(book.id);
         }
       }
-      // Try book-scoped first, then author-scoped (legacy rows). Prevents
-      // refresh from snapping back to Introduction when the route lacks bookId
-      // or when the live row was written under a different scoping.
-      const candidateIds = bookId ? [bookId, null] : [null];
+      // Audit 2026-10-01 P0-04: when a book is in the route, load ONLY that
+      // book's draft. The old author-wide fallback surfaced another book's
+      // published audiobook as "Published" for a book that has none.
+      const candidateIds = bookId ? [bookId] : [null];
       let draft: Awaited<ReturnType<typeof loadBuilderDraft>> | null = null;
       for (const candidate of candidateIds) {
         const d = await loadBuilderDraft(authorId, "BA-11", candidate);
