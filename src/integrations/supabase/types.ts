@@ -3257,6 +3257,7 @@ export type Database = {
           author_id: string
           background_color: string | null
           body_copy: string | null
+          book_id: string | null
           conversions: number
           created_at: string
           cta_text: string | null
@@ -3279,6 +3280,7 @@ export type Database = {
           author_id: string
           background_color?: string | null
           body_copy?: string | null
+          book_id?: string | null
           conversions?: number
           created_at?: string
           cta_text?: string | null
@@ -3301,6 +3303,7 @@ export type Database = {
           author_id?: string
           background_color?: string | null
           body_copy?: string | null
+          book_id?: string | null
           conversions?: number
           created_at?: string
           cta_text?: string | null
@@ -3345,6 +3348,20 @@ export type Database = {
             columns: ["author_id"]
             isOneToOne: false
             referencedRelation: "author_profiles_safe"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnels_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "funnels_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
             referencedColumns: ["id"]
           },
         ]
