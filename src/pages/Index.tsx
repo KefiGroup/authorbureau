@@ -92,15 +92,15 @@ export default function Index() {
         <div className="container relative z-10 py-16">
           <div className="grid items-center gap-x-12 gap-y-7 lg:grid-cols-2">
             <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
-              <motion.div variants={fadeUp} custom={0} className="mb-6 inline-flex items-center gap-2 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-sm text-secondary">
-                <Sparkles className="h-4 w-4" />
+<motion.div variants={fadeUp} custom={0} className="mb-6 inline-flex w-fit max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-full border border-secondary/30 bg-secondary/10 px-4 py-2 text-center text-xs leading-snug text-secondary sm:text-sm">
+                <Sparkles className="h-4 w-4 shrink-0" />
                 Free Monthly Book-Writing &amp; Anthology Program for Entrepreneurs
               </motion.div>
 
               <motion.h1
                 variants={fadeUp}
                 custom={1}
-                className="mb-6 font-heading text-4xl font-bold leading-tight text-primary-foreground md:text-5xl lg:text-6xl"
+                className="mb-6 break-words font-heading text-3xl font-bold leading-tight text-primary-foreground sm:text-4xl md:text-5xl lg:text-6xl"
               >
                 Write Your Book.{" "}
                 <span className="text-gradient-gold">Build Your Business.</span>
