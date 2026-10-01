@@ -55,9 +55,9 @@ const pricingCards = [
     title: "The Side Hustler",
     price: "$49/mo",
     tier: "BRAND",
-    streams: "9 Brand Products · 4-8 hrs/week",
-    revenue: "Projected: $5,500-$15,500 in Year 1",
-    desc: "Create digital products from your book that sell on autopilot while you keep your day job.",
+    streams: "Brand Products · 4-8 hrs/week",
+    revenue: "Digital products from your book",
+    desc: "Create digital products from your book while you keep your day job.",
     border: "border-emerald-500",
     bg: "bg-emerald-500/10",
     badge: null,
@@ -66,9 +66,9 @@ const pricingCards = [
     title: "The Serious Author",
     price: "$199/mo",
     tier: "BRAND + BUILD",
-    streams: "18 revenue streams · 15-25 hrs/week",
-    revenue: "Projected: $19,000-$55,000 in Year 1",
-    desc: "Passive income from Brand Products plus active audience building with Build Authority tools.",
+    streams: "Brand + Build streams · 15-25 hrs/week",
+    revenue: "Products plus audience building",
+    desc: "Brand Products combined with active audience building through the Build Authority tools.",
     border: "border-orange-500",
     bg: "bg-orange-500/10",
     badge: "MOST POPULAR",
@@ -177,7 +177,7 @@ export default function HowItWorks() {
           />
           <CopyrightCaption />
 
-          {/* 28 Revenue Streams Explained */}
+          {/* Revenue Streams Explained */}
           <motion.div
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.6, delay: 0.2 }}
