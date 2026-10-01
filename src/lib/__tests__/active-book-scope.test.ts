@@ -35,7 +35,7 @@ describe("active book scope (DATA-01 regression)", () => {
   });
 });
 
-import { rememberWorkspaceBookId, resolveWorkspaceBookId } from "../active-book-scope";
+import { rememberWorkspaceBookId, resolveWorkspaceBookId, resolveFunnelBookId } from "../active-book-scope";
 
 describe("workspace book scope", () => {
   const A = "dee3e31e-12d4-43ff-b8ad-9a7f70e37d1b";
@@ -45,5 +45,26 @@ describe("workspace book scope", () => {
     expect(resolveWorkspaceBookId()).toBe(A);
     rememberWorkspaceBookId(null);
     expect(resolveWorkspaceBookId()).toBeNull();
+  });
+});
+
+describe("funnel generation book scope", () => {
+  const SUCK = "e5b857ac-48ce-4ffc-a761-3c09e95a318e";
+
+  it("prefers the node's own book_id", () => {
+    expect(resolveFunnelBookId(VIP, SUCK)).toBe(VIP);
+    expect(resolveFunnelBookId(VIP, "all")).toBe(VIP);
+    expect(resolveFunnelBookId(VIP, null)).toBe(VIP);
+  });
+
+  it("falls back to the currently selected specific book scope", () => {
+    expect(resolveFunnelBookId(null, SUCK)).toBe(SUCK);
+    expect(resolveFunnelBookId(undefined, SUCK)).toBe(SUCK);
+  });
+
+  it("keeps book_id null for All books and Unattributed scopes", () => {
+    expect(resolveFunnelBookId(null, "all")).toBeNull();
+    expect(resolveFunnelBookId(null, "unattributed")).toBeNull();
+    expect(resolveFunnelBookId(undefined, undefined)).toBeNull();
   });
 });

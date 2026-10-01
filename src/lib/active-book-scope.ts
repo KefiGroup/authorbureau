@@ -32,6 +32,20 @@ export function readRouteBookId(search?: string, pathname?: string): string | nu
   return null;
 }
 
+/**
+ * Funnel generation scope (FunnelsHub.generateForNode): the node's own
+ * book_id wins when present; otherwise use the currently selected specific
+ * book. "All books" and "Unattributed" scopes never invent a book_id.
+ */
+export function resolveFunnelBookId(
+  nodeBookId: string | null | undefined,
+  scope: string | null | undefined,
+): string | null {
+  if (nodeBookId && UUID_RE.test(nodeBookId)) return nodeBookId;
+  if (scope && UUID_RE.test(scope)) return scope;
+  return null;
+}
+
 export function resolveScopedBookId(
   override?: string | null,
   search?: string,
