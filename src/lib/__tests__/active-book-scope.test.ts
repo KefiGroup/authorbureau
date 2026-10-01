@@ -34,3 +34,16 @@ describe("active book scope (DATA-01 regression)", () => {
     expect(resolveScopedBookId("garbage", `?bookId=${VIP}`, "/dashboard")).toBe(VIP);
   });
 });
+
+import { rememberWorkspaceBookId, resolveWorkspaceBookId } from "../active-book-scope";
+
+describe("workspace book scope", () => {
+  const A = "dee3e31e-12d4-43ff-b8ad-9a7f70e37d1b";
+  it("falls back to the book last opened in this tab", () => {
+    window.history.replaceState(null, "", "/dashboard?section=review-products");
+    rememberWorkspaceBookId(A);
+    expect(resolveWorkspaceBookId()).toBe(A);
+    rememberWorkspaceBookId(null);
+    expect(resolveWorkspaceBookId()).toBeNull();
+  });
+});
