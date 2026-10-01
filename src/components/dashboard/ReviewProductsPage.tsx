@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyBooks } from "@/hooks/useMyBooks";
-import BookScopeBar, { matchesBookScope, ALL_BOOKS_SCOPE, UNASSIGNED_SCOPE } from "@/components/dashboard/BookScopeBar";
 import { resolveWorkspaceBookId, rememberWorkspaceBookId } from "@/lib/active-book-scope";
 import { supabase } from "@/integrations/supabase/client";
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
@@ -59,7 +58,7 @@ interface DraftProduct {
   nodeLabel: string;
   category: "build" | "bridge" | "yield";
   bookTitle: string;
-  bookId: string | null;
+  bookId: string;
   table: string;
   status: string;
   description?: string;
@@ -116,7 +115,7 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
 
   // DATA-02: the list always reflects exactly one book unless "All books" is chosen.
   const products = useMemo(
-    () => allProducts.filter((p) => matchesBookScope(p.bookId, bookScope)),
+    () => (bookScope === "all" ? allProducts : allProducts.filter((p) => p.bookId === bookScope)),
     [allProducts, bookScope],
   );
   const setProducts = useCallback(
@@ -127,11 +126,6 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
   );
 
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [loadWarnings, setLoadWarnings] = useState<string[]>([]);
-  const changeScope = (id: string) => {
-    setBookScope(id);
-    rememberWorkspaceBookId(id === ALL_BOOKS_SCOPE || id === UNASSIGNED_SCOPE ? null : id);
-  };
 
 
   const fetchDrafts = useCallback(async () => {
@@ -155,12 +149,6 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       );
       const result = await resp.json();
       if (!resp.ok) throw new Error(result.error || "Failed to load");
-      const TABLE_LABEL: Record<string, string> = {
-        social_media_content: "Social Media", coaching_packages: "Coaching Packages", courses: "Courses",
-        home_study_courses: "Home Study Courses", audiobooks: "Audiobooks", podcasts: "Podcasts",
-        email_flows: "Email sequences", generated_assets: "Builder drafts",
-      };
-      setLoadWarnings(((result.warnings || []) as { table: string }[]).map((w) => TABLE_LABEL[w.table] || w.table));
 
       console.log("[ReviewProducts] drafts payload →", {
         count: (result.drafts || []).length,
@@ -192,8 +180,8 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
           nodeId: item.nodeId || item.table,
           nodeLabel: nodeConfig?.label || item.table,
           category: (nodeConfig?.category || "build") as "build" | "bridge" | "yield",
-          bookTitle: item.bookTitle || "Unassigned",
-          bookId: item.book_id ?? null,
+          bookTitle: item.bookTitle || "",
+          bookId: item.book_id,
           table: item.table,
           status: item.status,
           description: item.description || undefined,
@@ -368,19 +356,28 @@ export default function ReviewProductsPage({ onNavigate }: Props) {
       </div>
 
       {/* ── Book scope (DATA-02) ─────────────────────────────── */}
-      {!loading && (
-        <BookScopeBar
-          books={myBooks}
-          scope={bookScope}
-          onChange={changeScope}
-          unassignedCount={allProducts.filter((p) => !p.bookId).length}
-          scopedCount={products.length}
-        />
-      )}
-      {loadWarnings.length > 0 && (
-        <div role="alert" className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-sm">
-          We couldn't load your {loadWarnings.join(", ")} items just now. Everything else is shown below.{" "}
-          <button type="button" className="font-medium underline" onClick={() => void fetchDrafts()}>Try again</button>
+      {myBooks.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
+          {myBooks.map((b) => (
+            <Button
+              key={b.id}
+              size="sm"
+              variant={bookScope === b.id ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => { setBookScope(b.id); rememberWorkspaceBookId(b.id); }}
+            >
+              {b.title}
+            </Button>
+          ))}
+          <Button
+            size="sm"
+            variant={bookScope === "all" ? "default" : "outline"}
+            className="text-xs"
+            onClick={() => { setBookScope("all"); rememberWorkspaceBookId(null); }}
+          >
+            All books
+          </Button>
         </div>
       )}
 

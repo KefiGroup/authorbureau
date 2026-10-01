@@ -12,7 +12,6 @@ import MarketingPackCard from "@/components/library/MarketingPackCard";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useMyBooks } from "@/hooks/useMyBooks";
-import BookScopeBar, { matchesBookScope, ALL_BOOKS_SCOPE, UNASSIGNED_SCOPE } from "@/components/dashboard/BookScopeBar";
 import { resolveWorkspaceBookId, rememberWorkspaceBookId } from "@/lib/active-book-scope";
 import { parseAssetType } from "@/lib/assetPackRegistry";
 import { hasRequiredAssets } from "@/lib/node-readiness";
@@ -67,12 +66,9 @@ export default function AuthorLibrary() {
   const [allMarketingAssets, setAllMarketingAssets] = useState<MarketingAssetRow[]>([]);
 
   // DATA-04: the library shows one book's assets at a time unless "All books".
-  const nodes = allNodes.filter(n => matchesBookScope(n.book_id, bookScope));
-  const marketingAssets = allMarketingAssets.filter(a => matchesBookScope(a.book_id, bookScope));
-  const changeScope = (id: string) => {
-    setBookScope(id);
-    rememberWorkspaceBookId(id === ALL_BOOKS_SCOPE || id === UNASSIGNED_SCOPE ? null : id);
-  };
+  const nodes = bookScope === "all" ? allNodes : allNodes.filter(n => n.book_id === bookScope);
+  const marketingAssets =
+    bookScope === "all" ? allMarketingAssets : allMarketingAssets.filter(a => a.book_id === bookScope);
 
   const load = async () => {
     setLoading(true);
@@ -170,14 +166,29 @@ export default function AuthorLibrary() {
         </Button>
       </div>
 
-      {!loading && (
-        <BookScopeBar
-          books={myBooks}
-          scope={bookScope}
-          onChange={changeScope}
-          unassignedCount={allNodes.filter(n => !n.book_id).length + allMarketingAssets.filter(a => !a.book_id).length}
-          scopedCount={nodes.length + marketingAssets.length}
-        />
+      {myBooks.length > 1 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
+          {myBooks.map(b => (
+            <Button
+              key={b.id}
+              size="sm"
+              variant={bookScope === b.id ? "default" : "outline"}
+              className="text-xs"
+              onClick={() => { setBookScope(b.id); rememberWorkspaceBookId(b.id); }}
+            >
+              {b.title}
+            </Button>
+          ))}
+          <Button
+            size="sm"
+            variant={bookScope === "all" ? "default" : "outline"}
+            className="text-xs"
+            onClick={() => { setBookScope("all"); rememberWorkspaceBookId(null); }}
+          >
+            All books
+          </Button>
+        </div>
       )}
 
 

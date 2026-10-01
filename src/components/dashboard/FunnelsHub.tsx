@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import BookScopeBar, { useBookScope, matchesBookScope } from "@/components/dashboard/BookScopeBar";
+import BookScopeBar, { useBookScope, ALL_BOOKS_SCOPE } from "@/components/dashboard/BookScopeBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -109,11 +109,11 @@ export default function FunnelsHub() {
   const { user, loading: authLoading } = useAuth();
   const { books: myBooks, scope: bookScope, setScope: setBookScope } = useBookScope(user?.id);
   const funnels = useMemo(
-    () => allFunnels.filter((f) => matchesBookScope(f.book_id, bookScope)),
+    () => (bookScope === ALL_BOOKS_SCOPE ? allFunnels : allFunnels.filter((f) => f.book_id === bookScope)),
     [allFunnels, bookScope],
   );
   const liveNodes = useMemo(
-    () => allLiveNodes.filter((n) => matchesBookScope(n.book_id, bookScope)),
+    () => (bookScope === ALL_BOOKS_SCOPE ? allLiveNodes : allLiveNodes.filter((n) => n.book_id === bookScope)),
     [allLiveNodes, bookScope],
   );
   const bookTitleById = useMemo(() => Object.fromEntries(myBooks.map((b) => [b.id, b.title])), [myBooks]);
@@ -416,14 +416,7 @@ export default function FunnelsHub() {
         <p className="text-muted-foreground">
           ABBY auto-generates conversion funnels for your published products. Edit copy, preview live pages, and watch conversions roll in.
         </p>
-        <BookScopeBar
-          books={myBooks}
-          scope={bookScope}
-          onChange={setBookScope}
-          unassignedCount={allFunnels.filter((f) => !f.book_id).length + allLiveNodes.filter((n) => !n.book_id).length}
-          scopedCount={funnels.length + liveNodes.length}
-          className="mt-4"
-        />
+        <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} className="mt-4" />
       </div>
 
       {/* Stats strip */}
@@ -622,7 +615,7 @@ export default function FunnelsHub() {
                         {f.node_id && <Badge variant="secondary" className="text-xs">{NODE_NAMES[f.node_id] || f.node_id}</Badge>}
                         {myBooks.length > 1 && (
                           <Badge variant="outline" className="text-xs max-w-[200px] truncate">
-                            {f.book_id ? bookTitleById[f.book_id] || "Other book" : "Unassigned"}
+                            {f.book_id ? bookTitleById[f.book_id] || "Other book" : "Unattributed"}
                           </Badge>
                         )}
                         {(() => {

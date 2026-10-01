@@ -287,7 +287,7 @@ export default function Auth() {
             )}
 
             {/* ─── Step 1: Email + Continue (both modes) ─── */}
-            {flow === "email" && mode === "code" && (
+            {flow === "email" && (
               <form onSubmit={handleContinue} className="space-y-4">
                 <div className="rounded-md border border-secondary/30 bg-secondary/5 px-3 py-2 text-xs text-muted-foreground">
                   <strong className="text-foreground">New here?</strong> Just enter your email. We'll create your account and send an 8-digit code. No separate sign-up needed.
@@ -313,55 +313,6 @@ export default function Auth() {
                 >
                   {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                   {submitting ? "Continuing…" : "Continue"}
-                </Button>
-              </form>
-            )}
-
-            {/* ─── Password mode: email + password together ─── */}
-            {flow === "email" && mode === "password" && (
-              <form onSubmit={handlePasswordLogin} className="space-y-4">
-                <div>
-                  <Label htmlFor="pw-email">Email address</Label>
-                  <Input
-                    id="pw-email"
-                    type="email"
-                    required
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    autoFocus
-                    className="mt-1.5"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="pw-password-main">Password</Label>
-                  <Input
-                    id="pw-password-main"
-                    type="password"
-                    required
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    className="mt-1.5"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setFlow("forgot-email")}
-                    className="text-xs text-secondary hover:underline mt-1.5"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-                <Button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/90 font-semibold rounded-full"
-                  size="lg"
-                >
-                  {submitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                  {submitting ? "Signing in…" : "Sign In"}
                 </Button>
               </form>
             )}
