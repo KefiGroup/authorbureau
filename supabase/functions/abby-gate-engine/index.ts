@@ -163,7 +163,7 @@ serve(async (req) => {
           gateId: 3,
           title: "📱 Social campaign live",
           content:
-            "ABBY is now scheduling 4 posts per week across your connected social channels. Posts pull from your published products and lead magnets so the funnel feeds itself.",
+            "Your social posts are ready in the Social Calendar. Copy each post, publish it yourself on your own accounts, then mark it as posted.",
           action_label: "View Social Calendar",
           action_url: "/dashboard?section=marketing-hub&tab=social",
         });
