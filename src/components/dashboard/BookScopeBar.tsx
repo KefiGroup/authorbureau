@@ -5,6 +5,14 @@ import { useMyBooks } from "@/hooks/useMyBooks";
 import { resolveWorkspaceBookId, rememberWorkspaceBookId } from "@/lib/active-book-scope";
 
 export const ALL_BOOKS_SCOPE = "all";
+export const UNASSIGNED_SCOPE = "unattributed";
+
+/** True when an item with this book_id belongs in the given scope. Unassigned items never get guessed into a book. */
+export function matchesBookScope(bookId: string | null | undefined, scope: string): boolean {
+  if (scope === ALL_BOOKS_SCOPE) return true;
+  if (scope === UNASSIGNED_SCOPE) return !bookId;
+  return bookId === scope;
+}
 
 /**
  * Shared book scope state for author workspaces (Funnels, CRM, etc.).
@@ -32,12 +40,23 @@ interface Props {
   className?: string;
   /** Extra scope options, e.g. [{ id: "unattributed", label: "Unattributed" }]. */
   extraOptions?: { id: string; label: string }[];
+  /** Number of items with no book. When > 0 (or already selected) an "Unassigned" filter appears. */
+  unassignedCount?: number;
+  /** Total items in the current scope; used to show an empty-filter hint with a way back to All books. */
+  scopedCount?: number;
 }
 
-export default function BookScopeBar({ books, scope, onChange, className, extraOptions = [] }: Props) {
-  if (books.length < 2) return null;
+export default function BookScopeBar({ books, scope, onChange, className, extraOptions = [], unassignedCount, scopedCount }: Props) {
+  // Always shown (even for one book) so "All books" is always reachable.
+  const showUnassigned =
+    typeof unassignedCount === "number" &&
+    (unassignedCount > 0 || scope === UNASSIGNED_SCOPE) &&
+    !extraOptions.some((o) => o.id === UNASSIGNED_SCOPE);
+  const scopeLabel =
+    scope === UNASSIGNED_SCOPE ? "Unassigned" : books.find((b) => b.id === scope)?.title ?? (scope === ALL_BOOKS_SCOPE ? null : "this book");
   return (
-    <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
+    <div className={`space-y-2 ${className ?? ""}`}>
+    <div className="flex flex-wrap items-center gap-2">
       <span className="text-xs font-medium text-muted-foreground mr-1">Showing:</span>
       {books.map((b) => (
         <Button
@@ -62,6 +81,25 @@ export default function BookScopeBar({ books, scope, onChange, className, extraO
           {o.label}
         </Button>
       ))}
+      {showUnassigned && (
+        <Button size="sm" variant={scope === UNASSIGNED_SCOPE ? "default" : "outline"} onClick={() => onChange(UNASSIGNED_SCOPE)}>
+          Unassigned ({unassignedCount})
+        </Button>
+      )}
+    </div>
+      {scope === ALL_BOOKS_SCOPE && typeof unassignedCount === "number" && unassignedCount > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {unassignedCount} item{unassignedCount === 1 ? " isn't" : "s aren't"} linked to a book yet. They are included here and under "Unassigned".
+        </p>
+      )}
+      {scope !== ALL_BOOKS_SCOPE && scopedCount === 0 && (
+        <p className="text-xs text-muted-foreground">
+          Nothing to show for {scopeLabel}.{" "}
+          <button type="button" className="font-medium text-primary underline" onClick={() => onChange(ALL_BOOKS_SCOPE)}>
+            Show all books
+          </button>
+        </p>
+      )}
     </div>
   );
 }
