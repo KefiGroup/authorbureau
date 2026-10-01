@@ -23,7 +23,7 @@ function friendlyError(message?: string): string {
   }
   if (msg.includes("invalid login credentials")) return "Invalid email or password.";
   if (msg.includes("token has expired") || msg.includes("invalid token") || msg.includes("otp")) {
-    return "Invalid or expired code. Please request a new one.";
+    return "That code doesn't match. Please use the 8-digit code from your most recent email — each new request replaces the earlier code.";
   }
   return message || "Something went wrong.";
 }
