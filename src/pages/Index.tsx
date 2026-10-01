@@ -33,13 +33,13 @@ const fadeUp = {
 };
 
 const comparisonRows = [
-  { need: "Online Course", without: "Course platform + you write it", withAB: "Abby creates it from your book" },
-  { need: "Email Marketing", without: "Email tool + you write emails", withAB: "Abby writes your 7-email sequence" },
-  { need: "Coaching Setup", without: "Calendar + payments + you price it", withAB: "Abby designs your coaching packages" },
-  { need: "Author Website", without: "Website builder + you design it", withAB: "Abby builds your microsite" },
-  { need: "Social Media", without: "Scheduler + you create content", withAB: "Abby generates a 90-day content calendar" },
-  { need: "Book Sales kit", without: "You create your own pitch deck", withAB: "Abby writes your keynote proposal" },
-  { need: "Total Effort", without: "Multiple tools + 40hrs/wk of your time", withAB: "One platform + Abby does the work" },
+  { need: "Online Course", without: "Course platform + you write it", withAB: "Course builder guided by Abby" },
+  { need: "Email Marketing", without: "Email tool + you write emails", withAB: "Email sequence tools guided by Abby" },
+  { need: "Coaching Setup", without: "Calendar + payments + you price it", withAB: "Coaching package tools guided by Abby" },
+  { need: "Author Website", without: "Website builder + you design it", withAB: "Author website tools guided by Abby" },
+  { need: "Social Media", without: "Scheduler + you create content", withAB: "Social content tools guided by Abby" },
+  { need: "Book Sales kit", without: "You create your own pitch deck", withAB: "Sales kit templates guided by Abby" },
+  { need: "Total Effort", without: "Multiple tools + 40hrs/wk of your time", withAB: "One platform with guided tools" },
 ];
 
 const jsonLd = {
@@ -48,7 +48,7 @@ const jsonLd = {
   name: "Authors Bureau",
   applicationCategory: "BusinessApplication",
   description:
-    "AI-powered platform that helps published authors turn one book into 28 revenue streams with courses, coaching, speaking, memberships, and more.",
+    "AI-powered platform that helps published authors build new revenue streams from one book, with courses, coaching, speaking, memberships, and more.",
   offers: [
     { "@type": "Offer", name: "Brand Package", price: "49", priceCurrency: "USD" },
     { "@type": "Offer", name: "Build Package", price: "99", priceCurrency: "USD" },
@@ -214,12 +214,12 @@ export default function Index() {
               Your Monetization Universe
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-4">
-              One Book. 28 Revenue Streams.{" "}
+              One Book. Many Revenue Streams.{" "}
               <span className="text-gradient-gold">Your Empire.</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
-              Every non-fiction book contains enough expertise to power 28 different income streams.
-              Most authors never discover them. Abby, your AI Business Consultant, finds all 28 and builds them for you automatically.
+              Every non-fiction book contains expertise that can power many different income streams.
+              Most authors never discover them. Abby, your AI Business Consultant, helps you find and build them.
             </motion.p>
           </motion.div>
 
@@ -230,7 +230,7 @@ export default function Index() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
             src="/images/journey-flow-diagram.webp"
-            alt="How your 28 revenue streams connect - BRAND, BUILD, YIELD ecosystem"
+            alt="How your revenue streams connect - BRAND, BUILD, YIELD ecosystem"
             className="w-full max-w-4xl mx-auto rounded-2xl shadow-xl mb-2"
             loading="lazy"
           />
@@ -238,7 +238,7 @@ export default function Index() {
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="text-center">
             <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
-              <Link to="/how-it-works">Explore All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/how-it-works">Explore the Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </motion.div>
         </div>
@@ -255,8 +255,8 @@ export default function Index() {
               One Platform <span className="text-gradient-gold">Replaces Everything</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground max-w-3xl mx-auto">
-              Other platforms make you do the work. Authors Bureau does it for you.
-              Abby reads your book, researches your market, and builds your entire business: courses, coaching packages, email sequences, sales pages, and more. You just review and publish.
+              Other platforms make you gather the tools yourself. Authors Bureau brings them together.
+              Abby helps you plan your business: courses, coaching packages, email sequences, sales pages, and more.
             </motion.p>
           </motion.div>
 
@@ -283,7 +283,7 @@ export default function Index() {
 
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true }} custom={0} variants={fadeUp} className="mt-10 text-center">
             <Button asChild variant="outline" size="lg" className="rounded-full border-secondary text-secondary hover:bg-secondary hover:text-secondary-foreground">
-              <Link to="/how-it-works">See All 28 Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
+              <Link to="/how-it-works">See the Revenue Streams <ArrowRight className="ml-2 h-4 w-4" /></Link>
             </Button>
           </motion.div>
         </div>
@@ -414,8 +414,8 @@ export default function Index() {
                       <p className="text-sm text-primary-foreground/70 italic">We SUCK Before We SUCCEED</p>
                       <p className="text-xs text-primary-foreground/50 mt-1">by Pauline Teo</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ #1 Best Seller</span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ #1 New Release</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ Best Seller</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ New Release</span>
                       </div>
                     </div>
                   </div>
@@ -451,7 +451,7 @@ export default function Index() {
               From Author to <span className="italic text-secondary">Authority</span> in 4 Steps
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-              Your book is the foundation. Abby does the rest. Here's how your journey unfolds:
+              Your book is the foundation. Abby guides the rest. Here's how your journey unfolds:
             </motion.p>
           </motion.div>
 
@@ -474,19 +474,19 @@ export default function Index() {
                 step: "1",
                 title: "ANALYSE Your Book",
                 tag: "ABBY AI ANALYSIS",
-                desc: "Upload your manuscript and Abby analyzes your book, identifies your frameworks, and creates a personalized business plan showing which of the 28 revenue streams are the best fit for your topic and audience.",
+                desc: "Upload your manuscript and Abby analyzes your book, identifies your frameworks, and creates a personalized business plan showing which revenue streams are the best fit for your topic and audience.",
               },
               {
                 step: "2",
                 title: "BRAND Your Products",
                 tag: "BRAND PRODUCTS",
-                desc: "Abby uses AI to create your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. All generated from your book content. You just review and approve.",
+                desc: "Tools to shape your first digital products: workbooks, online courses, email sequences, social media calendars, and your author website. You review and approve every step.",
               },
               {
                 step: "3",
                 title: "BUILD Your Authority",
                 tag: "BUILD AUTHORITY",
-                desc: "Expand into audience-building channels: audiobooks, podcast tours, group coaching, affiliate programs, and media outreach. Abby creates everything including scripts, pitch kits, and follow-up sequences.",
+                desc: "Expand into audience-building channels: audiobooks, podcast tours, group coaching, affiliate programs, and media outreach, with tools for scripts, pitch kits, and follow-up sequences.",
               },
               {
                 step: "4",
