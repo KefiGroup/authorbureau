@@ -119,6 +119,7 @@ export default function Auth() {
       },
     });
     if (error) throw new Error(friendlyError(error.message));
+    setCodeSentAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
   };
 
   // ─── Continue: step 1 → step 2 based on mode ───
