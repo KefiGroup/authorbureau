@@ -21,6 +21,7 @@ import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
+import { resolveFunnelBookId } from "@/lib/active-book-scope";
 import { listFunnels, listOverridesBulk, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
 import { getStagesForArchetype, type OverridesMap } from "@/lib/funnel-flow-stages";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -236,6 +237,9 @@ export default function FunnelsHub() {
     const node = liveNodes.find((n) => n.node_id === nodeId);
     const archetype = node?.archetype || "B";
     const seedFunnelType = ARCHETYPE_TO_FUNNEL_TYPE[archetype] || "opt_in";
+    // DATA-01: the node's own book wins; else the selected specific book.
+    // "All books" / "Unattributed" scopes never invent a book_id.
+    const funnelBookId = resolveFunnelBookId(node?.book_id, bookScope);
 
     setGeneratingNodeId(nodeId);
     const { data, error } = await supabase.functions.invoke("generate-funnel", {
@@ -243,6 +247,7 @@ export default function FunnelsHub() {
         author_id: authorId,
         node_id: nodeId,
         funnel_type: seedFunnelType,
+        book_id: funnelBookId,
       },
     });
     setGeneratingNodeId(null);
