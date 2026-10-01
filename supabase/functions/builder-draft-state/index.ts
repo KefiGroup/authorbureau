@@ -210,6 +210,7 @@ Deno.serve(async (req) => {
       /* ─── LIST DRAFTS (+ live / published node items) ───────── */
       if (action === "list-drafts") {
         const allDrafts: any[] = [];
+        const loadWarnings: { table: string; message: string }[] = [];
 
         // node_id (e.g. "BP-02") → builder slug used by ALL_BUILDER_NODES (e.g. "lead-magnet")
         const NODE_CODE_TO_SLUG: Record<string, string> = {
@@ -340,11 +341,12 @@ Deno.serve(async (req) => {
         );
 
         // 3) Query generated_assets for builder_draft_* entries (covers all 28 nodes)
-        const { data: assetDrafts } = await cloudAdmin
+        const { data: assetDrafts, error: assetErr } = await cloudAdmin
           .from("generated_assets")
           .select("id, book_id, asset_type, content, created_at, updated_at, author_id")
           .in("author_id", allUserIds)
           .like("asset_type", "builder_draft_%");
+        if (assetErr) loadWarnings.push({ table: "generated_assets", message: assetErr.message });
 
         for (const asset of assetDrafts || []) {
           const draftNodeId = asset.asset_type.replace("builder_draft_", "");
@@ -389,29 +391,8 @@ Deno.serve(async (req) => {
           for (const b of books || []) titleMap[b.id] = b.title;
         }
 
-        // Per-author primary book fallback (first book per author by created_at)
-        const authorIds = [...new Set(allDrafts.map(d => d.author_id).filter(Boolean))];
-        const authorPrimaryBook: Record<string, { id: string; title: string }> = {};
-        if (authorIds.length > 0) {
-          const { data: authorBooks } = await cloudAdmin
-            .from("books")
-            .select("id, title, author_id, created_at")
-            .in("author_id", authorIds)
-            .order("created_at", { ascending: true });
-          for (const b of authorBooks || []) {
-            if (!authorPrimaryBook[b.author_id]) {
-              authorPrimaryBook[b.author_id] = { id: b.id, title: b.title };
-            }
-          }
-        }
-
-        const enriched = allDrafts.map(d => {
-          let bookTitle = titleMap[d.book_id];
-          if (!bookTitle && d.author_id && authorPrimaryBook[d.author_id]) {
-            bookTitle = authorPrimaryBook[d.author_id].title;
-          }
-          return { ...d, bookTitle: bookTitle || "" };
-        });
+        // No primary-book fallback: rows without a book stay explicitly unassigned.
+        const enriched = allDrafts.map(d => ({ ...d, book_id: d.book_id || null, bookTitle: (d.book_id && titleMap[d.book_id]) || "" }));
 
         console.log("[builder-draft-state] 📋 list-drafts result:", JSON.stringify({
           allUserIds,
@@ -419,7 +400,7 @@ Deno.serve(async (req) => {
           by_table: enriched.reduce((acc: any, d: any) => { acc[d.table] = (acc[d.table] || 0) + 1; return acc; }, {}),
         }));
 
-        return new Response(JSON.stringify({ drafts: enriched }), {
+        return new Response(JSON.stringify({ drafts: enriched, warnings: loadWarnings }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
