@@ -1,3 +1,4 @@
+import { matchesBookScope } from "@/components/dashboard/BookScopeBar";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -97,7 +98,7 @@ export default function LiveMicrositesGrid({ bookScope = "all" }: { bookScope?: 
   }
 
   // DATA-02: only ever show links belonging to the selected book.
-  const scoped = bookScope === "all" ? nodes : nodes.filter(n => n.book_id === bookScope);
+  const scoped = nodes.filter(n => matchesBookScope(n.book_id, bookScope));
   const liveNodes = scoped.map(n => ({ ...n, _publicUrl: pickPublicUrl(n) })).filter(n => n._publicUrl);
   const allLiveNodeIds = new Set(scoped.map(n => n.node_id));
   const inactive = ALL_BUILDER_NODES.filter(n => !allLiveNodeIds.has(n.id));
