@@ -382,6 +382,56 @@ Deno.serve(async (req) => {
     checks.push({ key: "multi_book_url_health", label: "Multi-book microsite URL health", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
   }
 
+  // Audit 2026-10-01 — Book isolation + public reachability.
+  // Fails when any live module, funnel or social post has no book recorded
+  // (it would leak into every book's view), or when a live module of a
+  // multi-book author does not open as a real public page for its own book.
+  try {
+    const [{ count: nodesNoBook }, { count: funnelsNoBook }, { count: postsNoBook }] = await Promise.all([
+      admin.from("author_nodes").select("id", { count: "exact", head: true }).eq("status", "live").is("book_id", null),
+      admin.from("funnels").select("id", { count: "exact", head: true }).is("book_id", null),
+      admin.from("social_posts").select("id", { count: "exact", head: true }).is("book_id", null),
+    ]);
+    const { data: liveRows } = await admin
+      .from("author_nodes")
+      .select("node_id, book_id, author_id, books!inner(slug), author_profiles!inner(author_slug)")
+      .eq("status", "live")
+      .not("book_id", "is", null)
+      .limit(400);
+    const base = Deno.env.get("SUPABASE_URL") ?? "";
+    const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    const unreachable: Array<{ node_id: string; book: string; author: string; status: number }> = [];
+    const sample = (liveRows || []).slice(0, 120);
+    await Promise.all(sample.map(async (r: any) => {
+      const author = r.author_profiles?.author_slug;
+      const book = r.books?.slug;
+      if (!author || !book) return;
+      try {
+        const res = await fetch(`${base}/functions/v1/get-microsite-page?author=${encodeURIComponent(author)}&node=${encodeURIComponent(r.node_id)}&book=${encodeURIComponent(book)}`, {
+          headers: { apikey: anon, Authorization: `Bearer ${anon}` },
+        });
+        if (!res.ok) unreachable.push({ node_id: r.node_id, book, author, status: res.status });
+        else await res.body?.cancel();
+      } catch {
+        unreachable.push({ node_id: r.node_id, book, author, status: 0 });
+      }
+    }));
+    const leaks = (nodesNoBook || 0) + (funnelsNoBook || 0) + (postsNoBook || 0);
+    const bad = leaks + unreachable.length;
+    checks.push({
+      key: "book_isolation",
+      label: "Book isolation + public pages",
+      severity: bad > 0 ? "error" : "ok",
+      count: bad,
+      message: bad === 0
+        ? `Every live module, funnel and social post belongs to one book; ${sample.length} live pages open correctly`
+        : `${leaks} row(s) with no book (modules ${nodesNoBook || 0}, funnels ${funnelsNoBook || 0}, posts ${postsNoBook || 0}); ${unreachable.length} live page(s) failed to open`,
+      details: { unreachable: unreachable.slice(0, 20) },
+    });
+  } catch (e) {
+    checks.push({ key: "book_isolation", label: "Book isolation + public pages", severity: "warn", count: 0, message: `query failed: ${(e as Error).message}` });
+  }
+
   // 11. Synthetic end-to-end journey on the permanent test fixture.
   // Proves every morning that a reader can still sign up through a book and
   // receive the welcome email, using a dedicated test author + test reader
