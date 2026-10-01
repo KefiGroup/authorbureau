@@ -173,12 +173,6 @@ serve(async (req) => {
     }
 
     // Get author context (book data)
-    const { data: context } = await supabase
-      .from("author_context")
-      .select("book_title, book_subtitle, core_thesis, key_frameworks, target_audience_persona")
-      .eq("author_id", profile.id)
-      .limit(1)
-      .maybeSingle();
 
     // Sprint 56 — Per-book book context.
     // Prefer the book resolved from the URL's book slug. If none was given,
@@ -204,6 +198,19 @@ serve(async (req) => {
         .limit(1)
         .maybeSingle();
       if (fb) book = fb;
+    }
+
+    // DATA-01: the book context (thesis, frameworks) must come from the SAME
+    // book as the page. Never borrow another book's context.
+    let context: Record<string, unknown> | null = null;
+    if (book?.id) {
+      const { data: ctxRows } = await supabase
+        .from("author_context")
+        .select("book_title, book_subtitle, core_thesis, key_frameworks, target_audience_persona")
+        .eq("book_id", book.id)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      context = ctxRows?.[0] ?? null;
     }
 
     // Inject node-appropriate primary_cta if the generator omitted one.

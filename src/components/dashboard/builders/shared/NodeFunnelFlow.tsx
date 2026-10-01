@@ -82,7 +82,8 @@ export default function NodeFunnelFlow({
         try {
           const { funnels } = await listFunnels();
           const match = (funnels || []).find(
-            (f: any) => f.node_id === nodeId,
+            // DATA-01: a funnel belongs to one book — never borrow another book's.
+            (f: any) => f.node_id === nodeId && (!bookId || !f.book_id || f.book_id === bookId),
           );
           baseFunnel = (match as BaseFunnel | undefined) ?? null;
         } catch (e) {
@@ -93,12 +94,14 @@ export default function NodeFunnelFlow({
 
       // 2. Archetype + public URL from author_nodes (unless supplied).
       if (!archetypeProp || !publicUrlProp) {
-        const { data: nodeRow } = await supabase
+        let nq = supabase
           .from("author_nodes")
           .select("archetype, microsite_url")
           .eq("author_id", authorId)
-          .eq("node_id", nodeId)
-          .maybeSingle();
+          .eq("node_id", nodeId);
+        if (bookId) nq = nq.eq("book_id", bookId);
+        const { data: nodeRows } = await nq.order("updated_at", { ascending: false }).limit(1);
+        const nodeRow = nodeRows?.[0];
         const arch = (archetypeProp ?? (nodeRow?.archetype as ArchetypeKey | null) ?? null);
         setArchetype(arch);
         setPublicUrl(publicUrlProp ?? (nodeRow?.microsite_url as string | null) ?? null);
@@ -114,7 +117,7 @@ export default function NodeFunnelFlow({
     } finally {
       setLoading(false);
     }
-  }, [authorId, nodeId, funnelProp, archetypeProp, publicUrlProp]);
+  }, [authorId, nodeId, bookId, funnelProp, archetypeProp, publicUrlProp]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -202,9 +205,9 @@ export default function NodeFunnelFlow({
       <Card className="border-dashed">
         <CardContent className="py-8 text-center">
           <Sparkles className="h-8 w-8 mx-auto mb-3 text-primary opacity-70" />
-          <h3 className="font-semibold mb-1">No funnel built yet</h3>
+          <h3 className="font-semibold mb-1">Optional: add a conversion funnel</h3>
           <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-            Let ABBY generate a conversion funnel for this product. Takes about 30 seconds.
+            Your public page above is already live. A funnel adds an extra landing page in front of it. Takes about 30 seconds.
           </p>
           <Button onClick={handleGenerate} disabled={generating}>
             {generating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}

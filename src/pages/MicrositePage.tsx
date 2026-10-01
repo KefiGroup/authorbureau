@@ -2319,7 +2319,8 @@ function BundlesPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
                 return (
                   <>
                     <div className="space-y-2 pt-2 border-t" style={{ borderColor: v.cardBorder }}>
-                      {!enquiry && value != null && (
+                      {/* $100+ rule: never show a $100+ figure, even as a crossed-out value. */}
+                      {!enquiry && value != null && value < PERSONAL_SELLING_THRESHOLD && (
                         <p className="text-sm line-through" style={{ color: v.mutedText }}>{money(value)}</p>
                       )}
                       <div className="flex items-baseline gap-2">
@@ -4085,7 +4086,13 @@ function FundraisingPage({ data, content, v, hFont, bgColor, onSubmit, email, se
                 <Card key={i} className="p-4" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
                   <div className="flex items-baseline justify-between gap-3 flex-wrap mb-1">
                     <h3 className="text-base font-semibold" style={{ color: v.headingText }}>{name}</h3>
-                    {amt != null && <span className="text-base font-bold" style={{ color: v.accent }}>{typeof amt === "number" ? `$${amt.toLocaleString()}` : yrInline(amt)}</span>}
+                    {amt != null && (() => {
+                      const n = typeof amt === "number" ? amt : Number(String(amt).replace(/[^0-9.]/g, ""));
+                      const label = Number.isFinite(n) && n >= PERSONAL_SELLING_THRESHOLD
+                        ? "By arrangement"
+                        : typeof amt === "number" ? `$${amt.toLocaleString()}` : yrInline(amt);
+                      return <span className="text-base font-bold" style={{ color: v.accent }}>{label}</span>;
+                    })()}
                   </div>
                   {desc && <p className="text-sm mb-2 whitespace-pre-line" style={{ color: v.bodyText }}>{desc}</p>}
                   {perks.length > 0 && <ul className="space-y-1 mt-2">{perks.map((x, j) => (<li key={j} className="text-sm" style={{ color: v.bodyText }}>• {x}</li>))}</ul>}

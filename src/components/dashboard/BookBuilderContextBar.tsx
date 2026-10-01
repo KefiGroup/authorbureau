@@ -50,28 +50,30 @@ export default function BookBuilderContextBar({ backTab = "overview" }: Props) {
   const { bookId, bookTitle, bookCoverUrl } = useBookContext();
   const resolvedBackTab = BACK_TAB_ALIASES[backTab] || backTab;
   const [resolvedBookCoverUrl, setResolvedBookCoverUrl] = useState<string | null>(bookCoverUrl);
+  const [resolvedTitle, setResolvedTitle] = useState<string>(bookTitle);
 
   useEffect(() => {
     setResolvedBookCoverUrl(bookCoverUrl);
-    if (bookCoverUrl || !bookId) return;
+    setResolvedTitle(bookTitle);
+    if ((bookCoverUrl && bookTitle) || !bookId) return;
 
     let isMounted = true;
     (async () => {
       const { data } = await supabase
         .from("books")
-        .select("cover_image_url")
+        .select("cover_image_url, title")
         .eq("id", bookId)
         .maybeSingle();
 
-      if (isMounted && data?.cover_image_url) {
-        setResolvedBookCoverUrl(data.cover_image_url);
-      }
+      if (!isMounted) return;
+      if (!bookCoverUrl && data?.cover_image_url) setResolvedBookCoverUrl(data.cover_image_url);
+      if (!bookTitle && data?.title) setResolvedTitle(data.title);
     })();
 
     return () => {
       isMounted = false;
     };
-  }, [bookCoverUrl, bookId]);
+  }, [bookCoverUrl, bookTitle, bookId]);
 
   if (!bookId) return null;
 
@@ -91,14 +93,14 @@ export default function BookBuilderContextBar({ backTab = "overview" }: Props) {
 
       <div className="h-10 w-7 rounded-md overflow-hidden bg-muted flex items-center justify-center shrink-0 shadow-sm border border-border">
         {resolvedBookCoverUrl ? (
-          <img src={resolvedBookCoverUrl} alt={decodeURIComponent(bookTitle)} className="h-full w-full object-cover" />
+          <img src={resolvedBookCoverUrl} alt={resolvedTitle} className="h-full w-full object-cover" />
         ) : (
           <BookOpen className="h-3.5 w-3.5 text-muted-foreground/40" />
         )}
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold truncate">{decodeURIComponent(bookTitle)}</p>
+        <p className="text-sm font-semibold truncate">{resolvedTitle ? decodeURIComponent(resolvedTitle) : "Loading book..."}</p>
         <p className="text-[10px] text-muted-foreground">Product Builder</p>
       </div>
     </div>
