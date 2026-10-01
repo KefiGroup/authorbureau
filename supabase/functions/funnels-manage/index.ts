@@ -10,12 +10,14 @@
 //   - "save_copy"      → update headline/subheadline/body/cta/colors on a funnel
 //   - "save_override"  → upsert/delete a funnel_stage_overrides row
 //   - "set_status"     → live | paused | draft
+//   - "set_book"       → change ONLY the funnel's book_id (uuid or null)
 //
 // Auth: Authorization bearer JWT required. Ownership = JWT sub matches the
 // funnel's author_profiles.user_id (with a tolerant email-fallback match,
 // same as save-author-node).
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildBookAssociationPatch, normalizeBookAssociation } from "../_shared/funnel-book-association.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -257,6 +259,35 @@ Deno.serve(async (req: Request) => {
       });
     }
     return json(200, { overrides_by_funnel: map });
+  }
+
+  // ---------- SET BOOK (association only) ----------
+  if (action === "set_book") {
+    const { funnel_id } = body;
+    if (!funnel_id) return json(400, { error: "funnel_id required" });
+    const parsed = normalizeBookAssociation(body.book_id);
+    if (!parsed.ok) return json(400, { error: "book_id must be a book id or null" });
+    const own = await assertFunnelOwnership(admin, funnel_id, userId, userEmail);
+    if (!own.ok) return json(403, { error: own.reason });
+
+    if (parsed.bookId) {
+      const { data: book } = await admin
+        .from("books")
+        .select("id")
+        .eq("id", parsed.bookId)
+        .eq("author_id", own.authorId!)
+        .limit(1);
+      if (!book?.length) return json(403, { error: "That book doesn't belong to you" });
+    }
+
+    const { data, error } = await admin
+      .from("funnels")
+      .update(buildBookAssociationPatch(parsed.bookId))
+      .eq("id", funnel_id)
+      .select()
+      .single();
+    if (error) return json(500, { error: error.message });
+    return json(200, { funnel: data });
   }
 
   // ---------- SET STATUS ----------
