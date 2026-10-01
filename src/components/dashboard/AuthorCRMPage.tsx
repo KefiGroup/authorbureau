@@ -270,6 +270,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   if ((statsData?.effectiveTotal || 0) === 0 && !showForm) {
     return (
       <div className="space-y-6">
+        <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} extraOptions={[{ id: "unattributed", label: "Unattributed" }]} />
         <div className="rounded-xl bg-primary px-6 py-8 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
             <Star className="h-6 w-6 text-secondary" />
@@ -342,6 +343,7 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
 
   return (
     <div className="max-w-7xl space-y-6">
+      <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} extraOptions={[{ id: "unattributed", label: "Unattributed" }]} />
       {/* Navy Banner Header */}
       <div className="rounded-xl bg-primary px-6 py-5">
         <div className="flex items-center justify-between flex-wrap gap-3">

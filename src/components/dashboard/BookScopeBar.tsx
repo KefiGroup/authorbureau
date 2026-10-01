@@ -61,11 +61,6 @@ export default function BookScopeBar({ books, scope, onChange, className, extraO
           {o.label}
         </Button>
       ))}
-      {extraOptions.map((o) => (
-        <Button key={o.id} size="sm" variant={scope === o.id ? "default" : "outline"} onClick={() => onChange(o.id)}>
-          {o.label}
-        </Button>
-      ))}
     </div>
   );
 }
