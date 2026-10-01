@@ -9,53 +9,34 @@ import {
   Head,
   Heading,
   Html,
-  Img,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
 interface MagicLinkEmailProps {
   siteName: string
   confirmationUrl: string
-  token?: string
 }
 
 export const MagicLinkEmail = ({
   siteName,
   confirmationUrl,
-  token,
 }: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Your login link for Authors Bureau</Preview>
+    <Head>
+      <style>{darkModeCss}</style>
+    </Head>
+    <Preview>Your login link for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Section style={logoSection}>
-          <Img
-            src="https://tubpbslfrxyfhldkcyyq.supabase.co/storage/v1/object/public/email-assets/logo-icon.png"
-            width="48"
-            height="48"
-            alt="Authors Bureau"
-            style={logoImg}
-          />
-        </Section>
         <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
-          Click the button below to sign in to Authors Bureau. This link will
-          expire shortly.
+          Click the button below to log in to {siteName}. This link will expire
+          shortly.
         </Text>
-        <Section style={buttonSection}>
-          <Button style={button} href={confirmationUrl}>
-            Sign In
-          </Button>
-        </Section>
-        {token ? (
-          <Section style={codeSection}>
-            <Text style={codeLabel}>Enter this 8-digit code on the sign-in page:</Text>
-            <Text style={codeValue}>{token}</Text>
-          </Section>
-        ) : null}
+        <Button className="dm-btn" style={button} href={confirmationUrl}>
+          Log In
+        </Button>
         <Text style={footer}>
           If you didn't request this link, you can safely ignore this email.
         </Text>
@@ -66,41 +47,35 @@ export const MagicLinkEmail = ({
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: "'Inter', Arial, sans-serif" }
-const container = { padding: '40px 32px', maxWidth: '480px', margin: '0 auto' }
-const logoSection = { textAlign: 'center' as const, marginBottom: '24px' }
-const logoImg = { display: 'inline-block' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
 const h1 = {
-  fontSize: '24px',
+  fontSize: '22px',
   fontWeight: 'bold' as const,
-  fontFamily: "'Playfair Display', Georgia, serif",
-  color: '#1e2d4a',
-  margin: '0 0 16px',
-  textAlign: 'center' as const,
-}
-const text = {
-  fontSize: '15px',
-  color: '#6b7280',
-  lineHeight: '1.6',
+  color: '#000000',
   margin: '0 0 20px',
 }
-const buttonSection = { textAlign: 'center' as const, margin: '8px 0 32px' }
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
 const button = {
-  backgroundColor: '#1e2d4a',
-  color: '#faf8f5',
-  fontSize: '15px',
-  fontWeight: '600' as const,
-  borderRadius: '12px',
-  padding: '14px 28px',
+  backgroundColor: '#000000',
+  color: '#ffffff',
+  fontSize: '14px',
+  border: '1px solid #000000',
+  borderRadius: '8px',
+  padding: '12px 20px',
   textDecoration: 'none',
 }
-const codeSection = { textAlign: 'center' as const, margin: '0 0 24px' }
-const codeLabel = { fontSize: '13px', color: '#6b7280', margin: '0 0 8px' }
-const codeValue = {
-  fontSize: '28px',
-  fontWeight: 'bold' as const,
-  letterSpacing: '6px',
-  color: '#1e2d4a',
-  margin: '0',
-}
-const footer = { fontSize: '12px', color: '#9ca3af', margin: '24px 0 0', textAlign: 'center' as const }
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+// Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
+const darkModeCss = `
+  @media (prefers-color-scheme: dark) {
+    .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  }
+  [data-ogsc] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  [data-ogsb] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+`
