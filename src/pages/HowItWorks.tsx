@@ -77,9 +77,9 @@ const pricingCards = [
     title: "The Empire Builder",
     price: "$499/mo",
     tier: "BRAND + BUILD + YIELD",
-    streams: "All 28 revenue streams · Full-time (leveraged)",
-    revenue: "Projected: $68,500-$215,500 in Year 1",
-    desc: "Your book is the entry point to a multi-million dollar business with premium Yield Revenue services.",
+    streams: "All revenue streams · Full-time (leveraged)",
+    revenue: "Premium Yield Revenue services",
+    desc: "Your book is the entry point to a broader business with premium Yield Revenue services.",
     border: "border-[hsl(45,50%,54%)]",
     bg: "bg-[hsl(45,50%,54%)]/10",
     badge: "BEST VALUE",
@@ -89,9 +89,9 @@ const pricingCards = [
 export default function HowItWorks() {
   useDocumentMeta({
     title: "How It Works — Authors Bureau | The ABBY Framework",
-    description: "See how the ABBY Framework turns your published book into 28 revenue streams across Brand, Build, and Yield phases — guided by your AI Business Advisor.",
+    description: "See how the ABBY Framework helps you build new revenue streams from your published book across Brand, Build, and Yield phases — guided by your AI Business Advisor.",
     ogTitle: "How It Works — Authors Bureau",
-    ogDescription: "See how the ABBY Framework turns your published book into 28 revenue streams — guided by your AI Business Advisor.",
+    ogDescription: "See how the ABBY Framework helps you build new revenue streams from your published book — guided by your AI Business Advisor.",
     ogImage: "https://authorsbureau.com/og-image.jpg",
     ogUrl: "https://authorsbureau.com/how-it-works",
     canonical: "https://authorsbureau.com/how-it-works",
@@ -113,7 +113,7 @@ export default function HowItWorks() {
             variants={fadeUp} custom={0}
             className="font-heading text-4xl md:text-5xl lg:text-6xl font-bold leading-tight"
           >
-            One Book. 28 Revenue Streams.{" "}
+            One Book. Many Revenue Streams.{" "}
             <span className="text-[hsl(45,50%,54%)]">Your Empire.</span>
           </motion.h1>
           <motion.p
@@ -143,13 +143,13 @@ export default function HowItWorks() {
               From Published Author to Business Owner
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-              Most authors earn less than $23,000/year from their books alone (Authors Guild, 2024). Authors Bureau changes that by unlocking 28 revenue streams from a single manuscript, and Abby, your AI advisor, builds everything for you.
+              A published book can be more than royalties. Authors Bureau helps you build new revenue streams from a single manuscript, guided by Abby, your AI advisor.
             </motion.p>
           </motion.div>
           <motion.img
             initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }} transition={{ duration: 0.6 }}
-            src={frameworkImg} alt="How Your 28 Revenue Streams Connect: Brand, Build, Yield"
+            src={frameworkImg} alt="How Your Revenue Streams Connect: Brand, Build, Yield"
             className="w-full rounded-2xl shadow-xl"
             loading="lazy"
           />
@@ -165,7 +165,7 @@ export default function HowItWorks() {
               The Brand-Build-Yield Framework
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-              Your 28 revenue streams are organized into three strategic tiers. Each tier builds on the last: Brand your products, Build your authority, then Yield premium revenue.
+              Your revenue streams are organized into three strategic tiers. Each tier builds on the last: Brand your products, Build your authority, then Yield premium revenue.
             </motion.p>
           </motion.div>
           <motion.img
@@ -264,7 +264,7 @@ export default function HowItWorks() {
               Everything Connects. Everything Flows.
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg leading-relaxed">
-              When you build a course, Abby automatically creates the email sequence to sell it, the social media posts to promote it, and the sales page to convert visitors. Every product feeds into the next.
+              When you build a course, Abby helps you create the email sequence to sell it, the social media posts to promote it, and the sales page to convert visitors. Every product feeds into the next.
             </motion.p>
           </motion.div>
 

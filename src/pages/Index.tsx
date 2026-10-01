@@ -414,8 +414,8 @@ export default function Index() {
                       <p className="text-sm text-primary-foreground/70 italic">We SUCK Before We SUCCEED</p>
                       <p className="text-xs text-primary-foreground/50 mt-1">by Pauline Teo</p>
                       <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ #1 Best Seller</span>
-                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ #1 New Release</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ Best Seller</span>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-2.5 py-0.5 text-xs font-semibold text-secondary">⭐ New Release</span>
                       </div>
                     </div>
                   </div>
