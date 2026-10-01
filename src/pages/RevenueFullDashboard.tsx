@@ -828,8 +828,19 @@ function NudgeCards({ authorId }: { authorId: string | null }) {
         .eq("author_id", authorId)
         .eq("is_read", false)
         .order("created_at", { ascending: false })
-        .limit(3)
-        .then(({ data }) => setNudges((data as Nudge[]) || []));
+        .limit(10)
+        .then(({ data }) => {
+          // One card per message: the gate engine fires once per book, so the
+          // same alert can exist several times for multi-book authors.
+          const seen = new Set<string>();
+          const unique = ((data as Nudge[]) || []).filter((n) => {
+            const key = `${n.title}|${n.content}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+          setNudges(unique.slice(0, 3));
+        });
     };
     fetchNudges();
 
