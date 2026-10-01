@@ -11,7 +11,7 @@ const Footer = forwardRef<HTMLElement>((_props, ref) => {
           <div className="space-y-4">
             <img src={logoText} alt="Authors Bureau" className="h-20 w-auto" />
             <p className="text-sm text-primary-foreground/70">
-              The AI-powered platform that helps you build new revenue streams from your book.
+              The #1 AI-powered platform that turns your book into 28 revenue streams.
             </p>
           </div>
 

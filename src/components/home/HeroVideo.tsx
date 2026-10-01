@@ -52,7 +52,7 @@ export default function HeroVideo() {
           </Button>
         </div>
         <p className="px-2 pt-3 text-center text-sm text-primary">
-          See how Authors Bureau helps authors build a business from one book in 45 seconds.
+          See how Abby turns one book into 28 revenue streams in 45 seconds.
         </p>
       </div>
     </div>
