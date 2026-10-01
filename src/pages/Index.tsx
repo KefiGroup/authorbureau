@@ -65,9 +65,9 @@ const jsonLd = {
 export default function Index() {
   useDocumentMeta({
     title: "Authors Bureau — Free Monthly Book-Writing Program for Entrepreneurs",
-    description: "Write your book in our free monthly entrepreneur book-writing and anthology program, then turn your published book into courses, coaching, speaking and more with Authors Bureau.",
+    description: "Pauline Teo's free monthly book-writing and anthology program is for entrepreneurs. PublishNow's annual subscription is optional, and Authors Bureau is the next step for backend sales.",
     ogTitle: "Authors Bureau — Free Monthly Book-Writing Program for Entrepreneurs",
-    ogDescription: "Write your book in our free monthly entrepreneur book-writing and anthology program, then turn your published book into courses, coaching, speaking and more with Authors Bureau.",
+    ogDescription: "Pauline Teo's free monthly book-writing and anthology program is for entrepreneurs. PublishNow's annual subscription is optional, and Authors Bureau is the next step for backend sales.",
     ogImage: "https://authorsbureau.com/og-image.jpg",
     ogUrl: "https://authorsbureau.com/",
     canonical: "https://authorsbureau.com/",
@@ -117,12 +117,8 @@ export default function Index() {
             </motion.div>
 
             <motion.div initial="hidden" animate="visible" className="text-center lg:text-left">
-              <motion.p variants={fadeUp} custom={2} className="mb-3 font-heading text-xl text-primary-foreground/90 md:text-2xl">
-                Every month, entrepreneurs write and publish their books together in our free book-writing and anthology program.
-              </motion.p>
-
-              <motion.p variants={fadeUp} custom={2.5} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70 lg:mx-0">
-                Start with the free monthly program and get your book written. When it is ready, an optional PublishNow annual subscription helps you publish it, and Authors Bureau turns your published book into backend sales: courses, coaching, speaking, and more, built with you by Abby, your AI Business Consultant.
+              <motion.p variants={fadeUp} custom={2} className="mx-auto mb-4 max-w-2xl text-lg text-primary-foreground/70 lg:mx-0">
+                Pauline Teo's free monthly book-writing and anthology program is for entrepreneurs. Ask about the program; PublishNow's annual subscription is optional, and Authors Bureau is the next step for backend sales.
               </motion.p>
 
               <motion.div variants={fadeUp} custom={3.5} className="flex flex-wrap justify-center gap-4 lg:justify-start">
@@ -133,8 +129,6 @@ export default function Index() {
 
               <motion.div variants={fadeUp} custom={4} className="mt-8 flex flex-wrap justify-center gap-4 text-sm text-primary-foreground/60 lg:justify-start">
                 <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Free monthly program</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> Write with other entrepreneurs</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="h-4 w-4 text-secondary" /> 28 revenue streams when you are ready</span>
               </motion.div>
               <motion.div variants={fadeUp} custom={4.5} className="mt-4">
                 <Link to="/auth" className="text-sm text-primary-foreground/50 hover:text-secondary transition-colors underline">
@@ -153,11 +147,11 @@ export default function Index() {
               Your Path
             </motion.p>
             <motion.h2 variants={fadeUp} custom={1} className="font-heading text-3xl font-bold md:text-5xl mb-6">
-              From First Draft to a Business{" "}
-              <span className="text-gradient-gold">Behind Your Book</span>
+              Your path from the free program to{" "}
+              <span className="text-gradient-gold">optional next steps</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={2} className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              Three steps take you from writing your book to earning from it. You decide how far to go.
+              Start by learning about the free monthly program. PublishNow and Authors Bureau are later options.
             </motion.p>
           </motion.div>
 
@@ -167,19 +161,19 @@ export default function Index() {
                 step: "1",
                 tag: "Free",
                 title: "Free Monthly Entrepreneur Program",
-                desc: "Write your book alongside other entrepreneurs in our free monthly book-writing and anthology program.",
+                desc: "A free monthly book-writing and anthology program for entrepreneurs.",
               },
               {
                 step: "2",
                 tag: "Optional",
-                title: "PublishNow Annual Subscription",
-                desc: "When your manuscript is ready, an optional PublishNow annual subscription helps you publish your book.",
+                title: "Optional PublishNow Annual Subscription",
+                desc: "An optional annual subscription from PublishNow.",
               },
               {
                 step: "3",
-                tag: "Grow",
+                tag: "Next step",
                 title: "Authors Bureau Backend Sales",
-                desc: "With your book published, Abby builds the business behind it: courses, coaching, speaking, and more across 28 revenue streams.",
+                desc: "Authors Bureau is the next step for backend sales.",
               },
             ].map((item) => (
               <motion.div
@@ -583,11 +577,11 @@ export default function Index() {
         <div className="container relative z-10 text-center">
           <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, margin: "-100px" }}>
             <motion.h2 variants={fadeUp} custom={0} className="font-heading text-3xl font-bold md:text-5xl text-primary-foreground mb-6">
-              Your Book Deserves More Than{" "}
-              <span className="text-gradient-gold">Royalties</span>
+              Start With the{" "}
+              <span className="text-gradient-gold">Free Monthly Program</span>
             </motion.h2>
             <motion.p variants={fadeUp} custom={1} className="text-lg text-primary-foreground/70 max-w-2xl mx-auto mb-10">
-              Start with the free monthly book-writing and anthology program. When your book is ready, publish with an optional PublishNow subscription, and let Authors Bureau build the business behind it.
+              Pauline Teo's free monthly book-writing and anthology program is for entrepreneurs. PublishNow's annual subscription is optional, and Authors Bureau is the next step for backend sales.
             </motion.p>
             <motion.div variants={fadeUp} custom={2} className="flex flex-wrap justify-center gap-4">
               <Button asChild size="lg" className="bg-secondary text-secondary-foreground hover:bg-secondary/90 text-base font-semibold shadow-[var(--shadow-gold)] rounded-full px-8">
