@@ -16,13 +16,13 @@ import {
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2, Users, ChevronDown, ChevronUp, MoreHorizontal } from "lucide-react";
+import { Filter, ExternalLink, Copy, Edit, Eye, Power, Sparkles, Loader2, Users, ChevronDown, ChevronUp, MoreHorizontal, BookOpen } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { NODE_NAMES } from "@/lib/node-slug-map";
 import NodeFunnelFlow from "@/components/dashboard/builders/shared/NodeFunnelFlow";
 import type { ArchetypeKey } from "@/lib/funnel-archetype";
 import { resolveFunnelBookId } from "@/lib/active-book-scope";
-import { listFunnels, listOverridesBulk, saveFunnelCopy, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
+import { listFunnels, listOverridesBulk, saveFunnelCopy, setFunnelBook, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
 import { getStagesForArchetype, type OverridesMap } from "@/lib/funnel-flow-stages";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -91,6 +91,9 @@ export default function FunnelsHub() {
   const [saving, setSaving] = useState(false);
   const [regenerateTarget, setRegenerateTarget] = useState<Funnel | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [bookTarget, setBookTarget] = useState<Funnel | null>(null);
+  const [bookChoice, setBookChoice] = useState<string>("");
+  const [savingBook, setSavingBook] = useState(false);
   const [allLiveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
@@ -349,6 +352,22 @@ export default function FunnelsHub() {
       toast({ title: "Save failed", description: e?.message, variant: "destructive" });
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Association-only: sends just funnel_id + book_id. No copy, status or leads.
+  const saveBookChange = async () => {
+    if (!bookTarget) return;
+    setSavingBook(true);
+    try {
+      await setFunnelBook(bookTarget.id, bookChoice || null);
+      toast({ title: "Book updated" });
+      setBookTarget(null);
+      await loadFunnels();
+    } catch (e: any) {
+      toast({ title: "Couldn't change book", description: e?.message, variant: "destructive" });
+    } finally {
+      setSavingBook(false);
     }
   };
 
@@ -647,6 +666,11 @@ export default function FunnelsHub() {
                         <DropdownMenuItem onClick={() => setEditing({ ...f })}>
                           <Edit className="h-3.5 w-3.5 mr-2" />Edit copy
                         </DropdownMenuItem>
+                        {myBooks.length > 0 && (
+                          <DropdownMenuItem onClick={() => { setBookTarget(f); setBookChoice(f.book_id ?? ""); }}>
+                            <BookOpen className="h-3.5 w-3.5 mr-2" />Change book
+                          </DropdownMenuItem>
+                        )}
                         {(() => {
                           const incomplete = f.status === "live" ? [] : getIncompleteStageLabels(f);
                           const isBlocked = f.status !== "live" && incomplete.length > 0;
@@ -831,6 +855,42 @@ export default function FunnelsHub() {
             <AlertDialogAction onClick={regenerate} disabled={regenerating}>
               {regenerating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Sparkles className="h-4 w-4 mr-2" />}
               Regenerate
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!bookTarget} onOpenChange={(o) => !o && !savingBook && setBookTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Change book</AlertDialogTitle>
+            <AlertDialogDescription>
+              Choose which book "{bookTarget?.title}" belongs to. Only the book link changes. Copy, steps, status and leads stay exactly as they are.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="funnel-book-select">Book</Label>
+            <select
+              id="funnel-book-select"
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+              value={bookChoice}
+              onChange={(e) => setBookChoice(e.target.value)}
+              disabled={savingBook}
+            >
+              <option value="">Unattributed</option>
+              {myBooks.map((b) => (
+                <option key={b.id} value={b.id}>{b.title}</option>
+              ))}
+            </select>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={savingBook}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); saveBookChange(); }}
+              disabled={savingBook || (bookChoice || null) === (bookTarget?.book_id ?? null)}
+            >
+              {savingBook ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <BookOpen className="h-4 w-4 mr-2" />}
+              Save book
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -106,3 +106,11 @@ export async function setFunnelStatus(
 ): Promise<{ funnel: FunnelRow }> {
   return callFn("set_status", { funnel_id: funnelId, status });
 }
+
+/** Change ONLY the funnel's book association (null = Unattributed). */
+export async function setFunnelBook(
+  funnelId: string,
+  bookId: string | null,
+): Promise<{ funnel: FunnelRow }> {
+  return callFn("set_book", { funnel_id: funnelId, book_id: bookId });
+}
