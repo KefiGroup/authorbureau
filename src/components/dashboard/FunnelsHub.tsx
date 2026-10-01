@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import BookScopeBar, { useBookScope, ALL_BOOKS_SCOPE } from "@/components/dashboard/BookScopeBar";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ type FilterKey = "all" | ArchetypeKey | "live" | "paused";
 interface Funnel {
   id: string;
   node_id: string | null;
+  book_id?: string | null;
   funnel_type: string;
   title: string;
   slug: string;
@@ -58,6 +60,7 @@ interface LiveNode {
   microsite_url: string | null;
   status: string;
   archetype: "A" | "B" | "C" | "D" | null;
+  book_id?: string | null;
 }
 
 // Archetype-derived defaults. The edge function also resolves the archetype
@@ -80,14 +83,14 @@ export default function FunnelsHub() {
   const navigate = useNavigate();
   const [authorId, setAuthorId] = useState<string | null>(null);
   const [authorSlug, setAuthorSlug] = useState<string | null>(null);
-  const [funnels, setFunnels] = useState<Funnel[]>([]);
+  const [allFunnels, setFunnels] = useState<Funnel[]>([]);
   const [leadsCount, setLeadsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Funnel | null>(null);
   const [saving, setSaving] = useState(false);
   const [regenerateTarget, setRegenerateTarget] = useState<Funnel | null>(null);
   const [regenerating, setRegenerating] = useState(false);
-  const [liveNodes, setLiveNodes] = useState<LiveNode[]>([]);
+  const [allLiveNodes, setLiveNodes] = useState<LiveNode[]>([]);
   const [generatingNodeId, setGeneratingNodeId] = useState<string | null>(null);
   const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -104,6 +107,16 @@ export default function FunnelsHub() {
     setTimeout(() => setHighlightId((cur) => (cur === id ? null : cur)), 4000);
   };
   const { user, loading: authLoading } = useAuth();
+  const { books: myBooks, scope: bookScope, setScope: setBookScope } = useBookScope(user?.id);
+  const funnels = useMemo(
+    () => (bookScope === ALL_BOOKS_SCOPE ? allFunnels : allFunnels.filter((f) => f.book_id === bookScope)),
+    [allFunnels, bookScope],
+  );
+  const liveNodes = useMemo(
+    () => (bookScope === ALL_BOOKS_SCOPE ? allLiveNodes : allLiveNodes.filter((n) => n.book_id === bookScope)),
+    [allLiveNodes, bookScope],
+  );
+  const bookTitleById = useMemo(() => Object.fromEntries(myBooks.map((b) => [b.id, b.title])), [myBooks]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -169,7 +182,7 @@ export default function FunnelsHub() {
     // function which template to use.
     const { data, error } = await supabase
       .from("author_nodes")
-      .select("node_id, microsite_url, status, archetype")
+      .select("node_id, microsite_url, status, archetype, book_id")
       .eq("author_id", aid)
       .eq("status", "live");
     if (error) console.error("[FunnelsHub] live nodes error:", error);
@@ -403,6 +416,7 @@ export default function FunnelsHub() {
         <p className="text-muted-foreground">
           ABBY auto-generates conversion funnels for your published products. Edit copy, preview live pages, and watch conversions roll in.
         </p>
+        <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} className="mt-4" />
       </div>
 
       {/* Stats strip */}
