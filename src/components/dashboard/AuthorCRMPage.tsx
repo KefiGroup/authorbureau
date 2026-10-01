@@ -13,7 +13,6 @@ import HotLeadsCard from "./crm/HotLeadsCard";
 import DailyIntelligenceCard from "./crm/DailyIntelligenceCard";
 import ContactListView from "@/components/crm/ContactListView";
 import BookScopeBar, { useBookScope, ALL_BOOKS_SCOPE } from "@/components/dashboard/BookScopeBar";
-import BookScopeBar, { useBookScope, ALL_BOOKS_SCOPE } from "@/components/dashboard/BookScopeBar";
 import AbbyIntelligenceView from "@/components/crm/AbbyIntelligenceView";
 import ContactDetailPanel from "@/components/crm/ContactDetailPanel";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,12 +65,6 @@ export default function AuthorCRMPage({ onNavigate }: Props) {
   const scopedFetch = useCallback(
     (action: string, extra: Record<string, any> = {}) =>
       crmFetch(action, bookScope === ALL_BOOKS_SCOPE ? extra : { ...extra, book_id: bookScope }),
-    [bookScope],
-  );
-  const { books: myBooks, scope: bookScope, setScope: setBookScope } = useBookScope(user?.id);
-  const scopedFetch = useCallback(
-    (action: string, extra: Record<string, any> = {}) =>
-      scopedFetch(action, bookScope === ALL_BOOKS_SCOPE ? extra : { ...extra, book_id: bookScope }),
     [bookScope],
   );
   const { toast } = useToast();
