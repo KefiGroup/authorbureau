@@ -130,11 +130,13 @@ Deno.serve(async (req: Request) => {
       // Not an author yet — return empty list, not an error.
       return json(200, { funnels: [], authorId: null });
     }
-    const { data, error } = await admin
+    let q = admin
       .from("funnels")
       .select("*")
-      .eq("author_id", authorId)
-      .order("created_at", { ascending: false });
+      .eq("author_id", authorId);
+    const scopeBook = typeof body.book_id === "string" && /^[0-9a-f-]{36}$/i.test(body.book_id) ? body.book_id : null;
+    if (scopeBook) q = q.eq("book_id", scopeBook);
+    const { data, error } = await q.order("created_at", { ascending: false });
     if (error) return json(500, { error: error.message });
     return json(200, { funnels: data ?? [], authorId });
   }

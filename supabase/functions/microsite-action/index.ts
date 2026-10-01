@@ -18,7 +18,7 @@ serve(async (req) => {
     console.log("[microsite-action] ▶ Function invoked");
     const body = await req.json();
     console.log("[microsite-action] Body received:", JSON.stringify({ author_id: body.author_id, node_id: body.node_id, action_type: body.action_type, email: body.email }));
-    const { author_id, node_id, action_type, email, first_name, last_name, quiz_stage, quiz_score, quiz_answers, ...extra } = body;
+    const { author_id, node_id, book_id: rawBookId, action_type, email, first_name, last_name, quiz_stage, quiz_score, quiz_answers, ...extra } = body;
 
     if (!author_id || !node_id || !action_type || !email) {
       return new Response(
@@ -109,13 +109,14 @@ serve(async (req) => {
     // ─── LEVEL 1: Author-level CRM ───
     console.log("[microsite-action] ▶ LEVEL 1 CRM for author_id:", authorUserId);
     let authorContactId: string | null = null;
+    const bookIdForCrm = typeof rawBookId === "string" && /^[0-9a-f-]{36}$/i.test(rawBookId) ? rawBookId : null;
     const isQuizCapture = node_id === "BP-02" && quiz_stage;
 
     try {
       // Dedup by email
       const { data: existing } = await supabaseAdmin
         .from("crm_contacts")
-        .select("id")
+        .select("id, book_id")
         .eq("author_id", authorUserId)
         .eq("email", cleanEmail)
         .maybeSingle();
@@ -131,6 +132,7 @@ serve(async (req) => {
         await supabaseAdmin.from("crm_contacts").update({
           ...(fullName !== email ? { full_name: fullName } : {}),
           ...(node_id ? { last_node_id: node_id } : {}),
+          ...(bookIdForCrm && !(existing as any).book_id ? { book_id: bookIdForCrm } : {}),
           ...quizFields,
         }).eq("id", authorContactId);
       } else {
@@ -145,6 +147,7 @@ serve(async (req) => {
             company: extra.company || null,
             abby_score: isQuizCapture ? 2 : 0,
             last_node_id: node_id || null,
+            book_id: bookIdForCrm,
             ...quizFields,
           })
           .select("id")

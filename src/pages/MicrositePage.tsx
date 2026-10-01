@@ -210,6 +210,7 @@ export default function MicrositePage() {
         body: {
           author_id: data.author.id,
           node_id: resolvedNodeId,
+          book_id: (data.node as any)?.book_id ?? null,
           action_type: getActionType(resolvedNodeId!),
           email,
           first_name: firstName,
