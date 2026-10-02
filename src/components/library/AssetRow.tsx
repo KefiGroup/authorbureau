@@ -91,7 +91,7 @@ export default function AssetRow({
   const subContent = pluckByKey(node.content_json, asset.key) ?? node.content_json;
   // BP-01's welcome_sequence is a bare array; the exporter only walks objects,
   // so wrap it under its key or the file comes out with no emails in it.
-  const exportContent = node.node_id === "BP-01" && Array.isArray(subContent)
+  const exportContent = (node.node_id === "BP-01" || node.node_id === "BP-07") && Array.isArray(subContent)
     ? { [asset.key]: subContent }
     : subContent;
   const opts = { content: exportContent, nodeName: asset.label, bookTitle, authorName: penName ?? undefined };
