@@ -1,3 +1,4 @@
+import { downloadThinkificPackage } from "@/lib/builder-thinkific-export";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -195,7 +196,6 @@ export default function AssetRow({
         const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         triggerDownload(blob, data.filename || `${asset.label}.pptx`);
       } else if (fmt === "thinkific_zip") {
-        const { downloadThinkificPackage } = await import("@/lib/builder-thinkific-export");
         await downloadThinkificPackage(node.content_json || {});
         toast.success("Course bundle downloaded");
       } else if (fmt === "csv") {
