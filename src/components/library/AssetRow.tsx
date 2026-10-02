@@ -181,7 +181,7 @@ export default function AssetRow({
         // Universal pro-slides exporter — works for any node with slides
         const { data, error } = await invokeWithTimeout<{ filename: string; base64: string }>(
           "export-pro-slides",
-          { node_id: node.node_id, asset_key: asset.key, theme: "editorial" },
+          { node_id: node.node_id, asset_key: asset.key, theme: "editorial", book_id: node.book_id ?? null },
           120000,
         );
         if (error) throw error;
