@@ -260,7 +260,9 @@ export default function AuthorLibrary() {
             // Only real web files are direct downloads. Internal markers such as
             // BP-01's "sequence://…" fall back to exporting the stored content.
             const hasLibAsset = !!(libAsset?.url && /^https?:\/\//i.test(libAsset.url));
-            const legacyAssets = getAvailableAssets(n.node_id, n.content_json);
+            const legacyAssets = hasLibAsset && n.node_id !== "BP-02"
+              ? []
+              : getAvailableAssets(n.node_id, n.content_json);
             if (!hasLibAsset && !legacyAssets.length) return null;
             return (
               <Card key={n.id}>
