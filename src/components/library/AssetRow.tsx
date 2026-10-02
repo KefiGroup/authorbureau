@@ -1,3 +1,4 @@
+import { downloadThinkificPackage } from "@/lib/builder-thinkific-export";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -195,7 +196,6 @@ export default function AssetRow({
         const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         triggerDownload(blob, data.filename || `${asset.label}.pptx`);
       } else if (fmt === "thinkific_zip") {
-        const { downloadThinkificPackage } = await import("@/lib/builder-thinkific-export");
         await downloadThinkificPackage(node.content_json || {});
         toast.success("Course bundle downloaded");
       } else if (fmt === "csv") {
@@ -263,14 +263,26 @@ export default function AssetRow({
         <Button variant="ghost" size="sm" onClick={handleOpen}>
           <ExternalLink className="h-4 w-4 mr-1" />Open
         </Button>
+        {primaryFormat === "thinkific_zip" && (
+          <Button variant="default" size="sm" disabled={busy !== null} onClick={() => run("thinkific_zip")}>
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+            THINKIFIC_ZIP
+          </Button>
+        )}
         {asset.formats.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="default" size="sm" disabled={busy !== null}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-                {primaryFormat?.toUpperCase()}
-                <ChevronDown className="h-3 w-3 ml-1" />
-              </Button>
+              {primaryFormat === "thinkific_zip" ? (
+                <Button variant="outline" size="sm" disabled={busy !== null} aria-label="More download formats">
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              ) : (
+                <Button variant="default" size="sm" disabled={busy !== null}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                  {primaryFormat?.toUpperCase()}
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                </Button>
+              )}
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {asset.formats.map(f => (
