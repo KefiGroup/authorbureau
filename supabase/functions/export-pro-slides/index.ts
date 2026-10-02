@@ -100,7 +100,7 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
     // Hero: full-bleed image with overlay title
     if (coverImage) {
       try {
-        s.addImage({ path: coverImage, x: 0, y: 0.18, w: 13.33, h: 7.32, sizing: { type: "cover", w: 13.33, h: 7.32 } });
+        s.addImage({ data: coverImage, x: 0, y: 0.18, w: 13.33, h: 7.32, sizing: { type: "cover", w: 13.33, h: 7.32 } });
         // Dark overlay for text legibility
         s.addShape("rect", { x: 0, y: 4.5, w: 13.33, h: 3.0, fill: { color: "000000", transparency: 50 } });
         s.addText(String(slide.title || ""), {
@@ -282,7 +282,7 @@ serve(async (req) => {
     }
     const userId = claims.claims.sub;
 
-    const { node_id, asset_key = "*", theme: themeName = "editorial" } = await req.json();
+    const { node_id, asset_key = "*", theme: themeName = "editorial", book_id = null } = await req.json();
     if (!node_id) throw new Error("node_id required");
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
@@ -290,12 +290,16 @@ serve(async (req) => {
       .from("author_profiles").select("id, pen_name").eq("user_id", userId).maybeSingle();
     if (!profile) throw new Error("Author profile not found");
 
-    const { data: node } = await admin
+    // Multi-book authors have one row per book — always scope by book_id so
+    // the exported deck is the selected book's (maybeSingle errored before).
+    let nodeQuery = admin
       .from("author_nodes")
       .select("content_json, node_name, personalised_name")
       .eq("author_id", profile.id)
-      .eq("node_id", node_id)
-      .maybeSingle();
+      .eq("node_id", node_id);
+    if (book_id) nodeQuery = nodeQuery.eq("book_id", book_id);
+    const { data: nodeRows } = await nodeQuery.order("updated_at", { ascending: false }).limit(1);
+    const node = nodeRows?.[0];
     if (!node?.content_json) throw new Error(`No content for node ${node_id}`);
 
     const slides = findSlides(node.content_json, asset_key);
@@ -320,7 +324,18 @@ serve(async (req) => {
       });
       if (coverRes.ok) {
         const j = await coverRes.json();
-        if (j.url) coverImage = j.url;
+        // pptxgenjs fetches `path` images with XMLHttpRequest, which Deno lacks.
+        // Embed the image as base64 data instead.
+        if (j.url) {
+          const imgRes = await fetch(j.url);
+          if (imgRes.ok) {
+            const mime = imgRes.headers.get("content-type") || "image/png";
+            const bytes = new Uint8Array(await imgRes.arrayBuffer());
+            let bin = "";
+            for (let k = 0; k < bytes.length; k += 0x8000) bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
+            coverImage = `${mime};base64,${btoa(bin)}`;
+          }
+        }
       }
     } catch (e) {
       console.warn("Cover image fetch failed (non-fatal):", e);
