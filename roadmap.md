@@ -13,5 +13,3 @@
 - [ ] Review homepage visual hierarchy, imagery, typography, colours, and conversion copy
 - [ ] Correct confirmed homepage issues without changing business logic
 - [ ] Verify desktop and mobile presentation
-- [ ] Inspect the existing Invest Like Buffett BP-02 asset and locate any downloadable starter-kit file
-- [ ] If absent, create and publish only a verified-source starter-kit asset containing the book's 3R framework, checklists, and margin-of-safety material
