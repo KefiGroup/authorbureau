@@ -77,6 +77,11 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
       probe: c => has(c, "nurture_emails"), sizeHint: c => { const n = arrLen(c, "nurture_emails"); return n ? `${n} emails` : undefined; } },
     { key: "broadcast_templates", label: "Broadcast templates", type: "text", formats: TEXT_FORMATS,
       probe: c => has(c, "broadcast_templates") },
+    // Current BP-01 generator shape (welcome_sequence + first_broadcast).
+    { key: "welcome_sequence", label: "Welcome email sequence", type: "text", formats: TEXT_FORMATS,
+      probe: c => has(c, "welcome_sequence"), sizeHint: c => { const n = arrLen(c, "welcome_sequence"); return n ? `${n} emails` : undefined; } },
+    { key: "first_broadcast", label: "First broadcast email", type: "text", formats: TEXT_FORMATS,
+      probe: c => has(c, "first_broadcast") },
   ],
   "BP-02": [
     { key: "quiz", label: "Quiz + result archetypes", type: "text", formats: TEXT_FORMATS,

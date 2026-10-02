@@ -257,7 +257,9 @@ export default function AuthorLibrary() {
             const libAsset = (n.content_json?.library_asset ?? null) as
               | { kind?: string; url?: string; pdf_url?: string | null; txt_url?: string | null; title?: string }
               | null;
-            const hasLibAsset = !!(libAsset && libAsset.url);
+            // Only real web files are direct downloads. Internal markers such as
+            // BP-01's "sequence://…" fall back to exporting the stored content.
+            const hasLibAsset = !!(libAsset?.url && /^https?:\/\//i.test(libAsset.url));
             const legacyAssets = hasLibAsset ? [] : getAvailableAssets(n.node_id, n.content_json);
             if (!hasLibAsset && !legacyAssets.length) return null;
             return (

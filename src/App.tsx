@@ -192,6 +192,7 @@ const AppRoutes = () => (
       {/* Legacy redirects */}
       <Route path="/reading-club" element={<Navigate to="/readers-bureau" replace />} />
       <Route path="/reader-portal" element={<Navigate to="/readers-bureau?tab=library" replace />} />
+      <Route path="/library" element={<LegacyLibraryRedirect />} />
       <Route path="/reader-portal/:id" element={<ReaderPortalIdRedirect />} />
 
       <Route path="/how-it-works" element={<HowItWorks />} />
