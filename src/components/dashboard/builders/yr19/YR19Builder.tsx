@@ -22,6 +22,20 @@ const ACT_MSGS = ["Publishing your coaching practice..."];
 
 interface Props { authorId: string | null; bookId?: string | null; }
 
+/**
+ * The stored summary text had its dollar figures stripped by the content
+ * scrubber, leaving "(1-month, )". In this private author view, fill each empty
+ * slot from the stored package prices, in order. Display only — never saved.
+ */
+export function fillSummaryPrices(summary: unknown, packages: unknown): unknown {
+  if (typeof summary !== "string" || !Array.isArray(packages)) return summary;
+  const prices = packages.map((p: any) => Number(p?.price_usd));
+  const slots = summary.match(/,\s*\)/g)?.length ?? 0;
+  if (!slots || slots !== prices.length || prices.some((n) => !Number.isFinite(n) || n <= 0)) return summary;
+  let i = 0;
+  return summary.replace(/,\s*\)/g, () => `, $${prices[i++].toLocaleString()})`);
+}
+
 export default function YR19Builder({ authorId, bookId }: Props) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
