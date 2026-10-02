@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveUser } from "../_shared/resolve-user.ts";
 // @ts-ignore - npm specifier
 import PptxGenJS from "https://esm.sh/pptxgenjs@3.12.0";
 
@@ -622,11 +623,33 @@ serve(async (req) => {
 
     const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { data: author } = await supabase.from("author_profiles").select("pen_name").eq("id", author_id).single();
+    console.log("[export-bp09-slides] request", { author_id, book_id, deck });
+    let ownerAuthorId: string = author_id;
     let nodeQuery = supabase.from("author_nodes").select("content_json").eq("author_id", author_id).eq("node_id", "BP-09");
     if (book_id) nodeQuery = nodeQuery.eq("book_id", book_id);
-    const { data: node } = await nodeQuery.maybeSingle();
+    const { data: rows } = await nodeQuery.order("updated_at", { ascending: false }).limit(1);
+    let node: any = rows?.[0] ?? null;
+
+    // Fallback: the caller's author id didn't match, but the book was named.
+    // Serve that book's BP-09 only if the signed-in user owns it or is an admin.
+    if (!node?.content_json && book_id) {
+      const caller = await resolveUser(req.headers.get("Authorization"));
+      const { data: bookRow } = await supabase.from("author_nodes")
+        .select("content_json, author_id, author_profiles!inner(user_id)")
+        .eq("book_id", book_id).eq("node_id", "BP-09").limit(1).maybeSingle();
+      let allowed = false;
+      if (bookRow && caller.id) {
+        allowed = (bookRow as any).author_profiles?.user_id === caller.id;
+        if (!allowed) {
+          const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: caller.id, _role: "admin" });
+          allowed = !!isAdmin;
+        }
+      }
+      console.log("[export-bp09-slides] fallback", { found: !!bookRow, caller: caller.id, allowed });
+      if (allowed) { node = bookRow; ownerAuthorId = (bookRow as any).author_id; }
+    }
     if (!node?.content_json) throw new Error("BP-09 toolkit not found for this book");
+    const { data: author } = await supabase.from("author_profiles").select("pen_name").eq("id", ownerAuthorId).maybeSingle();
 
     const content = node.content_json as any;
     const rawSlides = content?.[deck]?.slides || [];
