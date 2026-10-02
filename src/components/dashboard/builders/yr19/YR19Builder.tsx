@@ -162,7 +162,7 @@ export default function YR19Builder({ authorId, bookId }: Props) {
         {step === 2 && content && (
           <YRSafeBoundary nodeId="YR-19" debugContent={content} onReset={() => { setContent(null); setStep(0); }}>
           <div className="space-y-4">
-            <AbbyCard><div className="text-muted-foreground"><SafeText value={content.abby_summary} /></div></AbbyCard>
+            <AbbyCard><div className="text-muted-foreground"><SafeText value={fillSummaryPrices(content.abby_summary, content.packages)} /></div></AbbyCard>
             <Tabs defaultValue="overview" className="w-full">
               <TabsList className="w-full grid grid-cols-4 h-auto">
                 <TabsTrigger value="overview" className="text-xs py-2"><Users className="h-3.5 w-3.5 mr-1 hidden sm:inline" /> Overview</TabsTrigger>

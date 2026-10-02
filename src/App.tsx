@@ -131,6 +131,16 @@ function ReaderPortalIdRedirect() {
   return <Navigate to={`/readers-bureau/learn/${id}`} replace />;
 }
 
+/** Old notification links point at /library?node=XX — My Library lives in the dashboard. */
+function LegacyLibraryRedirect() {
+  const { search } = useLocation();
+  const node = new URLSearchParams(search).get("node");
+  const qs = new URLSearchParams({ section: "library" });
+  if (node) qs.set("node", node);
+  return <Navigate to={`/dashboard?${qs.toString()}`} replace />;
+}
+
+
 const AppRoutes = () => (
   <>
     <AuthTokenRedirect />
