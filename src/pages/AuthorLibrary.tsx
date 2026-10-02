@@ -260,7 +260,9 @@ export default function AuthorLibrary() {
             // Only real web files are direct downloads. Internal markers such as
             // BP-01's "sequence://…" fall back to exporting the stored content.
             const hasLibAsset = !!(libAsset?.url && /^https?:\/\//i.test(libAsset.url));
-            const legacyAssets = hasLibAsset ? [] : getAvailableAssets(n.node_id, n.content_json);
+            const legacyAssets = hasLibAsset && n.node_id !== "BP-02"
+              ? []
+              : getAvailableAssets(n.node_id, n.content_json);
             if (!hasLibAsset && !legacyAssets.length) return null;
             return (
               <Card key={n.id}>
@@ -279,7 +281,7 @@ export default function AuthorLibrary() {
                   <Badge variant={n.status === "live" ? "default" : "secondary"}>{n.status}</Badge>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {hasLibAsset ? (
+                  {hasLibAsset && (
                     <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card/50 px-3 py-2">
                       <span className="text-sm font-medium mr-auto">{libAsset?.title || "Deliverable"}</span>
                       {libAsset?.url && (
@@ -298,8 +300,8 @@ export default function AuthorLibrary() {
                         </Button>
                       )}
                     </div>
-                  ) : (
-                    legacyAssets.map(a => (
+                  )}
+                  {legacyAssets.map(a => (
                       <AssetRow
                         key={`${n.id}-${a.key}`}
                         node={n}
@@ -309,8 +311,7 @@ export default function AuthorLibrary() {
                         penName={profile?.pen_name ?? null}
                         icon={TYPE_ICON[a.type] || FileText}
                       />
-                    ))
-                  )}
+                    ))}
                 </CardContent>
               </Card>
             );

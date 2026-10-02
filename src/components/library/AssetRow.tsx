@@ -90,6 +90,9 @@ export default function AssetRow({
   const nodeName = node.personalised_name || NODE_NAMES[node.node_id] || node.node_name;
   const bookTitle = nodeName;
   const subContent = pluckByKey(node.content_json, asset.key) ?? node.content_json;
+  const storedFileUrl = asset.storedFile && typeof subContent?.url === "string"
+    ? (subContent.url.startsWith("/") ? `${window.location.origin}${subContent.url}` : subContent.url)
+    : null;
   // BP-01's welcome_sequence is a bare array; the exporter only walks objects,
   // so wrap it under its key or the file comes out with no emails in it.
   const exportContent = (node.node_id === "BP-01" || node.node_id === "BP-07") && Array.isArray(subContent)
@@ -176,7 +179,14 @@ export default function AssetRow({
     }
     setBusy(fmt);
     try {
-      if (fmt === "copy") {
+      if (storedFileUrl) {
+        const anchor = document.createElement("a");
+        anchor.href = storedFileUrl;
+        anchor.download = typeof subContent?.filename === "string" ? subContent.filename : "";
+        document.body.appendChild(anchor);
+        anchor.click();
+        document.body.removeChild(anchor);
+      } else if (fmt === "copy") {
         await copyToClipboard(opts);
       } else if (fmt === "txt") {
         downloadAsTxt(opts);
