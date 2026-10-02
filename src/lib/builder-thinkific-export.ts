@@ -146,18 +146,13 @@ ${dayHtml(week, day)}
     ].join("\n"),
   );
 
-  const raw = await zip.generateAsync({ type: "blob", mimeType: "application/zip" });
-  const blob = raw.type ? raw : new Blob([raw], { type: "application/zip" });
+  const blob = await zip.generateAsync({ type: "blob", mimeType: "application/zip" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = `${safeFilename(title)}-Thinkific-Bundle.zip`;
-  a.rel = "noopener";
-  a.style.display = "none";
   document.body.appendChild(a);
   a.click();
-  setTimeout(() => {
-    a.remove();
-    URL.revokeObjectURL(url);
-  }, 30000);
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

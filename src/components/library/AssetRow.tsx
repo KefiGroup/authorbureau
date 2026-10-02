@@ -263,26 +263,14 @@ export default function AssetRow({
         <Button variant="ghost" size="sm" onClick={handleOpen}>
           <ExternalLink className="h-4 w-4 mr-1" />Open
         </Button>
-        {primaryFormat === "thinkific_zip" && (
-          <Button variant="default" size="sm" disabled={busy !== null} onClick={() => run("thinkific_zip")}>
-            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-            THINKIFIC_ZIP
-          </Button>
-        )}
         {asset.formats.length > 0 && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              {primaryFormat === "thinkific_zip" ? (
-                <Button variant="outline" size="sm" disabled={busy !== null} aria-label="More download formats">
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              ) : (
-                <Button variant="default" size="sm" disabled={busy !== null}>
-                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
-                  {primaryFormat?.toUpperCase()}
-                  <ChevronDown className="h-3 w-3 ml-1" />
-                </Button>
-              )}
+              <Button variant="default" size="sm" disabled={busy !== null}>
+                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+                {primaryFormat?.toUpperCase()}
+                <ChevronDown className="h-3 w-3 ml-1" />
+              </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {asset.formats.map(f => (
