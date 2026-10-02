@@ -12,7 +12,7 @@ import BookHubHeroStrip from "./BookHubHeroStrip";
 import JourneyStepper from "./JourneyStepper";
 import { ACCENT_CLASSES } from "./categoryAccent";
 import { supabase } from "@/integrations/supabase/client";
-import { printExportHtml } from "@/lib/print-export";
+import { downloadBusinessPlanDocx } from "@/lib/business-plan-docx";
 import { getActiveToken } from "@/lib/get-active-token";
 import { useToast } from "@/hooks/use-toast";
 import { useAbbyPlan } from "@/hooks/useAbbyPlan";
@@ -143,21 +143,12 @@ export default function BookHubOverview({ book, tier, onConsultAbby, onNavigateT
     if (!planContent) return;
     setDownloading(true);
     try {
-      let html = planContent
-        .replace(/^### (.+)$/gm, "<h3>$1</h3>")
-        .replace(/^## (.+)$/gm, "<h2>$1</h2>")
-        .replace(/^# (.+)$/gm, "<h1>$1</h1>")
-        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.+?)\*/g, "<em>$1</em>")
-        .replace(/^\d+\.\s+(.+)$/gm, "<li>$1</li>")
-        .replace(/^[-•]\s+(.+)$/gm, "<li>$1</li>")
-        .replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
-        .replace(/^(?!<[hulo])((?!<).+)$/gm, "<p>$1</p>")
-        .replace(/\n\n/g, "<br/>");
-      const fullHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{font-family:'Calibri',sans-serif;color:#1a1a1a;line-height:1.6;padding:40px;max-width:800px;margin:0 auto}h1{font-size:26px;color:#B8860B;border-bottom:3px solid #B8860B;padding-bottom:12px}h2{font-size:20px;color:#333;margin-top:28px}h3{font-size:16px;color:#555}p{font-size:13px}ul,ol{font-size:13px}li{margin-bottom:4px}strong{color:#222}</style></head><body>${html}</body></html>`;
-      printExportHtml(fullHtml, `ABBY Business Plan - ${book.title}`);
+      await downloadBusinessPlanDocx(planContent, book.title);
       toast({ title: "Downloaded!", description: "Business plan saved as .docx" });
-    } catch { toast({ title: "Download failed", variant: "destructive" }); }
+    } catch (err) {
+      console.error("[BookHubOverview] business plan docx export failed", err);
+      toast({ title: "Download failed", variant: "destructive" });
+    }
     setDownloading(false);
   };
 
