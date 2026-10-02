@@ -1,22 +1,25 @@
-# BP-04 verified-content fix
+# Buffett BP-02 starter-kit downloads
 
 ## Scope
-- Keep all changes inside BP-04 generation and review.
-- Do not change records, public pages, other modules, pricing, funnels, DOCX work, or publication state.
+- Fix only BP-02 for *Invest Like Buffett: Value Investing for Parents* by Pauline Teo.
+- Preserve the approved public-page copy, quiz, funnel, publication status, and all existing records.
+- Do not touch BP-01, other modules, Marketing Hub, campaigns, forms, bookings, payments, My Funnels, or the homepage.
 
-## Changes
-1. Update the BP-04 generator to use only the existing author profile and selected book fields as factual sources.
-2. Remove the instruction to invent placeholder testimonials and a buyer bonus.
-3. Add a deterministic output guard that removes testimonials and bonus content and rejects named framework claims not present in those verified fields.
-4. Apply the same display guard when loading an existing BP-04 draft, so unsupported draft claims are hidden without modifying the stored record.
-5. Add focused tests covering testimonial suppression, bonus suppression, unsupported framework removal, and preservation of ordinary verified copy.
+## Deliverables
+Create three practical, clearly attributed learner resources:
+1. **Buffett 3R One-Page Checklist** — a concise checklist covering Right Business, Right Management, and Right Price.
+2. **Family Circle of Competence Worksheet** — prompts for families to map what they understand, identify knowledge boundaries, and agree what stays outside their circle.
+3. **Education vs. Retirement Bucket Planner** — a neutral planning worksheet that separates goals, time horizons, contributions, assumptions, and review notes without giving personal financial advice.
 
-## Contact and SEO finding
-- The Contact & SEO tab is a static review of generated copy and metadata; it is not intended to submit anything.
-- The public author site already renders a separate working lead-capture form with name, email, and submit controls.
-- No submission, integration, or public-page change will be made in this scope.
+Each file will identify the source book and author. New educational guidance may extend beyond the manuscript, but it will not invent personal claims, prices, dates, links, guarantees, or endorsements.
 
-## Verification
-- Run only the focused BP-04 safety tests and TypeScript check.
-- Confirm the changed-file list and diff contain only BP-04 safety work.
-- Keep the Buffett BP-04 draft unpublished and do not deploy or publish the app.
+## Library and publication
+- Store the three downloads against the existing Buffett BP-02 record without replacing the current baseline-check PDF.
+- Expose all four BP-02 files in My Library when the Buffett book is selected, in both By node and the appropriate By format view.
+- Keep the currently approved BP-02 public page unchanged; publication updates only the BP-02 downloadable asset package.
+
+## Verification and release
+- Validate each generated file opens and contains the intended resource and attribution.
+- Confirm the pending change list contains only this BP-02 fix before publishing.
+- If unrelated changes are pending or isolated publication cannot be proven, stop and report the blocker instead of publishing.
+- Otherwise publish once, then sign into the live author portal, select the Buffett book, and download all three files from My Library.
