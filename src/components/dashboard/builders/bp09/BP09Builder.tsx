@@ -194,7 +194,7 @@ export default function BP09Builder({ authorId, bookId }: Props) {
       const token = await getActiveToken();
       const res = await fetchWithTimeout(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/export-bp09-slides`,
-        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId, deck }) },
+        { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY }, body: JSON.stringify({ author_id: authorId, book_id: activeBookId, deck }) },
         90_000,
       );
       const data = await res.json();
