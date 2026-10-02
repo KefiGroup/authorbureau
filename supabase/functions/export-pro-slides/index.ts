@@ -100,7 +100,7 @@ function buildSlide(pptx: any, slide: any, theme: Theme, layout: string, footer:
     // Hero: full-bleed image with overlay title
     if (coverImage) {
       try {
-        s.addImage({ path: coverImage, x: 0, y: 0.18, w: 13.33, h: 7.32, sizing: { type: "cover", w: 13.33, h: 7.32 } });
+        s.addImage({ data: coverImage, x: 0, y: 0.18, w: 13.33, h: 7.32, sizing: { type: "cover", w: 13.33, h: 7.32 } });
         // Dark overlay for text legibility
         s.addShape("rect", { x: 0, y: 4.5, w: 13.33, h: 3.0, fill: { color: "000000", transparency: 50 } });
         s.addText(String(slide.title || ""), {
@@ -324,7 +324,18 @@ serve(async (req) => {
       });
       if (coverRes.ok) {
         const j = await coverRes.json();
-        if (j.url) coverImage = j.url;
+        // pptxgenjs fetches `path` images with XMLHttpRequest, which Deno lacks.
+        // Embed the image as base64 data instead.
+        if (j.url) {
+          const imgRes = await fetch(j.url);
+          if (imgRes.ok) {
+            const mime = imgRes.headers.get("content-type") || "image/png";
+            const bytes = new Uint8Array(await imgRes.arrayBuffer());
+            let bin = "";
+            for (let k = 0; k < bytes.length; k += 0x8000) bin += String.fromCharCode(...bytes.subarray(k, k + 0x8000));
+            coverImage = `${mime};base64,${btoa(bin)}`;
+          }
+        }
       }
     } catch (e) {
       console.warn("Cover image fetch failed (non-fatal):", e);
