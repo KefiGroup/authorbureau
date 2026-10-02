@@ -26,6 +26,8 @@ export interface NodeAsset {
   formats: ExportFormat[];
   probe?: (content: any) => boolean;
   sizeHint?: (content: any) => string | undefined;
+  /** The keyed value is an already-rendered file record with a URL. */
+  storedFile?: boolean;
 }
 
 const has = (c: any, path: string): boolean => {
@@ -85,12 +87,12 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
       probe: c => has(c, "first_broadcast") },
   ],
   "BP-02": [
-    { key: "quiz", label: "Quiz + result archetypes", type: "text", formats: TEXT_FORMATS,
-      probe: c => has(c, "quiz") },
-    { key: "landing_page", label: "Landing page copy", type: "text", formats: TEXT_FORMATS,
-      probe: c => has(c, "landing_page") },
-    { key: "social_pack", label: "Social distribution pack", type: "text", formats: TEXT_FORMATS,
-      probe: c => has(c, "social_pack") },
+    { key: "starter_kit_resources.three_r_checklist", label: "Buffett 3R One-Page Checklist", type: "pdf", formats: ["pdf"],
+      storedFile: true, probe: c => has(c, "starter_kit_resources.three_r_checklist.url") },
+    { key: "starter_kit_resources.circle_of_competence", label: "Family Circle of Competence Worksheet", type: "pdf", formats: ["pdf"],
+      storedFile: true, probe: c => has(c, "starter_kit_resources.circle_of_competence.url") },
+    { key: "starter_kit_resources.education_retirement_planner", label: "Education vs. Retirement Bucket Planner", type: "pdf", formats: ["pdf"],
+      storedFile: true, probe: c => has(c, "starter_kit_resources.education_retirement_planner.url") },
   ],
   "BP-03": [
     { key: "posts", label: "Branded posts", type: "text", formats: [...TEXT_FORMATS, "csv"],
