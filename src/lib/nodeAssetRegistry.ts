@@ -78,9 +78,10 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "broadcast_templates", label: "Broadcast templates", type: "text", formats: TEXT_FORMATS,
       probe: c => has(c, "broadcast_templates") },
     // Current BP-01 generator shape (welcome_sequence + first_broadcast).
-    { key: "welcome_sequence", label: "Welcome email sequence", type: "text", formats: TEXT_FORMATS,
+    // File download first so the primary button saves a file, not a clipboard copy.
+    { key: "welcome_sequence", label: "Welcome email sequence", type: "docx", formats: ["docx", "pdf", "txt", "copy"],
       probe: c => has(c, "welcome_sequence"), sizeHint: c => { const n = arrLen(c, "welcome_sequence"); return n ? `${n} emails` : undefined; } },
-    { key: "first_broadcast", label: "First broadcast email", type: "text", formats: TEXT_FORMATS,
+    { key: "first_broadcast", label: "First broadcast email", type: "docx", formats: ["docx", "pdf", "txt", "copy"],
       probe: c => has(c, "first_broadcast") },
   ],
   "BP-02": [

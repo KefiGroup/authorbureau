@@ -134,9 +134,13 @@ function ReaderPortalIdRedirect() {
 /** Old notification links point at /library?node=XX — My Library lives in the dashboard. */
 function LegacyLibraryRedirect() {
   const { search } = useLocation();
-  const node = new URLSearchParams(search).get("node");
+  const params = new URLSearchParams(search);
+  const node = params.get("node");
+  const bookId = params.get("bookId") || params.get("book");
   const qs = new URLSearchParams({ section: "library" });
   if (node) qs.set("node", node);
+  // Keep the book context so My Library opens on that book, not "All books".
+  if (bookId) qs.set("bookId", bookId);
   return <Navigate to={`/dashboard?${qs.toString()}`} replace />;
 }
 

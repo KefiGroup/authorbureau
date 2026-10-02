@@ -212,7 +212,10 @@ Personalize everything to this author's book and methodology.`;
         user_id: author.user_id,
         title: `Marketing Pack ready: ${personalisedNodeName}`,
         message: `Your sales copy, 3 social posts, email announcement and ${spec.bonus_label} for "${bookTitle}" are in My Library.`,
-        link: `/library?node=${spec.node_id}`,
+        // BP-01: carry the book so the library deep-link keeps book context.
+        link: spec.node_id === "BP-01" && book_id
+          ? `/library?node=${spec.node_id}&bookId=${book_id}`
+          : `/library?node=${spec.node_id}`,
       });
     }
 
