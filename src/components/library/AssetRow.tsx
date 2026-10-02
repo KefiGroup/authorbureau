@@ -88,7 +88,12 @@ export default function AssetRow({
   const nodeName = node.personalised_name || NODE_NAMES[node.node_id] || node.node_name;
   const bookTitle = nodeName;
   const subContent = pluckByKey(node.content_json, asset.key) ?? node.content_json;
-  const opts = { content: subContent, nodeName: asset.label, bookTitle, authorName: penName ?? undefined };
+  // BP-01's welcome_sequence is a bare array; the exporter only walks objects,
+  // so wrap it under its key or the file comes out with no emails in it.
+  const exportContent = node.node_id === "BP-01" && Array.isArray(subContent)
+    ? { [asset.key]: subContent }
+    : subContent;
+  const opts = { content: exportContent, nodeName: asset.label, bookTitle, authorName: penName ?? undefined };
 
   // A shareable module URL must have a stored, book-scoped path. Never invent
   // an ambiguous /author/module fallback for a multi-book author.
