@@ -199,6 +199,9 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
     { key: "slides", label: "Keynote deck", type: "pptx", formats: SLIDE_FORMATS, probe: c => has(c, "slides") },
     speakerScriptAsset(c => has(c, "slides")),
     { key: "one_sheet", label: "Speaker one-sheet", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "one_sheet") },
+    // Current YR-21 generator saves the one-sheet as speaker_one_sheet.
+    { key: "speaker_one_sheet", label: "Speaker one-sheet", type: "docx", formats: ["docx", "pdf", "txt", "copy"],
+      probe: c => has(c, "speaker_one_sheet") },
     { key: "topics", label: "Topic list", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "topics") },
   ],
   "YR-22": [
