@@ -17,7 +17,7 @@
  *  - sizeHint?:    optional fn that returns a small label like "14 slides"
  */
 export type AssetType = "pptx" | "pdf" | "docx" | "csv" | "text" | "image" | "audio" | "script";
-export type ExportFormat = "copy" | "txt" | "docx" | "pdf" | "pptx" | "csv" | "script_docx";
+export type ExportFormat = "copy" | "txt" | "docx" | "pdf" | "pptx" | "csv" | "script_docx" | "thinkific_zip";
 
 export interface NodeAsset {
   key: string;
@@ -116,6 +116,16 @@ export const NODE_ASSETS: Record<string, NodeAsset[]> = {
       probe: c => has(c, "exercises") },
   ],
   "BP-07": [
+    // The saved course lives in study_weeks[].days[]; export it as the
+    // Thinkific bundle (CSV + per-day HTML lessons) the builder promises.
+    { key: "study_weeks", label: "Home study course (Thinkific bundle)", type: "csv",
+      formats: ["thinkific_zip", "docx", "pdf"],
+      probe: c => has(c, "study_weeks"),
+      sizeHint: c => {
+        const weeks = Array.isArray(c?.study_weeks) ? c.study_weeks : [];
+        const days = weeks.reduce((n: number, w: any) => n + (Array.isArray(w?.days) ? w.days.length : 0), 0);
+        return days ? `${days} days · CSV + HTML` : undefined;
+      } },
     { key: "curriculum", label: "21-day curriculum", type: "pdf", formats: PDF_FORMATS, probe: c => has(c, "curriculum") },
     { key: "lessons", label: "Lesson outlines", type: "text", formats: TEXT_FORMATS, probe: c => has(c, "lessons") },
   ],

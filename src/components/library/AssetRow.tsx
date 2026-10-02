@@ -56,6 +56,7 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
   pptx: "Download .pptx",
   csv: "Download .csv",
   script_docx: "Download speaker script (.docx)",
+  thinkific_zip: "Download Thinkific bundle (.zip)",
 };
 
 const RUNTIME_OPTIONS: { value: string; minutes: number; slides: number; label: string; sub: string }[] = [
@@ -90,7 +91,7 @@ export default function AssetRow({
   const subContent = pluckByKey(node.content_json, asset.key) ?? node.content_json;
   // BP-01's welcome_sequence is a bare array; the exporter only walks objects,
   // so wrap it under its key or the file comes out with no emails in it.
-  const exportContent = node.node_id === "BP-01" && Array.isArray(subContent)
+  const exportContent = (node.node_id === "BP-01" || node.node_id === "BP-07") && Array.isArray(subContent)
     ? { [asset.key]: subContent }
     : subContent;
   const opts = { content: exportContent, nodeName: asset.label, bookTitle, authorName: penName ?? undefined };
@@ -193,6 +194,10 @@ export default function AssetRow({
         if (!data?.base64) throw new Error("No slides returned");
         const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         triggerDownload(blob, data.filename || `${asset.label}.pptx`);
+      } else if (fmt === "thinkific_zip") {
+        const { downloadThinkificPackage } = await import("@/lib/builder-thinkific-export");
+        await downloadThinkificPackage(node.content_json || {});
+        toast.success("Course bundle downloaded");
       } else if (fmt === "csv") {
         // basic CSV: rows of strings if subContent is array
         const csv = toCsv(subContent);
