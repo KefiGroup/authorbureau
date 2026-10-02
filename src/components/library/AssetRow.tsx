@@ -56,6 +56,7 @@ const FORMAT_LABELS: Record<ExportFormat, string> = {
   pptx: "Download .pptx",
   csv: "Download .csv",
   script_docx: "Download speaker script (.docx)",
+  thinkific_zip: "Download Thinkific bundle (.zip)",
 };
 
 const RUNTIME_OPTIONS: { value: string; minutes: number; slides: number; label: string; sub: string }[] = [
@@ -193,6 +194,10 @@ export default function AssetRow({
         if (!data?.base64) throw new Error("No slides returned");
         const blob = base64ToBlob(data.base64, "application/vnd.openxmlformats-officedocument.presentationml.presentation");
         triggerDownload(blob, data.filename || `${asset.label}.pptx`);
+      } else if (fmt === "thinkific_zip") {
+        const { downloadThinkificPackage } = await import("@/lib/builder-thinkific-export");
+        await downloadThinkificPackage(node.content_json || {});
+        toast.success("Course bundle downloaded");
       } else if (fmt === "csv") {
         // basic CSV: rows of strings if subContent is array
         const csv = toCsv(subContent);
