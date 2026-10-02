@@ -196,7 +196,7 @@ export default function PublishSuccessScreen({ nodeId, authorName, penNameSlug, 
 
       {/* Secondary links */}
       <div className="flex flex-col items-center gap-1">
-        <Button variant="link" className="text-sm" onClick={() => navigate("/dashboard?section=library")}>
+        <Button variant="link" className="text-sm" onClick={() => navigate(`/dashboard?section=library${bookId ? `&bookId=${bookId}` : ""}`)}>
           <Library className="h-4 w-4 mr-1.5" />Open in My Library
         </Button>
         {bookHubPath ? (
