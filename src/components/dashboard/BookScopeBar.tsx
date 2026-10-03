@@ -47,7 +47,7 @@ export default function BookScopeBar({ books, scope, onChange, className, extraO
           size="sm"
           variant={scope === b.id ? "default" : "outline"}
           onClick={() => onChange(b.id)}
-          className="max-w-[260px] truncate"
+          className="h-auto max-w-[260px] whitespace-normal break-words py-2 text-center leading-snug"
         >
           {b.title}
         </Button>
