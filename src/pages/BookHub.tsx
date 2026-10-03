@@ -126,12 +126,22 @@ export default function BookHub() {
     switch (activeTab) {
       case "overview":
         return (
-          <BookHubOverview
-            book={{ id: book.id, title: book.title, genre: book.genre }}
-            tier={effectiveTier}
-            onConsultAbby={() => navigate(`/dashboard?section=build-business&bookId=${book.id}`)}
-            onNavigateTab={(tab) => setActiveTab(tab as BookHubTab)}
-          />
+          <>
+            <TutorialVideo
+              title="Launching your 28 Revenue Streams"
+              description="See how Brand, Build and Yield fit together, and how each stream goes from draft to live."
+              duration="1 min"
+              src="/video/tutorials/revenue-streams.mp4"
+              poster="/video/tutorials/revenue-streams-poster.webp"
+              captions="/video/tutorials/revenue-streams.vtt"
+            />
+            <BookHubOverview
+              book={{ id: book.id, title: book.title, genre: book.genre }}
+              tier={effectiveTier}
+              onConsultAbby={() => navigate(`/dashboard?section=build-business&bookId=${book.id}`)}
+              onNavigateTab={(tab) => setActiveTab(tab as BookHubTab)}
+            />
+          </>
         );
       case "revenue-streams":
       case "marketing-channels":

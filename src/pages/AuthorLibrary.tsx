@@ -166,6 +166,15 @@ export default function AuthorLibrary() {
         </Button>
       </div>
 
+      <TutorialVideo
+        title="How to use My Library"
+        description="Choose your book, browse by pack, stream or format, and download or share your files."
+        duration="1 min"
+        src="/video/tutorials/my-library.mp4"
+        poster="/video/tutorials/my-library-poster.webp"
+        captions="/video/tutorials/my-library.vtt"
+      />
+
       {myBooks.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
