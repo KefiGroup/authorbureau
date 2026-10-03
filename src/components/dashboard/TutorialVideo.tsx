@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { CirclePlay, Clock3, Maximize2, Pause, Play, Volume2, VolumeX, X } from "lucide-react";
+import { CirclePlay, Clock3, Maximize2, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
@@ -151,16 +151,6 @@ export default function TutorialVideo({
                 className="h-9 w-9 rounded-full border-secondary/60 bg-primary/90 text-secondary hover:bg-secondary hover:text-secondary-foreground"
               >
                 <Maximize2 className="h-4 w-4" />
-              </Button>
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => close(false)}
-                aria-label="Close tutorial"
-                className="h-9 w-9 rounded-full border-secondary/60 bg-primary/90 text-secondary hover:bg-secondary hover:text-secondary-foreground"
-              >
-                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
