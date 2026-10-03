@@ -176,9 +176,8 @@ serve(async (req) => {
 
     // Sprint 56 — Per-book book context.
     // Prefer the book resolved from the URL's book slug. If none was given,
-    // try the node row's own book_id. Only as a last resort fall back to the
-    // first published book — the legacy behaviour that mixed contexts for
-    // multi-book authors.
+    // resolve only through the node row's own book_id. Never borrow another
+    // book's context for an unassigned module.
     let book = bookRow;
     if (!book && (node as { book_id?: string }).book_id) {
       const { data: nb } = await supabase
@@ -189,15 +188,10 @@ serve(async (req) => {
       if (nb) book = nb;
     }
     if (!book) {
-      const { data: fb } = await supabase
-        .from("books")
-        .select("id, title, subtitle, cover_image_url, description, genre, slug, amazon_url, price, currency")
-        .eq("author_id", profile.user_id)
-        .not("published_at", "is", null)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (fb) book = fb;
+      return new Response(
+        JSON.stringify({ error: "Book is required for this module" }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // DATA-01: the book context (thesis, frameworks) must come from the SAME

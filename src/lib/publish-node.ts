@@ -49,6 +49,12 @@ export async function publishNodeToSite(
       console.warn("[publishNodeToSite] book slug lookup failed", error);
     }
   }
+  if (hasPublicPage && !bookId) {
+    throw new Error("Choose a book before publishing this module.");
+  }
+  if (hasPublicPage && !bookSlug) {
+    throw new Error("The book address could not be verified. Please try publishing again.");
+  }
   const micrositeUrl = hasPublicPage ? getMicrositeUrl(penNameSlug, nodeId, bookSlug) : null;
   const res = await fetchWithTimeout(
     `https://${projectId}.supabase.co/functions/v1/save-author-node`,

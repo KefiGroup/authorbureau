@@ -166,7 +166,7 @@ export default function AuthorLibrary() {
         </Button>
       </div>
 
-      {myBooks.length > 1 && (
+      {myBooks.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold text-muted-foreground mr-1">Showing:</span>
           {myBooks.map(b => (

@@ -58,6 +58,16 @@ const NODE_DB_TABLES: Record<string, string> = {
 /* Tables with their own product records (have status/title columns) */
 const PRODUCT_TABLES = ["courses", "home_study_courses", "audiobooks", "podcasts", "social_media_content", "email_flows", "coaching_packages"] as const;
 
+const PRODUCT_SELECTS: Record<(typeof PRODUCT_TABLES)[number], string> = {
+  courses: "id, title, book_id, created_at, status, description, price",
+  home_study_courses: "id, title, book_id, created_at, status, description, price",
+  audiobooks: "id, title, book_id, created_at, status, description, price",
+  podcasts: "id, title, book_id, created_at, status, description",
+  social_media_content: "id, content_text, content_type, book_id, created_at, status",
+  email_flows: "id, title, book_id, created_at, status, description",
+  coaching_packages: "id, title, created_at, status, description, price",
+};
+
 async function resolveIdentity(token: string): Promise<{ userId: string; email: string | null } | null> {
   const sharedClient = createClient(SHARED_BACKEND_URL, SHARED_ANON_KEY);
   const { data: { user: sharedUser } } = await sharedClient.auth.getUser(token);
@@ -284,18 +294,31 @@ Deno.serve(async (req) => {
         //    Include published rows too so Review & Publish can show "Published".
         await Promise.all(
           PRODUCT_TABLES.map(async (table) => {
-            const { data } = await cloudAdmin
+            const { data, error } = await cloudAdmin
               .from(table)
-              .select("id, title, book_id, created_at, status, description, price")
+              .select(PRODUCT_SELECTS[table])
               .in("author_id", allUserIds)
               .in("status", ["draft", "ready_for_review", "published", "live"]);
-            for (const item of data || []) {
+            if (error) {
+              console.error(`[builder-draft-state] ${table} lookup failed:`, error.message);
+              return;
+            }
+            for (const rawItem of data || []) {
+              const item = rawItem as any;
               const nodeId = Object.entries(NODE_DB_TABLES).find(([, t]) => t === table)?.[0] || table;
+              const normalizedItem = table === "social_media_content"
+                ? {
+                    ...item,
+                    title: item.content_type ? `Social media: ${item.content_type}` : "Social media content",
+                    description: item.content_text || "",
+                    price: null,
+                  }
+                : { ...item, book_id: item.book_id ?? null, price: item.price ?? null };
               // Skip rows shadowed by a live author_node for the same slug+book
-              if (liveSlugs.has(nodeId) && allDrafts.some(d => d.table === "author_nodes" && d.nodeId === nodeId && (d.book_id === item.book_id || !d.book_id))) {
+              if (liveSlugs.has(nodeId) && allDrafts.some(d => d.table === "author_nodes" && d.nodeId === nodeId && (d.book_id === normalizedItem.book_id || !d.book_id))) {
                 continue;
               }
-              allDrafts.push({ ...item, table, nodeId });
+              allDrafts.push({ ...normalizedItem, table, nodeId });
             }
           })
         );

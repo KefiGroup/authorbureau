@@ -13,6 +13,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { workbookPrice } from "../_shared/workbook-price.ts";
 import { syncBp01Flow } from "../_shared/bp01-flow-sync.ts";
+import { hasRequiredAssets } from "../_shared/node-readiness.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -407,11 +408,24 @@ Deno.serve(async (req: Request) => {
     });
     let lookupQ = admin
       .from("author_nodes")
-      .select("id, content_json, status, book_id")
+      .select("id, content_json, status, book_id, microsite_url")
       .eq("author_id", authorId)
       .eq("node_id", nodeId);
     if (bookId) lookupQ = lookupQ.eq("book_id", bookId);
-    const { data: node, error: nodeErr } = await lookupQ.maybeSingle();
+    let { data: node, error: nodeErr } = await lookupQ.maybeSingle();
+    // Legacy self-heal: claim an author-only draft only when no exact-book row
+    // exists. Never match a row already assigned to a different book.
+    if (!node && !nodeErr && bookId) {
+      const legacy = await admin
+        .from("author_nodes")
+        .select("id, content_json, status, book_id, microsite_url")
+        .eq("author_id", authorId)
+        .eq("node_id", nodeId)
+        .is("book_id", null)
+        .maybeSingle();
+      node = legacy.data;
+      nodeErr = legacy.error;
+    }
     if (nodeErr) {
       console.error("[save-author-node:publish] lookup failed:", nodeErr.message);
       return json(500, { error: nodeErr.message });
@@ -437,12 +451,14 @@ Deno.serve(async (req: Request) => {
     // Order matters: build/derive the asset FIRST, and only refuse if there is
     // genuinely nothing to attach. (Refusing before derivation made BP-03,
     // BP-08 and BP-09 impossible to publish at all.)
-    const ADOPTER_NODES = new Set(["BP-01", "BP-03", "BP-04", "BP-06", "BP-08", "BP-09", "BA-11", "BA-14"]);
     const previousAssetCheck = (existingContent.library_asset as Record<string, unknown> | undefined);
     const derivedAsset = callerAsset
       ?? (previousAssetCheck && previousAssetCheck.url ? previousAssetCheck : null)
       ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
-    if (ADOPTER_NODES.has(nodeId!) && !derivedAsset) {
+    const contentForReadiness = derivedAsset
+      ? { ...existingContent, library_asset: derivedAsset }
+      : existingContent;
+    if (!hasRequiredAssets(nodeId!, contentForReadiness)) {
       console.warn("[save-author-node:publish] adopter node has no deliverable", { nodeId, authorId });
       return new Response(
         JSON.stringify({
@@ -476,7 +492,7 @@ Deno.serve(async (req: Request) => {
     const updatePayload: Record<string, unknown> = {
       status: "live",
       activated_at: new Date().toISOString(),
-      microsite_url: micrositeUrl ?? null,
+      microsite_url: micrositeUrl ?? node.microsite_url ?? null,
       current_step: 3,
       content_json: mergedContent,
     };
