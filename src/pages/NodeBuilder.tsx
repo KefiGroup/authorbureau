@@ -196,6 +196,21 @@ export default function NodeBuilder() {
     );
   }
 
+  if (!bookId && !booksLoading && books.length === 0) {
+    return (
+      <DashboardLayout>
+        <div className="max-w-3xl mx-auto px-4 py-12 text-center space-y-4">
+          <BookOpen className="h-10 w-10 mx-auto text-muted-foreground" />
+          <h1 className="text-2xl font-bold">Add your book first</h1>
+          <p className="text-muted-foreground">Every Revenue Stream must belong to a book before it can be built or published.</p>
+          <Link to="/dashboard?section=my-books" className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+            Go to My Books
+          </Link>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   if (!bookId && books.length > 1 && nodeId && BUILDER_NODE_MAP[nodeId]) {
     const pick = (id: string) => {
       const next = new URLSearchParams(searchParams);

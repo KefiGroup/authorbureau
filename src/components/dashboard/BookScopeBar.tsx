@@ -35,7 +35,9 @@ interface Props {
 }
 
 export default function BookScopeBar({ books, scope, onChange, className, extraOptions = [] }: Props) {
-  if (books.length < 2) return null;
+  // A single-book author still needs "All books" to recover older or
+  // unattributed records that do not match the remembered book scope.
+  if (books.length === 0) return null;
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className ?? ""}`}>
       <span className="text-xs font-medium text-muted-foreground mr-1">Showing:</span>

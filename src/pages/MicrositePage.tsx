@@ -26,7 +26,10 @@ interface MicrositeData {
   book: any;
 }
 
-const thankYouHref = (a: string) => { const seg = window.location.pathname.split("/").filter(Boolean); return seg.length >= 3 ? `/${a}/thank-you?book=${encodeURIComponent(seg[1])}` : `/${a}/thank-you`; };
+const thankYouHref = (authorSlug: string, resolvedBookSlug?: string | null) =>
+  resolvedBookSlug
+    ? `/${authorSlug}/thank-you?book=${encodeURIComponent(resolvedBookSlug)}`
+    : `/${authorSlug}/thank-you`;
 
 export default function MicrositePage() {
   // Sprint 56 — Mounted under either route shape:
@@ -227,7 +230,7 @@ export default function MicrositePage() {
       setSubmitting(false);
       // Redirect to thank-you page for opt-in nodes (BP-02 lead magnet, etc.)
       if (resolvedNodeId === "BP-02" && authorSlug) {
-        window.location.href = thankYouHref(authorSlug);
+        window.location.href = thankYouHref(authorSlug, data.book?.slug);
       }
       return true;
     } catch (err) {
@@ -450,7 +453,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
       // BP-02: redirect to dedicated thank-you page (404 fix)
       const slug = data.author?.author_slug;
       if (slug) {
-        window.location.href = thankYouHref(slug);
+        window.location.href = thankYouHref(slug, data.book?.slug);
         return;
       }
       setStage("results");
