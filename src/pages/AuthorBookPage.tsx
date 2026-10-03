@@ -1178,7 +1178,7 @@ export default function AuthorBookPage() {
                     src={authorPhoto}
                     alt={authorName}
                     loading="lazy"
-                    className="w-20 h-20 rounded-full object-cover shrink-0"
+                    className="w-20 h-20 rounded-full object-cover object-top shrink-0"
                     style={{ border: `3px solid ${v.accent}` }}
                   />
                 ) : (
