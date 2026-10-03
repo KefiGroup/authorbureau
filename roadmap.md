@@ -1,4 +1,5 @@
 # Audit roadmap
+- [x] Add page-specific narrated tutorials for Marketing Hub and My Funnels
 - [ ] Inventory every built/live author module and its exact book association
 - [ ] Crawl every canonical live author/book/module destination and primary action
 - [ ] Exercise the authenticated author review, Library, export, and publish journey

@@ -18,6 +18,7 @@ import ContactsTab from "./marketing-hub/ContactsTab";
 import SettingsTab from "./marketing-hub/SettingsTab";
 import MarketingHubBookSelector from "./marketing-hub/MarketingHubBookSelector";
 import { useMarketingHubBookContext } from "@/hooks/useMarketingHubBookContext";
+import TutorialVideo from "./TutorialVideo";
 
 /* ─── Campaign / Node mapping ─── */
 
@@ -481,6 +482,15 @@ export default function MarketingHub({ onNavigate }: Props) {
           Activate campaigns, manage email sequences, and track every contact in one place.
         </p>
       </div>
+
+      <TutorialVideo
+        title="How to use the Marketing Hub"
+        description="Learn how to select a book, review campaign status, manage sequences and social posts, and activate only when everything is ready."
+        duration="2 min"
+        src="/video/tutorials/marketing-hub.mp4"
+        poster="/video/tutorials/marketing-hub-poster.webp"
+        captions="/video/tutorials/marketing-hub.vtt"
+      />
 
       {/* Per-book scope selector — only renders for authors with 2+ books */}
       {bookCtx.hasMultipleBooks && (
