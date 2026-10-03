@@ -1,15 +1,8 @@
 # Audit roadmap
-- [x] Make `author_nodes` the only source for each book's X/28 total; remove legacy product-table and website shortcuts
-- [x] Reconcile Pauline's three books against the corrected counting rule and repair only genuinely finished module records
-- [ ] Walk Value Investing for Women through all 28 builders: open, generate, save, publish, and verify intended end state
-- [ ] Crawl every resulting public/external destination for correct book context, working actions, and no 404s
-- [ ] Add regression coverage for all 28 canonical module IDs, per-book isolation, readiness, and count refresh
-- [ ] Verify Veronica's fresh email code from her inbox; the live sign-in verifier now uses the documented email OTP type once
-- [x] Remove the retired profile service from Veronica's Sync action
-- [x] Keep Fasa's full face visible in the homepage author card and verify the framing
-- [x] Remove "Set a price" and other author-only prompts from public pages for both owners and readers; verify preview views
-- [x] Fix author-page format links and remove owner-only pricing controls from public book cards
-- [x] Verify the three-book links and owner/reader book-card views in a browser
-- [ ] Review homepage visual hierarchy, imagery, typography, colours, and conversion copy
-- [ ] Correct confirmed homepage issues without changing business logic
-- [ ] Verify desktop and mobile presentation
+- [ ] Inventory every built/live author module and its exact book association
+- [ ] Crawl every canonical live author/book/module destination and primary action
+- [ ] Exercise the authenticated author review, Library, export, and publish journey
+- [ ] Fix and verify all reproducible publishing and broken-link defects
+- [ ] Clear all current Project monitoring findings
+- [ ] Add 28-module, exact-book, readiness, and live-link regression coverage
+- [ ] Publish a clean audited scope and rerun the full audit on the live custom domain
