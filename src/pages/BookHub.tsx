@@ -131,7 +131,7 @@ export default function BookHub() {
             <TutorialVideo
               title="Launching your 28 Revenue Streams"
               description="See how Brand, Build and Yield fit together, and how each stream goes from draft to live."
-              duration="1 min"
+              duration="2 min"
               src="/video/tutorials/revenue-streams.mp4"
               poster="/video/tutorials/revenue-streams-poster.webp"
               captions="/video/tutorials/revenue-streams.vtt"
