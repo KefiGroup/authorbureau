@@ -170,7 +170,7 @@ export default function AuthorLibrary() {
       <TutorialVideo
         title="How to use My Library"
         description="Choose your book, browse by pack, stream or format, and download or share your files."
-        duration="1 min"
+        duration="2 min"
         src="/video/tutorials/my-library.mp4"
         poster="/video/tutorials/my-library-poster.webp"
         captions="/video/tutorials/my-library.vtt"
