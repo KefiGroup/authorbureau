@@ -25,6 +25,7 @@ import { resolveFunnelBookId } from "@/lib/active-book-scope";
 import { listFunnels, listOverridesBulk, saveFunnelCopy, setFunnelBook, setFunnelStatus, type FunnelRow } from "@/lib/funnels-api";
 import { getStagesForArchetype, type OverridesMap } from "@/lib/funnel-flow-stages";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import TutorialVideo from "@/components/dashboard/TutorialVideo";
 
 type FilterKey = "all" | ArchetypeKey | "live" | "paused";
 
@@ -440,8 +441,20 @@ export default function FunnelsHub() {
         <p className="text-muted-foreground">
           ABBY auto-generates conversion funnels for your published products. Edit copy, preview live pages, and watch conversions roll in.
         </p>
-        <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} className="mt-4" />
       </div>
+
+      <div className="mb-6">
+        <TutorialVideo
+          title="How to build a funnel"
+          description="See how to choose the right book and product, review every funnel stage, publish once, and verify the live reader journey."
+          duration="2 min 19 sec"
+          src="/video/tutorials/build-a-funnel.mp4"
+          poster="/video/tutorials/build-a-funnel-poster.webp"
+          captions="/video/tutorials/build-a-funnel.vtt"
+        />
+      </div>
+
+      <BookScopeBar books={myBooks} scope={bookScope} onChange={setBookScope} className="mb-6" />
 
       {/* Stats strip */}
       <Card className="mb-4">
