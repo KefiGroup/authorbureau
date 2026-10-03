@@ -1,3 +1,4 @@
+import TutorialVideo from "@/components/dashboard/TutorialVideo";
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { rememberWorkspaceBookId } from "@/lib/active-book-scope";

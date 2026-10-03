@@ -1,3 +1,4 @@
+import TutorialVideo from "@/components/dashboard/TutorialVideo";
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
