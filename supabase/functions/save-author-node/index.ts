@@ -455,9 +455,11 @@ Deno.serve(async (req: Request) => {
     const derivedAsset = callerAsset
       ?? (previousAssetCheck && previousAssetCheck.url ? previousAssetCheck : null)
       ?? deriveLibraryAsset(nodeId!, existingContent, micrositeUrl ?? null);
+    // Evaluate readiness against the post-publish shape: publishing itself
+    // sets activated:true, so a first publish must not fail on that flag.
     const contentForReadiness = derivedAsset
-      ? { ...existingContent, library_asset: derivedAsset }
-      : existingContent;
+      ? { ...existingContent, activated: true, library_asset: derivedAsset }
+      : { ...existingContent, activated: true };
     if (!hasRequiredAssets(nodeId!, contentForReadiness)) {
       console.warn("[save-author-node:publish] adopter node has no deliverable", { nodeId, authorId });
       return new Response(
