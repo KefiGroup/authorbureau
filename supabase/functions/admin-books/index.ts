@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveUser } from "../_shared/resolve-user.ts";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -129,7 +130,7 @@ Deno.serve(async (req) => {
             const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
             const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
             const emailClient = createClient(supabaseUrl, supabaseServiceKey);
-            await emailClient.functions.invoke('send-transactional-email', {
+            await invokeAppEmail( {
               body: {
                 templateName: 'book-approved',
                 recipientEmail: authorEmail,

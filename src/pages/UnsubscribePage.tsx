@@ -19,7 +19,7 @@ export default function UnsubscribePage() {
     (async () => {
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/functions/v1/handle-email-unsubscribe?token=${encodeURIComponent(token)}`,
+          `${SUPABASE_URL}/functions/v1/process-unsubscribe-token?token=${encodeURIComponent(token)}`,
           { headers: { apikey: SUPABASE_KEY } }
         );
         const data = await res.json();
@@ -33,7 +33,7 @@ export default function UnsubscribePage() {
   const handleConfirm = async () => {
     setStatus("confirming");
     try {
-      const { error } = await supabase.functions.invoke("handle-email-unsubscribe", { body: { token } });
+      const { error } = await supabase.functions.invoke("process-unsubscribe-token", { body: { token } });
       if (error) throw error;
       setStatus("done");
     } catch { setStatus("error"); }

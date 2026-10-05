@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -736,9 +737,7 @@ Deno.serve(async (req) => {
       const verifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/verify-sender-email?token=${token}`;
 
       try {
-        const sendRes = await fetch(
-          `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`,
-          {
+        const sendRes = await fetchAppEmail({
             method: "POST",
             headers: {
               "Content-Type": "application/json",

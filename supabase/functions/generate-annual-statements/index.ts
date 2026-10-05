@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -75,7 +76,7 @@ serve(async (req) => {
           const { data: userRes } = await admin.auth.admin.getUserById(profile.user_id);
           const recipientEmail = userRes?.user?.email;
           if (recipientEmail) {
-            await admin.functions.invoke("send-transactional-email", {
+            await invokeAppEmail( {
               body: {
                 templateName: "annual-earnings-statement",
                 recipientEmail,

@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -95,7 +96,7 @@ Deno.serve(async (req) => {
 
       for (const r of regs || []) {
         try {
-          await supabase.functions.invoke('send-transactional-email', {
+          await invokeAppEmail( {
             body: {
               templateName: 'webinar-email',
               recipientEmail: r.email,

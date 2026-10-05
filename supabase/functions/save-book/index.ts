@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -459,7 +460,7 @@ serve(async (req) => {
       }
 
       if (authorEmail) {
-        await cloudAdmin.functions.invoke('send-transactional-email', {
+        await invokeAppEmail( {
           body: {
             templateName: 'book-submitted',
             recipientEmail: authorEmail,

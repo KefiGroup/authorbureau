@@ -8,6 +8,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import JSZip from "npm:jszip@3.10.1";
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -627,7 +628,7 @@ Deno.serve(async (req: Request) => {
     const recipientEmail = claims.email;
     if (recipientEmail) {
       const idempotencyKey = `audiobook-distribute-${audiobookId}-${Date.now()}`;
-      await admin.functions.invoke("send-transactional-email", {
+      await invokeAppEmail( {
         body: {
           templateName: "audiobook-distribution-ready",
           recipientEmail,
