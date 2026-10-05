@@ -30,49 +30,30 @@ export interface SendViaLovableResult {
 }
 
 /**
- * Sends one email through Lovable's send-transactional-email function.
- * Uses the SUPABASE_SERVICE_ROLE_KEY env var for service-role auth.
+ * Sends one email through Lovable's managed email API (author-broadcast template).
  */
 export async function sendViaLovable(args: SendViaLovableArgs): Promise<SendViaLovableResult> {
-  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-  const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) {
-    return { ok: false, status: 500, error: 'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY' };
-  }
-
   try {
-    const resp = await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+    const { sendAppEmail } = await import('./transactional-email-templates/send-app-email.ts');
+    const r = await sendAppEmail({
+      templateName: 'author-broadcast',
+      recipientEmail: args.recipientEmail,
+      idempotencyKey: args.idempotencyKey,
+      authorId: args.authorId || null,
+      replyTo: args.replyTo || null,
+      templateData: {
+        senderName: args.senderName,
+        subject: args.subject,
+        bodyMarkdown: args.bodyMarkdown,
+        recipientName: args.recipientName || undefined,
+        preview: args.preview,
       },
-      body: JSON.stringify({
-        templateName: 'author-broadcast',
-        recipientEmail: args.recipientEmail,
-        idempotencyKey: args.idempotencyKey,
-        authorId: args.authorId || undefined,
-        replyTo: args.replyTo || undefined,
-        templateData: {
-          senderName: args.senderName,
-          subject: args.subject,
-          bodyMarkdown: args.bodyMarkdown,
-          recipientName: args.recipientName || undefined,
-          preview: args.preview,
-        },
-      }),
     });
-
-    const data = await resp.json().catch(() => ({} as any));
-
-    if (!resp.ok) {
-      return { ok: false, status: resp.status, error: data?.error || `HTTP ${resp.status}` };
-    }
-    if (data?.success === false && data?.reason === 'email_suppressed') {
+    if (r.reason === 'email_suppressed') {
       return { ok: false, status: 200, suppressed: true, error: 'email_suppressed' };
     }
-
-    return { ok: true, status: 200, messageId: data?.messageId || data?.message_id };
+    if (!r.success) return { ok: false, status: r.status, error: r.error || `HTTP ${r.status}` };
+    return { ok: true, status: 200 };
   } catch (e) {
     return { ok: false, status: 500, error: (e as Error).message };
   }
