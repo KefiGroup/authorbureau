@@ -269,7 +269,7 @@ async function ensureFunnel(
 
     if (!funnelId) {
       const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-funnel`;
-      const res = await fetchAppEmail({
+      const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
