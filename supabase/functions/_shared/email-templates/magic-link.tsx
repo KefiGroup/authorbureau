@@ -4,39 +4,41 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
   Html,
   Preview,
-  Section,
   Text,
 } from 'npm:@react-email/components@0.0.22'
 
 interface MagicLinkEmailProps {
   siteName: string
   confirmationUrl: string
-  token?: string
 }
 
-export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
+export const MagicLinkEmail = ({
+  siteName,
+  confirmationUrl,
+}: MagicLinkEmailProps) => (
   <Html lang="en" dir="ltr">
-    <Head />
-    <Preview>Your Authors Bureau sign-in code: {token ?? ''}</Preview>
+    <Head>
+      <style>{darkModeCss}</style>
+    </Head>
+    <Preview>Your login link for {siteName}</Preview>
     <Body style={main}>
       <Container style={container}>
-        <Text style={brand}>AUTHORS BUREAU</Text>
-        <Heading style={h1}>Your sign-in code</Heading>
+        <Heading style={h1}>Your login link</Heading>
         <Text style={text}>
-          Enter this code on the Authors Bureau sign-in screen. It works for a
-          short time and only once.
+          Click the button below to log in to {siteName}. This link will expire
+          shortly.
         </Text>
-        <Section style={codeBox}>
-          <Text style={code}>{token}</Text>
-        </Section>
+        <Button className="dm-btn" style={button} href={confirmationUrl}>
+          Log In
+        </Button>
         <Text style={footer}>
-          If you didn't ask for this code, you can safely ignore this email.
-          Questions? support@authorsbureau.com
+          If you didn't request this link, you can safely ignore this email.
         </Text>
       </Container>
     </Body>
@@ -45,11 +47,35 @@ export const MagicLinkEmail = ({ token }: MagicLinkEmailProps) => (
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Georgia, Arial, sans-serif' }
-const container = { padding: '28px 25px', maxWidth: '520px' }
-const brand = { fontSize: '12px', letterSpacing: '3px', color: '#C9A227', fontWeight: 'bold' as const, margin: '0 0 16px' }
-const h1 = { fontSize: '22px', fontWeight: 'bold' as const, color: '#0F1B33', margin: '0 0 16px' }
-const text = { fontSize: '14px', color: '#4A5568', lineHeight: '1.5', margin: '0 0 20px' }
-const codeBox = { backgroundColor: '#0F1B33', borderRadius: '8px', padding: '18px', textAlign: 'center' as const }
-const code = { fontSize: '32px', letterSpacing: '8px', fontWeight: 'bold' as const, color: '#C9A227', margin: '0', fontFamily: 'Courier, monospace' }
-const footer = { fontSize: '12px', color: '#999999', margin: '28px 0 0' }
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#000000',
+  margin: '0 0 20px',
+}
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
+const button = {
+  backgroundColor: '#000000',
+  color: '#ffffff',
+  fontSize: '14px',
+  border: '1px solid #000000',
+  borderRadius: '8px',
+  padding: '12px 20px',
+  textDecoration: 'none',
+}
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+// Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
+const darkModeCss = `
+  @media (prefers-color-scheme: dark) {
+    .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  }
+  [data-ogsc] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  [data-ogsb] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+`
