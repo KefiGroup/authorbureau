@@ -128,16 +128,18 @@ const handler = createAuthEmailHandler({
   senderDomain: SENDER_DOMAIN,
   sendUrl: Deno.env.get('LOVABLE_SEND_URL'),
   emails: {
-    signup: {
-      subject: 'Confirm your email',
-      render: (data) =>
-        React.createElement(SignupEmail, {
-          siteName: SITE_NAME,
-          siteUrl: SITE_URL,
-          recipient: data.email,
-          confirmationUrl: data.url,
-        }),
-    },
+    // Put the code in the subject so every email is unique: inboxes no longer
+    // stack codes into one thread, and the newest code is visible at a glance.
+    signup: (data) => ({
+      subject: data.token ? `${data.token} is your Authors Bureau code` : 'Confirm your email',
+      element: React.createElement(SignupEmail, {
+        siteName: SITE_NAME,
+        siteUrl: SITE_URL,
+        recipient: data.email,
+        confirmationUrl: data.url,
+        token: data.token ?? undefined,
+      }),
+    }),
     invite: {
       subject: "You've been invited",
       render: (data) =>
@@ -147,14 +149,14 @@ const handler = createAuthEmailHandler({
           confirmationUrl: data.url,
         }),
     },
-    magiclink: {
-      subject: 'Your login link',
-      render: (data) =>
-        React.createElement(MagicLinkEmail, {
-          siteName: SITE_NAME,
-          confirmationUrl: data.url,
-        }),
-    },
+    magiclink: (data) => ({
+      subject: data.token ? `${data.token} is your Authors Bureau code` : 'Your login link',
+      element: React.createElement(MagicLinkEmail, {
+        siteName: SITE_NAME,
+        confirmationUrl: data.url,
+        token: data.token ?? undefined,
+      }),
+    }),
     recovery: {
       subject: 'Reset your password',
       render: (data) =>
@@ -174,11 +176,10 @@ const handler = createAuthEmailHandler({
           confirmationUrl: data.url,
         }),
     },
-    reauthentication: {
-      subject: 'Your verification code',
-      render: (data) =>
-        React.createElement(ReauthenticationEmail, { token: data.token ?? '' }),
-    },
+    reauthentication: (data) => ({
+      subject: data.token ? `${data.token} is your Authors Bureau code` : 'Your verification code',
+      element: React.createElement(ReauthenticationEmail, { token: data.token ?? '' }),
+    }),
   },
 })
 
