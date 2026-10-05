@@ -17,7 +17,7 @@ interface Props {
 const AnnualEarningsStatementEmail = ({ authorName, taxYear, totalGross, totalNet, earningsUrl }: Props) => (
   <Html lang="en" dir="ltr">
     <Head />
-    <Preview>Your {taxYear} Authors Bureau earnings statement is ready</Preview>
+    <Preview>{`Your ${taxYear ?? ""} Authors Bureau earnings statement is ready`}</Preview>
     <Body style={main}>
       <Container style={container}>
         <Section style={header}>
