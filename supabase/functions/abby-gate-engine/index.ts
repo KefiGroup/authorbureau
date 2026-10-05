@@ -15,6 +15,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -268,7 +269,7 @@ async function ensureFunnel(
 
     if (!funnelId) {
       const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-funnel`;
-      const res = await fetch(url, {
+      const res = await fetchAppEmail({
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -447,11 +448,11 @@ async function sendHotLeadInvites(
     leads: Array<{ id: string; email: string; full_name: string | null }>;
   },
 ) {
-  const url = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-transactional-email`;
+  
   for (const lead of opts.leads) {
     if (!lead.email) continue;
     try {
-      await fetch(url, {
+      await fetchAppEmail({
         method: "POST",
         headers: {
           "Content-Type": "application/json",

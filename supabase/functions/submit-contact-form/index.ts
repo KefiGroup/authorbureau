@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -72,7 +73,7 @@ Deno.serve(async (req) => {
     }
 
     const send = (templateName: string, recipientEmail: string, templateData: Record<string, unknown>, replyTo?: string) =>
-      fetch(`${supabaseUrl}/functions/v1/send-transactional-email`, {
+      fetchAppEmail({
         method: 'POST',
         headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({

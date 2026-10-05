@@ -13,6 +13,7 @@ const __aiFetch = (init: any) => __fag(init, "abby-daily-crm-digest");
 //   POST { dryRun: true } → compute + persist but skip email send
 
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -241,7 +242,7 @@ async function processAuthor(
   }
 
   try {
-    await supabase.functions.invoke("send-transactional-email", {
+    await invokeAppEmail( {
       body: {
         templateName: "crm-daily-digest",
         recipientEmail,

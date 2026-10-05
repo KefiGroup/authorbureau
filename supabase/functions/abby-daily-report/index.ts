@@ -3,6 +3,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { fetchAiGateway } from "../_shared/builder-helpers.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -142,7 +143,7 @@ Generate this report's insight and top action.`,
 
     // 4. Send transactional email
     const today = now.toISOString().slice(0, 10);
-    const sendRes = await supabase.functions.invoke("send-transactional-email", {
+    const sendRes = await invokeAppEmail( {
       body: {
         templateName: "abby-daily-report",
         recipientEmail: email,

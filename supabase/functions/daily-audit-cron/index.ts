@@ -7,6 +7,7 @@ const __aiFetch = (init: any) => __fag(init, "daily-audit-cron");
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { logError } from "../_shared/log-error.ts";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -153,7 +154,7 @@ Deno.serve(async (req) => {
         const email = emailById.get(adminId);
         if (!email) continue;
         try {
-          await fetch(`${SUPABASE_URL}/functions/v1/send-transactional-email`, {
+          await fetchAppEmail({
             method: "POST",
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${SERVICE}` },
             body: JSON.stringify({

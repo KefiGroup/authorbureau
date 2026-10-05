@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
@@ -283,7 +284,7 @@ serve(async (req) => {
       const recipientEmail = user.email;
       if (recipientEmail) {
         const idempotencyKey = `audiobook-distribute-${audiobookId}-${Date.now()}`;
-        await supabase.functions.invoke("send-transactional-email", {
+        await invokeAppEmail( {
           body: {
             templateName: "audiobook-distribution-ready",
             recipientEmail,

@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { resolveUser } from "../_shared/resolve-user.ts";
 import { resolveAuthorId } from "../_shared/resolve-author-id.ts";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -377,7 +378,7 @@ Deno.serve(async (req) => {
     try {
       const isNewProfile = !localProfile;
       const templateName = isNewProfile ? 'profile-created' : 'profile-synced';
-      await cloudAdmin.functions.invoke('send-transactional-email', {
+      await invokeAppEmail( {
         body: {
           templateName,
           recipientEmail: userEmail,

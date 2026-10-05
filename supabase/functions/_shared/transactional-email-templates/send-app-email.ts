@@ -130,3 +130,48 @@ export async function sendAppEmail(args: SendAppEmailArgs): Promise<SendAppEmail
   await log('sent')
   return { success: true, status: 200 }
 }
+
+function normalizeBody(body: Record<string, any>): SendAppEmailArgs {
+  const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null)
+  return {
+    templateName: body.templateName || body.template_name,
+    recipientEmail: body.recipientEmail || body.recipient_email,
+    templateData: body.templateData && typeof body.templateData === 'object' ? body.templateData : {},
+    idempotencyKey: body.idempotencyKey || body.idempotency_key,
+    authorId: s(body.authorId) || s(body.author_id),
+    replyTo: s(body.replyTo) || s(body.reply_to),
+  }
+}
+
+function toPayload(r: SendAppEmailResult): Record<string, unknown> {
+  if (r.success) return { success: true }
+  if (r.reason) return { success: false, reason: r.reason }
+  return { error: r.error }
+}
+
+/** Drop-in for `client.functions.invoke('send-transactional-email', { body })`. */
+export async function invokeAppEmail(opts: { body: Record<string, any> }) {
+  if (!opts?.body?.templateName && !opts?.body?.template_name) {
+    return { data: null, error: new Error('templateName is required') }
+  }
+  const r = await sendAppEmail(normalizeBody(opts.body))
+  return r.status >= 400
+    ? { data: null, error: new Error(r.error || `HTTP ${r.status}`) }
+    : { data: toPayload(r), error: null }
+}
+
+/** Drop-in for `fetch(<send-transactional-email URL>, { method, headers, body })`. */
+export async function fetchAppEmail(init: { body?: string } & Record<string, any>): Promise<Response> {
+  let body: Record<string, any> = {}
+  try { body = JSON.parse(init?.body || '{}') } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON in request body' }), { status: 400 })
+  }
+  if (!body.templateName && !body.template_name) {
+    return new Response(JSON.stringify({ error: 'templateName is required' }), { status: 400 })
+  }
+  const r = await sendAppEmail(normalizeBody(body))
+  return new Response(JSON.stringify(toPayload(r)), {
+    status: r.status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}

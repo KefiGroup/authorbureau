@@ -20,6 +20,7 @@ import { logError } from "../_shared/log-error.ts";
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { invokeAppEmail, fetchAppEmail } from "../_shared/transactional-email-templates/send-app-email.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -431,7 +432,7 @@ async function sendHomeStudyConfirmation(
   }
 
   const idempotencyKey = `home-study-purchase-${args.purchaseId ?? args.customerEmail}`;
-  const { error } = await admin.functions.invoke("send-transactional-email", {
+  const { error } = await invokeAppEmail( {
     body: {
       templateName: "purchase-confirmation",
       recipientEmail: args.customerEmail,
