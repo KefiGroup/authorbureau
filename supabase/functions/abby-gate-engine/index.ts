@@ -452,29 +452,27 @@ async function sendHotLeadInvites(
   for (const lead of opts.leads) {
     if (!lead.email) continue;
     try {
-      await fetchAppEmail({
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
-        },
-        body: JSON.stringify({
+      const { data, error } = await invokeAppEmail({
+        body: {
+          templateName: "author-broadcast",
+          recipientEmail: lead.email,
           authorId: opts.authorProfileId,
-          to: lead.email,
-          subject: `A personal invitation from ${opts.penName}`,
-          template: "generic",
-          data: {
-            heading: `Hi ${lead.full_name?.split(" ")[0] ?? "there"},`,
-            body:
+          idempotencyKey: `hot-lead-invite-${opts.yrNodeId}-${lead.id}`,
+          templateData: {
+            senderName: opts.penName,
+            subject: `A personal invitation from ${opts.penName}`,
+            recipientName: lead.full_name || undefined,
+            bodyMarkdown:
               `Because you've been one of my most engaged readers, I wanted to invite you personally to my ${opts.yrNodeId} offer. ` +
               `It's a deeper, hands-on level of work I only open up to a small group at a time. ` +
               `Reply to this email if you'd like the details.`,
-            sender_name: opts.penName,
           },
-        }),
+        },
       });
+      if (error) console.warn(`[gate-engine] invite for lead ${lead.id} failed:`, error.message);
+      else if ((data as any)?.reason) console.log(`[gate-engine] invite for lead ${lead.id} skipped: ${(data as any).reason}`);
     } catch (e) {
-      console.warn(`[gate-engine] invite to ${lead.email} failed:`, e);
+      console.warn(`[gate-engine] invite for lead ${lead.id} failed:`, e);
     }
   }
 }
