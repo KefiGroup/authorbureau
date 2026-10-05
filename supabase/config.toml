@@ -87,60 +87,10 @@ project_id = "tubpbslfrxyfhldkcyyq"
     verify_jwt = false
   [functions.get-microsite-page]
     verify_jwt = false
-  [functions.process-email-queue]
-    verify_jwt = false
-  [functions.send-transactional-email]
-    verify_jwt = false
-  [functions.preview-transactional-email]
-    verify_jwt = false
-  [functions.handle-email-unsubscribe]
-    verify_jwt = false
-  [functions.handle-email-suppression]
-    verify_jwt = false
-  [functions.generate-bp03-social-media]
-    verify_jwt = false
-  [functions.generate-bp04-website]
-    verify_jwt = false
-  [functions.generate-bp02-lead-magnets]
-    verify_jwt = false
-  [functions.generate-email-sequence]
-    verify_jwt = false
-  [functions.trigger-sequence]
-    verify_jwt = false
-  [functions.process-email-events]
-    verify_jwt = false
-  [functions.generate-funnel]
-    verify_jwt = false
-  [functions.submit-funnel]
-    verify_jwt = false
-  [functions.track-funnel-view]
-    verify_jwt = false
-  [functions.verify-sender-email]
-    verify_jwt = false
-  [functions.process-purchase]
-    verify_jwt = false
-  [functions.get-manuscript-source]
-    verify_jwt = false
-  [functions.ba11-voice-preview]
-    verify_jwt = false
-  [functions.ba11-audiobook-generate]
-    verify_jwt = false
-  [functions.save-author-node]
-    verify_jwt = false
-  [functions.ba11-publish-audiobook]
-    verify_jwt = false
-  [functions.get-author-library]
-    verify_jwt = false
-  [functions.export-pro-slides]
-    verify_jwt = false
-  [functions.generate-cover-image]
-    verify_jwt = false
-  [functions.export-bp08-editions-docx]
-    verify_jwt = false
-  [functions.export-bp08-order-form]
-    verify_jwt = false
-  [functions.generate-speaker-script]
-    verify_jwt = false
-  [functions.export-speaker-script]
-    verify_jwt = false
+  
 
+[functions.handle-email-events]
+verify_jwt = false
+
+[functions.process-unsubscribe-token]
+verify_jwt = false

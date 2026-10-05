@@ -1,4 +1,10 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import { setEmailUnsubscribe } from 'npm:@lovable.dev/email-js@0.3.1'
+
+// Validates the app's own per-recipient unsubscribe tokens (used by
+// {{unsubscribe_url}} links in author nurture emails) and records the opt-out
+// on Lovable's managed email side as well as in the app's tables.
+const SENDER_DOMAIN = 'notify.authorsbureau.com'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -100,7 +106,7 @@ Deno.serve(async (req) => {
     .maybeSingle()
 
   if (updateError) {
-    console.error('Failed to mark token as used', { error: updateError, token })
+    console.error('Failed to mark token as used', { error: updateError })
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
   }
 
@@ -122,6 +128,19 @@ Deno.serve(async (req) => {
       email: tokenRecord.email,
     })
     return jsonResponse({ error: 'Failed to process unsubscribe' }, 500)
+  }
+
+  // Mirror the opt-out on Lovable's managed side so future app emails stop.
+  const lovableKey = Deno.env.get('LOVABLE_API_KEY')
+  if (lovableKey) {
+    try {
+      await setEmailUnsubscribe(
+        { recipient: tokenRecord.email.toLowerCase(), domain: SENDER_DOMAIN, subscribed: false },
+        { apiKey: lovableKey },
+      )
+    } catch (e) {
+      console.error('Managed unsubscribe failed', { message: (e as Error).message })
+    }
   }
 
   // Flag subscriber row(s) and unenroll from all active flows.
@@ -148,14 +167,6 @@ Deno.serve(async (req) => {
       .in('subscriber_id', subIds)
       .eq('status', 'active')
   }
-
-  // Audit log entry
-  await supabase.from('email_send_log').insert({
-    template_name: 'unsubscribe_event',
-    recipient_email: lowerEmail,
-    status: 'unsubscribed',
-    metadata: { source: 'one_click_unsubscribe' },
-  })
 
   console.log('Email unsubscribed', { email: lowerEmail, subscribers_affected: subs?.length || 0 })
 
