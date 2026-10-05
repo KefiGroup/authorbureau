@@ -452,7 +452,6 @@ async function sendHotLeadInvites(
   for (const lead of opts.leads) {
     if (!lead.email) continue;
     try {
-      const firstName = lead.full_name?.split(" ")[0] ?? "there";
       const { data, error } = await invokeAppEmail({
         body: {
           templateName: "author-broadcast",
@@ -464,7 +463,6 @@ async function sendHotLeadInvites(
             subject: `A personal invitation from ${opts.penName}`,
             recipientName: lead.full_name || undefined,
             bodyMarkdown:
-              `Hi ${firstName},\n\n` +
               `Because you've been one of my most engaged readers, I wanted to invite you personally to my ${opts.yrNodeId} offer. ` +
               `It's a deeper, hands-on level of work I only open up to a small group at a time. ` +
               `Reply to this email if you'd like the details.`,
