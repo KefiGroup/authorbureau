@@ -37,6 +37,9 @@ import {
   Maximize2,
 } from "lucide-react";
 import GraphicLightbox from "./GraphicLightbox";
+import PulseChannelsPanel from "./PulseChannelsPanel";
+import { callPulse } from "@/lib/pulse";
+import { Zap } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
@@ -64,6 +67,10 @@ interface SocialPost {
   archetype?: string | null;
   carousel_slides?: any;
   graphics?: any;
+  pulse_post_id?: string | null;
+  pulse_status?: string | null;
+  external_url?: string | null;
+  error_message?: string | null;
 }
 
 const PLATFORM_FILTERS = [
@@ -171,6 +178,8 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
   const [autoRefilling, setAutoRefilling] = useState(false);
   const [generatingGraphics, setGeneratingGraphics] = useState(false);
   const [generatingGraphicForId, setGeneratingGraphicForId] = useState<string | null>(null);
+  const [pulsePlatforms, setPulsePlatforms] = useState<string[]>([]);
+  const [pulseBusyId, setPulseBusyId] = useState<string | null>(null);
   const autoRefilledFor = useRef<Set<string>>(new Set());
 
   const formatDateTimeInput = (value: string | null) => {
@@ -559,6 +568,56 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     setPosts(prev => prev.map(p => p.id === post.id ? { ...p, status: "posted", posted_at: new Date().toISOString() } : p));
   };
 
+  const pulseAutoPost = async (post: SocialPost) => {
+    setPulseBusyId(post.id);
+    try {
+      const future = post.scheduled_at && new Date(post.scheduled_at).getTime() > Date.now() + 3 * 60_000;
+      const r = await callPulse<{ post: Partial<SocialPost> }>("publish_post", { post_id: post.id, mode: future ? "schedule" : "now" });
+      setPosts(prev => prev.map(p => p.id === post.id ? { ...p, ...r.post } : p));
+      toast.success(future ? "Queued — it will post automatically on its date" : "Sending — it goes live in about 2 minutes");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't post automatically", { description: "You can still use Copy caption and Mark as posted." });
+    } finally {
+      setPulseBusyId(null);
+    }
+  };
+
+  const renderPulseControl = (post: SocialPost) => {
+    if (post.external_url) {
+      return (
+        <Button size="sm" variant="outline" asChild>
+          <a href={post.external_url} target="_blank" rel="noopener noreferrer"><ExternalLink className="h-3.5 w-3.5 mr-1" /> View live post</a>
+        </Button>
+      );
+    }
+    if (post.pulse_post_id && (post.pulse_status === "scheduled" || post.pulse_status === "publishing")) {
+      return <Badge variant="secondary" className="self-center">{post.pulse_status === "publishing" ? "Posting…" : "Auto-post queued"}</Badge>;
+    }
+    if (!pulsePlatforms.includes(post.platform) || post.status === "posted") return null;
+    return (
+      <Button size="sm" variant="secondary" onClick={() => pulseAutoPost(post)} disabled={pulseBusyId === post.id} title={post.error_message || undefined}>
+        {pulseBusyId === post.id ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Zap className="h-3.5 w-3.5 mr-1" />}
+        {post.pulse_status === "failed" ? "Retry auto-post" : "Post automatically"}
+      </Button>
+    );
+  };
+
+  // Refresh in-flight automatic posts so cards flip to "View live post".
+  useEffect(() => {
+    const pending = posts.filter(p => p.pulse_post_id && (p.pulse_status === "scheduled" || p.pulse_status === "publishing"));
+    const due = pending.filter(p => !p.scheduled_at || new Date(p.scheduled_at).getTime() <= Date.now() + 60_000);
+    if (due.length === 0) return;
+    const t = setTimeout(async () => {
+      for (const p of due.slice(0, 10)) {
+        try {
+          const r = await callPulse<{ post: Partial<SocialPost> }>("refresh_post", { post_id: p.id });
+          setPosts(prev => prev.map(x => x.id === p.id ? { ...x, ...r.post } : x));
+        } catch { /* keep current state */ }
+      }
+    }, 20_000);
+    return () => clearTimeout(t);
+  }, [posts]);
+
   const handleDownloadPack = async () => {
     if (!authorId) return;
     setDownloadingPack(true);
@@ -754,18 +813,21 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
 
   return (
     <div className="space-y-5 pb-8">
-      {/* Sprint 61: Honest copy-paste workflow — no auto-publish claim. */}
+      {/* Optional Pulse automatic posting; copy-paste stays the default fallback. */}
+      <PulseChannelsPanel onChange={setPulsePlatforms} />
+      {pulsePlatforms.length === 0 && (
       <div className="rounded-lg border border-teal-500/30 bg-teal-500/5 p-4 flex items-start gap-3">
         <Copy className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" />
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-foreground">
-            Copy-paste workflow (no auto-posting)
+            Copy-paste workflow
           </p>
           <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
             Each card has <strong>Copy caption</strong>, <strong>Download graphic</strong>, and <strong>Open LinkedIn / Facebook / Instagram</strong>. Paste into the platform yourself (~20 seconds), then tap <strong>Mark as posted</strong>. ABBY refills 20 more posts whenever your unposted queue drops below 7.
           </p>
         </div>
       </div>
+      )}
 
       {scheduledCount > 0 && daysOfRunway > 0 && daysOfRunway <= 7 ? (
         <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-foreground flex items-center gap-2">
@@ -1122,6 +1184,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                             {generatingGraphicForId === post.id ? "Designing…" : "Generate graphic"}
                           </Button>
                         )}
+                        {post.status !== "posted" && renderPulseControl(post)}
                         <Button size="sm" variant="ghost" onClick={() => markAsPosted(post)}>
                           <Check className="h-3.5 w-3.5 mr-1" /> Mark as Posted
                         </Button>
@@ -1308,6 +1371,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
                           <Button size="sm" variant="secondary" onClick={() => postNow(post)}>
                             <Send className="h-3.5 w-3.5 mr-1" /> Post Now
                           </Button>
+                          {renderPulseControl(post)}
                           <Button size="sm" onClick={() => markAsPosted(post)}>
                             <Check className="h-3.5 w-3.5 mr-1" /> Mark as Posted
                           </Button>
