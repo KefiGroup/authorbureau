@@ -40,10 +40,10 @@ function pulseError(r: { status: number; data: any }) {
   return message;
 }
 
-async function ensureMember(profile: { id: string; display_name?: string | null; email?: string | null }) {
+async function ensureMember(profile: { id: string; pen_name?: string | null }) {
   const r = await pulse("/members", {
     method: "POST",
-    body: JSON.stringify({ external_id: profile.id, ...(profile.display_name ? { name: String(profile.display_name).slice(0, 120) } : {}) }),
+    body: JSON.stringify({ external_id: profile.id, ...(profile.pen_name ? { name: String(profile.pen_name).slice(0, 120) } : {}) }),
   });
   if (!r.ok) throw new Error(pulseError(r));
   return r.data.id as string;
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
     const resolved = await resolveUser(req.headers.get("Authorization"));
     if (!resolved.id) return json({ success: false, error: "Please sign in again." }, 401);
     const { data: profile } = await admin.from("author_profiles")
-      .select("id, display_name, email").eq("user_id", resolved.id)
+      .select("id, pen_name").eq("user_id", resolved.id)
       .order("created_at", { ascending: true }).limit(1).maybeSingle();
     if (!profile) return json({ success: false, error: "Author profile not found." }, 404);
 
