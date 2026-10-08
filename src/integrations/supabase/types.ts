@@ -5235,6 +5235,7 @@ export type Database = {
           content: string
           created_at: string
           error_message: string | null
+          external_url: string | null
           graphic_url: string | null
           graphics: Json | null
           id: string
@@ -5244,6 +5245,8 @@ export type Database = {
           post_type: string | null
           posted_at: string | null
           published_at: string | null
+          pulse_post_id: string | null
+          pulse_status: string | null
           scheduled_at: string | null
           status: string
           updated_at: string
@@ -5257,6 +5260,7 @@ export type Database = {
           content: string
           created_at?: string
           error_message?: string | null
+          external_url?: string | null
           graphic_url?: string | null
           graphics?: Json | null
           id?: string
@@ -5266,6 +5270,8 @@ export type Database = {
           post_type?: string | null
           posted_at?: string | null
           published_at?: string | null
+          pulse_post_id?: string | null
+          pulse_status?: string | null
           scheduled_at?: string | null
           status?: string
           updated_at?: string
@@ -5279,6 +5285,7 @@ export type Database = {
           content?: string
           created_at?: string
           error_message?: string | null
+          external_url?: string | null
           graphic_url?: string | null
           graphics?: Json | null
           id?: string
@@ -5288,6 +5295,8 @@ export type Database = {
           post_type?: string | null
           posted_at?: string | null
           published_at?: string | null
+          pulse_post_id?: string | null
+          pulse_status?: string | null
           scheduled_at?: string | null
           status?: string
           updated_at?: string

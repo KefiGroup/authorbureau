@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Sparkles, Rocket } from "lucide-react";
+import PulseChannelsPanel from "@/components/dashboard/marketing-hub/PulseChannelsPanel";
 
 interface DeployedNode {
   id: string;
@@ -86,6 +87,11 @@ export default function ConnectedAccountsTab({ userId }: { userId: string }) {
             </p>
           </div>
         </div>
+      </div>
+
+      <div>
+        <h3 className="font-heading font-semibold text-lg mb-3">Social channels</h3>
+        <PulseChannelsPanel />
       </div>
 
       {/* What's Live */}
