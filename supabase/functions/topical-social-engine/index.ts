@@ -99,7 +99,7 @@ function keywords(text: string) {
 }
 
 async function generateForBook(sb, authorId: string, bookId: string, wk: string) {
-  const { data: profile } = await sb.from("author_profiles").select("pen_name, genres, user_id, slug").eq("id", authorId).single();
+  const { data: profile } = await sb.from("author_profiles").select("pen_name, genres, user_id, author_slug").eq("id", authorId).single();
   if (!profile) return { book_id: bookId, skipped: "no_profile" };
   const ctxB = await buildAuthorContext(sb, authorId, profile.user_id ?? null, bookId, "BP-03");
   if (ctxB.contextBlocked || !ctxB.bookTitle) return { book_id: bookId, skipped: "no_book_analysis" };
@@ -161,7 +161,7 @@ Return JSON only: {"posts":[{"visual_format":"news_split","headline_index":0,"ho
   const posts = (parsed.posts || []).filter((p) => FORMATS[p.visual_format] && items[p.headline_index]);
   if (!posts.length) return { book_id: bookId, skipped: "ai_empty" };
 
-  const bookUrl = profile.slug && ctxB.book?.slug ? `${SITE}/${profile.slug}/${ctxB.book.slug}` : null;
+  const bookUrl = profile.author_slug && ctxB.book?.slug ? `${SITE}/${profile.author_slug}/${ctxB.book.slug}` : null;
   const monday = new Date(wk + "T01:00:00Z"); // 09:00 Singapore
   const rows = posts.slice(0, 5).map((p, i) => {
     const n = items[p.headline_index];
