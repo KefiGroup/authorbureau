@@ -227,16 +227,13 @@ Deno.serve(async (req) => {
       const { data: done } = await sb.from("topical_social_drafts").select("author_id, book_id").eq("week_key", wk);
       const doneSet = new Set((done || []).map((d) => `${d.author_id}:${d.book_id}`));
       const todo = (nodes || []).filter((n) => !doneSet.has(`${n.author_id}:${n.book_id}`)).slice(0, BATCH);
-      for (const n of todo) {
-        try { results.push(await generateForBook(sb, n.author_id, n.book_id, wk)); }
-        catch (e) {
-          if (e.status === 402 || e.status === 403) {
-            await sb.from("topical_engine_state").update({ paused_reason: `AI credits/policy blocked (${e.status}). Resume by clearing paused_reason.` }).eq("id", "weekly");
-            results.push({ book_id: n.book_id, error: `paused_${e.status}` });
-            break;
-          }
-          results.push({ book_id: n.book_id, error: String(e.message || e) });
-          if (e.status === 429) break;
+      const settled = await Promise.allSettled(todo.map((n) => generateForBook(sb, n.author_id, n.book_id, wk)));
+      for (const [i, r] of settled.entries()) {
+        if (r.status === "fulfilled") { results.push(r.value); continue; }
+        const e: any = r.reason;
+        results.push({ book_id: todo[i].book_id, error: String(e?.message || e) });
+        if (e?.status === 402 || e?.status === 403) {
+          await sb.from("topical_engine_state").update({ paused_reason: `AI credits/policy blocked (${e.status}). Resume by clearing paused_reason.` }).eq("id", "weekly");
         }
       }
     } finally {
