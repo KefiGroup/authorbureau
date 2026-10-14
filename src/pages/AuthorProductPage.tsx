@@ -688,7 +688,7 @@ export default function AuthorProductPage() {
         <div className="container max-w-3xl px-4">
           <div className="flex flex-col sm:flex-row gap-5 items-start">
             {author.photo_url ? (
-              <img src={author.photo_url} alt={displayName} className="w-20 h-20 rounded-full object-cover shrink-0" style={{ border: `3px solid ${v.accent}` }} />
+              <img src={author.photo_url} alt={displayName} className="w-20 h-20 rounded-full object-cover object-top shrink-0" style={{ border: `3px solid ${v.accent}` }} />
             ) : (
               <div className="w-20 h-20 rounded-full shrink-0 flex items-center justify-center" style={{ background: v.accent }}>
                 <span className="text-2xl font-bold" style={{ color: v.accentText }}>{displayName.charAt(0)}</span>

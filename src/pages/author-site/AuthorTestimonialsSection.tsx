@@ -76,7 +76,7 @@ export default function AuthorTestimonialsSection({ testimonials, theme, v, isOw
                   <img
                     src={t.avatar_url}
                     alt={t.name}
-                    className="w-10 h-10 rounded-full object-cover"
+                    className="w-10 h-10 rounded-full object-cover object-top"
                   />
                 ) : (
                   <div

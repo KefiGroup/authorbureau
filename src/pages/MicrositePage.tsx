@@ -321,7 +321,7 @@ function MicrositeNav({
         <div className="container max-w-7xl flex items-center justify-between h-14 px-4">
           <Link to={`/${authorSlug}`} className="flex items-center gap-2.5 hover:opacity-90 shrink-0">
             {authorPhotoUrl ? (
-              <img src={authorPhotoUrl} alt={authorName} className="w-8 h-8 rounded-full object-cover" style={{ border: `2px solid ${v.accent}` }} />
+              <img src={authorPhotoUrl} alt={authorName} className="w-8 h-8 rounded-full object-cover object-top" style={{ border: `2px solid ${v.accent}` }} />
             ) : (
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: v.accent, color: v.accentText }}>
                 {authorName.charAt(0)}
@@ -688,7 +688,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
           {/* Author strip */}
           <div className="mt-8 flex items-center gap-4 justify-center">
             {data.author.photo_url && (
-              <img src={data.author.photo_url} alt={data.author.pen_name} className="w-12 h-12 rounded-full object-cover" />
+              <img src={data.author.photo_url} alt={data.author.pen_name} className="w-12 h-12 rounded-full object-cover object-top" />
             )}
             <p className="text-sm" style={{ color: v.mutedText }}>Created by <strong style={{ color: v.headingText }}>{data.author.pen_name}</strong></p>
           </div>
@@ -784,7 +784,7 @@ function LeadMagnetPage({ data, content, v, hFont, bgColor, onSubmit, email, set
       <section className="border-t border-b py-8 px-4" style={{ borderColor: v.cardBorder, background: v.secondaryBg || `${accentColor}05` }}>
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
           {data.author.photo_url && (
-            <img src={data.author.photo_url} alt={data.author.pen_name} className="w-16 h-16 rounded-full object-cover shadow-md border-2" style={{ borderColor: `${accentColor}30` }} />
+            <img src={data.author.photo_url} alt={data.author.pen_name} className="w-16 h-16 rounded-full object-cover object-top shadow-md border-2" style={{ borderColor: `${accentColor}30` }} />
           )}
           <div className="text-center sm:text-left">
             <p className="text-base font-semibold" style={{ color: v.headingText }}>Created by {data.author.pen_name}</p>
@@ -1023,7 +1023,7 @@ function WebinarPage({ data, content, v, hFont, bgColor, onSubmit, email, setEma
       {/* Speaker info */}
       {data.author.photo_url && (
         <div className="flex items-center gap-4 max-w-md mx-auto mt-10">
-          <img src={data.author.photo_url} alt={data.author.pen_name} className="w-14 h-14 rounded-full object-cover" />
+          <img src={data.author.photo_url} alt={data.author.pen_name} className="w-14 h-14 rounded-full object-cover object-top" />
           <div>
             <p className="font-semibold" style={{ color: v.headingText }}>Hosted by {data.author.pen_name}</p>
             <p className="text-sm" style={{ color: v.mutedText }}>{data.author.bio || ""}</p>
@@ -1733,7 +1733,7 @@ function LongFormSalesPage({
         <section className="mb-16 max-w-3xl mx-auto">
           <Card className="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
             {author.photo_url && (
-              <img src={author.photo_url} alt={author.pen_name} className="w-24 h-24 rounded-full object-cover shrink-0" />
+              <img src={author.photo_url} alt={author.pen_name} className="w-24 h-24 rounded-full object-cover object-top shrink-0" />
             )}
             <div>
               <p className="text-xs uppercase tracking-widest font-bold mb-1" style={{ color: v.accent }}>About the author</p>
@@ -1938,7 +1938,7 @@ function BookSalesPage({ data, content, v, hFont, bgColor }: PageProps) {
         <section className="mb-12 max-w-3xl mx-auto">
           <Card className="p-6 flex flex-col sm:flex-row items-center sm:items-start gap-6" style={{ background: v.cardBg, borderColor: v.cardBorder }}>
             {author.photo_url && (
-              <img src={author.photo_url} alt={author.pen_name} className="w-24 h-24 rounded-full object-cover shrink-0" />
+              <img src={author.photo_url} alt={author.pen_name} className="w-24 h-24 rounded-full object-cover object-top shrink-0" />
             )}
             <div>
               <p className="text-xs uppercase tracking-widest font-bold mb-1" style={{ color: v.accent }}>About the author</p>

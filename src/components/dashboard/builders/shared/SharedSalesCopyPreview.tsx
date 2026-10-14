@@ -152,7 +152,7 @@ export default function SharedSalesCopyPreview({ data, productMeta, onCtaClick }
           <h2 className="font-heading text-lg font-bold mb-4 text-center">Meet Your Author</h2>
           <div className="max-w-md mx-auto text-center">
             {data.author.photoUrl && (
-              <img src={data.author.photoUrl} alt={data.author.name} className="w-16 h-16 rounded-full object-cover mx-auto mb-3" />
+              <img src={data.author.photoUrl} alt={data.author.name} className="w-16 h-16 rounded-full object-cover object-top mx-auto mb-3" />
             )}
             <p className="text-sm font-bold">{data.author.name}</p>
             {data.author.credentials && (

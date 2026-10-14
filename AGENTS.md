@@ -11,3 +11,5 @@
 - BP-03 carousels and cheat sheets are rendered client-side from saved post text only (carouselGraphic.ts, no AI call), because exports must never invent facts and must work offline.
 
 - BP-03 topical posts come only from `topical-social-engine` (curated RSS headline + book principle) and land as pending drafts; only author approval creates social_posts rows, because news-tied posts must never go out unreviewed or cite invented headlines.
+
+- Author headshots must always render with top-anchored cropping (`object-cover object-top` or `object-contain`); never centre-crop a portrait, because author faces were repeatedly clipped in circular avatars.

@@ -354,7 +354,7 @@ export default function AuthorsTab() {
                   <img
                     src={author.photo_url}
                     alt={author.pen_name || ""}
-                    className="w-12 h-12 rounded-full object-cover shrink-0"
+                    className="w-12 h-12 rounded-full object-cover object-top shrink-0"
                     style={{ objectPosition: `50% ${author.photo_crop_y || '0%'}` }}
                   />
                 ) : (

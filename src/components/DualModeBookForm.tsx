@@ -565,7 +565,7 @@ export default function DualModeBookForm({
               <Label className="text-xs text-muted-foreground mb-2 block">Author Info (from your profile)</Label>
               <div className="flex items-center gap-3">
                 {form.authorPhotoUrl && (
-                  <img src={form.authorPhotoUrl} alt={form.authorName} className="w-10 h-10 rounded-full object-cover" />
+                  <img src={form.authorPhotoUrl} alt={form.authorName} className="w-10 h-10 rounded-full object-cover object-top" />
                 )}
                 <div>
                   <p className="font-semibold text-sm">{form.authorName}</p>
