@@ -13,6 +13,8 @@ interface Props {
   bookColor?: string | null;
   bookTitle?: string;
   pullQuote: string;
+  postType?: string | null;
+  cta?: string | null;
   className?: string;
 }
 
@@ -27,6 +29,8 @@ export default function SocialGraphicCard({
   bookColor,
   bookTitle,
   pullQuote,
+  postType,
+  cta,
   className = "",
 }: Props) {
   const imgRef = useRef<HTMLImageElement>(null);
@@ -46,6 +50,8 @@ export default function SocialGraphicCard({
           bookColor,
           bookTitle,
           pullQuote,
+          postType,
+          cta,
         });
         if (cancelled) return;
         createdUrl = URL.createObjectURL(blob);
@@ -60,7 +66,7 @@ export default function SocialGraphicCard({
       cancelled = true;
       if (createdUrl) URL.revokeObjectURL(createdUrl);
     };
-  }, [platform, authorName, authorPhotoUrl, bookColor, bookTitle, pullQuote]);
+  }, [platform, authorName, authorPhotoUrl, bookColor, bookTitle, pullQuote, postType, cta]);
 
   const dims = PLATFORM_DIMENSIONS[platform];
 
