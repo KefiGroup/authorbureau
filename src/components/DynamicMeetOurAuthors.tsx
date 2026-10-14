@@ -78,11 +78,10 @@ export default function DynamicMeetOurAuthors() {
         if (authError) throw authError;
 
         // Fetch all published books (from Cloud project)
-        const { data: booksData, error: booksError } = await cloudSupabase
-          .from("books")
+        const { data: booksData, error: booksError } = await (cloudSupabase as any)
+          .from("books_public")
           .select("id, title, subtitle, slug, cover_image_url, rating, pages, badges, amazon_url, author_id, author_name")
-          .not("published_at", "is", null)
-          .eq("is_test", false);
+          .not("published_at", "is", null);
 
         if (booksError) throw booksError;
 

@@ -266,9 +266,9 @@ export default function Solutions() {
                           <span className="text-muted-foreground/60 shrink-0">{i + 1}.</span>
                           <div>
                             <a href={p.url} target="_blank" rel="noopener noreferrer" className="font-medium text-foreground hover:text-secondary">
-                              {p.title}
+                              {cleanSnippet(p.title) || p.url}
                             </a>
-                            {p.snippet && <p className="text-xs text-muted-foreground mt-0.5">{p.snippet}</p>}
+                            {cleanSnippet(p.snippet) && <p className="text-xs text-muted-foreground mt-0.5">{cleanSnippet(p.snippet)}</p>}
                           </div>
                         </div>
                       ))}
@@ -300,4 +300,16 @@ export default function Solutions() {
       <Footer />
     </div>
   );
+}
+
+/** Scraped competitor snippets can carry website form/menu boilerplate; strip it for display. */
+function cleanSnippet(text: unknown): string {
+  if (typeof text !== "string") return "";
+  return text
+    .replace(/Thank you! Your submission has been received!?/gi, "")
+    .replace(/Oops! Something went wrong while submitting the form\.?/gi, "")
+    .replace(/\bMENU\b/g, "")
+    .replace(/\s*—\s*/g, ", ")
+    .replace(/\s{2,}/g, " ")
+    .trim();
 }
