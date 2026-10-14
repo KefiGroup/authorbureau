@@ -452,7 +452,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
           <h3 className="font-heading text-lg font-semibold">Profile Photo</h3>
           <div className="flex items-center gap-4">
             {profile.photo_url ? (
-              <img src={profile.photo_url} alt="Profile" className="h-24 w-24 rounded-full object-cover border-2 border-border" />
+              <img src={profile.photo_url} alt="Profile" className="h-24 w-24 rounded-full object-contain p-2 bg-muted border-2 border-border shrink-0" />
             ) : (
               <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted">
                 <Camera className="h-8 w-8 text-muted-foreground" />
@@ -666,7 +666,7 @@ export default function ProfileEditor({ onNavigate }: ProfileEditorProps) {
       <section className="rounded-xl border border-border bg-card p-6">
         <div className="flex items-start gap-5">
           {profile.photo_url ? (
-            <img src={profile.photo_url} alt={profile.pen_name} className="h-24 w-24 rounded-full object-cover border-2 border-border shrink-0" />
+            <img src={profile.photo_url} alt={profile.pen_name} className="h-24 w-24 rounded-full object-contain p-2 bg-muted border-2 border-border shrink-0" />
           ) : (
             <div className="h-24 w-24 rounded-full border-2 border-dashed border-border flex items-center justify-center bg-muted shrink-0">
               <span className="text-2xl font-bold text-muted-foreground">{profile.pen_name?.[0]?.toUpperCase() || "?"}</span>
