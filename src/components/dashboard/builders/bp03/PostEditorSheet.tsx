@@ -109,6 +109,8 @@ export default function PostEditorSheet({
                       ? pullQuote
                       : extractPullQuote(draft[p]?.caption || "")
                   }
+                  postType={draft.post_type}
+                  cta={draft[p]?.cta}
                 />
                 {p === "instagram" && draft.instagram?.format === "carousel" && Array.isArray(draft.instagram?.carousel_slides) && (
                   <CarouselPreview

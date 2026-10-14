@@ -790,6 +790,8 @@ async function downloadKitZip(
             bookColor,
             bookTitle,
             pullQuote,
+            postType: post.post_type,
+            cta: pp.cta,
           });
           const arr = await blob.arrayBuffer();
           const dayLabel = String(post.day).padStart(2, "0");
@@ -1070,6 +1072,8 @@ function PostCard({
               bookColor={bookColor}
               bookTitle={bookTitle}
               pullQuote={pullQuote}
+              postType={post.post_type}
+              cta={platformData.cta}
             />
           </div>
           <p className="mt-2 text-[11px] text-muted-foreground line-clamp-2">{platformData.caption}</p>
