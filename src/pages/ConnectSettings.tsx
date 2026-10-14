@@ -495,7 +495,7 @@ export default function ConnectSettings() {
                 >
                   <RadioGroupItem id={`pg-${pg.id}`} value={pg.id} />
                   {pg.picture ? (
-                    <img src={pg.picture} alt="" className="h-8 w-8 rounded-full object-cover" />
+                    <img src={pg.picture} alt="" className="h-8 w-8 rounded-full object-cover object-top" />
                   ) : (
                     <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
                       <Facebook className="h-4 w-4 text-muted-foreground" />

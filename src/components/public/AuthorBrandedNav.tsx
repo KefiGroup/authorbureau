@@ -112,7 +112,7 @@ export default function AuthorBrandedNav({
             <img
               src={authorPhotoUrl}
               alt={authorName}
-              className="w-8 h-8 rounded-full object-cover"
+              className="w-8 h-8 rounded-full object-cover object-top"
               style={{ border: `2px solid ${v.accent}` }}
             />
           ) : (

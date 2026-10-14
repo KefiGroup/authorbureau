@@ -154,7 +154,7 @@ export default function ServiceDetailDialog({
                 <img
                   src={authorPhoto}
                   alt={authorName}
-                  className="w-16 h-16 rounded-full object-cover shrink-0"
+                  className="w-16 h-16 rounded-full object-cover object-top shrink-0"
                   style={{ border: `2px solid ${v.accent}` }}
                 />
               )}

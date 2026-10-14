@@ -108,7 +108,7 @@ export default function WebinarIndexPage() {
             <img
               src={author.photo_url}
               alt={displayName}
-              className="w-16 h-16 rounded-full object-cover border border-border"
+              className="w-16 h-16 rounded-full object-cover object-top border border-border"
             />
           )}
           <div className="min-w-0">

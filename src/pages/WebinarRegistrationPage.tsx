@@ -158,7 +158,7 @@ export default function WebinarRegistrationPage() {
           <div className="mt-12 text-center">
             <p className="text-xs uppercase tracking-wider text-muted-foreground mb-3">Hosted by</p>
             <div className="flex items-center justify-center gap-3">
-              {author.photo_url && <img src={author.photo_url} alt={author.pen_name || ""} className="w-12 h-12 rounded-full object-cover" />}
+              {author.photo_url && <img src={author.photo_url} alt={author.pen_name || ""} className="w-12 h-12 rounded-full object-cover object-top" />}
               <div className="text-left">
                 <p className="font-semibold">{author.pen_name}</p>
                 {author.bio_short && <p className="text-xs text-muted-foreground max-w-md">{author.bio_short}</p>}
