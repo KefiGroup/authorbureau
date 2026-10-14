@@ -354,6 +354,8 @@ twitter_posts MUST have exactly 20 items in day order. outreach_kit MUST have ex
         carousel_count: carouselCount,
         archetype_count: ARCHETYPES.length,
       },
+      // Must match NODE_UPDATES["BP-03"].version in src/lib/node-updates.ts
+      _engineVersion: 2,
     };
 
     await upsertAuthorNode(sb, author_id, "BP-03", "Social Media", {
