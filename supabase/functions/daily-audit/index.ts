@@ -299,12 +299,20 @@ Deno.serve(async (req) => {
       if (data && data[0]) status = data[0].status;
     }
     const ok = r.ok && status === "sent";
+    // Since the managed-email migration, auth emails are no longer mirrored
+    // into email_send_log, so an accepted request with no log row is
+    // "unconfirmed", not a delivery failure.
+    const unconfirmed = r.ok && status === "not_logged";
     checks.push({
       key: "signin_email",
       label: "Sign-in code email",
-      severity: ok ? "ok" : "fail",
+      severity: ok ? "ok" : unconfirmed ? "warn" : "fail",
       count: ok ? 0 : 1,
-      message: ok ? "Test sign-in code delivered" : `Sign-in code not delivered (request ${r.status}, status ${status})`,
+      message: ok
+        ? "Test sign-in code delivered"
+        : unconfirmed
+          ? "Sign-in code request accepted; delivery is tracked by managed email (test inbox cannot receive mail)"
+          : `Sign-in code not delivered (request ${r.status}, status ${status})`,
     });
   } catch (e) {
     checks.push({ key: "signin_email", label: "Sign-in code email", severity: "fail", count: 1, message: `probe failed: ${(e as Error).message}` });
@@ -438,20 +446,27 @@ Deno.serve(async (req) => {
     const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
     const unreachable: Array<{ node_id: string; book: string; author: string; status: number }> = [];
     const sample = (liveRows || []).slice(0, 120);
-    await Promise.all(sample.map(async (r: any) => {
+    const probe = async (r: any) => {
       const author = r.author_profiles?.author_slug;
       const book = r.books?.slug;
       if (!author || !book) return;
-      try {
-        const res = await fetch(`${base}/functions/v1/get-microsite-page?author=${encodeURIComponent(author)}&node=${encodeURIComponent(r.node_id)}&book=${encodeURIComponent(book)}`, {
+      const attempt = () => fetch(`${base}/functions/v1/get-microsite-page?author=${encodeURIComponent(author)}&node=${encodeURIComponent(r.node_id)}&book=${encodeURIComponent(book)}`, {
           headers: { apikey: anon, Authorization: `Bearer ${anon}` },
         });
-        if (!res.ok) unreachable.push({ node_id: r.node_id, book, author, status: res.status });
-        else await res.body?.cancel();
-      } catch {
-        unreachable.push({ node_id: r.node_id, book, author, status: 0 });
+      // One retry: a burst of parallel requests can drop a connection (status 0).
+      for (let i = 0; i < 2; i++) {
+        try {
+          const res = await attempt();
+          if (res.ok) { await res.body?.cancel(); return; }
+          if (i === 1) unreachable.push({ node_id: r.node_id, book, author, status: res.status });
+          else await res.body?.cancel();
+        } catch {
+          if (i === 1) unreachable.push({ node_id: r.node_id, book, author, status: 0 });
+        }
       }
-    }));
+    };
+    // Small batches so the check measures the pages, not connection limits.
+    for (let i = 0; i < sample.length; i += 8) await Promise.all(sample.slice(i, i + 8).map(probe));
     const leaks = (nodesNoBook || 0) + (funnelsNoBook || 0) + (postsNoBook || 0);
     const bad = leaks + unreachable.length;
     checks.push({
