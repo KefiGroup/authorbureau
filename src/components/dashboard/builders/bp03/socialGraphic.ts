@@ -268,7 +268,7 @@ export async function renderSocialGraphic(args: RenderArgs): Promise<Blob> {
   y += kSize * 2 + pad * 0.6;
 
   // Big accent mark
-  if (a === "Question" || a === "Quote") {
+  if (a === "Question" || (a === "Quote" && !usePortrait)) {
     const big = Math.round(m * (a === "Question" ? 0.42 : 0.3));
     ctx.font = `800 ${big}px ${a === "Quote" ? SERIF : SANS}`;
     ctx.fillStyle = accent + "33";
