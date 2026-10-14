@@ -225,7 +225,7 @@ export default function Solutions() {
                       Market Analysis
                     </h3>
                     <div className="prose prose-sm max-w-none text-muted-foreground">
-                      <MarkdownRenderer content={marketData.marketIntelligence} />
+                      <MarkdownRenderer content={noDashes(marketData.marketIntelligence)} />
                     </div>
                     {marketData.marketCitations?.length > 0 && (
                       <div className="mt-4 pt-3 border-t border-border">
@@ -249,7 +249,7 @@ export default function Solutions() {
                       Pricing Benchmarks
                     </h3>
                     <div className="prose prose-sm max-w-none text-muted-foreground">
-                      <MarkdownRenderer content={marketData.pricingIntelligence} />
+                      <MarkdownRenderer content={noDashes(marketData.pricingIntelligence)} />
                     </div>
                   </Card>
                 )}
@@ -310,6 +310,13 @@ function cleanSnippet(text: unknown): string {
     .replace(/Oops! Something went wrong while submitting the form\.?/gi, "")
     .replace(/\bMENU\b/g, "")
     .replace(/\s*—\s*/g, ", ")
+    .replace(/–/g, "-")
     .replace(/\s{2,}/g, " ")
     .trim();
+}
+
+/** Site rule: no long dashes in public copy. */
+function noDashes(text: unknown): string {
+  if (typeof text !== "string") return "";
+  return text.replace(/\s*—\s*/g, ", ").replace(/–/g, "-");
 }
