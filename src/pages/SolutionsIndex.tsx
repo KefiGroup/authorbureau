@@ -20,8 +20,8 @@ const GENRES = [
 
 export default function SolutionsIndex() {
   useDocumentMeta({
-    title: "Solutions for Authors | Authors Bureau — Turn Any Book Into a Business",
-    description: "Discover how authors in every genre — self-help, business, fiction, memoir, health — are turning their books into thriving businesses with AI-powered tools.",
+    title: "Solutions for Authors | Authors Bureau: Turn Any Book Into a Business",
+    description: "Discover how authors in every genre (self-help, business, fiction, memoir, health) are turning their books into thriving businesses with AI-powered tools.",
   });
 
   return (
