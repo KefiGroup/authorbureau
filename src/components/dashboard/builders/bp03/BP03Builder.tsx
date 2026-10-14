@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuthReady } from "@/hooks/useAuthReady";
@@ -18,6 +18,7 @@ import NodeHowItWorks from "@/components/dashboard/builders/shared/NodeHowItWork
 import JSZip from "jszip";
 import { toAbbyError } from "@/lib/abby-error";
 import SocialGraphicCard from "./SocialGraphicCard";
+import CarouselPanel from "./CarouselPanel";
 import PostEditorSheet from "./PostEditorSheet";
 import {
   PLATFORM_DIMENSIONS,
@@ -1028,8 +1029,17 @@ function PostCard({
   onClick: () => void;
 }) {
   const [platform, setPlatform] = useState<SocialPlatform>("instagram");
+  const [view, setView] = useState<"single" | "carousel">("single");
   const platformData = post[platform] || { caption: "", hashtags: [] };
   const pullQuote = extractPullQuote(platformData.caption || "");
+  const longCaption = post.linkedin?.caption || post.facebook?.caption || platformData.caption || "";
+  const carouselArgs = useMemo(() => ({
+    theme: post.theme || "",
+    caption: longCaption,
+    postType: post.post_type,
+    cta: post.linkedin?.cta || platformData.cta,
+    authorName, authorPhotoUrl, bookTitle, bookColor,
+  }), [post.theme, longCaption, post.post_type, post.linkedin?.cta, platformData.cta, authorName, authorPhotoUrl, bookTitle, bookColor]);
 
   return (
     <Card
@@ -1050,6 +1060,26 @@ function PostCard({
         </div>
 
         <div onClick={(e) => e.stopPropagation()}>
+          <div className="flex gap-1 mb-2">
+            {(["single", "carousel"] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition-colors ${
+                  view === v ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                }`}
+              >
+                {v === "single" ? "Single post" : "Carousel + cheat sheet"}
+              </button>
+            ))}
+          </div>
+          {view === "carousel" ? (
+            <CarouselPanel
+              day={post.day}
+              args={carouselArgs}
+            />
+          ) : (
+          <>
           <div className="flex gap-1 mb-2 flex-wrap">
             {(["instagram", "linkedin", "facebook", "twitter"] as const).map((p) => (
               <button
@@ -1086,6 +1116,8 @@ function PostCard({
               cta={platformData.cta}
             />
           </div>
+          </>
+          )}
           <p className="mt-2 text-[11px] text-muted-foreground line-clamp-2">{platformData.caption}</p>
         </div>
       </CardContent>
