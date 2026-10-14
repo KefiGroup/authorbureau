@@ -69,6 +69,7 @@ export function buildSlides(args: CarouselArgs): Slide[] {
   return slides;
 }
 
+function dup(t: string, b: string) { return b.length - t.replace(/…$/, "").length < 25; }
 function hex(h?: string | null) { return h && /^#?[0-9a-f]{6}$/i.test(h) ? (h.startsWith("#") ? h : "#" + h) : null; }
 function rgb(h: string) { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; }
 function mix(h: string, t: number, a: number) {
@@ -158,7 +159,7 @@ export async function renderSlide(args: CarouselArgs, slides: Slide[], i: number
     const f = fit(ctx, slide.title, (s) => `800 ${s}px ${SANS}`, cw, 380, 88, 50, 1.1);
     ctx.fillStyle = ink; f.lines.forEach((l, k) => ctx.fillText(l, P, y + 80 + k * f.lh));
     y += 80 + f.lines.length * f.lh + 50;
-    if (slide.body && slide.body !== slide.title) {
+    if (slide.body && !dup(slide.title, slide.body)) {
       const b = fit(ctx, slide.body, (s) => `500 ${s}px ${SANS}`, cw, footTop - y - 40, 40, 28, 1.4);
       ctx.fillStyle = sub; b.lines.forEach((l, k) => ctx.fillText(l, P, y + k * b.lh));
     }
@@ -174,7 +175,7 @@ export async function renderSlide(args: CarouselArgs, slides: Slide[], i: number
     const t = fit(ctx, slide.title, (s) => `800 ${s}px ${SANS}`, iw, ch * 0.45, 76, 44, 1.12);
     ctx.fillStyle = deep; t.lines.forEach((l, k) => ctx.fillText(l, ix, cy + 70 + k * t.lh));
     const by = cy + 70 + t.lines.length * t.lh + 40;
-    if (slide.body && slide.body !== slide.title) {
+    if (slide.body && !dup(slide.title, slide.body)) {
       const b = fit(ctx, slide.body, (s) => `500 ${s}px ${SANS}`, iw, cy + ch - by - 50, 38, 26, 1.42);
       ctx.fillStyle = sub; b.lines.forEach((l, k) => ctx.fillText(l, ix, by + k * b.lh));
     }
@@ -258,24 +259,21 @@ export async function renderCheatSheet(args: CarouselArgs, slides: Slide[]): Pro
   const f = fit(ctx, hook, (s) => `800 ${s}px ${SANS}`, W - P * 2, 200, 72, 40, 1.1);
   ctx.fillStyle = "#ffffff"; f.lines.forEach((l, k) => ctx.fillText(l, P, 130 + k * f.lh));
 
-  const pts = slides.filter((s) => s.kind === "point" || s.kind === "problem");
-  const cols = 2, gap = 30, cw = (W - P * 2 - gap) / cols, top = 410;
-  const rows = Math.ceil(pts.length / cols) || 1;
-  const ch = Math.min(380, (H - 200 - top - gap * (rows - 1)) / rows);
+  const pts = slides.filter((s) => s.kind === "point" || s.kind === "problem").slice(0, 5);
+  const top = 410, gap = 24, bottomY = H - 190;
+  const rh = Math.min(200, (bottomY - top - gap * (pts.length - 1)) / Math.max(1, pts.length));
   pts.forEach((s, k) => {
-    const x = P + (k % cols) * (cw + gap), y = top + Math.floor(k / cols) * (ch + gap);
+    const x = P, y = top + k * (rh + gap), cw = W - P * 2;
     ctx.save(); ctx.shadowColor = "rgba(15,23,42,0.12)"; ctx.shadowBlur = 24; ctx.shadowOffsetY = 8;
-    ctx.fillStyle = "#ffffff"; rr(ctx, x, y, cw, ch, 24); ctx.fill(); ctx.restore();
-    ctx.fillStyle = brand; rr(ctx, x + 30, y + 30, 64, 64, 18); ctx.fill();
-    ctx.fillStyle = "#ffffff"; ctx.font = `800 32px ${SANS}`; ctx.textAlign = "center";
-    ctx.fillText(String(k + 1), x + 62, y + 46); ctx.textAlign = "left";
-    const t = fit(ctx, s.title, (z) => `800 ${z}px ${SANS}`, cw - 60, 120, 34, 22, 1.15);
-    ctx.fillStyle = deep; t.lines.forEach((l, j) => ctx.fillText(l, x + 30, y + 120 + j * t.lh));
-    const by = y + 120 + t.lines.length * t.lh + 16;
-    if (s.body && s.body !== s.title) {
-      const b = fit(ctx, s.body, (z) => `500 ${z}px ${SANS}`, cw - 60, y + ch - by - 24, 24, 16, 1.35);
-      ctx.fillStyle = "rgba(15,23,42,0.66)"; b.lines.forEach((l, j) => ctx.fillText(l, x + 30, by + j * b.lh));
-    }
+    ctx.fillStyle = "#ffffff"; rr(ctx, x, y, cw, rh, 24); ctx.fill(); ctx.restore();
+    ctx.fillStyle = brand; rr(ctx, x + 28, y + rh / 2 - 34, 68, 68, 18); ctx.fill();
+    ctx.fillStyle = "#ffffff"; ctx.font = `800 34px ${SANS}`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(String(k + 1), x + 62, y + rh / 2 + 2); ctx.textAlign = "left"; ctx.textBaseline = "top";
+    const tw = cw - 160;
+    const t = fit(ctx, s.title, (z) => `800 ${z}px ${SANS}`, tw, rh - 50, 36, 22, 1.15);
+    ctx.fillStyle = deep;
+    const ty = y + (rh - t.lines.length * t.lh) / 2;
+    t.lines.forEach((l, j) => ctx.fillText(l, x + 125, ty + j * t.lh));
   });
   // Footer band
   ctx.fillStyle = deep; ctx.fillRect(0, H - 150, W, 150);
