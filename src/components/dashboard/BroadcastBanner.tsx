@@ -32,7 +32,7 @@ export default function BroadcastBanner() {
       if (!cancelled && data) {
         // We don't have event_key on notifications; filter on link/title heuristics is unreliable.
         // Surface unread system messages that look like broadcasts (no per-book link prefix).
-        const filtered = data.filter(n => !n.link || !/^\/books\//.test(n.link));
+        const filtered = data.filter(n => (!n.link || !/^\/books\//.test(n.link)) && !n.title.startsWith("Update available:"));
         setItems(filtered);
       }
     })();

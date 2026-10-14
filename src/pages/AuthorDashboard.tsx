@@ -45,6 +45,7 @@ import { useAuthorStats } from "@/hooks/useAuthorStats";
 import { useMyBooks } from "@/hooks/useMyBooks";
 import SuspendedAccountScreen from "@/components/dashboard/SuspendedAccountScreen";
 import BroadcastBanner from "@/components/dashboard/BroadcastBanner";
+import ModuleUpdatesDialog from "@/components/dashboard/ModuleUpdatesDialog";
 
 import { getActiveToken, fetchWithTimeout } from "@/lib/get-active-token";
 import { isSuperAdmin } from "@/lib/superadmin";
@@ -715,6 +716,7 @@ export default function AuthorDashboard({ initialSection }: { initialSection?: D
             </div>
           )}
           {!isBuilderActive && <BroadcastBanner />}
+          <ModuleUpdatesDialog />
           {renderSection()}
         </div>
       </div>
