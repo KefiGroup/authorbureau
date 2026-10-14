@@ -157,15 +157,17 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Idempotency: skip if a funnel already exists for this author + node (unless force)
+    // Idempotency: skip if a funnel already exists for this author + node + book
+    // (unless force). Book-scoped: a funnel for one book must never block or
+    // satisfy generation for another book of the same author.
     if (node_id && !force) {
-      const { data: existing } = await supabase
+      let eq = supabase
         .from('funnels')
         .select('id, slug, status')
         .eq('author_id', author_id)
-        .eq('node_id', node_id)
-        .limit(1)
-        .maybeSingle();
+        .eq('node_id', node_id);
+      eq = book_id ? eq.eq('book_id', book_id) : eq.is('book_id', null);
+      const { data: existing } = await eq.limit(1).maybeSingle();
       if (existing) {
         // Return the full funnel row so the client can render it immediately
         // instead of throwing "No funnel data returned".
@@ -184,13 +186,13 @@ Deno.serve(async (req) => {
     // fall back to mapping from funnel_type. This keeps the API backward-compatible.
     let archetype: Archetype = funnelTypeToArchetype(funnel_type);
     if (node_id) {
-      const { data: nodeRow } = await supabase
+      let nq = supabase
         .from('author_nodes')
         .select('archetype')
         .eq('author_id', author_id)
-        .eq('node_id', node_id)
-        .limit(1)
-        .maybeSingle();
+        .eq('node_id', node_id);
+      if (book_id) nq = nq.eq('book_id', book_id);
+      const { data: nodeRow } = await nq.limit(1).maybeSingle();
       if (nodeRow?.archetype && ['A', 'B', 'C', 'D'].includes(nodeRow.archetype)) {
         archetype = nodeRow.archetype as Archetype;
       }

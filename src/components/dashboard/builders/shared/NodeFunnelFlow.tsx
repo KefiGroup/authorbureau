@@ -141,7 +141,7 @@ export default function NodeFunnelFlow({
     setGenerating(true);
     const seedType =
       (effectiveArchetype && ARCHETYPE_TO_FUNNEL_TYPE[effectiveArchetype]) || "opt_in";
-    const { error } = await supabase.functions.invoke("generate-funnel", {
+    const { data, error } = await supabase.functions.invoke("generate-funnel", {
       body: { author_id: authorId, node_id: nodeId, book_id: bookId ?? null, funnel_type: seedType },
     });
     setGenerating(false);
@@ -149,7 +149,11 @@ export default function NodeFunnelFlow({
       toast({ title: "ABBY couldn't build the funnel", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Funnel created", description: "Your visual flow is ready below." });
+    toast(
+      data?.skipped
+        ? { title: "Funnel already exists", description: "This book already has a funnel — it's shown below." }
+        : { title: "Funnel created", description: "Your visual flow is ready below." },
+    );
     await fetchAll();
     onChanged?.();
   };
