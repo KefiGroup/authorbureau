@@ -38,6 +38,7 @@ import {
 } from "lucide-react";
 import GraphicLightbox from "./GraphicLightbox";
 import PulseChannelsPanel from "./PulseChannelsPanel";
+import TopicalDraftsPanel from "./TopicalDraftsPanel";
 import { callPulse } from "@/lib/pulse";
 import { Zap } from "lucide-react";
 import { toast } from "sonner";
@@ -756,6 +757,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     if (bp03Activated) {
       return (
         <div className="space-y-5">
+          <TopicalDraftsPanel bookId={bookId} onScheduled={() => load()} />
           <Card className="border-secondary/30 bg-gradient-to-br from-secondary/8 via-secondary/4 to-transparent">
             <CardContent className="p-6 flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary to-amber-500 flex items-center justify-center shrink-0 shadow-md">
@@ -815,6 +817,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     <div className="space-y-5 pb-8">
       {/* Optional Pulse automatic posting; copy-paste stays the default fallback. */}
       <PulseChannelsPanel onChange={setPulsePlatforms} />
+      <TopicalDraftsPanel bookId={bookId} onScheduled={() => load()} />
       {pulsePlatforms.length === 0 && (
       <div className="rounded-lg border border-teal-500/30 bg-teal-500/5 p-4 flex items-start gap-3">
         <Copy className="h-4 w-4 shrink-0 text-teal-600 mt-0.5" />

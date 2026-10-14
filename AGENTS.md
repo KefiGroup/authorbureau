@@ -9,3 +9,5 @@
 - BP-03 automatic posting goes only through the `pulse-social-sync` edge function (Pulse member external_id = author_profiles.id), and copy-paste/Mark as posted must always remain available, because the Pulse key is server-only, account slots are capped, and X is manual.
 - Module upgrades are announced via `src/lib/node-updates.ts` (version vs `content_json._engineVersion`, missing = 1), the shared NodeUpdateBanner in the builder, and a one-off `notifications` insert per stale book row; generators must stamp the current version, because authors need to know when a module they already built has a better version.
 - BP-03 carousels and cheat sheets are rendered client-side from saved post text only (carouselGraphic.ts, no AI call), because exports must never invent facts and must work offline.
+
+- BP-03 topical posts come only from `topical-social-engine` (curated RSS headline + book principle) and land as pending drafts; only author approval creates social_posts rows, because news-tied posts must never go out unreviewed or cite invented headlines.
