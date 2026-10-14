@@ -82,9 +82,9 @@ export default function ModuleUpdatesDialog() {
             return (
               <div key={g.title} className="rounded-lg border border-border p-4 space-y-3">
                 <p className="font-semibold">{g.title}</p>
-                {upd?.changes?.length ? (
+                {upd?.highlights?.length ? (
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-                    {upd.changes.map((c: string) => <li key={c}>{c}</li>)}
+                    {upd.highlights.map((c: string) => <li key={c}>{c}</li>)}
                   </ul>
                 ) : null}
                 <p className="text-xs uppercase tracking-wide text-muted-foreground">
