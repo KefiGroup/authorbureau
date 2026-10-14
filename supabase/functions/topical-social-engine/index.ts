@@ -143,10 +143,11 @@ Return JSON only: {"posts":[{"visual_format":"news_split","headline_index":0,"ho
     method: "POST",
     headers: { Authorization: `Bearer ${LOVABLE_API_KEY}`, "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: "openai/gpt-5.2",
+      model: "openai/gpt-6-astra",
+      reasoning_effort: "low",
       messages: [{ role: "system", content: "You are ABBY for Authors Bureau. Respond with valid JSON only." }, { role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      max_completion_tokens: 6000,
+      max_completion_tokens: 8000,
     }),
   }, "topical-social-engine");
   if (!resp.ok) {
