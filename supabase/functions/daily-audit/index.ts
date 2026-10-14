@@ -438,35 +438,23 @@ Deno.serve(async (req) => {
     ]);
     const { data: liveRows } = await admin
       .from("author_nodes")
-      .select("node_id, book_id, author_id, books!inner(slug), author_profiles!inner(author_slug)")
+      .select("node_id, book_id, author_id, books!inner(slug, published_at), author_profiles!inner(author_slug)")
       .eq("status", "live")
       .not("book_id", "is", null)
       .limit(400);
-    const base = Deno.env.get("SUPABASE_URL") ?? "";
-    const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+    // Checked in the database, not by calling get-microsite-page: nested
+    // function calls from this cron share one trace and hit the platform's
+    // per-trace rate limit, which reported every page as unreachable.
+    // Rendered pages are covered by the live Playwright crawl.
     const unreachable: Array<{ node_id: string; book: string; author: string; status: number }> = [];
-    const sample = (liveRows || []).slice(0, 120);
-    const probe = async (r: any) => {
+    const sample = liveRows || [];
+    for (const r of sample as any[]) {
       const author = r.author_profiles?.author_slug;
       const book = r.books?.slug;
-      if (!author || !book) return;
-      const attempt = () => fetch(`${base}/functions/v1/get-microsite-page?author=${encodeURIComponent(author)}&node=${encodeURIComponent(r.node_id)}&book=${encodeURIComponent(book)}`, {
-          headers: { apikey: anon, Authorization: `Bearer ${anon}` },
-        });
-      // One retry: a burst of parallel requests can drop a connection (status 0).
-      for (let i = 0; i < 2; i++) {
-        try {
-          const res = await attempt();
-          if (res.ok) { await res.body?.cancel(); return; }
-          if (i === 1) unreachable.push({ node_id: r.node_id, book, author, status: res.status });
-          else await res.body?.cancel();
-        } catch {
-          if (i === 1) unreachable.push({ node_id: r.node_id, book, author, status: 0 });
-        }
+      if (!author || !book || !r.books?.published_at) {
+        unreachable.push({ node_id: r.node_id, book: book || "(no slug)", author: author || "(no slug)", status: 0 });
       }
-    };
-    // Small batches so the check measures the pages, not connection limits.
-    for (let i = 0; i < sample.length; i += 8) await Promise.all(sample.slice(i, i + 8).map(probe));
+    }
     const leaks = (nodesNoBook || 0) + (funnelsNoBook || 0) + (postsNoBook || 0);
     const bad = leaks + unreachable.length;
     checks.push({
