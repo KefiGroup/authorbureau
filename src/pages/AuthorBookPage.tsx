@@ -595,7 +595,7 @@ export default function AuthorBookPage() {
           return `$${Math.min(...nums).toFixed(2)}`;
         })();
         const buyCta = lowest
-          ? { label: `Get the Book — ${lowest}`, to: "#book-hero" }
+          ? { label: `Get the Book: ${lowest}`, to: "#book-hero" }
           : null;
         return (
           <AuthorBrandedNav
@@ -1052,7 +1052,7 @@ export default function AuthorBookPage() {
                       Start Here
                     </span>
                     <p className="text-sm" style={{ color: v.bodyText }}>
-                      New to {authorFirstName}? Begin with <strong style={{ color: v.headingText }}>{entryTitle}</strong> ({entryPrice}) — the easiest way to get started and grow from there.
+                      New to {authorFirstName}? Begin with <strong style={{ color: v.headingText }}>{entryTitle}</strong> ({entryPrice}), the easiest way to get started and grow from there.
                     </p>
                   </div>
                 </div>
