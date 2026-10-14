@@ -312,13 +312,21 @@ export async function renderSocialGraphic(args: RenderArgs): Promise<Blob> {
   ctx.strokeStyle = card ? brand : "rgba(255,255,255,0.8)"; ctx.lineWidth = Math.max(2, av * 0.05);
   ctx.beginPath(); ctx.arc(pad + av / 2, fy, av / 2, 0, Math.PI * 2); ctx.stroke();
   ctx.textAlign = "left"; ctx.textBaseline = "middle";
-  ctx.font = `700 ${Math.round(av * 0.34)}px ${SANS}`; ctx.fillStyle = card ? deep : "#ffffff";
-  ctx.fillText(name, pad + av + pad * 0.3, fy);
+  const nameFont = `700 ${Math.round(av * 0.34)}px ${SANS}`;
+  ctx.font = nameFont;
+  const nameEnd = pad + av + pad * 0.3 + ctx.measureText(name).width + pad * 0.4;
 
-  const cSize = Math.round(m * 0.03);
-  ctx.font = `800 ${cSize}px ${SANS}`;
+  let cSize = Math.round(m * 0.03);
   const label = `${ctaText}  \u2192`;
+  ctx.font = `800 ${cSize}px ${SANS}`;
+  while (cSize > m * 0.02 && ctx.measureText(label).width + cSize * 2 > w - pad - nameEnd) {
+    cSize -= 1; ctx.font = `800 ${cSize}px ${SANS}`;
+  }
   const pw2 = ctx.measureText(label).width + cSize * 2;
+  if (w - pad - pw2 >= nameEnd) {
+    const f = ctx.font; ctx.font = nameFont; ctx.fillStyle = card ? deep : "#ffffff";
+    ctx.textAlign = "left"; ctx.fillText(name, pad + av + pad * 0.3, fy); ctx.font = f;
+  }
   const ph2 = cSize * 2.3;
   const px2 = w - pad - pw2;
   ctx.fillStyle = accent;
