@@ -757,6 +757,7 @@ export default function SocialCalendarTab({ authorId, bookId = null }: Props) {
     if (bp03Activated) {
       return (
         <div className="space-y-5">
+          <TopicalDraftsPanel bookId={bookId} onScheduled={() => load()} />
           <Card className="border-secondary/30 bg-gradient-to-br from-secondary/8 via-secondary/4 to-transparent">
             <CardContent className="p-6 flex items-start gap-4">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-secondary to-amber-500 flex items-center justify-center shrink-0 shadow-md">
