@@ -5807,6 +5807,114 @@ export type Database = {
           },
         ]
       }
+      topical_engine_state: {
+        Row: {
+          id: string
+          last_result: Json | null
+          last_run_at: string | null
+          lock_until: string | null
+          paused_reason: string | null
+        }
+        Insert: {
+          id: string
+          last_result?: Json | null
+          last_run_at?: string | null
+          lock_until?: string | null
+          paused_reason?: string | null
+        }
+        Update: {
+          id?: string
+          last_result?: Json | null
+          last_run_at?: string | null
+          lock_until?: string | null
+          paused_reason?: string | null
+        }
+        Relationships: []
+      }
+      topical_social_drafts: {
+        Row: {
+          archetype: string
+          author_id: string
+          book_anchor: string | null
+          book_id: string
+          content: string
+          created_at: string
+          cta: string | null
+          hook: string | null
+          id: string
+          news_source: string | null
+          news_title: string | null
+          news_url: string | null
+          platform: string
+          post_index: number
+          social_post_id: string | null
+          status: string
+          suggested_at: string | null
+          updated_at: string
+          visual_format: string
+          week_key: string
+        }
+        Insert: {
+          archetype: string
+          author_id: string
+          book_anchor?: string | null
+          book_id: string
+          content: string
+          created_at?: string
+          cta?: string | null
+          hook?: string | null
+          id?: string
+          news_source?: string | null
+          news_title?: string | null
+          news_url?: string | null
+          platform: string
+          post_index: number
+          social_post_id?: string | null
+          status?: string
+          suggested_at?: string | null
+          updated_at?: string
+          visual_format: string
+          week_key: string
+        }
+        Update: {
+          archetype?: string
+          author_id?: string
+          book_anchor?: string | null
+          book_id?: string
+          content?: string
+          created_at?: string
+          cta?: string | null
+          hook?: string | null
+          id?: string
+          news_source?: string | null
+          news_title?: string | null
+          news_url?: string | null
+          platform?: string
+          post_index?: number
+          social_post_id?: string | null
+          status?: string
+          suggested_at?: string | null
+          updated_at?: string
+          visual_format?: string
+          week_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "topical_social_drafts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "topical_social_drafts_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_deliverables: {
         Row: {
           content: string | null
