@@ -849,7 +849,7 @@ function AuthorWebsitePage({ data, content, v, hFont, bgColor, onSubmit, email, 
           </div>
           <div className="flex justify-center">
             {data.author.photo_url && (
-              <img src={data.author.photo_url} alt={data.author.pen_name} className="w-48 h-48 sm:w-64 sm:h-64 rounded-2xl object-cover shadow-xl" />
+              <img src={data.author.photo_url} alt={data.author.pen_name} className="w-56 sm:w-72 h-auto max-h-[22rem] rounded-2xl object-contain object-top shadow-xl" />
             )}
           </div>
         </div>
