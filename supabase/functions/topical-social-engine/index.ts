@@ -162,7 +162,8 @@ Return JSON only: {"posts":[{"visual_format":"news_split","headline_index":0,"ho
   if (!posts.length) return { book_id: bookId, skipped: "ai_empty" };
 
   const bookUrl = profile.author_slug && ctxB.book?.slug ? `${SITE}/${profile.author_slug}/${ctxB.book.slug}` : null;
-  const monday = new Date(wk + "T01:00:00Z"); // 09:00 Singapore
+  const tomorrow = new Date(); tomorrow.setUTCDate(tomorrow.getUTCDate() + 1); tomorrow.setUTCHours(1, 0, 0, 0);
+  const monday = new Date(Math.max(Date.parse(wk + "T01:00:00Z"), tomorrow.getTime())); // 09:00 Singapore, never in the past
   const rows = posts.slice(0, 5).map((p, i) => {
     const n = items[p.headline_index];
     const when = new Date(monday.getTime() + i * 86400_000);
