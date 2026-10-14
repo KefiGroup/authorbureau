@@ -42,6 +42,7 @@ import AnalyseBookGate from "@/components/dashboard/builders/_shared/AnalyseBook
 import { buildBp03Txt } from "@/lib/build-library-txt";
 import { autosaveBuilderDraft } from "@/lib/builder-autosave";
 import { resolveBookTitle } from "@/lib/resolve-book-title";
+import NodeUpdateBanner from "@/components/dashboard/builders/shared/NodeUpdateBanner";
 
 const STEPS = ["Introduction", "Generating", "Review", "Send to Calendar"];
 
@@ -602,6 +603,15 @@ export default function BP03Builder({ authorId, bookId }: Props) {
 
         {step === 2 && content && (
           <>
+            {authorId && (
+              <NodeUpdateBanner
+                nodeId="BP-03"
+                authorId={authorId}
+                bookId={activeBookId}
+                contentJson={content}
+                onAcknowledged={(next) => setContent(next)}
+              />
+            )}
             {(content as any)?.source === "BP-02" && (
               <Card className="p-4 border-teal-300 dark:border-teal-700 bg-teal-50/50 dark:bg-teal-950/30">
                 <div className="flex gap-3 items-start">
